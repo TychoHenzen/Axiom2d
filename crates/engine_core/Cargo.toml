@@ -1,0 +1,8 @@
+[package]
+name = "engine_core"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+glam = { workspace = true }
+thiserror = { workspace = true }

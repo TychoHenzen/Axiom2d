@@ -1,6 +1,11 @@
-[package]
-name = "Axiom2d"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = ["crates/*"]
+resolver = "3"
 
-[dependencies]
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+
+[workspace.dependencies]
+glam = "0.29"
+thiserror = "2.0"
