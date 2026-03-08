@@ -21,7 +21,7 @@ cargo.exe clippy             # Lint (when configured)
 
 Always use `cargo.exe` (not `cargo`) since the Rust toolchain is Windows-only. The same applies to `rustc.exe`, `rustfmt.exe`, etc.
 
-The project uses Rust edition 2024. No external dependencies have been added yet.
+The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors).
 
 ### WSL/Windows Gotchas
 
@@ -60,6 +60,9 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 
 ## Testing Strategy
 
+- Test naming: `when_action_then_outcome` hybrid style (skip `given_` when precondition is obvious)
+- Test body structure: `// Arrange` / `// Act` / `// Assert` section markers
+- Inline `#[cfg(test)] mod tests` in each source file — no separate test files
 - Deterministic game loop: fixed timestep, injectable mock time, seeded RNG (`ChaCha8Rng`)
 - Use `BTreeMap` or fixed-seed `ahash` instead of `HashMap` where iteration order matters
 - Property-based testing with `proptest` for physics invariants, serialization roundtrips, ECS invariants
