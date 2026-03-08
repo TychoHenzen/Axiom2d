@@ -1,1 +1,29 @@
+# Rust / Cargo
 /target
+**/*.rs.bk
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor swap/backup files
+*~
+*.swp
+*.swo
+
+# Environment
+.env
+.env.*
+
+# Profiling / debugging
+perf.data
+perf.data.old
+flamegraph.svg
+callgrind.out.*
+*.pdb
