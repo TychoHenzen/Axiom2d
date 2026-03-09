@@ -1,0 +1,18 @@
+# Mutants that require real hardware (GPU, winit event loop) and cannot be
+# killed by unit tests. Excluded so the CI mutation testing job succeeds.
+exclude_re = [
+    # demo binary entry point — no unit test surface
+    "crates/demo/",
+    # App::run blocks on EventLoop — untestable
+    "replace App::run with",
+    # ApplicationHandler methods require ActiveEventLoop (no public constructor)
+    "replace <impl ApplicationHandler for App>::resumed with",
+    "replace <impl ApplicationHandler for App>::window_event with",
+    "replace <impl ApplicationHandler for App>::about_to_wait with",
+    # window_event match arms — dispatcher requires ActiveEventLoop
+    "delete match arm WindowEvent::CloseRequested",
+    "delete match arm WindowEvent::Resized",
+    "delete match arm WindowEvent::RedrawRequested",
+    # WgpuRenderer methods require a live GPU device
+    "<impl Renderer for WgpuRenderer>",
+]

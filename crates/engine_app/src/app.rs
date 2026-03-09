@@ -51,6 +51,26 @@ impl App {
         self.plugin_count
     }
 
+    pub(crate) fn set_renderer(&mut self, renderer: Box<dyn Renderer>) {
+        self.renderer = Some(renderer);
+    }
+
+    pub(crate) fn handle_resize(&mut self, width: u32, height: u32) {
+        if let Some(renderer) = &mut self.renderer {
+            renderer.resize(width, height);
+        }
+    }
+
+    pub(crate) fn handle_redraw(&mut self) {
+        let Self { renderer, render_fn, .. } = self;
+        if let Some(renderer) = renderer {
+            if let Some(f) = render_fn {
+                f(renderer.as_mut());
+            }
+            renderer.present();
+        }
+    }
+
     pub fn run(&mut self) {
         let event_loop = EventLoop::new().unwrap();
         event_loop.run_app(self).unwrap();
@@ -82,24 +102,8 @@ impl ApplicationHandler for App {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
-            WindowEvent::Resized(size) => {
-                if let Some(renderer) = &mut self.renderer {
-                    renderer.resize(size.width, size.height);
-                }
-            }
-            WindowEvent::RedrawRequested => {
-                let Self {
-                    renderer,
-                    render_fn,
-                    ..
-                } = self;
-                if let Some(renderer) = renderer {
-                    if let Some(f) = render_fn {
-                        f(renderer.as_mut());
-                    }
-                    renderer.present();
-                }
-            }
+            WindowEvent::Resized(size) => self.handle_resize(size.width, size.height),
+            WindowEvent::RedrawRequested => self.handle_redraw(),
             _ => {}
         }
     }
@@ -115,7 +119,39 @@ impl ApplicationHandler for App {
 mod tests {
     use super::*;
     use std::cell::Cell;
+    use std::cell::RefCell;
     use std::rc::Rc;
+
+    use engine_core::color::Color;
+    use engine_render::rect::Rect;
+
+    struct SpyRenderer {
+        log: Rc<RefCell<Vec<String>>>,
+    }
+
+    impl SpyRenderer {
+        fn new(log: Rc<RefCell<Vec<String>>>) -> Self {
+            Self { log }
+        }
+    }
+
+    impl engine_render::renderer::Renderer for SpyRenderer {
+        fn clear(&mut self, _color: Color) {
+            self.log.borrow_mut().push("clear".into());
+        }
+
+        fn draw_rect(&mut self, _rect: Rect) {
+            self.log.borrow_mut().push("draw_rect".into());
+        }
+
+        fn present(&mut self) {
+            self.log.borrow_mut().push("present".into());
+        }
+
+        fn resize(&mut self, _width: u32, _height: u32) {
+            self.log.borrow_mut().push("resize".into());
+        }
+    }
 
     #[test]
     fn when_app_new_called_then_plugin_count_is_zero() {
@@ -218,5 +254,56 @@ mod tests {
 
         // Assert
         assert_eq!(app.window_config, config);
+    }
+
+    #[test]
+    fn when_on_render_called_then_callback_receives_renderer_on_redraw() {
+        // Arrange
+        let log: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
+        let spy = SpyRenderer::new(Rc::clone(&log));
+
+        let mut app = App::new();
+        app.on_render(move |r| {
+            r.clear(Color::BLACK);
+        });
+        app.set_renderer(Box::new(spy));
+
+        // Act
+        app.handle_redraw();
+
+        // Assert
+        assert!(log.borrow().contains(&"clear".to_string()));
+    }
+
+    #[test]
+    fn when_handle_redraw_called_without_render_fn_then_present_still_called() {
+        // Arrange
+        let log: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
+        let spy = SpyRenderer::new(Rc::clone(&log));
+
+        let mut app = App::new();
+        app.set_renderer(Box::new(spy));
+
+        // Act
+        app.handle_redraw();
+
+        // Assert
+        assert_eq!(log.borrow().as_slice(), &["present".to_string()]);
+    }
+
+    #[test]
+    fn when_handle_resize_called_then_renderer_resize_is_called() {
+        // Arrange
+        let log: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
+        let spy = SpyRenderer::new(Rc::clone(&log));
+
+        let mut app = App::new();
+        app.set_renderer(Box::new(spy));
+
+        // Act
+        app.handle_resize(1024, 768);
+
+        // Assert
+        assert!(log.borrow().contains(&"resize".to_string()));
     }
 }
