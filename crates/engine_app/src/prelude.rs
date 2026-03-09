@@ -1,4 +1,5 @@
 pub use crate::app::{App, Plugin};
+pub use engine_ecs::prelude::{Phase, World};
 
 #[cfg(test)]
 mod tests {

@@ -5,3 +5,4 @@ version.workspace = true
 
 [dependencies]
 axiom2d = { path = "../axiom2d" }
+bevy_ecs = { workspace = true }
