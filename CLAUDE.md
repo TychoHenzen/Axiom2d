@@ -91,6 +91,11 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **SpawnChildExt** (`engine_scene::spawn_child`): Extension trait on `World`. `spawn_child(parent: Entity, bundle: impl Bundle) -> Entity` — spawns a new entity with ChildOf(parent) plus the provided bundle.
 - **GlobalTransform2D** (`engine_scene::transform_propagation`): `#[derive(Component)]` newtype wrapping `Affine2`. Engine-computed world-space transform. Written by `transform_propagation_system`, never by users directly.
 - **transform_propagation_system** (`engine_scene::transform_propagation`): Walks hierarchy from roots (no ChildOf) down through Children. Root: copies `Transform2D.to_affine2()` → GlobalTransform2D. Children: `parent.GlobalTransform2D * child.Transform2D.to_affine2()`. Registered in `Phase::PostUpdate` (after hierarchy_maintenance_system).
+- **Visible** (`engine_scene::visibility`): `#[derive(Component)]` newtype wrapping `bool`. Default is `true`. User-facing: attach to entities to control visibility. Entities without Visible are treated as visible.
+- **EffectiveVisibility** (`engine_scene::visibility`): `#[derive(Component)]` newtype wrapping `bool`. Engine-computed inherited visibility. Written by `visibility_system`, never by users directly. `parent_effective && child_visible` (AND logic).
+- **visibility_system** (`engine_scene::visibility`): Walks hierarchy from roots (no ChildOf) down through Children. Root: `EffectiveVisibility = Visible` (or true if absent). Children: `parent_effective AND child_visible`. Registered in `Phase::PostUpdate` (after hierarchy_maintenance_system).
+- **RenderLayer** (`engine_scene::render_order`): Enum with variants `Background`, `World`, `Characters`, `Foreground`, `UI` — declaration order IS render order via `#[derive(Ord)]`. Derives Component, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord.
+- **SortOrder** (`engine_scene::render_order`): `#[derive(Component, Default)]` newtype wrapping `i32`. Ordering within a RenderLayer. Default is 0. No clamping — negative values allowed. Used with RenderLayer as `(RenderLayer, SortOrder)` tuple sort for deterministic draw order.
 
 ### Scheduling Phases
 

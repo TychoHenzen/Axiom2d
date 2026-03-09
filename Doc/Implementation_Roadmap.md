@@ -4,9 +4,9 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (27 tests), engine_ecs (7 tests), engine_render (13 tests), engine_app (30 tests), engine_input (28 tests), engine_scene (24 tests), axiom2d facade (0 tests), demo (9 tests). Total: 138 tests.
+**Implemented crates:** engine_core (27 tests), engine_ecs (7 tests), engine_render (16 tests), engine_app (30 tests), engine_input (28 tests), engine_scene (39 tests), axiom2d facade (0 tests), demo (9 tests). Total: 156 tests.
 
-**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy.
+**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy, Visibility system (Visible/EffectiveVisibility) with hierarchy inheritance, RenderLayer enum + SortOrder for deterministic render ordering.
 
 **Placeholder crates (empty):** engine_audio, engine_physics, engine_assets, engine_ui.
 
@@ -80,14 +80,14 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 - [x] Tests: single entity propagation, 2-level hierarchy, 3-level hierarchy, siblings, scale interaction, re-run update
 - [x] `Transform2D` now derives `Component` (was plain struct)
 
-### Step 2.3 — Visibility & Render Ordering `[NOT STARTED]`
+### Step 2.3 — Visibility & Render Ordering `[DONE]`
 **Crate:** engine_scene
 
-- [ ] `Visible(bool)` component — default true, inherited through hierarchy
-- [ ] `RenderLayer` enum: Background, World, Characters, Foreground, UI
-- [ ] `SortOrder(i32)` component — ordering within a layer
-- [ ] `visibility_system` in PostUpdate — computes effective visibility from hierarchy
-- [ ] Tests: hidden parent hides children, layer+sort ordering is deterministic
+- [x] `Visible(bool)` component — default true, inherited through hierarchy
+- [x] `RenderLayer` enum: Background, World, Characters, Foreground, UI
+- [x] `SortOrder(i32)` component — ordering within a layer
+- [x] `visibility_system` in PostUpdate — computes effective visibility from hierarchy
+- [x] Tests: hidden parent hides children, layer+sort ordering is deterministic
 
 ---
 
