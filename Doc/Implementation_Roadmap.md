@@ -4,11 +4,11 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (49 tests), engine_ecs (10 tests), engine_render (25 tests), engine_app (31 tests), axiom2d facade (2 tests), demo (11 tests). Total: 128 tests.
+**Implemented crates:** engine_core (49 tests), engine_ecs (10 tests), engine_render (25 tests), engine_app (34 tests), engine_input (20 tests), axiom2d facade (2 tests), demo (9 tests). Total: 149 tests.
 
-**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, bouncing rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate.
+**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS.
 
-**Placeholder crates (empty):** engine_input, engine_audio, engine_physics, engine_scene, engine_assets, engine_ui.
+**Placeholder crates (empty):** engine_audio, engine_physics, engine_scene, engine_assets, engine_ui.
 
 ---
 
@@ -25,17 +25,19 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 - [x] Update demo to multiply velocity by DeltaTime instead of per-frame constants
 - [x] Tests: deterministic time with FakeClock, accumulator behavior
 
-### Step 1.2 — Input State (Keyboard + Mouse) `[NOT STARTED]`
+### Step 1.2 — Input State (Keyboard + Mouse) `[DONE]`
 **Crate:** engine_input
 **Deps:** winit (already in workspace)
 
-- [ ] `KeyCode` enum (mirror winit's key codes or re-export)
-- [ ] `InputState` resource: `pressed(KeyCode) -> bool`, `just_pressed()`, `just_released()`
-- [ ] `MouseState` resource: position (Pixels, Pixels), button states, scroll delta
-- [ ] `input_system` in Phase::Input — reads buffered winit events, updates InputState/MouseState
-- [ ] Programmatic population for testing (no hardware needed)
-- [ ] Add engine_input to axiom2d facade re-exports
-- [ ] Tests: press/release tracking, just_pressed lasts one frame, mouse position updates
+- [x] `KeyCode` enum (re-exported from winit::keyboard::KeyCode)
+- [x] `InputState` resource: `pressed(KeyCode) -> bool`, `just_pressed()`, `just_released()`
+- [ ] `MouseState` resource: position (Pixels, Pixels), button states, scroll delta *(deferred — keyboard-only for now)*
+- [x] `input_system` in Phase::Input — reads buffered winit events via `InputEventBuffer`, updates InputState
+- [x] Programmatic population for testing (`press()`/`release()` methods, no hardware needed)
+- [x] Add engine_input to axiom2d facade re-exports
+- [x] Tests: press/release tracking, just_pressed lasts one frame *(mouse tests deferred with MouseState)*
+- [x] App bridges winit `KeyboardInput` events to `InputEventBuffer` via `handle_key_event()`
+- [x] Demo updated: keyboard-controlled rectangle (arrow keys) replaces auto-bounce
 
 ### Step 1.3 — Action Mapping `[NOT STARTED]`
 **Crate:** engine_input

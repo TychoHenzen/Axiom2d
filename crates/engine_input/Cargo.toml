@@ -4,3 +4,5 @@ edition.workspace = true
 version.workspace = true
 
 [dependencies]
+bevy_ecs = { workspace = true }
+winit = { workspace = true }

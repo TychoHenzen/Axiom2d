@@ -156,6 +156,7 @@ dependencies = [
  "engine_app",
  "engine_core",
  "engine_ecs",
+ "engine_input",
  "engine_render",
 ]
 
@@ -621,6 +622,7 @@ dependencies = [
  "bevy_ecs",
  "engine_core",
  "engine_ecs",
+ "engine_input",
  "engine_render",
  "winit",
 ]
@@ -652,6 +654,10 @@ dependencies = [
 [[package]]
 name = "engine_input"
 version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "winit",
+]
 
 [[package]]
 name = "engine_physics"

@@ -29,25 +29,25 @@ fn render_rect(
     }
 }
 
-fn bounce_rect(
-    mut query: Query<(&Position, &mut Velocity)>,
-    bounds: Res<WindowSize>,
-    rect_size: Res<RectSize>,
-) {
-    for (pos, mut vel) in &mut query {
-        if pos.x + rect_size.width >= bounds.width || pos.x <= Pixels(0.0) {
-            vel.dx = Pixels(-vel.dx.0);
-        }
-        if pos.y + rect_size.height >= bounds.height || pos.y <= Pixels(0.0) {
-            vel.dy = Pixels(-vel.dy.0);
-        }
-    }
-}
+const PLAYER_SPEED: f32 = 300.0;
 
-fn move_rect(mut query: Query<(&mut Position, &Velocity)>, dt: Res<DeltaTime>) {
-    for (mut pos, vel) in &mut query {
-        pos.x = pos.x + Pixels(vel.dx.0 * dt.0.0);
-        pos.y = pos.y + Pixels(vel.dy.0 * dt.0.0);
+fn player_control(
+    mut query: Query<&mut Position>,
+    input: Res<InputState>,
+    dt: Res<DeltaTime>,
+) {
+    let mut dx = 0.0;
+    let mut dy = 0.0;
+
+    if input.pressed(KeyCode::ArrowRight) { dx += 1.0; }
+    if input.pressed(KeyCode::ArrowLeft) { dx -= 1.0; }
+    if input.pressed(KeyCode::ArrowDown) { dy += 1.0; }
+    if input.pressed(KeyCode::ArrowUp) { dy -= 1.0; }
+
+    let displacement = PLAYER_SPEED * dt.0.0;
+    for mut pos in &mut query {
+        pos.x = pos.x + Pixels(dx * displacement);
+        pos.y = pos.y + Pixels(dy * displacement);
     }
 }
 
@@ -58,16 +58,18 @@ fn setup(app: &mut App) {
     };
     app.world_mut().insert_resource(FrameCount::default());
     app.world_mut().insert_resource(ClearColor::default());
+    app.world_mut().insert_resource(InputState::default());
+    app.world_mut().insert_resource(InputEventBuffer::default());
+    app.world_mut().insert_resource(ClockRes::new(Box::new(SystemClock::new())));
     app.world_mut().insert_resource(RectSize {
         width: Pixels(300.0),
         height: Pixels(200.0),
     });
-    app.world_mut().spawn((
-        Position { x: Pixels(490.0), y: Pixels(260.0) },
-        Velocity { dx: Pixels(240.0), dy: Pixels(180.0) },
-    ));
+    app.world_mut().spawn(Position { x: Pixels(490.0), y: Pixels(260.0) });
     app.set_window_config(config)
-        .add_systems(Phase::Update, (count_frames, move_rect, bounce_rect))
+        .add_systems(Phase::Input, input_system)
+        .add_systems(Phase::PreUpdate, time_system)
+        .add_systems(Phase::Update, (count_frames, player_control))
         .add_systems(Phase::Render, (clear_system, render_rect).chain());
 }
 
@@ -85,23 +87,21 @@ mod tests {
 
     use super::*;
 
-    fn spawn_entity(world: &mut World, pos: Position, vel: Velocity) {
-        world.spawn((pos, vel));
-        world.insert_resource(WindowSize { width: Pixels(1280.0), height: Pixels(720.0) });
-        world.insert_resource(RectSize { width: Pixels(300.0), height: Pixels(200.0) });
+    fn setup_control_world() -> World {
+        let mut world = World::new();
+        world.insert_resource(InputState::default());
+        world.insert_resource(DeltaTime(Seconds(1.0)));
+        world.spawn(Position { x: Pixels(400.0), y: Pixels(300.0) });
+        world
     }
 
     #[test]
-    fn when_move_system_runs_then_position_advances_by_velocity_scaled_by_delta() {
+    fn when_right_held_then_position_moves_right() {
         // Arrange
-        let mut world = World::new();
-        world.insert_resource(DeltaTime(Seconds(0.016)));
-        world.spawn((
-            Position { x: Pixels(100.0), y: Pixels(50.0) },
-            Velocity { dx: Pixels(200.0), dy: Pixels(100.0) },
-        ));
+        let mut world = setup_control_world();
+        world.resource_mut::<InputState>().press(KeyCode::ArrowRight);
         let mut schedule = Schedule::default();
-        schedule.add_systems(move_rect);
+        schedule.add_systems(player_control);
 
         // Act
         schedule.run(&mut world);
@@ -109,21 +109,16 @@ mod tests {
         // Assert
         let mut query = world.query::<&Position>();
         let pos = query.single(&world).unwrap();
-        assert!((pos.x.0 - 103.2).abs() < f32::EPSILON * 100.0);
-        assert!((pos.y.0 - 51.6).abs() < f32::EPSILON * 100.0);
+        assert_eq!(pos.x, Pixels(400.0 + PLAYER_SPEED));
     }
 
     #[test]
-    fn when_move_system_runs_with_zero_delta_then_position_unchanged() {
+    fn when_left_held_then_position_moves_left() {
         // Arrange
-        let mut world = World::new();
-        world.insert_resource(DeltaTime(Seconds(0.0)));
-        world.spawn((
-            Position { x: Pixels(490.0), y: Pixels(260.0) },
-            Velocity { dx: Pixels(240.0), dy: Pixels(180.0) },
-        ));
+        let mut world = setup_control_world();
+        world.resource_mut::<InputState>().press(KeyCode::ArrowLeft);
         let mut schedule = Schedule::default();
-        schedule.add_systems(move_rect);
+        schedule.add_systems(player_control);
 
         // Act
         schedule.run(&mut world);
@@ -131,114 +126,76 @@ mod tests {
         // Assert
         let mut query = world.query::<&Position>();
         let pos = query.single(&world).unwrap();
-        assert_eq!(pos.x, Pixels(490.0));
-        assert_eq!(pos.y, Pixels(260.0));
+        assert_eq!(pos.x, Pixels(400.0 - PLAYER_SPEED));
     }
 
     #[test]
-    fn when_position_reaches_right_edge_then_velocity_dx_reverses() {
+    fn when_up_held_then_position_moves_up() {
         // Arrange
-        let mut world = World::new();
-        spawn_entity(
-            &mut world,
-            Position { x: Pixels(990.0), y: Pixels(100.0) },
-            Velocity { dx: Pixels(10.0), dy: Pixels(0.0) },
-        );
+        let mut world = setup_control_world();
+        world.resource_mut::<InputState>().press(KeyCode::ArrowUp);
         let mut schedule = Schedule::default();
-        schedule.add_systems(bounce_rect);
+        schedule.add_systems(player_control);
 
         // Act
         schedule.run(&mut world);
 
         // Assert
-        let mut query = world.query::<&Velocity>();
-        let vel = query.single(&world).unwrap();
-        assert_eq!(vel.dx, Pixels(-10.0));
+        let mut query = world.query::<&Position>();
+        let pos = query.single(&world).unwrap();
+        assert_eq!(pos.y, Pixels(300.0 - PLAYER_SPEED));
     }
 
     #[test]
-    fn when_position_reaches_left_edge_then_velocity_dx_reverses() {
+    fn when_down_held_then_position_moves_down() {
         // Arrange
-        let mut world = World::new();
-        spawn_entity(
-            &mut world,
-            Position { x: Pixels(-5.0), y: Pixels(100.0) },
-            Velocity { dx: Pixels(-10.0), dy: Pixels(0.0) },
-        );
+        let mut world = setup_control_world();
+        world.resource_mut::<InputState>().press(KeyCode::ArrowDown);
         let mut schedule = Schedule::default();
-        schedule.add_systems(bounce_rect);
+        schedule.add_systems(player_control);
 
         // Act
         schedule.run(&mut world);
 
         // Assert
-        let mut query = world.query::<&Velocity>();
-        let vel = query.single(&world).unwrap();
-        assert_eq!(vel.dx, Pixels(10.0));
+        let mut query = world.query::<&Position>();
+        let pos = query.single(&world).unwrap();
+        assert_eq!(pos.y, Pixels(300.0 + PLAYER_SPEED));
     }
 
     #[test]
-    fn when_position_reaches_bottom_edge_then_velocity_dy_reverses() {
+    fn when_no_keys_held_then_position_unchanged() {
         // Arrange
-        let mut world = World::new();
-        spawn_entity(
-            &mut world,
-            Position { x: Pixels(100.0), y: Pixels(525.0) },
-            Velocity { dx: Pixels(0.0), dy: Pixels(10.0) },
-        );
+        let mut world = setup_control_world();
         let mut schedule = Schedule::default();
-        schedule.add_systems(bounce_rect);
+        schedule.add_systems(player_control);
 
         // Act
         schedule.run(&mut world);
 
         // Assert
-        let mut query = world.query::<&Velocity>();
-        let vel = query.single(&world).unwrap();
-        assert_eq!(vel.dy, Pixels(-10.0));
+        let mut query = world.query::<&Position>();
+        let pos = query.single(&world).unwrap();
+        assert_eq!(pos.x, Pixels(400.0));
+        assert_eq!(pos.y, Pixels(300.0));
     }
 
     #[test]
-    fn when_position_reaches_top_edge_then_velocity_dy_reverses() {
+    fn when_opposite_keys_held_then_position_unchanged() {
         // Arrange
-        let mut world = World::new();
-        spawn_entity(
-            &mut world,
-            Position { x: Pixels(100.0), y: Pixels(-5.0) },
-            Velocity { dx: Pixels(0.0), dy: Pixels(-10.0) },
-        );
+        let mut world = setup_control_world();
+        world.resource_mut::<InputState>().press(KeyCode::ArrowLeft);
+        world.resource_mut::<InputState>().press(KeyCode::ArrowRight);
         let mut schedule = Schedule::default();
-        schedule.add_systems(bounce_rect);
+        schedule.add_systems(player_control);
 
         // Act
         schedule.run(&mut world);
 
         // Assert
-        let mut query = world.query::<&Velocity>();
-        let vel = query.single(&world).unwrap();
-        assert_eq!(vel.dy, Pixels(10.0));
-    }
-
-    #[test]
-    fn when_position_is_mid_screen_then_velocity_unchanged() {
-        // Arrange
-        let mut world = World::new();
-        spawn_entity(
-            &mut world,
-            Position { x: Pixels(400.0), y: Pixels(300.0) },
-            Velocity { dx: Pixels(5.0), dy: Pixels(3.0) },
-        );
-        let mut schedule = Schedule::default();
-        schedule.add_systems(bounce_rect);
-
-        // Act
-        schedule.run(&mut world);
-
-        // Assert
-        let mut query = world.query::<&Velocity>();
-        let vel = query.single(&world).unwrap();
-        assert_eq!(vel.dx, Pixels(5.0));
-        assert_eq!(vel.dy, Pixels(3.0));
+        let mut query = world.query::<&Position>();
+        let pos = query.single(&world).unwrap();
+        assert_eq!(pos.x, Pixels(400.0));
     }
 
     #[test]
@@ -273,7 +230,8 @@ mod tests {
         assert!(world.get_resource::<WindowSize>().is_some());
         assert!(world.get_resource::<ClearColor>().is_some());
         assert!(world.get_resource::<RectSize>().is_some());
-        let mut query = world.query::<(&Position, &Velocity)>();
+        assert!(world.get_resource::<InputState>().is_some());
+        let mut query = world.query::<&Position>();
         assert_eq!(query.iter(world).count(), 1);
     }
 
@@ -303,27 +261,5 @@ mod tests {
         let calls = log.lock().unwrap();
         assert_eq!(calls[0], "clear");
         assert_eq!(calls[1], "draw_rect");
-    }
-
-    #[test]
-    fn when_demo_runs_one_frame_then_position_changes() {
-        // Arrange
-        let mut world = World::new();
-        world.insert_resource(DeltaTime(Seconds(0.016)));
-        spawn_entity(
-            &mut world,
-            Position { x: Pixels(490.0), y: Pixels(260.0) },
-            Velocity { dx: Pixels(240.0), dy: Pixels(180.0) },
-        );
-        let mut schedule = Schedule::default();
-        schedule.add_systems((move_rect, bounce_rect));
-
-        // Act
-        schedule.run(&mut world);
-
-        // Assert
-        let mut query = world.query::<&Position>();
-        let pos = query.single(&world).unwrap();
-        assert_ne!(pos.x, Pixels(490.0));
     }
 }

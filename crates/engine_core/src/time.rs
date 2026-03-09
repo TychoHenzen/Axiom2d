@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use bevy_ecs::prelude::{Res, ResMut, Resource};
+use bevy_ecs::prelude::{ResMut, Resource};
 
 use crate::types::Seconds;
 
@@ -14,28 +14,30 @@ impl Default for DeltaTime {
 }
 
 pub trait Time: Send + Sync {
-    fn elapsed(&self) -> Seconds;
+    fn delta(&mut self) -> Seconds;
 }
 
 pub struct FakeClock {
-    elapsed: Seconds,
+    pending: Seconds,
 }
 
 impl FakeClock {
     pub fn new() -> Self {
         Self {
-            elapsed: Seconds(0.0),
+            pending: Seconds(0.0),
         }
     }
 
     pub fn advance(&mut self, dt: Seconds) {
-        self.elapsed = self.elapsed + dt;
+        self.pending = self.pending + dt;
     }
 }
 
 impl Time for FakeClock {
-    fn elapsed(&self) -> Seconds {
-        self.elapsed
+    fn delta(&mut self) -> Seconds {
+        let dt = self.pending;
+        self.pending = Seconds(0.0);
+        dt
     }
 }
 
@@ -52,8 +54,11 @@ impl SystemClock {
 }
 
 impl Time for SystemClock {
-    fn elapsed(&self) -> Seconds {
-        Seconds(self.last_instant.elapsed().as_secs_f32())
+    fn delta(&mut self) -> Seconds {
+        let now = std::time::Instant::now();
+        let dt = now.duration_since(self.last_instant).as_secs_f32();
+        self.last_instant = now;
+        Seconds(dt)
     }
 }
 
@@ -110,8 +115,8 @@ impl FixedTimestep {
     }
 }
 
-pub fn time_system(clock: Res<ClockRes>, mut dt: ResMut<DeltaTime>) {
-    dt.0 = clock.elapsed();
+pub fn time_system(mut clock: ResMut<ClockRes>, mut dt: ResMut<DeltaTime>) {
+    dt.0 = clock.delta();
 }
 
 #[cfg(test)]
@@ -166,16 +171,16 @@ mod tests {
     // --- Time trait + FakeClock + ClockRes ---
 
     #[test]
-    fn when_fake_clock_constructed_then_elapsed_is_zero() {
+    fn when_fake_clock_constructed_then_delta_is_zero() {
         // Act
-        let clock = FakeClock::new();
+        let mut clock = FakeClock::new();
 
         // Assert
-        assert_eq!(clock.elapsed(), Seconds(0.0));
+        assert_eq!(clock.delta(), Seconds(0.0));
     }
 
     #[test]
-    fn when_fake_clock_advanced_then_elapsed_reflects_advancement() {
+    fn when_fake_clock_advanced_then_delta_returns_advancement() {
         // Arrange
         let mut clock = FakeClock::new();
 
@@ -183,11 +188,25 @@ mod tests {
         clock.advance(Seconds(0.016));
 
         // Assert
-        assert_eq!(clock.elapsed(), Seconds(0.016));
+        assert_eq!(clock.delta(), Seconds(0.016));
     }
 
     #[test]
-    fn when_fake_clock_advanced_multiple_times_then_elapsed_accumulates() {
+    fn when_fake_clock_delta_called_twice_then_second_call_returns_zero() {
+        // Arrange
+        let mut clock = FakeClock::new();
+        clock.advance(Seconds(0.016));
+        clock.delta();
+
+        // Act
+        let second = clock.delta();
+
+        // Assert
+        assert_eq!(second, Seconds(0.0));
+    }
+
+    #[test]
+    fn when_fake_clock_advanced_multiple_times_then_delta_accumulates() {
         // Arrange
         let mut clock = FakeClock::new();
 
@@ -197,22 +216,22 @@ mod tests {
         clock.advance(Seconds(0.1));
 
         // Assert
-        let elapsed = clock.elapsed().0;
-        assert!((elapsed - 0.3).abs() < f32::EPSILON * 4.0);
+        let dt = clock.delta().0;
+        assert!((dt - 0.3).abs() < f32::EPSILON * 4.0);
     }
 
     #[test]
-    fn when_fake_clock_behind_dyn_time_then_elapsed_is_correct() {
+    fn when_fake_clock_behind_dyn_time_then_delta_is_correct() {
         // Arrange
         let mut clock = FakeClock::new();
         clock.advance(Seconds(0.5));
-        let dyn_clock: &dyn Time = &clock;
+        let dyn_clock: &mut dyn Time = &mut clock;
 
         // Act
-        let elapsed = dyn_clock.elapsed();
+        let dt = dyn_clock.delta();
 
         // Assert
-        assert_eq!(elapsed, Seconds(0.5));
+        assert_eq!(dt, Seconds(0.5));
     }
 
     #[test]
@@ -229,17 +248,17 @@ mod tests {
     }
 
     #[test]
-    fn when_clock_res_derefed_then_reaches_inner_elapsed() {
+    fn when_clock_res_derefmut_then_reaches_inner_delta() {
         // Arrange
         let mut fake = FakeClock::new();
         fake.advance(Seconds(0.25));
-        let clock_res = ClockRes::new(Box::new(fake));
+        let mut clock_res = ClockRes::new(Box::new(fake));
 
         // Act
-        let elapsed = clock_res.elapsed();
+        let dt = clock_res.delta();
 
         // Assert
-        assert_eq!(elapsed, Seconds(0.25));
+        assert_eq!(dt, Seconds(0.25));
     }
 
     // --- FixedTimestep ---
@@ -338,5 +357,24 @@ mod tests {
         // Assert
         let dt = world.resource::<DeltaTime>();
         assert_eq!(dt.0, Seconds(0.016));
+    }
+
+    #[test]
+    fn when_time_system_runs_twice_without_advance_then_second_delta_is_zero() {
+        // Arrange
+        let mut world = bevy_ecs::world::World::new();
+        let mut fake = FakeClock::new();
+        fake.advance(Seconds(0.016));
+        world.insert_resource(ClockRes::new(Box::new(fake)));
+        world.insert_resource(DeltaTime::default());
+        let mut schedule = bevy_ecs::schedule::Schedule::default();
+        schedule.add_systems(time_system);
+
+        // Act — frame 1 consumes the advance, frame 2 has nothing
+        schedule.run(&mut world);
+        schedule.run(&mut world);
+
+        // Assert
+        assert_eq!(world.resource::<DeltaTime>().0, Seconds(0.0));
     }
 }

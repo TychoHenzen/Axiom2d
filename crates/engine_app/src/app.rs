@@ -2,12 +2,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use winit::application::ApplicationHandler;
-use winit::event::WindowEvent;
+use winit::event::{ElementState, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::keyboard::PhysicalKey;
 use winit::window::{Window, WindowId};
 
 use engine_core::types::Pixels;
 use engine_ecs::prelude::{IntoScheduleConfigs, Phase, Schedule, ScheduleSystem, World};
+use engine_input::prelude::InputEventBuffer;
 use engine_render::prelude::RendererRes;
 use engine_render::window::WindowConfig;
 
@@ -91,6 +93,14 @@ impl App {
         self.world.insert_resource(RendererRes::new(renderer));
     }
 
+    pub(crate) fn handle_key_event(&mut self, physical_key: PhysicalKey, state: ElementState) {
+        if let PhysicalKey::Code(key_code) = physical_key {
+            if let Some(mut buffer) = self.world.get_resource_mut::<InputEventBuffer>() {
+                buffer.push(key_code, state);
+            }
+        }
+    }
+
     pub(crate) fn handle_resize(&mut self, width: u32, height: u32) {
         self.world.insert_resource(WindowSize {
             width: Pixels(width as f32),
@@ -143,6 +153,9 @@ impl ApplicationHandler for App {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => self.handle_resize(size.width, size.height),
             WindowEvent::RedrawRequested => self.handle_redraw(),
+            WindowEvent::KeyboardInput { event, .. } => {
+                self.handle_key_event(event.physical_key, event.state);
+            }
             _ => {}
         }
     }
@@ -168,6 +181,9 @@ mod tests {
     use engine_render::testing::SpyRenderer;
 
     use crate::window_size::WindowSize;
+    use engine_input::prelude::InputEventBuffer;
+    use winit::event::ElementState;
+    use winit::keyboard::{KeyCode, PhysicalKey};
 
     #[derive(Resource)]
     struct Counter(u32);
@@ -583,6 +599,55 @@ mod tests {
         // Assert
         let captured = app.world().resource::<CapturedDelta>();
         assert_eq!(captured.0, engine_core::types::Seconds(0.016));
+    }
+
+    #[test]
+    fn when_app_receives_keyboard_press_then_event_pushed_to_buffer() {
+        // Arrange
+        let mut app = App::new();
+        app.world_mut().insert_resource(InputEventBuffer::default());
+
+        // Act
+        app.handle_key_event(PhysicalKey::Code(KeyCode::ArrowLeft), ElementState::Pressed);
+
+        // Assert
+        let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
+        let events = buffer.drain();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0], (KeyCode::ArrowLeft, ElementState::Pressed));
+    }
+
+    #[test]
+    fn when_app_receives_keyboard_release_then_release_event_pushed_to_buffer() {
+        // Arrange
+        let mut app = App::new();
+        app.world_mut().insert_resource(InputEventBuffer::default());
+
+        // Act
+        app.handle_key_event(PhysicalKey::Code(KeyCode::ArrowLeft), ElementState::Released);
+
+        // Assert
+        let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
+        let events = buffer.drain();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0], (KeyCode::ArrowLeft, ElementState::Released));
+    }
+
+    #[test]
+    fn when_app_receives_unidentified_physical_key_then_buffer_remains_empty() {
+        use winit::keyboard::NativeKeyCode;
+
+        // Arrange
+        let mut app = App::new();
+        app.world_mut().insert_resource(InputEventBuffer::default());
+
+        // Act
+        app.handle_key_event(PhysicalKey::Unidentified(NativeKeyCode::Unidentified), ElementState::Pressed);
+
+        // Assert
+        let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
+        let events = buffer.drain();
+        assert!(events.is_empty());
     }
 
     #[test]

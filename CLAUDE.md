@@ -59,7 +59,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **Archetypal ECS**: Entities with identical component sets stored together. Systems are plain functions with typed parameters (e.g., `Query<(&mut Position, &Velocity)>`). Uses `bevy_ecs` as a standalone crate, wrapped by `engine_ecs`.
 - **Code-defined assets**: All assets (sprites, audio, shaders, tilemaps) are expressed as Rust code or RON data — no binary asset files. Uses `lyon` for vector graphics, `fundsp` for audio synthesis, WGSL for shaders.
 - **Trait-abstracted hardware**: Every hardware-dependent subsystem (renderer, audio, input) hides behind a trait with null/mock implementations for testing. Canonical test pattern: `World` + `Schedule` without touching hardware.
-- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, and `axiom2d` (facade) are implemented; `engine_audio`, `engine_input`, `engine_physics`, `engine_scene`, `engine_assets`, `engine_ui` are placeholders. Virtual manifest at root. `demo` binary crate for smoke testing.
+- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, `engine_input`, and `axiom2d` (facade) are implemented; `engine_audio`, `engine_physics`, `engine_scene`, `engine_assets`, `engine_ui` are placeholders. Virtual manifest at root. `demo` binary crate for smoke testing.
 
 ### Implemented Abstractions
 
@@ -75,10 +75,14 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **Velocity** (`engine_core::spatial`): `#[derive(Component)]` with `dx: Pixels` and `dy: Pixels`. Per-second velocity for entities (scaled by DeltaTime in systems).
 - **DeltaTime** (`engine_core::time`): `#[derive(Resource)]` newtype wrapping `Seconds`. Default is 0.0. Updated each frame by `time_system`. Systems read via `Res<DeltaTime>`. Pre-inserted by `App::new()`.
 - **FixedTimestep** (`engine_core::time`): `#[derive(Resource)]` with `accumulator: Seconds` and `step_size: Seconds`. Default step_size is 1/60. `tick(delta) -> u32` returns number of fixed steps to run, retaining remainder in accumulator ("Fix Your Timestep" pattern).
-- **Time trait** (`engine_core::time`): `fn elapsed(&self) -> Seconds`. Object-safe (`Send + Sync`). `SystemClock` wraps `std::time::Instant` for real wall-clock. `FakeClock` allows manual `advance(Seconds)` for deterministic tests.
+- **Time trait** (`engine_core::time`): `fn delta(&mut self) -> Seconds`. Object-safe (`Send + Sync`). `SystemClock` tracks `last_instant` and returns elapsed since last call. `FakeClock` allows manual `advance(Seconds)` — `delta()` returns accumulated pending time and resets to zero.
 - **ClockRes** (`engine_core::time`): `#[derive(Resource)]` newtype wrapping `Box<dyn Time>` with `Deref`/`DerefMut`. Same pattern as `RendererRes`.
-- **time_system** (`engine_core::time`): `fn time_system(Res<ClockRes>, ResMut<DeltaTime>)` — reads elapsed from clock, writes to DeltaTime. Registered in `Phase::PreUpdate`.
+- **time_system** (`engine_core::time`): `fn time_system(ResMut<ClockRes>, ResMut<DeltaTime>)` — reads delta from clock, writes to DeltaTime. Registered in `Phase::PreUpdate`.
 - **ECS wrapper** (`engine_ecs`): Thin wrapper around `bevy_ecs`. Re-exports `Component`, `Resource`, `World`, `Entity`, `Query`, `Res`, `ResMut`, `Schedule`, `Commands`, `Added`, `Changed`, `With`, `Without`, `SystemSet`, `IntoScheduleConfigs`, `ScheduleSystem`. Defines `Phase` enum as schedule labels.
+- **InputState** (`engine_input::input_state`): `#[derive(Resource)]` with `HashSet<KeyCode>` for pressed, just_pressed, just_released. Methods: `pressed(key)`, `just_pressed(key)`, `just_released(key)`, `press(key)`, `release(key)`, `clear_frame_state()`. `press()`/`release()` allow programmatic population for testing without hardware.
+- **InputEventBuffer** (`engine_input::input_event_buffer`): `#[derive(Resource)]` wrapping `Vec<(KeyCode, ElementState)>`. Staging area between winit callbacks and ECS systems. `push()` adds events, `drain()` returns and clears all. App's `handle_key_event()` pushes to this buffer if present in the World.
+- **input_system** (`engine_input::input_system`): `fn input_system(ResMut<InputEventBuffer>, ResMut<InputState>)` — clears per-frame state, drains buffer, updates InputState. Registered in `Phase::Input`.
+- **KeyCode** (`engine_input::prelude`): Re-export of `winit::keyboard::KeyCode`. No translation layer.
 
 ### Scheduling Phases
 
