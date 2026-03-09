@@ -1,26 +1,7 @@
 use axiom2d::prelude::*;
-use bevy_ecs::prelude::Component;
-
-#[derive(Component)]
-struct Position {
-    x: Pixels,
-    y: Pixels,
-}
-
-#[derive(Component)]
-struct Velocity {
-    dx: Pixels,
-    dy: Pixels,
-}
 
 #[derive(Resource)]
 struct RectSize {
-    width: Pixels,
-    height: Pixels,
-}
-
-#[derive(Resource)]
-struct WindowBounds {
     width: Pixels,
     height: Pixels,
 }
@@ -48,13 +29,9 @@ fn render_rect(
     }
 }
 
-fn clear_screen(mut renderer: ResMut<RendererRes>) {
-    renderer.clear(Color::new(0.392, 0.584, 0.929, 1.0));
-}
-
 fn bounce_rect(
     mut query: Query<(&Position, &mut Velocity)>,
-    bounds: Res<WindowBounds>,
+    bounds: Res<WindowSize>,
     rect_size: Res<RectSize>,
 ) {
     for (pos, mut vel) in &mut query {
@@ -80,10 +57,7 @@ fn setup(app: &mut App) {
         ..Default::default()
     };
     app.world_mut().insert_resource(FrameCount::default());
-    app.world_mut().insert_resource(WindowBounds {
-        width: Pixels(config.width as f32),
-        height: Pixels(config.height as f32),
-    });
+    app.world_mut().insert_resource(ClearColor::default());
     app.world_mut().insert_resource(RectSize {
         width: Pixels(300.0),
         height: Pixels(200.0),
@@ -94,7 +68,7 @@ fn setup(app: &mut App) {
     ));
     app.set_window_config(config)
         .add_systems(Phase::Update, (count_frames, move_rect, bounce_rect))
-        .add_systems(Phase::Render, (clear_screen, render_rect));
+        .add_systems(Phase::Render, (clear_system, render_rect));
 }
 
 fn main() {
@@ -107,34 +81,13 @@ fn main() {
 mod tests {
     use std::sync::{Arc, Mutex};
 
-    use bevy_ecs::prelude::Schedule;
     use engine_render::testing::SpyRenderer;
 
     use super::*;
 
-    #[test]
-    fn when_position_constructed_then_stores_x_and_y() {
-        // Act
-        let pos = Position { x: Pixels(100.0), y: Pixels(200.0) };
-
-        // Assert
-        assert_eq!(pos.x, Pixels(100.0));
-        assert_eq!(pos.y, Pixels(200.0));
-    }
-
-    #[test]
-    fn when_velocity_constructed_then_stores_dx_and_dy() {
-        // Act
-        let vel = Velocity { dx: Pixels(3.0), dy: Pixels(-2.0) };
-
-        // Assert
-        assert_eq!(vel.dx, Pixels(3.0));
-        assert_eq!(vel.dy, Pixels(-2.0));
-    }
-
-    fn spawn_with_bounds(world: &mut World, pos: Position, vel: Velocity) {
+    fn spawn_entity(world: &mut World, pos: Position, vel: Velocity) {
         world.spawn((pos, vel));
-        world.insert_resource(WindowBounds { width: Pixels(1280.0), height: Pixels(720.0) });
+        world.insert_resource(WindowSize { width: Pixels(1280.0), height: Pixels(720.0) });
         world.insert_resource(RectSize { width: Pixels(300.0), height: Pixels(200.0) });
     }
 
@@ -163,7 +116,7 @@ mod tests {
     fn when_position_reaches_right_edge_then_velocity_dx_reverses() {
         // Arrange
         let mut world = World::new();
-        spawn_with_bounds(
+        spawn_entity(
             &mut world,
             Position { x: Pixels(990.0), y: Pixels(100.0) },
             Velocity { dx: Pixels(10.0), dy: Pixels(0.0) },
@@ -184,7 +137,7 @@ mod tests {
     fn when_position_reaches_left_edge_then_velocity_dx_reverses() {
         // Arrange
         let mut world = World::new();
-        spawn_with_bounds(
+        spawn_entity(
             &mut world,
             Position { x: Pixels(-5.0), y: Pixels(100.0) },
             Velocity { dx: Pixels(-10.0), dy: Pixels(0.0) },
@@ -205,7 +158,7 @@ mod tests {
     fn when_position_reaches_bottom_edge_then_velocity_dy_reverses() {
         // Arrange
         let mut world = World::new();
-        spawn_with_bounds(
+        spawn_entity(
             &mut world,
             Position { x: Pixels(100.0), y: Pixels(525.0) },
             Velocity { dx: Pixels(0.0), dy: Pixels(10.0) },
@@ -226,7 +179,7 @@ mod tests {
     fn when_position_reaches_top_edge_then_velocity_dy_reverses() {
         // Arrange
         let mut world = World::new();
-        spawn_with_bounds(
+        spawn_entity(
             &mut world,
             Position { x: Pixels(100.0), y: Pixels(-5.0) },
             Velocity { dx: Pixels(0.0), dy: Pixels(-10.0) },
@@ -247,7 +200,7 @@ mod tests {
     fn when_position_is_mid_screen_then_velocity_unchanged() {
         // Arrange
         let mut world = World::new();
-        spawn_with_bounds(
+        spawn_entity(
             &mut world,
             Position { x: Pixels(400.0), y: Pixels(300.0) },
             Velocity { dx: Pixels(5.0), dy: Pixels(3.0) },
@@ -285,7 +238,7 @@ mod tests {
     }
 
     #[test]
-    fn when_demo_setup_called_then_world_contains_position_velocity_and_bounds() {
+    fn when_demo_setup_called_then_world_contains_expected_resources_and_entity() {
         // Arrange
         let mut app = App::new();
 
@@ -294,7 +247,8 @@ mod tests {
 
         // Assert
         let world = app.world_mut();
-        assert!(world.get_resource::<WindowBounds>().is_some());
+        assert!(world.get_resource::<WindowSize>().is_some());
+        assert!(world.get_resource::<ClearColor>().is_some());
         assert!(world.get_resource::<RectSize>().is_some());
         let mut query = world.query::<(&Position, &Velocity)>();
         assert_eq!(query.iter(world).count(), 1);
@@ -304,7 +258,7 @@ mod tests {
     fn when_demo_runs_one_frame_then_position_changes() {
         // Arrange
         let mut world = World::new();
-        spawn_with_bounds(
+        spawn_entity(
             &mut world,
             Position { x: Pixels(490.0), y: Pixels(260.0) },
             Velocity { dx: Pixels(4.0), dy: Pixels(3.0) },

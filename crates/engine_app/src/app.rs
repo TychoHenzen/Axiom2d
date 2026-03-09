@@ -6,9 +6,12 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
 
+use engine_core::types::Pixels;
 use engine_ecs::prelude::{IntoScheduleConfigs, Phase, Schedule, ScheduleSystem, World};
 use engine_render::prelude::RendererRes;
 use engine_render::window::WindowConfig;
+
+use crate::window_size::WindowSize;
 
 pub trait Plugin {
     fn build(&self, app: &mut App);
@@ -32,11 +35,13 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
+        let mut world = World::new();
+        world.insert_resource(WindowSize::default());
         Self {
             plugin_count: 0,
             window_config: WindowConfig::default(),
             window: None,
-            world: World::new(),
+            world,
             schedules: PHASE_ORDER
                 .iter()
                 .map(|&phase| (phase, Schedule::new(phase)))
@@ -45,6 +50,10 @@ impl App {
     }
 
     pub fn set_window_config(&mut self, config: WindowConfig) -> &mut Self {
+        self.world.insert_resource(WindowSize {
+            width: Pixels(config.width as f32),
+            height: Pixels(config.height as f32),
+        });
         self.window_config = config;
         self
     }
@@ -82,6 +91,10 @@ impl App {
     }
 
     pub(crate) fn handle_resize(&mut self, width: u32, height: u32) {
+        self.world.insert_resource(WindowSize {
+            width: Pixels(width as f32),
+            height: Pixels(height as f32),
+        });
         if let Some(mut renderer) = self.world.get_resource_mut::<RendererRes>() {
             renderer.resize(width, height);
         }
@@ -148,9 +161,12 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use engine_core::color::Color;
+    use engine_core::types::Pixels;
     use engine_ecs::prelude::{Phase, ResMut, Resource};
     use engine_render::prelude::RendererRes;
     use engine_render::testing::SpyRenderer;
+
+    use crate::window_size::WindowSize;
 
     #[derive(Resource)]
     struct Counter(u32);
@@ -383,8 +399,6 @@ mod tests {
 
     #[test]
     fn when_render_phase_system_uses_renderer_res_then_draw_calls_precede_present() {
-        use RendererRes;
-
         fn render_system(mut renderer: ResMut<RendererRes>) {
             renderer.clear(Color::BLACK);
         }
@@ -504,5 +518,51 @@ mod tests {
 
         // Assert
         assert_eq!(log.lock().unwrap().as_slice(), &["resize"]);
+    }
+
+    #[test]
+    fn when_app_new_called_then_window_size_resource_is_present() {
+        // Act
+        let app = App::new();
+
+        // Assert
+        let size = app.world().get_resource::<WindowSize>();
+        assert!(size.is_some());
+    }
+
+    #[test]
+    fn when_handle_resize_called_then_window_size_resource_is_updated() {
+        // Arrange
+        let mut app = App::new();
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(Arc::clone(&log));
+        app.set_renderer(Box::new(spy));
+
+        // Act
+        app.handle_resize(1024, 768);
+
+        // Assert
+        let size = app.world().resource::<WindowSize>();
+        assert_eq!(size.width, Pixels(1024.0));
+        assert_eq!(size.height, Pixels(768.0));
+    }
+
+    #[test]
+    fn when_set_window_config_called_then_window_size_reflects_config() {
+        // Arrange
+        let mut app = App::new();
+        let config = WindowConfig {
+            width: 1920,
+            height: 1080,
+            ..WindowConfig::default()
+        };
+
+        // Act
+        app.set_window_config(config);
+
+        // Assert
+        let size = app.world().resource::<WindowSize>();
+        assert_eq!(size.width, Pixels(1920.0));
+        assert_eq!(size.height, Pixels(1080.0));
     }
 }

@@ -1,5 +1,6 @@
 pub use crate::color::Color;
 pub use crate::error::EngineError;
+pub use crate::spatial::{Position, Velocity};
 pub use crate::transform::Transform2D;
 pub use crate::types::{EntityId, Pixels, Seconds, TextureId};
 pub use glam::{Affine2, Vec2};

@@ -4,11 +4,11 @@ edition.workspace = true
 version.workspace = true
 
 [dependencies]
+bevy_ecs = { workspace = true }
 engine_core = { path = "../engine_core" }
 engine_ecs = { path = "../engine_ecs" }
 engine_render = { path = "../engine_render" }
 winit = { workspace = true }
 
 [dev-dependencies]
-bevy_ecs = { workspace = true }
 engine_render = { path = "../engine_render", features = ["testing"] }

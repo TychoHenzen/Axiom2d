@@ -637,6 +637,7 @@ version = "0.1.0"
 name = "engine_core"
 version = "0.1.0"
 dependencies = [
+ "bevy_ecs",
  "glam",
  "thiserror 2.0.18",
 ]

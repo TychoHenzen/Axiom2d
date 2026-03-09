@@ -4,5 +4,6 @@ edition.workspace = true
 version.workspace = true
 
 [dependencies]
+bevy_ecs = { workspace = true }
 glam = { workspace = true }
 thiserror = { workspace = true }

@@ -1,3 +1,4 @@
+pub mod clear;
 pub mod prelude;
 pub mod rect;
 pub mod renderer;
