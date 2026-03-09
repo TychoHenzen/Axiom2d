@@ -1,6 +1,7 @@
+use bevy_ecs::prelude::Component;
 use glam::{Affine2, Vec2};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct Transform2D {
     pub position: Vec2,
     pub rotation: f32,

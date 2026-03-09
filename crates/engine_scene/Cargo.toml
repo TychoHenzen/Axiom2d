@@ -4,3 +4,6 @@ edition.workspace = true
 version.workspace = true
 
 [dependencies]
+bevy_ecs = { workspace = true }
+engine_core = { path = "../engine_core" }
+glam = { workspace = true }

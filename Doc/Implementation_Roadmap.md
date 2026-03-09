@@ -4,11 +4,11 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (27 tests), engine_ecs (7 tests), engine_render (13 tests), engine_app (30 tests), engine_input (28 tests), axiom2d facade (0 tests), demo (9 tests). Total: 114 tests.
+**Implemented crates:** engine_core (27 tests), engine_ecs (7 tests), engine_render (13 tests), engine_app (30 tests), engine_input (28 tests), engine_scene (24 tests), axiom2d facade (0 tests), demo (9 tests). Total: 138 tests.
 
-**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed).
+**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy.
 
-**Placeholder crates (empty):** engine_audio, engine_physics, engine_scene, engine_assets, engine_ui.
+**Placeholder crates (empty):** engine_audio, engine_physics, engine_assets, engine_ui.
 
 ---
 
@@ -59,25 +59,26 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Phase 2: Scene Graph & Transform Hierarchy
 
-### Step 2.1 — Parent-Child Hierarchy `[NOT STARTED]`
+### Step 2.1 — Parent-Child Hierarchy `[DONE]`
 **Crate:** engine_scene
 
-- [ ] `ChildOf(Entity)` component — opt-in hierarchy on flat ECS
-- [ ] `Children(Vec<Entity>)` component — engine-managed, derived from ChildOf
-- [ ] `hierarchy_maintenance_system` in PostUpdate — syncs Children from ChildOf
-- [ ] Spawn helpers via Commands extension
-- [ ] Tests: add/remove ChildOf updates Children, orphan cleanup
+- [x] `ChildOf(Entity)` component — opt-in hierarchy on flat ECS
+- [x] `Children(Vec<Entity>)` component — engine-managed, derived from ChildOf
+- [x] `hierarchy_maintenance_system` in PostUpdate — syncs Children from ChildOf
+- [x] Spawn helpers via World extension (`SpawnChildExt` trait)
+- [x] Tests: add/remove ChildOf updates Children, orphan cleanup
 
-### Step 2.2 — Transform Propagation `[NOT STARTED]`
+### Step 2.2 — Transform Propagation `[DONE]`
 **Crate:** engine_scene
 **Deps:** engine_core (Transform2D, Affine2)
 
-- [ ] `GlobalTransform2D(Affine2)` component — engine-computed, read-only for users
-- [ ] `transform_propagation_system` in PostUpdate (after hierarchy_maintenance):
+- [x] `GlobalTransform2D(Affine2)` component — engine-computed, read-only for users
+- [x] `transform_propagation_system` in PostUpdate (after hierarchy_maintenance):
   - Root entities: copy Transform2D → GlobalTransform2D
   - Children: parent.GlobalTransform2D * child.Transform2D
-  - Use `Changed<Transform2D>` change detection to skip unchanged subtrees
-- [ ] Tests: single entity propagation, 2-level hierarchy, change detection skips unchanged
+  - *(Change detection deferred — always-update approach for now)*
+- [x] Tests: single entity propagation, 2-level hierarchy, 3-level hierarchy, siblings, scale interaction, re-run update
+- [x] `Transform2D` now derives `Component` (was plain struct)
 
 ### Step 2.3 — Visibility & Render Ordering `[NOT STARTED]`
 **Crate:** engine_scene

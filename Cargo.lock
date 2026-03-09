@@ -678,6 +678,11 @@ dependencies = [
 [[package]]
 name = "engine_scene"
 version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "engine_core",
+ "glam",
+]
 
 [[package]]
 name = "engine_ui"

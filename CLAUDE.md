@@ -59,7 +59,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **Archetypal ECS**: Entities with identical component sets stored together. Systems are plain functions with typed parameters (e.g., `Query<(&mut Position, &Velocity)>`). Uses `bevy_ecs` as a standalone crate, wrapped by `engine_ecs`.
 - **Code-defined assets**: All assets (sprites, audio, shaders, tilemaps) are expressed as Rust code or RON data — no binary asset files. Uses `lyon` for vector graphics, `fundsp` for audio synthesis, WGSL for shaders.
 - **Trait-abstracted hardware**: Every hardware-dependent subsystem (renderer, audio, input) hides behind a trait with null/mock implementations for testing. Canonical test pattern: `World` + `Schedule` without touching hardware.
-- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, `engine_input`, and `axiom2d` (facade) are implemented; `engine_audio`, `engine_physics`, `engine_scene`, `engine_assets`, `engine_ui` are placeholders. Virtual manifest at root. `demo` binary crate for smoke testing.
+- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, `engine_input`, `engine_scene`, and `axiom2d` (facade) are implemented; `engine_audio`, `engine_physics`, `engine_assets`, `engine_ui` are placeholders. Virtual manifest at root. `demo` binary crate for smoke testing.
 
 ### Implemented Abstractions
 
@@ -85,6 +85,12 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **InputEventBuffer** (`engine_input::input_event_buffer`): `#[derive(Resource)]` wrapping `Vec<(KeyCode, ElementState)>`. Staging area between winit callbacks and ECS systems. `push()` adds events, `drain()` returns and clears all. App's `handle_key_event()` pushes to this buffer if present in the World.
 - **input_system** (`engine_input::input_system`): `fn input_system(ResMut<InputEventBuffer>, ResMut<InputState>)` — clears per-frame state, drains buffer, updates InputState. Registered in `Phase::Input`.
 - **KeyCode** (`engine_input::prelude`): Re-export of `winit::keyboard::KeyCode`. No translation layer.
+- **ChildOf** (`engine_scene::hierarchy`): `#[derive(Component)]` newtype wrapping `Entity`. User-facing: attach to a child entity to declare its parent. Opt-in hierarchy on flat ECS.
+- **Children** (`engine_scene::hierarchy`): `#[derive(Component)]` wrapping `Vec<Entity>`. Engine-managed — never set by users directly. Derived from ChildOf by `hierarchy_maintenance_system`. Vec is sorted by Entity for deterministic traversal.
+- **hierarchy_maintenance_system** (`engine_scene::hierarchy`): `fn(Query<(Entity, &ChildOf)>, Query<Entity, With<Children>>, Commands)` — rebuilds Children from ChildOf each frame. Removes stale Children when all ChildOf references to a parent are gone. Registered in `Phase::PostUpdate`.
+- **SpawnChildExt** (`engine_scene::spawn_child`): Extension trait on `World`. `spawn_child(parent: Entity, bundle: impl Bundle) -> Entity` — spawns a new entity with ChildOf(parent) plus the provided bundle.
+- **GlobalTransform2D** (`engine_scene::transform_propagation`): `#[derive(Component)]` newtype wrapping `Affine2`. Engine-computed world-space transform. Written by `transform_propagation_system`, never by users directly.
+- **transform_propagation_system** (`engine_scene::transform_propagation`): Walks hierarchy from roots (no ChildOf) down through Children. Root: copies `Transform2D.to_affine2()` → GlobalTransform2D. Children: `parent.GlobalTransform2D * child.Transform2D.to_affine2()`. Registered in `Phase::PostUpdate` (after hierarchy_maintenance_system).
 
 ### Scheduling Phases
 
