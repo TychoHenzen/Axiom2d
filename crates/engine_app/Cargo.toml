@@ -11,3 +11,4 @@ winit = { workspace = true }
 
 [dev-dependencies]
 bevy_ecs = { workspace = true }
+engine_render = { path = "../engine_render", features = ["testing"] }

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use winit::application::ApplicationHandler;
@@ -6,21 +7,27 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
 
 use engine_ecs::prelude::{IntoScheduleConfigs, Phase, Schedule, ScheduleSystem, World};
-use engine_render::renderer::Renderer;
+use engine_render::prelude::RendererRes;
 use engine_render::window::WindowConfig;
 
 pub trait Plugin {
     fn build(&self, app: &mut App);
 }
 
+const PHASE_ORDER: [Phase; 5] = [
+    Phase::Input,
+    Phase::PreUpdate,
+    Phase::Update,
+    Phase::PostUpdate,
+    Phase::Render,
+];
+
 pub struct App {
     plugin_count: usize,
     window_config: WindowConfig,
-    render_fn: Option<Box<dyn FnMut(&mut dyn Renderer)>>,
     window: Option<Arc<Window>>,
-    renderer: Option<Box<dyn Renderer>>,
     world: World,
-    schedules: Vec<Schedule>,
+    schedules: HashMap<Phase, Schedule>,
 }
 
 impl App {
@@ -28,27 +35,17 @@ impl App {
         Self {
             plugin_count: 0,
             window_config: WindowConfig::default(),
-            render_fn: None,
             window: None,
-            renderer: None,
             world: World::new(),
-            schedules: vec![
-                Schedule::new(Phase::Input),
-                Schedule::new(Phase::PreUpdate),
-                Schedule::new(Phase::Update),
-                Schedule::new(Phase::PostUpdate),
-                Schedule::new(Phase::Render),
-            ],
+            schedules: PHASE_ORDER
+                .iter()
+                .map(|&phase| (phase, Schedule::new(phase)))
+                .collect(),
         }
     }
 
     pub fn set_window_config(&mut self, config: WindowConfig) -> &mut Self {
         self.window_config = config;
-        self
-    }
-
-    pub fn on_render(&mut self, f: impl FnMut(&mut dyn Renderer) + 'static) -> &mut Self {
-        self.render_fn = Some(Box::new(f));
         self
     }
 
@@ -75,37 +72,26 @@ impl App {
     }
 
     pub fn add_systems<M>(&mut self, phase: Phase, systems: impl IntoScheduleConfigs<ScheduleSystem, M>) -> &mut Self {
-        let idx = match phase {
-            Phase::Input => 0,
-            Phase::PreUpdate => 1,
-            Phase::Update => 2,
-            Phase::PostUpdate => 3,
-            Phase::Render => 4,
-        };
-        self.schedules[idx].add_systems(systems);
+        self.schedules.get_mut(&phase).unwrap().add_systems(systems);
         self
     }
 
     #[cfg(test)]
-    pub(crate) fn set_renderer(&mut self, renderer: Box<dyn Renderer>) {
-        self.renderer = Some(renderer);
+    pub(crate) fn set_renderer(&mut self, renderer: Box<dyn engine_render::renderer::Renderer + Send + Sync>) {
+        self.world.insert_resource(RendererRes::new(renderer));
     }
 
     pub(crate) fn handle_resize(&mut self, width: u32, height: u32) {
-        if let Some(renderer) = &mut self.renderer {
+        if let Some(mut renderer) = self.world.get_resource_mut::<RendererRes>() {
             renderer.resize(width, height);
         }
     }
 
     pub(crate) fn handle_redraw(&mut self) {
-        for schedule in &mut self.schedules {
-            schedule.run(&mut self.world);
+        for phase in PHASE_ORDER {
+            self.schedules.get_mut(&phase).unwrap().run(&mut self.world);
         }
-        let Self { renderer, render_fn, .. } = self;
-        if let Some(renderer) = renderer {
-            if let Some(f) = render_fn {
-                f(renderer.as_mut());
-            }
+        if let Some(mut renderer) = self.world.get_resource_mut::<RendererRes>() {
             renderer.present();
         }
     }
@@ -135,7 +121,7 @@ impl ApplicationHandler for App {
         let renderer = engine_render::create_renderer(window.clone(), &self.window_config);
 
         self.window = Some(window);
-        self.renderer = Some(renderer);
+        self.world.insert_resource(RendererRes::new(renderer));
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -158,46 +144,19 @@ impl ApplicationHandler for App {
 mod tests {
     use super::*;
     use std::cell::Cell;
-    use std::cell::RefCell;
     use std::rc::Rc;
+    use std::sync::{Arc, Mutex};
 
     use engine_core::color::Color;
     use engine_ecs::prelude::{Phase, ResMut, Resource};
-    use engine_render::rect::Rect;
+    use engine_render::prelude::RendererRes;
+    use engine_render::testing::SpyRenderer;
 
     #[derive(Resource)]
     struct Counter(u32);
 
     fn increment(mut counter: ResMut<Counter>) {
         counter.0 += 1;
-    }
-
-    struct SpyRenderer {
-        log: Rc<RefCell<Vec<String>>>,
-    }
-
-    impl SpyRenderer {
-        fn new(log: Rc<RefCell<Vec<String>>>) -> Self {
-            Self { log }
-        }
-    }
-
-    impl engine_render::renderer::Renderer for SpyRenderer {
-        fn clear(&mut self, _color: Color) {
-            self.log.borrow_mut().push("clear".into());
-        }
-
-        fn draw_rect(&mut self, _rect: Rect) {
-            self.log.borrow_mut().push("draw_rect".into());
-        }
-
-        fn present(&mut self) {
-            self.log.borrow_mut().push("present".into());
-        }
-
-        fn resize(&mut self, _width: u32, _height: u32) {
-            self.log.borrow_mut().push("resize".into());
-        }
     }
 
     #[test]
@@ -304,38 +263,28 @@ mod tests {
     }
 
     #[test]
-    fn when_on_render_called_then_callback_receives_renderer_on_redraw() {
+    fn when_handle_redraw_called_then_present_called_via_renderer_res() {
         // Arrange
-        let log: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
-        let spy = SpyRenderer::new(Rc::clone(&log));
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(Arc::clone(&log));
 
         let mut app = App::new();
-        app.on_render(move |r| {
-            r.clear(Color::BLACK);
-        });
         app.set_renderer(Box::new(spy));
 
         // Act
         app.handle_redraw();
 
         // Assert
-        assert!(log.borrow().contains(&"clear".to_string()));
+        assert_eq!(log.lock().unwrap().as_slice(), &["present"]);
     }
 
     #[test]
-    fn when_handle_redraw_called_without_render_fn_then_present_still_called() {
+    fn when_handle_redraw_called_without_renderer_res_then_does_not_panic() {
         // Arrange
-        let log: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
-        let spy = SpyRenderer::new(Rc::clone(&log));
-
         let mut app = App::new();
-        app.set_renderer(Box::new(spy));
 
         // Act
         app.handle_redraw();
-
-        // Assert
-        assert_eq!(log.borrow().as_slice(), &["present".to_string()]);
     }
 
     #[test]
@@ -404,8 +353,7 @@ mod tests {
         // Act
         let mut app = App::new();
         app.set_window_config(WindowConfig::default())
-            .add_systems(Phase::Update, noop)
-            .on_render(|_| {});
+            .add_systems(Phase::Update, noop);
     }
 
     #[test]
@@ -434,40 +382,33 @@ mod tests {
     }
 
     #[test]
-    fn when_render_phase_and_render_fn_both_set_then_phases_run_before_render_fn() {
-        #[derive(Resource, Default)]
-        struct Log(Vec<String>);
+    fn when_render_phase_system_uses_renderer_res_then_draw_calls_precede_present() {
+        use RendererRes;
 
-        fn ecs_render(mut log: ResMut<Log>) {
-            log.0.push("ecs_render".into());
+        fn render_system(mut renderer: ResMut<RendererRes>) {
+            renderer.clear(Color::BLACK);
         }
 
         // Arrange
-        let log: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
-        let spy = SpyRenderer::new(Rc::clone(&log));
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(Arc::clone(&log));
 
         let mut app = App::new();
-        app.world_mut().insert_resource(Log::default());
-        app.add_systems(Phase::Render, ecs_render);
-        app.on_render(move |r| {
-            r.draw_rect(Rect::default());
-        });
+        app.add_systems(Phase::Render, render_system);
         app.set_renderer(Box::new(spy));
 
         // Act
         app.handle_redraw();
 
         // Assert
-        assert!(app.world().resource::<Log>().0.contains(&"ecs_render".into()));
-        let renderer_log = log.borrow();
-        assert_eq!(renderer_log.as_slice(), &["draw_rect", "present"]);
+        assert_eq!(log.lock().unwrap().as_slice(), &["clear", "present"]);
     }
 
     #[test]
-    fn when_no_render_fn_but_systems_exist_then_schedules_run_and_present_called() {
+    fn when_update_systems_exist_then_schedules_run_and_present_called() {
         // Arrange
-        let log: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
-        let spy = SpyRenderer::new(Rc::clone(&log));
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(Arc::clone(&log));
 
         let mut app = App::new();
         app.world_mut().insert_resource(Counter(0));
@@ -479,7 +420,7 @@ mod tests {
 
         // Assert
         assert_eq!(app.world().resource::<Counter>().0, 1);
-        assert_eq!(log.borrow().as_slice(), &["present".to_string()]);
+        assert_eq!(log.lock().unwrap().as_slice(), &["present"]);
     }
 
     #[test]
@@ -527,10 +468,33 @@ mod tests {
     }
 
     #[test]
+    fn when_set_renderer_called_then_renderer_res_present_in_world() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(Arc::clone(&log));
+        let mut app = App::new();
+
+        // Act
+        app.set_renderer(Box::new(spy));
+
+        // Assert
+        assert!(app.world().get_resource::<RendererRes>().is_some());
+    }
+
+    #[test]
+    fn when_app_created_then_renderer_res_not_yet_in_world() {
+        // Act
+        let app = App::new();
+
+        // Assert
+        assert!(app.world().get_resource::<RendererRes>().is_none());
+    }
+
+    #[test]
     fn when_handle_resize_called_then_renderer_resize_is_called() {
         // Arrange
-        let log: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
-        let spy = SpyRenderer::new(Rc::clone(&log));
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(Arc::clone(&log));
 
         let mut app = App::new();
         app.set_renderer(Box::new(spy));
@@ -539,6 +503,6 @@ mod tests {
         app.handle_resize(1024, 768);
 
         // Assert
-        assert!(log.borrow().contains(&"resize".to_string()));
+        assert_eq!(log.lock().unwrap().as_slice(), &["resize"]);
     }
 }

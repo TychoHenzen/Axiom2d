@@ -43,10 +43,12 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 
 ### Implemented Abstractions
 
-- **Renderer trait** (`engine_render::renderer`): `clear(&mut self, color: Color)` + `draw_rect(&mut self, rect: Rect)` + `present(&mut self)`. Object-safe (supports `Box<dyn Renderer>`). `NullRenderer` unit struct provides no-op impl for testing.
+- **Renderer trait** (`engine_render::renderer`): `clear(&mut self, color: Color)` + `draw_rect(&mut self, rect: Rect)` + `present(&mut self)` + `resize(&mut self, width, height)`. Object-safe (supports `Box<dyn Renderer>`). `NullRenderer` unit struct provides no-op impl for testing.
+- **RendererRes** (`engine_render::renderer`): `#[derive(Resource)]` newtype wrapping `Box<dyn Renderer + Send + Sync>` with `Deref`/`DerefMut`. Lives in the ECS `World` as a resource — systems access it via `ResMut<RendererRes>`. Inserted by App during winit `resumed` event.
+- **SpyRenderer** (`engine_render::testing`): Test helper recording method calls via `Arc<Mutex<Vec<String>>>`. Available behind the `testing` feature flag. Shared across crates (engine_app, demo) via dev-dependency with `features = ["testing"]`.
 - **Rect** (`engine_render::rect`): `x: Pixels`, `y: Pixels`, `width: Pixels`, `height: Pixels`, `color: Color`. Derives Debug, Clone, Copy, PartialEq. Manual Default (zero-sized, WHITE color).
 - **Plugin trait** (`engine_app::app`): `build(&self, app: &mut App)` — called eagerly inside `add_plugin()`. Plugins can register systems via `app.add_systems(Phase, system)` and insert resources via `app.world_mut()`.
-- **App ECS integration** (`engine_app::app`): App owns a `World` and 5 `Schedule`s (one per Phase). `handle_redraw()` runs all schedules in phase order, then the render callback, then `present()`. Public API: `world()`, `world_mut()`, `add_systems(Phase, systems)`, `schedule_count()`.
+- **App ECS integration** (`engine_app::app`): App owns a `World` and a `HashMap<Phase, Schedule>` (one per Phase). `handle_redraw()` iterates `PHASE_ORDER` const array, runs each schedule, then calls `present()` on `RendererRes` from the World. Public API: `world()`, `world_mut()`, `add_systems(Phase, systems)`, `schedule_count()`.
 - **ECS wrapper** (`engine_ecs`): Thin wrapper around `bevy_ecs`. Re-exports `Component`, `Resource`, `World`, `Entity`, `Query`, `Res`, `ResMut`, `Schedule`, `Commands`, `Added`, `Changed`, `With`, `Without`, `SystemSet`, `IntoScheduleConfigs`, `ScheduleSystem`. Defines `Phase` enum as schedule labels.
 
 ### Scheduling Phases

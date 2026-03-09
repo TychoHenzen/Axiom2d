@@ -542,6 +542,7 @@ version = "0.1.0"
 dependencies = [
  "axiom2d",
  "bevy_ecs",
+ "engine_render",
 ]
 
 [[package]]
@@ -659,6 +660,7 @@ version = "0.1.0"
 name = "engine_render"
 version = "0.1.0"
 dependencies = [
+ "bevy_ecs",
  "bytemuck",
  "engine_core",
  "pollster",

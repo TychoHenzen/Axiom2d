@@ -1,3 +1,4 @@
+use bevy_ecs::prelude::Resource;
 use engine_core::color::Color;
 
 use crate::rect::Rect;
@@ -7,6 +8,28 @@ pub trait Renderer {
     fn draw_rect(&mut self, rect: Rect);
     fn present(&mut self);
     fn resize(&mut self, width: u32, height: u32);
+}
+
+#[derive(Resource)]
+pub struct RendererRes(Box<dyn Renderer + Send + Sync>);
+
+impl RendererRes {
+    pub fn new(renderer: Box<dyn Renderer + Send + Sync>) -> Self {
+        Self(renderer)
+    }
+}
+
+impl std::ops::Deref for RendererRes {
+    type Target = dyn Renderer;
+    fn deref(&self) -> &Self::Target {
+        &*self.0
+    }
+}
+
+impl std::ops::DerefMut for RendererRes {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut *self.0
+    }
 }
 
 pub struct NullRenderer;
@@ -20,10 +43,13 @@ impl Renderer for NullRenderer {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Arc, Mutex};
+
     use engine_core::types::Pixels;
 
     use super::*;
     use crate::rect::Rect;
+    use crate::testing::SpyRenderer;
 
     fn sample_rect() -> Rect {
         Rect {
@@ -75,5 +101,45 @@ mod tests {
     fn when_null_renderer_boxed_as_dyn_renderer_then_can_be_held() {
         // Act
         let _boxed: Box<dyn Renderer> = Box::new(NullRenderer);
+    }
+
+    #[test]
+    fn when_renderer_res_in_world_then_system_can_call_clear_via_resmut() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log.clone());
+        let mut world = bevy_ecs::world::World::new();
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        let mut schedule = bevy_ecs::schedule::Schedule::default();
+        schedule.add_systems(|mut renderer: bevy_ecs::prelude::ResMut<RendererRes>| {
+            renderer.clear(Color::BLACK);
+        });
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        assert_eq!(log.lock().unwrap().as_slice(), &["clear"]);
+    }
+
+    #[test]
+    fn when_renderer_res_inserted_into_world_then_retrievable_as_resource() {
+        // Arrange
+        let mut world = bevy_ecs::world::World::new();
+
+        // Act
+        world.insert_resource(RendererRes::new(Box::new(NullRenderer)));
+
+        // Assert
+        let _res = world.resource::<RendererRes>();
+    }
+
+    #[test]
+    fn when_renderer_res_constructed_from_box_then_inner_is_accessible() {
+        // Act
+        let mut res = RendererRes::new(Box::new(NullRenderer));
+
+        // Assert
+        res.clear(Color::BLACK);
     }
 }

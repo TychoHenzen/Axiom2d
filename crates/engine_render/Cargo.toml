@@ -3,7 +3,11 @@ name = "engine_render"
 edition.workspace = true
 version.workspace = true
 
+[features]
+testing = []
+
 [dependencies]
+bevy_ecs = { workspace = true }
 engine_core = { path = "../engine_core" }
 bytemuck = { workspace = true }
 pollster = { workspace = true }
