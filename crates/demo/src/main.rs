@@ -68,7 +68,7 @@ fn setup(app: &mut App) {
     ));
     app.set_window_config(config)
         .add_systems(Phase::Update, (count_frames, move_rect, bounce_rect))
-        .add_systems(Phase::Render, (clear_system, render_rect));
+        .add_systems(Phase::Render, (clear_system, render_rect).chain());
 }
 
 fn main() {
@@ -252,6 +252,34 @@ mod tests {
         assert!(world.get_resource::<RectSize>().is_some());
         let mut query = world.query::<(&Position, &Velocity)>();
         assert_eq!(query.iter(world).count(), 1);
+    }
+
+    #[test]
+    fn when_render_phase_runs_then_clear_happens_before_draw_rect() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log.clone());
+        let mut world = World::new();
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.insert_resource(ClearColor::default());
+        world.insert_resource(RectSize {
+            width: Pixels(300.0),
+            height: Pixels(200.0),
+        });
+        world.spawn(Position {
+            x: Pixels(100.0),
+            y: Pixels(50.0),
+        });
+        let mut schedule = Schedule::default();
+        schedule.add_systems((clear_system, render_rect).chain());
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        let calls = log.lock().unwrap();
+        assert_eq!(calls[0], "clear");
+        assert_eq!(calls[1], "draw_rect");
     }
 
     #[test]
