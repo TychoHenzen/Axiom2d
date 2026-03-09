@@ -4,7 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Axiom2d is an LLM-optimized 2D game engine written in Rust. The project is in early development (scaffolding stage). The full architectural vision is documented in `Doc/Axiom_Blueprint.md`.
+Axiom2d is an LLM-optimized 2D game engine written in Rust. The project is in early development (scaffolding stage). The full architectural vision is documented in `Doc/Axiom_Blueprint.md`. The implementation roadmap with progress tracking lives in `Doc/Implementation_Roadmap.md`.
+
+## Implementation Roadmap
+
+**Before starting feature work**, read `Doc/Implementation_Roadmap.md` to understand what's been done, what's next, and the dependency order between phases.
+
+### Working on a step
+
+1. Pick the next `[NOT STARTED]` step that has all dependencies satisfied (check the dependency graph at the bottom of the roadmap).
+2. Mark the step `[IN PROGRESS]` in `Doc/Implementation_Roadmap.md` before writing code.
+3. Implement with tests (follow the Testing Strategy below). Each checkbox in the step is a deliverable — check it off as you complete it.
+4. Run `cargo.exe test` and `cargo.exe build` to verify everything passes.
+5. Mark the step `[DONE]` when all checkboxes are checked and tests pass.
+
+### After completing a step
+
+1. Update `Doc/Implementation_Roadmap.md`: mark `[DONE]`, check all boxes.
+2. Update the **Implemented Abstractions** section in this file if new public types/traits/systems were added.
+3. Update the **Current State** baseline at the top of the roadmap (test counts, feature summary).
+4. If new crates gained real implementations, move them from "placeholder" to "implemented" in the Architecture section below.
+5. If new workspace dependencies were added, mention them in the Development Environment section.
 
 ## Development Environment
 
