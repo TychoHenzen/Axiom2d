@@ -3,6 +3,8 @@ use std::collections::HashSet;
 use bevy_ecs::prelude::Resource;
 use winit::keyboard::KeyCode;
 
+use crate::action_map::ActionMap;
+
 #[derive(Resource, Debug, Clone, PartialEq, Default)]
 pub struct InputState {
     pressed: HashSet<KeyCode>,
@@ -33,6 +35,16 @@ impl InputState {
         self.just_released.insert(key);
     }
 
+    pub fn action_pressed(&self, map: &ActionMap, action: &str) -> bool {
+        map.bindings_for(action).iter().any(|key| self.pressed(*key))
+    }
+
+    pub fn action_just_pressed(&self, map: &ActionMap, action: &str) -> bool {
+        map.bindings_for(action)
+            .iter()
+            .any(|key| self.just_pressed(*key))
+    }
+
     pub fn clear_frame_state(&mut self) {
         self.just_pressed.clear();
         self.just_released.clear();
@@ -41,8 +53,6 @@ impl InputState {
 
 #[cfg(test)]
 mod tests {
-    use winit::keyboard::KeyCode;
-
     use super::*;
 
     #[test]
@@ -144,6 +154,124 @@ mod tests {
 
         // Assert
         assert!(!state.just_released(KeyCode::Space));
+    }
+
+    #[test]
+    fn when_action_not_in_map_then_action_pressed_returns_false() {
+        // Arrange
+        let mut state = InputState::default();
+        state.press(KeyCode::Space);
+        let map = ActionMap::default();
+
+        // Act
+        let result = state.action_pressed(&map, "jump");
+
+        // Assert
+        assert!(!result);
+    }
+
+    #[test]
+    fn when_bound_key_is_not_pressed_then_action_pressed_returns_false() {
+        // Arrange
+        let state = InputState::default();
+        let mut map = ActionMap::default();
+        map.bind("jump", vec![KeyCode::Space]);
+
+        // Act
+        let result = state.action_pressed(&map, "jump");
+
+        // Assert
+        assert!(!result);
+    }
+
+    #[test]
+    fn when_bound_key_is_pressed_then_action_pressed_returns_true() {
+        // Arrange
+        let mut state = InputState::default();
+        state.press(KeyCode::Space);
+        let mut map = ActionMap::default();
+        map.bind("jump", vec![KeyCode::Space]);
+
+        // Act
+        let result = state.action_pressed(&map, "jump");
+
+        // Assert
+        assert!(result);
+    }
+
+    #[test]
+    fn when_action_not_in_map_then_action_just_pressed_returns_false() {
+        // Arrange
+        let mut state = InputState::default();
+        state.press(KeyCode::Space);
+        let map = ActionMap::default();
+
+        // Act
+        let result = state.action_just_pressed(&map, "jump");
+
+        // Assert
+        assert!(!result);
+    }
+
+    #[test]
+    fn when_bound_key_is_just_pressed_then_action_just_pressed_returns_true() {
+        // Arrange
+        let mut state = InputState::default();
+        state.press(KeyCode::Space);
+        let mut map = ActionMap::default();
+        map.bind("jump", vec![KeyCode::Space]);
+
+        // Act
+        let result = state.action_just_pressed(&map, "jump");
+
+        // Assert
+        assert!(result);
+    }
+
+    #[test]
+    fn when_bound_key_held_across_frame_clear_then_action_just_pressed_returns_false() {
+        // Arrange
+        let mut state = InputState::default();
+        state.press(KeyCode::Space);
+        state.clear_frame_state();
+        let mut map = ActionMap::default();
+        map.bind("jump", vec![KeyCode::Space]);
+
+        // Act
+        let result = state.action_just_pressed(&map, "jump");
+
+        // Assert
+        assert!(!result);
+    }
+
+    #[test]
+    fn when_one_of_multiple_bound_keys_is_just_pressed_then_action_just_pressed_returns_true() {
+        // Arrange
+        let mut state = InputState::default();
+        state.press(KeyCode::KeyD);
+        let mut map = ActionMap::default();
+        map.bind("move_right", vec![KeyCode::ArrowRight, KeyCode::KeyD]);
+
+        // Act
+        let result = state.action_just_pressed(&map, "move_right");
+
+        // Assert
+        assert!(result);
+    }
+
+    #[test]
+    fn when_one_of_multiple_bound_keys_is_pressed_then_action_pressed_returns_true() {
+        // Arrange
+        let mut state = InputState::default();
+        state.press(KeyCode::KeyD);
+        let mut map = ActionMap::default();
+        map.bind("move_right", vec![KeyCode::ArrowRight, KeyCode::KeyD]);
+
+        // Act
+        let result = state.action_pressed(&map, "move_right");
+
+        // Assert
+        assert!(result);
     }
 
     #[test]

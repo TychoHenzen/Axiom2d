@@ -4,9 +4,9 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (49 tests), engine_ecs (10 tests), engine_render (25 tests), engine_app (34 tests), engine_input (20 tests), axiom2d facade (2 tests), demo (9 tests). Total: 149 tests.
+**Implemented crates:** engine_core (49 tests), engine_ecs (10 tests), engine_render (25 tests), engine_app (34 tests), engine_input (35 tests), axiom2d facade (2 tests), demo (9 tests). Total: 164 tests.
 
-**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS.
+**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed).
 
 **Placeholder crates (empty):** engine_audio, engine_physics, engine_scene, engine_assets, engine_ui.
 
@@ -39,13 +39,13 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 - [x] App bridges winit `KeyboardInput` events to `InputEventBuffer` via `handle_key_event()`
 - [x] Demo updated: keyboard-controlled rectangle (arrow keys) replaces auto-bounce
 
-### Step 1.3 — Action Mapping `[NOT STARTED]`
+### Step 1.3 — Action Mapping `[DONE]`
 **Crate:** engine_input
 
-- [ ] `ActionName(String)` newtype
-- [ ] `ActionMap` resource: maps ActionName → Vec<KeyCode>
-- [ ] `action_pressed()`, `action_just_pressed()` methods on InputState using ActionMap
-- [ ] Tests: multiple keys bound to same action, unbound actions return false
+- [x] `ActionName(String)` newtype
+- [x] `ActionMap` resource: maps ActionName → Vec<KeyCode>
+- [x] `action_pressed()`, `action_just_pressed()` methods on InputState using ActionMap
+- [x] Tests: multiple keys bound to same action, unbound actions return false
 
 ### Step 1.4 — Gamepad Support (Deferred) `[NOT STARTED]`
 **Crate:** engine_input
