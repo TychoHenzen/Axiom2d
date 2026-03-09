@@ -47,12 +47,12 @@ mod tests {
     #[test]
     fn when_color_from_u8_called_then_converts_to_normalized_f32() {
         // Act
-        let c = Color::from_u8(255, 128, 0, 255);
+        let c = Color::from_u8(255, 128, 64, 255);
 
         // Assert
         assert_eq!(c.r, 1.0);
         assert!((c.g - 128.0 / 255.0).abs() < 1e-6);
-        assert_eq!(c.b, 0.0);
+        assert!((c.b - 64.0 / 255.0).abs() < 1e-6);
         assert_eq!(c.a, 1.0);
     }
 

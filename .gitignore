@@ -27,3 +27,6 @@ perf.data.old
 flamegraph.svg
 callgrind.out.*
 *.pdb
+
+# Mutation testing
+mutants-out/

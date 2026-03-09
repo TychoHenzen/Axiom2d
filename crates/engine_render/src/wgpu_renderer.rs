@@ -158,28 +158,36 @@ impl WgpuRenderer {
     fn rect_to_vertices(&self, rect: &Rect) -> [Vertex; 6] {
         let vw = self.config.width as f32;
         let vh = self.config.height as f32;
-
-        let Pixels(x) = rect.x;
-        let Pixels(y) = rect.y;
-        let Pixels(w) = rect.width;
-        let Pixels(h) = rect.height;
-
-        let x0 = x / vw * 2.0 - 1.0;
-        let y0 = 1.0 - y / vh * 2.0;
-        let x1 = (x + w) / vw * 2.0 - 1.0;
-        let y1 = 1.0 - (y + h) / vh * 2.0;
-
-        let color = [rect.color.r, rect.color.g, rect.color.b, rect.color.a];
-
-        [
-            Vertex { position: [x0, y0], color },
-            Vertex { position: [x1, y0], color },
-            Vertex { position: [x0, y1], color },
-            Vertex { position: [x0, y1], color },
-            Vertex { position: [x1, y0], color },
-            Vertex { position: [x1, y1], color },
-        ]
+        rect_to_vertices(rect, vw, vh)
     }
+}
+
+/// Converts pixel-space rect bounds to NDC coordinates [x0, y0, x1, y1].
+pub(crate) fn rect_to_ndc(x: f32, y: f32, w: f32, h: f32, vw: f32, vh: f32) -> [f32; 4] {
+    let x0 = x / vw * 2.0 - 1.0;
+    let y0 = 1.0 - y / vh * 2.0;
+    let x1 = (x + w) / vw * 2.0 - 1.0;
+    let y1 = 1.0 - (y + h) / vh * 2.0;
+    [x0, y0, x1, y1]
+}
+
+fn rect_to_vertices(rect: &Rect, vw: f32, vh: f32) -> [Vertex; 6] {
+    let Pixels(x) = rect.x;
+    let Pixels(y) = rect.y;
+    let Pixels(w) = rect.width;
+    let Pixels(h) = rect.height;
+
+    let [x0, y0, x1, y1] = rect_to_ndc(x, y, w, h, vw, vh);
+    let color = [rect.color.r, rect.color.g, rect.color.b, rect.color.a];
+
+    [
+        Vertex { position: [x0, y0], color },
+        Vertex { position: [x1, y0], color },
+        Vertex { position: [x0, y1], color },
+        Vertex { position: [x0, y1], color },
+        Vertex { position: [x1, y0], color },
+        Vertex { position: [x1, y1], color },
+    ]
 }
 
 impl Renderer for WgpuRenderer {
@@ -247,5 +255,66 @@ impl Renderer for WgpuRenderer {
         self.config.width = width.max(1);
         self.config.height = height.max(1);
         self.surface.configure(&self.device, &self.config);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn when_rect_fills_viewport_then_ndc_spans_full_clip_space() {
+        // Act
+        let [x0, y0, x1, y1] = rect_to_ndc(0.0, 0.0, 800.0, 600.0, 800.0, 600.0);
+
+        // Assert
+        assert_eq!(x0, -1.0);
+        assert_eq!(y0, 1.0);
+        assert_eq!(x1, 1.0);
+        assert_eq!(y1, -1.0);
+    }
+
+    #[test]
+    fn when_rect_offset_within_viewport_then_ndc_reflects_position() {
+        // Act
+        let [x0, y0, x1, y1] = rect_to_ndc(200.0, 150.0, 400.0, 300.0, 800.0, 600.0);
+
+        // Assert
+        assert_eq!(x0, -0.5);
+        assert_eq!(y0, 0.5);
+        assert_eq!(x1, 0.5);
+        assert_eq!(y1, -0.5);
+    }
+
+    #[test]
+    fn when_rect_at_viewport_center_then_ndc_is_origin() {
+        // Act
+        let [x0, y0, _, _] = rect_to_ndc(400.0, 300.0, 0.0, 0.0, 800.0, 600.0);
+
+        // Assert
+        assert_eq!(x0, 0.0);
+        assert_eq!(y0, 0.0);
+    }
+
+    #[test]
+    fn when_rect_to_vertices_called_then_produces_two_triangles_with_color() {
+        // Arrange
+        let rect = Rect {
+            x: Pixels(0.0),
+            y: Pixels(0.0),
+            width: Pixels(800.0),
+            height: Pixels(600.0),
+            color: Color::RED,
+        };
+
+        // Act
+        let verts = rect_to_vertices(&rect, 800.0, 600.0);
+
+        // Assert
+        assert_eq!(verts.len(), 6);
+        assert_eq!(verts[0].position, [-1.0, 1.0]);
+        assert_eq!(verts[1].position, [1.0, 1.0]);
+        assert_eq!(verts[5].position, [1.0, -1.0]);
+        assert_eq!(verts[0].color, [1.0, 0.0, 0.0, 1.0]);
     }
 }
