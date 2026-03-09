@@ -1,0 +1,6 @@
+[package]
+name = "engine_physics"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]

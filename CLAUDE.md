@@ -21,7 +21,7 @@ cargo.exe clippy             # Lint (when configured)
 
 Always use `cargo.exe` (not `cargo`) since the Rust toolchain is Windows-only. The same applies to `rustc.exe`, `rustfmt.exe`, etc.
 
-The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors).
+The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors), `winit` (windowing), `wgpu` (GPU rendering), `pollster` (async blocking).
 
 ### WSL/Windows Gotchas
 
@@ -39,7 +39,12 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **Archetypal ECS**: Entities with identical component sets stored together. Systems are plain functions with typed parameters (e.g., `Query<(&mut Position, &Velocity)>`). The plan is to use `bevy_ecs` as a standalone crate or wrap `hecs`.
 - **Code-defined assets**: All assets (sprites, audio, shaders, tilemaps) are expressed as Rust code or RON data — no binary asset files. Uses `lyon` for vector graphics, `fundsp` for audio synthesis, WGSL for shaders.
 - **Trait-abstracted hardware**: Every hardware-dependent subsystem (renderer, audio, input) hides behind a trait with null/mock implementations for testing. Canonical test pattern: `World` + `Schedule` without touching hardware.
-- **Flat workspace of crates**: Planned layout under `crates/` (e.g., `engine_core`, `engine_ecs`, `engine_render`, `engine_audio`, `engine_input`, `engine_physics`, `engine_scene`, `engine_assets`, `engine_ui`) with a virtual manifest at root.
+- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, and `axiom2d` (facade) are implemented; `engine_ecs`, `engine_audio`, `engine_input`, `engine_physics`, `engine_scene`, `engine_assets`, `engine_ui` are placeholders. Virtual manifest at root. `demo` binary crate for smoke testing.
+
+### Implemented Abstractions
+
+- **Renderer trait** (`engine_render::renderer`): `clear(&mut self, color: Color)` + `present(&mut self)`. Object-safe (supports `Box<dyn Renderer>`). `NullRenderer` unit struct provides no-op impl for testing.
+- **Plugin trait** (`engine_app::app`): `build(&self, app: &mut App)` — called eagerly inside `add_plugin()`. App accepts `Box<dyn Renderer>` via `set_renderer()`.
 
 ### Scheduling Phases
 

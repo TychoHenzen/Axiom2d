@@ -1,0 +1,7 @@
+[package]
+name = "engine_render"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+engine_core = { path = "../engine_core" }

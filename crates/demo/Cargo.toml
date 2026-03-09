@@ -1,0 +1,10 @@
+[package]
+name = "demo"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+axiom2d = { path = "../axiom2d" }
+pollster = { workspace = true }
+wgpu = { workspace = true }
+winit = { workspace = true }
