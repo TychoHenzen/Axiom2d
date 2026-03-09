@@ -25,15 +25,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn when_default_then_buffer_is_empty() {
-        // Arrange
-        let mut buffer = InputEventBuffer::default();
-
-        // Assert
-        assert!(buffer.drain().is_empty());
-    }
-
-    #[test]
     fn when_key_event_pushed_then_drain_returns_one_event() {
         // Arrange
         let mut buffer = InputEventBuffer::default();
@@ -62,15 +53,4 @@ mod tests {
         assert!(buffer.drain().is_empty());
     }
 
-    #[test]
-    fn when_inserted_into_world_then_retrievable_as_resource() {
-        // Arrange
-        let mut world = bevy_ecs::world::World::new();
-
-        // Act
-        world.insert_resource(InputEventBuffer::default());
-
-        // Assert
-        assert!(world.get_resource::<InputEventBuffer>().is_some());
-    }
 }

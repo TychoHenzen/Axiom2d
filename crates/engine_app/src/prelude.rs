@@ -1,14 +1,3 @@
 pub use crate::app::{App, Plugin};
 pub use crate::window_size::WindowSize;
 pub use engine_ecs::prelude::{Phase, World};
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn when_prelude_imported_then_app_and_plugin_resolve() {
-        // Act
-        let _app = App::new();
-    }
-}

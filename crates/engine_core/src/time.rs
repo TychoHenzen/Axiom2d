@@ -124,53 +124,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn when_constructed_then_stores_seconds_value() {
-        // Act
-        let dt = DeltaTime(Seconds(0.016));
-
-        // Assert
-        assert_eq!(dt.0, Seconds(0.016));
-    }
-
-    #[test]
-    fn when_copied_then_supports_copy_eq_and_debug() {
-        // Arrange
-        let a = DeltaTime(Seconds(0.016));
-
-        // Act
-        let b = a;
-
-        // Assert
-        assert_eq!(a, b);
-        let s = format!("{:?}", a);
-        assert!(s.contains("0.016"));
-    }
-
-    #[test]
-    fn when_default_then_value_is_zero() {
-        // Act
-        let dt = DeltaTime::default();
-
-        // Assert
-        assert_eq!(dt.0, Seconds(0.0));
-    }
-
-    #[test]
-    fn when_inserted_into_world_then_retrievable_as_resource() {
-        // Arrange
-        let mut world = bevy_ecs::world::World::new();
-
-        // Act
-        world.insert_resource(DeltaTime(Seconds(0.016)));
-
-        // Assert
-        let dt = world.resource::<DeltaTime>();
-        assert_eq!(dt.0, Seconds(0.016));
-    }
-
-    // --- Time trait + FakeClock + ClockRes ---
-
-    #[test]
     fn when_fake_clock_constructed_then_delta_is_zero() {
         // Act
         let mut clock = FakeClock::new();
@@ -235,19 +188,6 @@ mod tests {
     }
 
     #[test]
-    fn when_clock_res_inserted_into_world_then_retrievable_as_resource() {
-        // Arrange
-        let mut world = bevy_ecs::world::World::new();
-        let clock = ClockRes::new(Box::new(FakeClock::new()));
-
-        // Act
-        world.insert_resource(clock);
-
-        // Assert
-        assert!(world.get_resource::<ClockRes>().is_some());
-    }
-
-    #[test]
     fn when_clock_res_derefmut_then_reaches_inner_delta() {
         // Arrange
         let mut fake = FakeClock::new();
@@ -259,18 +199,6 @@ mod tests {
 
         // Assert
         assert_eq!(dt, Seconds(0.25));
-    }
-
-    // --- FixedTimestep ---
-
-    #[test]
-    fn when_fixed_timestep_default_then_accumulator_zero_and_step_size_60fps() {
-        // Act
-        let ts = FixedTimestep::default();
-
-        // Assert
-        assert_eq!(ts.accumulator, Seconds(0.0));
-        assert!((ts.step_size.0 - 1.0 / 60.0).abs() < f32::EPSILON * 10.0);
     }
 
     #[test]
@@ -325,20 +253,6 @@ mod tests {
         assert_eq!(steps, 1);
         assert!(ts.accumulator.0.abs() < f32::EPSILON);
     }
-
-    #[test]
-    fn when_fixed_timestep_inserted_into_world_then_retrievable_as_resource() {
-        // Arrange
-        let mut world = bevy_ecs::world::World::new();
-
-        // Act
-        world.insert_resource(FixedTimestep::default());
-
-        // Assert
-        assert!(world.get_resource::<FixedTimestep>().is_some());
-    }
-
-    // --- time_system ---
 
     #[test]
     fn when_time_system_runs_then_delta_time_updated_from_clock() {

@@ -98,12 +98,6 @@ mod tests {
     }
 
     #[test]
-    fn when_null_renderer_boxed_as_dyn_renderer_then_can_be_held() {
-        // Act
-        let _boxed: Box<dyn Renderer> = Box::new(NullRenderer);
-    }
-
-    #[test]
     fn when_renderer_res_in_world_then_system_can_call_clear_via_resmut() {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -122,24 +116,4 @@ mod tests {
         assert_eq!(log.lock().unwrap().as_slice(), &["clear"]);
     }
 
-    #[test]
-    fn when_renderer_res_inserted_into_world_then_retrievable_as_resource() {
-        // Arrange
-        let mut world = bevy_ecs::world::World::new();
-
-        // Act
-        world.insert_resource(RendererRes::new(Box::new(NullRenderer)));
-
-        // Assert
-        let _res = world.resource::<RendererRes>();
-    }
-
-    #[test]
-    fn when_renderer_res_constructed_from_box_then_inner_is_accessible() {
-        // Act
-        let mut res = RendererRes::new(Box::new(NullRenderer));
-
-        // Assert
-        res.clear(Color::BLACK);
-    }
 }

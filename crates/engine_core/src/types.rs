@@ -56,77 +56,19 @@ pub struct EntityId(pub u64);
 
 #[cfg(test)]
 mod tests {
-    use super::{EntityId, Pixels, Seconds, TextureId};
+    use super::*;
 
     #[test]
-    fn when_constructing_pixels_then_supports_copy_eq_debug_and_arithmetic() {
-        // Arrange
-        let a = Pixels(1.0);
-
-        // Act
-        let b = a;
-
-        // Assert
-        assert_eq!(Pixels(3.5).0, 3.5);
-        assert_eq!(a, b);
-        assert_eq!(Pixels(2.0), Pixels(2.0));
-        assert_ne!(Pixels(2.0), Pixels(3.0));
-        let s = format!("{:?}", Pixels(5.0));
-        assert!(s.contains('5'));
+    fn when_pixels_arithmetic_then_add_sub_mul_produce_correct_results() {
         assert_eq!(Pixels(1.5) + Pixels(2.5), Pixels(4.0));
         assert_eq!(Pixels(5.0) - Pixels(2.0), Pixels(3.0));
         assert_eq!(Pixels(4.0) * 0.5, Pixels(2.0));
     }
 
     #[test]
-    fn when_constructing_seconds_then_supports_copy_eq_debug_and_arithmetic() {
-        // Arrange
-        let a = Seconds(0.5);
-
-        // Act
-        let b = a;
-
-        // Assert
-        assert_eq!(Seconds(1.0).0, 1.0);
-        assert_eq!(a, b);
-        assert_eq!(Seconds(1.0), Seconds(1.0));
-        assert_ne!(Seconds(1.0), Seconds(2.0));
-        let s = format!("{:?}", Seconds(0.016));
-        assert!(s.contains("0.016"));
+    fn when_seconds_arithmetic_then_add_sub_mul_produce_correct_results() {
         assert_eq!(Seconds(0.5) + Seconds(0.25), Seconds(0.75));
         assert_eq!(Seconds(1.0) - Seconds(0.25), Seconds(0.75));
         assert_eq!(Seconds(0.016) * 2.0, Seconds(0.032));
-    }
-
-    #[test]
-    fn when_constructing_id_types_then_supports_copy_eq_hash_and_debug() {
-        // Arrange
-        let tid = TextureId(1);
-        let eid = EntityId(2);
-
-        // Act
-        let tid2 = tid;
-        let eid2 = eid;
-
-        // Assert
-        assert_eq!(TextureId(42).0, 42);
-        assert_eq!(EntityId(999).0, 999);
-        assert_eq!(tid, tid2);
-        assert_eq!(eid, eid2);
-        assert_eq!(TextureId(5), TextureId(5));
-        assert_ne!(TextureId(5), TextureId(6));
-        assert_eq!(EntityId(10), EntityId(10));
-        assert_ne!(EntityId(10), EntityId(11));
-        use std::collections::HashMap;
-        let mut map = HashMap::new();
-        map.insert(TextureId(1), "player");
-        assert_eq!(map[&TextureId(1)], "player");
-        let mut map2 = HashMap::new();
-        map2.insert(EntityId(1), "hero");
-        assert_eq!(map2[&EntityId(1)], "hero");
-        let s = format!("{:?}", TextureId(7));
-        assert!(s.contains('7'));
-        let s = format!("{:?}", EntityId(8));
-        assert!(s.contains('8'));
     }
 }

@@ -31,15 +31,6 @@ mod tests {
     }
 
     #[test]
-    fn when_phase_variants_formatted_as_debug_then_names_are_human_readable() {
-        assert_eq!(format!("{:?}", Phase::Input), "Input");
-        assert_eq!(format!("{:?}", Phase::PreUpdate), "PreUpdate");
-        assert_eq!(format!("{:?}", Phase::Update), "Update");
-        assert_eq!(format!("{:?}", Phase::PostUpdate), "PostUpdate");
-        assert_eq!(format!("{:?}", Phase::Render), "Render");
-    }
-
-    #[test]
     fn when_phase_used_as_bevy_schedule_label_then_schedule_accepts_it_without_panic() {
         use bevy_ecs::prelude::{Schedule, World};
 

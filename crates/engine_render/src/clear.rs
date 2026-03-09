@@ -27,39 +27,6 @@ mod tests {
     use crate::testing::SpyRenderer;
 
     #[test]
-    fn when_constructed_with_color_then_stores_color_unchanged() {
-        // Arrange
-        let color = Color::new(0.1, 0.5, 0.9, 1.0);
-
-        // Act
-        let clear = ClearColor(color);
-
-        // Assert
-        assert_eq!(clear.0, color);
-    }
-
-    #[test]
-    fn when_default_then_color_is_cornflower_blue() {
-        // Act
-        let clear = ClearColor::default();
-
-        // Assert
-        assert_eq!(clear.0, Color::new(0.392, 0.584, 0.929, 1.0));
-    }
-
-    #[test]
-    fn when_inserted_into_world_then_retrievable_as_resource() {
-        // Arrange
-        let mut world = bevy_ecs::world::World::new();
-
-        // Act
-        world.insert_resource(ClearColor::default());
-
-        // Assert
-        let _res = world.resource::<ClearColor>();
-    }
-
-    #[test]
     fn when_clear_system_runs_then_renderer_clear_receives_clear_color_value() {
         // Arrange
         let expected_color = Color::new(0.1, 0.2, 0.3, 1.0);

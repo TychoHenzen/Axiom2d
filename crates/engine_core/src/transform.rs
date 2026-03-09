@@ -29,58 +29,6 @@ mod tests {
     use glam::{Affine2, Vec2};
 
     #[test]
-    fn when_default_transform_created_then_position_is_zero_rotation_is_zero_scale_is_one() {
-        // Act
-        let t = Transform2D::default();
-
-        // Assert
-        assert_eq!(t.position, Vec2::ZERO);
-        assert_eq!(t.rotation, 0.0);
-        assert_eq!(t.scale, Vec2::ONE);
-    }
-
-    #[test]
-    fn when_transform_constructed_with_struct_literal_then_fields_match() {
-        // Act
-        let t = Transform2D {
-            position: Vec2::new(1.0, 2.0),
-            rotation: 0.5,
-            scale: Vec2::ONE,
-        };
-
-        // Assert
-        assert_eq!(t.position, Vec2::new(1.0, 2.0));
-        assert_eq!(t.rotation, 0.5);
-        assert_eq!(t.scale, Vec2::ONE);
-    }
-
-    #[test]
-    fn when_using_transform_then_supports_copy_clone_eq_and_debug() {
-        // Arrange
-        let a = Transform2D {
-            position: Vec2::new(5.0, 10.0),
-            rotation: 1.0,
-            scale: Vec2::splat(2.0),
-        };
-
-        // Act
-        let b = a;
-
-        // Assert
-        assert_eq!(a, b);
-        assert_eq!(
-            Transform2D { position: Vec2::ONE, rotation: 0.0, scale: Vec2::ONE },
-            Transform2D { position: Vec2::ONE, rotation: 0.0, scale: Vec2::ONE },
-        );
-        assert_ne!(
-            Transform2D { position: Vec2::ONE, rotation: 0.0, scale: Vec2::ONE },
-            Transform2D { position: Vec2::ZERO, rotation: 0.0, scale: Vec2::ONE },
-        );
-        let s = format!("{a:?}");
-        assert!(s.contains("Transform2D"));
-    }
-
-    #[test]
     fn when_default_transform_converted_to_affine2_then_equals_identity() {
         // Act
         let affine = Transform2D::default().to_affine2();

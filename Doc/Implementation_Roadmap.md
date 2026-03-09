@@ -4,7 +4,7 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (49 tests), engine_ecs (10 tests), engine_render (25 tests), engine_app (34 tests), engine_input (35 tests), axiom2d facade (2 tests), demo (9 tests). Total: 164 tests.
+**Implemented crates:** engine_core (27 tests), engine_ecs (7 tests), engine_render (13 tests), engine_app (30 tests), engine_input (28 tests), axiom2d facade (0 tests), demo (9 tests). Total: 114 tests.
 
 **What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed).
 
