@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use wgpu::util::DeviceExt;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
@@ -12,11 +13,54 @@ const CORNFLOWER_BLUE: wgpu::Color = wgpu::Color {
     a: 1.0,
 };
 
+const SHADER_SRC: &str = "
+struct VertexInput {
+    @location(0) position: vec2<f32>,
+    @location(1) color: vec4<f32>,
+};
+
+struct VertexOutput {
+    @builtin(position) position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+};
+
+@vertex
+fn vs_main(in: VertexInput) -> VertexOutput {
+    var out: VertexOutput;
+    out.position = vec4<f32>(in.position, 0.0, 1.0);
+    out.color = in.color;
+    return out;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    return in.color;
+}
+";
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct Vertex {
+    position: [f32; 2],
+    color: [f32; 4],
+}
+
+const RECT_VERTICES: &[Vertex] = &[
+    Vertex { position: [-0.3, 0.3], color: [1.0, 1.0, 1.0, 1.0] },
+    Vertex { position: [0.3, 0.3], color: [1.0, 1.0, 1.0, 1.0] },
+    Vertex { position: [-0.3, -0.3], color: [1.0, 1.0, 1.0, 1.0] },
+    Vertex { position: [-0.3, -0.3], color: [1.0, 1.0, 1.0, 1.0] },
+    Vertex { position: [0.3, 0.3], color: [1.0, 1.0, 1.0, 1.0] },
+    Vertex { position: [0.3, -0.3], color: [1.0, 1.0, 1.0, 1.0] },
+];
+
 struct GpuState {
     surface: wgpu::Surface<'static>,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
+    pipeline: wgpu::RenderPipeline,
+    vertex_buffer: wgpu::Buffer,
 }
 
 struct DemoApp {
@@ -70,12 +114,75 @@ impl ApplicationHandler for DemoApp {
         };
         surface.configure(&device, &config);
 
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: wgpu::ShaderSource::Wgsl(SHADER_SRC.into()),
+        });
+
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: None,
+            bind_group_layouts: &[],
+            push_constant_ranges: &[],
+        });
+
+        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: None,
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: size_of::<Vertex>() as wgpu::BufferAddress,
+                    step_mode: wgpu::VertexStepMode::Vertex,
+                    attributes: &[
+                        wgpu::VertexAttribute {
+                            format: wgpu::VertexFormat::Float32x2,
+                            offset: 0,
+                            shader_location: 0,
+                        },
+                        wgpu::VertexAttribute {
+                            format: wgpu::VertexFormat::Float32x4,
+                            offset: 8,
+                            shader_location: 1,
+                        },
+                    ],
+                }],
+                compilation_options: Default::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: Default::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                ..Default::default()
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None,
+            cache: None,
+        });
+
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(RECT_VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
         self.window = Some(window);
         self.gpu = Some(GpuState {
             surface,
             device,
             queue,
             config,
+            pipeline,
+            vertex_buffer,
         });
     }
 
@@ -103,7 +210,7 @@ impl ApplicationHandler for DemoApp {
                     .device
                     .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
                 {
-                    let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: None,
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                             view: &view,
@@ -117,6 +224,9 @@ impl ApplicationHandler for DemoApp {
                         timestamp_writes: None,
                         occlusion_query_set: None,
                     });
+                    pass.set_pipeline(&gpu.pipeline);
+                    pass.set_vertex_buffer(0, gpu.vertex_buffer.slice(..));
+                    pass.draw(0..RECT_VERTICES.len() as u32, 0..1);
                 }
                 gpu.queue.submit(Some(encoder.finish()));
                 frame.present();

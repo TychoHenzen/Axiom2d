@@ -5,6 +5,7 @@ version.workspace = true
 
 [dependencies]
 axiom2d = { path = "../axiom2d" }
+bytemuck = { workspace = true }
 pollster = { workspace = true }
 wgpu = { workspace = true }
 winit = { workspace = true }
