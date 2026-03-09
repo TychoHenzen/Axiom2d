@@ -6,7 +6,6 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
 
 use engine_render::renderer::Renderer;
-use engine_render::wgpu_renderer::WgpuRenderer;
 use engine_render::window::WindowConfig;
 
 pub trait Plugin {
@@ -74,10 +73,10 @@ impl ApplicationHandler for App {
             ))
             .with_resizable(self.window_config.resizable);
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
-        let renderer = WgpuRenderer::new(window.clone(), &self.window_config);
+        let renderer = engine_render::create_renderer(window.clone(), &self.window_config);
 
         self.window = Some(window);
-        self.renderer = Some(Box::new(renderer));
+        self.renderer = Some(renderer);
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
