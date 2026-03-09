@@ -73,6 +73,46 @@ mod tests {
     }
 
     #[test]
+    fn when_draw_rect_called_then_log_records_draw_rect_string() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log.clone());
+        let rect = Rect::default();
+
+        // Act
+        spy.draw_rect(rect);
+
+        // Assert
+        assert_eq!(log.lock().unwrap().as_slice(), &["draw_rect"]);
+    }
+
+    #[test]
+    fn when_present_called_then_log_records_present_string() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log.clone());
+
+        // Act
+        spy.present();
+
+        // Assert
+        assert_eq!(log.lock().unwrap().as_slice(), &["present"]);
+    }
+
+    #[test]
+    fn when_resize_called_then_log_records_resize_string() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log.clone());
+
+        // Act
+        spy.resize(800, 600);
+
+        // Assert
+        assert_eq!(log.lock().unwrap().as_slice(), &["resize"]);
+    }
+
+    #[test]
     fn when_clear_called_with_color_capture_then_color_is_stored() {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));

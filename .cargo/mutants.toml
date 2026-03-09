@@ -15,6 +15,7 @@ exclude_re = [
     "delete match arm WindowEvent::CloseRequested",
     "delete match arm WindowEvent::Resized",
     "delete match arm WindowEvent::RedrawRequested",
+    "delete match arm WindowEvent::KeyboardInput",
     # WgpuRenderer methods require a live GPU device
     "<impl Renderer for WgpuRenderer>",
 ]
