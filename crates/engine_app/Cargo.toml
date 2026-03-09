@@ -5,3 +5,4 @@ version.workspace = true
 
 [dependencies]
 engine_render = { path = "../engine_render" }
+winit = { workspace = true }

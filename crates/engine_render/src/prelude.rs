@@ -1,5 +1,6 @@
 pub use crate::rect::Rect;
 pub use crate::renderer::{NullRenderer, Renderer};
+pub use crate::wgpu_renderer::WgpuRenderer;
 pub use crate::window::WindowConfig;
 
 #[cfg(test)]

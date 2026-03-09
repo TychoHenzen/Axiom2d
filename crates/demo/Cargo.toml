@@ -4,7 +4,4 @@ edition.workspace = true
 version.workspace = true
 
 [dependencies]
-bytemuck = { workspace = true }
-pollster = { workspace = true }
-wgpu = { workspace = true }
-winit = { workspace = true }
+axiom2d = { path = "../axiom2d" }

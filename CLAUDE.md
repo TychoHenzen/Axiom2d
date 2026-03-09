@@ -44,7 +44,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 ### Implemented Abstractions
 
 - **Renderer trait** (`engine_render::renderer`): `clear(&mut self, color: Color)` + `draw_rect(&mut self, rect: Rect)` + `present(&mut self)`. Object-safe (supports `Box<dyn Renderer>`). `NullRenderer` unit struct provides no-op impl for testing.
-- **Rect** (`engine_render::rect`): `x: Pixels`, `y: Pixels`, `width: Pixels`, `height: Pixels`, `color: Color`. Derives Debug, Clone, Copy, PartialEq.
+- **Rect** (`engine_render::rect`): `x: Pixels`, `y: Pixels`, `width: Pixels`, `height: Pixels`, `color: Color`. Derives Debug, Clone, Copy, PartialEq. Manual Default (zero-sized, WHITE color).
 - **Plugin trait** (`engine_app::app`): `build(&self, app: &mut App)` — called eagerly inside `add_plugin()`. App accepts `Box<dyn Renderer>` via `set_renderer()`.
 
 ### Scheduling Phases

@@ -5,3 +5,7 @@ version.workspace = true
 
 [dependencies]
 engine_core = { path = "../engine_core" }
+bytemuck = { workspace = true }
+pollster = { workspace = true }
+wgpu = { workspace = true }
+winit = { workspace = true }
