@@ -44,10 +44,10 @@ fn bounce_rect(
     }
 }
 
-fn move_rect(mut query: Query<(&mut Position, &Velocity)>) {
+fn move_rect(mut query: Query<(&mut Position, &Velocity)>, dt: Res<DeltaTime>) {
     for (mut pos, vel) in &mut query {
-        pos.x = pos.x + vel.dx;
-        pos.y = pos.y + vel.dy;
+        pos.x = pos.x + Pixels(vel.dx.0 * dt.0.0);
+        pos.y = pos.y + Pixels(vel.dy.0 * dt.0.0);
     }
 }
 
@@ -64,7 +64,7 @@ fn setup(app: &mut App) {
     });
     app.world_mut().spawn((
         Position { x: Pixels(490.0), y: Pixels(260.0) },
-        Velocity { dx: Pixels(4.0), dy: Pixels(3.0) },
+        Velocity { dx: Pixels(240.0), dy: Pixels(180.0) },
     ));
     app.set_window_config(config)
         .add_systems(Phase::Update, (count_frames, move_rect, bounce_rect))
@@ -92,12 +92,13 @@ mod tests {
     }
 
     #[test]
-    fn when_move_system_runs_then_position_advances_by_velocity() {
+    fn when_move_system_runs_then_position_advances_by_velocity_scaled_by_delta() {
         // Arrange
         let mut world = World::new();
+        world.insert_resource(DeltaTime(Seconds(0.016)));
         world.spawn((
             Position { x: Pixels(100.0), y: Pixels(50.0) },
-            Velocity { dx: Pixels(5.0), dy: Pixels(-3.0) },
+            Velocity { dx: Pixels(200.0), dy: Pixels(100.0) },
         ));
         let mut schedule = Schedule::default();
         schedule.add_systems(move_rect);
@@ -108,8 +109,30 @@ mod tests {
         // Assert
         let mut query = world.query::<&Position>();
         let pos = query.single(&world).unwrap();
-        assert_eq!(pos.x, Pixels(105.0));
-        assert_eq!(pos.y, Pixels(47.0));
+        assert!((pos.x.0 - 103.2).abs() < f32::EPSILON * 100.0);
+        assert!((pos.y.0 - 51.6).abs() < f32::EPSILON * 100.0);
+    }
+
+    #[test]
+    fn when_move_system_runs_with_zero_delta_then_position_unchanged() {
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(DeltaTime(Seconds(0.0)));
+        world.spawn((
+            Position { x: Pixels(490.0), y: Pixels(260.0) },
+            Velocity { dx: Pixels(240.0), dy: Pixels(180.0) },
+        ));
+        let mut schedule = Schedule::default();
+        schedule.add_systems(move_rect);
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        let mut query = world.query::<&Position>();
+        let pos = query.single(&world).unwrap();
+        assert_eq!(pos.x, Pixels(490.0));
+        assert_eq!(pos.y, Pixels(260.0));
     }
 
     #[test]
@@ -286,10 +309,11 @@ mod tests {
     fn when_demo_runs_one_frame_then_position_changes() {
         // Arrange
         let mut world = World::new();
+        world.insert_resource(DeltaTime(Seconds(0.016)));
         spawn_entity(
             &mut world,
             Position { x: Pixels(490.0), y: Pixels(260.0) },
-            Velocity { dx: Pixels(4.0), dy: Pixels(3.0) },
+            Velocity { dx: Pixels(240.0), dy: Pixels(180.0) },
         );
         let mut schedule = Schedule::default();
         schedule.add_systems((move_rect, bounce_rect));

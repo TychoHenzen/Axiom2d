@@ -4,9 +4,9 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (31 tests), engine_ecs (10 tests), engine_render (25 tests), engine_app (29 tests), axiom2d facade (2 tests), demo (10 tests). Total: 107 tests.
+**Implemented crates:** engine_core (49 tests), engine_ecs (10 tests), engine_render (25 tests), engine_app (31 tests), axiom2d facade (2 tests), demo (11 tests). Total: 128 tests.
 
-**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, bouncing rectangle demo.
+**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, bouncing rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate.
 
 **Placeholder crates (empty):** engine_input, engine_audio, engine_physics, engine_scene, engine_assets, engine_ui.
 
@@ -14,16 +14,16 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Phase 1: Time & Input
 
-### Step 1.1 — DeltaTime & Fixed Timestep `[NOT STARTED]`
+### Step 1.1 — DeltaTime & Fixed Timestep `[DONE]`
 **Crate:** engine_core
 **Why first:** Every future system (physics, animation, audio) depends on frame-independent time.
 
-- [ ] `DeltaTime(Seconds)` resource — systems read via `Res<DeltaTime>`
-- [ ] `FixedTimestep` resource with accumulator for "Fix Your Timestep" pattern
-- [ ] `Time` trait + `SystemClock` (real) / `FakeClock` (test) implementations
-- [ ] `time_system` in Phase::PreUpdate that updates DeltaTime each frame
-- [ ] Update demo to multiply velocity by DeltaTime instead of per-frame constants
-- [ ] Tests: deterministic time with FakeClock, accumulator behavior
+- [x] `DeltaTime(Seconds)` resource — systems read via `Res<DeltaTime>`
+- [x] `FixedTimestep` resource with accumulator for "Fix Your Timestep" pattern
+- [x] `Time` trait + `SystemClock` (real) / `FakeClock` (test) implementations
+- [x] `time_system` in Phase::PreUpdate that updates DeltaTime each frame
+- [x] Update demo to multiply velocity by DeltaTime instead of per-frame constants
+- [x] Tests: deterministic time with FakeClock, accumulator behavior
 
 ### Step 1.2 — Input State (Keyboard + Mouse) `[NOT STARTED]`
 **Crate:** engine_input

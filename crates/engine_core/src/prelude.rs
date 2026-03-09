@@ -1,6 +1,7 @@
 pub use crate::color::Color;
 pub use crate::error::EngineError;
 pub use crate::spatial::{Position, Velocity};
+pub use crate::time::{ClockRes, DeltaTime, FixedTimestep, time_system};
 pub use crate::transform::Transform2D;
 pub use crate::types::{EntityId, Pixels, Seconds, TextureId};
 pub use glam::{Affine2, Vec2};
@@ -36,6 +37,13 @@ mod tests {
     fn when_prelude_imported_then_exports_transform() {
         // Act
         let _ = Transform2D::default();
+    }
+
+    #[test]
+    fn when_prelude_imported_then_exports_time_types() {
+        // Act
+        let _ = DeltaTime::default();
+        let _ = FixedTimestep::default();
     }
 
     #[test]

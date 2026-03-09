@@ -37,6 +37,7 @@ impl App {
     pub fn new() -> Self {
         let mut world = World::new();
         world.insert_resource(WindowSize::default());
+        world.insert_resource(engine_core::time::DeltaTime::default());
         Self {
             plugin_count: 0,
             window_config: WindowConfig::default(),
@@ -545,6 +546,43 @@ mod tests {
         let size = app.world().resource::<WindowSize>();
         assert_eq!(size.width, Pixels(1024.0));
         assert_eq!(size.height, Pixels(768.0));
+    }
+
+    #[test]
+    fn when_app_new_called_then_delta_time_resource_is_present() {
+        // Act
+        let app = App::new();
+
+        // Assert
+        assert!(app.world().get_resource::<engine_core::time::DeltaTime>().is_some());
+    }
+
+    #[test]
+    fn when_handle_redraw_called_then_pre_update_runs_before_update() {
+        use engine_core::time::{ClockRes, DeltaTime, FakeClock, time_system};
+
+        #[derive(Resource)]
+        struct CapturedDelta(engine_core::types::Seconds);
+
+        fn capture_delta(dt: engine_ecs::prelude::Res<DeltaTime>, mut captured: ResMut<CapturedDelta>) {
+            captured.0 = dt.0;
+        }
+
+        // Arrange
+        let mut app = App::new();
+        let mut fake = FakeClock::new();
+        fake.advance(engine_core::types::Seconds(0.016));
+        app.world_mut().insert_resource(ClockRes::new(Box::new(fake)));
+        app.world_mut().insert_resource(CapturedDelta(engine_core::types::Seconds(0.0)));
+        app.add_systems(Phase::PreUpdate, time_system);
+        app.add_systems(Phase::Update, capture_delta);
+
+        // Act
+        app.handle_redraw();
+
+        // Assert
+        let captured = app.world().resource::<CapturedDelta>();
+        assert_eq!(captured.0, engine_core::types::Seconds(0.016));
     }
 
     #[test]
