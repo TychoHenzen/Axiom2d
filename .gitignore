@@ -29,4 +29,5 @@ callgrind.out.*
 *.pdb
 
 # Mutation testing
-mutants-out/
+mutants.out/
+mutants.out.old/
