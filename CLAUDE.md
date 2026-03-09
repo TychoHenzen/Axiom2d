@@ -21,7 +21,7 @@ cargo.exe clippy             # Lint (when configured)
 
 Always use `cargo.exe` (not `cargo`) since the Rust toolchain is Windows-only. The same applies to `rustc.exe`, `rustfmt.exe`, etc.
 
-The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors), `winit` (windowing), `wgpu` (GPU rendering), `pollster` (async blocking), `bytemuck` (safe type casting for GPU buffers).
+The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors), `winit` (windowing), `wgpu` (GPU rendering), `pollster` (async blocking), `bytemuck` (safe type casting for GPU buffers), `bevy_ecs` (standalone ECS).
 
 ### WSL/Windows Gotchas
 
@@ -36,20 +36,21 @@ The project uses Rust edition 2024. Dependencies are declared at the workspace l
 
 The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM code generation. Key design principles:
 
-- **Archetypal ECS**: Entities with identical component sets stored together. Systems are plain functions with typed parameters (e.g., `Query<(&mut Position, &Velocity)>`). The plan is to use `bevy_ecs` as a standalone crate or wrap `hecs`.
+- **Archetypal ECS**: Entities with identical component sets stored together. Systems are plain functions with typed parameters (e.g., `Query<(&mut Position, &Velocity)>`). Uses `bevy_ecs` as a standalone crate, wrapped by `engine_ecs`.
 - **Code-defined assets**: All assets (sprites, audio, shaders, tilemaps) are expressed as Rust code or RON data — no binary asset files. Uses `lyon` for vector graphics, `fundsp` for audio synthesis, WGSL for shaders.
 - **Trait-abstracted hardware**: Every hardware-dependent subsystem (renderer, audio, input) hides behind a trait with null/mock implementations for testing. Canonical test pattern: `World` + `Schedule` without touching hardware.
-- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, and `axiom2d` (facade) are implemented; `engine_ecs`, `engine_audio`, `engine_input`, `engine_physics`, `engine_scene`, `engine_assets`, `engine_ui` are placeholders. Virtual manifest at root. `demo` binary crate for smoke testing.
+- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, and `axiom2d` (facade) are implemented; `engine_audio`, `engine_input`, `engine_physics`, `engine_scene`, `engine_assets`, `engine_ui` are placeholders. Virtual manifest at root. `demo` binary crate for smoke testing.
 
 ### Implemented Abstractions
 
 - **Renderer trait** (`engine_render::renderer`): `clear(&mut self, color: Color)` + `draw_rect(&mut self, rect: Rect)` + `present(&mut self)`. Object-safe (supports `Box<dyn Renderer>`). `NullRenderer` unit struct provides no-op impl for testing.
 - **Rect** (`engine_render::rect`): `x: Pixels`, `y: Pixels`, `width: Pixels`, `height: Pixels`, `color: Color`. Derives Debug, Clone, Copy, PartialEq. Manual Default (zero-sized, WHITE color).
 - **Plugin trait** (`engine_app::app`): `build(&self, app: &mut App)` — called eagerly inside `add_plugin()`. App accepts `Box<dyn Renderer>` via `set_renderer()`.
+- **ECS wrapper** (`engine_ecs`): Thin wrapper around `bevy_ecs`. Re-exports `Component`, `Resource`, `World`, `Entity`, `Query`, `Res`, `ResMut`, `Schedule`, `Commands`, `Added`, `Changed`, `With`, `Without`, `SystemSet`. Defines `Phase` enum as schedule labels.
 
 ### Scheduling Phases
 
-`Input → PreUpdate → Update → PostUpdate → Render`
+`Input → PreUpdate → Update → PostUpdate → Render` — implemented as `engine_ecs::schedule::Phase` enum with `ScheduleLabel` derive.
 
 ### Render Pipeline
 

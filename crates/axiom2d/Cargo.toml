@@ -6,4 +6,5 @@ version.workspace = true
 [dependencies]
 engine_core = { path = "../engine_core" }
 engine_app = { path = "../engine_app" }
+engine_ecs = { path = "../engine_ecs" }
 engine_render = { path = "../engine_render" }
