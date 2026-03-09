@@ -2,7 +2,7 @@ pub use crate::color::Color;
 pub use crate::error::EngineError;
 pub use crate::transform::Transform2D;
 pub use crate::types::{EntityId, Pixels, Seconds, TextureId};
-pub use glam::{Affine2, Mat3, Vec2};
+pub use glam::{Affine2, Vec2};
 
 #[cfg(test)]
 mod tests {
@@ -41,7 +41,6 @@ mod tests {
     fn when_prelude_imported_then_exports_glam_types() {
         // Act
         let _ = Vec2::new(1.0, 2.0);
-        let _ = Mat3::IDENTITY;
         let _ = Affine2::IDENTITY;
     }
 }

@@ -71,7 +71,6 @@ mod tests {
 
         // Assert
         assert_eq!(a, b);
-        assert_eq!(a.clone(), a);
         assert_ne!(a, WindowConfig { width: 640, ..a });
         assert!(format!("{a:?}").contains("WindowConfig"));
     }

@@ -12,7 +12,5 @@ mod tests {
         let _app = App::new();
         let _cfg = WindowConfig::default();
         let _renderer: Box<dyn Renderer> = Box::new(NullRenderer);
-
-        // Assert — compilation is the assertion
     }
 }

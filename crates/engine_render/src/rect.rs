@@ -10,6 +10,18 @@ pub struct Rect {
     pub color: Color,
 }
 
+impl Default for Rect {
+    fn default() -> Self {
+        Self {
+            x: Pixels(0.0),
+            y: Pixels(0.0),
+            width: Pixels(0.0),
+            height: Pixels(0.0),
+            color: Color::WHITE,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use engine_core::color::Color;
@@ -42,7 +54,7 @@ mod tests {
     }
 
     #[test]
-    fn when_rect_derives_compared_then_unequal_on_any_differing_field_clone_equals_and_debug_names_type() {
+    fn when_rect_fields_differ_then_not_equal() {
         // Arrange
         let base = Rect {
             x: Pixels(10.0),
@@ -52,18 +64,13 @@ mod tests {
             color: Color::new(1.0, 0.5, 0.0, 1.0),
         };
 
-        // Act
-        let cloned = base.clone();
-        let debug_str = format!("{:?}", base);
-
         // Assert
-        assert_eq!(base, cloned);
         assert_ne!(base, Rect { x: Pixels(99.0), ..base });
         assert_ne!(base, Rect { y: Pixels(99.0), ..base });
         assert_ne!(base, Rect { width: Pixels(99.0), ..base });
         assert_ne!(base, Rect { height: Pixels(99.0), ..base });
         assert_ne!(base, Rect { color: Color::RED, ..base });
-        assert!(debug_str.contains("Rect"));
+        assert!(format!("{:?}", base).contains("Rect"));
     }
 
     #[test]

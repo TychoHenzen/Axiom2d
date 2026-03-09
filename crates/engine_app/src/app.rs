@@ -1,8 +1,8 @@
+use engine_render::renderer::Renderer;
+
 pub trait Plugin {
     fn build(&self, app: &mut App);
 }
-
-use engine_render::renderer::Renderer;
 
 pub struct App {
     plugin_count: usize,
@@ -30,6 +30,12 @@ impl App {
 
     pub fn plugin_count(&self) -> usize {
         self.plugin_count
+    }
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -121,5 +127,14 @@ mod tests {
 
         // Act
         app.set_renderer(Box::new(engine_render::renderer::NullRenderer));
+    }
+
+    #[test]
+    fn when_app_default_called_then_plugin_count_is_zero() {
+        // Act
+        let app = App::default();
+
+        // Assert
+        assert_eq!(app.plugin_count(), 0);
     }
 }

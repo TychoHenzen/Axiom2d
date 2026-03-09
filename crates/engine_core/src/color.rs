@@ -66,7 +66,6 @@ mod tests {
 
         // Assert
         assert_eq!(c, c2);
-        assert_eq!(c.clone(), c);
         assert_eq!(Color::new(0.0, 0.0, 0.0, 1.0), Color::new(0.0, 0.0, 0.0, 1.0));
         assert_ne!(Color::new(1.0, 0.0, 0.0, 1.0), Color::new(0.0, 1.0, 0.0, 1.0));
         let s = format!("{:?}", c);

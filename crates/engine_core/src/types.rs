@@ -69,7 +69,6 @@ mod tests {
         // Assert
         assert_eq!(Pixels(3.5).0, 3.5);
         assert_eq!(a, b);
-        assert_eq!(Pixels(2.0).clone(), Pixels(2.0));
         assert_eq!(Pixels(2.0), Pixels(2.0));
         assert_ne!(Pixels(2.0), Pixels(3.0));
         let s = format!("{:?}", Pixels(5.0));
@@ -90,7 +89,6 @@ mod tests {
         // Assert
         assert_eq!(Seconds(1.0).0, 1.0);
         assert_eq!(a, b);
-        assert_eq!(Seconds(1.0).clone(), Seconds(1.0));
         assert_eq!(Seconds(1.0), Seconds(1.0));
         assert_ne!(Seconds(1.0), Seconds(2.0));
         let s = format!("{:?}", Seconds(0.016));

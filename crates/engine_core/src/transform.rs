@@ -68,7 +68,6 @@ mod tests {
 
         // Assert
         assert_eq!(a, b);
-        assert_eq!(a.clone(), a);
         assert_eq!(
             Transform2D { position: Vec2::ONE, rotation: 0.0, scale: Vec2::ONE },
             Transform2D { position: Vec2::ONE, rotation: 0.0, scale: Vec2::ONE },
