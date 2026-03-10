@@ -83,16 +83,14 @@ pub(crate) struct Instance {
     pub(crate) color: [f32; 4],
 }
 
-pub(crate) fn rect_to_instance(rect: &Rect, vw: f32, vh: f32) -> Instance {
+pub(crate) fn rect_to_instance(rect: &Rect) -> Instance {
     let Pixels(x) = rect.x;
     let Pixels(y) = rect.y;
     let Pixels(w) = rect.width;
     let Pixels(h) = rect.height;
 
-    let [x0, y0, x1, y1] = rect_to_ndc(x, y, w, h, vw, vh);
-
     Instance {
-        ndc_rect: [x0, y1, x1 - x0, y0 - y1],
+        ndc_rect: [x, y, w, h],
         uv_rect: [0.0, 0.0, 1.0, 1.0],
         color: [rect.color.r, rect.color.g, rect.color.b, rect.color.a],
     }
@@ -387,15 +385,6 @@ fn create_texture_bind_group(
     })
 }
 
-/// Converts pixel-space rect bounds to NDC coordinates [x0, y0, x1, y1].
-pub(crate) fn rect_to_ndc(x: f32, y: f32, w: f32, h: f32, vw: f32, vh: f32) -> [f32; 4] {
-    let x0 = x / vw * 2.0 - 1.0;
-    let y0 = 1.0 - y / vh * 2.0;
-    let x1 = (x + w) / vw * 2.0 - 1.0;
-    let y1 = 1.0 - (y + h) / vh * 2.0;
-    [x0, y0, x1, y1]
-}
-
 impl Renderer for WgpuRenderer {
     fn clear(&mut self, color: Color) {
         self.clear_color = color;
@@ -403,15 +392,11 @@ impl Renderer for WgpuRenderer {
     }
 
     fn draw_rect(&mut self, rect: Rect) {
-        let vw = self.config.width as f32;
-        let vh = self.config.height as f32;
-        self.pending_instances.push(rect_to_instance(&rect, vw, vh));
+        self.pending_instances.push(rect_to_instance(&rect));
     }
 
     fn draw_sprite(&mut self, rect: Rect, uv_rect: [f32; 4]) {
-        let vw = self.config.width as f32;
-        let vh = self.config.height as f32;
-        let mut instance = rect_to_instance(&rect, vw, vh);
+        let mut instance = rect_to_instance(&rect);
         instance.uv_rect = uv_rect;
         self.pending_instances.push(instance);
     }
@@ -498,40 +483,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn when_rect_fills_viewport_then_ndc_spans_full_clip_space() {
-        // Act
-        let [x0, y0, x1, y1] = rect_to_ndc(0.0, 0.0, 800.0, 600.0, 800.0, 600.0);
-
-        // Assert
-        assert_eq!(x0, -1.0);
-        assert_eq!(y0, 1.0);
-        assert_eq!(x1, 1.0);
-        assert_eq!(y1, -1.0);
-    }
-
-    #[test]
-    fn when_rect_offset_within_viewport_then_ndc_reflects_position() {
-        // Act
-        let [x0, y0, x1, y1] = rect_to_ndc(200.0, 150.0, 400.0, 300.0, 800.0, 600.0);
-
-        // Assert
-        assert_eq!(x0, -0.5);
-        assert_eq!(y0, 0.5);
-        assert_eq!(x1, 0.5);
-        assert_eq!(y1, -0.5);
-    }
-
-    #[test]
-    fn when_rect_at_viewport_center_then_ndc_is_origin() {
-        // Act
-        let [x0, y0, _, _] = rect_to_ndc(400.0, 300.0, 0.0, 0.0, 800.0, 600.0);
-
-        // Assert
-        assert_eq!(x0, 0.0);
-        assert_eq!(y0, 0.0);
-    }
-
-    #[test]
     fn when_quad_indices_used_then_two_triangles_cover_unit_square() {
         // Act
         let tri0: [[f32; 2]; 3] = [
@@ -551,7 +502,7 @@ mod tests {
     }
 
     #[test]
-    fn when_full_viewport_rect_then_ndc_rect_spans_clip_space() {
+    fn when_rect_at_origin_then_instance_encodes_world_coordinates() {
         // Arrange
         let rect = Rect {
             x: Pixels(0.0),
@@ -562,14 +513,14 @@ mod tests {
         };
 
         // Act
-        let instance = rect_to_instance(&rect, 800.0, 600.0);
+        let instance = rect_to_instance(&rect);
 
         // Assert
-        assert_eq!(instance.ndc_rect, [-1.0, -1.0, 2.0, 2.0]);
+        assert_eq!(instance.ndc_rect, [0.0, 0.0, 800.0, 600.0]);
     }
 
     #[test]
-    fn when_offset_rect_then_ndc_rect_reflects_position() {
+    fn when_offset_rect_then_instance_encodes_position_and_size() {
         // Arrange
         let rect = Rect {
             x: Pixels(200.0),
@@ -580,10 +531,10 @@ mod tests {
         };
 
         // Act
-        let instance = rect_to_instance(&rect, 800.0, 600.0);
+        let instance = rect_to_instance(&rect);
 
         // Assert
-        assert_eq!(instance.ndc_rect, [-0.5, -0.5, 1.0, 1.0]);
+        assert_eq!(instance.ndc_rect, [200.0, 150.0, 400.0, 300.0]);
     }
 
     #[test]
@@ -598,7 +549,7 @@ mod tests {
         };
 
         // Act
-        let instance = rect_to_instance(&rect, 800.0, 600.0);
+        let instance = rect_to_instance(&rect);
 
         // Assert
         assert_eq!(instance.uv_rect, [0.0, 0.0, 1.0, 1.0]);
@@ -616,14 +567,14 @@ mod tests {
         };
 
         // Act
-        let instance = rect_to_instance(&rect, 800.0, 600.0);
+        let instance = rect_to_instance(&rect);
 
         // Assert
         assert_eq!(instance.color, [1.0, 0.0, 0.0, 1.0]);
     }
 
     #[test]
-    fn when_zero_size_rect_then_no_panic_and_zero_ndc_dims() {
+    fn when_zero_size_rect_then_no_panic_and_zero_dimensions() {
         // Arrange
         let rect = Rect {
             x: Pixels(400.0),
@@ -634,11 +585,10 @@ mod tests {
         };
 
         // Act
-        let instance = rect_to_instance(&rect, 800.0, 600.0);
+        let instance = rect_to_instance(&rect);
 
         // Assert
-        assert_eq!(instance.ndc_rect[2], 0.0);
-        assert_eq!(instance.ndc_rect[3], 0.0);
+        assert_eq!(instance.ndc_rect, [400.0, 300.0, 0.0, 0.0]);
     }
 
     #[test]
@@ -653,10 +603,9 @@ mod tests {
         };
 
         // Act
-        let instance = rect_to_instance(&rect, 800.0, 600.0);
+        let instance = rect_to_instance(&rect);
 
         // Assert
-        assert!(instance.ndc_rect[2] < 0.0);
-        assert!(instance.ndc_rect[3] < 0.0);
+        assert_eq!(instance.ndc_rect, [400.0, 300.0, -100.0, -50.0]);
     }
 }

@@ -164,6 +164,7 @@ dependencies = [
  "engine_ecs",
  "engine_input",
  "engine_render",
+ "engine_scene",
 ]
 
 [[package]]

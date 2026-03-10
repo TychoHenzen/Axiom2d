@@ -9,3 +9,4 @@ engine_app = { path = "../engine_app" }
 engine_ecs = { path = "../engine_ecs" }
 engine_input = { path = "../engine_input" }
 engine_render = { path = "../engine_render" }
+engine_scene = { path = "../engine_scene" }

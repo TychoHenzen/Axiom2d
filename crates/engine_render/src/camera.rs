@@ -103,14 +103,17 @@ pub fn camera_prepare_system(
     query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
 ) {
-    let Some(camera) = query.iter().next() else {
-        return;
-    };
     let (vw, vh) = renderer.viewport_size();
     if vw == 0 || vh == 0 {
         return;
     }
-    let uniform = CameraUniform::from_camera(camera, vw as f32, vh as f32);
+    let vw = vw as f32;
+    let vh = vh as f32;
+    let camera = query.iter().next().copied().unwrap_or(Camera2D {
+        position: Vec2::new(vw / 2.0, vh / 2.0),
+        zoom: 1.0,
+    });
+    let uniform = CameraUniform::from_camera(&camera, vw, vh);
     renderer.set_view_projection(uniform.view_proj);
 }
 
@@ -488,7 +491,7 @@ mod tests {
     }
 
     #[test]
-    fn when_camera_prepare_system_runs_without_camera_then_set_view_projection_not_called() {
+    fn when_camera_prepare_system_runs_without_camera_then_default_ortho_set() {
         // Arrange
         let mut world = bevy_ecs::world::World::new();
         let log = insert_spy_with_viewport(&mut world, 800, 600);
@@ -498,6 +501,6 @@ mod tests {
 
         // Assert
         let log = log.lock().unwrap();
-        assert!(!log.contains(&"set_view_projection".to_string()));
+        assert!(log.contains(&"set_view_projection".to_string()));
     }
 }

@@ -473,17 +473,6 @@ mod tests {
         log
     }
 
-    fn insert_spy_with_capture_and_viewport(
-        world: &mut World,
-        width: u32,
-        height: u32,
-    ) -> crate::testing::SpriteCallLog {
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let calls = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::with_sprite_capture(log, calls.clone()).with_viewport(width, height);
-        world.insert_resource(RendererRes::new(Box::new(spy)));
-        calls
-    }
 
     #[test]
     fn when_sprite_fully_outside_camera_view_then_draw_sprite_not_called() {

@@ -3,3 +3,4 @@ pub use engine_core::prelude::*;
 pub use engine_ecs::prelude::*;
 pub use engine_input::prelude::*;
 pub use engine_render::prelude::*;
+pub use engine_scene::prelude::*;
