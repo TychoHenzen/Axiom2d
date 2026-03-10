@@ -191,7 +191,6 @@ impl WgpuRenderer {
                 }],
             });
 
-        // Identity matrix as default camera uniform (no transform)
         let identity: [[f32; 4]; 4] = [
             [1.0, 0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],
@@ -399,6 +398,9 @@ impl Renderer for WgpuRenderer {
         let mut instance = rect_to_instance(&rect);
         instance.uv_rect = uv_rect;
         self.pending_instances.push(instance);
+    }
+
+    fn draw_shape(&mut self, _vertices: &[[f32; 2]], _indices: &[u32], _color: Color) {
     }
 
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]) {

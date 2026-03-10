@@ -41,7 +41,7 @@ cargo.exe clippy             # Lint (when configured)
 
 Always use `cargo.exe` (not `cargo`) since the Rust toolchain is Windows-only. The same applies to `rustc.exe`, `rustfmt.exe`, etc.
 
-The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors), `winit` (windowing), `wgpu` (GPU rendering), `pollster` (async blocking), `bytemuck` (safe type casting for GPU buffers), `bevy_ecs` (standalone ECS), `guillotiere` (2D texture atlas rect packing), `image` (PNG/JPEG decoding for embedded assets).
+The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors), `winit` (windowing), `wgpu` (GPU rendering), `pollster` (async blocking), `bytemuck` (safe type casting for GPU buffers), `bevy_ecs` (standalone ECS), `guillotiere` (2D texture atlas rect packing), `image` (PNG/JPEG decoding for embedded assets), `lyon` (2D vector path tessellation).
 
 ### WSL/Windows Gotchas
 
@@ -116,6 +116,13 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **Frustum culling in sprite_render_system**: When a Camera2D entity exists, sprites whose world AABB doesn't intersect the camera view rect are skipped. No camera → no culling (backward compatible).
 - **Renderer trait** now includes `set_view_projection(&mut self, matrix: [[f32; 4]; 4])` and `viewport_size(&self) -> (u32, u32)`. WgpuRenderer uploads matrix to GPU uniform buffer; NullRenderer/SpyRenderer are no-ops.
 - **GPU camera uniform**: WgpuRenderer has a persistent camera uniform buffer (bind group 1, binding 0). WGSL shader multiplies vertex position by `camera.view_proj`. `camera_prepare_system` always sets the projection each frame (viewport-centered ortho when no Camera2D exists).
+- **ShapeVariant** (`engine_render::shape`): Enum with `Circle { radius: f32 }` and `Polygon { points: Vec<Vec2> }` variants. Derives Debug, Clone, PartialEq.
+- **Shape** (`engine_render::shape`): `#[derive(Component)]` with `variant: ShapeVariant` and `color: Color`. Derives Debug, Clone, PartialEq.
+- **TessellatedMesh** (`engine_render::shape`): Plain struct with `vertices: Vec<[f32; 2]>` and `indices: Vec<u32>`. Output of `tessellate()`.
+- **tessellate** (`engine_render::shape`): `pub fn(&ShapeVariant) -> TessellatedMesh` — pure function using lyon `FillTessellator`. Circles tessellated at origin; polygons with < 3 points return empty mesh.
+- **shape_aabb** (`engine_render::shape`): `pub(crate) fn(&ShapeVariant) -> (Vec2, Vec2)` — returns (min, max) AABB. Circle: `(-r, -r)` to `(r, r)`. Polygon: point extents.
+- **shape_render_system** (`engine_render::shape`): `fn(Query<(&Shape, &GlobalTransform2D, Option<&RenderLayer>, Option<&SortOrder>, Option<&EffectiveVisibility>)>, Query<&Camera2D>, ResMut<RendererRes>)` — filters out `EffectiveVisibility(false)`, sorts by `(RenderLayer, SortOrder)` with defaults `(World, 0)`, tessellates each shape, offsets vertices by `GlobalTransform2D.translation`, calls `renderer.draw_shape()`. Frustum culling via shape AABB + camera view rect. No camera → no culling. Registered in `Phase::Render`.
+- **Renderer trait** now includes `draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color)`. NullRenderer/SpyRenderer implement it; WgpuRenderer has a no-op stub (GPU shape pipeline not yet implemented).
 
 ### Scheduling Phases
 

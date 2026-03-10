@@ -5,13 +5,14 @@ use engine_core::color::Color;
 use crate::rect::Rect;
 use crate::renderer::Renderer;
 
-/// Shared log of `(Rect, uv_rect)` pairs captured by `draw_sprite` calls.
 pub type SpriteCallLog = Arc<Mutex<Vec<(Rect, [f32; 4])>>>;
+pub type ShapeCallLog = Arc<Mutex<Vec<(Vec<[f32; 2]>, Vec<u32>, Color)>>>;
 
 pub struct SpyRenderer {
     log: Arc<Mutex<Vec<String>>>,
     color_capture: Option<Arc<Mutex<Option<Color>>>>,
     sprite_calls: Option<SpriteCallLog>,
+    shape_calls: Option<ShapeCallLog>,
     viewport: (u32, u32),
 }
 
@@ -21,6 +22,7 @@ impl SpyRenderer {
             log,
             color_capture: None,
             sprite_calls: None,
+            shape_calls: None,
             viewport: (0, 0),
         }
     }
@@ -33,6 +35,7 @@ impl SpyRenderer {
             log,
             color_capture: Some(color_capture),
             sprite_calls: None,
+            shape_calls: None,
             viewport: (0, 0),
         }
     }
@@ -42,6 +45,17 @@ impl SpyRenderer {
             log,
             color_capture: None,
             sprite_calls: Some(sprite_calls),
+            shape_calls: None,
+            viewport: (0, 0),
+        }
+    }
+
+    pub fn with_shape_capture(log: Arc<Mutex<Vec<String>>>, shape_calls: ShapeCallLog) -> Self {
+        Self {
+            log,
+            color_capture: None,
+            sprite_calls: None,
+            shape_calls: Some(shape_calls),
             viewport: (0, 0),
         }
     }
@@ -68,6 +82,16 @@ impl Renderer for SpyRenderer {
         self.log.lock().unwrap().push("draw_sprite".into());
         if let Some(capture) = &self.sprite_calls {
             capture.lock().unwrap().push((rect, uv_rect));
+        }
+    }
+
+    fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color) {
+        self.log.lock().unwrap().push("draw_shape".into());
+        if let Some(capture) = &self.shape_calls {
+            capture
+                .lock()
+                .unwrap()
+                .push((vertices.to_vec(), indices.to_vec(), color));
         }
     }
 
@@ -174,6 +198,36 @@ mod tests {
 
         // Assert
         assert_eq!(log.lock().unwrap().as_slice(), &["set_view_projection"]);
+    }
+
+    #[test]
+    fn when_draw_shape_called_then_log_records_draw_shape_string() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log.clone());
+
+        // Act
+        spy.draw_shape(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]], &[0, 1, 2], Color::WHITE);
+
+        // Assert
+        assert_eq!(log.lock().unwrap().as_slice(), &["draw_shape"]);
+    }
+
+    #[test]
+    fn when_draw_shape_called_with_capture_then_color_matches() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::with_shape_capture(log, shape_calls.clone());
+        let color = Color::new(1.0, 0.0, 0.0, 1.0);
+
+        // Act
+        spy.draw_shape(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]], &[0, 1, 2], color);
+
+        // Assert
+        let calls = shape_calls.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].2, color);
     }
 
     #[test]

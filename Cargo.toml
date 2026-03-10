@@ -16,3 +16,4 @@ guillotiere = "0.6"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 wgpu = "24"
 winit = "0.30"
+lyon = "1.0"

@@ -4,6 +4,7 @@ pub mod clear;
 pub mod prelude;
 pub mod rect;
 pub mod renderer;
+pub mod shape;
 pub mod sprite;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;

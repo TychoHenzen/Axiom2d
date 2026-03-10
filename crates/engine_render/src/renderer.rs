@@ -7,6 +7,7 @@ pub trait Renderer {
     fn clear(&mut self, color: Color);
     fn draw_rect(&mut self, rect: Rect);
     fn draw_sprite(&mut self, rect: Rect, uv_rect: [f32; 4]);
+    fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color);
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]);
     fn viewport_size(&self) -> (u32, u32);
     fn present(&mut self);
@@ -41,6 +42,7 @@ impl Renderer for NullRenderer {
     fn clear(&mut self, _color: Color) {}
     fn draw_rect(&mut self, _rect: Rect) {}
     fn draw_sprite(&mut self, _rect: Rect, _uv_rect: [f32; 4]) {}
+    fn draw_shape(&mut self, _vertices: &[[f32; 2]], _indices: &[u32], _color: Color) {}
     fn set_view_projection(&mut self, _matrix: [[f32; 4]; 4]) {}
     fn viewport_size(&self) -> (u32, u32) { (0, 0) }
     fn present(&mut self) {}
@@ -101,6 +103,17 @@ mod tests {
 
         // Act
         renderer.draw_sprite(sample_rect(), [0.0, 0.0, 1.0, 1.0]);
+    }
+
+    #[test]
+    fn when_null_renderer_draws_shape_then_does_not_panic() {
+        // Arrange
+        let mut renderer = NullRenderer;
+        let vertices = [[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]];
+        let indices = [0u32, 1, 2];
+
+        // Act
+        renderer.draw_shape(&vertices, &indices, Color::WHITE);
     }
 
     #[test]
