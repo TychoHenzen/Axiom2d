@@ -59,7 +59,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **Archetypal ECS**: Entities with identical component sets stored together. Systems are plain functions with typed parameters (e.g., `Query<(&mut Position, &Velocity)>`). Uses `bevy_ecs` as a standalone crate, wrapped by `engine_ecs`.
 - **Code-defined assets**: All assets (sprites, audio, shaders, tilemaps) are expressed as Rust code or RON data — no binary asset files. Uses `lyon` for vector graphics, `fundsp` for audio synthesis, WGSL for shaders.
 - **Trait-abstracted hardware**: Every hardware-dependent subsystem (renderer, audio, input) hides behind a trait with null/mock implementations for testing. Canonical test pattern: `World` + `Schedule` without touching hardware.
-- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, `engine_input`, `engine_scene`, and `axiom2d` (facade) are implemented; `engine_audio`, `engine_physics`, `engine_assets`, `engine_ui` are placeholders. Virtual manifest at root. `demo` binary crate for smoke testing.
+- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, `engine_input`, `engine_scene`, and `axiom2d` (facade + DefaultPlugins) are implemented; `engine_audio`, `engine_physics`, `engine_assets`, `engine_ui` are placeholders. Virtual manifest at root. `demo` binary crate for smoke testing.
 
 ### Implemented Abstractions
 
@@ -123,6 +123,8 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **shape_aabb** (`engine_render::shape`): `pub(crate) fn(&ShapeVariant) -> (Vec2, Vec2)` — returns (min, max) AABB. Circle: `(-r, -r)` to `(r, r)`. Polygon: point extents.
 - **shape_render_system** (`engine_render::shape`): `fn(Query<(&Shape, &GlobalTransform2D, Option<&RenderLayer>, Option<&SortOrder>, Option<&EffectiveVisibility>)>, Query<&Camera2D>, ResMut<RendererRes>)` — filters out `EffectiveVisibility(false)`, sorts by `(RenderLayer, SortOrder)` with defaults `(World, 0)`, tessellates each shape, offsets vertices by `GlobalTransform2D.translation`, calls `renderer.draw_shape()`. Frustum culling via shape AABB + camera view rect. No camera → no culling. Registered in `Phase::Render`.
 - **Renderer trait** now includes `draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color)`. NullRenderer/SpyRenderer implement it; WgpuRenderer has a no-op stub (GPU shape pipeline not yet implemented).
+- **DefaultPlugins** (`axiom2d::default_plugins`): Unit struct implementing `Plugin`. `build()` inserts `InputState`, `InputEventBuffer`, `ClockRes(SystemClock)`; registers `input_system` (Input), `time_system` (PreUpdate), hierarchy+transform+visibility chained (PostUpdate). When `render` feature is on: also inserts `ClearColor` and registers `clear_system`, `camera_prepare_system`, `sprite_render_system`, `shape_render_system` chained (Render). Does NOT insert `ActionMap` (game-specific) or `RendererRes` (created by winit at runtime).
+- **`render` feature flag** (`axiom2d`): Default-on feature. Gates `engine_render` dependency, render system registration in DefaultPlugins, and `engine_render::prelude::*` re-export. `--no-default-features` gives headless ECS-only mode.
 
 ### Scheduling Phases
 

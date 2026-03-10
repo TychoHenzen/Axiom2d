@@ -3,10 +3,19 @@ name = "axiom2d"
 edition.workspace = true
 version.workspace = true
 
+[features]
+default = ["render"]
+render = ["dep:engine_render"]
+
 [dependencies]
 engine_core = { path = "../engine_core" }
 engine_app = { path = "../engine_app" }
 engine_ecs = { path = "../engine_ecs" }
 engine_input = { path = "../engine_input" }
-engine_render = { path = "../engine_render" }
+engine_render = { path = "../engine_render", optional = true }
 engine_scene = { path = "../engine_scene" }
+
+[dev-dependencies]
+engine_render = { path = "../engine_render", features = ["testing"] }
+glam.workspace = true
+winit.workspace = true

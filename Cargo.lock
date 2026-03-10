@@ -165,6 +165,8 @@ dependencies = [
  "engine_input",
  "engine_render",
  "engine_scene",
+ "glam",
+ "winit",
 ]
 
 [[package]]

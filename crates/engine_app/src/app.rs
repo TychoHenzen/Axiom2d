@@ -118,7 +118,7 @@ impl App {
         }
     }
 
-    pub(crate) fn handle_redraw(&mut self) {
+    pub fn handle_redraw(&mut self) {
         for phase in PHASE_ORDER {
             self.schedules.get_mut(&phase).unwrap().run(&mut self.world);
         }

@@ -4,9 +4,9 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (27 tests), engine_ecs (7 tests), engine_render (117 tests), engine_app (30 tests), engine_input (28 tests), engine_scene (39 tests), axiom2d facade (0 tests), demo (32 tests). Total: 280 tests.
+**Implemented crates:** engine_core (27 tests), engine_ecs (7 tests), engine_render (117 tests), engine_app (30 tests), engine_input (28 tests), engine_scene (39 tests), axiom2d facade (9 tests), demo (32 tests). Total: 289 tests.
 
-**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend with instanced quad rendering, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy, Visibility system (Visible/EffectiveVisibility) with hierarchy inheritance, RenderLayer enum + SortOrder for deterministic render ordering, TextureAtlas with guillotiere rect packing + AtlasBuilder + load_image_bytes (PNG/JPEG), Sprite component + sprite_render_system with visibility filtering and RenderLayer/SortOrder sorting, Camera2D component with world-to-screen/screen-to-world conversion + frustum culling + GPU view-projection uniform buffer, Shape component (Circle/Polygon variants) with Lyon tessellation + shape_render_system with visibility/sorting/culling.
+**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend with instanced quad rendering, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy, Visibility system (Visible/EffectiveVisibility) with hierarchy inheritance, RenderLayer enum + SortOrder for deterministic render ordering, TextureAtlas with guillotiere rect packing + AtlasBuilder + load_image_bytes (PNG/JPEG), Sprite component + sprite_render_system with visibility filtering and RenderLayer/SortOrder sorting, Camera2D component with world-to-screen/screen-to-world conversion + frustum culling + GPU view-projection uniform buffer, Shape component (Circle/Polygon variants) with Lyon tessellation + shape_render_system with visibility/sorting/culling, DefaultPlugins auto-registration of all standard systems, `render` feature flag for headless ECS-only mode.
 
 **Placeholder crates (empty):** engine_audio, engine_physics, engine_assets, engine_ui.
 
@@ -278,11 +278,11 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 - [ ] SSIM comparison against golden images (0.99 threshold)
 - [ ] CI integration with llvmpipe software renderer
 
-### Step 8.4 — DefaultPlugins & Feature Flags `[NOT STARTED]`
+### Step 8.4 — DefaultPlugins & Feature Flags `[DONE]`
 
-- [ ] `DefaultPlugins` group: registers render, input, audio, physics plugins
-- [ ] Feature flags: `render`, `audio`, `physics`, `dev`, `hot_reload`
-- [ ] `default-features = false` gives headless ECS-only core
+- [x] `DefaultPlugins` struct implementing `Plugin`: registers input, time, scene-graph, and render systems
+- [x] `render` feature flag (default on) gates render systems and ClearColor *(audio, physics, dev, hot_reload deferred until those crates are implemented)*
+- [x] `default-features = false` gives headless ECS-only core (input, time, scene-graph)
 
 ### Step 8.5 — Documentation & Examples `[NOT STARTED]`
 
