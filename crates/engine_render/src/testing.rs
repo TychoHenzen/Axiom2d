@@ -8,6 +8,7 @@ use crate::renderer::Renderer;
 pub struct SpyRenderer {
     log: Arc<Mutex<Vec<String>>>,
     color_capture: Option<Arc<Mutex<Option<Color>>>>,
+    sprite_calls: Option<Arc<Mutex<Vec<(Rect, [f32; 4])>>>>,
 }
 
 impl SpyRenderer {
@@ -15,6 +16,7 @@ impl SpyRenderer {
         Self {
             log,
             color_capture: None,
+            sprite_calls: None,
         }
     }
 
@@ -25,6 +27,18 @@ impl SpyRenderer {
         Self {
             log,
             color_capture: Some(color_capture),
+            sprite_calls: None,
+        }
+    }
+
+    pub fn with_sprite_capture(
+        log: Arc<Mutex<Vec<String>>>,
+        sprite_calls: Arc<Mutex<Vec<(Rect, [f32; 4])>>>,
+    ) -> Self {
+        Self {
+            log,
+            color_capture: None,
+            sprite_calls: Some(sprite_calls),
         }
     }
 }
@@ -39,6 +53,13 @@ impl Renderer for SpyRenderer {
 
     fn draw_rect(&mut self, _rect: Rect) {
         self.log.lock().unwrap().push("draw_rect".into());
+    }
+
+    fn draw_sprite(&mut self, rect: Rect, uv_rect: [f32; 4]) {
+        self.log.lock().unwrap().push("draw_sprite".into());
+        if let Some(capture) = &self.sprite_calls {
+            capture.lock().unwrap().push((rect, uv_rect));
+        }
     }
 
     fn present(&mut self) {
@@ -110,6 +131,19 @@ mod tests {
 
         // Assert
         assert_eq!(log.lock().unwrap().as_slice(), &["resize"]);
+    }
+
+    #[test]
+    fn when_draw_sprite_called_then_log_records_draw_sprite_string() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log.clone());
+
+        // Act
+        spy.draw_sprite(Rect::default(), [0.0, 0.0, 1.0, 1.0]);
+
+        // Assert
+        assert_eq!(log.lock().unwrap().as_slice(), &["draw_sprite"]);
     }
 
     #[test]

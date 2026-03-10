@@ -6,6 +6,7 @@ use crate::rect::Rect;
 pub trait Renderer {
     fn clear(&mut self, color: Color);
     fn draw_rect(&mut self, rect: Rect);
+    fn draw_sprite(&mut self, rect: Rect, uv_rect: [f32; 4]);
     fn present(&mut self);
     fn resize(&mut self, width: u32, height: u32);
 }
@@ -37,6 +38,7 @@ pub struct NullRenderer;
 impl Renderer for NullRenderer {
     fn clear(&mut self, _color: Color) {}
     fn draw_rect(&mut self, _rect: Rect) {}
+    fn draw_sprite(&mut self, _rect: Rect, _uv_rect: [f32; 4]) {}
     fn present(&mut self) {}
     fn resize(&mut self, _width: u32, _height: u32) {}
 }
@@ -86,6 +88,15 @@ mod tests {
 
         // Act
         renderer.draw_rect(sample_rect());
+    }
+
+    #[test]
+    fn when_null_renderer_draws_sprite_then_does_not_panic() {
+        // Arrange
+        let mut renderer = NullRenderer;
+
+        // Act
+        renderer.draw_sprite(sample_rect(), [0.0, 0.0, 1.0, 1.0]);
     }
 
     #[test]

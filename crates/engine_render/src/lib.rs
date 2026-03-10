@@ -2,6 +2,7 @@ pub mod atlas;
 pub mod clear;
 pub mod prelude;
 pub mod rect;
+pub mod sprite;
 pub mod renderer;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;

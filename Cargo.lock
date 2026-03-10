@@ -691,6 +691,8 @@ dependencies = [
  "bevy_ecs",
  "bytemuck",
  "engine_core",
+ "engine_scene",
+ "glam",
  "guillotiere",
  "image",
  "pollster",

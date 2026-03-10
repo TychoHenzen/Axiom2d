@@ -358,6 +358,14 @@ impl Renderer for WgpuRenderer {
         self.pending_instances.push(rect_to_instance(&rect, vw, vh));
     }
 
+    fn draw_sprite(&mut self, rect: Rect, uv_rect: [f32; 4]) {
+        let vw = self.config.width as f32;
+        let vh = self.config.height as f32;
+        let mut instance = rect_to_instance(&rect, vw, vh);
+        instance.uv_rect = uv_rect;
+        self.pending_instances.push(instance);
+    }
+
     fn present(&mut self) {
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame
