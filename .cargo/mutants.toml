@@ -18,4 +18,7 @@ exclude_re = [
     "delete match arm WindowEvent::KeyboardInput",
     # WgpuRenderer methods require a live GPU device
     "<impl Renderer for WgpuRenderer>",
+    # WgpuRenderer helper methods and GPU resource creation — untestable without GPU
+    "replace WgpuRenderer::upload_atlas with",
+    "in create_texture_bind_group",
 ]

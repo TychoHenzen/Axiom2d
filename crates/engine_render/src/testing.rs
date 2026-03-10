@@ -5,10 +5,13 @@ use engine_core::color::Color;
 use crate::rect::Rect;
 use crate::renderer::Renderer;
 
+/// Shared log of `(Rect, uv_rect)` pairs captured by `draw_sprite` calls.
+pub type SpriteCallLog = Arc<Mutex<Vec<(Rect, [f32; 4])>>>;
+
 pub struct SpyRenderer {
     log: Arc<Mutex<Vec<String>>>,
     color_capture: Option<Arc<Mutex<Option<Color>>>>,
-    sprite_calls: Option<Arc<Mutex<Vec<(Rect, [f32; 4])>>>>,
+    sprite_calls: Option<SpriteCallLog>,
 }
 
 impl SpyRenderer {
@@ -31,10 +34,7 @@ impl SpyRenderer {
         }
     }
 
-    pub fn with_sprite_capture(
-        log: Arc<Mutex<Vec<String>>>,
-        sprite_calls: Arc<Mutex<Vec<(Rect, [f32; 4])>>>,
-    ) -> Self {
+    pub fn with_sprite_capture(log: Arc<Mutex<Vec<String>>>, sprite_calls: SpriteCallLog) -> Self {
         Self {
             log,
             color_capture: None,

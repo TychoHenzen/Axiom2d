@@ -100,6 +100,7 @@ pub struct WgpuRenderer {
     pipeline: wgpu::RenderPipeline,
     quad_vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
+    #[allow(dead_code)]
     texture_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_group: wgpu::BindGroup,
     clear_color: Color,
@@ -265,6 +266,7 @@ impl WgpuRenderer {
         }
     }
 
+    #[allow(dead_code)]
     pub fn upload_atlas(&mut self, atlas: &crate::atlas::TextureAtlas) {
         self.texture_bind_group = create_texture_bind_group(
             &self.device,

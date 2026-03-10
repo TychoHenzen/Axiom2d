@@ -28,8 +28,7 @@ pub struct ImageData {
 }
 
 pub fn load_image_bytes(bytes: &[u8]) -> Result<ImageData, AtlasError> {
-    let img = image::load_from_memory(bytes)
-        .map_err(|e| AtlasError::DecodeError(e.to_string()))?;
+    let img = image::load_from_memory(bytes).map_err(|e| AtlasError::DecodeError(e.to_string()))?;
     let rgba = img.to_rgba8();
     Ok(ImageData {
         width: rgba.width(),
@@ -38,7 +37,14 @@ pub fn load_image_bytes(bytes: &[u8]) -> Result<ImageData, AtlasError> {
     })
 }
 
-pub(crate) fn normalize_uv_rect(x: u32, y: u32, w: u32, h: u32, atlas_w: u32, atlas_h: u32) -> [f32; 4] {
+pub(crate) fn normalize_uv_rect(
+    x: u32,
+    y: u32,
+    w: u32,
+    h: u32,
+    atlas_w: u32,
+    atlas_h: u32,
+) -> [f32; 4] {
     let aw = atlas_w as f32;
     let ah = atlas_h as f32;
     [
@@ -96,15 +102,24 @@ impl AtlasBuilder {
         self.allocator.size().height as u32
     }
 
-    pub fn add_image(&mut self, width: u32, height: u32, data: &[u8]) -> Result<TextureHandle, AtlasError> {
+    pub fn add_image(
+        &mut self,
+        width: u32,
+        height: u32,
+        data: &[u8],
+    ) -> Result<TextureHandle, AtlasError> {
         if width == 0 || height == 0 {
             return Err(AtlasError::InvalidDimensions);
         }
         let expected = (width * height * 4) as usize;
         if data.len() != expected {
-            return Err(AtlasError::DataLengthMismatch { expected, actual: data.len() });
+            return Err(AtlasError::DataLengthMismatch {
+                expected,
+                actual: data.len(),
+            });
         }
-        let alloc = self.allocator
+        let alloc = self
+            .allocator
             .allocate(guillotiere::size2(width as i32, height as i32))
             .ok_or(AtlasError::NoSpace)?;
         let atlas_w = self.width();
@@ -128,7 +143,10 @@ impl AtlasBuilder {
             height: (rect.max.y - rect.min.y) as u32,
             texture_id: TextureId(id),
         });
-        Ok(TextureHandle { texture_id: TextureId(id), uv_rect })
+        Ok(TextureHandle {
+            texture_id: TextureId(id),
+            uv_rect,
+        })
     }
 
     pub fn build(self) -> TextureAtlas {
@@ -148,14 +166,19 @@ impl AtlasBuilder {
                     .copy_from_slice(&img.data[src_offset..src_offset + img_stride]);
             }
         }
-        TextureAtlas { data, width, height, lookups }
+        TextureAtlas {
+            data,
+            width,
+            height,
+            lookups,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use engine_core::types::TextureId;
     use super::{AtlasBuilder, AtlasError, load_image_bytes, normalize_uv_rect};
+    use engine_core::types::TextureId;
 
     #[test]
     fn when_building_empty_atlas_then_pixel_buffer_is_all_zeros() {
@@ -219,10 +242,10 @@ mod tests {
 
         // Assert
         let [u0, v0, u1, v1] = handle.uv_rect;
-        assert!(u0 >= 0.0 && u0 <= 1.0);
-        assert!(v0 >= 0.0 && v0 <= 1.0);
-        assert!(u1 >= 0.0 && u1 <= 1.0);
-        assert!(v1 >= 0.0 && v1 <= 1.0);
+        assert!((0.0..=1.0).contains(&u0));
+        assert!((0.0..=1.0).contains(&v0));
+        assert!((0.0..=1.0).contains(&u1));
+        assert!((0.0..=1.0).contains(&v1));
         assert!(u1 > u0, "uv_rect must have positive width");
         assert!(v1 > v0, "uv_rect must have positive height");
     }
@@ -265,7 +288,11 @@ mod tests {
         let [u0a, v0a, u1a, v1a] = h1.uv_rect;
         let [u0b, v0b, u1b, v1b] = h2.uv_rect;
         let no_overlap = u1a <= u0b || u1b <= u0a || v1a <= v0b || v1b <= v0a;
-        assert!(no_overlap, "uv_rects overlap: {:?} vs {:?}", h1.uv_rect, h2.uv_rect);
+        assert!(
+            no_overlap,
+            "uv_rects overlap: {:?} vs {:?}",
+            h1.uv_rect, h2.uv_rect
+        );
     }
 
     #[test]
@@ -324,7 +351,13 @@ mod tests {
         let result = builder.add_image(1, 1, &[255, 0, 0]);
 
         // Assert
-        assert!(matches!(result, Err(AtlasError::DataLengthMismatch { expected: 4, actual: 3 })));
+        assert!(matches!(
+            result,
+            Err(AtlasError::DataLengthMismatch {
+                expected: 4,
+                actual: 3
+            })
+        ));
     }
 
     #[test]
@@ -442,7 +475,9 @@ mod tests {
         {
             let encoder = image::codecs::png::PngEncoder::new(&mut buf);
             use image::ImageEncoder;
-            encoder.write_image(&[r, g, b, a], 1, 1, image::ExtendedColorType::Rgba8).unwrap();
+            encoder
+                .write_image(&[r, g, b, a], 1, 1, image::ExtendedColorType::Rgba8)
+                .unwrap();
         }
         buf
     }
@@ -506,4 +541,62 @@ mod tests {
         assert_eq!(uv, [0.0, 0.0, 0.125, 0.125]);
     }
 
+    #[test]
+    fn when_building_atlas_then_all_rows_of_image_are_correctly_placed() {
+        // Arrange
+        let mut builder = AtlasBuilder::new(4, 4);
+        // Row 0: red, green; Row 1: blue, white
+        #[rustfmt::skip]
+        let data = [
+            255, 0, 0, 255,    0, 255, 0, 255,
+            0, 0, 255, 255,    255, 255, 255, 255,
+        ];
+        let handle = builder.add_image(2, 2, &data).unwrap();
+
+        // Act
+        let atlas = builder.build();
+
+        // Assert
+        let [u0, v0, _, _] = handle.uv_rect;
+        let px = (u0 * atlas.width as f32) as usize;
+        let py = (v0 * atlas.height as f32) as usize;
+        let stride = atlas.width as usize * 4;
+        assert_eq!(&atlas.data[py * stride + px * 4..][..4], [255, 0, 0, 255]);
+        assert_eq!(
+            &atlas.data[py * stride + (px + 1) * 4..][..4],
+            [0, 255, 0, 255]
+        );
+        assert_eq!(
+            &atlas.data[(py + 1) * stride + px * 4..][..4],
+            [0, 0, 255, 255]
+        );
+        assert_eq!(
+            &atlas.data[(py + 1) * stride + (px + 1) * 4..][..4],
+            [255, 255, 255, 255]
+        );
+    }
+
+    #[test]
+    fn when_second_image_offset_then_handle_uv_matches_build_lookup() {
+        // Arrange — narrow atlas forces second image to y > 0
+        let mut builder = AtlasBuilder::new(4, 8);
+        builder.add_image(4, 4, &[0u8; 4 * 4 * 4]).unwrap();
+        let data = [255u8; 2 * 2 * 4];
+        let handle = builder.add_image(2, 2, &data).unwrap();
+
+        // Act
+        let atlas = builder.build();
+
+        // Assert — handle UV (from add_image) must match lookup (from build)
+        let looked_up = atlas.lookup(handle.texture_id).unwrap();
+        assert_eq!(handle.uv_rect, looked_up);
+
+        // Also verify pixel data at the UV location
+        let [u0, v0, _, _] = handle.uv_rect;
+        let px = (u0 * atlas.width as f32) as usize;
+        let py = (v0 * atlas.height as f32) as usize;
+        let stride = atlas.width as usize * 4;
+        let off = py * stride + px * 4;
+        assert_eq!(&atlas.data[off..off + 4], [255, 255, 255, 255]);
+    }
 }

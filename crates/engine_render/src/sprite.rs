@@ -15,6 +15,7 @@ pub struct Sprite {
     pub height: Pixels,
 }
 
+#[allow(clippy::type_complexity)]
 pub fn sprite_render_system(
     query: Query<(
         &Sprite,
@@ -83,9 +84,7 @@ mod tests {
         log
     }
 
-    fn insert_spy_with_capture(
-        world: &mut World,
-    ) -> Arc<Mutex<Vec<(Rect, [f32; 4])>>> {
+    fn insert_spy_with_capture(world: &mut World) -> crate::testing::SpriteCallLog {
         let log = Arc::new(Mutex::new(Vec::new()));
         let calls = Arc::new(Mutex::new(Vec::new()));
         let spy = SpyRenderer::with_sprite_capture(log, calls.clone());
@@ -230,12 +229,18 @@ mod tests {
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
-            Sprite { color: red, ..default_sprite() },
+            Sprite {
+                color: red,
+                ..default_sprite()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
         ));
         world.spawn((
-            Sprite { color: blue, ..default_sprite() },
+            Sprite {
+                color: blue,
+                ..default_sprite()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::Background,
         ));
@@ -258,13 +263,19 @@ mod tests {
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
-            Sprite { color: red, ..default_sprite() },
+            Sprite {
+                color: red,
+                ..default_sprite()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
             SortOrder(10),
         ));
         world.spawn((
-            Sprite { color: blue, ..default_sprite() },
+            Sprite {
+                color: blue,
+                ..default_sprite()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
             SortOrder(1),
@@ -288,11 +299,17 @@ mod tests {
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
-            Sprite { color: red, ..default_sprite() },
+            Sprite {
+                color: red,
+                ..default_sprite()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
         ));
         world.spawn((
-            Sprite { color: blue, ..default_sprite() },
+            Sprite {
+                color: blue,
+                ..default_sprite()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::Background,
         ));
@@ -315,13 +332,19 @@ mod tests {
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
-            Sprite { color: red, ..default_sprite() },
+            Sprite {
+                color: red,
+                ..default_sprite()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
             SortOrder(-1),
         ));
         world.spawn((
-            Sprite { color: blue, ..default_sprite() },
+            Sprite {
+                color: blue,
+                ..default_sprite()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
         ));
@@ -385,7 +408,10 @@ mod tests {
         let calls = insert_spy_with_capture(&mut world);
         let color = Color::new(1.0, 0.0, 0.5, 1.0);
         world.spawn((
-            Sprite { color, ..default_sprite() },
+            Sprite {
+                color,
+                ..default_sprite()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
         ));
 
@@ -404,7 +430,10 @@ mod tests {
         let calls = insert_spy_with_capture(&mut world);
         let uv = [0.25, 0.0, 0.75, 1.0];
         world.spawn((
-            Sprite { uv_rect: uv, ..default_sprite() },
+            Sprite {
+                uv_rect: uv,
+                ..default_sprite()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
         ));
 
