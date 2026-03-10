@@ -1,3 +1,4 @@
+pub mod atlas;
 pub mod clear;
 pub mod prelude;
 pub mod rect;

@@ -9,7 +9,10 @@ testing = []
 [dependencies]
 bevy_ecs = { workspace = true }
 engine_core = { path = "../engine_core" }
+thiserror = { workspace = true }
 bytemuck = { workspace = true }
+guillotiere = { workspace = true }
+image = { workspace = true }
 pollster = { workspace = true }
 wgpu = { workspace = true }
 winit = { workspace = true }

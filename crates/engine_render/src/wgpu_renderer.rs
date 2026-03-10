@@ -14,7 +14,11 @@ const SHADER_SRC: &str = "
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
+    @location(1) uv: vec2<f32>,
 };
+
+@group(0) @binding(0) var t_diffuse: texture_2d<f32>;
+@group(0) @binding(1) var s_diffuse: sampler;
 
 @vertex
 fn vs_main(
@@ -28,12 +32,17 @@ fn vs_main(
     let y = quad_pos.y * ndc_rect.w + ndc_rect.y;
     out.position = vec4<f32>(x, y, 0.0, 1.0);
     out.color = color;
+    out.uv = vec2<f32>(
+        mix(uv_rect.x, uv_rect.z, quad_pos.x),
+        mix(uv_rect.y, uv_rect.w, quad_pos.y),
+    );
     return out;
 }
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return in.color;
+    let tex_color = textureSample(t_diffuse, s_diffuse, in.uv);
+    return tex_color * in.color;
 }
 ";
 
@@ -91,6 +100,8 @@ pub struct WgpuRenderer {
     pipeline: wgpu::RenderPipeline,
     quad_vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
+    texture_bind_group_layout: wgpu::BindGroupLayout,
+    texture_bind_group: wgpu::BindGroup,
     clear_color: Color,
     pending_instances: Vec<Instance>,
 }
@@ -135,9 +146,32 @@ impl WgpuRenderer {
             source: wgpu::ShaderSource::Wgsl(SHADER_SRC.into()),
         });
 
+        let texture_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            });
+
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[],
+            bind_group_layouts: &[&texture_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -213,6 +247,9 @@ impl WgpuRenderer {
             usage: wgpu::BufferUsages::INDEX,
         });
 
+        let texture_bind_group =
+            create_texture_bind_group(&device, &queue, &texture_bind_group_layout, 1, 1, &[255; 4]);
+
         Self {
             surface,
             device,
@@ -221,10 +258,83 @@ impl WgpuRenderer {
             pipeline,
             quad_vertex_buffer,
             index_buffer,
+            texture_bind_group_layout,
+            texture_bind_group,
             clear_color: Color::BLACK,
             pending_instances: Vec::new(),
         }
     }
+
+    pub fn upload_atlas(&mut self, atlas: &crate::atlas::TextureAtlas) {
+        self.texture_bind_group = create_texture_bind_group(
+            &self.device,
+            &self.queue,
+            &self.texture_bind_group_layout,
+            atlas.width,
+            atlas.height,
+            &atlas.data,
+        );
+    }
+}
+
+fn create_texture_bind_group(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    layout: &wgpu::BindGroupLayout,
+    width: u32,
+    height: u32,
+    data: &[u8],
+) -> wgpu::BindGroup {
+    let size = wgpu::Extent3d {
+        width,
+        height,
+        depth_or_array_layers: 1,
+    };
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: None,
+        size,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[],
+    });
+    queue.write_texture(
+        wgpu::TexelCopyTextureInfo {
+            texture: &texture,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        },
+        data,
+        wgpu::TexelCopyBufferLayout {
+            offset: 0,
+            bytes_per_row: Some(4 * width),
+            rows_per_image: Some(height),
+        },
+        size,
+    );
+    let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        mag_filter: wgpu::FilterMode::Nearest,
+        min_filter: wgpu::FilterMode::Nearest,
+        ..Default::default()
+    });
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: None,
+        layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::Sampler(&sampler),
+            },
+        ],
+    })
 }
 
 /// Converts pixel-space rect bounds to NDC coordinates [x0, y0, x1, y1].
@@ -290,6 +400,7 @@ impl Renderer for WgpuRenderer {
                         });
 
                 pass.set_pipeline(&self.pipeline);
+                pass.set_bind_group(0, &self.texture_bind_group, &[]);
                 pass.set_vertex_buffer(0, self.quad_vertex_buffer.slice(..));
                 pass.set_vertex_buffer(1, instance_buffer.slice(..));
                 pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);

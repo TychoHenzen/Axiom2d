@@ -4,9 +4,9 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (27 tests), engine_ecs (7 tests), engine_render (22 tests), engine_app (30 tests), engine_input (28 tests), engine_scene (39 tests), axiom2d facade (0 tests), demo (9 tests). Total: 162 tests.
+**Implemented crates:** engine_core (27 tests), engine_ecs (7 tests), engine_render (46 tests), engine_app (30 tests), engine_input (28 tests), engine_scene (39 tests), axiom2d facade (0 tests), demo (9 tests). Total: 186 tests.
 
-**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend with instanced quad rendering, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy, Visibility system (Visible/EffectiveVisibility) with hierarchy inheritance, RenderLayer enum + SortOrder for deterministic render ordering.
+**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend with instanced quad rendering, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy, Visibility system (Visible/EffectiveVisibility) with hierarchy inheritance, RenderLayer enum + SortOrder for deterministic render ordering, TextureAtlas with guillotiere rect packing + AtlasBuilder + load_image_bytes (PNG/JPEG).
 
 **Placeholder crates (empty):** engine_audio, engine_physics, engine_assets, engine_ui.
 
@@ -101,14 +101,14 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 - [x] Batch draw calls — single draw call per texture/material
 - [x] Benchmark: measure draw call reduction vs current per-rect vertex rebuild
 
-### Step 3.2 — Texture Support `[NOT STARTED]`
+### Step 3.2 — Texture Support `[DONE]`
 **Crate:** engine_render
 **New deps:** image, guillotiere
 
-- [ ] `TextureHandle` wrapping wgpu texture + sampler
-- [ ] `TextureAtlas` resource — rect packing via guillotiere
-- [ ] `AtlasBuilder::add_image()` → TextureHandle with UV rect
-- [ ] Texture bind group in render pipeline
+- [x] `TextureHandle` wrapping TextureId + UV rect
+- [x] `TextureAtlas` resource — rect packing via guillotiere
+- [x] `AtlasBuilder::add_image()` → TextureHandle with UV rect
+- [x] Texture bind group in render pipeline
 
 ### Step 3.3 — Sprite Component & Rendering `[NOT STARTED]`
 **Crate:** engine_render
