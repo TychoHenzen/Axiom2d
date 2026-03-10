@@ -22,7 +22,9 @@ mod tests {
         let entity = world.spawn(Health(100)).id();
 
         // Assert
-        let health = world.get::<Health>(entity).expect("Health component missing");
+        let health = world
+            .get::<Health>(entity)
+            .expect("Health component missing");
         assert_eq!(health.0, 100);
     }
 

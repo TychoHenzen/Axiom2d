@@ -17,8 +17,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn when_render_layers_compared_then_background_less_than_world_less_than_characters_less_than_foreground_less_than_ui(
-    ) {
+    fn when_render_layers_compared_then_background_less_than_world_less_than_characters_less_than_foreground_less_than_ui()
+     {
         assert!(RenderLayer::Background < RenderLayer::World);
         assert!(RenderLayer::World < RenderLayer::Characters);
         assert!(RenderLayer::Characters < RenderLayer::Foreground);

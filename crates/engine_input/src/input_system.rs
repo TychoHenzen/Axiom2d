@@ -43,7 +43,9 @@ mod tests {
     fn when_press_event_in_buffer_then_key_is_pressed() {
         // Arrange
         let mut world = setup_world();
-        world.resource_mut::<InputEventBuffer>().push(KeyCode::ArrowRight, ElementState::Pressed);
+        world
+            .resource_mut::<InputEventBuffer>()
+            .push(KeyCode::ArrowRight, ElementState::Pressed);
 
         // Act
         run_input_system(&mut world);
@@ -56,13 +58,19 @@ mod tests {
     fn when_press_event_in_buffer_then_key_is_just_pressed() {
         // Arrange
         let mut world = setup_world();
-        world.resource_mut::<InputEventBuffer>().push(KeyCode::ArrowRight, ElementState::Pressed);
+        world
+            .resource_mut::<InputEventBuffer>()
+            .push(KeyCode::ArrowRight, ElementState::Pressed);
 
         // Act
         run_input_system(&mut world);
 
         // Assert
-        assert!(world.resource::<InputState>().just_pressed(KeyCode::ArrowRight));
+        assert!(
+            world
+                .resource::<InputState>()
+                .just_pressed(KeyCode::ArrowRight)
+        );
     }
 
     #[test]
@@ -71,7 +79,9 @@ mod tests {
         let mut world = setup_world();
         world.resource_mut::<InputState>().press(KeyCode::Space);
         world.resource_mut::<InputState>().clear_frame_state();
-        world.resource_mut::<InputEventBuffer>().push(KeyCode::Space, ElementState::Released);
+        world
+            .resource_mut::<InputEventBuffer>()
+            .push(KeyCode::Space, ElementState::Released);
 
         // Act
         run_input_system(&mut world);
@@ -86,7 +96,9 @@ mod tests {
         let mut world = setup_world();
         world.resource_mut::<InputState>().press(KeyCode::Space);
         world.resource_mut::<InputState>().clear_frame_state();
-        world.resource_mut::<InputEventBuffer>().push(KeyCode::Space, ElementState::Released);
+        world
+            .resource_mut::<InputEventBuffer>()
+            .push(KeyCode::Space, ElementState::Released);
 
         // Act
         run_input_system(&mut world);
@@ -99,7 +111,9 @@ mod tests {
     fn when_system_runs_then_buffer_is_drained() {
         // Arrange
         let mut world = setup_world();
-        world.resource_mut::<InputEventBuffer>().push(KeyCode::ArrowRight, ElementState::Pressed);
+        world
+            .resource_mut::<InputEventBuffer>()
+            .push(KeyCode::ArrowRight, ElementState::Pressed);
 
         // Act
         run_input_system(&mut world);
@@ -112,7 +126,9 @@ mod tests {
     fn when_system_runs_second_frame_then_just_pressed_is_cleared() {
         // Arrange
         let mut world = setup_world();
-        world.resource_mut::<InputEventBuffer>().push(KeyCode::ArrowDown, ElementState::Pressed);
+        world
+            .resource_mut::<InputEventBuffer>()
+            .push(KeyCode::ArrowDown, ElementState::Pressed);
         run_input_system(&mut world);
 
         // Act
@@ -130,7 +146,9 @@ mod tests {
         let mut world = setup_world();
         world.resource_mut::<InputState>().press(KeyCode::Space);
         world.resource_mut::<InputState>().clear_frame_state();
-        world.resource_mut::<InputEventBuffer>().push(KeyCode::Space, ElementState::Released);
+        world
+            .resource_mut::<InputEventBuffer>()
+            .push(KeyCode::Space, ElementState::Released);
         run_input_system(&mut world);
 
         // Act

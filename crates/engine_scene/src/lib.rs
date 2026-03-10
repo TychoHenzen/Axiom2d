@@ -25,7 +25,10 @@ pub(crate) mod test_helpers {
     }
 
     pub(crate) fn run_transform_system(world: &mut World) {
-        run_system(world, crate::transform_propagation::transform_propagation_system);
+        run_system(
+            world,
+            crate::transform_propagation::transform_propagation_system,
+        );
     }
 
     pub(crate) fn run_visibility_system(world: &mut World) {

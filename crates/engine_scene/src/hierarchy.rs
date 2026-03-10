@@ -15,7 +15,10 @@ pub fn hierarchy_maintenance_system(
 ) {
     let mut parent_to_children: HashMap<Entity, Vec<Entity>> = HashMap::new();
     for (child, child_of) in &child_query {
-        parent_to_children.entry(child_of.0).or_default().push(child);
+        parent_to_children
+            .entry(child_of.0)
+            .or_default()
+            .push(child);
     }
     for children in parent_to_children.values_mut() {
         children.sort();
@@ -46,7 +49,9 @@ mod tests {
         run_hierarchy_system(&mut world);
 
         // Assert
-        let children = world.get::<Children>(parent).expect("parent should have Children component");
+        let children = world
+            .get::<Children>(parent)
+            .expect("parent should have Children component");
         assert!(children.0.contains(&child));
     }
 
@@ -62,7 +67,9 @@ mod tests {
         run_hierarchy_system(&mut world);
 
         // Assert
-        let children = world.get::<Children>(parent).expect("parent should have Children");
+        let children = world
+            .get::<Children>(parent)
+            .expect("parent should have Children");
         assert_eq!(children.0.len(), 2);
         assert!(children.0.contains(&child_a));
         assert!(children.0.contains(&child_b));
@@ -81,9 +88,13 @@ mod tests {
         run_hierarchy_system(&mut world);
 
         // Assert
-        let children_a = world.get::<Children>(parent_a).expect("parent_a should have Children");
+        let children_a = world
+            .get::<Children>(parent_a)
+            .expect("parent_a should have Children");
         assert_eq!(children_a.0, vec![child_x]);
-        let children_b = world.get::<Children>(parent_b).expect("parent_b should have Children");
+        let children_b = world
+            .get::<Children>(parent_b)
+            .expect("parent_b should have Children");
         assert_eq!(children_b.0, vec![child_y]);
     }
 
@@ -100,7 +111,9 @@ mod tests {
         run_hierarchy_system(&mut world);
 
         // Assert
-        let children = world.get::<Children>(parent).expect("parent should have Children");
+        let children = world
+            .get::<Children>(parent)
+            .expect("parent should have Children");
         let mut sorted = children.0.clone();
         sorted.sort();
         assert_eq!(children.0, sorted);
@@ -119,7 +132,9 @@ mod tests {
         run_hierarchy_system(&mut world);
 
         // Assert
-        let children = world.get::<Children>(parent).expect("parent should have Children");
+        let children = world
+            .get::<Children>(parent)
+            .expect("parent should have Children");
         assert_eq!(children.0, vec![child]);
     }
 
@@ -137,7 +152,9 @@ mod tests {
         run_hierarchy_system(&mut world);
 
         // Assert
-        let children = world.get::<Children>(parent).expect("parent should have Children");
+        let children = world
+            .get::<Children>(parent)
+            .expect("parent should have Children");
         assert_eq!(children.0, vec![child_b]);
     }
 
@@ -171,7 +188,9 @@ mod tests {
         run_hierarchy_system(&mut world);
 
         // Assert
-        let children = world.get::<Children>(parent).expect("parent should have Children");
+        let children = world
+            .get::<Children>(parent)
+            .expect("parent should have Children");
         assert_eq!(children.0, vec![child_b]);
     }
 

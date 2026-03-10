@@ -36,7 +36,9 @@ impl InputState {
     }
 
     pub fn action_pressed(&self, map: &ActionMap, action: &str) -> bool {
-        map.bindings_for(action).iter().any(|key| self.pressed(*key))
+        map.bindings_for(action)
+            .iter()
+            .any(|key| self.pressed(*key))
     }
 
     pub fn action_just_pressed(&self, map: &ActionMap, action: &str) -> bool {

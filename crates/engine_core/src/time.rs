@@ -21,11 +21,17 @@ pub struct FakeClock {
     pending: Seconds,
 }
 
-impl FakeClock {
-    pub fn new() -> Self {
+impl Default for FakeClock {
+    fn default() -> Self {
         Self {
             pending: Seconds(0.0),
         }
+    }
+}
+
+impl FakeClock {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn advance(&mut self, dt: Seconds) {
@@ -45,11 +51,17 @@ pub struct SystemClock {
     last_instant: std::time::Instant,
 }
 
-impl SystemClock {
-    pub fn new() -> Self {
+impl Default for SystemClock {
+    fn default() -> Self {
         Self {
             last_instant: std::time::Instant::now(),
         }
+    }
+}
+
+impl SystemClock {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 

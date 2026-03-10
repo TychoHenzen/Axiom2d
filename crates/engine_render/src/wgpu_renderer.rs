@@ -44,10 +44,18 @@ pub(crate) struct QuadVertex {
 }
 
 pub(crate) const QUAD_VERTICES: [QuadVertex; 4] = [
-    QuadVertex { position: [0.0, 0.0] },
-    QuadVertex { position: [1.0, 0.0] },
-    QuadVertex { position: [1.0, 1.0] },
-    QuadVertex { position: [0.0, 1.0] },
+    QuadVertex {
+        position: [0.0, 0.0],
+    },
+    QuadVertex {
+        position: [1.0, 0.0],
+    },
+    QuadVertex {
+        position: [1.0, 1.0],
+    },
+    QuadVertex {
+        position: [0.0, 1.0],
+    },
 ];
 
 pub(crate) const QUAD_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
@@ -98,11 +106,9 @@ impl WgpuRenderer {
         }))
         .expect("no compatible GPU adapter found");
 
-        let (device, queue) = pollster::block_on(adapter.request_device(
-            &wgpu::DeviceDescriptor::default(),
-            None,
-        ))
-        .expect("failed to create GPU device");
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default(), None))
+                .expect("failed to create GPU device");
 
         let size = window.inner_size();
         let caps = surface.get_capabilities(&adapter);
@@ -145,13 +151,11 @@ impl WgpuRenderer {
                     wgpu::VertexBufferLayout {
                         array_stride: size_of::<QuadVertex>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &[
-                            wgpu::VertexAttribute {
-                                format: wgpu::VertexFormat::Float32x2,
-                                offset: 0,
-                                shader_location: 0,
-                            },
-                        ],
+                        attributes: &[wgpu::VertexAttribute {
+                            format: wgpu::VertexFormat::Float32x2,
+                            offset: 0,
+                            shader_location: 0,
+                        }],
                     },
                     wgpu::VertexBufferLayout {
                         array_stride: size_of::<Instance>() as wgpu::BufferAddress,
@@ -197,19 +201,17 @@ impl WgpuRenderer {
             cache: None,
         });
 
-        let quad_vertex_buffer =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(&QUAD_VERTICES),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
+        let quad_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&QUAD_VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
 
-        let index_buffer =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(&QUAD_INDICES),
-                usage: wgpu::BufferUsages::INDEX,
-            });
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&QUAD_INDICES),
+            usage: wgpu::BufferUsages::INDEX,
+        });
 
         Self {
             surface,

@@ -115,5 +115,4 @@ mod tests {
         // Assert
         assert_eq!(log.lock().unwrap().as_slice(), &["clear"]);
     }
-
 }

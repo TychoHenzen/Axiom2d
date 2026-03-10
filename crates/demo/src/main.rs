@@ -31,18 +31,22 @@ fn render_rect(
 
 const PLAYER_SPEED: f32 = 300.0;
 
-fn player_control(
-    mut query: Query<&mut Position>,
-    input: Res<InputState>,
-    dt: Res<DeltaTime>,
-) {
+fn player_control(mut query: Query<&mut Position>, input: Res<InputState>, dt: Res<DeltaTime>) {
     let mut dx = 0.0;
     let mut dy = 0.0;
 
-    if input.pressed(KeyCode::ArrowRight) { dx += 1.0; }
-    if input.pressed(KeyCode::ArrowLeft) { dx -= 1.0; }
-    if input.pressed(KeyCode::ArrowDown) { dy += 1.0; }
-    if input.pressed(KeyCode::ArrowUp) { dy -= 1.0; }
+    if input.pressed(KeyCode::ArrowRight) {
+        dx += 1.0;
+    }
+    if input.pressed(KeyCode::ArrowLeft) {
+        dx -= 1.0;
+    }
+    if input.pressed(KeyCode::ArrowDown) {
+        dy += 1.0;
+    }
+    if input.pressed(KeyCode::ArrowUp) {
+        dy -= 1.0;
+    }
 
     let displacement = PLAYER_SPEED * dt.0.0;
     for mut pos in &mut query {
@@ -60,12 +64,16 @@ fn setup(app: &mut App) {
     app.world_mut().insert_resource(ClearColor::default());
     app.world_mut().insert_resource(InputState::default());
     app.world_mut().insert_resource(InputEventBuffer::default());
-    app.world_mut().insert_resource(ClockRes::new(Box::new(SystemClock::new())));
+    app.world_mut()
+        .insert_resource(ClockRes::new(Box::new(SystemClock::new())));
     app.world_mut().insert_resource(RectSize {
         width: Pixels(300.0),
         height: Pixels(200.0),
     });
-    app.world_mut().spawn(Position { x: Pixels(490.0), y: Pixels(260.0) });
+    app.world_mut().spawn(Position {
+        x: Pixels(490.0),
+        y: Pixels(260.0),
+    });
     app.set_window_config(config)
         .add_systems(Phase::Input, input_system)
         .add_systems(Phase::PreUpdate, time_system)
@@ -91,7 +99,10 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(InputState::default());
         world.insert_resource(DeltaTime(Seconds(1.0)));
-        world.spawn(Position { x: Pixels(400.0), y: Pixels(300.0) });
+        world.spawn(Position {
+            x: Pixels(400.0),
+            y: Pixels(300.0),
+        });
         world
     }
 
@@ -99,7 +110,9 @@ mod tests {
     fn when_right_held_then_position_moves_right() {
         // Arrange
         let mut world = setup_control_world();
-        world.resource_mut::<InputState>().press(KeyCode::ArrowRight);
+        world
+            .resource_mut::<InputState>()
+            .press(KeyCode::ArrowRight);
         let mut schedule = Schedule::default();
         schedule.add_systems(player_control);
 
@@ -185,7 +198,9 @@ mod tests {
         // Arrange
         let mut world = setup_control_world();
         world.resource_mut::<InputState>().press(KeyCode::ArrowLeft);
-        world.resource_mut::<InputState>().press(KeyCode::ArrowRight);
+        world
+            .resource_mut::<InputState>()
+            .press(KeyCode::ArrowRight);
         let mut schedule = Schedule::default();
         schedule.add_systems(player_control);
 
@@ -205,8 +220,14 @@ mod tests {
         let spy = SpyRenderer::new(log.clone());
         let mut world = World::new();
         world.insert_resource(RendererRes::new(Box::new(spy)));
-        world.insert_resource(RectSize { width: Pixels(300.0), height: Pixels(200.0) });
-        world.spawn(Position { x: Pixels(100.0), y: Pixels(50.0) });
+        world.insert_resource(RectSize {
+            width: Pixels(300.0),
+            height: Pixels(200.0),
+        });
+        world.spawn(Position {
+            x: Pixels(100.0),
+            y: Pixels(50.0),
+        });
         let mut schedule = Schedule::default();
         schedule.add_systems(render_rect);
 

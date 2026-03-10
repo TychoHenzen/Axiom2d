@@ -52,5 +52,4 @@ mod tests {
         assert_eq!(events[1], (KeyCode::ArrowRight, ElementState::Released));
         assert!(buffer.drain().is_empty());
     }
-
 }

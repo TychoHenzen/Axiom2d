@@ -83,21 +83,28 @@ impl App {
         self.schedules.len()
     }
 
-    pub fn add_systems<M>(&mut self, phase: Phase, systems: impl IntoScheduleConfigs<ScheduleSystem, M>) -> &mut Self {
+    pub fn add_systems<M>(
+        &mut self,
+        phase: Phase,
+        systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
+    ) -> &mut Self {
         self.schedules.get_mut(&phase).unwrap().add_systems(systems);
         self
     }
 
     #[cfg(test)]
-    pub(crate) fn set_renderer(&mut self, renderer: Box<dyn engine_render::renderer::Renderer + Send + Sync>) {
+    pub(crate) fn set_renderer(
+        &mut self,
+        renderer: Box<dyn engine_render::renderer::Renderer + Send + Sync>,
+    ) {
         self.world.insert_resource(RendererRes::new(renderer));
     }
 
     pub(crate) fn handle_key_event(&mut self, physical_key: PhysicalKey, state: ElementState) {
-        if let PhysicalKey::Code(key_code) = physical_key {
-            if let Some(mut buffer) = self.world.get_resource_mut::<InputEventBuffer>() {
-                buffer.push(key_code, state);
-            }
+        if let PhysicalKey::Code(key_code) = physical_key
+            && let Some(mut buffer) = self.world.get_resource_mut::<InputEventBuffer>()
+        {
+            buffer.push(key_code, state);
         }
     }
 
@@ -258,7 +265,9 @@ mod tests {
     fn when_plugin_added_then_build_called_exactly_once() {
         // Arrange
         let counter = Rc::new(Cell::new(0u32));
-        let plugin = CountingPlugin { counter: Rc::clone(&counter) };
+        let plugin = CountingPlugin {
+            counter: Rc::clone(&counter),
+        };
 
         // Act
         App::new().add_plugin(plugin);
@@ -354,11 +363,21 @@ mod tests {
         #[derive(Resource, Default)]
         struct Log(Vec<&'static str>);
 
-        fn log_input(mut log: ResMut<Log>) { log.0.push("input"); }
-        fn log_pre_update(mut log: ResMut<Log>) { log.0.push("pre_update"); }
-        fn log_update(mut log: ResMut<Log>) { log.0.push("update"); }
-        fn log_post_update(mut log: ResMut<Log>) { log.0.push("post_update"); }
-        fn log_render(mut log: ResMut<Log>) { log.0.push("render"); }
+        fn log_input(mut log: ResMut<Log>) {
+            log.0.push("input");
+        }
+        fn log_pre_update(mut log: ResMut<Log>) {
+            log.0.push("pre_update");
+        }
+        fn log_update(mut log: ResMut<Log>) {
+            log.0.push("update");
+        }
+        fn log_post_update(mut log: ResMut<Log>) {
+            log.0.push("post_update");
+        }
+        fn log_render(mut log: ResMut<Log>) {
+            log.0.push("render");
+        }
 
         // Arrange
         let mut app = App::new();
@@ -570,7 +589,11 @@ mod tests {
         let app = App::new();
 
         // Assert
-        assert!(app.world().get_resource::<engine_core::time::DeltaTime>().is_some());
+        assert!(
+            app.world()
+                .get_resource::<engine_core::time::DeltaTime>()
+                .is_some()
+        );
     }
 
     #[test]
@@ -580,7 +603,10 @@ mod tests {
         #[derive(Resource)]
         struct CapturedDelta(engine_core::types::Seconds);
 
-        fn capture_delta(dt: engine_ecs::prelude::Res<DeltaTime>, mut captured: ResMut<CapturedDelta>) {
+        fn capture_delta(
+            dt: engine_ecs::prelude::Res<DeltaTime>,
+            mut captured: ResMut<CapturedDelta>,
+        ) {
             captured.0 = dt.0;
         }
 
@@ -588,8 +614,10 @@ mod tests {
         let mut app = App::new();
         let mut fake = FakeClock::new();
         fake.advance(engine_core::types::Seconds(0.016));
-        app.world_mut().insert_resource(ClockRes::new(Box::new(fake)));
-        app.world_mut().insert_resource(CapturedDelta(engine_core::types::Seconds(0.0)));
+        app.world_mut()
+            .insert_resource(ClockRes::new(Box::new(fake)));
+        app.world_mut()
+            .insert_resource(CapturedDelta(engine_core::types::Seconds(0.0)));
         app.add_systems(Phase::PreUpdate, time_system);
         app.add_systems(Phase::Update, capture_delta);
 
@@ -624,7 +652,10 @@ mod tests {
         app.world_mut().insert_resource(InputEventBuffer::default());
 
         // Act
-        app.handle_key_event(PhysicalKey::Code(KeyCode::ArrowLeft), ElementState::Released);
+        app.handle_key_event(
+            PhysicalKey::Code(KeyCode::ArrowLeft),
+            ElementState::Released,
+        );
 
         // Assert
         let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
@@ -642,7 +673,10 @@ mod tests {
         app.world_mut().insert_resource(InputEventBuffer::default());
 
         // Act
-        app.handle_key_event(PhysicalKey::Unidentified(NativeKeyCode::Unidentified), ElementState::Pressed);
+        app.handle_key_event(
+            PhysicalKey::Unidentified(NativeKeyCode::Unidentified),
+            ElementState::Pressed,
+        );
 
         // Assert
         let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();

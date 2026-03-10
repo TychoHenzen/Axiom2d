@@ -28,7 +28,9 @@ mod tests {
         let child = world.spawn_child(parent, ());
 
         // Assert
-        let child_of = world.get::<ChildOf>(child).expect("child should have ChildOf");
+        let child_of = world
+            .get::<ChildOf>(child)
+            .expect("child should have ChildOf");
         assert_eq!(child_of.0, parent);
     }
 
@@ -60,7 +62,9 @@ mod tests {
         run_hierarchy_system(&mut world);
 
         // Assert
-        let children = world.get::<Children>(parent).expect("parent should have Children");
+        let children = world
+            .get::<Children>(parent)
+            .expect("parent should have Children");
         assert_eq!(children.0, vec![child]);
     }
 }

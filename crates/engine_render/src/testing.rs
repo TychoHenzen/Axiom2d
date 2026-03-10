@@ -126,5 +126,4 @@ mod tests {
         // Assert
         assert_eq!(*color_capture.lock().unwrap(), Some(expected));
     }
-
 }

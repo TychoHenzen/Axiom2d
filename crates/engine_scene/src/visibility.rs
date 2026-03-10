@@ -21,9 +21,17 @@ pub fn visibility_system(
     mut commands: Commands,
 ) {
     for (entity, visible) in &roots {
-        let is_visible = visible.map_or(true, |v| v.0);
-        commands.entity(entity).insert(EffectiveVisibility(is_visible));
-        propagate_visibility(entity, is_visible, &children_query, &visible_query, &mut commands);
+        let is_visible = visible.is_none_or(|v| v.0);
+        commands
+            .entity(entity)
+            .insert(EffectiveVisibility(is_visible));
+        propagate_visibility(
+            entity,
+            is_visible,
+            &children_query,
+            &visible_query,
+            &mut commands,
+        );
     }
 }
 
@@ -36,13 +44,11 @@ fn propagate_visibility(
 ) {
     if let Ok(children) = children_query.get(parent) {
         for &child in &children.0 {
-            let child_visible = visible_query
-                .get(child)
-                .ok()
-                .flatten()
-                .map_or(true, |v| v.0);
+            let child_visible = visible_query.get(child).ok().flatten().is_none_or(|v| v.0);
             let effective = parent_effective && child_visible;
-            commands.entity(child).insert(EffectiveVisibility(effective));
+            commands
+                .entity(child)
+                .insert(EffectiveVisibility(effective));
             propagate_visibility(child, effective, children_query, visible_query, commands);
         }
     }
@@ -54,8 +60,8 @@ mod tests {
     use crate::test_helpers::run_visibility_system;
 
     #[test]
-    fn when_root_entity_has_default_visible_then_visibility_system_inserts_effective_visibility_true(
-    ) {
+    fn when_root_entity_has_default_visible_then_visibility_system_inserts_effective_visibility_true()
+     {
         // Arrange
         let mut world = World::new();
         let entity = world.spawn(Visible::default()).id();
@@ -70,7 +76,7 @@ mod tests {
 
     #[test]
     fn when_root_entity_has_visible_false_then_visibility_system_inserts_effective_visibility_false()
-    {
+     {
         // Arrange
         let mut world = World::new();
         let entity = world.spawn(Visible(false)).id();
@@ -84,8 +90,8 @@ mod tests {
     }
 
     #[test]
-    fn when_root_entity_has_no_visible_component_then_visibility_system_inserts_effective_visibility_true(
-    ) {
+    fn when_root_entity_has_no_visible_component_then_visibility_system_inserts_effective_visibility_true()
+     {
         // Arrange
         let mut world = World::new();
         let entity = world.spawn_empty().id();
@@ -186,8 +192,8 @@ mod tests {
     }
 
     #[test]
-    fn when_hierarchy_system_runs_before_visibility_system_then_children_receive_effective_visibility(
-    ) {
+    fn when_hierarchy_system_runs_before_visibility_system_then_children_receive_effective_visibility()
+     {
         // Arrange
         let mut world = World::new();
         let parent = world.spawn(Visible(true)).id();
@@ -225,8 +231,8 @@ mod tests {
     }
 
     #[test]
-    fn when_child_has_no_visible_component_and_parent_is_visible_then_child_effective_visibility_is_true(
-    ) {
+    fn when_child_has_no_visible_component_and_parent_is_visible_then_child_effective_visibility_is_true()
+     {
         // Arrange
         let mut world = World::new();
         let parent = world.spawn(Visible(true)).id();
@@ -242,8 +248,8 @@ mod tests {
     }
 
     #[test]
-    fn when_child_has_no_visible_component_and_parent_is_hidden_then_child_effective_visibility_is_false(
-    ) {
+    fn when_child_has_no_visible_component_and_parent_is_hidden_then_child_effective_visibility_is_false()
+     {
         // Arrange
         let mut world = World::new();
         let parent = world.spawn(Visible(false)).id();

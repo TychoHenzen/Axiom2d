@@ -340,7 +340,11 @@ mod tests {
             })
             .id();
         run_transform_system(&mut world);
-        world.entity_mut(entity).get_mut::<Transform2D>().unwrap().position = Vec2::new(99.0, 0.0);
+        world
+            .entity_mut(entity)
+            .get_mut::<Transform2D>()
+            .unwrap()
+            .position = Vec2::new(99.0, 0.0);
 
         // Act
         run_transform_system(&mut world);

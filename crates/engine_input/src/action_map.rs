@@ -54,5 +54,4 @@ mod tests {
         // Assert
         assert_eq!(map.bindings_for("jump"), &[KeyCode::Space]);
     }
-
 }
