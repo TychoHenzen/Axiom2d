@@ -1,6 +1,10 @@
 pub use crate::atlas::{
     AtlasBuilder, AtlasError, ImageData, TextureAtlas, TextureHandle, load_image_bytes,
 };
+pub use crate::camera::{
+    Camera2D, CameraUniform, camera_prepare_system, compute_view_matrix, screen_to_world,
+    world_to_screen,
+};
 pub use crate::clear::{ClearColor, clear_system};
 pub use crate::create_renderer;
 pub use crate::rect::Rect;

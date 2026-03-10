@@ -2,7 +2,9 @@ use bevy_ecs::prelude::{Component, Query, ResMut};
 use engine_core::color::Color;
 use engine_core::types::{Pixels, TextureId};
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
+use glam::Vec2;
 
+use crate::camera::{aabb_intersects_view_rect, camera_view_rect, Camera2D};
 use crate::rect::Rect;
 use crate::renderer::RendererRes;
 
@@ -24,8 +26,14 @@ pub fn sprite_render_system(
         Option<&SortOrder>,
         Option<&EffectiveVisibility>,
     )>,
+    camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
 ) {
+    let view_rect = camera_query.iter().next().map(|camera| {
+        let (vw, vh) = renderer.viewport_size();
+        camera_view_rect(camera, vw as f32, vh as f32)
+    });
+
     let mut sprites: Vec<_> = query
         .iter()
         .filter(|(_, _, _, _, vis)| !vis.is_some_and(|v| !v.0))
@@ -40,6 +48,15 @@ pub fn sprite_render_system(
 
     for (sprite, transform, _, _, _) in sprites {
         let pos = transform.0.translation;
+
+        if let Some((view_min, view_max)) = view_rect {
+            let entity_min = Vec2::new(pos.x, pos.y);
+            let entity_max = Vec2::new(pos.x + sprite.width.0, pos.y + sprite.height.0);
+            if !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max) {
+                continue;
+            }
+        }
+
         let rect = Rect {
             x: Pixels(pos.x),
             y: Pixels(pos.y),
@@ -443,5 +460,133 @@ mod tests {
         // Assert
         let calls = calls.lock().unwrap();
         assert_eq!(calls[0].1, uv);
+    }
+
+    fn insert_spy_with_viewport(
+        world: &mut World,
+        width: u32,
+        height: u32,
+    ) -> Arc<Mutex<Vec<String>>> {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log.clone()).with_viewport(width, height);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        log
+    }
+
+    fn insert_spy_with_capture_and_viewport(
+        world: &mut World,
+        width: u32,
+        height: u32,
+    ) -> crate::testing::SpriteCallLog {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let calls = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::with_sprite_capture(log, calls.clone()).with_viewport(width, height);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        calls
+    }
+
+    #[test]
+    fn when_sprite_fully_outside_camera_view_then_draw_sprite_not_called() {
+        // Arrange
+        let mut world = World::new();
+        let log = insert_spy_with_viewport(&mut world, 800, 600);
+        world.spawn(Camera2D {
+            position: glam::Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        });
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::from_translation(glam::Vec2::new(2000.0, 300.0))),
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_sprite")
+            .count();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn when_sprite_fully_inside_camera_view_then_draw_sprite_called() {
+        // Arrange
+        let mut world = World::new();
+        let log = insert_spy_with_viewport(&mut world, 800, 600);
+        world.spawn(Camera2D {
+            position: glam::Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        });
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::from_translation(glam::Vec2::new(400.0, 300.0))),
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_sprite")
+            .count();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn when_no_camera_entity_then_all_sprites_drawn_without_culling() {
+        // Arrange
+        let mut world = World::new();
+        let log = insert_spy(&mut world);
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::from_translation(glam::Vec2::new(2000.0, 300.0))),
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_sprite")
+            .count();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn when_sprite_straddles_camera_view_edge_then_draw_sprite_called() {
+        // Arrange
+        let mut world = World::new();
+        let log = insert_spy_with_viewport(&mut world, 800, 600);
+        world.spawn(Camera2D {
+            position: glam::Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        });
+        // Sprite at x=795, width=32 → AABB [795, 827] overlaps view [0, 800]
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::from_translation(glam::Vec2::new(795.0, 300.0))),
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_sprite")
+            .count();
+        assert_eq!(count, 1);
     }
 }

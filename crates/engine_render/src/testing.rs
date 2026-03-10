@@ -12,6 +12,7 @@ pub struct SpyRenderer {
     log: Arc<Mutex<Vec<String>>>,
     color_capture: Option<Arc<Mutex<Option<Color>>>>,
     sprite_calls: Option<SpriteCallLog>,
+    viewport: (u32, u32),
 }
 
 impl SpyRenderer {
@@ -20,6 +21,7 @@ impl SpyRenderer {
             log,
             color_capture: None,
             sprite_calls: None,
+            viewport: (0, 0),
         }
     }
 
@@ -31,6 +33,7 @@ impl SpyRenderer {
             log,
             color_capture: Some(color_capture),
             sprite_calls: None,
+            viewport: (0, 0),
         }
     }
 
@@ -39,7 +42,13 @@ impl SpyRenderer {
             log,
             color_capture: None,
             sprite_calls: Some(sprite_calls),
+            viewport: (0, 0),
         }
+    }
+
+    pub fn with_viewport(mut self, width: u32, height: u32) -> Self {
+        self.viewport = (width, height);
+        self
     }
 }
 
@@ -60,6 +69,14 @@ impl Renderer for SpyRenderer {
         if let Some(capture) = &self.sprite_calls {
             capture.lock().unwrap().push((rect, uv_rect));
         }
+    }
+
+    fn set_view_projection(&mut self, _matrix: [[f32; 4]; 4]) {
+        self.log.lock().unwrap().push("set_view_projection".into());
+    }
+
+    fn viewport_size(&self) -> (u32, u32) {
+        self.viewport
     }
 
     fn present(&mut self) {
@@ -144,6 +161,19 @@ mod tests {
 
         // Assert
         assert_eq!(log.lock().unwrap().as_slice(), &["draw_sprite"]);
+    }
+
+    #[test]
+    fn when_set_view_projection_called_then_log_records_set_view_projection() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log.clone());
+
+        // Act
+        spy.set_view_projection([[0.0f32; 4]; 4]);
+
+        // Assert
+        assert_eq!(log.lock().unwrap().as_slice(), &["set_view_projection"]);
     }
 
     #[test]

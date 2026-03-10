@@ -17,8 +17,13 @@ struct VertexOutput {
     @location(1) uv: vec2<f32>,
 };
 
+struct CameraUniform {
+    view_proj: mat4x4<f32>,
+};
+
 @group(0) @binding(0) var t_diffuse: texture_2d<f32>;
 @group(0) @binding(1) var s_diffuse: sampler;
+@group(1) @binding(0) var<uniform> camera: CameraUniform;
 
 @vertex
 fn vs_main(
@@ -30,7 +35,8 @@ fn vs_main(
     var out: VertexOutput;
     let x = quad_pos.x * ndc_rect.z + ndc_rect.x;
     let y = quad_pos.y * ndc_rect.w + ndc_rect.y;
-    out.position = vec4<f32>(x, y, 0.0, 1.0);
+    let world_pos = vec4<f32>(x, y, 0.0, 1.0);
+    out.position = camera.view_proj * world_pos;
     out.color = color;
     out.uv = vec2<f32>(
         mix(uv_rect.x, uv_rect.z, quad_pos.x),
@@ -103,6 +109,8 @@ pub struct WgpuRenderer {
     #[allow(dead_code)]
     texture_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_group: wgpu::BindGroup,
+    camera_uniform_buffer: wgpu::Buffer,
+    camera_bind_group: wgpu::BindGroup,
     clear_color: Color,
     pending_instances: Vec<Instance>,
 }
@@ -170,9 +178,47 @@ impl WgpuRenderer {
                 ],
             });
 
+        let camera_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+            });
+
+        // Identity matrix as default camera uniform (no transform)
+        let identity: [[f32; 4]; 4] = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
+        let camera_uniform_buffer =
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(&identity),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            });
+
+        let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &camera_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: camera_uniform_buffer.as_entire_binding(),
+            }],
+        });
+
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[&texture_bind_group_layout],
+            bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -261,6 +307,8 @@ impl WgpuRenderer {
             index_buffer,
             texture_bind_group_layout,
             texture_bind_group,
+            camera_uniform_buffer,
+            camera_bind_group,
             clear_color: Color::BLACK,
             pending_instances: Vec::new(),
         }
@@ -368,6 +416,18 @@ impl Renderer for WgpuRenderer {
         self.pending_instances.push(instance);
     }
 
+    fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]) {
+        self.queue.write_buffer(
+            &self.camera_uniform_buffer,
+            0,
+            bytemuck::cast_slice(&matrix),
+        );
+    }
+
+    fn viewport_size(&self) -> (u32, u32) {
+        (self.config.width, self.config.height)
+    }
+
     fn present(&mut self) {
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame
@@ -411,6 +471,7 @@ impl Renderer for WgpuRenderer {
 
                 pass.set_pipeline(&self.pipeline);
                 pass.set_bind_group(0, &self.texture_bind_group, &[]);
+                pass.set_bind_group(1, &self.camera_bind_group, &[]);
                 pass.set_vertex_buffer(0, self.quad_vertex_buffer.slice(..));
                 pass.set_vertex_buffer(1, instance_buffer.slice(..));
                 pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);

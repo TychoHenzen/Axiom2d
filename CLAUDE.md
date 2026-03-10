@@ -106,6 +106,16 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **visibility_system** (`engine_scene::visibility`): Walks hierarchy from roots (no ChildOf) down through Children. Root: `EffectiveVisibility = Visible` (or true if absent). Children: `parent_effective AND child_visible`. Registered in `Phase::PostUpdate` (after hierarchy_maintenance_system).
 - **RenderLayer** (`engine_scene::render_order`): Enum with variants `Background`, `World`, `Characters`, `Foreground`, `UI` — declaration order IS render order via `#[derive(Ord)]`. Derives Component, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord.
 - **SortOrder** (`engine_scene::render_order`): `#[derive(Component, Default)]` newtype wrapping `i32`. Ordering within a RenderLayer. Default is 0. No clamping — negative values allowed. Used with RenderLayer as `(RenderLayer, SortOrder)` tuple sort for deterministic draw order.
+- **Camera2D** (`engine_render::camera`): `#[derive(Component)]` with `position: Vec2` and `zoom: f32`. Default: position=ZERO, zoom=1.0. Camera position is the center of the view. Zoom > 1 magnifies, zoom < 1 zooms out.
+- **CameraUniform** (`engine_render::camera`): `#[derive(Resource)]` with `view_proj: [[f32; 4]; 4]`. GPU-ready orthographic view-projection matrix. `CameraUniform::from_camera(camera, vw, vh)` combines view transform with Y-flipped orthographic projection for wgpu NDC.
+- **camera_prepare_system** (`engine_render::camera`): `fn(Query<&Camera2D>, ResMut<RendererRes>)` — queries the first Camera2D entity, gets viewport size from renderer, computes CameraUniform, calls `renderer.set_view_projection()`. No-op if no Camera2D entity exists. Registered in `Phase::Render` (before sprite_render_system).
+- **world_to_screen** (`engine_render::camera`): `fn(Vec2, &Camera2D, viewport_width, viewport_height) -> Vec2` — converts world-space point to screen-space pixels. Camera position maps to viewport center.
+- **screen_to_world** (`engine_render::camera`): `fn(Vec2, &Camera2D, viewport_width, viewport_height) -> Vec2` — inverse of world_to_screen. Viewport center maps to camera position.
+- **camera_view_rect** (`engine_render::camera`): `pub(crate) fn(&Camera2D, viewport_width, viewport_height) -> (Vec2, Vec2)` — returns (min, max) world-space AABB the camera can see. Half extents = viewport / (2 * zoom).
+- **aabb_intersects_view_rect** (`engine_render::camera`): `pub(crate) fn(entity_min, entity_max, view_min, view_max) -> bool` — AABB overlap test using >= comparisons (edge-touching counts as intersecting).
+- **Frustum culling in sprite_render_system**: When a Camera2D entity exists, sprites whose world AABB doesn't intersect the camera view rect are skipped. No camera → no culling (backward compatible).
+- **Renderer trait** now includes `set_view_projection(&mut self, matrix: [[f32; 4]; 4])` and `viewport_size(&self) -> (u32, u32)`. WgpuRenderer uploads matrix to GPU uniform buffer; NullRenderer/SpyRenderer are no-ops.
+- **GPU camera uniform**: WgpuRenderer has a persistent camera uniform buffer (bind group 1, binding 0). WGSL shader multiplies vertex position by `camera.view_proj`. Default is identity matrix (no camera transform).
 
 ### Scheduling Phases
 
