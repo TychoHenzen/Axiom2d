@@ -88,7 +88,10 @@ impl App {
         phase: Phase,
         systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
     ) -> &mut Self {
-        self.schedules.get_mut(&phase).expect("unknown phase").add_systems(systems);
+        self.schedules
+            .get_mut(&phase)
+            .expect("unknown phase")
+            .add_systems(systems);
         self
     }
 
@@ -120,7 +123,10 @@ impl App {
 
     pub fn handle_redraw(&mut self) {
         for phase in PHASE_ORDER {
-            self.schedules.get_mut(&phase).expect("unknown phase").run(&mut self.world);
+            self.schedules
+                .get_mut(&phase)
+                .expect("unknown phase")
+                .run(&mut self.world);
         }
         if let Some(mut renderer) = self.world.get_resource_mut::<RendererRes>() {
             renderer.present();
@@ -129,7 +135,9 @@ impl App {
 
     pub fn run(&mut self) {
         let event_loop = EventLoop::new().expect("failed to create event loop");
-        event_loop.run_app(self).expect("event loop exited with error");
+        event_loop
+            .run_app(self)
+            .expect("event loop exited with error");
     }
 }
 
@@ -148,7 +156,11 @@ impl ApplicationHandler for App {
                 f64::from(self.window_config.height),
             ))
             .with_resizable(self.window_config.resizable);
-        let window = Arc::new(event_loop.create_window(attrs).expect("failed to create window"));
+        let window = Arc::new(
+            event_loop
+                .create_window(attrs)
+                .expect("failed to create window"),
+        );
         let renderer = engine_render::create_renderer(window.clone(), &self.window_config);
 
         self.window = Some(window);

@@ -658,7 +658,9 @@ impl WgpuRenderer {
     #[allow(clippy::too_many_lines)]
     pub fn new(window: Arc<Window>, config: &WindowConfig) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
-        let surface = instance.create_surface(window.clone()).expect("failed to create surface");
+        let surface = instance
+            .create_surface(window.clone())
+            .expect("failed to create surface");
 
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             compatible_surface: Some(&surface),
@@ -933,7 +935,10 @@ impl WgpuRenderer {
         encoder: &mut wgpu::CommandEncoder,
         swapchain_view: &wgpu::TextureView,
     ) {
-        let pp = self.post_process.as_ref().expect("post_process resources not initialized");
+        let pp = self
+            .post_process
+            .as_ref()
+            .expect("post_process resources not initialized");
 
         self.queue.write_buffer(
             &pp.brightness_params.0,
@@ -1191,7 +1196,10 @@ impl Renderer for WgpuRenderer {
     }
 
     fn present(&mut self) {
-        let frame = self.surface.get_current_texture().expect("failed to get current texture");
+        let frame = self
+            .surface
+            .get_current_texture()
+            .expect("failed to get current texture");
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
