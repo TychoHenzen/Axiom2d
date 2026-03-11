@@ -3,11 +3,9 @@ use engine_core::color::Color;
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 use lyon::math::point;
-use lyon::tessellation::{
-    BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers,
-};
+use lyon::tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers};
 
-use crate::camera::{aabb_intersects_view_rect, camera_view_rect, Camera2D};
+use crate::camera::{Camera2D, aabb_intersects_view_rect, camera_view_rect};
 use crate::renderer::RendererRes;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -188,7 +186,10 @@ mod tests {
         // Assert
         let vertex_count = mesh.vertices.len() as u32;
         for &index in &mesh.indices {
-            assert!(index < vertex_count, "index {index} out of bounds (vertex count {vertex_count})");
+            assert!(
+                index < vertex_count,
+                "index {index} out of bounds (vertex count {vertex_count})"
+            );
         }
     }
 
@@ -306,10 +307,10 @@ mod tests {
         assert_eq!(mesh.indices.len() % 3, 0);
     }
 
-    use std::sync::{Arc, Mutex};
+    use crate::testing::{ShapeCallLog, SpyRenderer};
     use bevy_ecs::prelude::*;
     use glam::Affine2;
-    use crate::testing::{ShapeCallLog, SpyRenderer};
+    use std::sync::{Arc, Mutex};
 
     fn default_shape() -> Shape {
         Shape {
@@ -361,7 +362,12 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let count = log.lock().unwrap().iter().filter(|s| s.as_str() == "draw_shape").count();
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_shape")
+            .count();
         assert_eq!(count, 1);
     }
 
@@ -376,7 +382,12 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let count = log.lock().unwrap().iter().filter(|s| s.as_str() == "draw_shape").count();
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_shape")
+            .count();
         assert_eq!(count, 0);
     }
 
@@ -395,7 +406,12 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let count = log.lock().unwrap().iter().filter(|s| s.as_str() == "draw_shape").count();
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_shape")
+            .count();
         assert_eq!(count, 0);
     }
 
@@ -411,7 +427,12 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let count = log.lock().unwrap().iter().filter(|s| s.as_str() == "draw_shape").count();
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_shape")
+            .count();
         assert_eq!(count, 2);
     }
 
@@ -423,12 +444,18 @@ mod tests {
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
-            Shape { color: red, ..default_shape() },
+            Shape {
+                color: red,
+                ..default_shape()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
         ));
         world.spawn((
-            Shape { color: blue, ..default_shape() },
+            Shape {
+                color: blue,
+                ..default_shape()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::Background,
         ));
@@ -451,13 +478,19 @@ mod tests {
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
-            Shape { color: red, ..default_shape() },
+            Shape {
+                color: red,
+                ..default_shape()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
             SortOrder(10),
         ));
         world.spawn((
-            Shape { color: blue, ..default_shape() },
+            Shape {
+                color: blue,
+                ..default_shape()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
             SortOrder(1),
@@ -481,11 +514,17 @@ mod tests {
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
-            Shape { color: red, ..default_shape() },
+            Shape {
+                color: red,
+                ..default_shape()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
         ));
         world.spawn((
-            Shape { color: blue, ..default_shape() },
+            Shape {
+                color: blue,
+                ..default_shape()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::Background,
         ));
@@ -518,7 +557,11 @@ mod tests {
         assert_eq!(calls.len(), 1);
         for vertex in &calls[0].0 {
             assert!(vertex[0] >= 100.0 - 30.0, "x={} should be >= 70", vertex[0]);
-            assert!(vertex[1] >= 200.0 - 30.0, "y={} should be >= 170", vertex[1]);
+            assert!(
+                vertex[1] >= 200.0 - 30.0,
+                "y={} should be >= 170",
+                vertex[1]
+            );
         }
     }
 
@@ -529,7 +572,10 @@ mod tests {
         let calls = insert_spy_with_shape_capture(&mut world);
         let color = Color::new(1.0, 0.0, 0.0, 1.0);
         world.spawn((
-            Shape { color, ..default_shape() },
+            Shape {
+                color,
+                ..default_shape()
+            },
             GlobalTransform2D(Affine2::IDENTITY),
         ));
 
@@ -559,7 +605,12 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let count = log.lock().unwrap().iter().filter(|s| s.as_str() == "draw_shape").count();
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_shape")
+            .count();
         assert_eq!(count, 0);
     }
 
@@ -581,7 +632,12 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let count = log.lock().unwrap().iter().filter(|s| s.as_str() == "draw_shape").count();
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_shape")
+            .count();
         assert_eq!(count, 1);
     }
 
@@ -599,7 +655,12 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let count = log.lock().unwrap().iter().filter(|s| s.as_str() == "draw_shape").count();
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_shape")
+            .count();
         assert_eq!(count, 1);
     }
 }

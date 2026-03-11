@@ -71,7 +71,8 @@ pub(crate) fn aabb_intersects_view_rect(
 
 pub fn compute_view_matrix(camera: &Camera2D) -> Mat4 {
     let scale = Mat4::from_scale(glam::Vec3::new(camera.zoom, camera.zoom, 1.0));
-    let translation = Mat4::from_translation(glam::Vec3::new(-camera.position.x, -camera.position.y, 0.0));
+    let translation =
+        Mat4::from_translation(glam::Vec3::new(-camera.position.x, -camera.position.y, 0.0));
     scale * translation
 }
 
@@ -86,12 +87,9 @@ impl CameraUniform {
         // Orthographic projection: world x [view_min.x..view_max.x] → NDC [-1..1]
         // World y [view_min.y..view_max.y] → NDC [1..-1] (Y-flip for wgpu)
         let proj = Mat4::orthographic_rh(
-            view_min.x,
-            view_max.x,
-            view_max.y, // bottom = max y (Y-flip)
+            view_min.x, view_max.x, view_max.y, // bottom = max y (Y-flip)
             view_min.y, // top = min y (Y-flip)
-            -1.0,
-            1.0,
+            -1.0, 1.0,
         );
         Self {
             view_proj: proj.to_cols_array_2d(),
@@ -99,10 +97,7 @@ impl CameraUniform {
     }
 }
 
-pub fn camera_prepare_system(
-    query: Query<&Camera2D>,
-    mut renderer: ResMut<RendererRes>,
-) {
+pub fn camera_prepare_system(query: Query<&Camera2D>, mut renderer: ResMut<RendererRes>) {
     let (vw, vh) = renderer.viewport_size();
     if vw == 0 || vh == 0 {
         return;

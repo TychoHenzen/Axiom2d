@@ -1,6 +1,6 @@
 use engine_app::prelude::{App, Phase, Plugin};
-use engine_ecs::prelude::IntoScheduleConfigs;
 use engine_core::prelude::{ClockRes, SystemClock, time_system};
+use engine_ecs::prelude::IntoScheduleConfigs;
 use engine_input::prelude::{InputEventBuffer, InputState, input_system};
 #[cfg(feature = "render")]
 use engine_render::prelude::{
@@ -63,11 +63,10 @@ mod tests {
         app.world_mut()
             .insert_resource(ClockRes::new(Box::new(FakeClock::new())));
         #[cfg(feature = "render")]
-        app.world_mut().insert_resource(
-            engine_render::prelude::RendererRes::new(Box::new(
+        app.world_mut()
+            .insert_resource(engine_render::prelude::RendererRes::new(Box::new(
                 engine_render::prelude::NullRenderer,
-            )),
-        );
+            )));
         app
     }
 
@@ -83,7 +82,11 @@ mod tests {
         app.handle_redraw();
 
         // Assert
-        assert!(app.world().resource::<InputState>().just_pressed(KeyCode::Space));
+        assert!(
+            app.world()
+                .resource::<InputState>()
+                .just_pressed(KeyCode::Space)
+        );
     }
 
     #[test]
@@ -108,13 +111,18 @@ mod tests {
         // Arrange
         let mut app = app_with_default_plugins();
         let parent = app.world_mut().spawn_empty().id();
-        app.world_mut().spawn(engine_scene::prelude::ChildOf(parent));
+        app.world_mut()
+            .spawn(engine_scene::prelude::ChildOf(parent));
 
         // Act
         app.handle_redraw();
 
         // Assert
-        assert!(app.world().get::<engine_scene::prelude::Children>(parent).is_some());
+        assert!(
+            app.world()
+                .get::<engine_scene::prelude::Children>(parent)
+                .is_some()
+        );
     }
 
     #[test]
@@ -261,7 +269,11 @@ mod tests {
         app.handle_redraw(); // second frame — no new events
 
         // Assert
-        assert!(!app.world().resource::<InputState>().just_pressed(KeyCode::Space));
+        assert!(
+            !app.world()
+                .resource::<InputState>()
+                .just_pressed(KeyCode::Space)
+        );
         assert!(app.world().resource::<InputState>().pressed(KeyCode::Space));
     }
 }

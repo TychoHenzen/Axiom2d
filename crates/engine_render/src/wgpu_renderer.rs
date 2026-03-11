@@ -247,76 +247,73 @@ impl PostProcessResources {
         let half_w = (width / 2).max(1);
         let half_h = (height / 2).max(1);
 
-        let single_tex_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: None,
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-            });
-
-        let dual_tex_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: None,
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-            });
-
-        let params_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: None,
-                entries: &[wgpu::BindGroupLayoutEntry {
+        let single_tex_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: None,
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
                     },
                     count: None,
-                }],
-            });
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+
+        let dual_tex_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: None,
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+
+        let params_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: None,
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
 
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             mag_filter: wgpu::FilterMode::Linear,
@@ -398,38 +395,50 @@ impl PostProcessResources {
         let scene_texel = [1.0 / width as f32, 1.0 / height as f32];
         let half_texel = [1.0 / half_w as f32, 1.0 / half_h as f32];
 
-        let brightness_params =
-            create_params_buffer_and_bg(device, &params_layout, &BloomParamsUniform {
+        let brightness_params = create_params_buffer_and_bg(
+            device,
+            &params_layout,
+            &BloomParamsUniform {
                 threshold,
                 intensity: 0.0,
                 direction: [0.0, 0.0],
                 texel_size: scene_texel,
                 _pad: [0.0; 2],
-            });
-        let h_blur_params =
-            create_params_buffer_and_bg(device, &params_layout, &BloomParamsUniform {
+            },
+        );
+        let h_blur_params = create_params_buffer_and_bg(
+            device,
+            &params_layout,
+            &BloomParamsUniform {
                 threshold: 0.0,
                 intensity: 0.0,
                 direction: [1.0, 0.0],
                 texel_size: half_texel,
                 _pad: [0.0; 2],
-            });
-        let v_blur_params =
-            create_params_buffer_and_bg(device, &params_layout, &BloomParamsUniform {
+            },
+        );
+        let v_blur_params = create_params_buffer_and_bg(
+            device,
+            &params_layout,
+            &BloomParamsUniform {
                 threshold: 0.0,
                 intensity: 0.0,
                 direction: [0.0, 1.0],
                 texel_size: half_texel,
                 _pad: [0.0; 2],
-            });
-        let composite_params =
-            create_params_buffer_and_bg(device, &params_layout, &BloomParamsUniform {
+            },
+        );
+        let composite_params = create_params_buffer_and_bg(
+            device,
+            &params_layout,
+            &BloomParamsUniform {
                 threshold: 0.0,
                 intensity,
                 direction: [0.0, 0.0],
                 texel_size: [0.0; 2],
                 _pad: [0.0; 2],
-            });
+            },
+        );
 
         let bloom_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
@@ -457,19 +466,36 @@ impl PostProcessResources {
                 push_constant_ranges: &[],
             });
 
-        let dual_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: None,
-                bind_group_layouts: &[&dual_tex_layout, &params_layout],
-                push_constant_ranges: &[],
-            });
+        let dual_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: None,
+            bind_group_layouts: &[&dual_tex_layout, &params_layout],
+            push_constant_ranges: &[],
+        });
 
-        let brightness_pipeline =
-            create_fullscreen_pipeline(device, &single_pipeline_layout, &bloom_shader, "fs_brightness", format, &fs_vertex_layout);
-        let blur_pipeline =
-            create_fullscreen_pipeline(device, &single_pipeline_layout, &bloom_shader, "fs_blur", format, &fs_vertex_layout);
-        let composite_pipeline =
-            create_fullscreen_pipeline(device, &dual_pipeline_layout, &composite_shader, "fs_composite", format, &fs_vertex_layout);
+        let brightness_pipeline = create_fullscreen_pipeline(
+            device,
+            &single_pipeline_layout,
+            &bloom_shader,
+            "fs_brightness",
+            format,
+            &fs_vertex_layout,
+        );
+        let blur_pipeline = create_fullscreen_pipeline(
+            device,
+            &single_pipeline_layout,
+            &bloom_shader,
+            "fs_blur",
+            format,
+            &fs_vertex_layout,
+        );
+        let composite_pipeline = create_fullscreen_pipeline(
+            device,
+            &dual_pipeline_layout,
+            &composite_shader,
+            "fs_composite",
+            format,
+            &fs_vertex_layout,
+        );
 
         let fs_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
@@ -566,7 +592,7 @@ fn create_fullscreen_pipeline(
         vertex: wgpu::VertexState {
             module: shader,
             entry_point: Some("vs_fullscreen"),
-            buffers: &[vertex_layout.clone()],
+            buffers: std::slice::from_ref(vertex_layout),
             compilation_options: Default::default(),
         },
         fragment: Some(wgpu::FragmentState {
@@ -711,12 +737,11 @@ impl WgpuRenderer {
             [0.0, 0.0, 1.0, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ];
-        let camera_uniform_buffer =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(&identity),
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            });
+        let camera_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&identity),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
 
         let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
@@ -854,11 +879,7 @@ impl WgpuRenderer {
         }
     }
 
-    fn draw_scene_to(
-        &self,
-        encoder: &mut wgpu::CommandEncoder,
-        target_view: &wgpu::TextureView,
-    ) {
+    fn draw_scene_to(&self, encoder: &mut wgpu::CommandEncoder, target_view: &wgpu::TextureView) {
         let clear_color = wgpu::Color {
             r: self.clear_color.r as f64,
             g: self.clear_color.g as f64,
@@ -1176,8 +1197,9 @@ impl Renderer for WgpuRenderer {
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
-        if self.post_process_pending && self.post_process.is_some() {
-            let pp = self.post_process.as_ref().unwrap();
+        if self.post_process_pending
+            && let Some(pp) = self.post_process.as_ref()
+        {
             self.draw_scene_to(&mut encoder, &pp.scene_view);
             self.execute_bloom(&mut encoder, &view);
             self.post_process_pending = false;

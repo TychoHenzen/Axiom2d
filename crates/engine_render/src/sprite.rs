@@ -4,7 +4,7 @@ use engine_core::types::{Pixels, TextureId};
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 
-use crate::camera::{aabb_intersects_view_rect, camera_view_rect, Camera2D};
+use crate::camera::{Camera2D, aabb_intersects_view_rect, camera_view_rect};
 use crate::rect::Rect;
 use crate::renderer::RendererRes;
 
@@ -472,7 +472,6 @@ mod tests {
         world.insert_resource(RendererRes::new(Box::new(spy)));
         log
     }
-
 
     #[test]
     fn when_sprite_fully_outside_camera_view_then_draw_sprite_not_called() {

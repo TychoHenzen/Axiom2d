@@ -13,10 +13,18 @@ struct Moon;
 struct OrbitalSpeed(pub f32);
 
 const SUN_POSITION: Vec2 = Vec2::ZERO;
-const SUN_COLOR: Color = Color { r: 1.0, g: 0.85, b: 0.0, a: 1.0 };
+const SUN_COLOR: Color = Color {
+    r: 1.0,
+    g: 0.85,
+    b: 0.0,
+    a: 1.0,
+};
 const CAMERA_PAN_SPEED: f32 = 300.0;
 const CAMERA_ZOOM_SPEED: f32 = 1.0;
 const ZOOM_MIN: f32 = 0.1;
+
+type MoonDef = (f32, f32, Color, f32);
+type PlanetDef = (f32, f32, Color, f32, Option<MoonDef>);
 
 fn count_frames(mut count: ResMut<FrameCount>) {
     count.0 += 1;
@@ -88,8 +96,7 @@ fn setup(app: &mut App) {
     action_map.bind("zoom_out", vec![KeyCode::Minus]);
     app.world_mut().insert_resource(action_map);
     app.world_mut().insert_resource(FrameCount::default());
-    app.world_mut()
-        .insert_resource(ClearColor(Color::BLACK));
+    app.world_mut().insert_resource(ClearColor(Color::BLACK));
     app.world_mut().insert_resource(InputState::default());
     app.world_mut().insert_resource(InputEventBuffer::default());
     app.world_mut()
@@ -114,12 +121,22 @@ fn setup(app: &mut App) {
 
     // Planets: (orbit_radius, speed_rad_per_sec, color, size, moon)
     // moon: Option<(moon_orbit_radius, moon_speed, moon_color, moon_size)>
-    let planets: [(f32, f32, Color, f32, Option<(f32, f32, Color, f32)>); 4] = [
+    let planets: [PlanetDef; 4] = [
         (120.0, 1.5, Color::from_u8(180, 120, 60, 255), 20.0, None),
-        (200.0, 1.0, Color::from_u8(60, 130, 200, 255), 30.0,
-            Some((40.0, 3.0, Color::from_u8(200, 200, 200, 255), 8.0))),
-        (300.0, 0.6, Color::from_u8(50, 180, 80, 255), 35.0,
-            Some((50.0, 2.0, Color::from_u8(180, 160, 140, 255), 10.0))),
+        (
+            200.0,
+            1.0,
+            Color::from_u8(60, 130, 200, 255),
+            30.0,
+            Some((40.0, 3.0, Color::from_u8(200, 200, 200, 255), 8.0)),
+        ),
+        (
+            300.0,
+            0.6,
+            Color::from_u8(50, 180, 80, 255),
+            35.0,
+            Some((50.0, 2.0, Color::from_u8(180, 160, 140, 255), 10.0)),
+        ),
         (420.0, 0.35, Color::RED, 25.0, None),
     ];
     for (radius, speed, color, size, moon) in planets {
@@ -133,40 +150,45 @@ fn setup(app: &mut App) {
                 OrbitalSpeed(speed),
             ))
             .id();
-        let planet = app.world_mut().spawn_child(pivot, (
-            Transform2D {
-                position: Vec2::new(radius, 0.0),
-                ..Transform2D::default()
-            },
-            Sprite {
-                texture: TextureId(0),
-                uv_rect: [0.0, 0.0, 1.0, 1.0],
-                color,
-                width: Pixels(size),
-                height: Pixels(size),
-            },
-            RenderLayer::World,
-        ));
-        if let Some((moon_radius, moon_speed, moon_color, moon_size)) = moon {
-            let moon_pivot = app.world_mut().spawn_child(planet, (
-                Transform2D::default(),
-                OrbitalSpeed(moon_speed),
-            ));
-            app.world_mut().spawn_child(moon_pivot, (
+        let planet = app.world_mut().spawn_child(
+            pivot,
+            (
                 Transform2D {
-                    position: Vec2::new(moon_radius, 0.0),
+                    position: Vec2::new(radius, 0.0),
                     ..Transform2D::default()
                 },
                 Sprite {
                     texture: TextureId(0),
                     uv_rect: [0.0, 0.0, 1.0, 1.0],
-                    color: moon_color,
-                    width: Pixels(moon_size),
-                    height: Pixels(moon_size),
+                    color,
+                    width: Pixels(size),
+                    height: Pixels(size),
                 },
-                Moon,
                 RenderLayer::World,
-            ));
+            ),
+        );
+        if let Some((moon_radius, moon_speed, moon_color, moon_size)) = moon {
+            let moon_pivot = app
+                .world_mut()
+                .spawn_child(planet, (Transform2D::default(), OrbitalSpeed(moon_speed)));
+            app.world_mut().spawn_child(
+                moon_pivot,
+                (
+                    Transform2D {
+                        position: Vec2::new(moon_radius, 0.0),
+                        ..Transform2D::default()
+                    },
+                    Sprite {
+                        texture: TextureId(0),
+                        uv_rect: [0.0, 0.0, 1.0, 1.0],
+                        color: moon_color,
+                        width: Pixels(moon_size),
+                        height: Pixels(moon_size),
+                    },
+                    Moon,
+                    RenderLayer::World,
+                ),
+            );
         }
     }
 
@@ -179,7 +201,15 @@ fn setup(app: &mut App) {
     app.set_window_config(config)
         .add_systems(Phase::Input, input_system)
         .add_systems(Phase::PreUpdate, time_system)
-        .add_systems(Phase::Update, (count_frames, orbit_system, camera_pan_system, camera_zoom_system))
+        .add_systems(
+            Phase::Update,
+            (
+                count_frames,
+                orbit_system,
+                camera_pan_system,
+                camera_zoom_system,
+            ),
+        )
         .add_systems(
             Phase::PostUpdate,
             (
@@ -556,7 +586,10 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(DeltaTime(Seconds(0.0)));
         world.spawn((
-            Transform2D { rotation: 1.5, ..Transform2D::default() },
+            Transform2D {
+                rotation: 1.5,
+                ..Transform2D::default()
+            },
             OrbitalSpeed(5.0),
         ));
         let mut schedule = Schedule::default();
@@ -594,8 +627,12 @@ mod tests {
         // Arrange
         let mut world = World::new();
         world.insert_resource(DeltaTime(Seconds(1.0)));
-        let a = world.spawn((Transform2D::default(), OrbitalSpeed(1.0))).id();
-        let b = world.spawn((Transform2D::default(), OrbitalSpeed(3.0))).id();
+        let a = world
+            .spawn((Transform2D::default(), OrbitalSpeed(1.0)))
+            .id();
+        let b = world
+            .spawn((Transform2D::default(), OrbitalSpeed(3.0)))
+            .id();
         let mut schedule = Schedule::default();
         schedule.add_systems(orbit_system);
 
@@ -803,15 +840,15 @@ mod tests {
         let orbit_radius = 100.0;
         world.insert_resource(DeltaTime(Seconds(std::f32::consts::FRAC_PI_2)));
         let pivot = world
-            .spawn((
-                Transform2D::default(),
-                OrbitalSpeed(1.0),
-            ))
+            .spawn((Transform2D::default(), OrbitalSpeed(1.0)))
             .id();
-        world.spawn_child(pivot, Transform2D {
-            position: Vec2::new(orbit_radius, 0.0),
-            ..Transform2D::default()
-        });
+        world.spawn_child(
+            pivot,
+            Transform2D {
+                position: Vec2::new(orbit_radius, 0.0),
+                ..Transform2D::default()
+            },
+        );
         let mut schedule = Schedule::default();
         schedule.add_systems(
             (
@@ -874,7 +911,10 @@ mod tests {
         assert!(!moons.is_empty());
         for (_moon, moon_pivot) in &moons {
             let pivot_parent = world.get::<ChildOf>(*moon_pivot);
-            assert!(pivot_parent.is_some(), "moon pivot should be a child of the planet");
+            assert!(
+                pivot_parent.is_some(),
+                "moon pivot should be a child of the planet"
+            );
         }
     }
 
@@ -887,10 +927,7 @@ mod tests {
 
         // Act — find all Moon entities, check their parents have OrbitalSpeed
         let mut moon_query = world.query::<(&Moon, &ChildOf)>();
-        let moon_pivots: Vec<Entity> = moon_query
-            .iter(world)
-            .map(|(_, parent)| parent.0)
-            .collect();
+        let moon_pivots: Vec<Entity> = moon_query.iter(world).map(|(_, parent)| parent.0).collect();
 
         // Assert
         assert!(!moon_pivots.is_empty());

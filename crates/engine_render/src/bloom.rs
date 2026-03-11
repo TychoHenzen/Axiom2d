@@ -25,10 +25,8 @@ pub fn post_process_system(
     settings: Option<Res<BloomSettings>>,
     mut renderer: ResMut<RendererRes>,
 ) {
-    if let Some(settings) = settings {
-        if settings.enabled {
-            renderer.apply_post_process();
-        }
+    if settings.as_ref().is_some_and(|s| s.enabled) {
+        renderer.apply_post_process();
     }
 }
 
@@ -69,7 +67,10 @@ mod tests {
         // Assert
         assert_eq!(weights.len(), 7);
         let sum: f32 = weights.iter().sum();
-        assert!((sum - 1.0).abs() < 1e-5, "weights must sum to 1.0, got {sum}");
+        assert!(
+            (sum - 1.0).abs() < 1e-5,
+            "weights must sum to 1.0, got {sum}"
+        );
     }
 
     #[test]
@@ -130,7 +131,11 @@ mod tests {
             schedule.run(&mut world);
 
             // Assert
-            assert!(log.lock().unwrap().contains(&"apply_post_process".to_string()));
+            assert!(
+                log.lock()
+                    .unwrap()
+                    .contains(&"apply_post_process".to_string())
+            );
         }
 
         #[test]
@@ -151,7 +156,11 @@ mod tests {
             schedule.run(&mut world);
 
             // Assert
-            assert!(!log.lock().unwrap().contains(&"apply_post_process".to_string()));
+            assert!(
+                !log.lock()
+                    .unwrap()
+                    .contains(&"apply_post_process".to_string())
+            );
         }
     }
 }

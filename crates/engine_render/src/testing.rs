@@ -211,7 +211,11 @@ mod tests {
         let mut spy = SpyRenderer::new(log.clone());
 
         // Act
-        spy.draw_shape(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]], &[0, 1, 2], Color::WHITE);
+        spy.draw_shape(
+            &[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]],
+            &[0, 1, 2],
+            Color::WHITE,
+        );
 
         // Assert
         assert_eq!(log.lock().unwrap().as_slice(), &["draw_shape"]);
