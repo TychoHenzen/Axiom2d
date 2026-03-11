@@ -9,3 +9,4 @@ workspace = true
 [dependencies]
 bevy_ecs = { workspace = true }
 cpal = { workspace = true }
+fundsp = { workspace = true }

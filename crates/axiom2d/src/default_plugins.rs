@@ -1,6 +1,9 @@
 use engine_app::prelude::{App, Phase, Plugin};
 #[cfg(feature = "audio")]
-use engine_audio::{audio_backend::NullAudioBackend, audio_res::AudioRes};
+use engine_audio::{
+    audio_backend::NullAudioBackend, audio_res::AudioRes, play_sound_buffer::PlaySoundBuffer,
+    play_sound_system::play_sound_system,
+};
 use engine_core::prelude::{ClockRes, SystemClock, time_system};
 use engine_ecs::prelude::IntoScheduleConfigs;
 use engine_input::prelude::{InputEventBuffer, InputState, input_system};
@@ -38,6 +41,8 @@ impl Plugin for DefaultPlugins {
         {
             app.world_mut()
                 .insert_resource(AudioRes::new(Box::new(NullAudioBackend::new())));
+            app.world_mut().insert_resource(PlaySoundBuffer::default());
+            app.add_systems(Phase::PreUpdate, play_sound_system);
         }
 
         #[cfg(feature = "render")]
@@ -338,6 +343,20 @@ mod tests {
         assert!(
             upload_idx.unwrap() < sprite_idx.unwrap(),
             "upload_atlas should run before draw_sprite"
+        );
+    }
+
+    #[cfg(feature = "audio")]
+    #[test]
+    fn when_audio_feature_on_then_play_sound_buffer_is_present() {
+        // Arrange
+        let app = app_with_default_plugins();
+
+        // Assert
+        assert!(
+            app.world()
+                .get_resource::<engine_audio::play_sound_buffer::PlaySoundBuffer>()
+                .is_some()
         );
     }
 

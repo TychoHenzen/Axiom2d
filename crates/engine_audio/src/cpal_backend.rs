@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -7,10 +6,38 @@ use crate::audio_backend::AudioBackend;
 use crate::playback_id::PlaybackId;
 use crate::sound_data::SoundData;
 
+struct ActiveSound {
+    id: PlaybackId,
+    samples: Arc<Vec<f32>>,
+    cursor: usize,
+}
+
 struct SharedState {
     volume: f32,
     next_id: u32,
-    active: HashSet<PlaybackId>,
+    active_sounds: Vec<ActiveSound>,
+}
+
+fn mix_into(output: &mut [f32], state: &mut SharedState) {
+    for sample in output.iter_mut() {
+        *sample = 0.0;
+    }
+
+    for sound in &mut state.active_sounds {
+        let remaining = sound.samples.len() - sound.cursor;
+        let to_mix = remaining.min(output.len());
+
+        for (out, &src) in output[..to_mix]
+            .iter_mut()
+            .zip(&sound.samples[sound.cursor..sound.cursor + to_mix])
+        {
+            *out += src * state.volume;
+        }
+
+        sound.cursor += to_mix;
+    }
+
+    state.active_sounds.retain(|s| s.cursor < s.samples.len());
 }
 
 /// Keeps the `cpal::Stream` alive via RAII. Sending it across threads is safe —
@@ -34,7 +61,7 @@ impl CpalBackend {
         let state = Arc::new(Mutex::new(SharedState {
             volume: 1.0,
             next_id: 0,
-            active: HashSet::new(),
+            active_sounds: Vec::new(),
         }));
 
         let stream = Self::open_stream(Arc::clone(&state));
@@ -57,10 +84,8 @@ impl CpalBackend {
                 .build_output_stream(
                     &config,
                     move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                        let _state = state.lock().expect("audio state lock poisoned");
-                        for sample in data.iter_mut() {
-                            *sample = 0.0;
-                        }
+                        let mut state = state.lock().expect("audio state lock poisoned");
+                        mix_into(data, &mut state);
                     },
                     |err| eprintln!("audio stream error: {err}"),
                     None,
@@ -77,6 +102,15 @@ impl CpalBackend {
     fn volume(&self) -> f32 {
         self.state.lock().expect("lock poisoned").volume
     }
+
+    #[cfg(test)]
+    fn active_sound_count(&self) -> usize {
+        self.state
+            .lock()
+            .expect("lock poisoned")
+            .active_sounds
+            .len()
+    }
 }
 
 impl Default for CpalBackend {
@@ -86,17 +120,21 @@ impl Default for CpalBackend {
 }
 
 impl AudioBackend for CpalBackend {
-    fn play(&mut self, _sound: &SoundData) -> PlaybackId {
+    fn play(&mut self, sound: &SoundData) -> PlaybackId {
         let mut state = self.state.lock().expect("audio state lock poisoned");
         state.next_id += 1;
         let id = PlaybackId(state.next_id);
-        state.active.insert(id);
+        state.active_sounds.push(ActiveSound {
+            id,
+            samples: Arc::new(sound.samples.clone()),
+            cursor: 0,
+        });
         id
     }
 
     fn stop(&mut self, id: PlaybackId) {
         let mut state = self.state.lock().expect("audio state lock poisoned");
-        state.active.remove(&id);
+        state.active_sounds.retain(|s| s.id != id);
     }
 
     fn set_volume(&mut self, volume: f32) {
@@ -110,25 +148,54 @@ impl AudioBackend for CpalBackend {
 mod tests {
     use super::*;
 
+    fn minimal_sound() -> SoundData {
+        SoundData {
+            samples: vec![0.0],
+            sample_rate: 44_100,
+            channels: 1,
+        }
+    }
+
+    fn sound_with_samples(samples: Vec<f32>) -> SoundData {
+        SoundData {
+            samples,
+            sample_rate: 44_100,
+            channels: 1,
+        }
+    }
+
+    fn test_state(volume: f32, sounds: Vec<ActiveSound>) -> SharedState {
+        SharedState {
+            volume,
+            next_id: sounds.len() as u32,
+            active_sounds: sounds,
+        }
+    }
+
+    fn active(id: u32, samples: Vec<f32>) -> ActiveSound {
+        ActiveSound {
+            id: PlaybackId(id),
+            samples: Arc::new(samples),
+            cursor: 0,
+        }
+    }
+
+    // --- CpalBackend integration tests ---
+
     #[test]
     fn when_constructed_then_volume_is_one() {
         // Act
         let backend = CpalBackend::new();
 
         // Assert
-        let vol = backend.volume();
-        assert!((vol - 1.0).abs() < f32::EPSILON);
+        assert!((backend.volume() - 1.0).abs() < f32::EPSILON);
     }
 
     #[test]
     fn when_play_called_twice_then_ids_are_unique() {
         // Arrange
         let mut backend = CpalBackend::new();
-        let sound = SoundData {
-            samples: vec![0.0],
-            sample_rate: 44_100,
-            channels: 1,
-        };
+        let sound = minimal_sound();
 
         // Act
         let id1 = backend.play(&sound);
@@ -145,5 +212,130 @@ mod tests {
 
         // Act
         backend.stop(PlaybackId(999));
+    }
+
+    #[test]
+    fn when_play_called_then_active_sound_added() {
+        // Arrange
+        let mut backend = CpalBackend::new();
+        let sound = sound_with_samples(vec![0.5, 0.5]);
+
+        // Act
+        let _id = backend.play(&sound);
+
+        // Assert
+        assert_eq!(backend.active_sound_count(), 1);
+    }
+
+    #[test]
+    fn when_stop_called_then_sound_removed_from_active_list() {
+        // Arrange
+        let mut backend = CpalBackend::new();
+        let id = backend.play(&sound_with_samples(vec![0.5]));
+
+        // Act
+        backend.stop(id);
+
+        // Assert
+        assert_eq!(backend.active_sound_count(), 0);
+    }
+
+    #[test]
+    fn when_two_sounds_and_stop_one_then_other_remains() {
+        // Arrange
+        let mut backend = CpalBackend::new();
+        let id1 = backend.play(&sound_with_samples(vec![0.5]));
+        let _id2 = backend.play(&sound_with_samples(vec![0.3]));
+
+        // Act
+        backend.stop(id1);
+
+        // Assert
+        assert_eq!(backend.active_sound_count(), 1);
+    }
+
+    // --- mix_into pure function tests ---
+
+    #[test]
+    fn when_single_sound_at_full_volume_then_output_matches_samples() {
+        // Arrange
+        let mut state = test_state(1.0, vec![active(1, vec![0.2, 0.4, 0.6])]);
+        let mut output = vec![0.0; 3];
+
+        // Act
+        mix_into(&mut output, &mut state);
+
+        // Assert
+        assert!((output[0] - 0.2).abs() < f32::EPSILON);
+        assert!((output[1] - 0.4).abs() < f32::EPSILON);
+        assert!((output[2] - 0.6).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn when_single_sound_at_half_volume_then_output_is_scaled() {
+        // Arrange
+        let mut state = test_state(0.5, vec![active(1, vec![0.8, 0.8])]);
+        let mut output = vec![0.0; 2];
+
+        // Act
+        mix_into(&mut output, &mut state);
+
+        // Assert
+        assert!((output[0] - 0.4).abs() < f32::EPSILON);
+        assert!((output[1] - 0.4).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn when_two_active_sounds_then_output_is_sum() {
+        // Arrange
+        let mut state = test_state(
+            1.0,
+            vec![active(1, vec![0.3, 0.3]), active(2, vec![0.1, 0.1])],
+        );
+        let mut output = vec![0.0; 2];
+
+        // Act
+        mix_into(&mut output, &mut state);
+
+        // Assert
+        assert!((output[0] - 0.4).abs() < f32::EPSILON);
+        assert!((output[1] - 0.4).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn when_sound_shorter_than_buffer_then_removed_after_last_sample() {
+        // Arrange
+        let mut state = test_state(1.0, vec![active(1, vec![0.5, 0.5])]);
+        let mut output = vec![0.0; 4];
+
+        // Act
+        mix_into(&mut output, &mut state);
+
+        // Assert
+        assert!((output[0] - 0.5).abs() < f32::EPSILON);
+        assert!((output[1] - 0.5).abs() < f32::EPSILON);
+        assert!((output[2]).abs() < f32::EPSILON);
+        assert!((output[3]).abs() < f32::EPSILON);
+        assert!(state.active_sounds.is_empty());
+    }
+
+    #[test]
+    fn when_sound_longer_than_buffer_then_cursor_advances() {
+        // Arrange
+        let mut state = test_state(1.0, vec![active(1, vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6])]);
+        let mut output1 = vec![0.0; 3];
+        let mut output2 = vec![0.0; 3];
+
+        // Act
+        mix_into(&mut output1, &mut state);
+        mix_into(&mut output2, &mut state);
+
+        // Assert
+        assert!((output1[0] - 0.1).abs() < f32::EPSILON);
+        assert!((output1[1] - 0.2).abs() < f32::EPSILON);
+        assert!((output1[2] - 0.3).abs() < f32::EPSILON);
+        assert!((output2[0] - 0.4).abs() < f32::EPSILON);
+        assert!((output2[1] - 0.5).abs() < f32::EPSILON);
+        assert!((output2[2] - 0.6).abs() < f32::EPSILON);
     }
 }

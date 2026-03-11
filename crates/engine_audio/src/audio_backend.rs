@@ -16,6 +16,11 @@ impl NullAudioBackend {
     pub fn new() -> Self {
         Self { next_id: 0 }
     }
+
+    #[must_use]
+    pub fn play_count(&self) -> u32 {
+        self.next_id
+    }
 }
 
 impl Default for NullAudioBackend {

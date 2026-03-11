@@ -4,9 +4,9 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (27 tests), engine_ecs (1 test), engine_render (207 tests), engine_app (30 tests), engine_input (28 tests), engine_scene (39 tests), engine_audio (9 tests), axiom2d facade (12 tests), demo (41 tests). Total: 394 tests.
+**Implemented crates:** engine_core (27 tests), engine_ecs (1 test), engine_render (207 tests), engine_app (30 tests), engine_input (28 tests), engine_scene (39 tests), engine_audio (32 tests), axiom2d facade (13 tests), demo (41 tests). Total: 418 tests.
 
-**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend with instanced quad rendering, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy, Visibility system (Visible/EffectiveVisibility) with hierarchy inheritance, RenderLayer enum + SortOrder for deterministic render ordering, TextureAtlas with guillotiere rect packing + AtlasBuilder + load_image_bytes (PNG/JPEG), Sprite component + sprite_render_system with visibility filtering and RenderLayer/SortOrder/BlendMode sorting, Camera2D component with world-to-screen/screen-to-world conversion + frustum culling + GPU view-projection uniform buffer, Shape component (Circle/Polygon variants) with Lyon tessellation + shape_render_system with visibility/sorting/culling/BlendMode, Post-processing framework with bloom (brightness extraction + separable Gaussian blur + composite), fullscreen quad utility, BloomSettings resource + post_process_system, Material2d component with BlendMode + ShaderHandle + TextureBinding + uniforms, ShaderRegistry for shader source management, #ifdef shader preprocessing, effective_blend_mode helper, set_blend_mode on Renderer trait with batching deduplication, DefaultPlugins auto-registration of all standard systems including post-processing, `render` feature flag for headless ECS-only mode, AudioBackend trait + NullAudioBackend + CpalBackend + AudioRes resource wrapper, PlaybackId/SoundData value types, `audio` feature flag (default on) with DefaultPlugins integration.
+**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend with instanced quad rendering, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy, Visibility system (Visible/EffectiveVisibility) with hierarchy inheritance, RenderLayer enum + SortOrder for deterministic render ordering, TextureAtlas with guillotiere rect packing + AtlasBuilder + load_image_bytes (PNG/JPEG), Sprite component + sprite_render_system with visibility filtering and RenderLayer/SortOrder/BlendMode sorting, Camera2D component with world-to-screen/screen-to-world conversion + frustum culling + GPU view-projection uniform buffer, Shape component (Circle/Polygon variants) with Lyon tessellation + shape_render_system with visibility/sorting/culling/BlendMode, Post-processing framework with bloom (brightness extraction + separable Gaussian blur + composite), fullscreen quad utility, BloomSettings resource + post_process_system, Material2d component with BlendMode + ShaderHandle + TextureBinding + uniforms, ShaderRegistry for shader source management, #ifdef shader preprocessing, effective_blend_mode helper, set_blend_mode on Renderer trait with batching deduplication, DefaultPlugins auto-registration of all standard systems including post-processing, `render` feature flag for headless ECS-only mode, AudioBackend trait + NullAudioBackend + CpalBackend (with real sample mixing) + AudioRes resource wrapper, PlaybackId/SoundData value types, `audio` feature flag (default on) with DefaultPlugins integration, SoundEffect (fundsp factory closure per playback), SoundLibrary resource (named sound effects), PlaySound/PlaySoundBuffer command buffer, play_sound_system in Phase::PreUpdate.
 
 **Placeholder crates (empty):** engine_physics, engine_assets, engine_ui.
 
@@ -172,13 +172,13 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 - [x] `audio` feature flag in axiom2d facade (default on), DefaultPlugins inserts AudioRes
 - [x] Prelude re-exports for engine_audio and axiom2d
 
-### Step 4.2 — Sound Synthesis (fundsp) `[NOT STARTED]`
+### Step 4.2 — Sound Synthesis (fundsp) `[DONE]`
 **Crate:** engine_audio
 **New dep:** fundsp
 
-- [ ] `SoundEffect` — code-defined sounds using fundsp DSP graph notation
-- [ ] `SoundLibrary` resource: named sound effects
-- [ ] `play_sound_system` reacting to `PlaySound` event/command
+- [x] `SoundEffect` — code-defined sounds using fundsp DSP graph notation
+- [x] `SoundLibrary` resource: named sound effects
+- [x] `play_sound_system` reacting to `PlaySound` event/command
 
 ### Step 4.3 — Game Audio Features (Deferred) `[NOT STARTED]`
 **Crate:** engine_audio
