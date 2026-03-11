@@ -3,23 +3,18 @@ use std::collections::HashMap;
 use bevy_ecs::prelude::Resource;
 use winit::keyboard::KeyCode;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ActionName(pub String);
-
 #[derive(Resource, Debug, Clone, Default)]
 pub struct ActionMap {
-    bindings: HashMap<ActionName, Vec<KeyCode>>,
+    bindings: HashMap<String, Vec<KeyCode>>,
 }
 
 impl ActionMap {
     pub fn bind(&mut self, action: &str, keys: Vec<KeyCode>) {
-        self.bindings.insert(ActionName(action.to_string()), keys);
+        self.bindings.insert(action.to_string(), keys);
     }
 
     pub fn bindings_for(&self, action: &str) -> &[KeyCode] {
-        self.bindings
-            .get(&ActionName(action.to_string()))
-            .map_or(&[], Vec::as_slice)
+        self.bindings.get(action).map_or(&[], Vec::as_slice)
     }
 }
 

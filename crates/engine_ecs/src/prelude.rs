@@ -5,4 +5,4 @@ pub use bevy_ecs::prelude::{
 pub use bevy_ecs::schedule::IntoScheduleConfigs;
 pub use bevy_ecs::system::ScheduleSystem;
 
-pub use crate::schedule::Phase;
+pub use crate::schedule::{PHASE_COUNT, Phase};

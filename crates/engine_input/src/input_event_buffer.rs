@@ -1,3 +1,5 @@
+use std::vec::Drain;
+
 use bevy_ecs::prelude::Resource;
 use winit::event::ElementState;
 use winit::keyboard::KeyCode;
@@ -12,8 +14,8 @@ impl InputEventBuffer {
         self.events.push((key, state));
     }
 
-    pub fn drain(&mut self) -> Vec<(KeyCode, ElementState)> {
-        self.events.drain(..).collect()
+    pub fn drain(&mut self) -> Drain<'_, (KeyCode, ElementState)> {
+        self.events.drain(..)
     }
 }
 
@@ -33,7 +35,7 @@ mod tests {
         buffer.push(KeyCode::ArrowRight, ElementState::Pressed);
 
         // Assert
-        assert_eq!(buffer.drain().len(), 1);
+        assert_eq!(buffer.drain().count(), 1);
     }
 
     #[test]
@@ -44,12 +46,12 @@ mod tests {
         buffer.push(KeyCode::ArrowRight, ElementState::Released);
 
         // Act
-        let events = buffer.drain();
+        let events: Vec<_> = buffer.drain().collect();
 
         // Assert
         assert_eq!(events.len(), 2);
         assert_eq!(events[0], (KeyCode::ArrowLeft, ElementState::Pressed));
         assert_eq!(events[1], (KeyCode::ArrowRight, ElementState::Released));
-        assert!(buffer.drain().is_empty());
+        assert_eq!(buffer.drain().count(), 0);
     }
 }

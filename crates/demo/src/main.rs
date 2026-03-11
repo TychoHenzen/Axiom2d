@@ -23,8 +23,29 @@ const CAMERA_PAN_SPEED: f32 = 300.0;
 const CAMERA_ZOOM_SPEED: f32 = 1.0;
 const ZOOM_MIN: f32 = 0.1;
 
-type MoonDef = (f32, f32, Color, f32);
-type PlanetDef = (f32, f32, Color, f32, Option<MoonDef>);
+mod action {
+    pub const MOVE_RIGHT: &str = "move_right";
+    pub const MOVE_LEFT: &str = "move_left";
+    pub const MOVE_UP: &str = "move_up";
+    pub const MOVE_DOWN: &str = "move_down";
+    pub const ZOOM_IN: &str = "zoom_in";
+    pub const ZOOM_OUT: &str = "zoom_out";
+}
+
+struct CelestialDef {
+    orbit_radius: f32,
+    speed: f32,
+    color: Color,
+    size: f32,
+    moon: Option<MoonDef>,
+}
+
+struct MoonDef {
+    orbit_radius: f32,
+    speed: f32,
+    color: Color,
+    size: f32,
+}
 
 fn count_frames(mut count: ResMut<FrameCount>) {
     count.0 += 1;
@@ -38,16 +59,16 @@ fn camera_pan_system(
 ) {
     let mut dx = 0.0;
     let mut dy = 0.0;
-    if input.action_pressed(&action_map, "move_right") {
+    if input.action_pressed(&action_map, action::MOVE_RIGHT) {
         dx += 1.0;
     }
-    if input.action_pressed(&action_map, "move_left") {
+    if input.action_pressed(&action_map, action::MOVE_LEFT) {
         dx -= 1.0;
     }
-    if input.action_pressed(&action_map, "move_down") {
+    if input.action_pressed(&action_map, action::MOVE_DOWN) {
         dy += 1.0;
     }
-    if input.action_pressed(&action_map, "move_up") {
+    if input.action_pressed(&action_map, action::MOVE_UP) {
         dy -= 1.0;
     }
     let displacement = CAMERA_PAN_SPEED * dt.0.0;
@@ -64,10 +85,10 @@ fn camera_zoom_system(
     dt: Res<DeltaTime>,
 ) {
     let mut zoom_dir = 0.0;
-    if input.action_pressed(&action_map, "zoom_in") {
+    if input.action_pressed(&action_map, action::ZOOM_IN) {
         zoom_dir += 1.0;
     }
-    if input.action_pressed(&action_map, "zoom_out") {
+    if input.action_pressed(&action_map, action::ZOOM_OUT) {
         zoom_dir -= 1.0;
     }
     let zoom_delta = CAMERA_ZOOM_SPEED * dt.0.0 * zoom_dir;
@@ -84,24 +105,22 @@ fn orbit_system(mut query: Query<(&mut Transform2D, &OrbitalSpeed)>, dt: Res<Del
 
 #[allow(clippy::too_many_lines)]
 fn setup(app: &mut App) {
+    app.add_plugin(DefaultPlugins);
+
     let config = WindowConfig {
         title: "Axiom2d Solar System",
         ..Default::default()
     };
     let mut action_map = ActionMap::default();
-    action_map.bind("move_right", vec![KeyCode::ArrowRight]);
-    action_map.bind("move_left", vec![KeyCode::ArrowLeft]);
-    action_map.bind("move_up", vec![KeyCode::ArrowUp]);
-    action_map.bind("move_down", vec![KeyCode::ArrowDown]);
-    action_map.bind("zoom_in", vec![KeyCode::Equal]);
-    action_map.bind("zoom_out", vec![KeyCode::Minus]);
+    action_map.bind(action::MOVE_RIGHT, vec![KeyCode::ArrowRight]);
+    action_map.bind(action::MOVE_LEFT, vec![KeyCode::ArrowLeft]);
+    action_map.bind(action::MOVE_UP, vec![KeyCode::ArrowUp]);
+    action_map.bind(action::MOVE_DOWN, vec![KeyCode::ArrowDown]);
+    action_map.bind(action::ZOOM_IN, vec![KeyCode::Equal]);
+    action_map.bind(action::ZOOM_OUT, vec![KeyCode::Minus]);
     app.world_mut().insert_resource(action_map);
     app.world_mut().insert_resource(FrameCount::default());
     app.world_mut().insert_resource(ClearColor(Color::BLACK));
-    app.world_mut().insert_resource(InputState::default());
-    app.world_mut().insert_resource(InputEventBuffer::default());
-    app.world_mut()
-        .insert_resource(ClockRes::new(Box::new(SystemClock::new())));
 
     // Sun
     app.world_mut().spawn((
@@ -120,27 +139,47 @@ fn setup(app: &mut App) {
         RenderLayer::World,
     ));
 
-    // Planets: (orbit_radius, speed_rad_per_sec, color, size, moon)
-    // moon: Option<(moon_orbit_radius, moon_speed, moon_color, moon_size)>
-    let planets: [PlanetDef; 4] = [
-        (120.0, 1.5, Color::from_u8(180, 120, 60, 255), 20.0, None),
-        (
-            200.0,
-            1.0,
-            Color::from_u8(60, 130, 200, 255),
-            30.0,
-            Some((40.0, 3.0, Color::from_u8(200, 200, 200, 255), 8.0)),
-        ),
-        (
-            300.0,
-            0.6,
-            Color::from_u8(50, 180, 80, 255),
-            35.0,
-            Some((50.0, 2.0, Color::from_u8(180, 160, 140, 255), 10.0)),
-        ),
-        (420.0, 0.35, Color::RED, 25.0, None),
+    let planets = [
+        CelestialDef {
+            orbit_radius: 120.0,
+            speed: 1.5,
+            color: Color::from_u8(180, 120, 60, 255),
+            size: 20.0,
+            moon: None,
+        },
+        CelestialDef {
+            orbit_radius: 200.0,
+            speed: 1.0,
+            color: Color::from_u8(60, 130, 200, 255),
+            size: 30.0,
+            moon: Some(MoonDef {
+                orbit_radius: 40.0,
+                speed: 3.0,
+                color: Color::from_u8(200, 200, 200, 255),
+                size: 8.0,
+            }),
+        },
+        CelestialDef {
+            orbit_radius: 300.0,
+            speed: 0.6,
+            color: Color::from_u8(50, 180, 80, 255),
+            size: 35.0,
+            moon: Some(MoonDef {
+                orbit_radius: 50.0,
+                speed: 2.0,
+                color: Color::from_u8(180, 160, 140, 255),
+                size: 10.0,
+            }),
+        },
+        CelestialDef {
+            orbit_radius: 420.0,
+            speed: 0.35,
+            color: Color::RED,
+            size: 25.0,
+            moon: None,
+        },
     ];
-    for (radius, speed, color, size, moon) in planets {
+    for planet_def in planets {
         let pivot = app
             .world_mut()
             .spawn((
@@ -148,43 +187,44 @@ fn setup(app: &mut App) {
                     position: SUN_POSITION,
                     ..Transform2D::default()
                 },
-                OrbitalSpeed(speed),
+                OrbitalSpeed(planet_def.speed),
             ))
             .id();
         let planet = app.world_mut().spawn_child(
             pivot,
             (
                 Transform2D {
-                    position: Vec2::new(radius, 0.0),
+                    position: Vec2::new(planet_def.orbit_radius, 0.0),
                     ..Transform2D::default()
                 },
                 Sprite {
                     texture: TextureId(0),
                     uv_rect: [0.0, 0.0, 1.0, 1.0],
-                    color,
-                    width: Pixels(size),
-                    height: Pixels(size),
+                    color: planet_def.color,
+                    width: Pixels(planet_def.size),
+                    height: Pixels(planet_def.size),
                 },
                 RenderLayer::World,
             ),
         );
-        if let Some((moon_radius, moon_speed, moon_color, moon_size)) = moon {
-            let moon_pivot = app
-                .world_mut()
-                .spawn_child(planet, (Transform2D::default(), OrbitalSpeed(moon_speed)));
+        if let Some(moon_def) = planet_def.moon {
+            let moon_pivot = app.world_mut().spawn_child(
+                planet,
+                (Transform2D::default(), OrbitalSpeed(moon_def.speed)),
+            );
             app.world_mut().spawn_child(
                 moon_pivot,
                 (
                     Transform2D {
-                        position: Vec2::new(moon_radius, 0.0),
+                        position: Vec2::new(moon_def.orbit_radius, 0.0),
                         ..Transform2D::default()
                     },
                     Sprite {
                         texture: TextureId(0),
                         uv_rect: [0.0, 0.0, 1.0, 1.0],
-                        color: moon_color,
-                        width: Pixels(moon_size),
-                        height: Pixels(moon_size),
+                        color: moon_def.color,
+                        width: Pixels(moon_def.size),
+                        height: Pixels(moon_def.size),
                     },
                     Moon,
                     RenderLayer::World,
@@ -199,31 +239,15 @@ fn setup(app: &mut App) {
         zoom: 0.5,
     });
 
-    app.set_window_config(config)
-        .add_systems(Phase::Input, input_system)
-        .add_systems(Phase::PreUpdate, time_system)
-        .add_systems(
-            Phase::Update,
-            (
-                count_frames,
-                orbit_system,
-                camera_pan_system,
-                camera_zoom_system,
-            ),
-        )
-        .add_systems(
-            Phase::PostUpdate,
-            (
-                hierarchy_maintenance_system,
-                transform_propagation_system,
-                visibility_system,
-            )
-                .chain(),
-        )
-        .add_systems(
-            Phase::Render,
-            (clear_system, camera_prepare_system, sprite_render_system).chain(),
-        );
+    app.set_window_config(config).add_systems(
+        Phase::Update,
+        (
+            count_frames,
+            orbit_system,
+            camera_pan_system,
+            camera_zoom_system,
+        ),
+    );
 }
 
 fn main() {
@@ -244,21 +268,33 @@ mod tests {
     const PLANET_COUNT: usize = 4;
     const MOON_COUNT: usize = 2;
 
-    fn setup_camera_pan_world() -> World {
+    fn setup_camera_world(bindings: &[(&str, Vec<KeyCode>)], camera: Camera2D) -> World {
         let mut action_map = ActionMap::default();
-        action_map.bind("move_right", vec![KeyCode::ArrowRight]);
-        action_map.bind("move_left", vec![KeyCode::ArrowLeft]);
-        action_map.bind("move_up", vec![KeyCode::ArrowUp]);
-        action_map.bind("move_down", vec![KeyCode::ArrowDown]);
+        for (name, keys) in bindings {
+            action_map.bind(name, keys.clone());
+        }
         let mut world = World::new();
         world.insert_resource(action_map);
         world.insert_resource(InputState::default());
         world.insert_resource(DeltaTime(Seconds(1.0)));
-        world.spawn(Camera2D {
-            position: Vec2::new(400.0, 300.0),
-            zoom: 1.0,
-        });
+        world.spawn(camera);
         world
+    }
+
+    fn pan_bindings() -> Vec<(&'static str, Vec<KeyCode>)> {
+        vec![
+            (action::MOVE_RIGHT, vec![KeyCode::ArrowRight]),
+            (action::MOVE_LEFT, vec![KeyCode::ArrowLeft]),
+            (action::MOVE_UP, vec![KeyCode::ArrowUp]),
+            (action::MOVE_DOWN, vec![KeyCode::ArrowDown]),
+        ]
+    }
+
+    fn zoom_bindings() -> Vec<(&'static str, Vec<KeyCode>)> {
+        vec![
+            (action::ZOOM_IN, vec![KeyCode::Equal]),
+            (action::ZOOM_OUT, vec![KeyCode::Minus]),
+        ]
     }
 
     fn run_camera_pan(world: &mut World) {
@@ -267,10 +303,20 @@ mod tests {
         schedule.run(world);
     }
 
+    fn run_camera_zoom(world: &mut World) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems(camera_zoom_system);
+        schedule.run(world);
+    }
+
     #[test]
     fn when_pan_right_then_camera_moves_right() {
         // Arrange
-        let mut world = setup_camera_pan_world();
+        let camera = Camera2D {
+            position: Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        };
+        let mut world = setup_camera_world(&pan_bindings(), camera);
         world
             .resource_mut::<InputState>()
             .press(KeyCode::ArrowRight);
@@ -288,7 +334,11 @@ mod tests {
     #[test]
     fn when_pan_left_then_camera_moves_left() {
         // Arrange
-        let mut world = setup_camera_pan_world();
+        let camera = Camera2D {
+            position: Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        };
+        let mut world = setup_camera_world(&pan_bindings(), camera);
         world.resource_mut::<InputState>().press(KeyCode::ArrowLeft);
 
         // Act
@@ -304,7 +354,11 @@ mod tests {
     #[test]
     fn when_pan_up_then_camera_moves_up() {
         // Arrange
-        let mut world = setup_camera_pan_world();
+        let camera = Camera2D {
+            position: Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        };
+        let mut world = setup_camera_world(&pan_bindings(), camera);
         world.resource_mut::<InputState>().press(KeyCode::ArrowUp);
 
         // Act
@@ -320,7 +374,11 @@ mod tests {
     #[test]
     fn when_pan_down_then_camera_moves_down() {
         // Arrange
-        let mut world = setup_camera_pan_world();
+        let camera = Camera2D {
+            position: Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        };
+        let mut world = setup_camera_world(&pan_bindings(), camera);
         world.resource_mut::<InputState>().press(KeyCode::ArrowDown);
 
         // Act
@@ -336,7 +394,11 @@ mod tests {
     #[test]
     fn when_no_pan_input_then_camera_position_unchanged() {
         // Arrange
-        let mut world = setup_camera_pan_world();
+        let camera = Camera2D {
+            position: Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        };
+        let mut world = setup_camera_world(&pan_bindings(), camera);
 
         // Act
         run_camera_pan(&mut world);
@@ -351,7 +413,11 @@ mod tests {
     #[test]
     fn when_opposite_pan_directions_then_camera_x_unchanged() {
         // Arrange
-        let mut world = setup_camera_pan_world();
+        let camera = Camera2D {
+            position: Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        };
+        let mut world = setup_camera_world(&pan_bindings(), camera);
         world.resource_mut::<InputState>().press(KeyCode::ArrowLeft);
         world
             .resource_mut::<InputState>()
@@ -366,31 +432,14 @@ mod tests {
         assert_eq!(camera.position.x, 400.0);
     }
 
-    fn setup_zoom_world(initial_zoom: f32) -> World {
-        let mut action_map = ActionMap::default();
-        action_map.bind("zoom_in", vec![KeyCode::Equal]);
-        action_map.bind("zoom_out", vec![KeyCode::Minus]);
-        let mut world = World::new();
-        world.insert_resource(action_map);
-        world.insert_resource(InputState::default());
-        world.insert_resource(DeltaTime(Seconds(1.0)));
-        world.spawn(Camera2D {
-            position: Vec2::ZERO,
-            zoom: initial_zoom,
-        });
-        world
-    }
-
-    fn run_camera_zoom(world: &mut World) {
-        let mut schedule = Schedule::default();
-        schedule.add_systems(camera_zoom_system);
-        schedule.run(world);
-    }
-
     #[test]
     fn when_zoom_in_pressed_then_camera_zoom_increases() {
         // Arrange
-        let mut world = setup_zoom_world(1.0);
+        let camera = Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        };
+        let mut world = setup_camera_world(&zoom_bindings(), camera);
         world.resource_mut::<InputState>().press(KeyCode::Equal);
 
         // Act
@@ -405,7 +454,11 @@ mod tests {
     #[test]
     fn when_zoom_out_pressed_then_camera_zoom_decreases() {
         // Arrange
-        let mut world = setup_zoom_world(1.0);
+        let camera = Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        };
+        let mut world = setup_camera_world(&zoom_bindings(), camera);
         world.resource_mut::<InputState>().press(KeyCode::Minus);
 
         // Act
@@ -420,7 +473,11 @@ mod tests {
     #[test]
     fn when_zoom_out_at_minimum_then_zoom_does_not_go_below_floor() {
         // Arrange
-        let mut world = setup_zoom_world(ZOOM_MIN);
+        let camera = Camera2D {
+            position: Vec2::ZERO,
+            zoom: ZOOM_MIN,
+        };
+        let mut world = setup_camera_world(&zoom_bindings(), camera);
         world.resource_mut::<InputState>().press(KeyCode::Minus);
 
         // Act
@@ -657,12 +714,12 @@ mod tests {
         // Assert
         let world = app.world_mut();
         let action_map = world.get_resource::<ActionMap>().unwrap();
-        assert!(!action_map.bindings_for("move_right").is_empty());
-        assert!(!action_map.bindings_for("move_left").is_empty());
-        assert!(!action_map.bindings_for("move_up").is_empty());
-        assert!(!action_map.bindings_for("move_down").is_empty());
-        assert!(!action_map.bindings_for("zoom_in").is_empty());
-        assert!(!action_map.bindings_for("zoom_out").is_empty());
+        assert!(!action_map.bindings_for(action::MOVE_RIGHT).is_empty());
+        assert!(!action_map.bindings_for(action::MOVE_LEFT).is_empty());
+        assert!(!action_map.bindings_for(action::MOVE_UP).is_empty());
+        assert!(!action_map.bindings_for(action::MOVE_DOWN).is_empty());
+        assert!(!action_map.bindings_for(action::ZOOM_IN).is_empty());
+        assert!(!action_map.bindings_for(action::ZOOM_OUT).is_empty());
     }
 
     #[test]

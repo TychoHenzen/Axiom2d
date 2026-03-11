@@ -119,7 +119,7 @@ mod tests {
         run_input_system(&mut world);
 
         // Assert
-        assert!(world.resource_mut::<InputEventBuffer>().drain().is_empty());
+        assert_eq!(world.resource_mut::<InputEventBuffer>().drain().count(), 0);
     }
 
     #[test]

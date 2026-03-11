@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use winit::application::ApplicationHandler;
@@ -8,7 +7,9 @@ use winit::keyboard::PhysicalKey;
 use winit::window::{Window, WindowId};
 
 use engine_core::types::Pixels;
-use engine_ecs::prelude::{IntoScheduleConfigs, Phase, Schedule, ScheduleSystem, World};
+use engine_ecs::prelude::{
+    IntoScheduleConfigs, PHASE_COUNT, Phase, Schedule, ScheduleSystem, World,
+};
 use engine_input::prelude::InputEventBuffer;
 use engine_render::prelude::RendererRes;
 use engine_render::window::WindowConfig;
@@ -19,20 +20,12 @@ pub trait Plugin {
     fn build(&self, app: &mut App);
 }
 
-const PHASE_ORDER: [Phase; 5] = [
-    Phase::Input,
-    Phase::PreUpdate,
-    Phase::Update,
-    Phase::PostUpdate,
-    Phase::Render,
-];
-
 pub struct App {
     plugin_count: usize,
     window_config: WindowConfig,
     window: Option<Arc<Window>>,
     world: World,
-    schedules: HashMap<Phase, Schedule>,
+    schedules: [Schedule; PHASE_COUNT],
 }
 
 impl App {
@@ -45,10 +38,7 @@ impl App {
             window_config: WindowConfig::default(),
             window: None,
             world,
-            schedules: PHASE_ORDER
-                .iter()
-                .map(|&phase| (phase, Schedule::new(phase)))
-                .collect(),
+            schedules: Phase::ALL.map(Schedule::new),
         }
     }
 
@@ -77,7 +67,7 @@ impl App {
     }
 
     pub fn schedule_count(&self) -> usize {
-        self.schedules.len()
+        PHASE_COUNT
     }
 
     pub fn add_systems<M>(
@@ -85,10 +75,7 @@ impl App {
         phase: Phase,
         systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
     ) -> &mut Self {
-        self.schedules
-            .get_mut(&phase)
-            .expect("unknown phase")
-            .add_systems(systems);
+        self.schedules[phase.index()].add_systems(systems);
         self
     }
 
@@ -123,11 +110,8 @@ impl App {
     }
 
     pub fn handle_redraw(&mut self) {
-        for phase in PHASE_ORDER {
-            self.schedules
-                .get_mut(&phase)
-                .expect("unknown phase")
-                .run(&mut self.world);
+        for schedule in &mut self.schedules {
+            schedule.run(&mut self.world);
         }
         if let Some(mut renderer) = self.world.get_resource_mut::<RendererRes>() {
             renderer.present();
@@ -654,7 +638,7 @@ mod tests {
 
         // Assert
         let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
-        let events = buffer.drain();
+        let events: Vec<_> = buffer.drain().collect();
         assert_eq!(events.len(), 1);
         assert_eq!(events[0], (KeyCode::ArrowLeft, ElementState::Pressed));
     }
@@ -673,7 +657,7 @@ mod tests {
 
         // Assert
         let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
-        let events = buffer.drain();
+        let events: Vec<_> = buffer.drain().collect();
         assert_eq!(events.len(), 1);
         assert_eq!(events[0], (KeyCode::ArrowLeft, ElementState::Released));
     }
@@ -694,8 +678,7 @@ mod tests {
 
         // Assert
         let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
-        let events = buffer.drain();
-        assert!(events.is_empty());
+        assert_eq!(buffer.drain().count(), 0);
     }
 
     #[test]
