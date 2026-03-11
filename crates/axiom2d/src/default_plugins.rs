@@ -4,7 +4,8 @@ use engine_core::prelude::{ClockRes, SystemClock, time_system};
 use engine_input::prelude::{InputEventBuffer, InputState, input_system};
 #[cfg(feature = "render")]
 use engine_render::prelude::{
-    ClearColor, camera_prepare_system, clear_system, shape_render_system, sprite_render_system,
+    ClearColor, camera_prepare_system, clear_system, post_process_system, shape_render_system,
+    sprite_render_system,
 };
 use engine_scene::prelude::{
     hierarchy_maintenance_system, transform_propagation_system, visibility_system,
@@ -41,6 +42,7 @@ impl Plugin for DefaultPlugins {
                     camera_prepare_system,
                     sprite_render_system,
                     shape_render_system,
+                    post_process_system,
                 )
                     .chain(),
             );

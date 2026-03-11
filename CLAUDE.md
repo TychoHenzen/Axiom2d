@@ -122,8 +122,13 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **tessellate** (`engine_render::shape`): `pub fn(&ShapeVariant) -> TessellatedMesh` — pure function using lyon `FillTessellator`. Circles tessellated at origin; polygons with < 3 points return empty mesh.
 - **shape_aabb** (`engine_render::shape`): `pub(crate) fn(&ShapeVariant) -> (Vec2, Vec2)` — returns (min, max) AABB. Circle: `(-r, -r)` to `(r, r)`. Polygon: point extents.
 - **shape_render_system** (`engine_render::shape`): `fn(Query<(&Shape, &GlobalTransform2D, Option<&RenderLayer>, Option<&SortOrder>, Option<&EffectiveVisibility>)>, Query<&Camera2D>, ResMut<RendererRes>)` — filters out `EffectiveVisibility(false)`, sorts by `(RenderLayer, SortOrder)` with defaults `(World, 0)`, tessellates each shape, offsets vertices by `GlobalTransform2D.translation`, calls `renderer.draw_shape()`. Frustum culling via shape AABB + camera view rect. No camera → no culling. Registered in `Phase::Render`.
-- **Renderer trait** now includes `draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color)`. NullRenderer/SpyRenderer implement it; WgpuRenderer has a no-op stub (GPU shape pipeline not yet implemented).
-- **DefaultPlugins** (`axiom2d::default_plugins`): Unit struct implementing `Plugin`. `build()` inserts `InputState`, `InputEventBuffer`, `ClockRes(SystemClock)`; registers `input_system` (Input), `time_system` (PreUpdate), hierarchy+transform+visibility chained (PostUpdate). When `render` feature is on: also inserts `ClearColor` and registers `clear_system`, `camera_prepare_system`, `sprite_render_system`, `shape_render_system` chained (Render). Does NOT insert `ActionMap` (game-specific) or `RendererRes` (created by winit at runtime).
+- **Renderer trait** now includes `draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color)` and `apply_post_process(&mut self)`. NullRenderer/SpyRenderer implement all methods; WgpuRenderer has GPU bloom pipeline for apply_post_process (draw_shape is still a no-op stub).
+- **BloomSettings** (`engine_render::bloom`): `#[derive(Resource)]` with `enabled: bool`, `threshold: f32`, `intensity: f32`, `blur_radius: u32`. Default: enabled=true, threshold=0.8, intensity=0.3, blur_radius=4. Users opt in by inserting into the World — `post_process_system` uses `Option<Res<BloomSettings>>` so it's a no-op when absent.
+- **post_process_system** (`engine_render::bloom`): `fn(Option<Res<BloomSettings>>, ResMut<RendererRes>)` — calls `renderer.apply_post_process()` when BloomSettings is present and enabled. Registered in `Phase::Render` (after shape_render_system).
+- **compute_gaussian_weights** (`engine_render::bloom`): `pub fn(radius: u32) -> Vec<f32>` — pure function computing normalized 1D Gaussian kernel of size 2r+1. σ = max(radius, 1). Weights sum to 1.0, symmetric.
+- **FULLSCREEN_QUAD_VERTICES** (`engine_render::wgpu_renderer`): `pub(crate)` 4-vertex array covering NDC [-1,1] space for fullscreen post-process passes. Shares `QUAD_INDICES` with the scene quad.
+- **GPU Bloom Pipeline** (internal to WgpuRenderer): Lazily created on first `apply_post_process()` call. Offscreen scene texture (full res) + ping/pong textures (half res). 4 render passes: brightness extraction (luminance threshold), horizontal 9-tap Gaussian blur, vertical 9-tap Gaussian blur, additive composite (scene + bloom × intensity). All intermediate textures recreated on `resize()`. Zero overhead when bloom is not active.
+- **DefaultPlugins** (`axiom2d::default_plugins`): Unit struct implementing `Plugin`. `build()` inserts `InputState`, `InputEventBuffer`, `ClockRes(SystemClock)`; registers `input_system` (Input), `time_system` (PreUpdate), hierarchy+transform+visibility chained (PostUpdate). When `render` feature is on: also inserts `ClearColor` and registers `clear_system`, `camera_prepare_system`, `sprite_render_system`, `shape_render_system`, `post_process_system` chained (Render). Does NOT insert `ActionMap` (game-specific), `BloomSettings` (opt-in), or `RendererRes` (created by winit at runtime).
 - **`render` feature flag** (`axiom2d`): Default-on feature. Gates `engine_render` dependency, render system registration in DefaultPlugins, and `engine_render::prelude::*` re-export. `--no-default-features` gives headless ECS-only mode.
 
 ### Scheduling Phases
@@ -132,7 +137,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 
 ### Render Pipeline
 
-`Clear → Sprite Pass → Particle Pass → Post-Process → UI Pass → Present`
+`Clear → Camera Prepare → Sprite Pass → Shape Pass → Post-Process → Present`
 
 ## API Design Conventions
 

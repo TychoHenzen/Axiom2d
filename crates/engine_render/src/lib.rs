@@ -1,4 +1,5 @@
 pub mod atlas;
+pub mod bloom;
 pub mod camera;
 pub mod clear;
 pub mod prelude;

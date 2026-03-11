@@ -103,6 +103,10 @@ impl Renderer for SpyRenderer {
         self.viewport
     }
 
+    fn apply_post_process(&mut self) {
+        self.log.lock().unwrap().push("apply_post_process".into());
+    }
+
     fn present(&mut self) {
         self.log.lock().unwrap().push("present".into());
     }
@@ -228,6 +232,19 @@ mod tests {
         let calls = shape_calls.lock().unwrap();
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0].2, color);
+    }
+
+    #[test]
+    fn when_apply_post_process_called_then_log_records_apply_post_process() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log.clone());
+
+        // Act
+        spy.apply_post_process();
+
+        // Assert
+        assert_eq!(log.lock().unwrap().as_slice(), &["apply_post_process"]);
     }
 
     #[test]

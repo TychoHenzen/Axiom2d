@@ -4,9 +4,9 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (27 tests), engine_ecs (7 tests), engine_render (117 tests), engine_app (30 tests), engine_input (28 tests), engine_scene (39 tests), axiom2d facade (9 tests), demo (32 tests). Total: 289 tests.
+**Implemented crates:** engine_core (27 tests), engine_ecs (7 tests), engine_render (127 tests), engine_app (30 tests), engine_input (28 tests), engine_scene (39 tests), axiom2d facade (9 tests), demo (32 tests). Total: 299 tests.
 
-**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend with instanced quad rendering, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy, Visibility system (Visible/EffectiveVisibility) with hierarchy inheritance, RenderLayer enum + SortOrder for deterministic render ordering, TextureAtlas with guillotiere rect packing + AtlasBuilder + load_image_bytes (PNG/JPEG), Sprite component + sprite_render_system with visibility filtering and RenderLayer/SortOrder sorting, Camera2D component with world-to-screen/screen-to-world conversion + frustum culling + GPU view-projection uniform buffer, Shape component (Circle/Polygon variants) with Lyon tessellation + shape_render_system with visibility/sorting/culling, DefaultPlugins auto-registration of all standard systems, `render` feature flag for headless ECS-only mode.
+**What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend with instanced quad rendering, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy, Visibility system (Visible/EffectiveVisibility) with hierarchy inheritance, RenderLayer enum + SortOrder for deterministic render ordering, TextureAtlas with guillotiere rect packing + AtlasBuilder + load_image_bytes (PNG/JPEG), Sprite component + sprite_render_system with visibility filtering and RenderLayer/SortOrder sorting, Camera2D component with world-to-screen/screen-to-world conversion + frustum culling + GPU view-projection uniform buffer, Shape component (Circle/Polygon variants) with Lyon tessellation + shape_render_system with visibility/sorting/culling, Post-processing framework with bloom (brightness extraction + separable Gaussian blur + composite), fullscreen quad utility, BloomSettings resource + post_process_system, DefaultPlugins auto-registration of all standard systems including post-processing, `render` feature flag for headless ECS-only mode.
 
 **Placeholder crates (empty):** engine_audio, engine_physics, engine_assets, engine_ui.
 
@@ -136,14 +136,18 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 - [x] `shape_render_system` in Phase::Render (visibility filtering, RenderLayer/SortOrder sorting, frustum culling)
 - [x] Tests: tessellation validity, AABB computation, system behavior (22 tests)
 
-### Step 3.6 — Post-Processing Framework `[NOT STARTED]`
+### Step 3.6 — Post-Processing Framework `[DONE]`
 **Crate:** engine_render
-**New dep:** naga-oil
 
-- [ ] `RenderPass` trait: `render(&self, encoder, view)`
-- [ ] Linear pass chain: Clear → Sprite → Particle → PostProcess → UI → Present
-- [ ] Bloom pass: brightness extraction → separable Gaussian blur → composite
-- [ ] Fullscreen quad utility for post-process passes
+- [x] `apply_post_process()` method on Renderer trait — triggers post-processing in present()
+- [x] Linear pass chain: Clear → Sprite → Shape → PostProcess → Present (inside WgpuRenderer::present())
+- [x] Bloom pass: brightness extraction → separable 9-tap Gaussian blur (H+V) → additive composite
+- [x] Fullscreen quad utility: `FULLSCREEN_QUAD_VERTICES` covering NDC [-1,1] space, shared `QUAD_INDICES`
+- [x] `BloomSettings` resource: enabled, threshold, intensity, blur_radius
+- [x] `post_process_system` in Phase::Render (after shape_render_system) — uses `Option<Res<BloomSettings>>`, no-op when absent
+- [x] `compute_gaussian_weights(radius)` pure function for 1D separable kernel computation
+- [x] Offscreen scene texture + half-res ping/pong textures for bloom pipeline (lazily created on first use)
+- [x] Registered in DefaultPlugins (render feature)
 
 ### Step 3.7 — Material System `[NOT STARTED]`
 **Crate:** engine_render

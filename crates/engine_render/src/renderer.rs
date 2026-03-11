@@ -10,6 +10,7 @@ pub trait Renderer {
     fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color);
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]);
     fn viewport_size(&self) -> (u32, u32);
+    fn apply_post_process(&mut self);
     fn present(&mut self);
     fn resize(&mut self, width: u32, height: u32);
 }
@@ -45,6 +46,7 @@ impl Renderer for NullRenderer {
     fn draw_shape(&mut self, _vertices: &[[f32; 2]], _indices: &[u32], _color: Color) {}
     fn set_view_projection(&mut self, _matrix: [[f32; 4]; 4]) {}
     fn viewport_size(&self) -> (u32, u32) { (0, 0) }
+    fn apply_post_process(&mut self) {}
     fn present(&mut self) {}
     fn resize(&mut self, _width: u32, _height: u32) {}
 }
@@ -132,6 +134,15 @@ mod tests {
 
         // Act
         renderer.resize(800, 600);
+    }
+
+    #[test]
+    fn when_null_renderer_applies_post_process_then_does_not_panic() {
+        // Arrange
+        let mut renderer = NullRenderer;
+
+        // Act
+        renderer.apply_post_process();
     }
 
     #[test]
