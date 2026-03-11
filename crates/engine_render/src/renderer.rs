@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::Resource;
 use engine_core::color::Color;
 
+use crate::atlas::TextureAtlas;
 use crate::material::BlendMode;
 use crate::rect::Rect;
 
@@ -11,6 +12,7 @@ pub trait Renderer {
     fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color);
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]);
     fn set_blend_mode(&mut self, mode: BlendMode);
+    fn upload_atlas(&mut self, atlas: &TextureAtlas);
     fn viewport_size(&self) -> (u32, u32);
     fn apply_post_process(&mut self);
     fn present(&mut self);
@@ -21,6 +23,7 @@ pub trait Renderer {
 pub struct RendererRes(Box<dyn Renderer + Send + Sync>);
 
 impl RendererRes {
+    #[must_use]
     pub fn new(renderer: Box<dyn Renderer + Send + Sync>) -> Self {
         Self(renderer)
     }
@@ -48,6 +51,7 @@ impl Renderer for NullRenderer {
     fn draw_shape(&mut self, _vertices: &[[f32; 2]], _indices: &[u32], _color: Color) {}
     fn set_view_projection(&mut self, _matrix: [[f32; 4]; 4]) {}
     fn set_blend_mode(&mut self, _mode: BlendMode) {}
+    fn upload_atlas(&mut self, _atlas: &TextureAtlas) {}
     fn viewport_size(&self) -> (u32, u32) {
         (0, 0)
     }
@@ -140,6 +144,24 @@ mod tests {
 
         // Act
         renderer.resize(800, 600);
+    }
+
+    fn minimal_atlas() -> crate::atlas::TextureAtlas {
+        crate::atlas::TextureAtlas {
+            data: vec![255; 4],
+            width: 1,
+            height: 1,
+            lookups: Default::default(),
+        }
+    }
+
+    #[test]
+    fn when_null_renderer_upload_atlas_then_does_not_panic() {
+        // Arrange
+        let mut renderer = NullRenderer;
+
+        // Act
+        renderer.upload_atlas(&minimal_atlas());
     }
 
     #[test]

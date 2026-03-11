@@ -1,5 +1,6 @@
 pub use crate::atlas::{
-    AtlasBuilder, AtlasError, ImageData, TextureAtlas, TextureHandle, load_image_bytes,
+    AtlasBuilder, AtlasError, AtlasUploaded, ImageData, TextureAtlas, TextureHandle,
+    load_image_bytes, upload_atlas_system,
 };
 pub use crate::bloom::{BloomSettings, compute_gaussian_weights, post_process_system};
 pub use crate::camera::{

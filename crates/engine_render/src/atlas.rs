@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bevy_ecs::prelude::Resource;
+use bevy_ecs::prelude::{Commands, Res, ResMut, Resource};
 use engine_core::types::TextureId;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -67,6 +67,24 @@ impl TextureAtlas {
     pub fn lookup(&self, id: TextureId) -> Option<[f32; 4]> {
         self.lookups.get(&id).copied()
     }
+}
+
+#[derive(Resource)]
+pub struct AtlasUploaded;
+
+#[allow(clippy::needless_pass_by_value)]
+pub fn upload_atlas_system(
+    atlas: Option<Res<TextureAtlas>>,
+    uploaded: Option<Res<AtlasUploaded>>,
+    mut renderer: ResMut<crate::renderer::RendererRes>,
+    mut commands: Commands,
+) {
+    if uploaded.is_some() {
+        return;
+    }
+    let Some(atlas) = atlas else { return };
+    renderer.upload_atlas(&atlas);
+    commands.insert_resource(AtlasUploaded);
 }
 
 struct PendingImage {
@@ -179,7 +197,10 @@ impl AtlasBuilder {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
-    use super::{AtlasBuilder, AtlasError, load_image_bytes, normalize_uv_rect};
+    use super::{
+        AtlasBuilder, AtlasError, AtlasUploaded, TextureAtlas, load_image_bytes, normalize_uv_rect,
+        upload_atlas_system,
+    };
     use engine_core::types::TextureId;
 
     #[test]
@@ -618,5 +639,95 @@ mod tests {
         let stride = atlas.width as usize * 4;
         let off = py * stride + px * 4;
         assert_eq!(&atlas.data[off..off + 4], [255, 255, 255, 255]);
+    }
+
+    fn minimal_atlas() -> TextureAtlas {
+        TextureAtlas {
+            data: vec![255; 4],
+            width: 1,
+            height: 1,
+            lookups: Default::default(),
+        }
+    }
+
+    fn insert_spy(
+        world: &mut bevy_ecs::world::World,
+    ) -> std::sync::Arc<std::sync::Mutex<Vec<String>>> {
+        let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let spy = crate::testing::SpyRenderer::new(log.clone());
+        world.insert_resource(crate::renderer::RendererRes::new(Box::new(spy)));
+        log
+    }
+
+    fn run_system(world: &mut bevy_ecs::world::World) {
+        let mut schedule = bevy_ecs::schedule::Schedule::default();
+        schedule.add_systems(upload_atlas_system);
+        schedule.run(world);
+    }
+
+    #[test]
+    fn when_atlas_present_then_upload_atlas_called() {
+        // Arrange
+        let mut world = bevy_ecs::world::World::new();
+        let log = insert_spy(&mut world);
+        world.insert_resource(minimal_atlas());
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(log.lock().unwrap().contains(&"upload_atlas".to_string()));
+    }
+
+    #[test]
+    fn when_no_atlas_then_upload_atlas_not_called() {
+        // Arrange
+        let mut world = bevy_ecs::world::World::new();
+        let log = insert_spy(&mut world);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(!log.lock().unwrap().contains(&"upload_atlas".to_string()));
+    }
+
+    #[test]
+    fn when_system_runs_twice_then_upload_atlas_called_only_once() {
+        // Arrange
+        let mut world = bevy_ecs::world::World::new();
+        let log = insert_spy(&mut world);
+        world.insert_resource(minimal_atlas());
+        let mut schedule = bevy_ecs::schedule::Schedule::default();
+        schedule.add_systems(upload_atlas_system);
+
+        // Act
+        schedule.run(&mut world);
+        schedule.run(&mut world);
+
+        // Assert
+        let calls: Vec<_> = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| *s == "upload_atlas")
+            .cloned()
+            .collect();
+        assert_eq!(calls.len(), 1);
+    }
+
+    #[test]
+    fn when_atlas_uploaded_marker_present_then_upload_atlas_not_called() {
+        // Arrange
+        let mut world = bevy_ecs::world::World::new();
+        let log = insert_spy(&mut world);
+        world.insert_resource(minimal_atlas());
+        world.insert_resource(AtlasUploaded);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(!log.lock().unwrap().contains(&"upload_atlas".to_string()));
     }
 }

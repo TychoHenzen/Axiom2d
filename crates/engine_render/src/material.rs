@@ -10,20 +10,28 @@ pub enum BlendMode {
     Multiply,
 }
 
+impl BlendMode {
+    pub const ALL: [Self; 3] = [Self::Alpha, Self::Additive, Self::Multiply];
+
+    #[must_use]
+    pub const fn index(self) -> usize {
+        self as usize
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ShaderHandle(pub u32);
 
+#[derive(Default)]
 pub struct ShaderRegistry {
     sources: HashMap<ShaderHandle, String>,
     next_id: u32,
 }
 
 impl ShaderRegistry {
+    #[must_use]
     pub fn new() -> Self {
-        Self {
-            sources: HashMap::new(),
-            next_id: 0,
-        }
+        Self::default()
     }
 
     pub fn register(&mut self, source: &str) -> ShaderHandle {
@@ -52,10 +60,13 @@ pub struct Material2d {
     pub uniforms: Vec<u8>,
 }
 
+#[must_use]
 pub fn effective_blend_mode(material: Option<&Material2d>) -> BlendMode {
     material.map_or(BlendMode::Alpha, |m| m.blend_mode)
 }
 
+#[must_use]
+#[allow(clippy::implicit_hasher)]
 pub fn preprocess(source: &str, defines: &HashSet<&str>) -> String {
     let mut output = String::new();
     let mut skip_depth = 0u32;
@@ -68,9 +79,7 @@ pub fn preprocess(source: &str, defines: &HashSet<&str>) -> String {
                 skip_depth += 1;
             }
         } else if trimmed == "#endif" {
-            if skip_depth > 0 {
-                skip_depth -= 1;
-            }
+            skip_depth = skip_depth.saturating_sub(1);
         } else if skip_depth == 0 {
             if !output.is_empty() {
                 output.push('\n');

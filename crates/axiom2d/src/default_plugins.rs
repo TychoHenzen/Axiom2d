@@ -5,7 +5,7 @@ use engine_input::prelude::{InputEventBuffer, InputState, input_system};
 #[cfg(feature = "render")]
 use engine_render::prelude::{
     ClearColor, camera_prepare_system, clear_system, post_process_system, shape_render_system,
-    sprite_render_system,
+    sprite_render_system, upload_atlas_system,
 };
 use engine_scene::prelude::{
     hierarchy_maintenance_system, transform_propagation_system, visibility_system,
@@ -39,6 +39,7 @@ impl Plugin for DefaultPlugins {
                 Phase::Render,
                 (
                     clear_system,
+                    upload_atlas_system,
                     camera_prepare_system,
                     sprite_render_system,
                     shape_render_system,
@@ -255,6 +256,81 @@ mod tests {
         // Assert
         let calls = log.lock().unwrap();
         assert!(calls.iter().any(|c| c.starts_with("draw_shape")));
+    }
+
+    #[cfg(feature = "render")]
+    #[test]
+    fn when_atlas_inserted_and_frame_runs_then_upload_atlas_called() {
+        // Arrange
+        let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let spy = engine_render::testing::SpyRenderer::new(std::sync::Arc::clone(&log));
+
+        let mut app = app_with_default_plugins();
+        app.world_mut()
+            .insert_resource(engine_render::prelude::RendererRes::new(Box::new(spy)));
+        app.world_mut()
+            .insert_resource(engine_render::prelude::TextureAtlas {
+                data: vec![255; 4],
+                width: 1,
+                height: 1,
+                lookups: Default::default(),
+            });
+
+        // Act
+        app.handle_redraw();
+
+        // Assert
+        let calls = log.lock().unwrap();
+        assert!(calls.contains(&"upload_atlas".to_string()));
+    }
+
+    #[cfg(feature = "render")]
+    #[test]
+    fn when_atlas_uploaded_then_draw_sprite_also_called_same_frame() {
+        use engine_core::prelude::{Color, Pixels, TextureId};
+        use engine_render::prelude::{RendererRes, Sprite};
+        use engine_scene::prelude::GlobalTransform2D;
+        use glam::Affine2;
+
+        // Arrange
+        let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let spy = engine_render::testing::SpyRenderer::new(std::sync::Arc::clone(&log))
+            .with_viewport(800, 600);
+
+        let mut app = app_with_default_plugins();
+        app.world_mut()
+            .insert_resource(RendererRes::new(Box::new(spy)));
+        app.world_mut()
+            .insert_resource(engine_render::prelude::TextureAtlas {
+                data: vec![255; 4],
+                width: 1,
+                height: 1,
+                lookups: Default::default(),
+            });
+        app.world_mut().spawn((
+            Sprite {
+                texture: TextureId(0),
+                uv_rect: [0.0, 0.0, 1.0, 1.0],
+                color: Color::WHITE,
+                width: Pixels(32.0),
+                height: Pixels(32.0),
+            },
+            GlobalTransform2D(Affine2::IDENTITY),
+        ));
+
+        // Act
+        app.handle_redraw();
+
+        // Assert
+        let calls = log.lock().unwrap();
+        let upload_idx = calls.iter().position(|c| c == "upload_atlas");
+        let sprite_idx = calls.iter().position(|c| c == "draw_sprite");
+        assert!(upload_idx.is_some(), "upload_atlas should be called");
+        assert!(sprite_idx.is_some(), "draw_sprite should be called");
+        assert!(
+            upload_idx.unwrap() < sprite_idx.unwrap(),
+            "upload_atlas should run before draw_sprite"
+        );
     }
 
     #[test]

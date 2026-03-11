@@ -109,6 +109,10 @@ impl Renderer for SpyRenderer {
         }
     }
 
+    fn upload_atlas(&mut self, _atlas: &crate::atlas::TextureAtlas) {
+        self.log_call("upload_atlas");
+    }
+
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]) {
         self.log_call("set_view_projection");
         if let Some(capture) = &self.matrix_capture {
@@ -283,6 +287,25 @@ mod tests {
         // Assert
         let calls = blend_calls.lock().unwrap();
         assert_eq!(calls.as_slice(), &[BlendMode::Alpha, BlendMode::Additive]);
+    }
+
+    #[test]
+    fn when_upload_atlas_called_then_log_records_upload_atlas() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log.clone());
+        let atlas = crate::atlas::TextureAtlas {
+            data: vec![255; 4],
+            width: 1,
+            height: 1,
+            lookups: Default::default(),
+        };
+
+        // Act
+        spy.upload_atlas(&atlas);
+
+        // Assert
+        assert_eq!(log.lock().unwrap().as_slice(), &["upload_atlas"]);
     }
 
     #[test]

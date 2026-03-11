@@ -704,7 +704,7 @@ pub struct WgpuRenderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
-    pipeline: wgpu::RenderPipeline,
+    quad_pipelines: [wgpu::RenderPipeline; 3],
     quad_vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     #[allow(dead_code)]
@@ -714,8 +714,12 @@ pub struct WgpuRenderer {
     camera_bind_group: wgpu::BindGroup,
     clear_color: Color,
     pending_instances: Vec<Instance>,
+    instance_blend_modes: Vec<crate::material::BlendMode>,
+    current_blend_mode: crate::material::BlendMode,
     shape_batch: ShapeBatch,
-    shape_pipeline: wgpu::RenderPipeline,
+    shape_blend_modes: Vec<crate::material::BlendMode>,
+    shape_index_offsets: Vec<u32>,
+    shape_pipelines: [wgpu::RenderPipeline; 3],
     post_process: Option<PostProcessResources>,
     post_process_pending: bool,
     bloom_threshold: f32,
@@ -830,64 +834,66 @@ impl WgpuRenderer {
             push_constant_ranges: &[],
         });
 
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: None,
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_main"),
-                buffers: &[
-                    wgpu::VertexBufferLayout {
-                        array_stride: size_of::<QuadVertex>() as wgpu::BufferAddress,
-                        step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &[wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32x2,
-                            offset: 0,
-                            shader_location: 0,
-                        }],
-                    },
-                    wgpu::VertexBufferLayout {
-                        array_stride: size_of::<Instance>() as wgpu::BufferAddress,
-                        step_mode: wgpu::VertexStepMode::Instance,
-                        attributes: &[
-                            wgpu::VertexAttribute {
-                                format: wgpu::VertexFormat::Float32x4,
+        let quad_pipelines = crate::material::BlendMode::ALL.map(|mode| {
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: None,
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: Some("vs_main"),
+                    buffers: &[
+                        wgpu::VertexBufferLayout {
+                            array_stride: size_of::<QuadVertex>() as wgpu::BufferAddress,
+                            step_mode: wgpu::VertexStepMode::Vertex,
+                            attributes: &[wgpu::VertexAttribute {
+                                format: wgpu::VertexFormat::Float32x2,
                                 offset: 0,
-                                shader_location: 1,
-                            },
-                            wgpu::VertexAttribute {
-                                format: wgpu::VertexFormat::Float32x4,
-                                offset: 16,
-                                shader_location: 2,
-                            },
-                            wgpu::VertexAttribute {
-                                format: wgpu::VertexFormat::Float32x4,
-                                offset: 32,
-                                shader_location: 3,
-                            },
-                        ],
-                    },
-                ],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some("fs_main"),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                ..Default::default()
-            },
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview: None,
-            cache: None,
+                                shader_location: 0,
+                            }],
+                        },
+                        wgpu::VertexBufferLayout {
+                            array_stride: size_of::<Instance>() as wgpu::BufferAddress,
+                            step_mode: wgpu::VertexStepMode::Instance,
+                            attributes: &[
+                                wgpu::VertexAttribute {
+                                    format: wgpu::VertexFormat::Float32x4,
+                                    offset: 0,
+                                    shader_location: 1,
+                                },
+                                wgpu::VertexAttribute {
+                                    format: wgpu::VertexFormat::Float32x4,
+                                    offset: 16,
+                                    shader_location: 2,
+                                },
+                                wgpu::VertexAttribute {
+                                    format: wgpu::VertexFormat::Float32x4,
+                                    offset: 32,
+                                    shader_location: 3,
+                                },
+                            ],
+                        },
+                    ],
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: Some("fs_main"),
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format,
+                        blend: Some(blend_mode_to_blend_state(mode)),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    ..Default::default()
+                },
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState::default(),
+                multiview: None,
+                cache: None,
+            })
         });
 
         let quad_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -917,48 +923,50 @@ impl WgpuRenderer {
                 push_constant_ranges: &[],
             });
 
-        let shape_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: None,
-            layout: Some(&shape_pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shape_shader,
-                entry_point: Some("vs_shape"),
-                buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: size_of::<ShapeVertex>() as wgpu::BufferAddress,
-                    step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &[
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32x2,
-                            offset: 0,
-                            shader_location: 0,
-                        },
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32x4,
-                            offset: 8,
-                            shader_location: 1,
-                        },
-                    ],
-                }],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shape_shader,
-                entry_point: Some("fs_shape"),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                ..Default::default()
-            },
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview: None,
-            cache: None,
+        let shape_pipelines = crate::material::BlendMode::ALL.map(|mode| {
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: None,
+                layout: Some(&shape_pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shape_shader,
+                    entry_point: Some("vs_shape"),
+                    buffers: &[wgpu::VertexBufferLayout {
+                        array_stride: size_of::<ShapeVertex>() as wgpu::BufferAddress,
+                        step_mode: wgpu::VertexStepMode::Vertex,
+                        attributes: &[
+                            wgpu::VertexAttribute {
+                                format: wgpu::VertexFormat::Float32x2,
+                                offset: 0,
+                                shader_location: 0,
+                            },
+                            wgpu::VertexAttribute {
+                                format: wgpu::VertexFormat::Float32x4,
+                                offset: 8,
+                                shader_location: 1,
+                            },
+                        ],
+                    }],
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shape_shader,
+                    entry_point: Some("fs_shape"),
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format,
+                        blend: Some(blend_mode_to_blend_state(mode)),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    ..Default::default()
+                },
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState::default(),
+                multiview: None,
+                cache: None,
+            })
         });
 
         Self {
@@ -966,7 +974,7 @@ impl WgpuRenderer {
             device,
             queue,
             config: surface_config,
-            pipeline,
+            quad_pipelines,
             quad_vertex_buffer,
             index_buffer,
             texture_bind_group_layout,
@@ -975,25 +983,17 @@ impl WgpuRenderer {
             camera_bind_group,
             clear_color: Color::BLACK,
             pending_instances: Vec::new(),
+            instance_blend_modes: Vec::new(),
+            current_blend_mode: crate::material::BlendMode::Alpha,
             shape_batch: ShapeBatch::new(),
-            shape_pipeline,
+            shape_blend_modes: Vec::new(),
+            shape_index_offsets: Vec::new(),
+            shape_pipelines,
             post_process: None,
             post_process_pending: false,
             bloom_threshold: 0.8,
             bloom_intensity: 0.3,
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn upload_atlas(&mut self, atlas: &crate::atlas::TextureAtlas) {
-        self.texture_bind_group = create_texture_bind_group(
-            &self.device,
-            &self.queue,
-            &self.texture_bind_group_layout,
-            atlas.width,
-            atlas.height,
-            &atlas.data,
-        );
     }
 
     fn ensure_post_process(&mut self) {
@@ -1009,6 +1009,7 @@ impl WgpuRenderer {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn draw_scene_to(&self, encoder: &mut wgpu::CommandEncoder, target_view: &wgpu::TextureView) {
         let clear_color = wgpu::Color {
             r: f64::from(self.clear_color.r),
@@ -1041,17 +1042,16 @@ impl WgpuRenderer {
                         usage: wgpu::BufferUsages::VERTEX,
                     });
 
-            pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, &self.texture_bind_group, &[]);
             pass.set_bind_group(1, &self.camera_bind_group, &[]);
             pass.set_vertex_buffer(0, self.quad_vertex_buffer.slice(..));
             pass.set_vertex_buffer(1, instance_buffer.slice(..));
             pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            pass.draw_indexed(
-                0..QUAD_INDICES.len() as u32,
-                0,
-                0..self.pending_instances.len() as u32,
-            );
+
+            for (mode, range) in compute_batch_ranges(&self.instance_blend_modes) {
+                pass.set_pipeline(&self.quad_pipelines[mode.index()]);
+                pass.draw_indexed(0..QUAD_INDICES.len() as u32, 0, range);
+            }
         }
 
         if !self.shape_batch.is_empty() {
@@ -1071,11 +1071,21 @@ impl WgpuRenderer {
                     usage: wgpu::BufferUsages::INDEX,
                 });
 
-            pass.set_pipeline(&self.shape_pipeline);
             pass.set_bind_group(0, &self.camera_bind_group, &[]);
             pass.set_vertex_buffer(0, vertex_buffer.slice(..));
             pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-            pass.draw_indexed(0..self.shape_batch.index_count() as u32, 0, 0..1);
+
+            let total_indices = self.shape_batch.index_count() as u32;
+            for (mode, shape_range) in compute_batch_ranges(&self.shape_blend_modes) {
+                let idx_start = self.shape_index_offsets[shape_range.start as usize];
+                let idx_end = if (shape_range.end as usize) < self.shape_index_offsets.len() {
+                    self.shape_index_offsets[shape_range.end as usize]
+                } else {
+                    total_indices
+                };
+                pass.set_pipeline(&self.shape_pipelines[mode.index()]);
+                pass.draw_indexed(idx_start..idx_end, 0, 0..1);
+            }
         }
     }
 
@@ -1314,24 +1324,47 @@ impl Renderer for WgpuRenderer {
     fn clear(&mut self, color: Color) {
         self.clear_color = color;
         self.pending_instances.clear();
+        self.instance_blend_modes.clear();
+        self.current_blend_mode = crate::material::BlendMode::Alpha;
         self.shape_batch.clear();
+        self.shape_blend_modes.clear();
+        self.shape_index_offsets.clear();
     }
 
     fn draw_rect(&mut self, rect: Rect) {
         self.pending_instances.push(rect_to_instance(&rect));
+        self.instance_blend_modes.push(self.current_blend_mode);
     }
 
     fn draw_sprite(&mut self, rect: Rect, uv_rect: [f32; 4]) {
         let mut instance = rect_to_instance(&rect);
         instance.uv_rect = uv_rect;
         self.pending_instances.push(instance);
+        self.instance_blend_modes.push(self.current_blend_mode);
     }
 
     fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color) {
+        self.shape_blend_modes.push(self.current_blend_mode);
+        #[allow(clippy::cast_possible_truncation)]
+        self.shape_index_offsets
+            .push(self.shape_batch.index_count() as u32);
         self.shape_batch.push(vertices, indices, color);
     }
 
-    fn set_blend_mode(&mut self, _mode: crate::material::BlendMode) {}
+    fn set_blend_mode(&mut self, mode: crate::material::BlendMode) {
+        self.current_blend_mode = mode;
+    }
+
+    fn upload_atlas(&mut self, atlas: &crate::atlas::TextureAtlas) {
+        self.texture_bind_group = create_texture_bind_group(
+            &self.device,
+            &self.queue,
+            &self.texture_bind_group_layout,
+            atlas.width,
+            atlas.height,
+            &atlas.data,
+        );
+    }
 
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]) {
         self.queue.write_buffer(
@@ -1392,6 +1425,58 @@ impl Renderer for WgpuRenderer {
                 self.bloom_intensity,
             );
         }
+    }
+}
+
+#[allow(clippy::cast_possible_truncation)]
+pub(crate) fn compute_batch_ranges(
+    modes: &[crate::material::BlendMode],
+) -> Vec<(crate::material::BlendMode, std::ops::Range<u32>)> {
+    let mut batches = Vec::new();
+    let Some(&first) = modes.first() else {
+        return batches;
+    };
+    let mut current_mode = first;
+    let mut start = 0u32;
+    for (i, &mode) in modes.iter().enumerate().skip(1) {
+        if mode != current_mode {
+            batches.push((current_mode, start..i as u32));
+            current_mode = mode;
+            start = i as u32;
+        }
+    }
+    batches.push((current_mode, start..modes.len() as u32));
+    batches
+}
+
+pub(crate) fn blend_mode_to_blend_state(mode: crate::material::BlendMode) -> wgpu::BlendState {
+    use crate::material::BlendMode;
+    match mode {
+        BlendMode::Alpha => wgpu::BlendState::ALPHA_BLENDING,
+        BlendMode::Additive => wgpu::BlendState {
+            color: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::SrcAlpha,
+                dst_factor: wgpu::BlendFactor::One,
+                operation: wgpu::BlendOperation::Add,
+            },
+            alpha: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::One,
+                dst_factor: wgpu::BlendFactor::One,
+                operation: wgpu::BlendOperation::Add,
+            },
+        },
+        BlendMode::Multiply => wgpu::BlendState {
+            color: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::Dst,
+                dst_factor: wgpu::BlendFactor::Zero,
+                operation: wgpu::BlendOperation::Add,
+            },
+            alpha: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::One,
+                dst_factor: wgpu::BlendFactor::Zero,
+                operation: wgpu::BlendOperation::Add,
+            },
+        },
     }
 }
 
@@ -1657,5 +1742,102 @@ mod tests {
         // Assert
         assert_eq!(tri0, [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0]]);
         assert_eq!(tri1, [[-1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]]);
+    }
+
+    #[test]
+    fn when_blend_mode_alpha_then_blend_state_is_alpha_blending() {
+        // Act
+        let result = blend_mode_to_blend_state(crate::material::BlendMode::Alpha);
+
+        // Assert
+        assert_eq!(result, wgpu::BlendState::ALPHA_BLENDING);
+    }
+
+    #[test]
+    fn when_blend_mode_additive_then_blend_state_uses_src_alpha_one() {
+        // Act
+        let result = blend_mode_to_blend_state(crate::material::BlendMode::Additive);
+
+        // Assert
+        let expected = wgpu::BlendState {
+            color: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::SrcAlpha,
+                dst_factor: wgpu::BlendFactor::One,
+                operation: wgpu::BlendOperation::Add,
+            },
+            alpha: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::One,
+                dst_factor: wgpu::BlendFactor::One,
+                operation: wgpu::BlendOperation::Add,
+            },
+        };
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn when_blend_mode_multiply_then_blend_state_uses_dst_zero() {
+        // Act
+        let result = blend_mode_to_blend_state(crate::material::BlendMode::Multiply);
+
+        // Assert
+        let expected = wgpu::BlendState {
+            color: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::Dst,
+                dst_factor: wgpu::BlendFactor::Zero,
+                operation: wgpu::BlendOperation::Add,
+            },
+            alpha: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::One,
+                dst_factor: wgpu::BlendFactor::Zero,
+                operation: wgpu::BlendOperation::Add,
+            },
+        };
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn when_mixed_blend_modes_then_batches_split_at_boundaries() {
+        use crate::material::BlendMode;
+
+        // Arrange
+        let modes = [
+            BlendMode::Alpha,
+            BlendMode::Alpha,
+            BlendMode::Additive,
+            BlendMode::Alpha,
+        ];
+
+        // Act
+        let batches = compute_batch_ranges(&modes);
+
+        // Assert
+        assert_eq!(batches.len(), 3);
+        assert_eq!(batches[0], (BlendMode::Alpha, 0..2));
+        assert_eq!(batches[1], (BlendMode::Additive, 2..3));
+        assert_eq!(batches[2], (BlendMode::Alpha, 3..4));
+    }
+
+    #[test]
+    fn when_all_same_blend_mode_then_single_batch() {
+        use crate::material::BlendMode;
+
+        // Arrange
+        let modes = [BlendMode::Alpha, BlendMode::Alpha, BlendMode::Alpha];
+
+        // Act
+        let batches = compute_batch_ranges(&modes);
+
+        // Assert
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0], (BlendMode::Alpha, 0..3));
+    }
+
+    #[test]
+    fn when_no_items_then_empty_batches() {
+        // Act
+        let batches = compute_batch_ranges(&[]);
+
+        // Assert
+        assert!(batches.is_empty());
     }
 }
