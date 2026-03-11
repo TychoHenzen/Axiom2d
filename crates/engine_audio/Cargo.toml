@@ -7,3 +7,5 @@ version.workspace = true
 workspace = true
 
 [dependencies]
+bevy_ecs = { workspace = true }
+cpal = { workspace = true }

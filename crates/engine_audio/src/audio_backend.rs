@@ -1,0 +1,94 @@
+use crate::playback_id::PlaybackId;
+use crate::sound_data::SoundData;
+
+pub trait AudioBackend: Send + Sync {
+    fn play(&mut self, sound: &SoundData) -> PlaybackId;
+    fn stop(&mut self, id: PlaybackId);
+    fn set_volume(&mut self, volume: f32);
+}
+
+pub struct NullAudioBackend {
+    next_id: u32,
+}
+
+impl NullAudioBackend {
+    #[must_use]
+    pub fn new() -> Self {
+        Self { next_id: 0 }
+    }
+}
+
+impl Default for NullAudioBackend {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AudioBackend for NullAudioBackend {
+    fn play(&mut self, _sound: &SoundData) -> PlaybackId {
+        self.next_id += 1;
+        PlaybackId(self.next_id)
+    }
+
+    fn stop(&mut self, _id: PlaybackId) {}
+
+    fn set_volume(&mut self, _volume: f32) {}
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    fn minimal_sound() -> SoundData {
+        SoundData {
+            samples: vec![0.0],
+            sample_rate: 44_100,
+            channels: 1,
+        }
+    }
+
+    #[test]
+    fn when_play_called_then_returns_playback_id() {
+        // Arrange
+        let mut backend = NullAudioBackend::new();
+        let sound = minimal_sound();
+
+        // Act
+        let _id: PlaybackId = backend.play(&sound);
+    }
+
+    #[test]
+    fn when_play_called_twice_then_ids_differ() {
+        // Arrange
+        let mut backend = NullAudioBackend::new();
+        let sound = minimal_sound();
+
+        // Act
+        let id1 = backend.play(&sound);
+        let id2 = backend.play(&sound);
+
+        // Assert
+        assert_ne!(id1, id2);
+    }
+
+    #[test]
+    fn when_stop_called_then_does_not_panic() {
+        // Arrange
+        let mut backend = NullAudioBackend::new();
+
+        // Act
+        backend.stop(PlaybackId(42));
+    }
+
+    #[test]
+    fn when_set_volume_called_then_does_not_panic() {
+        // Arrange
+        let mut backend = NullAudioBackend::new();
+
+        // Act
+        backend.set_volume(0.0);
+        backend.set_volume(0.5);
+        backend.set_volume(1.0);
+    }
+}

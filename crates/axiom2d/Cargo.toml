@@ -7,14 +7,16 @@ version.workspace = true
 workspace = true
 
 [features]
-default = ["render"]
+default = ["render", "audio"]
 render = ["dep:engine_render"]
+audio = ["dep:engine_audio"]
 
 [dependencies]
 engine_core = { path = "../engine_core" }
 engine_app = { path = "../engine_app" }
 engine_ecs = { path = "../engine_ecs" }
 engine_input = { path = "../engine_input" }
+engine_audio = { path = "../engine_audio", optional = true }
 engine_render = { path = "../engine_render", optional = true }
 engine_scene = { path = "../engine_scene" }
 

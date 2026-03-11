@@ -1,0 +1,149 @@
+use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+
+use crate::audio_backend::AudioBackend;
+use crate::playback_id::PlaybackId;
+use crate::sound_data::SoundData;
+
+struct SharedState {
+    volume: f32,
+    next_id: u32,
+    active: HashSet<PlaybackId>,
+}
+
+/// Keeps the `cpal::Stream` alive via RAII. Sending it across threads is safe —
+/// it is an OS handle to an audio callback thread with no thread-local state.
+#[allow(dead_code)]
+struct StreamHandle(cpal::Stream);
+
+// SAFETY: cpal::Stream is an OS handle to an audio callback thread.
+// It does not access thread-local state and is safe to send/share.
+unsafe impl Send for StreamHandle {}
+unsafe impl Sync for StreamHandle {}
+
+pub struct CpalBackend {
+    state: Arc<Mutex<SharedState>>,
+    _stream: Option<StreamHandle>,
+}
+
+impl CpalBackend {
+    #[must_use]
+    pub fn new() -> Self {
+        let state = Arc::new(Mutex::new(SharedState {
+            volume: 1.0,
+            next_id: 0,
+            active: HashSet::new(),
+        }));
+
+        let stream = Self::open_stream(Arc::clone(&state));
+
+        Self {
+            state,
+            _stream: stream.map(StreamHandle),
+        }
+    }
+
+    fn open_stream(state: Arc<Mutex<SharedState>>) -> Option<cpal::Stream> {
+        let host = cpal::default_host();
+        let device = host.default_output_device()?;
+        let config = device.default_output_config().ok()?;
+        let sample_format = config.sample_format();
+        let config: cpal::StreamConfig = config.into();
+
+        let stream = match sample_format {
+            cpal::SampleFormat::F32 => device
+                .build_output_stream(
+                    &config,
+                    move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                        let _state = state.lock().expect("audio state lock poisoned");
+                        for sample in data.iter_mut() {
+                            *sample = 0.0;
+                        }
+                    },
+                    |err| eprintln!("audio stream error: {err}"),
+                    None,
+                )
+                .ok()?,
+            _ => return None,
+        };
+
+        stream.play().ok()?;
+        Some(stream)
+    }
+
+    #[cfg(test)]
+    fn volume(&self) -> f32 {
+        self.state.lock().expect("lock poisoned").volume
+    }
+}
+
+impl Default for CpalBackend {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AudioBackend for CpalBackend {
+    fn play(&mut self, _sound: &SoundData) -> PlaybackId {
+        let mut state = self.state.lock().expect("audio state lock poisoned");
+        state.next_id += 1;
+        let id = PlaybackId(state.next_id);
+        state.active.insert(id);
+        id
+    }
+
+    fn stop(&mut self, id: PlaybackId) {
+        let mut state = self.state.lock().expect("audio state lock poisoned");
+        state.active.remove(&id);
+    }
+
+    fn set_volume(&mut self, volume: f32) {
+        let mut state = self.state.lock().expect("audio state lock poisoned");
+        state.volume = volume;
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn when_constructed_then_volume_is_one() {
+        // Act
+        let backend = CpalBackend::new();
+
+        // Assert
+        let vol = backend.volume();
+        assert!((vol - 1.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn when_play_called_twice_then_ids_are_unique() {
+        // Arrange
+        let mut backend = CpalBackend::new();
+        let sound = SoundData {
+            samples: vec![0.0],
+            sample_rate: 44_100,
+            channels: 1,
+        };
+
+        // Act
+        let id1 = backend.play(&sound);
+        let id2 = backend.play(&sound);
+
+        // Assert
+        assert_ne!(id1, id2);
+    }
+
+    #[test]
+    fn when_stop_with_unknown_id_then_does_not_panic() {
+        // Arrange
+        let mut backend = CpalBackend::new();
+
+        // Act
+        backend.stop(PlaybackId(999));
+    }
+}
