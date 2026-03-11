@@ -3,6 +3,9 @@ name = "engine_scene"
 edition.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 bevy_ecs = { workspace = true }
 engine_core = { path = "../engine_core" }

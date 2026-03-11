@@ -40,7 +40,9 @@ pub fn compute_gaussian_weights(radius: u32) -> Vec<f32> {
         })
         .collect();
     let sum: f32 = weights.iter().sum();
-    weights.iter_mut().for_each(|w| *w /= sum);
+    for w in &mut weights {
+        *w /= sum;
+    }
     weights
 }
 
@@ -106,6 +108,7 @@ mod tests {
     }
 
     #[cfg(feature = "testing")]
+    #[allow(clippy::unwrap_used)]
     mod system_tests {
         use std::sync::{Arc, Mutex};
 

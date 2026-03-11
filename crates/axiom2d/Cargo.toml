@@ -3,6 +3,9 @@ name = "axiom2d"
 edition.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 default = ["render"]
 render = ["dep:engine_render"]

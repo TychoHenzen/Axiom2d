@@ -3,6 +3,9 @@ name = "engine_render"
 edition.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 testing = []
 

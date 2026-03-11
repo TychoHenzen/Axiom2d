@@ -82,6 +82,7 @@ fn orbit_system(mut query: Query<(&mut Transform2D, &OrbitalSpeed)>, dt: Res<Del
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn setup(app: &mut App) {
     let config = WindowConfig {
         title: "Axiom2d Solar System",
@@ -232,6 +233,7 @@ fn main() {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use std::sync::{Arc, Mutex};
 

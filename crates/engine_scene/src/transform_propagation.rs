@@ -39,6 +39,7 @@ fn propagate_to_children(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::test_helpers::run_transform_system;

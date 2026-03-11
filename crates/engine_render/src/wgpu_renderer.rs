@@ -236,6 +236,7 @@ struct PostProcessResources {
 }
 
 impl PostProcessResources {
+    #[allow(clippy::similar_names, clippy::too_many_lines)]
     fn new(
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
@@ -593,7 +594,7 @@ fn create_fullscreen_pipeline(
             module: shader,
             entry_point: Some("vs_fullscreen"),
             buffers: std::slice::from_ref(vertex_layout),
-            compilation_options: Default::default(),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
         },
         fragment: Some(wgpu::FragmentState {
             module: shader,
@@ -603,7 +604,7 @@ fn create_fullscreen_pipeline(
                 blend: Some(wgpu::BlendState::REPLACE),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
-            compilation_options: Default::default(),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
         }),
         primitive: wgpu::PrimitiveState {
             topology: wgpu::PrimitiveTopology::TriangleList,
@@ -654,9 +655,10 @@ pub struct WgpuRenderer {
 }
 
 impl WgpuRenderer {
+    #[allow(clippy::too_many_lines)]
     pub fn new(window: Arc<Window>, config: &WindowConfig) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
-        let surface = instance.create_surface(window.clone()).unwrap();
+        let surface = instance.create_surface(window.clone()).expect("failed to create surface");
 
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             compatible_surface: Some(&surface),
@@ -796,7 +798,7 @@ impl WgpuRenderer {
                         ],
                     },
                 ],
-                compilation_options: Default::default(),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -806,7 +808,7 @@ impl WgpuRenderer {
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
-                compilation_options: Default::default(),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -881,10 +883,10 @@ impl WgpuRenderer {
 
     fn draw_scene_to(&self, encoder: &mut wgpu::CommandEncoder, target_view: &wgpu::TextureView) {
         let clear_color = wgpu::Color {
-            r: self.clear_color.r as f64,
-            g: self.clear_color.g as f64,
-            b: self.clear_color.b as f64,
-            a: self.clear_color.a as f64,
+            r: f64::from(self.clear_color.r),
+            g: f64::from(self.clear_color.g),
+            b: f64::from(self.clear_color.b),
+            a: f64::from(self.clear_color.a),
         };
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -925,12 +927,13 @@ impl WgpuRenderer {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn execute_bloom(
         &self,
         encoder: &mut wgpu::CommandEncoder,
         swapchain_view: &wgpu::TextureView,
     ) {
-        let pp = self.post_process.as_ref().unwrap();
+        let pp = self.post_process.as_ref().expect("post_process resources not initialized");
 
         self.queue.write_buffer(
             &pp.brightness_params.0,
@@ -1188,7 +1191,7 @@ impl Renderer for WgpuRenderer {
     }
 
     fn present(&mut self) {
-        let frame = self.surface.get_current_texture().unwrap();
+        let frame = self.surface.get_current_texture().expect("failed to get current texture");
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
@@ -1230,6 +1233,7 @@ impl Renderer for WgpuRenderer {
 }
 
 #[cfg(test)]
+#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
 

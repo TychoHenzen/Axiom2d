@@ -113,6 +113,7 @@ pub fn camera_prepare_system(query: Query<&Camera2D>, mut renderer: ResMut<Rende
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use std::sync::{Arc, Mutex};
 

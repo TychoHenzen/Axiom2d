@@ -3,6 +3,9 @@ name = "engine_core"
 edition.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 bevy_ecs = { workspace = true }
 glam = { workspace = true }

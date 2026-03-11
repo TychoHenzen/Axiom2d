@@ -3,5 +3,8 @@ name = "engine_ecs"
 edition.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 bevy_ecs = { workspace = true }

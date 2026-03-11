@@ -19,8 +19,7 @@ impl ActionMap {
     pub fn bindings_for(&self, action: &str) -> &[KeyCode] {
         self.bindings
             .get(&ActionName(action.to_string()))
-            .map(|v| v.as_slice())
-            .unwrap_or(&[])
+            .map_or(&[], Vec::as_slice)
     }
 }
 

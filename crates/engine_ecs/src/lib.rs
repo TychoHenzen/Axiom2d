@@ -2,6 +2,7 @@ pub mod prelude;
 pub mod schedule;
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::prelude::Component;
     use crate::prelude::Resource;

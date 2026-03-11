@@ -3,4 +3,7 @@ name = "engine_assets"
 edition.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]

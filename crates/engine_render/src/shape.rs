@@ -147,6 +147,7 @@ pub fn shape_render_system(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

@@ -55,6 +55,7 @@ fn propagate_visibility(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::test_helpers::run_visibility_system;

@@ -36,7 +36,7 @@ This project is developed with **RustRover on Windows** while **Claude Code runs
 cargo.exe build              # Build the library
 cargo.exe test               # Run all tests
 cargo.exe test <test_name>   # Run a single test by name
-cargo.exe clippy             # Lint (when configured)
+cargo.exe clippy             # Lint (pedantic, workspace-configured)
 ```
 
 Always use `cargo.exe` (not `cargo`) since the Rust toolchain is Windows-only. The same applies to `rustc.exe`, `rustfmt.exe`, etc.
@@ -51,6 +51,16 @@ The project uses Rust edition 2024. Dependencies are declared at the workspace l
 - **Path formats**: WSL sees `/mnt/c/...` paths; Windows/RustRover sees `C:\...` paths. Cargo and rustc invoked via `.exe` will interpret paths as Windows paths. When passing paths to `cargo.exe`, use Windows-style paths or rely on the working directory.
 - **File locking**: Both RustRover (Windows) and Claude Code (WSL) access the same files. Avoid concurrent builds — RustRover's build and `cargo.exe` from WSL share the same `target/` directory and lock file.
 - **Target triple**: The Windows toolchain compiles for `x86_64-pc-windows-msvc` by default. Any platform-specific code or dependencies should target Windows, not Linux.
+
+### Clippy Configuration
+
+Workspace-level clippy lints are configured in the root `Cargo.toml` under `[workspace.lints.clippy]`. All crates inherit via `[lints] workspace = true`. The `pedantic` group is enabled as warnings with selective allows for noisy lints (cast lints, `module_name_repetitions`, `must_use_candidate`, etc.). `unwrap_used` is promoted to warn — use `.expect("reason")` in production code. Test modules use `#[allow(clippy::unwrap_used)]` at the module level.
+
+### CI Workflows
+
+Two GitHub Actions workflows in `.github/workflows/`:
+- **`ci.yml`** (every push/PR to master): fmt + build + test — fast gate for every commit.
+- **`quality.yml`** (daily at 06:00 UTC + manual `workflow_dispatch`): clippy, audit, docs, coverage, mutants — expensive checks run on a schedule to conserve Actions minutes.
 
 ## Architecture (Planned)
 

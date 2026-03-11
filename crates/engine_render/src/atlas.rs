@@ -176,6 +176,7 @@ impl AtlasBuilder {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use super::{AtlasBuilder, AtlasError, load_image_bytes, normalize_uv_rect};
     use engine_core::types::TextureId;
@@ -312,7 +313,7 @@ mod tests {
                 let [u0a, v0a, u1a, v1a] = handles[i].uv_rect;
                 let [u0b, v0b, u1b, v1b] = handles[j].uv_rect;
                 let no_overlap = u1a <= u0b || u1b <= u0a || v1a <= v0b || v1b <= v0a;
-                assert!(no_overlap, "handles {} and {} overlap", i, j);
+                assert!(no_overlap, "handles {i} and {j} overlap");
             }
         }
     }
@@ -471,10 +472,10 @@ mod tests {
     }
 
     fn make_1x1_png(r: u8, g: u8, b: u8, a: u8) -> Vec<u8> {
+        use image::ImageEncoder;
         let mut buf = Vec::new();
         {
             let encoder = image::codecs::png::PngEncoder::new(&mut buf);
-            use image::ImageEncoder;
             encoder
                 .write_image(&[r, g, b, a], 1, 1, image::ExtendedColorType::Rgba8)
                 .unwrap();

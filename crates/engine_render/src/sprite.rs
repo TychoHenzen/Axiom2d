@@ -69,6 +69,7 @@ pub fn sprite_render_system(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use std::sync::{Arc, Mutex};
 

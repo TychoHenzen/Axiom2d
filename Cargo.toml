@@ -17,3 +17,22 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg"]
 wgpu = "24"
 winit = "0.30"
 lyon = "1.0"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Too noisy for an engine crate with many public types
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+# Style preferences that conflict with project conventions
+needless_pass_by_value = "allow"
+# bevy_ecs systems take Res/ResMut by value — this fires on every system
+return_self_not_must_use = "allow"
+# Cast lints — game engines do u32/f32/i32 conversions constantly
+cast_possible_truncation = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+cast_possible_wrap = "allow"
+# Correctness lints worth promoting
+unwrap_used = "warn"

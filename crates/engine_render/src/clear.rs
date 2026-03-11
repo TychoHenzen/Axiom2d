@@ -17,6 +17,7 @@ pub fn clear_system(color: Res<ClearColor>, mut renderer: ResMut<RendererRes>) {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use std::sync::{Arc, Mutex};
 

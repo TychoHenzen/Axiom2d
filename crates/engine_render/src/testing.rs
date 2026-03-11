@@ -68,35 +68,35 @@ impl SpyRenderer {
 
 impl Renderer for SpyRenderer {
     fn clear(&mut self, color: Color) {
-        self.log.lock().unwrap().push("clear".into());
+        self.log.lock().expect("spy log poisoned").push("clear".into());
         if let Some(capture) = &self.color_capture {
-            *capture.lock().unwrap() = Some(color);
+            *capture.lock().expect("color capture poisoned") = Some(color);
         }
     }
 
     fn draw_rect(&mut self, _rect: Rect) {
-        self.log.lock().unwrap().push("draw_rect".into());
+        self.log.lock().expect("spy log poisoned").push("draw_rect".into());
     }
 
     fn draw_sprite(&mut self, rect: Rect, uv_rect: [f32; 4]) {
-        self.log.lock().unwrap().push("draw_sprite".into());
+        self.log.lock().expect("spy log poisoned").push("draw_sprite".into());
         if let Some(capture) = &self.sprite_calls {
-            capture.lock().unwrap().push((rect, uv_rect));
+            capture.lock().expect("sprite capture poisoned").push((rect, uv_rect));
         }
     }
 
     fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color) {
-        self.log.lock().unwrap().push("draw_shape".into());
+        self.log.lock().expect("spy log poisoned").push("draw_shape".into());
         if let Some(capture) = &self.shape_calls {
             capture
                 .lock()
-                .unwrap()
+                .expect("shape capture poisoned")
                 .push((vertices.to_vec(), indices.to_vec(), color));
         }
     }
 
     fn set_view_projection(&mut self, _matrix: [[f32; 4]; 4]) {
-        self.log.lock().unwrap().push("set_view_projection".into());
+        self.log.lock().expect("spy log poisoned").push("set_view_projection".into());
     }
 
     fn viewport_size(&self) -> (u32, u32) {
@@ -104,19 +104,20 @@ impl Renderer for SpyRenderer {
     }
 
     fn apply_post_process(&mut self) {
-        self.log.lock().unwrap().push("apply_post_process".into());
+        self.log.lock().expect("spy log poisoned").push("apply_post_process".into());
     }
 
     fn present(&mut self) {
-        self.log.lock().unwrap().push("present".into());
+        self.log.lock().expect("spy log poisoned").push("present".into());
     }
 
     fn resize(&mut self, _width: u32, _height: u32) {
-        self.log.lock().unwrap().push("resize".into());
+        self.log.lock().expect("spy log poisoned").push("resize".into());
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use std::sync::{Arc, Mutex};
 
