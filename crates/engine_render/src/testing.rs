@@ -2,12 +2,14 @@ use std::sync::{Arc, Mutex};
 
 use engine_core::color::Color;
 
+use crate::material::BlendMode;
 use crate::rect::Rect;
 use crate::renderer::Renderer;
 
 pub type SpriteCallLog = Arc<Mutex<Vec<(Rect, [f32; 4])>>>;
 pub type ShapeCallLog = Arc<Mutex<Vec<(Vec<[f32; 2]>, Vec<u32>, Color)>>>;
 pub type MatrixCapture = Arc<Mutex<Option<[[f32; 4]; 4]>>>;
+pub type BlendCallLog = Arc<Mutex<Vec<BlendMode>>>;
 
 pub struct SpyRenderer {
     log: Arc<Mutex<Vec<String>>>,
@@ -15,6 +17,7 @@ pub struct SpyRenderer {
     sprite_calls: Option<SpriteCallLog>,
     shape_calls: Option<ShapeCallLog>,
     matrix_capture: Option<MatrixCapture>,
+    blend_calls: Option<BlendCallLog>,
     viewport: (u32, u32),
 }
 
@@ -26,6 +29,7 @@ impl SpyRenderer {
             sprite_calls: None,
             shape_calls: None,
             matrix_capture: None,
+            blend_calls: None,
             viewport: (0, 0),
         }
     }
@@ -47,6 +51,11 @@ impl SpyRenderer {
 
     pub fn with_matrix_capture(mut self, matrix_capture: MatrixCapture) -> Self {
         self.matrix_capture = Some(matrix_capture);
+        self
+    }
+
+    pub fn with_blend_capture(mut self, blend_calls: BlendCallLog) -> Self {
+        self.blend_calls = Some(blend_calls);
         self
     }
 
@@ -90,6 +99,13 @@ impl Renderer for SpyRenderer {
                 indices.to_vec(),
                 color,
             ));
+        }
+    }
+
+    fn set_blend_mode(&mut self, mode: BlendMode) {
+        self.log_call("set_blend_mode");
+        if let Some(capture) = &self.blend_calls {
+            capture.lock().expect("blend capture poisoned").push(mode);
         }
     }
 
@@ -238,6 +254,35 @@ mod tests {
         let calls = shape_calls.lock().unwrap();
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0].2, color);
+    }
+
+    #[test]
+    fn when_set_blend_mode_called_then_log_records_set_blend_mode() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log.clone());
+
+        // Act
+        spy.set_blend_mode(BlendMode::Additive);
+
+        // Assert
+        assert_eq!(log.lock().unwrap().as_slice(), &["set_blend_mode"]);
+    }
+
+    #[test]
+    fn when_set_blend_mode_called_twice_with_capture_then_both_calls_recorded_in_order() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let blend_calls: BlendCallLog = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log).with_blend_capture(blend_calls.clone());
+
+        // Act
+        spy.set_blend_mode(BlendMode::Alpha);
+        spy.set_blend_mode(BlendMode::Additive);
+
+        // Assert
+        let calls = blend_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[BlendMode::Alpha, BlendMode::Additive]);
     }
 
     #[test]

@@ -1156,6 +1156,8 @@ impl Renderer for WgpuRenderer {
 
     fn draw_shape(&mut self, _vertices: &[[f32; 2]], _indices: &[u32], _color: Color) {}
 
+    fn set_blend_mode(&mut self, _mode: crate::material::BlendMode) {}
+
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]) {
         self.queue.write_buffer(
             &self.camera_uniform_buffer,

@@ -6,6 +6,7 @@ use lyon::math::point;
 use lyon::tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers};
 
 use crate::camera::{Camera2D, aabb_intersects_view_rect, camera_view_rect};
+use crate::material::{Material2d, effective_blend_mode};
 use crate::renderer::RendererRes;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -102,6 +103,7 @@ pub fn shape_render_system(
         Option<&RenderLayer>,
         Option<&SortOrder>,
         Option<&EffectiveVisibility>,
+        Option<&Material2d>,
     )>,
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
@@ -113,17 +115,20 @@ pub fn shape_render_system(
 
     let mut shapes: Vec<_> = query
         .iter()
-        .filter(|(_, _, _, _, vis)| !vis.is_some_and(|v| !v.0))
+        .filter(|(_, _, _, _, vis, _)| !vis.is_some_and(|v| !v.0))
         .collect();
 
-    shapes.sort_by_key(|(_, _, layer, sort, _)| {
+    shapes.sort_by_key(|(_, _, layer, sort, _, mat)| {
         (
             layer.copied().unwrap_or(RenderLayer::World),
+            effective_blend_mode(*mat),
             sort.copied().unwrap_or_default(),
         )
     });
 
-    for (shape, transform, _, _, _) in shapes {
+    let mut last_blend_mode = None;
+
+    for (shape, transform, _, _, _, mat) in shapes {
         let pos = transform.0.translation;
         let (local_min, local_max) = shape_aabb(&shape.variant);
 
@@ -133,6 +138,12 @@ pub fn shape_render_system(
             if !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max) {
                 continue;
             }
+        }
+
+        let blend_mode = effective_blend_mode(mat);
+        if last_blend_mode != Some(blend_mode) {
+            renderer.set_blend_mode(blend_mode);
+            last_blend_mode = Some(blend_mode);
         }
 
         let mesh = tessellate(&shape.variant);
@@ -149,7 +160,14 @@ pub fn shape_render_system(
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use bevy_ecs::prelude::*;
+    use glam::Affine2;
+
     use super::*;
+    use crate::material::{BlendMode, Material2d};
+    use crate::testing::{BlendCallLog, ShapeCallLog, SpyRenderer};
 
     #[test]
     fn when_tessellating_circle_then_produces_nonempty_vertices_and_indices() {
@@ -311,11 +329,6 @@ mod tests {
         assert!(mesh.indices.is_empty());
     }
 
-    use crate::testing::{ShapeCallLog, SpyRenderer};
-    use bevy_ecs::prelude::*;
-    use glam::Affine2;
-    use std::sync::{Arc, Mutex};
-
     fn default_shape() -> Shape {
         Shape {
             variant: ShapeVariant::Circle { radius: 30.0 },
@@ -342,6 +355,74 @@ mod tests {
         let spy = SpyRenderer::new(log).with_shape_capture(calls.clone());
         world.insert_resource(RendererRes::new(Box::new(spy)));
         calls
+    }
+
+    fn insert_spy_with_blend_capture(world: &mut World) -> BlendCallLog {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let blend_calls: BlendCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log).with_blend_capture(blend_calls.clone());
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        blend_calls
+    }
+
+    #[test]
+    fn when_shape_has_no_material_then_set_blend_mode_called_with_alpha() {
+        // Arrange
+        let mut world = World::new();
+        let blend_calls = insert_spy_with_blend_capture(&mut world);
+        world.spawn((default_shape(), GlobalTransform2D(Affine2::IDENTITY)));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = blend_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[BlendMode::Alpha]);
+    }
+
+    #[test]
+    fn when_shape_has_additive_material_then_set_blend_mode_called_with_additive() {
+        // Arrange
+        let mut world = World::new();
+        let blend_calls = insert_spy_with_blend_capture(&mut world);
+        world.spawn((
+            default_shape(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                blend_mode: BlendMode::Additive,
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = blend_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[BlendMode::Additive]);
+    }
+
+    #[test]
+    fn when_two_shapes_with_different_blend_modes_then_set_blend_mode_in_sorted_order() {
+        // Arrange
+        let mut world = World::new();
+        let blend_calls = insert_spy_with_blend_capture(&mut world);
+        world.spawn((
+            default_shape(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                blend_mode: BlendMode::Multiply,
+                ..Material2d::default()
+            },
+        ));
+        world.spawn((default_shape(), GlobalTransform2D(Affine2::IDENTITY)));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = blend_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[BlendMode::Alpha, BlendMode::Multiply]);
     }
 
     fn insert_spy_with_viewport(

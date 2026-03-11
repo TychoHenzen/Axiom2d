@@ -8,6 +8,10 @@ pub use crate::camera::{
 };
 pub use crate::clear::{ClearColor, clear_system};
 pub use crate::create_renderer;
+pub use crate::material::{
+    BlendMode, Material2d, ShaderHandle, ShaderRegistry, TextureBinding, effective_blend_mode,
+    preprocess,
+};
 pub use crate::rect::Rect;
 pub use crate::renderer::{NullRenderer, Renderer, RendererRes};
 pub use crate::shape::{Shape, ShapeVariant, TessellatedMesh, shape_render_system, tessellate};

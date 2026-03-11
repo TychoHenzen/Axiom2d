@@ -31,3 +31,6 @@ callgrind.out.*
 # Mutation testing
 mutants.out/
 mutants.out.old/
+
+# Serena
+.serena/

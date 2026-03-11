@@ -2,6 +2,7 @@ pub mod atlas;
 pub mod bloom;
 pub mod camera;
 pub mod clear;
+pub mod material;
 pub mod prelude;
 pub mod rect;
 pub mod renderer;

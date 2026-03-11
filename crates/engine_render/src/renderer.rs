@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::Resource;
 use engine_core::color::Color;
 
+use crate::material::BlendMode;
 use crate::rect::Rect;
 
 pub trait Renderer {
@@ -9,6 +10,7 @@ pub trait Renderer {
     fn draw_sprite(&mut self, rect: Rect, uv_rect: [f32; 4]);
     fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color);
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]);
+    fn set_blend_mode(&mut self, mode: BlendMode);
     fn viewport_size(&self) -> (u32, u32);
     fn apply_post_process(&mut self);
     fn present(&mut self);
@@ -45,6 +47,7 @@ impl Renderer for NullRenderer {
     fn draw_sprite(&mut self, _rect: Rect, _uv_rect: [f32; 4]) {}
     fn draw_shape(&mut self, _vertices: &[[f32; 2]], _indices: &[u32], _color: Color) {}
     fn set_view_projection(&mut self, _matrix: [[f32; 4]; 4]) {}
+    fn set_blend_mode(&mut self, _mode: BlendMode) {}
     fn viewport_size(&self) -> (u32, u32) {
         (0, 0)
     }
@@ -137,6 +140,17 @@ mod tests {
 
         // Act
         renderer.resize(800, 600);
+    }
+
+    #[test]
+    fn when_null_renderer_set_blend_mode_then_does_not_panic() {
+        // Arrange
+        let mut renderer = NullRenderer;
+
+        // Act
+        renderer.set_blend_mode(BlendMode::Alpha);
+        renderer.set_blend_mode(BlendMode::Additive);
+        renderer.set_blend_mode(BlendMode::Multiply);
     }
 
     #[test]
