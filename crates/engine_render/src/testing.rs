@@ -7,12 +7,14 @@ use crate::renderer::Renderer;
 
 pub type SpriteCallLog = Arc<Mutex<Vec<(Rect, [f32; 4])>>>;
 pub type ShapeCallLog = Arc<Mutex<Vec<(Vec<[f32; 2]>, Vec<u32>, Color)>>>;
+pub type MatrixCapture = Arc<Mutex<Option<[[f32; 4]; 4]>>>;
 
 pub struct SpyRenderer {
     log: Arc<Mutex<Vec<String>>>,
     color_capture: Option<Arc<Mutex<Option<Color>>>>,
     sprite_calls: Option<SpriteCallLog>,
     shape_calls: Option<ShapeCallLog>,
+    matrix_capture: Option<MatrixCapture>,
     viewport: (u32, u32),
 }
 
@@ -23,6 +25,7 @@ impl SpyRenderer {
             color_capture: None,
             sprite_calls: None,
             shape_calls: None,
+            matrix_capture: None,
             viewport: (0, 0),
         }
     }
@@ -39,6 +42,11 @@ impl SpyRenderer {
 
     pub fn with_shape_capture(mut self, shape_calls: ShapeCallLog) -> Self {
         self.shape_calls = Some(shape_calls);
+        self
+    }
+
+    pub fn with_matrix_capture(mut self, matrix_capture: MatrixCapture) -> Self {
+        self.matrix_capture = Some(matrix_capture);
         self
     }
 
@@ -85,8 +93,11 @@ impl Renderer for SpyRenderer {
         }
     }
 
-    fn set_view_projection(&mut self, _matrix: [[f32; 4]; 4]) {
+    fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]) {
         self.log_call("set_view_projection");
+        if let Some(capture) = &self.matrix_capture {
+            *capture.lock().expect("matrix capture poisoned") = Some(matrix);
+        }
     }
 
     fn viewport_size(&self) -> (u32, u32) {

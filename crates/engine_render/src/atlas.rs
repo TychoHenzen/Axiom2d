@@ -579,6 +579,24 @@ mod tests {
     }
 
     #[test]
+    fn when_second_image_at_nonzero_y_then_uv_height_matches_image_ratio() {
+        // Arrange — narrow atlas forces second image to y > 0
+        let mut builder = AtlasBuilder::new(4, 8);
+        builder.add_image(4, 4, &[0u8; 64]).unwrap();
+
+        // Act
+        let h2 = builder.add_image(2, 2, &[0u8; 16]).unwrap();
+
+        // Assert
+        let uv_height = h2.uv_rect[3] - h2.uv_rect[1];
+        let expected = 2.0 / 8.0;
+        assert!(
+            (uv_height - expected).abs() < 1e-6,
+            "UV height {uv_height} should be {expected}"
+        );
+    }
+
+    #[test]
     fn when_second_image_offset_then_handle_uv_matches_build_lookup() {
         // Arrange — narrow atlas forces second image to y > 0
         let mut builder = AtlasBuilder::new(4, 8);

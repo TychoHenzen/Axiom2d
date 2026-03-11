@@ -709,6 +709,58 @@ mod tests {
     }
 
     #[test]
+    fn when_shape_near_view_min_edge_then_drawn() {
+        // Circle r=30 at (5,5). AABB: (-25,-25) to (35,35).
+        // View [0,0]-[100,100]. Inside because 35 >= 0.
+        // Kills `-` mutant: pos - max = 5-30 = -25 < 0 → culled.
+        let mut world = World::new();
+        let calls = insert_spy_with_shape_and_viewport(&mut world, 100, 100);
+        world.spawn(Camera2D {
+            position: Vec2::new(50.0, 50.0),
+            zoom: 1.0,
+        });
+        world.spawn((
+            default_shape(),
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(5.0, 5.0))),
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(), 1, "shape near view min edge should be drawn");
+    }
+
+    #[test]
+    fn when_shape_at_negative_pos_inside_view_then_drawn() {
+        // Circle r=30 at (-20,-20). AABB: (-50,-50) to (10,10).
+        // View [-50,-50]-[50,50]. Inside (edge-touching).
+        // Kills `*` mutant: pos * min = -20*(-30) = 600 > 50 → culled.
+        let mut world = World::new();
+        let calls = insert_spy_with_shape_and_viewport(&mut world, 100, 100);
+        world.spawn(Camera2D {
+            position: Vec2::new(0.0, 0.0),
+            zoom: 1.0,
+        });
+        world.spawn((
+            default_shape(),
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(-20.0, -20.0))),
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = calls.lock().unwrap();
+        assert_eq!(
+            calls.len(),
+            1,
+            "shape at negative pos inside view should be drawn"
+        );
+    }
+
+    #[test]
     fn when_no_camera_entity_then_all_shapes_drawn_without_culling() {
         // Arrange
         let mut world = World::new();

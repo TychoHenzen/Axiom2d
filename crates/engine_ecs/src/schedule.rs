@@ -25,3 +25,19 @@ impl Phase {
         self as usize
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn when_index_then_matches_declaration_order() {
+        for (expected, phase) in Phase::ALL.iter().enumerate() {
+            assert_eq!(
+                phase.index(),
+                expected,
+                "{phase:?} should have index {expected}"
+            );
+        }
+    }
+}

@@ -565,34 +565,26 @@ mod tests {
     }
 
     #[test]
-    fn when_no_camera_entity_then_default_camera_centers_on_viewport() {
-        // Arrange — no Camera2D entity, viewport 800x600
-        // Default camera should be at (400, 300) with zoom 1.0
-        // So world (0, 0) should map to NDC top-left (-1, +1)
+    fn when_no_camera_then_system_uses_viewport_center() {
+        // Arrange
         let mut world = bevy_ecs::world::World::new();
-        let _log = insert_spy_with_viewport(&mut world, 800, 600);
+        let matrix: crate::testing::MatrixCapture = Arc::new(Mutex::new(None));
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_viewport(800, 600)
+            .with_matrix_capture(matrix.clone());
+        world.insert_resource(RendererRes::new(Box::new(spy)));
 
         // Act
         run_camera_prepare(&mut world);
 
-        // Assert — verify by computing expected uniform manually
-        let expected_camera = Camera2D {
+        // Assert
+        let actual = matrix.lock().unwrap().unwrap();
+        let expected_cam = Camera2D {
             position: Vec2::new(400.0, 300.0),
             zoom: 1.0,
         };
-        let expected_uniform = CameraUniform::from_camera(&expected_camera, 800.0, 600.0);
-        let vp = Mat4::from_cols_array_2d(&expected_uniform.view_proj);
-        let origin_ndc = vp * glam::Vec4::new(0.0, 0.0, 0.0, 1.0);
-        assert!(
-            (origin_ndc.x - (-1.0)).abs() < 1e-4,
-            "origin x should map to NDC -1, got {}",
-            origin_ndc.x
-        );
-        let center_ndc = vp * glam::Vec4::new(400.0, 300.0, 0.0, 1.0);
-        assert!(
-            center_ndc.x.abs() < 1e-4,
-            "viewport center should map to NDC 0, got {}",
-            center_ndc.x
-        );
+        let expected = CameraUniform::from_camera(&expected_cam, 800.0, 600.0);
+        assert_eq!(actual, expected.view_proj);
     }
 }
