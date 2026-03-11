@@ -52,6 +52,36 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 ";
 
+const SHAPE_SHADER_SRC: &str = "
+struct ShapeOutput {
+    @builtin(position) position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+};
+
+struct CameraUniform {
+    view_proj: mat4x4<f32>,
+};
+
+@group(0) @binding(0) var<uniform> camera: CameraUniform;
+
+@vertex
+fn vs_shape(
+    @location(0) position: vec2<f32>,
+    @location(1) color: vec4<f32>,
+) -> ShapeOutput {
+    var out: ShapeOutput;
+    let world_pos = vec4<f32>(position, 0.0, 1.0);
+    out.position = camera.view_proj * world_pos;
+    out.color = color;
+    return out;
+}
+
+@fragment
+fn fs_shape(in: ShapeOutput) -> @location(0) vec4<f32> {
+    return in.color;
+}
+";
+
 const BLOOM_PREAMBLE: &str = "
 struct FullscreenOutput {
     @builtin(position) position: vec4<f32>,
@@ -160,6 +190,13 @@ pub(crate) const FULLSCREEN_QUAD_VERTICES: [QuadVertex; 4] = [
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
+pub(crate) struct ShapeVertex {
+    pub(crate) position: [f32; 2],
+    pub(crate) color: [f32; 4],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
 pub(crate) struct Instance {
     pub(crate) world_rect: [f32; 4],
     pub(crate) uv_rect: [f32; 4],
@@ -174,6 +211,57 @@ struct BloomParamsUniform {
     direction: [f32; 2],
     texel_size: [f32; 2],
     _pad: [f32; 2],
+}
+
+pub(crate) struct ShapeBatch {
+    vertices: Vec<ShapeVertex>,
+    indices: Vec<u32>,
+}
+
+impl ShapeBatch {
+    pub(crate) fn new() -> Self {
+        Self {
+            vertices: Vec::new(),
+            indices: Vec::new(),
+        }
+    }
+
+    pub(crate) fn push(&mut self, positions: &[[f32; 2]], indices: &[u32], color: Color) {
+        let base = self.vertices.len() as u32;
+        let color = [color.r, color.g, color.b, color.a];
+        self.vertices.extend(
+            positions
+                .iter()
+                .map(|&position| ShapeVertex { position, color }),
+        );
+        self.indices.extend(indices.iter().map(|&i| i + base));
+    }
+
+    #[cfg(test)]
+    pub(crate) fn vertex_count(&self) -> usize {
+        self.vertices.len()
+    }
+
+    pub(crate) fn index_count(&self) -> usize {
+        self.indices.len()
+    }
+
+    pub(crate) fn vertices(&self) -> &[ShapeVertex] {
+        &self.vertices
+    }
+
+    pub(crate) fn indices(&self) -> &[u32] {
+        &self.indices
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.vertices.clear();
+        self.indices.clear();
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.vertices.is_empty()
+    }
 }
 
 pub(crate) fn rect_to_instance(rect: &Rect) -> Instance {
@@ -626,6 +714,8 @@ pub struct WgpuRenderer {
     camera_bind_group: wgpu::BindGroup,
     clear_color: Color,
     pending_instances: Vec<Instance>,
+    shape_batch: ShapeBatch,
+    shape_pipeline: wgpu::RenderPipeline,
     post_process: Option<PostProcessResources>,
     post_process_pending: bool,
     bloom_threshold: f32,
@@ -815,6 +905,62 @@ impl WgpuRenderer {
         let texture_bind_group =
             create_texture_bind_group(&device, &queue, &texture_bind_group_layout, 1, 1, &[255; 4]);
 
+        let shape_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: wgpu::ShaderSource::Wgsl(SHAPE_SHADER_SRC.into()),
+        });
+
+        let shape_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: None,
+                bind_group_layouts: &[&camera_bind_group_layout],
+                push_constant_ranges: &[],
+            });
+
+        let shape_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: None,
+            layout: Some(&shape_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shape_shader,
+                entry_point: Some("vs_shape"),
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: size_of::<ShapeVertex>() as wgpu::BufferAddress,
+                    step_mode: wgpu::VertexStepMode::Vertex,
+                    attributes: &[
+                        wgpu::VertexAttribute {
+                            format: wgpu::VertexFormat::Float32x2,
+                            offset: 0,
+                            shader_location: 0,
+                        },
+                        wgpu::VertexAttribute {
+                            format: wgpu::VertexFormat::Float32x4,
+                            offset: 8,
+                            shader_location: 1,
+                        },
+                    ],
+                }],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shape_shader,
+                entry_point: Some("fs_shape"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                ..Default::default()
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None,
+            cache: None,
+        });
+
         Self {
             surface,
             device,
@@ -829,6 +975,8 @@ impl WgpuRenderer {
             camera_bind_group,
             clear_color: Color::BLACK,
             pending_instances: Vec::new(),
+            shape_batch: ShapeBatch::new(),
+            shape_pipeline,
             post_process: None,
             post_process_pending: false,
             bloom_threshold: 0.8,
@@ -904,6 +1052,30 @@ impl WgpuRenderer {
                 0,
                 0..self.pending_instances.len() as u32,
             );
+        }
+
+        if !self.shape_batch.is_empty() {
+            let vertex_buffer = self
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: bytemuck::cast_slice(self.shape_batch.vertices()),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
+
+            let index_buffer = self
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: bytemuck::cast_slice(self.shape_batch.indices()),
+                    usage: wgpu::BufferUsages::INDEX,
+                });
+
+            pass.set_pipeline(&self.shape_pipeline);
+            pass.set_bind_group(0, &self.camera_bind_group, &[]);
+            pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+            pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+            pass.draw_indexed(0..self.shape_batch.index_count() as u32, 0, 0..1);
         }
     }
 
@@ -1142,6 +1314,7 @@ impl Renderer for WgpuRenderer {
     fn clear(&mut self, color: Color) {
         self.clear_color = color;
         self.pending_instances.clear();
+        self.shape_batch.clear();
     }
 
     fn draw_rect(&mut self, rect: Rect) {
@@ -1154,7 +1327,9 @@ impl Renderer for WgpuRenderer {
         self.pending_instances.push(instance);
     }
 
-    fn draw_shape(&mut self, _vertices: &[[f32; 2]], _indices: &[u32], _color: Color) {}
+    fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color) {
+        self.shape_batch.push(vertices, indices, color);
+    }
 
     fn set_blend_mode(&mut self, _mode: crate::material::BlendMode) {}
 
@@ -1367,6 +1542,102 @@ mod tests {
             positions,
             [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]]
         );
+    }
+
+    #[test]
+    fn when_shape_vertex_size_checked_then_exactly_24_bytes() {
+        // Act
+        let size = std::mem::size_of::<ShapeVertex>();
+
+        // Assert
+        assert_eq!(size, 24);
+    }
+
+    #[test]
+    fn when_shape_vertices_cast_to_bytes_then_no_panic() {
+        // Arrange
+        let vertices = [
+            ShapeVertex {
+                position: [0.0, 0.0],
+                color: [1.0, 1.0, 1.0, 1.0],
+            },
+            ShapeVertex {
+                position: [1.0, 0.0],
+                color: [1.0, 0.0, 0.0, 1.0],
+            },
+        ];
+
+        // Act
+        let bytes: &[u8] = bytemuck::cast_slice(&vertices);
+
+        // Assert
+        assert_eq!(bytes.len(), 48);
+    }
+
+    #[test]
+    fn when_single_shape_pushed_then_vertex_and_index_counts_match_input() {
+        // Arrange
+        let vertices = [[0.0_f32, 0.0], [1.0, 0.0], [0.5, 1.0]];
+        let indices = [0_u32, 1, 2];
+        let mut batch = ShapeBatch::new();
+
+        // Act
+        batch.push(&vertices, &indices, Color::RED);
+
+        // Assert
+        assert_eq!(batch.vertex_count(), 3);
+        assert_eq!(batch.index_count(), 3);
+    }
+
+    #[test]
+    fn when_two_shapes_pushed_then_second_indices_are_offset_by_first_vertex_count() {
+        // Arrange
+        let tri_verts = [[0.0_f32, 0.0], [1.0, 0.0], [0.5, 1.0]];
+        let tri_indices = [0_u32, 1, 2];
+        let quad_verts = [[2.0_f32, 0.0], [3.0, 0.0], [3.0, 1.0], [2.0, 1.0]];
+        let quad_indices = [0_u32, 1, 2, 0, 2, 3];
+        let mut batch = ShapeBatch::new();
+        batch.push(&tri_verts, &tri_indices, Color::RED);
+
+        // Act
+        batch.push(&quad_verts, &quad_indices, Color::BLUE);
+
+        // Assert
+        assert_eq!(&batch.indices()[3..], &[3_u32, 4, 5, 3, 5, 6]);
+    }
+
+    #[test]
+    fn when_batch_cleared_then_vertex_and_index_counts_are_zero() {
+        // Arrange
+        let vertices = [[0.0_f32, 0.0], [1.0, 0.0], [0.5, 1.0]];
+        let indices = [0_u32, 1, 2];
+        let mut batch = ShapeBatch::new();
+        batch.push(&vertices, &indices, Color::RED);
+
+        // Act
+        batch.clear();
+
+        // Assert
+        assert_eq!(batch.vertex_count(), 0);
+        assert_eq!(batch.index_count(), 0);
+    }
+
+    #[test]
+    fn when_batch_is_empty_then_is_empty_returns_true() {
+        // Act
+        let batch = ShapeBatch::new();
+
+        // Assert
+        assert!(batch.is_empty());
+    }
+
+    #[test]
+    fn when_shape_shader_parsed_then_no_error() {
+        // Act
+        let result = naga::front::wgsl::parse_str(SHAPE_SHADER_SRC);
+
+        // Assert
+        assert!(result.is_ok(), "WGSL parse error: {result:?}");
     }
 
     #[test]
