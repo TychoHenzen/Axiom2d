@@ -9,4 +9,7 @@ workspace = true
 [dependencies]
 bevy_ecs = { workspace = true }
 cpal = { workspace = true }
+engine_core = { path = "../engine_core" }
+engine_scene = { path = "../engine_scene" }
 fundsp = { workspace = true }
+glam = { workspace = true }

@@ -1,8 +1,11 @@
 use bevy_ecs::prelude::{Res, ResMut};
 
 use crate::audio_res::AudioRes;
+use crate::mixer::MixerState;
 use crate::play_sound_buffer::PlaySoundBuffer;
+use crate::sound_data::SoundData;
 use crate::sound_library::SoundLibrary;
+use crate::spatial::SpatialGains;
 
 const DEFAULT_SAMPLE_RATE: u32 = 44_100;
 const DEFAULT_DURATION: f32 = 0.5;
@@ -10,6 +13,7 @@ const DEFAULT_DURATION: f32 = 0.5;
 pub fn play_sound_system(
     mut buffer: ResMut<PlaySoundBuffer>,
     library: Option<Res<SoundLibrary>>,
+    mixer: Option<Res<MixerState>>,
     mut audio: ResMut<AudioRes>,
 ) {
     let commands: Vec<_> = buffer.drain().collect();
@@ -18,11 +22,50 @@ pub fn play_sound_system(
         return;
     };
 
+    if let Some(mixer) = &mixer {
+        for track in crate::mixer::MixerTrack::ALL {
+            audio.set_track_volume(track, mixer.track_volume(track));
+        }
+    }
+
     for cmd in commands {
         if let Some(effect) = library.get(&cmd.name) {
             let sound = effect.synthesize(DEFAULT_SAMPLE_RATE, DEFAULT_DURATION);
-            audio.play(&sound);
+            let sound = if let Some(gains) = cmd.spatial_gains {
+                if gains.left.abs() < f32::EPSILON && gains.right.abs() < f32::EPSILON {
+                    continue;
+                }
+                apply_spatial_gains(&sound, gains)
+            } else {
+                sound
+            };
+            audio.play_on_track(&sound, cmd.track);
         }
+    }
+}
+
+fn apply_spatial_gains(sound: &SoundData, gains: SpatialGains) -> SoundData {
+    let frame_count = sound.frame_count();
+    let mut stereo_samples = Vec::with_capacity(frame_count * 2);
+
+    if sound.channels == 1 {
+        for &sample in &sound.samples {
+            stereo_samples.push(sample * gains.left);
+            stereo_samples.push(sample * gains.right);
+        }
+    } else {
+        for frame in sound.samples.chunks(sound.channels as usize) {
+            let left = frame.first().copied().unwrap_or(0.0);
+            let right = frame.get(1).copied().unwrap_or(0.0);
+            stereo_samples.push(left * gains.left);
+            stereo_samples.push(right * gains.right);
+        }
+    }
+
+    SoundData {
+        samples: stereo_samples,
+        sample_rate: sound.sample_rate,
+        channels: 2,
     }
 }
 
@@ -34,6 +77,7 @@ mod tests {
     use bevy_ecs::prelude::{Schedule, World};
 
     use crate::audio_backend::AudioBackend;
+    use crate::mixer::{MixerState, MixerTrack};
     use crate::play_sound_buffer::PlaySound;
     use crate::playback_id::PlaybackId;
     use crate::sound_data::SoundData;
@@ -43,6 +87,8 @@ mod tests {
 
     struct SpyAudioBackend {
         play_count: Arc<Mutex<u32>>,
+        played_tracks: Arc<Mutex<Vec<MixerTrack>>>,
+        track_volume_calls: Arc<Mutex<Vec<(MixerTrack, f32)>>>,
         next_id: u32,
     }
 
@@ -50,20 +96,46 @@ mod tests {
         fn new(play_count: Arc<Mutex<u32>>) -> Self {
             Self {
                 play_count,
+                played_tracks: Arc::new(Mutex::new(Vec::new())),
+                track_volume_calls: Arc::new(Mutex::new(Vec::new())),
+                next_id: 0,
+            }
+        }
+
+        fn with_track_captures(
+            play_count: Arc<Mutex<u32>>,
+            played_tracks: Arc<Mutex<Vec<MixerTrack>>>,
+            track_volume_calls: Arc<Mutex<Vec<(MixerTrack, f32)>>>,
+        ) -> Self {
+            Self {
+                play_count,
+                played_tracks,
+                track_volume_calls,
                 next_id: 0,
             }
         }
     }
 
     impl AudioBackend for SpyAudioBackend {
-        fn play(&mut self, _sound: &SoundData) -> PlaybackId {
+        fn play(&mut self, sound: &SoundData) -> PlaybackId {
+            self.play_on_track(sound, MixerTrack::Sfx)
+        }
+
+        fn play_on_track(&mut self, _sound: &SoundData, track: MixerTrack) -> PlaybackId {
             self.next_id += 1;
             *self.play_count.lock().unwrap() += 1;
+            self.played_tracks.lock().unwrap().push(track);
             PlaybackId(self.next_id)
         }
 
         fn stop(&mut self, _id: PlaybackId) {}
         fn set_volume(&mut self, _volume: f32) {}
+        fn set_track_volume(&mut self, track: MixerTrack, volume: f32) {
+            self.track_volume_calls
+                .lock()
+                .unwrap()
+                .push((track, volume));
+        }
     }
 
     fn test_effect() -> SoundEffect {
@@ -163,6 +235,63 @@ mod tests {
     }
 
     #[test]
+    fn when_play_sound_with_mixer_state_then_track_volume_forwarded() {
+        // Arrange
+        let play_count = Arc::new(Mutex::new(0u32));
+        let played_tracks = Arc::new(Mutex::new(Vec::new()));
+        let track_volume_calls = Arc::new(Mutex::new(Vec::new()));
+        let mut world = World::new();
+        world.insert_resource(PlaySoundBuffer::default());
+        world.insert_resource(AudioRes::new(Box::new(
+            SpyAudioBackend::with_track_captures(
+                Arc::clone(&play_count),
+                Arc::clone(&played_tracks),
+                Arc::clone(&track_volume_calls),
+            ),
+        )));
+        let mut library = SoundLibrary::default();
+        library.register("bgm", test_effect());
+        world.insert_resource(library);
+        let mut mixer = MixerState::default();
+        mixer.set_track_volume(MixerTrack::Music, 0.3);
+        world.insert_resource(mixer);
+        world
+            .resource_mut::<PlaySoundBuffer>()
+            .push(PlaySound::on_track("bgm", MixerTrack::Music));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert_eq!(*play_count.lock().unwrap(), 1);
+        assert_eq!(played_tracks.lock().unwrap()[0], MixerTrack::Music);
+        let calls = track_volume_calls.lock().unwrap();
+        let music_call = calls.iter().find(|(t, _)| *t == MixerTrack::Music);
+        assert!(music_call.is_some());
+        assert!((music_call.unwrap().1 - 0.3).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn when_play_sound_without_mixer_state_then_runs_normally() {
+        // Arrange
+        let play_count = Arc::new(Mutex::new(0u32));
+        let mut world = setup_world(&play_count);
+        let mut library = SoundLibrary::default();
+        library.register("beep", test_effect());
+        world.insert_resource(library);
+        // No MixerState inserted
+        world
+            .resource_mut::<PlaySoundBuffer>()
+            .push(PlaySound::new("beep"));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert_eq!(*play_count.lock().unwrap(), 1);
+    }
+
+    #[test]
     fn when_unknown_sound_name_then_buffer_is_still_drained() {
         // Arrange
         let play_count = Arc::new(Mutex::new(0u32));
@@ -180,5 +309,49 @@ mod tests {
         // Assert
         let remaining: Vec<_> = world.resource_mut::<PlaySoundBuffer>().drain().collect();
         assert!(remaining.is_empty());
+    }
+
+    #[test]
+    fn when_spatial_gains_present_then_play_sound_applies_them() {
+        // Arrange
+        let play_count = Arc::new(Mutex::new(0u32));
+        let mut world = setup_world(&play_count);
+        let mut library = SoundLibrary::default();
+        library.register("beep", test_effect());
+        world.insert_resource(library);
+        let mut cmd = PlaySound::new("beep");
+        cmd.spatial_gains = Some(crate::spatial::SpatialGains {
+            left: 0.3,
+            right: 0.9,
+        });
+        world.resource_mut::<PlaySoundBuffer>().push(cmd);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert_eq!(*play_count.lock().unwrap(), 1);
+    }
+
+    #[test]
+    fn when_both_gains_zero_then_play_sound_skips_backend() {
+        // Arrange
+        let play_count = Arc::new(Mutex::new(0u32));
+        let mut world = setup_world(&play_count);
+        let mut library = SoundLibrary::default();
+        library.register("beep", test_effect());
+        world.insert_resource(library);
+        let mut cmd = PlaySound::new("beep");
+        cmd.spatial_gains = Some(crate::spatial::SpatialGains {
+            left: 0.0,
+            right: 0.0,
+        });
+        world.resource_mut::<PlaySoundBuffer>().push(cmd);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert_eq!(*play_count.lock().unwrap(), 0);
     }
 }

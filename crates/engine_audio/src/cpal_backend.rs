@@ -6,16 +6,22 @@ use crate::audio_backend::AudioBackend;
 use crate::playback_id::PlaybackId;
 use crate::sound_data::SoundData;
 
+use crate::mixer::MixerTrack;
+
 struct ActiveSound {
     id: PlaybackId,
     samples: Arc<Vec<f32>>,
     cursor: usize,
+    track: MixerTrack,
 }
+
+use crate::mixer::TRACK_COUNT;
 
 struct SharedState {
     volume: f32,
     next_id: u32,
     active_sounds: Vec<ActiveSound>,
+    track_volumes: [f32; TRACK_COUNT],
 }
 
 fn mix_into(output: &mut [f32], state: &mut SharedState) {
@@ -26,12 +32,13 @@ fn mix_into(output: &mut [f32], state: &mut SharedState) {
     for sound in &mut state.active_sounds {
         let remaining = sound.samples.len() - sound.cursor;
         let to_mix = remaining.min(output.len());
+        let effective_volume = state.volume * state.track_volumes[sound.track.index()];
 
         for (out, &src) in output[..to_mix]
             .iter_mut()
             .zip(&sound.samples[sound.cursor..sound.cursor + to_mix])
         {
-            *out += src * state.volume;
+            *out += src * effective_volume;
         }
 
         sound.cursor += to_mix;
@@ -40,8 +47,6 @@ fn mix_into(output: &mut [f32], state: &mut SharedState) {
     state.active_sounds.retain(|s| s.cursor < s.samples.len());
 }
 
-/// Keeps the `cpal::Stream` alive via RAII. Sending it across threads is safe —
-/// it is an OS handle to an audio callback thread with no thread-local state.
 #[allow(dead_code)]
 struct StreamHandle(cpal::Stream);
 
@@ -62,6 +67,7 @@ impl CpalBackend {
             volume: 1.0,
             next_id: 0,
             active_sounds: Vec::new(),
+            track_volumes: [1.0; TRACK_COUNT],
         }));
 
         let stream = Self::open_stream(Arc::clone(&state));
@@ -104,6 +110,11 @@ impl CpalBackend {
     }
 
     #[cfg(test)]
+    fn track_volume(&self, track: MixerTrack) -> f32 {
+        self.state.lock().expect("lock poisoned").track_volumes[track.index()]
+    }
+
+    #[cfg(test)]
     fn active_sound_count(&self) -> usize {
         self.state
             .lock()
@@ -121,6 +132,10 @@ impl Default for CpalBackend {
 
 impl AudioBackend for CpalBackend {
     fn play(&mut self, sound: &SoundData) -> PlaybackId {
+        self.play_on_track(sound, MixerTrack::Sfx)
+    }
+
+    fn play_on_track(&mut self, sound: &SoundData, track: MixerTrack) -> PlaybackId {
         let mut state = self.state.lock().expect("audio state lock poisoned");
         state.next_id += 1;
         let id = PlaybackId(state.next_id);
@@ -128,6 +143,7 @@ impl AudioBackend for CpalBackend {
             id,
             samples: Arc::new(sound.samples.clone()),
             cursor: 0,
+            track,
         });
         id
     }
@@ -140,6 +156,11 @@ impl AudioBackend for CpalBackend {
     fn set_volume(&mut self, volume: f32) {
         let mut state = self.state.lock().expect("audio state lock poisoned");
         state.volume = volume;
+    }
+
+    fn set_track_volume(&mut self, track: MixerTrack, volume: f32) {
+        let mut state = self.state.lock().expect("audio state lock poisoned");
+        state.track_volumes[track.index()] = volume;
     }
 }
 
@@ -169,6 +190,20 @@ mod tests {
             volume,
             next_id: sounds.len() as u32,
             active_sounds: sounds,
+            track_volumes: [1.0; TRACK_COUNT],
+        }
+    }
+
+    fn test_state_with_tracks(
+        volume: f32,
+        track_volumes: [f32; TRACK_COUNT],
+        sounds: Vec<ActiveSound>,
+    ) -> SharedState {
+        SharedState {
+            volume,
+            next_id: sounds.len() as u32,
+            active_sounds: sounds,
+            track_volumes,
         }
     }
 
@@ -177,10 +212,18 @@ mod tests {
             id: PlaybackId(id),
             samples: Arc::new(samples),
             cursor: 0,
+            track: MixerTrack::Sfx,
         }
     }
 
-    // --- CpalBackend integration tests ---
+    fn active_on_track(id: u32, samples: Vec<f32>, track: MixerTrack) -> ActiveSound {
+        ActiveSound {
+            id: PlaybackId(id),
+            samples: Arc::new(samples),
+            cursor: 0,
+            track,
+        }
+    }
 
     #[test]
     fn when_constructed_then_volume_is_one() {
@@ -254,8 +297,6 @@ mod tests {
         assert_eq!(backend.active_sound_count(), 1);
     }
 
-    // --- mix_into pure function tests ---
-
     #[test]
     fn when_single_sound_at_full_volume_then_output_matches_samples() {
         // Arrange
@@ -317,6 +358,60 @@ mod tests {
         assert!((output[2]).abs() < f32::EPSILON);
         assert!((output[3]).abs() < f32::EPSILON);
         assert!(state.active_sounds.is_empty());
+    }
+
+    #[test]
+    fn when_mix_into_with_two_tracks_then_per_track_volume_applied() {
+        // Arrange
+        let mut track_volumes = [1.0; TRACK_COUNT];
+        track_volumes[MixerTrack::Music.index()] = 0.5;
+        let mut state = test_state_with_tracks(
+            1.0,
+            track_volumes,
+            vec![
+                active_on_track(1, vec![0.8], MixerTrack::Music),
+                active_on_track(2, vec![0.4], MixerTrack::Sfx),
+            ],
+        );
+        let mut output = vec![0.0; 1];
+
+        // Act
+        mix_into(&mut output, &mut state);
+
+        // Assert: 0.8 * 0.5 + 0.4 * 1.0 = 0.8
+        assert!((output[0] - 0.8).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn when_global_and_track_volume_both_half_then_output_quarter() {
+        // Arrange
+        let mut track_volumes = [1.0; TRACK_COUNT];
+        track_volumes[MixerTrack::Music.index()] = 0.5;
+        let mut state = test_state_with_tracks(
+            0.5,
+            track_volumes,
+            vec![active_on_track(1, vec![1.0], MixerTrack::Music)],
+        );
+        let mut output = vec![0.0; 1];
+
+        // Act
+        mix_into(&mut output, &mut state);
+
+        // Assert: 1.0 * 0.5 * 0.5 = 0.25
+        assert!((output[0] - 0.25).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn when_set_track_volume_on_cpal_then_internal_state_updated() {
+        // Arrange
+        let mut backend = CpalBackend::new();
+
+        // Act
+        backend.set_track_volume(MixerTrack::Sfx, 0.6);
+
+        // Assert
+        assert!((backend.track_volume(MixerTrack::Sfx) - 0.6).abs() < f32::EPSILON);
+        assert!((backend.track_volume(MixerTrack::Music) - 1.0).abs() < f32::EPSILON);
     }
 
     #[test]

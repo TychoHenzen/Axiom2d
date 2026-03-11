@@ -1,6 +1,7 @@
 pub mod audio_backend;
 pub mod audio_res;
 pub mod cpal_backend;
+pub mod mixer;
 pub mod play_sound_buffer;
 pub mod play_sound_system;
 pub mod playback_id;
@@ -8,3 +9,4 @@ pub mod prelude;
 pub mod sound_data;
 pub mod sound_effect;
 pub mod sound_library;
+pub mod spatial;

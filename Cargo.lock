@@ -807,7 +807,10 @@ version = "0.1.0"
 dependencies = [
  "bevy_ecs",
  "cpal",
+ "engine_core",
+ "engine_scene",
  "fundsp",
+ "glam 0.29.3",
 ]
 
 [[package]]

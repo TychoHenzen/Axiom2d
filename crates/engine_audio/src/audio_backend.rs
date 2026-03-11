@@ -1,10 +1,13 @@
+use crate::mixer::MixerTrack;
 use crate::playback_id::PlaybackId;
 use crate::sound_data::SoundData;
 
 pub trait AudioBackend: Send + Sync {
     fn play(&mut self, sound: &SoundData) -> PlaybackId;
+    fn play_on_track(&mut self, sound: &SoundData, track: MixerTrack) -> PlaybackId;
     fn stop(&mut self, id: PlaybackId);
     fn set_volume(&mut self, volume: f32);
+    fn set_track_volume(&mut self, track: MixerTrack, volume: f32);
 }
 
 pub struct NullAudioBackend {
@@ -35,9 +38,15 @@ impl AudioBackend for NullAudioBackend {
         PlaybackId(self.next_id)
     }
 
+    fn play_on_track(&mut self, sound: &SoundData, _track: MixerTrack) -> PlaybackId {
+        self.play(sound)
+    }
+
     fn stop(&mut self, _id: PlaybackId) {}
 
     fn set_volume(&mut self, _volume: f32) {}
+
+    fn set_track_volume(&mut self, _track: MixerTrack, _volume: f32) {}
 }
 
 #[cfg(test)]
@@ -95,5 +104,25 @@ mod tests {
         backend.set_volume(0.0);
         backend.set_volume(0.5);
         backend.set_volume(1.0);
+    }
+
+    #[test]
+    fn when_set_track_volume_on_null_backend_then_no_panic() {
+        // Arrange
+        let mut backend = NullAudioBackend::new();
+
+        // Act
+        backend.set_track_volume(MixerTrack::Music, 0.5);
+        backend.set_track_volume(MixerTrack::Sfx, 0.0);
+    }
+
+    #[test]
+    fn when_play_on_track_called_then_returns_playback_id() {
+        // Arrange
+        let mut backend = NullAudioBackend::new();
+        let sound = minimal_sound();
+
+        // Act
+        let _id: PlaybackId = backend.play_on_track(&sound, MixerTrack::Music);
     }
 }

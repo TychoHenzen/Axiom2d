@@ -2,7 +2,7 @@ use engine_app::prelude::{App, Phase, Plugin};
 #[cfg(feature = "audio")]
 use engine_audio::{
     audio_backend::NullAudioBackend, audio_res::AudioRes, play_sound_buffer::PlaySoundBuffer,
-    play_sound_system::play_sound_system,
+    play_sound_system::play_sound_system, spatial::spatial_audio_system,
 };
 use engine_core::prelude::{ClockRes, SystemClock, time_system};
 use engine_ecs::prelude::IntoScheduleConfigs;
@@ -27,6 +27,7 @@ impl Plugin for DefaultPlugins {
 
         app.add_systems(Phase::Input, input_system);
         app.add_systems(Phase::PreUpdate, time_system);
+        #[cfg(not(feature = "audio"))]
         app.add_systems(
             Phase::PostUpdate,
             (
@@ -43,6 +44,16 @@ impl Plugin for DefaultPlugins {
                 .insert_resource(AudioRes::new(Box::new(NullAudioBackend::new())));
             app.world_mut().insert_resource(PlaySoundBuffer::default());
             app.add_systems(Phase::PreUpdate, play_sound_system);
+            app.add_systems(
+                Phase::PostUpdate,
+                (
+                    hierarchy_maintenance_system,
+                    transform_propagation_system,
+                    visibility_system,
+                    spatial_audio_system,
+                )
+                    .chain(),
+            );
         }
 
         #[cfg(feature = "render")]
