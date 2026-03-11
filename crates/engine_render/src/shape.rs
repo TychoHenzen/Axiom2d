@@ -255,6 +255,8 @@ mod tests {
         let mesh = tessellate(&variant);
 
         // Assert
+        assert!(!mesh.vertices.is_empty());
+        assert!(!mesh.indices.is_empty());
         assert_eq!(mesh.indices.len() % 3, 0);
         let vertex_count = mesh.vertices.len() as u32;
         for &index in &mesh.indices {
@@ -295,7 +297,7 @@ mod tests {
     }
 
     #[test]
-    fn when_tessellating_polygon_with_fewer_than_three_points_then_does_not_panic() {
+    fn when_tessellating_polygon_with_fewer_than_three_points_then_returns_empty_mesh() {
         // Arrange
         let variant = ShapeVariant::Polygon {
             points: vec![Vec2::new(0.0, 0.0), Vec2::new(10.0, 10.0)],
@@ -305,7 +307,8 @@ mod tests {
         let mesh = tessellate(&variant);
 
         // Assert
-        assert_eq!(mesh.indices.len() % 3, 0);
+        assert!(mesh.vertices.is_empty());
+        assert!(mesh.indices.is_empty());
     }
 
     use crate::testing::{ShapeCallLog, SpyRenderer};
@@ -640,6 +643,67 @@ mod tests {
             .filter(|s| s.as_str() == "draw_shape")
             .count();
         assert_eq!(count, 1);
+    }
+
+    fn insert_spy_with_shape_and_viewport(
+        world: &mut World,
+        width: u32,
+        height: u32,
+    ) -> ShapeCallLog {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::with_shape_capture(log, calls.clone()).with_viewport(width, height);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        calls
+    }
+
+    #[test]
+    fn when_shape_barely_inside_view_due_to_radius_then_drawn() {
+        // A circle at position (790, 300) with radius 30 has AABB [760, 270] to [820, 330].
+        // Camera at (400, 300) zoom 1.0 sees [0, 0] to [800, 600].
+        // The shape AABB overlaps the view because 820 >= 0 && 760 <= 800.
+        // If + were mutated to - in AABB computation, entity_min would be (790-(-30), ...)
+        // = (820, ...) and entity_max = (790-30, ...) = (760, ...) — inverted, culling would fail.
+        let mut world = World::new();
+        let calls = insert_spy_with_shape_and_viewport(&mut world, 800, 600);
+        world.spawn(Camera2D {
+            position: Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        });
+        world.spawn((
+            default_shape(), // circle radius 30
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(790.0, 300.0))),
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(), 1, "shape at view edge should be drawn");
+    }
+
+    #[test]
+    fn when_shape_barely_inside_view_due_to_y_radius_then_drawn() {
+        // Circle at (400, 590) with radius 30 → AABB y: [560, 620], view y: [0, 600]
+        // Overlaps because 620 >= 0 && 560 <= 600.
+        let mut world = World::new();
+        let calls = insert_spy_with_shape_and_viewport(&mut world, 800, 600);
+        world.spawn(Camera2D {
+            position: Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        });
+        world.spawn((
+            default_shape(),
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(400.0, 590.0))),
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(), 1, "shape at bottom view edge should be drawn");
     }
 
     #[test]

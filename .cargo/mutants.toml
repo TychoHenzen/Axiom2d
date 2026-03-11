@@ -21,4 +21,15 @@ exclude_re = [
     # WgpuRenderer helper methods and GPU resource creation — untestable without GPU
     "replace WgpuRenderer::upload_atlas with",
     "in create_texture_bind_group",
+    # CameraUniform near/far plane sign — only affects z, irrelevant in 2D
+    "delete - in CameraUniform::from_camera",
+    # WgpuRenderer post-process / bloom pipeline — requires live GPU
+    "PostProcessResources::resize",
+    "in create_render_texture",
+    "in create_params_buffer_and_bg",
+    "in create_fullscreen_pipeline",
+    "draw_fullscreen_quad",
+    "WgpuRenderer::ensure_post_process",
+    "WgpuRenderer::draw_scene_to",
+    "WgpuRenderer::execute_bloom",
 ]

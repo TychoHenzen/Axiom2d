@@ -499,4 +499,100 @@ mod tests {
         let log = log.lock().unwrap();
         assert!(log.contains(&"set_view_projection".to_string()));
     }
+
+    #[test]
+    fn when_camera_uniform_y_flip_then_top_maps_to_positive_ndc_y() {
+        // Arrange — camera centered on viewport, zoom 1
+        let camera = Camera2D {
+            position: Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        };
+
+        // Act
+        let uniform = CameraUniform::from_camera(&camera, 800.0, 600.0);
+
+        // Assert — top of viewport (y=0) maps to NDC y=+1 (Y-flip)
+        let vp = Mat4::from_cols_array_2d(&uniform.view_proj);
+        let top_center = vp * glam::Vec4::new(400.0, 0.0, 0.0, 1.0);
+        assert!(
+            (top_center.y - 1.0).abs() < 1e-4,
+            "top of viewport should map to NDC y=+1, got {}",
+            top_center.y
+        );
+        // Bottom of viewport (y=600) maps to NDC y=-1
+        let bottom_center = vp * glam::Vec4::new(400.0, 600.0, 0.0, 1.0);
+        assert!(
+            (bottom_center.y - (-1.0)).abs() < 1e-4,
+            "bottom of viewport should map to NDC y=-1, got {}",
+            bottom_center.y
+        );
+    }
+
+    #[test]
+    fn when_viewport_width_zero_then_camera_prepare_system_skips() {
+        // Arrange
+        let mut world = bevy_ecs::world::World::new();
+        let log = insert_spy_with_viewport(&mut world, 0, 600);
+        world.spawn(Camera2D::default());
+
+        // Act
+        run_camera_prepare(&mut world);
+
+        // Assert
+        let log = log.lock().unwrap();
+        assert!(
+            !log.contains(&"set_view_projection".to_string()),
+            "should skip when viewport width is zero"
+        );
+    }
+
+    #[test]
+    fn when_viewport_height_zero_then_camera_prepare_system_skips() {
+        // Arrange
+        let mut world = bevy_ecs::world::World::new();
+        let log = insert_spy_with_viewport(&mut world, 800, 0);
+        world.spawn(Camera2D::default());
+
+        // Act
+        run_camera_prepare(&mut world);
+
+        // Assert
+        let log = log.lock().unwrap();
+        assert!(
+            !log.contains(&"set_view_projection".to_string()),
+            "should skip when viewport height is zero"
+        );
+    }
+
+    #[test]
+    fn when_no_camera_entity_then_default_camera_centers_on_viewport() {
+        // Arrange — no Camera2D entity, viewport 800x600
+        // Default camera should be at (400, 300) with zoom 1.0
+        // So world (0, 0) should map to NDC top-left (-1, +1)
+        let mut world = bevy_ecs::world::World::new();
+        let _log = insert_spy_with_viewport(&mut world, 800, 600);
+
+        // Act
+        run_camera_prepare(&mut world);
+
+        // Assert — verify by computing expected uniform manually
+        let expected_camera = Camera2D {
+            position: Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        };
+        let expected_uniform = CameraUniform::from_camera(&expected_camera, 800.0, 600.0);
+        let vp = Mat4::from_cols_array_2d(&expected_uniform.view_proj);
+        let origin_ndc = vp * glam::Vec4::new(0.0, 0.0, 0.0, 1.0);
+        assert!(
+            (origin_ndc.x - (-1.0)).abs() < 1e-4,
+            "origin x should map to NDC -1, got {}",
+            origin_ndc.x
+        );
+        let center_ndc = vp * glam::Vec4::new(400.0, 300.0, 0.0, 1.0);
+        assert!(
+            center_ndc.x.abs() < 1e-4,
+            "viewport center should map to NDC 0, got {}",
+            center_ndc.x
+        );
+    }
 }

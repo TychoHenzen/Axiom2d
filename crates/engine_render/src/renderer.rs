@@ -149,6 +149,19 @@ mod tests {
     }
 
     #[test]
+    fn when_null_renderer_viewport_size_then_returns_zero_zero() {
+        // Arrange
+        let renderer = NullRenderer;
+
+        // Act
+        let (w, h) = renderer.viewport_size();
+
+        // Assert
+        assert_eq!(w, 0);
+        assert_eq!(h, 0);
+    }
+
+    #[test]
     fn when_renderer_res_in_world_then_system_can_call_clear_via_resmut() {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));

@@ -23,8 +23,9 @@ Axiom2d is an LLM-optimized 2D game engine written in Rust. The project is in ea
 1. Update `Doc/Implementation_Roadmap.md`: mark `[DONE]`, check all boxes.
 2. Update the **Implemented Abstractions** section in this file if new public types/traits/systems were added.
 3. Update the **Current State** baseline at the top of the roadmap (test counts, feature summary).
-4. If new crates gained real implementations, move them from "placeholder" to "implemented" in the Architecture section below.
-5. If new workspace dependencies were added, mention them in the Development Environment section.
+4. run fmt -all
+5. If new crates gained real implementations, move them from "placeholder" to "implemented" in the Architecture section below.
+6. If new workspace dependencies were added, mention them in the Development Environment section.
 
 ## Development Environment
 

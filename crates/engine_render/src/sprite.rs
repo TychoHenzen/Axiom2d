@@ -552,6 +552,76 @@ mod tests {
     }
 
     #[test]
+    fn when_sprite_just_inside_view_right_edge_due_to_width_then_drawn() {
+        // Sprite at x=790, width=32 → entity_max.x = 790 + 32 = 822 > view_max.x = 800
+        // entity_min.x = 790 < view_max.x = 800, so it overlaps.
+        // If + were mutated to - : entity_max.x = 790 - 32 = 758, entirely inside.
+        // Still drawn, so we need a case where the width addition is critical.
+        //
+        // Sprite at x=805, width=32 → min=805, max=837. 805 > 800 → outside! Not drawn.
+        // But if we place sprite at x=-5, width=32 → min=-5, max=27. Overlaps [0,800].
+        // If + mutated to -: max = -5-32 = -37 < 0 → culled! This catches the mutant.
+        let mut world = World::new();
+        let log = insert_spy_with_viewport(&mut world, 800, 600);
+        world.spawn(Camera2D {
+            position: glam::Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        });
+        world.spawn((
+            Sprite {
+                width: Pixels(32.0),
+                height: Pixels(32.0),
+                ..default_sprite()
+            },
+            GlobalTransform2D(Affine2::from_translation(glam::Vec2::new(-5.0, 300.0))),
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_sprite")
+            .count();
+        assert_eq!(count, 1, "sprite overlapping left edge should be drawn");
+    }
+
+    #[test]
+    fn when_sprite_just_inside_view_bottom_edge_due_to_height_then_drawn() {
+        // Sprite at y=-5, height=32 → min_y=-5, max_y=27. View [0, 600]. Overlaps.
+        // If + mutated to -: max_y = -5-32 = -37 < 0 → culled!
+        let mut world = World::new();
+        let log = insert_spy_with_viewport(&mut world, 800, 600);
+        world.spawn(Camera2D {
+            position: glam::Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        });
+        world.spawn((
+            Sprite {
+                width: Pixels(32.0),
+                height: Pixels(32.0),
+                ..default_sprite()
+            },
+            GlobalTransform2D(Affine2::from_translation(glam::Vec2::new(400.0, -5.0))),
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_sprite")
+            .count();
+        assert_eq!(count, 1, "sprite overlapping top edge should be drawn");
+    }
+
+    #[test]
     fn when_sprite_straddles_camera_view_edge_then_draw_sprite_called() {
         // Arrange
         let mut world = World::new();

@@ -107,7 +107,6 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "testing")]
     #[allow(clippy::unwrap_used)]
     mod system_tests {
         use std::sync::{Arc, Mutex};
@@ -165,5 +164,57 @@ mod tests {
                     .contains(&"apply_post_process".to_string())
             );
         }
+
+        #[test]
+        fn when_no_bloom_settings_then_post_process_system_skips() {
+            // Arrange
+            let log = Arc::new(Mutex::new(Vec::new()));
+            let spy = SpyRenderer::new(log.clone());
+            let mut world = World::new();
+            world.insert_resource(RendererRes::new(Box::new(spy)));
+            let mut schedule = Schedule::default();
+            schedule.add_systems(post_process_system);
+
+            // Act
+            schedule.run(&mut world);
+
+            // Assert
+            assert!(
+                !log.lock()
+                    .unwrap()
+                    .contains(&"apply_post_process".to_string())
+            );
+        }
+    }
+
+    #[test]
+    fn when_gaussian_weights_radius3_then_weight_ratios_match_formula() {
+        // The Gaussian formula: w(x) = exp(-x^2 / (2*sigma^2)), sigma = max(radius, 1)
+        // For radius=3, sigma=3: denominator = 2*3*3 = 18
+        // This radius is chosen so 2*sigma != 2+sigma (6 != 5),
+        // catching mutations like `2.0 * sigma` → `2.0 + sigma`.
+        let weights = compute_gaussian_weights(3);
+
+        // Assert
+        assert_eq!(weights.len(), 7);
+        let center = weights[3]; // x=0
+        let adjacent = weights[2]; // x=-1
+        let edge = weights[0]; // x=-3
+
+        // Ratio w(0)/w(1) = exp(1/18)
+        let expected_adj_ratio = (1.0_f32 / 18.0).exp();
+        let actual_adj_ratio = center / adjacent;
+        assert!(
+            (actual_adj_ratio - expected_adj_ratio).abs() < 1e-4,
+            "center/adjacent ratio: expected {expected_adj_ratio}, got {actual_adj_ratio}"
+        );
+
+        // Ratio w(0)/w(3) = exp(9/18) = exp(0.5)
+        let expected_edge_ratio = (0.5_f32).exp();
+        let actual_edge_ratio = center / edge;
+        assert!(
+            (actual_edge_ratio - expected_edge_ratio).abs() < 1e-4,
+            "center/edge ratio: expected {expected_edge_ratio}, got {actual_edge_ratio}"
+        );
     }
 }
