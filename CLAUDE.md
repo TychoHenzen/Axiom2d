@@ -42,7 +42,7 @@ cargo.exe clippy             # Lint (pedantic, workspace-configured)
 
 Always use `cargo.exe` (not `cargo`) since the Rust toolchain is Windows-only. The same applies to `rustc.exe`, `rustfmt.exe`, etc.
 
-The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors), `winit` (windowing), `wgpu` (GPU rendering), `pollster` (async blocking), `bytemuck` (safe type casting for GPU buffers), `bevy_ecs` (standalone ECS), `guillotiere` (2D texture atlas rect packing), `image` (PNG/JPEG decoding for embedded assets), `lyon` (2D vector path tessellation), `fundsp` (audio DSP graph synthesis).
+The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors), `winit` (windowing), `wgpu` (GPU rendering), `pollster` (async blocking), `bytemuck` (safe type casting for GPU buffers), `bevy_ecs` (standalone ECS), `guillotiere` (2D texture atlas rect packing), `image` (PNG/JPEG decoding for embedded assets), `lyon` (2D vector path tessellation), `fundsp` (audio DSP graph synthesis), `rapier2d` (2D physics engine).
 
 ### WSL/Windows Gotchas
 
@@ -70,7 +70,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **Archetypal ECS**: Entities with identical component sets stored together. Systems are plain functions with typed parameters (e.g., `Query<(&mut Position, &Velocity)>`). Uses `bevy_ecs` as a standalone crate, wrapped by `engine_ecs`.
 - **Code-defined assets**: All assets (sprites, audio, shaders, tilemaps) are expressed as Rust code or RON data — no binary asset files. Uses `lyon` for vector graphics, `fundsp` for audio synthesis, WGSL for shaders.
 - **Trait-abstracted hardware**: Every hardware-dependent subsystem (renderer, audio, input) hides behind a trait with null/mock implementations for testing. Canonical test pattern: `World` + `Schedule` without touching hardware.
-- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, `engine_input`, `engine_scene`, and `axiom2d` (facade + DefaultPlugins) are implemented; `engine_audio`, `engine_physics`, `engine_assets`, `engine_ui` are placeholders. Virtual manifest at root. `demo` binary crate for smoke testing.
+- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, `engine_input`, `engine_scene`, and `axiom2d` (facade + DefaultPlugins) are implemented; `engine_audio`, `engine_physics` are implemented; `engine_assets`, `engine_ui` are placeholders. Virtual manifest at root. `demo` binary crate for smoke testing.
 
 ### Implemented Abstractions
 
@@ -183,6 +183,12 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **DefaultPlugins** (`axiom2d::default_plugins`): Unit struct implementing `Plugin`. `build()` inserts `InputState`, `InputEventBuffer`, `ClockRes(SystemClock)`; registers `input_system` (Input), `time_system` (PreUpdate), hierarchy+transform+visibility chained (PostUpdate). When `audio` feature is on: inserts `AudioRes(NullAudioBackend)`, `PlaySoundBuffer`; registers `play_sound_system` (PreUpdate). When `render` feature is on: also inserts `ClearColor` and registers `clear_system`, `upload_atlas_system`, `camera_prepare_system`, `sprite_render_system`, `shape_render_system`, `post_process_system` chained (Render). Does NOT insert `ActionMap` (game-specific), `BloomSettings` (opt-in), `TextureAtlas` (game-specific), `SoundLibrary` (game-specific), or `RendererRes` (created by winit at runtime).
 - **`render` feature flag** (`axiom2d`): Default-on feature. Gates `engine_render` dependency, render system registration in DefaultPlugins, and `engine_render::prelude::*` re-export. `--no-default-features` gives headless ECS-only mode.
 - **`audio` feature flag** (`axiom2d`): Default-on feature. Gates `engine_audio` dependency, AudioRes insertion in DefaultPlugins, and `engine_audio::prelude::*` re-export.
+- **RigidBody** (`engine_physics::rigid_body`): `#[derive(Component)]` enum with variants `Dynamic`, `Static`, `Kinematic`. Pure ECS data component describing the physics body type.
+- **Collider** (`engine_physics::collider`): `#[derive(Component)]` enum with variants `Circle(f32)`, `Aabb(Vec2)`, `ConvexPolygon(Vec<Vec2>)`. Pure ECS data component describing the collision shape.
+- **PhysicsBackend trait** (`engine_physics::physics_backend`): `step(&mut self, dt: Seconds)` + `add_body(&mut self, entity, body_type, position) -> bool` + `add_collider(&mut self, entity, collider) -> bool` + `remove_body(&mut self, entity)` + `body_position(&self, entity) -> Option<Vec2>` + `body_rotation(&self, entity) -> Option<f32>`. Object-safe (`Send + Sync`). Same pattern as Renderer and AudioBackend traits.
+- **NullPhysicsBackend** (`engine_physics::physics_backend`): No-op impl with `step_count()` accessor for test assertions. Maintains `HashSet<Entity>` for registration tracking. `add_body` returns false on duplicate, `add_collider` returns true if entity is registered. `body_position`/`body_rotation` always return None.
+- **RapierBackend** (`engine_physics::rapier_backend`): Real physics via rapier2d. Wraps `PhysicsPipeline`, `RigidBodySet`, `ColliderSet`, `IslandManager`, `DefaultBroadPhase`, `NarrowPhase`, `ImpulseJointSet`, `MultibodyJointSet`, `CCDSolver`. `HashMap<Entity, RigidBodyHandle>` for ECS↔rapier correlation. Body type mapping: Dynamic→Dynamic, Static→Fixed, Kinematic→KinematicPositionBased. Collider mapping: Circle→ball, Aabb→cuboid, ConvexPolygon→convex_hull. Configurable gravity via `new(gravity: Vec2)`.
+- **PhysicsRes** (`engine_physics::physics_res`): `#[derive(Resource)]` newtype wrapping `Box<dyn PhysicsBackend + Send + Sync>` with `Deref`/`DerefMut`. Same pattern as `RendererRes`/`AudioRes`.
 
 ### Scheduling Phases
 
