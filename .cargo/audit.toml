@@ -1,0 +1,7 @@
+[advisories]
+# paste is pulled in by the `metal` crate (macOS GPU backend) inside wgpu-hal.
+# It only appears in Cargo.lock as a cross-platform conditional dependency —
+# it is never compiled or linked on our Windows target (x86_64-pc-windows-msvc).
+# We also disable wgpu's `metal` feature, so it's doubly unreachable.
+# Upstream metal-rs still depends on paste; revisit when they migrate to pastey.
+ignore = ["RUSTSEC-2024-0436"]
