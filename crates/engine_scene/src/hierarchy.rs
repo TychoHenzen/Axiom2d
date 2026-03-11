@@ -12,23 +12,21 @@ pub fn hierarchy_maintenance_system(
     child_query: Query<(Entity, &ChildOf)>,
     parent_query: Query<Entity, With<Children>>,
     mut commands: Commands,
+    mut cache: Local<HashMap<Entity, Vec<Entity>>>,
 ) {
-    let mut parent_to_children: HashMap<Entity, Vec<Entity>> = HashMap::new();
+    cache.clear();
     for (child, child_of) in &child_query {
-        parent_to_children
-            .entry(child_of.0)
-            .or_default()
-            .push(child);
+        cache.entry(child_of.0).or_default().push(child);
     }
-    for children in parent_to_children.values_mut() {
+    for children in cache.values_mut() {
         children.sort();
     }
     for parent in &parent_query {
-        if !parent_to_children.contains_key(&parent) {
+        if !cache.contains_key(&parent) {
             commands.entity(parent).remove::<Children>();
         }
     }
-    for (parent, children) in parent_to_children {
+    for (parent, children) in cache.drain() {
         commands.entity(parent).insert(Children(children));
     }
 }
