@@ -53,10 +53,7 @@ impl App {
     }
 
     pub fn set_window_config(&mut self, config: WindowConfig) -> &mut Self {
-        self.world.insert_resource(WindowSize {
-            width: Pixels(config.width as f32),
-            height: Pixels(config.height as f32),
-        });
+        self.update_window_size(config.width, config.height);
         self.window_config = config;
         self
     }
@@ -111,11 +108,15 @@ impl App {
         }
     }
 
-    pub(crate) fn handle_resize(&mut self, width: u32, height: u32) {
+    fn update_window_size(&mut self, width: u32, height: u32) {
         self.world.insert_resource(WindowSize {
             width: Pixels(width as f32),
             height: Pixels(height as f32),
         });
+    }
+
+    pub(crate) fn handle_resize(&mut self, width: u32, height: u32) {
+        self.update_window_size(width, height);
         if let Some(mut renderer) = self.world.get_resource_mut::<RendererRes>() {
             renderer.resize(width, height);
         }

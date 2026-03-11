@@ -27,68 +27,45 @@ impl SpyRenderer {
         }
     }
 
-    pub fn with_color_capture(
-        log: Arc<Mutex<Vec<String>>>,
-        color_capture: Arc<Mutex<Option<Color>>>,
-    ) -> Self {
-        Self {
-            log,
-            color_capture: Some(color_capture),
-            sprite_calls: None,
-            shape_calls: None,
-            viewport: (0, 0),
-        }
+    pub fn with_color_capture(mut self, color_capture: Arc<Mutex<Option<Color>>>) -> Self {
+        self.color_capture = Some(color_capture);
+        self
     }
 
-    pub fn with_sprite_capture(log: Arc<Mutex<Vec<String>>>, sprite_calls: SpriteCallLog) -> Self {
-        Self {
-            log,
-            color_capture: None,
-            sprite_calls: Some(sprite_calls),
-            shape_calls: None,
-            viewport: (0, 0),
-        }
+    pub fn with_sprite_capture(mut self, sprite_calls: SpriteCallLog) -> Self {
+        self.sprite_calls = Some(sprite_calls);
+        self
     }
 
-    pub fn with_shape_capture(log: Arc<Mutex<Vec<String>>>, shape_calls: ShapeCallLog) -> Self {
-        Self {
-            log,
-            color_capture: None,
-            sprite_calls: None,
-            shape_calls: Some(shape_calls),
-            viewport: (0, 0),
-        }
+    pub fn with_shape_capture(mut self, shape_calls: ShapeCallLog) -> Self {
+        self.shape_calls = Some(shape_calls);
+        self
     }
 
     pub fn with_viewport(mut self, width: u32, height: u32) -> Self {
         self.viewport = (width, height);
         self
     }
+
+    fn log_call(&self, name: &str) {
+        self.log.lock().expect("spy log poisoned").push(name.into());
+    }
 }
 
 impl Renderer for SpyRenderer {
     fn clear(&mut self, color: Color) {
-        self.log
-            .lock()
-            .expect("spy log poisoned")
-            .push("clear".into());
+        self.log_call("clear");
         if let Some(capture) = &self.color_capture {
             *capture.lock().expect("color capture poisoned") = Some(color);
         }
     }
 
     fn draw_rect(&mut self, _rect: Rect) {
-        self.log
-            .lock()
-            .expect("spy log poisoned")
-            .push("draw_rect".into());
+        self.log_call("draw_rect");
     }
 
     fn draw_sprite(&mut self, rect: Rect, uv_rect: [f32; 4]) {
-        self.log
-            .lock()
-            .expect("spy log poisoned")
-            .push("draw_sprite".into());
+        self.log_call("draw_sprite");
         if let Some(capture) = &self.sprite_calls {
             capture
                 .lock()
@@ -98,10 +75,7 @@ impl Renderer for SpyRenderer {
     }
 
     fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color) {
-        self.log
-            .lock()
-            .expect("spy log poisoned")
-            .push("draw_shape".into());
+        self.log_call("draw_shape");
         if let Some(capture) = &self.shape_calls {
             capture.lock().expect("shape capture poisoned").push((
                 vertices.to_vec(),
@@ -112,10 +86,7 @@ impl Renderer for SpyRenderer {
     }
 
     fn set_view_projection(&mut self, _matrix: [[f32; 4]; 4]) {
-        self.log
-            .lock()
-            .expect("spy log poisoned")
-            .push("set_view_projection".into());
+        self.log_call("set_view_projection");
     }
 
     fn viewport_size(&self) -> (u32, u32) {
@@ -123,24 +94,15 @@ impl Renderer for SpyRenderer {
     }
 
     fn apply_post_process(&mut self) {
-        self.log
-            .lock()
-            .expect("spy log poisoned")
-            .push("apply_post_process".into());
+        self.log_call("apply_post_process");
     }
 
     fn present(&mut self) {
-        self.log
-            .lock()
-            .expect("spy log poisoned")
-            .push("present".into());
+        self.log_call("present");
     }
 
     fn resize(&mut self, _width: u32, _height: u32) {
-        self.log
-            .lock()
-            .expect("spy log poisoned")
-            .push("resize".into());
+        self.log_call("resize");
     }
 }
 
@@ -255,7 +217,7 @@ mod tests {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));
         let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::with_shape_capture(log, shape_calls.clone());
+        let mut spy = SpyRenderer::new(log).with_shape_capture(shape_calls.clone());
         let color = Color::new(1.0, 0.0, 0.0, 1.0);
 
         // Act
@@ -285,7 +247,7 @@ mod tests {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));
         let color_capture = Arc::new(Mutex::new(None));
-        let mut spy = SpyRenderer::with_color_capture(log.clone(), color_capture.clone());
+        let mut spy = SpyRenderer::new(log.clone()).with_color_capture(color_capture.clone());
         let expected = Color::new(1.0, 0.0, 0.5, 1.0);
 
         // Act

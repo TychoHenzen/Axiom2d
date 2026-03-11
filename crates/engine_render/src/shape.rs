@@ -339,7 +339,7 @@ mod tests {
     fn insert_spy_with_shape_capture(world: &mut World) -> ShapeCallLog {
         let log = Arc::new(Mutex::new(Vec::new()));
         let calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::with_shape_capture(log, calls.clone());
+        let spy = SpyRenderer::new(log).with_shape_capture(calls.clone());
         world.insert_resource(RendererRes::new(Box::new(spy)));
         calls
     }
@@ -652,7 +652,9 @@ mod tests {
     ) -> ShapeCallLog {
         let log = Arc::new(Mutex::new(Vec::new()));
         let calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::with_shape_capture(log, calls.clone()).with_viewport(width, height);
+        let spy = SpyRenderer::new(log)
+            .with_shape_capture(calls.clone())
+            .with_viewport(width, height);
         world.insert_resource(RendererRes::new(Box::new(spy)));
         calls
     }

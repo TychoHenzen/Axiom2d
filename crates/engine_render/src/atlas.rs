@@ -76,6 +76,7 @@ struct PendingImage {
     width: u32,
     height: u32,
     texture_id: TextureId,
+    uv_rect: [f32; 4],
 }
 
 pub struct AtlasBuilder {
@@ -142,6 +143,7 @@ impl AtlasBuilder {
             width: (rect.max.x - rect.min.x) as u32,
             height: (rect.max.y - rect.min.y) as u32,
             texture_id: TextureId(id),
+            uv_rect,
         });
         Ok(TextureHandle {
             texture_id: TextureId(id),
@@ -156,8 +158,7 @@ impl AtlasBuilder {
         let mut lookups = HashMap::new();
         let stride = (width * 4) as usize;
         for img in &self.pending {
-            let uv_rect = normalize_uv_rect(img.x, img.y, img.width, img.height, width, height);
-            lookups.insert(img.texture_id, uv_rect);
+            lookups.insert(img.texture_id, img.uv_rect);
             let img_stride = (img.width * 4) as usize;
             for row in 0..img.height {
                 let dst_offset = ((img.y + row) as usize) * stride + (img.x as usize) * 4;

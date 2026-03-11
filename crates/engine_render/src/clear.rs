@@ -33,7 +33,7 @@ mod tests {
         let expected_color = Color::new(0.1, 0.2, 0.3, 1.0);
         let log = Arc::new(Mutex::new(Vec::new()));
         let color_capture = Arc::new(Mutex::new(None));
-        let spy = SpyRenderer::with_color_capture(log.clone(), color_capture.clone());
+        let spy = SpyRenderer::new(log.clone()).with_color_capture(color_capture.clone());
 
         let mut world = bevy_ecs::world::World::new();
         world.insert_resource(RendererRes::new(Box::new(spy)));

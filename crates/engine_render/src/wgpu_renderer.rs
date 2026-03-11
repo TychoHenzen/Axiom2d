@@ -28,13 +28,13 @@ struct CameraUniform {
 @vertex
 fn vs_main(
     @location(0) quad_pos: vec2<f32>,
-    @location(1) ndc_rect: vec4<f32>,
+    @location(1) world_rect: vec4<f32>,
     @location(2) uv_rect: vec4<f32>,
     @location(3) color: vec4<f32>,
 ) -> VertexOutput {
     var out: VertexOutput;
-    let x = quad_pos.x * ndc_rect.z + ndc_rect.x;
-    let y = quad_pos.y * ndc_rect.w + ndc_rect.y;
+    let x = quad_pos.x * world_rect.z + world_rect.x;
+    let y = quad_pos.y * world_rect.w + world_rect.y;
     let world_pos = vec4<f32>(x, y, 0.0, 1.0);
     out.position = camera.view_proj * world_pos;
     out.color = color;
@@ -52,7 +52,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 ";
 
-const BLOOM_SHADER_SRC: &str = "
+const BLOOM_PREAMBLE: &str = "
 struct FullscreenOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) uv: vec2<f32>,
@@ -66,10 +66,6 @@ struct BloomParams {
     _pad: vec2<f32>,
 };
 
-@group(0) @binding(0) var t_input: texture_2d<f32>;
-@group(0) @binding(1) var s_input: sampler;
-@group(1) @binding(0) var<uniform> params: BloomParams;
-
 @vertex
 fn vs_fullscreen(@location(0) position: vec2<f32>) -> FullscreenOutput {
     var out: FullscreenOutput;
@@ -77,6 +73,12 @@ fn vs_fullscreen(@location(0) position: vec2<f32>) -> FullscreenOutput {
     out.uv = vec2<f32>(position.x * 0.5 + 0.5, -position.y * 0.5 + 0.5);
     return out;
 }
+";
+
+const BLOOM_SHADER_FRAG: &str = "
+@group(0) @binding(0) var t_input: texture_2d<f32>;
+@group(0) @binding(1) var s_input: sampler;
+@group(1) @binding(0) var<uniform> params: BloomParams;
 
 @fragment
 fn fs_brightness(in: FullscreenOutput) -> @location(0) vec4<f32> {
@@ -102,39 +104,13 @@ fn fs_blur(in: FullscreenOutput) -> @location(0) vec4<f32> {
     result += textureSample(t_input, s_input, in.uv - offset * 4.0) * 0.016216;
     return result;
 }
-
-@fragment
-fn fs_blit(in: FullscreenOutput) -> @location(0) vec4<f32> {
-    return textureSample(t_input, s_input, in.uv);
-}
 ";
 
-const COMPOSITE_SHADER_SRC: &str = "
-struct FullscreenOutput {
-    @builtin(position) position: vec4<f32>,
-    @location(0) uv: vec2<f32>,
-};
-
-struct BloomParams {
-    threshold: f32,
-    intensity: f32,
-    direction: vec2<f32>,
-    texel_size: vec2<f32>,
-    _pad: vec2<f32>,
-};
-
+const COMPOSITE_SHADER_FRAG: &str = "
 @group(0) @binding(0) var t_scene: texture_2d<f32>;
 @group(0) @binding(1) var t_bloom: texture_2d<f32>;
 @group(0) @binding(2) var s_composite: sampler;
 @group(1) @binding(0) var<uniform> params: BloomParams;
-
-@vertex
-fn vs_fullscreen(@location(0) position: vec2<f32>) -> FullscreenOutput {
-    var out: FullscreenOutput;
-    out.position = vec4<f32>(position, 0.0, 1.0);
-    out.uv = vec2<f32>(position.x * 0.5 + 0.5, -position.y * 0.5 + 0.5);
-    return out;
-}
 
 @fragment
 fn fs_composite(in: FullscreenOutput) -> @location(0) vec4<f32> {
@@ -185,7 +161,7 @@ pub(crate) const FULLSCREEN_QUAD_VERTICES: [QuadVertex; 4] = [
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
 pub(crate) struct Instance {
-    pub(crate) ndc_rect: [f32; 4],
+    pub(crate) world_rect: [f32; 4],
     pub(crate) uv_rect: [f32; 4],
     pub(crate) color: [f32; 4],
 }
@@ -207,7 +183,7 @@ pub(crate) fn rect_to_instance(rect: &Rect) -> Instance {
     let Pixels(h) = rect.height;
 
     Instance {
-        ndc_rect: [x, y, w, h],
+        world_rect: [x, y, w, h],
         uv_rect: [0.0, 0.0, 1.0, 1.0],
         color: [rect.color.r, rect.color.g, rect.color.b, rect.color.a],
     }
@@ -441,13 +417,15 @@ impl PostProcessResources {
             },
         );
 
+        let bloom_src = format!("{BLOOM_PREAMBLE}{BLOOM_SHADER_FRAG}");
         let bloom_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
-            source: wgpu::ShaderSource::Wgsl(BLOOM_SHADER_SRC.into()),
+            source: wgpu::ShaderSource::Wgsl(bloom_src.into()),
         });
+        let composite_src = format!("{BLOOM_PREAMBLE}{COMPOSITE_SHADER_FRAG}");
         let composite_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
-            source: wgpu::ShaderSource::Wgsl(COMPOSITE_SHADER_SRC.into()),
+            source: wgpu::ShaderSource::Wgsl(composite_src.into()),
         });
 
         let fs_vertex_layout = wgpu::VertexBufferLayout {
@@ -1279,7 +1257,7 @@ mod tests {
         let instance = rect_to_instance(&rect);
 
         // Assert
-        assert_eq!(instance.ndc_rect, [0.0, 0.0, 800.0, 600.0]);
+        assert_eq!(instance.world_rect, [0.0, 0.0, 800.0, 600.0]);
     }
 
     #[test]
@@ -1297,7 +1275,7 @@ mod tests {
         let instance = rect_to_instance(&rect);
 
         // Assert
-        assert_eq!(instance.ndc_rect, [200.0, 150.0, 400.0, 300.0]);
+        assert_eq!(instance.world_rect, [200.0, 150.0, 400.0, 300.0]);
     }
 
     #[test]
@@ -1351,7 +1329,7 @@ mod tests {
         let instance = rect_to_instance(&rect);
 
         // Assert
-        assert_eq!(instance.ndc_rect, [400.0, 300.0, 0.0, 0.0]);
+        assert_eq!(instance.world_rect, [400.0, 300.0, 0.0, 0.0]);
     }
 
     #[test]
@@ -1369,7 +1347,7 @@ mod tests {
         let instance = rect_to_instance(&rect);
 
         // Assert
-        assert_eq!(instance.ndc_rect, [400.0, 300.0, -100.0, -50.0]);
+        assert_eq!(instance.world_rect, [400.0, 300.0, -100.0, -50.0]);
     }
 
     #[test]
