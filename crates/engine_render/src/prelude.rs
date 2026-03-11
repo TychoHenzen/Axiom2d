@@ -10,8 +10,8 @@ pub use crate::camera::{
 pub use crate::clear::{ClearColor, clear_system};
 pub use crate::create_renderer;
 pub use crate::material::{
-    BlendMode, Material2d, ShaderHandle, ShaderRegistry, TextureBinding, effective_blend_mode,
-    preprocess,
+    BlendMode, Material2d, ShaderHandle, ShaderRegistry, TextureBinding, apply_material,
+    effective_blend_mode, effective_shader_handle, preprocess,
 };
 pub use crate::rect::Rect;
 pub use crate::renderer::{NullRenderer, Renderer, RendererRes};

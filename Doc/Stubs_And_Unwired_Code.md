@@ -16,19 +16,23 @@ Production code only. Excludes placeholder crates (engine_audio, engine_physics,
 - **Was**: Method body existed but was `#[allow(dead_code)]` — nothing called it.
 - **Fix applied**: `upload_atlas()` moved to the `Renderer` trait (implemented on NullRenderer, SpyRenderer, WgpuRenderer). New `upload_atlas_system` in atlas.rs gates on `Option<Res<TextureAtlas>>` + `AtlasUploaded` marker for one-shot upload. Registered in DefaultPlugins Render chain before sprite_render_system.
 
-## Unwired Types
+### 3. `ShaderRegistry` / `ShaderHandle` — FIXED
 
-### 3. `ShaderRegistry` / `ShaderHandle` — defined, exported, unused by GPU
+- **Was**: `ShaderRegistry` stored shader source strings keyed by `ShaderHandle`, but neither `WgpuRenderer` nor any system read them — custom shaders could not be used at runtime.
+- **Fix applied**: `ShaderRegistry` derives `Resource` for ECS access. `ShaderHandle` derives `PartialOrd`/`Ord` for sort-key use. New `effective_shader_handle()` helper (mirrors `effective_blend_mode()`). Renderer trait gained `set_shader(ShaderHandle)`. Render systems call `set_shader()` with deduplication (skip redundant calls for consecutive entities with same shader). Sort key expanded to `(RenderLayer, ShaderHandle, BlendMode, SortOrder)` — shader is the outer grouping key since shader switches are more expensive than blend state switches on GPU. WgpuRenderer has stub impl (pipeline cache pending GPU-side work).
 
-- **File**: `crates/engine_render/src/material.rs`
-- **Impact**: `ShaderRegistry` stores shader source strings keyed by `ShaderHandle`. `Material2d` carries a `shader: ShaderHandle` field. Neither `WgpuRenderer` nor any system reads these — custom shaders cannot be used at runtime.
-- **Fix**: Integrate `ShaderRegistry` as a `Resource`, look up the shader source during pipeline creation or caching, and compile variant pipelines from the registered WGSL source.
+### 4. `Material2d.uniforms` / `Material2d.textures` — FIXED
 
-### 4. `Material2d.uniforms` / `Material2d.textures` — stored but never read
+- **Was**: `Material2d` stored `uniforms: Vec<u8>` and `textures: Vec<TextureBinding>`, but render systems only read `blend_mode`. Custom uniform data and texture bindings were silently ignored.
+- **Fix applied**: Renderer trait gained `set_material_uniforms(&[u8])` and `bind_material_texture(TextureId, u32)`. Render systems (sprite + shape) call `set_material_uniforms()` when uniforms is non-empty, and `bind_material_texture()` for each entry in textures Vec (preserving declaration order). Extracted shared `apply_material()` function to deduplicate the material-forwarding logic between both render systems. WgpuRenderer has stub impls (GPU buffer upload pending GPU-side work).
 
-- **File**: `crates/engine_render/src/material.rs`
-- **Impact**: `Material2d` stores `uniforms: Vec<u8>` and `textures: Vec<TextureBinding>`, but the render systems only read `blend_mode`. Custom uniform data and additional texture bindings are silently ignored.
-- **Fix**: Upload `uniforms` to a per-material GPU buffer (or a dynamic uniform buffer with offsets). Bind `textures` entries to the appropriate bind group slots during draw calls.
+## Remaining GPU-Side Work
+
+### 5. `WgpuRenderer` custom shader pipeline cache — NOT STARTED
+
+- **File**: `crates/engine_render/src/wgpu_renderer.rs`
+- **Impact**: `WgpuRenderer::set_shader()`, `set_material_uniforms()`, and `bind_material_texture()` are empty stubs. The ECS systems now forward all Material2d data to the Renderer trait, but the GPU backend ignores it — all entities still render with the built-in quad/shape shaders.
+- **Fix**: Build a `HashMap<(ShaderHandle, BlendMode), RenderPipeline>` cache. On `set_shader()`, look up the registered WGSL source via `ShaderRegistry`, compile if not cached, and select the pipeline. Upload uniform bytes to a dynamic GPU buffer. Bind extra textures to the appropriate bind group slots. Requires GPU device — test via headless wgpu / visual regression.
 
 ## Not Stubs (Verified Functional)
 

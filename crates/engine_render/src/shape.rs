@@ -6,7 +6,7 @@ use lyon::math::point;
 use lyon::tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers};
 
 use crate::camera::{Camera2D, aabb_intersects_view_rect, camera_view_rect};
-use crate::material::{Material2d, effective_blend_mode};
+use crate::material::{Material2d, apply_material, effective_blend_mode, effective_shader_handle};
 use crate::renderer::RendererRes;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -121,11 +121,13 @@ pub fn shape_render_system(
     shapes.sort_by_key(|(_, _, layer, sort, _, mat)| {
         (
             layer.copied().unwrap_or(RenderLayer::World),
+            effective_shader_handle(*mat),
             effective_blend_mode(*mat),
             sort.copied().unwrap_or_default(),
         )
     });
 
+    let mut last_shader = None;
     let mut last_blend_mode = None;
 
     for (shape, transform, _, _, _, mat) in shapes {
@@ -140,11 +142,7 @@ pub fn shape_render_system(
             }
         }
 
-        let blend_mode = effective_blend_mode(mat);
-        if last_blend_mode != Some(blend_mode) {
-            renderer.set_blend_mode(blend_mode);
-            last_blend_mode = Some(blend_mode);
-        }
+        apply_material(&mut **renderer, mat, &mut last_shader, &mut last_blend_mode);
 
         let mesh = tessellate(&shape.variant);
         let offset_vertices: Vec<[f32; 2]> = mesh
@@ -166,8 +164,12 @@ mod tests {
     use glam::Affine2;
 
     use super::*;
-    use crate::material::{BlendMode, Material2d};
-    use crate::testing::{BlendCallLog, ShapeCallLog, SpyRenderer};
+    use engine_core::types::TextureId;
+
+    use crate::material::{BlendMode, Material2d, ShaderHandle, TextureBinding};
+    use crate::testing::{
+        BlendCallLog, ShaderCallLog, ShapeCallLog, SpyRenderer, TextureBindCallLog, UniformCallLog,
+    };
 
     #[test]
     fn when_tessellating_circle_then_produces_nonempty_vertices_and_indices() {
@@ -355,6 +357,30 @@ mod tests {
         let spy = SpyRenderer::new(log).with_shape_capture(calls.clone());
         world.insert_resource(RendererRes::new(Box::new(spy)));
         calls
+    }
+
+    fn insert_spy_with_shader_capture(world: &mut World) -> ShaderCallLog {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shader_calls: ShaderCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log).with_shader_capture(shader_calls.clone());
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        shader_calls
+    }
+
+    fn insert_spy_with_uniform_capture(world: &mut World) -> UniformCallLog {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let uniform_calls: UniformCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log).with_uniform_capture(uniform_calls.clone());
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        uniform_calls
+    }
+
+    fn insert_spy_with_texture_bind_capture(world: &mut World) -> TextureBindCallLog {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let texture_bind_calls: TextureBindCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log).with_texture_bind_capture(texture_bind_calls.clone());
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        texture_bind_calls
     }
 
     fn insert_spy_with_blend_capture(world: &mut World) -> BlendCallLog {
@@ -839,6 +865,133 @@ mod tests {
             1,
             "shape at negative pos inside view should be drawn"
         );
+    }
+
+    #[test]
+    fn when_shape_has_material_then_set_shader_called_with_material_shader() {
+        // Arrange
+        let mut world = World::new();
+        let shader_calls = insert_spy_with_shader_capture(&mut world);
+        world.spawn((
+            default_shape(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(3),
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = shader_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[ShaderHandle(3)]);
+    }
+
+    #[test]
+    fn when_shape_has_no_material_then_set_shader_called_with_default() {
+        // Arrange
+        let mut world = World::new();
+        let shader_calls = insert_spy_with_shader_capture(&mut world);
+        world.spawn((default_shape(), GlobalTransform2D(Affine2::IDENTITY)));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = shader_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[ShaderHandle(0)]);
+    }
+
+    #[test]
+    fn when_shape_has_material_uniforms_then_set_material_uniforms_called() {
+        // Arrange
+        let mut world = World::new();
+        let uniform_calls = insert_spy_with_uniform_capture(&mut world);
+        world.spawn((
+            default_shape(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                uniforms: vec![7, 8],
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = uniform_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[vec![7u8, 8]]);
+    }
+
+    #[test]
+    fn when_shape_has_texture_bindings_then_bind_material_texture_called() {
+        // Arrange
+        let mut world = World::new();
+        let texture_bind_calls = insert_spy_with_texture_bind_capture(&mut world);
+        world.spawn((
+            default_shape(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                textures: vec![TextureBinding {
+                    texture: TextureId(4),
+                    binding: 0,
+                }],
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = texture_bind_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[(TextureId(4), 0)]);
+    }
+
+    #[test]
+    fn when_two_shapes_with_different_shaders_then_shader_dominates_blend_in_sort() {
+        // Arrange
+        let mut world = World::new();
+        let calls = insert_spy_with_shape_capture(&mut world);
+        let red = Color::new(1.0, 0.0, 0.0, 1.0);
+        let blue = Color::new(0.0, 0.0, 1.0, 1.0);
+        // Shape A: ShaderHandle(1), BlendMode::Alpha
+        world.spawn((
+            Shape {
+                color: red,
+                ..default_shape()
+            },
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(1),
+                blend_mode: BlendMode::Alpha,
+                ..Material2d::default()
+            },
+        ));
+        // Shape B: ShaderHandle(0), BlendMode::Additive
+        world.spawn((
+            Shape {
+                color: blue,
+                ..default_shape()
+            },
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(0),
+                blend_mode: BlendMode::Additive,
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — ShaderHandle(0) < ShaderHandle(1), so blue drawn first
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls[0].2, blue);
+        assert_eq!(calls[1].2, red);
     }
 
     #[test]

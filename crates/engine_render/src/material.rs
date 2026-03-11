@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use bevy_ecs::prelude::Component;
+use bevy_ecs::prelude::{Component, Resource};
 use engine_core::types::TextureId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -19,10 +19,10 @@ impl BlendMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ShaderHandle(pub u32);
 
-#[derive(Default)]
+#[derive(Default, Resource)]
 pub struct ShaderRegistry {
     sources: HashMap<ShaderHandle, String>,
     next_id: u32,
@@ -61,8 +61,46 @@ pub struct Material2d {
 }
 
 #[must_use]
+pub fn effective_shader_handle(material: Option<&Material2d>) -> ShaderHandle {
+    material.map_or(ShaderHandle(0), |m| m.shader)
+}
+
+#[must_use]
 pub fn effective_blend_mode(material: Option<&Material2d>) -> BlendMode {
     material.map_or(BlendMode::Alpha, |m| m.blend_mode)
+}
+
+/// Applies per-entity material state changes to the renderer with deduplication.
+///
+/// Calls `set_shader` and `set_blend_mode` only when the value differs from the
+/// previous entity's values.  Uploads uniforms and texture bindings unconditionally
+/// each entity (they are per-draw-call data, not stateful pipeline switches).
+pub fn apply_material(
+    renderer: &mut dyn crate::renderer::Renderer,
+    material: Option<&Material2d>,
+    last_shader: &mut Option<ShaderHandle>,
+    last_blend_mode: &mut Option<BlendMode>,
+) {
+    let shader = effective_shader_handle(material);
+    if *last_shader != Some(shader) {
+        renderer.set_shader(shader);
+        *last_shader = Some(shader);
+    }
+
+    let blend_mode = effective_blend_mode(material);
+    if *last_blend_mode != Some(blend_mode) {
+        renderer.set_blend_mode(blend_mode);
+        *last_blend_mode = Some(blend_mode);
+    }
+
+    if let Some(mat) = material {
+        if !mat.uniforms.is_empty() {
+            renderer.set_material_uniforms(&mat.uniforms);
+        }
+        for binding in &mat.textures {
+            renderer.bind_material_texture(binding.texture, binding.binding);
+        }
+    }
 }
 
 #[must_use]
@@ -172,6 +210,64 @@ mod tests {
         assert!(result.contains("feature_line"));
         assert!(result.contains("header"));
         assert!(result.contains("footer"));
+    }
+
+    #[test]
+    fn when_shader_registry_used_as_resource_in_system_then_lookup_works() {
+        use bevy_ecs::prelude::{Res, Schedule, World};
+
+        // Arrange
+        let mut registry = ShaderRegistry::new();
+        let handle = registry.register("@vertex fn vs_main() {}");
+        let mut world = World::new();
+        world.insert_resource(registry);
+        let mut schedule = Schedule::default();
+        schedule.add_systems(|registry: Res<ShaderRegistry>| {
+            assert_eq!(
+                registry.lookup(ShaderHandle(0)),
+                Some("@vertex fn vs_main() {}")
+            );
+        });
+
+        // Act / Assert
+        schedule.run(&mut world);
+        let _ = handle;
+    }
+
+    #[test]
+    fn when_effective_shader_handle_with_none_then_returns_default() {
+        // Act
+        let result = effective_shader_handle(None);
+
+        // Assert
+        assert_eq!(result, ShaderHandle(0));
+    }
+
+    #[test]
+    fn when_effective_shader_handle_with_some_then_returns_material_shader() {
+        // Arrange
+        let material = Material2d {
+            shader: ShaderHandle(99),
+            ..Material2d::default()
+        };
+
+        // Act
+        let result = effective_shader_handle(Some(&material));
+
+        // Assert
+        assert_eq!(result, ShaderHandle(99));
+    }
+
+    #[test]
+    fn when_comparing_shader_handles_then_ordered_by_inner_u32() {
+        // Arrange
+        let a = ShaderHandle(0);
+        let b = ShaderHandle(1);
+        let c = ShaderHandle(99);
+
+        // Act / Assert
+        assert!(a < b);
+        assert!(b < c);
     }
 
     #[test]

@@ -654,8 +654,9 @@ mod tests {
         let calls = log.lock().unwrap();
         assert_eq!(calls[0], "clear");
         assert_eq!(calls[1], "set_view_projection");
-        assert_eq!(calls[2], "set_blend_mode");
-        assert_eq!(calls[3], "draw_sprite");
+        assert_eq!(calls[2], "set_shader");
+        assert_eq!(calls[3], "set_blend_mode");
+        assert_eq!(calls[4], "draw_sprite");
     }
 
     #[test]

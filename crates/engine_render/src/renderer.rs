@@ -2,8 +2,9 @@ use bevy_ecs::prelude::Resource;
 use engine_core::color::Color;
 
 use crate::atlas::TextureAtlas;
-use crate::material::BlendMode;
+use crate::material::{BlendMode, ShaderHandle};
 use crate::rect::Rect;
+use engine_core::types::TextureId;
 
 pub trait Renderer {
     fn clear(&mut self, color: Color);
@@ -12,6 +13,9 @@ pub trait Renderer {
     fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color);
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]);
     fn set_blend_mode(&mut self, mode: BlendMode);
+    fn set_shader(&mut self, shader: ShaderHandle);
+    fn set_material_uniforms(&mut self, data: &[u8]);
+    fn bind_material_texture(&mut self, texture: TextureId, binding: u32);
     fn upload_atlas(&mut self, atlas: &TextureAtlas);
     fn viewport_size(&self) -> (u32, u32);
     fn apply_post_process(&mut self);
@@ -51,6 +55,9 @@ impl Renderer for NullRenderer {
     fn draw_shape(&mut self, _vertices: &[[f32; 2]], _indices: &[u32], _color: Color) {}
     fn set_view_projection(&mut self, _matrix: [[f32; 4]; 4]) {}
     fn set_blend_mode(&mut self, _mode: BlendMode) {}
+    fn set_shader(&mut self, _shader: ShaderHandle) {}
+    fn set_material_uniforms(&mut self, _data: &[u8]) {}
+    fn bind_material_texture(&mut self, _texture: TextureId, _binding: u32) {}
     fn upload_atlas(&mut self, _atlas: &TextureAtlas) {}
     fn viewport_size(&self) -> (u32, u32) {
         (0, 0)
@@ -173,6 +180,17 @@ mod tests {
         renderer.set_blend_mode(BlendMode::Alpha);
         renderer.set_blend_mode(BlendMode::Additive);
         renderer.set_blend_mode(BlendMode::Multiply);
+    }
+
+    #[test]
+    fn when_null_renderer_set_shader_and_uniforms_and_texture_then_does_not_panic() {
+        // Arrange
+        let mut renderer = NullRenderer;
+
+        // Act
+        renderer.set_shader(crate::material::ShaderHandle(0));
+        renderer.set_material_uniforms(&[1, 2, 3]);
+        renderer.bind_material_texture(engine_core::types::TextureId(0), 2);
     }
 
     #[test]

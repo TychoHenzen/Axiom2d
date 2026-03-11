@@ -5,7 +5,7 @@ use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer,
 use glam::Vec2;
 
 use crate::camera::{Camera2D, aabb_intersects_view_rect, camera_view_rect};
-use crate::material::{Material2d, effective_blend_mode};
+use crate::material::{Material2d, apply_material, effective_blend_mode, effective_shader_handle};
 use crate::rect::Rect;
 use crate::renderer::RendererRes;
 
@@ -44,11 +44,13 @@ pub fn sprite_render_system(
     sprites.sort_by_key(|(_, _, layer, sort, _, mat)| {
         (
             layer.copied().unwrap_or(RenderLayer::World),
+            effective_shader_handle(*mat),
             effective_blend_mode(*mat),
             sort.copied().unwrap_or_default(),
         )
     });
 
+    let mut last_shader = None;
     let mut last_blend_mode = None;
 
     for (sprite, transform, _, _, _, mat) in sprites {
@@ -62,11 +64,7 @@ pub fn sprite_render_system(
             }
         }
 
-        let blend_mode = effective_blend_mode(mat);
-        if last_blend_mode != Some(blend_mode) {
-            renderer.set_blend_mode(blend_mode);
-            last_blend_mode = Some(blend_mode);
-        }
+        apply_material(&mut **renderer, mat, &mut last_shader, &mut last_blend_mode);
 
         let rect = Rect {
             x: Pixels(pos.x),
@@ -88,8 +86,10 @@ mod tests {
     use glam::Affine2;
 
     use super::*;
-    use crate::material::{BlendMode, Material2d};
-    use crate::testing::{BlendCallLog, SpyRenderer};
+    use crate::material::{BlendMode, Material2d, ShaderHandle, TextureBinding};
+    use crate::testing::{
+        BlendCallLog, ShaderCallLog, SpyRenderer, TextureBindCallLog, UniformCallLog,
+    };
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -473,6 +473,30 @@ mod tests {
         // Assert
         let calls = calls.lock().unwrap();
         assert_eq!(calls[0].1, uv);
+    }
+
+    fn insert_spy_with_shader_capture(world: &mut World) -> ShaderCallLog {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shader_calls: ShaderCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log).with_shader_capture(shader_calls.clone());
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        shader_calls
+    }
+
+    fn insert_spy_with_uniform_capture(world: &mut World) -> UniformCallLog {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let uniform_calls: UniformCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log).with_uniform_capture(uniform_calls.clone());
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        uniform_calls
+    }
+
+    fn insert_spy_with_texture_bind_capture(world: &mut World) -> TextureBindCallLog {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let texture_bind_calls: TextureBindCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log).with_texture_bind_capture(texture_bind_calls.clone());
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        texture_bind_calls
     }
 
     fn insert_spy_with_blend_capture(world: &mut World) -> BlendCallLog {
@@ -906,6 +930,311 @@ mod tests {
             .filter(|s| s.as_str() == "draw_sprite")
             .count();
         assert_eq!(count, 1, "sprite overlapping top edge should be drawn");
+    }
+
+    #[test]
+    fn when_sprite_has_material_then_set_shader_called_with_material_shader() {
+        // Arrange
+        let mut world = World::new();
+        let shader_calls = insert_spy_with_shader_capture(&mut world);
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(5),
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = shader_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[ShaderHandle(5)]);
+    }
+
+    #[test]
+    fn when_sprite_has_no_material_then_set_shader_called_with_default() {
+        // Arrange
+        let mut world = World::new();
+        let shader_calls = insert_spy_with_shader_capture(&mut world);
+        world.spawn((default_sprite(), GlobalTransform2D(Affine2::IDENTITY)));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = shader_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[ShaderHandle(0)]);
+    }
+
+    #[test]
+    fn when_two_sprites_with_different_shaders_then_set_shader_called_for_each() {
+        // Arrange
+        let mut world = World::new();
+        let shader_calls = insert_spy_with_shader_capture(&mut world);
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(1),
+                ..Material2d::default()
+            },
+        ));
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(2),
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = shader_calls.lock().unwrap();
+        assert_eq!(calls.len(), 2);
+        assert!(calls.contains(&ShaderHandle(1)));
+        assert!(calls.contains(&ShaderHandle(2)));
+    }
+
+    #[test]
+    fn when_two_sprites_with_same_shader_then_set_shader_called_once() {
+        // Arrange
+        let mut world = World::new();
+        let shader_calls = insert_spy_with_shader_capture(&mut world);
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(2),
+                ..Material2d::default()
+            },
+        ));
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(2),
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = shader_calls.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0], ShaderHandle(2));
+    }
+
+    #[test]
+    fn when_sprite_has_material_uniforms_then_set_material_uniforms_called() {
+        // Arrange
+        let mut world = World::new();
+        let uniform_calls = insert_spy_with_uniform_capture(&mut world);
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                uniforms: vec![1, 2, 3, 4],
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = uniform_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[vec![1u8, 2, 3, 4]]);
+    }
+
+    #[test]
+    fn when_sprite_has_no_material_then_set_material_uniforms_not_called() {
+        // Arrange
+        let mut world = World::new();
+        let log = insert_spy(&mut world);
+        world.spawn((default_sprite(), GlobalTransform2D(Affine2::IDENTITY)));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let log = log.lock().unwrap();
+        assert!(!log.iter().any(|s| s == "set_material_uniforms"));
+    }
+
+    #[test]
+    fn when_sprite_has_empty_uniforms_then_set_material_uniforms_not_called() {
+        // Arrange
+        let mut world = World::new();
+        let log = insert_spy(&mut world);
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                uniforms: vec![],
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let log = log.lock().unwrap();
+        assert!(!log.iter().any(|s| s == "set_material_uniforms"));
+    }
+
+    #[test]
+    fn when_two_sprites_with_different_shaders_then_shader_dominates_blend_in_sort() {
+        // Arrange
+        let mut world = World::new();
+        let calls = insert_spy_with_capture(&mut world);
+        let red = Color::new(1.0, 0.0, 0.0, 1.0);
+        let blue = Color::new(0.0, 0.0, 1.0, 1.0);
+        // Sprite A: ShaderHandle(1), BlendMode::Alpha
+        world.spawn((
+            Sprite {
+                color: red,
+                ..default_sprite()
+            },
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(1),
+                blend_mode: BlendMode::Alpha,
+                ..Material2d::default()
+            },
+        ));
+        // Sprite B: ShaderHandle(0), BlendMode::Additive
+        world.spawn((
+            Sprite {
+                color: blue,
+                ..default_sprite()
+            },
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(0),
+                blend_mode: BlendMode::Additive,
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — ShaderHandle(0) < ShaderHandle(1), so blue drawn first
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls[0].0.color, blue);
+        assert_eq!(calls[1].0.color, red);
+    }
+
+    #[test]
+    fn when_same_shader_different_blend_then_blend_sorts_within_shader_group() {
+        // Arrange
+        let mut world = World::new();
+        let blend_calls = insert_spy_with_blend_capture(&mut world);
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(0),
+                blend_mode: BlendMode::Additive,
+                ..Material2d::default()
+            },
+        ));
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                shader: ShaderHandle(0),
+                blend_mode: BlendMode::Alpha,
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — Alpha < Additive in Ord
+        let calls = blend_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[BlendMode::Alpha, BlendMode::Additive]);
+    }
+
+    #[test]
+    fn when_sprite_has_texture_bindings_then_bind_material_texture_called() {
+        // Arrange
+        let mut world = World::new();
+        let texture_bind_calls = insert_spy_with_texture_bind_capture(&mut world);
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                textures: vec![TextureBinding {
+                    texture: TextureId(1),
+                    binding: 2,
+                }],
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = texture_bind_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[(TextureId(1), 2)]);
+    }
+
+    #[test]
+    fn when_sprite_has_multiple_texture_bindings_then_all_forwarded_in_order() {
+        // Arrange
+        let mut world = World::new();
+        let texture_bind_calls = insert_spy_with_texture_bind_capture(&mut world);
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            Material2d {
+                textures: vec![
+                    TextureBinding {
+                        texture: TextureId(1),
+                        binding: 0,
+                    },
+                    TextureBinding {
+                        texture: TextureId(2),
+                        binding: 1,
+                    },
+                ],
+                ..Material2d::default()
+            },
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = texture_bind_calls.lock().unwrap();
+        assert_eq!(calls.as_slice(), &[(TextureId(1), 0), (TextureId(2), 1)]);
+    }
+
+    #[test]
+    fn when_sprite_has_no_material_then_bind_material_texture_not_called() {
+        // Arrange
+        let mut world = World::new();
+        let log = insert_spy(&mut world);
+        world.spawn((default_sprite(), GlobalTransform2D(Affine2::IDENTITY)));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let log = log.lock().unwrap();
+        assert!(!log.iter().any(|s| s == "bind_material_texture"));
     }
 
     #[test]

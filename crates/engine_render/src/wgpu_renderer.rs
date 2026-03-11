@@ -1355,6 +1355,12 @@ impl Renderer for WgpuRenderer {
         self.current_blend_mode = mode;
     }
 
+    fn set_shader(&mut self, _shader: crate::material::ShaderHandle) {}
+
+    fn set_material_uniforms(&mut self, _data: &[u8]) {}
+
+    fn bind_material_texture(&mut self, _texture: engine_core::types::TextureId, _binding: u32) {}
+
     fn upload_atlas(&mut self, atlas: &crate::atlas::TextureAtlas) {
         self.texture_bind_group = create_texture_bind_group(
             &self.device,
