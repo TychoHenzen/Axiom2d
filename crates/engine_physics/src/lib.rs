@@ -3,6 +3,7 @@ pub mod collision_event;
 pub mod physics_backend;
 pub mod physics_res;
 pub mod physics_step_system;
+pub mod physics_sync_system;
 pub mod prelude;
 pub mod rapier_backend;
 pub mod rigid_body;

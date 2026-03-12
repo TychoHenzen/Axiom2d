@@ -193,6 +193,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **CollisionEvent** (`engine_physics::collision_event`): Plain struct with `entity_a: Entity`, `entity_b: Entity`, `kind: CollisionKind`. Derives Debug, Clone, Copy, PartialEq.
 - **CollisionEventBuffer** (`engine_physics::collision_event`): `#[derive(Resource, Debug, Default)]` wrapping `Vec<CollisionEvent>`. `push(event)` enqueues, `drain() -> Drain<'_, CollisionEvent>` consumes. Same pattern as `InputEventBuffer`/`PlaySoundBuffer`. NOT inserted by DefaultPlugins (game-specific, same policy as PhysicsRes).
 - **physics_step_system** (`engine_physics::physics_step_system`): `fn(Res<DeltaTime>, ResMut<PhysicsRes>, ResMut<CollisionEventBuffer>)` — calls `physics.step(dt)`, then drains `physics.drain_collision_events()` into the buffer. Designed for `Phase::PreUpdate`. NOT registered by DefaultPlugins (game-specific).
+- **physics_sync_system** (`engine_physics::physics_sync_system`): `fn(Res<PhysicsRes>, Query<(Entity, &mut Transform2D), With<RigidBody>>)` — reads `body_position()` and `body_rotation()` from the physics backend for each entity with a `RigidBody` component, writes to `Transform2D.position` and `Transform2D.rotation` independently (each gated by its own `Option`). Scale is never modified. Designed for `Phase::PreUpdate` (after `physics_step_system`, before `transform_propagation_system` in PostUpdate). NOT registered by DefaultPlugins (game-specific, same policy as `physics_step_system`).
 
 ### Scheduling Phases
 
