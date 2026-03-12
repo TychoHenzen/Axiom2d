@@ -4,7 +4,7 @@ use image::RgbaImage;
 use wgpu::util::DeviceExt;
 
 use engine_core::color::Color;
-use engine_core::types::{Pixels, TextureId};
+use engine_core::types::TextureId;
 
 use crate::atlas::TextureAtlas;
 use crate::material::{BlendMode, ShaderHandle};
@@ -350,7 +350,7 @@ impl HeadlessRenderer {
         self.device.poll(wgpu::Maintain::Wait);
 
         let data = slice.get_mapped_range();
-        let pixels = strip_row_padding(&data, self.width, self.height, padded_row);
+        let pixels = strip_row_padding(&data, self.width, self.height, padded_row, 4);
         drop(data);
         staging.unmap();
 
@@ -516,33 +516,12 @@ impl Renderer for HeadlessRenderer {
     fn resize(&mut self, _width: u32, _height: u32) {}
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum GoldenError {
-    Io(std::io::Error),
-    Image(image::ImageError),
-}
-
-impl std::fmt::Display for GoldenError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Io(e) => write!(f, "I/O error: {e}"),
-            Self::Image(e) => write!(f, "image error: {e}"),
-        }
-    }
-}
-
-impl std::error::Error for GoldenError {}
-
-impl From<std::io::Error> for GoldenError {
-    fn from(e: std::io::Error) -> Self {
-        Self::Io(e)
-    }
-}
-
-impl From<image::ImageError> for GoldenError {
-    fn from(e: image::ImageError) -> Self {
-        Self::Image(e)
-    }
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("image error: {0}")]
+    Image(#[from] image::ImageError),
 }
 
 pub fn save_golden(path: &Path, pixels: &[u8], width: u32, height: u32) -> Result<(), GoldenError> {
@@ -566,8 +545,14 @@ pub fn padded_row_bytes(width: u32, bytes_per_pixel: u32) -> u32 {
     (raw + align - 1) / align * align
 }
 
-pub fn strip_row_padding(data: &[u8], width: u32, height: u32, padded_row: u32) -> Vec<u8> {
-    let row_bytes = width * 4;
+pub fn strip_row_padding(
+    data: &[u8],
+    width: u32,
+    height: u32,
+    padded_row: u32,
+    bytes_per_pixel: u32,
+) -> Vec<u8> {
+    let row_bytes = width * bytes_per_pixel;
     let mut out = Vec::with_capacity((row_bytes * height) as usize);
     for y in 0..height {
         let start = (y * padded_row) as usize;
@@ -591,7 +576,10 @@ pub fn ssim_compare(a: &[u8], b: &[u8], width: u32, height: u32) -> f32 {
 mod tests {
     #![allow(clippy::unwrap_used)]
 
-    use super::ssim_compare;
+    use super::{
+        HeadlessRenderer, load_golden, padded_row_bytes, save_golden, ssim_compare,
+        strip_row_padding,
+    };
 
     #[test]
     fn when_comparing_identical_buffers_then_ssim_score_is_one() {
@@ -612,8 +600,8 @@ mod tests {
     #[test]
     fn when_comparing_different_buffers_then_ssim_score_is_less_than_one() {
         // Arrange
-        let a: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64); // solid red
-        let b: Vec<u8> = vec![0, 0, 255, 255].repeat(64 * 64); // solid blue
+        let a: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64);
+        let b: Vec<u8> = vec![0, 0, 255, 255].repeat(64 * 64);
 
         // Act
         let score = ssim_compare(&a, &b, 64, 64);
@@ -630,7 +618,7 @@ mod tests {
         // Arrange
         let a: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64);
         let mut b = a.clone();
-        b[0] = 254; // one pixel's red channel differs by 1
+        b[0] = 254;
 
         // Act
         let score = ssim_compare(&a, &b, 64, 64);
@@ -642,24 +630,18 @@ mod tests {
         );
     }
 
-    use super::{padded_row_bytes, strip_row_padding};
-
     #[test]
     fn when_computing_padded_row_bytes_then_returns_multiple_of_256() {
-        // Arrange — 65 pixels wide, 4 bytes per pixel = 260 raw bytes (not aligned)
-
         // Act
         let result = padded_row_bytes(65, 4);
 
         // Assert
-        assert_eq!(result, 512); // next multiple of 256 above 260
+        assert_eq!(result, 512);
         assert_eq!(result % 256, 0);
     }
 
     #[test]
     fn when_width_already_aligned_then_padded_row_bytes_unchanged() {
-        // Arrange — 64 pixels * 4 bpp = 256, already aligned
-
         // Act
         let result = padded_row_bytes(64, 4);
 
@@ -669,30 +651,27 @@ mod tests {
 
     #[test]
     fn when_stripping_row_padding_then_produces_packed_rgba() {
-        // Arrange — 2x2 image, 4 bpp, padded to 256 bytes per row
+        // Arrange
         let width = 2u32;
         let height = 2u32;
-        let padded = padded_row_bytes(width, 4) as usize; // 256
+        let padded = padded_row_bytes(width, 4) as usize;
         let mut data = vec![0u8; padded * height as usize];
-        // Row 0: pixel (0,0)=red, pixel (1,0)=green
         data[0..4].copy_from_slice(&[255, 0, 0, 255]);
         data[4..8].copy_from_slice(&[0, 255, 0, 255]);
-        // Row 1: pixel (0,1)=blue, pixel (1,1)=white
         data[padded..padded + 4].copy_from_slice(&[0, 0, 255, 255]);
         data[padded + 4..padded + 8].copy_from_slice(&[255, 255, 255, 255]);
 
         // Act
-        let packed = strip_row_padding(&data, width, height, padded as u32);
+        let packed = strip_row_padding(&data, width, height, padded as u32, 4);
 
         // Assert
         assert_eq!(packed.len(), 2 * 2 * 4);
-        assert_eq!(&packed[0..4], &[255, 0, 0, 255]); // red
-        assert_eq!(&packed[4..8], &[0, 255, 0, 255]); // green
-        assert_eq!(&packed[8..12], &[0, 0, 255, 255]); // blue
-        assert_eq!(&packed[12..16], &[255, 255, 255, 255]); // white
+        assert_eq!(&packed[0..4], &[255, 0, 0, 255]);
+        assert_eq!(&packed[4..8], &[0, 255, 0, 255]);
+        assert_eq!(&packed[8..12], &[0, 0, 255, 255]);
+        assert_eq!(&packed[12..16], &[255, 255, 255, 255]);
     }
 
-    use super::{HeadlessRenderer, load_golden, save_golden};
     use crate::rect::Rect;
     use crate::renderer::Renderer;
     use engine_core::types::Pixels;
@@ -721,7 +700,7 @@ mod tests {
         // Assert
         assert_eq!(pixels.len(), 64 * 64 * 4);
         for chunk in pixels.chunks_exact(4) {
-            assert_eq!(chunk[0], 255, "R channel"); // red
+            assert_eq!(chunk[0], 255, "R channel");
             assert_eq!(chunk[1], 0, "G channel");
             assert_eq!(chunk[2], 0, "B channel");
             assert_eq!(chunk[3], 255, "A channel");
@@ -780,16 +759,15 @@ mod tests {
     #[test]
     fn when_comparing_largely_different_buffers_then_ssim_below_threshold() {
         // Arrange
-        let mut a: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64); // solid red
-        // Change top-left quadrant (32x32 = 1024 pixels) to blue
+        let mut a: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64);
         for y in 0..32 {
             for x in 0..32 {
                 let idx = (y * 64 + x) * 4;
-                a[idx] = 0; // R
-                a[idx + 2] = 255; // B
+                a[idx] = 0;
+                a[idx + 2] = 255;
             }
         }
-        let b: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64); // solid red
+        let b: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64);
 
         // Act
         let score = ssim_compare(&a, &b, 64, 64);
@@ -809,7 +787,6 @@ mod tests {
         let black = engine_core::color::Color::new(0.0, 0.0, 0.0, 1.0);
         renderer.clear(black);
 
-        // Set up orthographic projection matching pixel coords
         let proj = crate::camera::CameraUniform::from_camera(
             &crate::camera::Camera2D {
                 position: glam::Vec2::new(32.0, 32.0),
@@ -832,13 +809,11 @@ mod tests {
         // Act
         let pixels = renderer.render_to_buffer();
 
-        // Assert — center pixel (32, 32) should be white
+        // Assert
         let center_idx = (32 * 64 + 32) * 4;
         assert_eq!(pixels[center_idx], 255, "center R");
         assert_eq!(pixels[center_idx + 1], 255, "center G");
         assert_eq!(pixels[center_idx + 2], 255, "center B");
-
-        // Corner (0,0) should be black
         assert_eq!(pixels[0], 0, "corner R");
         assert_eq!(pixels[1], 0, "corner G");
         assert_eq!(pixels[2], 0, "corner B");
@@ -873,7 +848,6 @@ mod tests {
         renderer.clear(blue);
         let pixels = renderer.render_to_buffer();
 
-        // Create a reference "golden" from the same render
         let golden = pixels.clone();
 
         // Act
@@ -899,7 +873,7 @@ mod tests {
         renderer.clear(red);
         let red_pixels = renderer.render_to_buffer();
 
-        // Act — compare red render against blue golden
+        // Act
         let score = ssim_compare(&red_pixels, &blue_pixels, 64, 64);
 
         // Assert
@@ -927,9 +901,7 @@ mod tests {
         );
         renderer.set_view_projection(proj.view_proj);
 
-        // Tessellate a white circle at center
         let mesh = crate::shape::tessellate(&crate::shape::ShapeVariant::Circle { radius: 20.0 });
-        // Offset vertices to center (64, 64)
         let vertices: Vec<[f32; 2]> = mesh
             .vertices
             .iter()
@@ -940,7 +912,7 @@ mod tests {
         // Act
         let pixels = renderer.render_to_buffer();
 
-        // Assert — center pixel (64, 64) should be non-black
+        // Assert
         let idx = (64 * 128 + 64) * 4;
         let is_non_black = pixels[idx] > 0 || pixels[idx + 1] > 0 || pixels[idx + 2] > 0;
         assert!(
