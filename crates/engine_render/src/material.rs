@@ -147,6 +147,32 @@ mod tests {
     use super::*;
 
     #[test]
+    fn when_material2d_with_textures_and_uniforms_debug_formatted_then_snapshot_matches() {
+        // Arrange
+        let material = Material2d {
+            blend_mode: BlendMode::Additive,
+            shader: ShaderHandle(7),
+            textures: vec![
+                TextureBinding {
+                    texture: TextureId(0),
+                    binding: 0,
+                },
+                TextureBinding {
+                    texture: TextureId(1),
+                    binding: 1,
+                },
+            ],
+            uniforms: vec![0, 128, 255],
+        };
+
+        // Act
+        let debug = format!("{material:#?}");
+
+        // Assert
+        insta::assert_snapshot!(debug);
+    }
+
+    #[test]
     fn when_blend_mode_variants_serialized_to_ron_then_each_deserializes_to_matching_variant() {
         for mode in BlendMode::ALL {
             let ron = ron::to_string(&mode).unwrap();

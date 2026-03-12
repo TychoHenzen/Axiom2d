@@ -584,6 +584,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "console"
+version = "0.15.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "054ccb5b10f9f2cbf51eb355ca1d05c2d279ce1804688d0db74b4733a5aeafd8"
+dependencies = [
+ "encode_unicode",
+ "libc",
+ "once_cell",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -849,6 +861,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "encode_unicode"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34aa73646ffb006b8f5147f3dc182bd4bcb190227ce861fc4a4844bf8e3cb2c0"
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -881,8 +899,9 @@ dependencies = [
  "engine_render",
  "engine_scene",
  "glam 0.29.3",
+ "insta",
  "proptest",
- "ron",
+ "ron 0.9.0",
  "serde",
  "thiserror 2.0.18",
 ]
@@ -898,7 +917,7 @@ dependencies = [
  "fundsp",
  "glam 0.29.3",
  "proptest",
- "ron",
+ "ron 0.9.0",
  "serde",
 ]
 
@@ -909,7 +928,7 @@ dependencies = [
  "bevy_ecs",
  "glam 0.29.3",
  "proptest",
- "ron",
+ "ron 0.9.0",
  "serde",
  "thiserror 2.0.18",
 ]
@@ -938,9 +957,10 @@ dependencies = [
  "crossbeam",
  "engine_core",
  "glam 0.29.3",
+ "insta",
  "proptest",
  "rapier2d",
- "ron",
+ "ron 0.9.0",
  "serde",
 ]
 
@@ -955,11 +975,12 @@ dependencies = [
  "glam 0.29.3",
  "guillotiere",
  "image",
+ "insta",
  "lyon",
  "naga",
  "pollster",
  "proptest",
- "ron",
+ "ron 0.9.0",
  "serde",
  "thiserror 2.0.18",
  "wgpu",
@@ -974,7 +995,7 @@ dependencies = [
  "engine_core",
  "glam 0.29.3",
  "proptest",
- "ron",
+ "ron 0.9.0",
  "serde",
 ]
 
@@ -989,7 +1010,7 @@ dependencies = [
  "engine_scene",
  "glam 0.29.3",
  "proptest",
- "ron",
+ "ron 0.9.0",
  "serde",
 ]
 
@@ -1456,6 +1477,20 @@ dependencies = [
  "hashbrown 0.16.1",
  "serde",
  "serde_core",
+]
+
+[[package]]
+name = "insta"
+version = "1.46.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e82db8c87c7f1ccecb34ce0c24399b8a73081427f3c7c50a5d597925356115e4"
+dependencies = [
+ "console",
+ "once_cell",
+ "ron 0.12.0",
+ "serde",
+ "similar",
+ "tempfile",
 ]
 
 [[package]]
@@ -2650,6 +2685,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ron"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd490c5b18261893f14449cbd28cb9c0b637aebf161cd77900bfdedaff21ec32"
+dependencies = [
+ "bitflags 2.11.0",
+ "once_cell",
+ "serde",
+ "serde_derive",
+ "typeid",
+ "unicode-ident",
+]
+
+[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2818,6 +2867,12 @@ name = "simd-adler32"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e320a6c5ad31d271ad523dcf3ad13e2767ad8b1cb8f047f75a8aeaf8da139da2"
+
+[[package]]
+name = "similar"
+version = "2.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
 name = "slab"
@@ -3154,6 +3209,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "tempfile"
+version = "3.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
+dependencies = [
+ "fastrand",
+ "getrandom 0.4.2",
+ "once_cell",
+ "rustix 1.1.4",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

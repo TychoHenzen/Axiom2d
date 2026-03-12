@@ -1,0 +1,23 @@
+---
+source: crates/engine_assets/src/scene.rs
+assertion_line: 240
+expression: pretty
+---
+(
+    nodes: [
+        (
+            name: "diamond",
+            transform: (
+                position: (0.0, 0.0),
+                rotation: 0.0,
+                scale: (1.0, 1.0),
+            ),
+            collider: Some(ConvexPolygon([
+                (0.0, 10.0),
+                (10.0, 0.0),
+                (0.0, -10.0),
+                (-10.0, 0.0),
+            ])),
+        ),
+    ],
+)

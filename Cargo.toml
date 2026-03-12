@@ -23,6 +23,7 @@ fundsp = "0.21"
 crossbeam = "0.8"
 rapier2d = "0.22"
 proptest = { version = "1", default-features = false, features = ["std"] }
+insta = { version = "1", features = ["ron"] }
 ron = "0.9"
 serde = { version = "1", features = ["derive"] }
 

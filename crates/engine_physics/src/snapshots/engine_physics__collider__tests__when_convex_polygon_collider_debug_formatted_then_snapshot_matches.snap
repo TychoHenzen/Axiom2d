@@ -1,0 +1,29 @@
+---
+source: crates/engine_physics/src/collider.rs
+assertion_line: 32
+expression: debug
+---
+ConvexPolygon(
+    [
+        Vec2(
+            0.0,
+            0.0,
+        ),
+        Vec2(
+            10.0,
+            0.0,
+        ),
+        Vec2(
+            15.0,
+            8.0,
+        ),
+        Vec2(
+            5.0,
+            14.0,
+        ),
+        Vec2(
+            -5.0,
+            8.0,
+        ),
+    ],
+)

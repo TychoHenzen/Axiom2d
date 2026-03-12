@@ -1,0 +1,25 @@
+---
+source: crates/engine_render/src/shape.rs
+assertion_line: 191
+expression: debug
+---
+Polygon {
+    points: [
+        Vec2(
+            0.0,
+            0.0,
+        ),
+        Vec2(
+            100.0,
+            0.0,
+        ),
+        Vec2(
+            80.0,
+            60.0,
+        ),
+        Vec2(
+            20.0,
+            60.0,
+        ),
+    ],
+}

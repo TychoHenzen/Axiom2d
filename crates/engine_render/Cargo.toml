@@ -25,6 +25,7 @@ winit = { workspace = true }
 lyon = { workspace = true }
 
 [dev-dependencies]
+insta = { workspace = true }
 naga = { workspace = true }
 proptest = { workspace = true }
 ron = { workspace = true }

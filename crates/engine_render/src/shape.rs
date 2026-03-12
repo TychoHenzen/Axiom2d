@@ -173,6 +173,25 @@ mod tests {
     };
 
     #[test]
+    fn when_polygon_shape_variant_debug_formatted_then_snapshot_matches() {
+        // Arrange
+        let variant = ShapeVariant::Polygon {
+            points: vec![
+                Vec2::new(0.0, 0.0),
+                Vec2::new(100.0, 0.0),
+                Vec2::new(80.0, 60.0),
+                Vec2::new(20.0, 60.0),
+            ],
+        };
+
+        // Act
+        let debug = format!("{variant:#?}");
+
+        // Assert
+        insta::assert_snapshot!(debug);
+    }
+
+    #[test]
     fn when_shape_circle_serialized_to_ron_then_deserializes_to_equal_value() {
         // Arrange
         let shape = Shape {

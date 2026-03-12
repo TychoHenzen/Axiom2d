@@ -1,0 +1,51 @@
+---
+source: crates/engine_assets/src/scene.rs
+assertion_line: 276
+expression: pretty
+---
+(
+    nodes: [
+        (
+            name: "circle_entity",
+            transform: (
+                position: (0.0, 0.0),
+                rotation: 0.0,
+                scale: (1.0, 1.0),
+            ),
+            shape: Some((
+                variant: Circle(
+                    radius: 25.0,
+                ),
+                color: (
+                    r: 1.0,
+                    g: 0.0,
+                    b: 0.0,
+                    a: 1.0,
+                ),
+            )),
+        ),
+        (
+            name: "triangle_entity",
+            transform: (
+                position: (0.0, 0.0),
+                rotation: 0.0,
+                scale: (1.0, 1.0),
+            ),
+            shape: Some((
+                variant: Polygon(
+                    points: [
+                        (0.0, 0.0),
+                        (50.0, 0.0),
+                        (25.0, 43.3),
+                    ],
+                ),
+                color: (
+                    r: 0.0,
+                    g: 1.0,
+                    b: 0.0,
+                    a: 1.0,
+                ),
+            )),
+        ),
+    ],
+)

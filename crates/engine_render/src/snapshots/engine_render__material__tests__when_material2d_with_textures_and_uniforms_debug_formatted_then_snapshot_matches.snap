@@ -1,0 +1,30 @@
+---
+source: crates/engine_render/src/material.rs
+assertion_line: 172
+expression: debug
+---
+Material2d {
+    blend_mode: Additive,
+    shader: ShaderHandle(
+        7,
+    ),
+    textures: [
+        TextureBinding {
+            texture: TextureId(
+                0,
+            ),
+            binding: 0,
+        },
+        TextureBinding {
+            texture: TextureId(
+                1,
+            ),
+            binding: 1,
+        },
+    ],
+    uniforms: [
+        0,
+        128,
+        255,
+    ],
+}
