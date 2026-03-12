@@ -82,6 +82,35 @@ mod tests {
         assert_eq!(offset, Vec2::new(-50.0, -60.0));
     }
 
+    proptest::proptest! {
+        #[test]
+        fn when_top_left_anchor_and_any_size_then_offset_is_zero(
+            w in 0.0_f32..=1000.0,
+            h in 0.0_f32..=1000.0,
+        ) {
+            // Act
+            let offset = anchor_offset(Anchor::TopLeft, Vec2::new(w, h));
+
+            // Assert
+            assert_eq!(offset, Vec2::ZERO);
+        }
+
+        #[test]
+        fn when_bottom_right_anchor_and_any_size_then_offset_is_negative_size(
+            w in 0.0_f32..=1000.0,
+            h in 0.0_f32..=1000.0,
+        ) {
+            // Arrange
+            let size = Vec2::new(w, h);
+
+            // Act
+            let offset = anchor_offset(Anchor::BottomRight, size);
+
+            // Assert
+            assert_eq!(offset, -size);
+        }
+    }
+
     #[test]
     fn when_all_nine_anchors_then_all_offsets_distinct() {
         // Arrange

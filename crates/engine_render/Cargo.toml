@@ -26,4 +26,5 @@ lyon = { workspace = true }
 
 [dev-dependencies]
 naga = { workspace = true }
+proptest = { workspace = true }
 ron = { workspace = true }

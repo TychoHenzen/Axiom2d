@@ -311,6 +311,41 @@ mod tests {
         assert!((recovered.y - original.y).abs() < 1e-4);
     }
 
+    proptest::proptest! {
+        #[test]
+        fn when_any_world_point_then_screen_to_world_of_world_to_screen_recovers_original(
+            wx in -1000.0_f32..=1000.0,
+            wy in -1000.0_f32..=1000.0,
+            cx in -500.0_f32..=500.0,
+            cy in -500.0_f32..=500.0,
+            zoom in 0.1_f32..=10.0,
+            vw in 1.0_f32..=2000.0,
+            vh in 1.0_f32..=2000.0,
+        ) {
+            // Arrange
+            let camera = Camera2D { position: Vec2::new(cx, cy), zoom };
+            let point = Vec2::new(wx, wy);
+
+            // Act
+            let screen = world_to_screen(point, &camera, vw, vh);
+            let recovered = screen_to_world(screen, &camera, vw, vh);
+
+            // Assert
+            assert!(
+                (recovered.x - point.x).abs() < 1e-2,
+                "x: expected {}, got {}",
+                point.x,
+                recovered.x
+            );
+            assert!(
+                (recovered.y - point.y).abs() < 1e-2,
+                "y: expected {}, got {}",
+                point.y,
+                recovered.y
+            );
+        }
+    }
+
     #[test]
     fn when_view_rect_at_zoom_one_then_half_extents_equal_half_viewport() {
         // Arrange

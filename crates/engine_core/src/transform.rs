@@ -172,6 +172,31 @@ mod tests {
         assert_eq!(affine, Affine2::from_scale(Vec2::new(-1.0, 1.0)));
     }
 
+    proptest::proptest! {
+        #[test]
+        fn when_any_finite_transform2d_then_ron_roundtrip_preserves_value(
+            px in -1000.0_f32..=1000.0,
+            py in -1000.0_f32..=1000.0,
+            rot in -std::f32::consts::TAU..=std::f32::consts::TAU,
+            sx in -1000.0_f32..=1000.0,
+            sy in -1000.0_f32..=1000.0,
+        ) {
+            // Arrange
+            let transform = Transform2D {
+                position: Vec2::new(px, py),
+                rotation: rot,
+                scale: Vec2::new(sx, sy),
+            };
+
+            // Act
+            let ron = ron::to_string(&transform).unwrap();
+            let back: Transform2D = ron::from_str(&ron).unwrap();
+
+            // Assert
+            assert_eq!(transform, back);
+        }
+    }
+
     #[test]
     fn when_transform_has_full_circle_rotation_then_affine2_is_near_identity() {
         // Arrange

@@ -109,4 +109,32 @@ mod tests {
         assert_eq!(Seconds(1.0) - Seconds(0.25), Seconds(0.75));
         assert_eq!(Seconds(0.016) * 2.0, Seconds(0.032));
     }
+
+    proptest::proptest! {
+        #[test]
+        fn when_any_finite_pixels_then_ron_roundtrip_preserves_value(v in -1e10_f32..=1e10) {
+            // Arrange
+            let pixels = Pixels(v);
+
+            // Act
+            let ron = ron::to_string(&pixels).unwrap();
+            let back: Pixels = ron::from_str(&ron).unwrap();
+
+            // Assert
+            assert_eq!(pixels, back);
+        }
+
+        #[test]
+        fn when_any_finite_seconds_then_ron_roundtrip_preserves_value(v in -1e10_f32..=1e10) {
+            // Arrange
+            let seconds = Seconds(v);
+
+            // Act
+            let ron = ron::to_string(&seconds).unwrap();
+            let back: Seconds = ron::from_str(&ron).unwrap();
+
+            // Assert
+            assert_eq!(seconds, back);
+        }
+    }
 }

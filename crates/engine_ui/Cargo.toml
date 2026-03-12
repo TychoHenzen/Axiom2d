@@ -17,4 +17,5 @@ serde = { workspace = true }
 
 [dev-dependencies]
 engine_render = { path = "../engine_render", features = ["testing"] }
+proptest = { workspace = true }
 ron = { workspace = true }

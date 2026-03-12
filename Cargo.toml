@@ -22,6 +22,7 @@ cpal = "0.15"
 fundsp = "0.21"
 crossbeam = "0.8"
 rapier2d = "0.22"
+proptest = { version = "1", default-features = false, features = ["std"] }
 ron = "0.9"
 serde = { version = "1", features = ["derive"] }
 

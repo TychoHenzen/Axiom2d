@@ -188,6 +188,49 @@ mod tests {
         }
     }
 
+    proptest::proptest! {
+        #[test]
+        fn when_any_radius_then_gaussian_weights_sum_to_one_and_are_symmetric(
+            radius in 0u32..=16,
+        ) {
+            // Act
+            let weights = compute_gaussian_weights(radius);
+            let size = weights.len();
+
+            // Assert — length
+            assert_eq!(size, (2 * radius + 1) as usize);
+
+            // Assert — sum to 1.0
+            let sum: f32 = weights.iter().sum();
+            assert!(
+                (sum - 1.0).abs() < 1e-5,
+                "weights must sum to 1.0, got {sum}"
+            );
+
+            // Assert — symmetry
+            for i in 0..size / 2 {
+                let mirror = size - 1 - i;
+                assert!(
+                    (weights[i] - weights[mirror]).abs() < 1e-6,
+                    "weights[{i}]={} != weights[{mirror}]={}",
+                    weights[i],
+                    weights[mirror],
+                );
+            }
+
+            // Assert — center is maximum
+            let center = radius as usize;
+            for (i, w) in weights.iter().enumerate() {
+                assert!(
+                    weights[center] >= *w,
+                    "center {} should be >= weights[{i}]={}",
+                    weights[center],
+                    w,
+                );
+            }
+        }
+    }
+
     #[test]
     fn when_gaussian_weights_radius3_then_weight_ratios_match_formula() {
         // The Gaussian formula: w(x) = exp(-x^2 / (2*sigma^2)), sigma = max(radius, 1)

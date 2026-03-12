@@ -192,6 +192,42 @@ mod tests {
         assert_eq!(children.0, vec![child_b]);
     }
 
+    proptest::proptest! {
+        #[test]
+        fn when_arbitrary_child_of_assignments_then_children_vec_is_sorted(
+            child_count in 2usize..=10,
+            parent_count in 1usize..=3,
+        ) {
+            // Arrange
+            let mut world = World::new();
+            let parents: Vec<Entity> = (0..parent_count)
+                .map(|_| world.spawn_empty().id())
+                .collect();
+            for i in 0..child_count {
+                let parent = parents[i % parents.len()];
+                world.spawn(ChildOf(parent));
+            }
+
+            // Act
+            run_hierarchy_system(&mut world);
+
+            // Assert
+            for &parent in &parents {
+                if let Some(children) = world.get::<Children>(parent) {
+                    let sorted = {
+                        let mut v = children.0.clone();
+                        v.sort();
+                        v
+                    };
+                    assert_eq!(
+                        children.0, sorted,
+                        "Children vec should be sorted for parent {parent:?}"
+                    );
+                }
+            }
+        }
+    }
+
     #[test]
     fn when_only_child_is_despawned_then_parent_children_component_is_removed() {
         // Arrange

@@ -224,6 +224,41 @@ mod tests {
         assert!(!removed);
     }
 
+    proptest::proptest! {
+        #[test]
+        fn when_cloned_n_times_then_ref_count_lifecycle_is_correct(
+            clone_count in 1usize..=5,
+        ) {
+            // Arrange
+            let mut server: AssetServer<String> = AssetServer::default();
+            let handle = server.add("test".to_string());
+            for _ in 0..clone_count {
+                server.clone_handle(handle);
+            }
+            let expected_initial = 1 + clone_count;
+            assert_eq!(server.ref_count(handle), Some(expected_initial));
+
+            // Act — remove (clone_count) times, asset should still exist
+            for k in 0..clone_count {
+                assert!(server.remove(handle));
+                assert_eq!(
+                    server.ref_count(handle),
+                    Some(expected_initial - 1 - k),
+                    "after {} removes",
+                    k + 1
+                );
+            }
+
+            // Act — final remove evicts
+            assert!(server.remove(handle));
+            assert_eq!(server.ref_count(handle), None);
+            assert_eq!(server.get(handle), None);
+
+            // Act — extra remove returns false
+            assert!(!server.remove(handle));
+        }
+    }
+
     #[test]
     fn when_loading_nonexistent_file_then_returns_io_error() {
         // Arrange

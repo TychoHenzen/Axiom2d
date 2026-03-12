@@ -285,6 +285,33 @@ mod tests {
         assert_eq!(dt.0, Seconds(0.016));
     }
 
+    proptest::proptest! {
+        #[test]
+        fn when_any_positive_delta_and_step_size_then_accumulator_stays_below_step_size(
+            step_size in 0.001_f32..=1.0,
+            delta in 0.0_f32..=2.0,
+        ) {
+            // Arrange
+            let mut ts = FixedTimestep::with_step_size(Seconds(step_size));
+
+            // Act
+            let _steps = ts.tick(Seconds(delta));
+
+            // Assert
+            assert!(
+                ts.accumulator.0 >= 0.0,
+                "accumulator should be non-negative, got {}",
+                ts.accumulator.0
+            );
+            assert!(
+                ts.accumulator.0 < step_size + f32::EPSILON * 16.0,
+                "accumulator {} should be < step_size {}",
+                ts.accumulator.0,
+                step_size
+            );
+        }
+    }
+
     #[test]
     fn when_time_system_runs_twice_without_advance_then_second_delta_is_zero() {
         // Arrange

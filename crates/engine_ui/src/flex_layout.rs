@@ -156,6 +156,42 @@ mod tests {
         assert_eq!(offsets, vec![Vec2::ZERO]);
     }
 
+    proptest::proptest! {
+        #[test]
+        fn when_any_row_children_then_output_length_matches_and_x_offsets_increase(
+            gap in 0.0_f32..=20.0,
+            widths in proptest::collection::vec(1.0_f32..=200.0, 1..=8),
+        ) {
+            // Arrange
+            let layout = FlexLayout {
+                direction: FlexDirection::Row,
+                gap,
+            };
+            let children: Vec<(Vec2, Margin)> = widths
+                .iter()
+                .map(|&w| (Vec2::new(w, 20.0), Margin::default()))
+                .collect();
+
+            // Act
+            let offsets = compute_flex_offsets(&layout, &children);
+
+            // Assert — length matches
+            assert_eq!(offsets.len(), children.len());
+
+            // Assert — x offsets are strictly increasing (positive sizes, zero margin)
+            for i in 1..offsets.len() {
+                assert!(
+                    offsets[i].x > offsets[i - 1].x,
+                    "offsets[{}].x={} should be > offsets[{}].x={}",
+                    i,
+                    offsets[i].x,
+                    i - 1,
+                    offsets[i - 1].x
+                );
+            }
+        }
+    }
+
     #[test]
     fn when_empty_children_then_empty_offsets() {
         // Arrange

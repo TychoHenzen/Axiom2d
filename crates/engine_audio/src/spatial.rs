@@ -266,6 +266,48 @@ mod tests {
         );
     }
 
+    proptest::proptest! {
+        #[test]
+        fn when_any_distance_then_attenuation_in_zero_to_one(
+            distance in 0.0_f32..=1000.0,
+            max_distance in 0.001_f32..=1000.0,
+        ) {
+            // Act
+            let result = distance_attenuation(distance, max_distance);
+
+            // Assert
+            assert!(
+                (0.0..=1.0).contains(&result),
+                "attenuation {} out of [0,1] for distance={}, max={}",
+                result,
+                distance,
+                max_distance
+            );
+        }
+
+        #[test]
+        fn when_any_two_positions_then_constant_power_property_holds(
+            lx in -1000.0_f32..=1000.0,
+            ly in -1000.0_f32..=1000.0,
+            ex in -1000.0_f32..=1000.0,
+            ey in -1000.0_f32..=1000.0,
+        ) {
+            // Act
+            let (left, right) = compute_pan(Vec2::new(lx, ly), Vec2::new(ex, ey));
+
+            // Assert — constant-power: left^2 + right^2 ≈ 1.0
+            let power = left * left + right * right;
+            assert!(
+                (power - 1.0).abs() < 1e-4,
+                "constant-power violated: L={left}, R={right}, L²+R²={power}"
+            );
+
+            // Assert — gains in [0, 1]
+            assert!((0.0..=1.0).contains(&left), "left gain {} out of [0,1]", left);
+            assert!((0.0..=1.0).contains(&right), "right gain {} out of [0,1]", right);
+        }
+    }
+
     #[test]
     fn when_emitter_to_right_then_spatial_gains_reflect_pan_and_attenuation() {
         // Arrange
