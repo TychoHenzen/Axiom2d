@@ -1,3 +1,4 @@
+use engine_app::mouse_world_pos_system::mouse_world_pos_system;
 use engine_app::prelude::{App, Phase, Plugin};
 #[cfg(feature = "audio")]
 use engine_audio::{
@@ -6,7 +7,9 @@ use engine_audio::{
 };
 use engine_core::prelude::{ClockRes, SystemClock, time_system};
 use engine_ecs::prelude::IntoScheduleConfigs;
-use engine_input::prelude::{InputEventBuffer, InputState, input_system};
+use engine_input::prelude::{
+    InputEventBuffer, InputState, MouseEventBuffer, MouseState, input_system, mouse_input_system,
+};
 #[cfg(feature = "render")]
 use engine_render::prelude::{
     ClearColor, camera_prepare_system, clear_system, post_process_system, shape_render_system,
@@ -22,10 +25,12 @@ impl Plugin for DefaultPlugins {
     fn build(&self, app: &mut App) {
         app.world_mut().insert_resource(InputState::default());
         app.world_mut().insert_resource(InputEventBuffer::default());
+        app.world_mut().insert_resource(MouseState::default());
+        app.world_mut().insert_resource(MouseEventBuffer::default());
         app.world_mut()
             .insert_resource(ClockRes::new(Box::new(SystemClock::new())));
 
-        app.add_systems(Phase::Input, input_system);
+        app.add_systems(Phase::Input, (input_system, mouse_input_system));
         app.add_systems(Phase::PreUpdate, time_system);
         #[cfg(not(feature = "audio"))]
         app.add_systems(
@@ -34,6 +39,7 @@ impl Plugin for DefaultPlugins {
                 hierarchy_maintenance_system,
                 transform_propagation_system,
                 visibility_system,
+                mouse_world_pos_system,
             )
                 .chain(),
         );
@@ -51,6 +57,7 @@ impl Plugin for DefaultPlugins {
                     transform_propagation_system,
                     visibility_system,
                     spatial_audio_system,
+                    mouse_world_pos_system,
                 )
                     .chain(),
             );
@@ -383,6 +390,43 @@ mod tests {
                 .get_resource::<engine_audio::audio_res::AudioRes>()
                 .is_some()
         );
+    }
+
+    #[test]
+    fn when_mouse_button_pressed_and_frame_runs_then_mouse_state_reflects_button() {
+        // Arrange
+        let mut app = app_with_default_plugins();
+        app.world_mut()
+            .resource_mut::<engine_input::prelude::MouseEventBuffer>()
+            .push(winit::event::MouseButton::Left, ElementState::Pressed);
+
+        // Act
+        app.handle_redraw();
+
+        // Assert
+        assert!(
+            app.world()
+                .resource::<engine_input::prelude::MouseState>()
+                .just_pressed(winit::event::MouseButton::Left)
+        );
+    }
+
+    #[test]
+    fn when_mouse_button_pressed_and_two_frames_run_then_just_pressed_cleared() {
+        // Arrange
+        let mut app = app_with_default_plugins();
+        app.world_mut()
+            .resource_mut::<engine_input::prelude::MouseEventBuffer>()
+            .push(winit::event::MouseButton::Left, ElementState::Pressed);
+        app.handle_redraw();
+
+        // Act
+        app.handle_redraw();
+
+        // Assert
+        let mouse = app.world().resource::<engine_input::prelude::MouseState>();
+        assert!(!mouse.just_pressed(winit::event::MouseButton::Left));
+        assert!(mouse.pressed(winit::event::MouseButton::Left));
     }
 
     #[test]

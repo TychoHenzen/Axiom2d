@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::Resource;
+use winit::event::MouseButton;
 use winit::keyboard::KeyCode;
 
 #[derive(Resource, Debug, Clone, Default)]
 pub struct ActionMap {
     bindings: HashMap<String, Vec<KeyCode>>,
+    mouse_bindings: HashMap<String, Vec<MouseButton>>,
 }
 
 impl ActionMap {
@@ -15,6 +17,14 @@ impl ActionMap {
 
     pub fn bindings_for(&self, action: &str) -> &[KeyCode] {
         self.bindings.get(action).map_or(&[], Vec::as_slice)
+    }
+
+    pub fn bind_mouse(&mut self, action: &str, buttons: Vec<MouseButton>) {
+        self.mouse_bindings.insert(action.to_string(), buttons);
+    }
+
+    pub fn mouse_bindings_for(&self, action: &str) -> &[MouseButton] {
+        self.mouse_bindings.get(action).map_or(&[], Vec::as_slice)
     }
 }
 

@@ -10,7 +10,7 @@ use engine_core::types::Pixels;
 use engine_ecs::prelude::{
     IntoScheduleConfigs, PHASE_COUNT, Phase, Schedule, ScheduleSystem, World,
 };
-use engine_input::prelude::InputEventBuffer;
+use engine_input::prelude::{InputEventBuffer, MouseEventBuffer, MouseState};
 use engine_render::prelude::RendererRes;
 use engine_render::window::WindowConfig;
 
@@ -95,6 +95,28 @@ impl App {
         }
     }
 
+    pub(crate) fn handle_cursor_moved(&mut self, position: glam::Vec2) {
+        if let Some(mut mouse) = self.world.get_resource_mut::<MouseState>() {
+            mouse.set_screen_pos(position);
+        }
+    }
+
+    pub(crate) fn handle_mouse_button(
+        &mut self,
+        button: winit::event::MouseButton,
+        state: ElementState,
+    ) {
+        if let Some(mut buffer) = self.world.get_resource_mut::<MouseEventBuffer>() {
+            buffer.push(button, state);
+        }
+    }
+
+    pub(crate) fn handle_mouse_wheel(&mut self, delta: glam::Vec2) {
+        if let Some(mut mouse) = self.world.get_resource_mut::<MouseState>() {
+            mouse.add_scroll_delta(delta);
+        }
+    }
+
     fn update_window_size(&mut self, width: u32, height: u32) {
         self.world.insert_resource(WindowSize {
             width: Pixels(width as f32),
@@ -159,6 +181,21 @@ impl ApplicationHandler for App {
             WindowEvent::RedrawRequested => self.handle_redraw(),
             WindowEvent::KeyboardInput { event, .. } => {
                 self.handle_key_event(event.physical_key, event.state);
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                self.handle_cursor_moved(glam::Vec2::new(position.x as f32, position.y as f32));
+            }
+            WindowEvent::MouseInput { state, button, .. } => {
+                self.handle_mouse_button(button, state);
+            }
+            WindowEvent::MouseWheel { delta, .. } => {
+                let scroll = match delta {
+                    winit::event::MouseScrollDelta::LineDelta(x, y) => glam::Vec2::new(x, y),
+                    winit::event::MouseScrollDelta::PixelDelta(pos) => {
+                        glam::Vec2::new(pos.x as f32, pos.y as f32)
+                    }
+                };
+                self.handle_mouse_wheel(scroll);
             }
             _ => {}
         }
@@ -679,6 +716,76 @@ mod tests {
         // Assert
         let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
         assert_eq!(buffer.drain().count(), 0);
+    }
+
+    #[test]
+    fn when_cursor_moved_event_received_by_app_then_screen_pos_updated() {
+        // Arrange
+        let mut app = App::new();
+        app.world_mut()
+            .insert_resource(engine_input::prelude::MouseState::default());
+
+        // Act
+        app.handle_cursor_moved(glam::Vec2::new(320.0, 240.0));
+
+        // Assert
+        let mouse = app.world().resource::<engine_input::prelude::MouseState>();
+        assert_eq!(mouse.screen_pos(), glam::Vec2::new(320.0, 240.0));
+    }
+
+    #[test]
+    fn when_cursor_moved_without_mouse_state_resource_then_does_not_panic() {
+        // Arrange
+        let mut app = App::new();
+
+        // Act
+        app.handle_cursor_moved(glam::Vec2::new(100.0, 100.0));
+    }
+
+    #[test]
+    fn when_mouse_button_event_received_by_app_then_event_pushed_to_buffer() {
+        // Arrange
+        let mut app = App::new();
+        app.world_mut()
+            .insert_resource(engine_input::prelude::MouseEventBuffer::default());
+
+        // Act
+        app.handle_mouse_button(winit::event::MouseButton::Right, ElementState::Pressed);
+
+        // Assert
+        let mut buffer = app
+            .world_mut()
+            .resource_mut::<engine_input::prelude::MouseEventBuffer>();
+        let events: Vec<_> = buffer.drain().collect();
+        assert_eq!(events.len(), 1);
+        assert_eq!(
+            events[0],
+            (winit::event::MouseButton::Right, ElementState::Pressed)
+        );
+    }
+
+    #[test]
+    fn when_mouse_button_event_received_without_buffer_resource_then_does_not_panic() {
+        // Arrange
+        let mut app = App::new();
+
+        // Act
+        app.handle_mouse_button(winit::event::MouseButton::Left, ElementState::Pressed);
+    }
+
+    #[test]
+    fn when_scroll_event_received_by_app_then_mouse_state_scroll_delta_accumulated() {
+        // Arrange
+        let mut app = App::new();
+        app.world_mut()
+            .insert_resource(engine_input::prelude::MouseState::default());
+
+        // Act
+        app.handle_mouse_wheel(glam::Vec2::new(0.0, 3.0));
+
+        // Assert
+        let mouse = app.world().resource::<engine_input::prelude::MouseState>();
+        assert_eq!(mouse.scroll_delta(), glam::Vec2::new(0.0, 3.0));
     }
 
     #[test]

@@ -8,4 +8,5 @@ workspace = true
 
 [dependencies]
 bevy_ecs = { workspace = true }
+glam = { workspace = true }
 winit = { workspace = true }

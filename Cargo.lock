@@ -859,6 +859,7 @@ dependencies = [
  "engine_ecs",
  "engine_input",
  "engine_render",
+ "glam 0.29.3",
  "winit",
 ]
 
@@ -899,6 +900,7 @@ name = "engine_input"
 version = "0.1.0"
 dependencies = [
  "bevy_ecs",
+ "glam 0.29.3",
  "winit",
 ]
 
