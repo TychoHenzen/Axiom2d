@@ -206,6 +206,7 @@ name = "axiom2d"
 version = "0.1.0"
 dependencies = [
  "engine_app",
+ "engine_assets",
  "engine_audio",
  "engine_core",
  "engine_ecs",
@@ -873,6 +874,7 @@ dependencies = [
 name = "engine_assets"
 version = "0.1.0"
 dependencies = [
+ "bevy_ecs",
  "engine_audio",
  "engine_core",
  "engine_physics",
@@ -881,6 +883,7 @@ dependencies = [
  "glam 0.29.3",
  "ron",
  "serde",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

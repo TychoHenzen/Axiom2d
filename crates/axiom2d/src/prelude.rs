@@ -1,4 +1,5 @@
 pub use engine_app::prelude::*;
+pub use engine_assets::prelude::*;
 #[cfg(feature = "audio")]
 pub use engine_audio::prelude::*;
 pub use engine_core::prelude::*;
