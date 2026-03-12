@@ -1,8 +1,9 @@
 use bevy_ecs::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::hierarchy::{ChildOf, Children};
 
-#[derive(Component, Debug, Clone, Copy, PartialEq)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Visible(pub bool);
 
 impl Default for Visible {

@@ -9,4 +9,8 @@ workspace = true
 [dependencies]
 bevy_ecs = { workspace = true }
 glam = { workspace = true }
+serde = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+ron = { workspace = true }

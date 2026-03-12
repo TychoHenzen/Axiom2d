@@ -1,8 +1,9 @@
 use bevy_ecs::prelude::{Res, ResMut, Resource};
+use serde::{Deserialize, Serialize};
 
 use crate::renderer::RendererRes;
 
-#[derive(Resource, Debug, Clone, Copy, PartialEq)]
+#[derive(Resource, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct BloomSettings {
     pub enabled: bool,
     pub threshold: f32,
@@ -47,6 +48,7 @@ pub fn compute_gaussian_weights(radius: u32) -> Vec<f32> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -107,7 +109,6 @@ mod tests {
         );
     }
 
-    #[allow(clippy::unwrap_used)]
     mod system_tests {
         use std::sync::{Arc, Mutex};
 

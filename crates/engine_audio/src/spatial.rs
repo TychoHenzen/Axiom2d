@@ -3,6 +3,7 @@ use std::f32::consts::FRAC_PI_2;
 use bevy_ecs::component::Component;
 use bevy_ecs::prelude::{Query, ResMut, With, Without};
 use glam::Vec2;
+use serde::{Deserialize, Serialize};
 
 use engine_scene::prelude::GlobalTransform2D;
 
@@ -35,7 +36,7 @@ pub fn compute_pan(listener_pos: Vec2, emitter_pos: Vec2) -> (f32, f32) {
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct AudioListener;
 
-#[derive(Component, Debug, Clone, Copy, PartialEq)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct AudioEmitter {
     pub volume: f32,
     pub max_distance: f32,
@@ -113,6 +114,22 @@ mod tests {
     use crate::play_sound_buffer::{PlaySound, PlaySoundBuffer};
 
     use super::*;
+
+    #[test]
+    fn when_audio_emitter_serialized_to_ron_then_deserializes_to_equal_value() {
+        // Arrange
+        let emitter = AudioEmitter {
+            volume: 0.8,
+            max_distance: 500.0,
+        };
+
+        // Act
+        let ron = ron::to_string(&emitter).unwrap();
+        let back: AudioEmitter = ron::from_str(&ron).unwrap();
+
+        // Assert
+        assert_eq!(emitter, back);
+    }
 
     fn setup_world() -> World {
         let mut world = World::new();

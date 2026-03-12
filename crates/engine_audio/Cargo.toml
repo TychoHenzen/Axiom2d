@@ -13,3 +13,7 @@ engine_core = { path = "../engine_core" }
 engine_scene = { path = "../engine_scene" }
 fundsp = { workspace = true }
 glam = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+ron = { workspace = true }

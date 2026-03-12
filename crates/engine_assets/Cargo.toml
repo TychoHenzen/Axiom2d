@@ -7,3 +7,13 @@ version.workspace = true
 workspace = true
 
 [dependencies]
+engine_audio = { path = "../engine_audio" }
+engine_core = { path = "../engine_core" }
+engine_physics = { path = "../engine_physics" }
+engine_render = { path = "../engine_render" }
+engine_scene = { path = "../engine_scene" }
+ron = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+glam = { workspace = true }

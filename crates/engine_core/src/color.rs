@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, Copy, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Color {
     pub r: f32,
     pub g: f32,
@@ -60,8 +62,35 @@ impl Color {
 
 #[cfg(test)]
 #[allow(clippy::float_cmp)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::Color;
+
+    #[test]
+    fn when_color_serialized_to_ron_then_deserializes_to_equal_value() {
+        // Arrange
+        let color = Color::new(0.1, 0.5, 0.9, 0.75);
+
+        // Act
+        let ron = ron::to_string(&color).unwrap();
+        let back: Color = ron::from_str(&ron).unwrap();
+
+        // Assert
+        assert_eq!(color, back);
+    }
+
+    #[test]
+    fn when_transparent_color_serialized_to_ron_then_roundtrip_preserves_zero_alpha() {
+        // Arrange
+        let color = Color::TRANSPARENT;
+
+        // Act
+        let ron = ron::to_string(&color).unwrap();
+        let back: Color = ron::from_str(&ron).unwrap();
+
+        // Assert
+        assert_eq!(color, back);
+    }
 
     #[test]
     fn when_color_from_u8_called_then_converts_to_normalized_f32() {

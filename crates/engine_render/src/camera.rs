@@ -1,9 +1,10 @@
 use bevy_ecs::prelude::{Component, Query, ResMut, Resource};
 use glam::{Mat4, Vec2};
+use serde::{Deserialize, Serialize};
 
 use crate::renderer::RendererRes;
 
-#[derive(Component, Debug, Clone, Copy, PartialEq)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Camera2D {
     pub position: Vec2,
     pub zoom: f32,
@@ -122,6 +123,22 @@ mod tests {
     use super::*;
     use crate::renderer::RendererRes;
     use crate::testing::SpyRenderer;
+
+    #[test]
+    fn when_camera2d_serialized_to_ron_then_deserializes_to_equal_value() {
+        // Arrange
+        let camera = Camera2D {
+            position: Vec2::new(150.0, -75.0),
+            zoom: 2.5,
+        };
+
+        // Act
+        let ron = ron::to_string(&camera).unwrap();
+        let back: Camera2D = ron::from_str(&ron).unwrap();
+
+        // Assert
+        assert_eq!(camera, back);
+    }
 
     #[test]
     fn when_camera2d_created_with_defaults_then_position_is_zero_and_zoom_is_one() {

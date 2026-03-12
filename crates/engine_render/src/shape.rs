@@ -4,18 +4,19 @@ use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer,
 use glam::Vec2;
 use lyon::math::point;
 use lyon::tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers};
+use serde::{Deserialize, Serialize};
 
 use crate::camera::{Camera2D, aabb_intersects_view_rect, camera_view_rect};
 use crate::material::{Material2d, apply_material, effective_blend_mode, effective_shader_handle};
 use crate::renderer::RendererRes;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ShapeVariant {
     Circle { radius: f32 },
     Polygon { points: Vec<Vec2> },
 }
 
-#[derive(Component, Debug, Clone, PartialEq)]
+#[derive(Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Shape {
     pub variant: ShapeVariant,
     pub color: Color,
@@ -170,6 +171,44 @@ mod tests {
     use crate::testing::{
         BlendCallLog, ShaderCallLog, ShapeCallLog, SpyRenderer, TextureBindCallLog, UniformCallLog,
     };
+
+    #[test]
+    fn when_shape_circle_serialized_to_ron_then_deserializes_to_equal_value() {
+        // Arrange
+        let shape = Shape {
+            variant: ShapeVariant::Circle { radius: 25.0 },
+            color: Color::new(0.0, 1.0, 0.0, 1.0),
+        };
+
+        // Act
+        let ron = ron::to_string(&shape).unwrap();
+        let back: Shape = ron::from_str(&ron).unwrap();
+
+        // Assert
+        assert_eq!(shape, back);
+    }
+
+    #[test]
+    fn when_shape_polygon_serialized_to_ron_then_deserializes_with_point_order_preserved() {
+        // Arrange
+        let shape = Shape {
+            variant: ShapeVariant::Polygon {
+                points: vec![
+                    Vec2::new(0.0, 0.0),
+                    Vec2::new(100.0, 0.0),
+                    Vec2::new(50.0, 86.6),
+                ],
+            },
+            color: Color::RED,
+        };
+
+        // Act
+        let ron = ron::to_string(&shape).unwrap();
+        let back: Shape = ron::from_str(&ron).unwrap();
+
+        // Assert
+        assert_eq!(shape, back);
+    }
 
     #[test]
     fn when_tessellating_circle_then_produces_nonempty_vertices_and_indices() {
@@ -768,11 +807,7 @@ mod tests {
 
     #[test]
     fn when_shape_barely_inside_view_due_to_radius_then_drawn() {
-        // A circle at position (790, 300) with radius 30 has AABB [760, 270] to [820, 330].
-        // Camera at (400, 300) zoom 1.0 sees [0, 0] to [800, 600].
-        // The shape AABB overlaps the view because 820 >= 0 && 760 <= 800.
-        // If + were mutated to - in AABB computation, entity_min would be (790-(-30), ...)
-        // = (820, ...) and entity_max = (790-30, ...) = (760, ...) — inverted, culling would fail.
+        // Circle at (790, 300) r=30 → AABB [760, 820] overlaps view [0, 800].
         let mut world = World::new();
         let calls = insert_spy_with_shape_and_viewport(&mut world, 800, 600);
         world.spawn(Camera2D {
@@ -794,8 +829,7 @@ mod tests {
 
     #[test]
     fn when_shape_barely_inside_view_due_to_y_radius_then_drawn() {
-        // Circle at (400, 590) with radius 30 → AABB y: [560, 620], view y: [0, 600]
-        // Overlaps because 620 >= 0 && 560 <= 600.
+        // Circle at (400, 590) r=30 → AABB y: [560, 620] overlaps view [0, 600].
         let mut world = World::new();
         let calls = insert_spy_with_shape_and_viewport(&mut world, 800, 600);
         world.spawn(Camera2D {
@@ -817,9 +851,7 @@ mod tests {
 
     #[test]
     fn when_shape_near_view_min_edge_then_drawn() {
-        // Circle r=30 at (5,5). AABB: (-25,-25) to (35,35).
-        // View [0,0]-[100,100]. Inside because 35 >= 0.
-        // Kills `-` mutant: pos - max = 5-30 = -25 < 0 → culled.
+        // Circle r=30 at (5,5) → AABB [-25, 35] overlaps view [0, 100].
         let mut world = World::new();
         let calls = insert_spy_with_shape_and_viewport(&mut world, 100, 100);
         world.spawn(Camera2D {
@@ -841,9 +873,7 @@ mod tests {
 
     #[test]
     fn when_shape_at_negative_pos_inside_view_then_drawn() {
-        // Circle r=30 at (-20,-20). AABB: (-50,-50) to (10,10).
-        // View [-50,-50]-[50,50]. Inside (edge-touching).
-        // Kills `*` mutant: pos * min = -20*(-30) = 600 > 50 → culled.
+        // Circle r=30 at (-20,-20) → AABB [-50, 10] edge-touches view [-50, 50].
         let mut world = World::new();
         let calls = insert_spy_with_shape_and_viewport(&mut world, 100, 100);
         world.spawn(Camera2D {

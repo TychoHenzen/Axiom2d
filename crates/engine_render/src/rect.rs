@@ -1,7 +1,8 @@
 use engine_core::color::Color;
 use engine_core::types::Pixels;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Rect {
     pub x: Pixels,
     pub y: Pixels,
@@ -23,11 +24,31 @@ impl Default for Rect {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use engine_core::color::Color;
     use engine_core::types::Pixels;
 
     use super::Rect;
+
+    #[test]
+    fn when_rect_serialized_to_ron_then_deserializes_to_equal_value() {
+        // Arrange
+        let rect = Rect {
+            x: Pixels(10.0),
+            y: Pixels(-20.0),
+            width: Pixels(100.0),
+            height: Pixels(50.0),
+            color: Color::new(0.5, 0.6, 0.7, 0.8),
+        };
+
+        // Act
+        let ron = ron::to_string(&rect).unwrap();
+        let back: Rect = ron::from_str(&ron).unwrap();
+
+        // Assert
+        assert_eq!(rect, back);
+    }
 
     #[test]
     fn when_rect_has_negative_pixel_values_then_stores_without_clamping() {

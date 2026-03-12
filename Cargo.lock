@@ -217,6 +217,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base64"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
 name = "bevy_ecs"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -866,6 +872,16 @@ dependencies = [
 [[package]]
 name = "engine_assets"
 version = "0.1.0"
+dependencies = [
+ "engine_audio",
+ "engine_core",
+ "engine_physics",
+ "engine_render",
+ "engine_scene",
+ "glam 0.29.3",
+ "ron",
+ "serde",
+]
 
 [[package]]
 name = "engine_audio"
@@ -877,6 +893,8 @@ dependencies = [
  "engine_scene",
  "fundsp",
  "glam 0.29.3",
+ "ron",
+ "serde",
 ]
 
 [[package]]
@@ -885,6 +903,8 @@ version = "0.1.0"
 dependencies = [
  "bevy_ecs",
  "glam 0.29.3",
+ "ron",
+ "serde",
  "thiserror 2.0.18",
 ]
 
@@ -913,6 +933,8 @@ dependencies = [
  "engine_core",
  "glam 0.29.3",
  "rapier2d",
+ "ron",
+ "serde",
 ]
 
 [[package]]
@@ -929,6 +951,8 @@ dependencies = [
  "lyon",
  "naga",
  "pollster",
+ "ron",
+ "serde",
  "thiserror 2.0.18",
  "wgpu",
  "winit",
@@ -941,6 +965,8 @@ dependencies = [
  "bevy_ecs",
  "engine_core",
  "glam 0.29.3",
+ "ron",
+ "serde",
 ]
 
 [[package]]
@@ -2527,6 +2553,19 @@ name = "robust"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e27ee8bb91ca0adcf0ecb116293afa12d393f9c2b9b9cd54d33e8078fe19839"
+
+[[package]]
+name = "ron"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63f3aa105dea217ef30d89581b65a4d527a19afc95ef5750be3890e8d3c5b837"
+dependencies = [
+ "base64",
+ "bitflags 2.11.0",
+ "serde",
+ "serde_derive",
+ "unicode-ident",
+]
 
 [[package]]
 name = "rustc-hash"

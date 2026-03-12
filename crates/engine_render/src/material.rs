@@ -2,8 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use bevy_ecs::prelude::{Component, Resource};
 use engine_core::types::TextureId;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum BlendMode {
     Alpha,
     Additive,
@@ -19,7 +20,7 @@ impl BlendMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ShaderHandle(pub u32);
 
 #[derive(Default, Resource)]
@@ -46,13 +47,13 @@ impl ShaderRegistry {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TextureBinding {
     pub texture: TextureId,
     pub binding: u32,
 }
 
-#[derive(Component, Debug, Clone, PartialEq)]
+#[derive(Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Material2d {
     pub blend_mode: BlendMode,
     pub shader: ShaderHandle,
@@ -146,6 +147,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn when_blend_mode_variants_serialized_to_ron_then_each_deserializes_to_matching_variant() {
+        for mode in BlendMode::ALL {
+            let ron = ron::to_string(&mode).unwrap();
+            let back: BlendMode = ron::from_str(&ron).unwrap();
+            assert_eq!(mode, back);
+        }
+    }
+
+    #[test]
     fn when_comparing_blend_modes_then_alpha_less_than_additive_less_than_multiply() {
         // Arrange
         let alpha = BlendMode::Alpha;
@@ -231,7 +241,6 @@ mod tests {
 
         // Act / Assert
         schedule.run(&mut world);
-        let _ = handle;
     }
 
     #[test]

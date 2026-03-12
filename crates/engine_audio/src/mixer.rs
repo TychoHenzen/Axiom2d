@@ -1,6 +1,7 @@
 use bevy_ecs::resource::Resource;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MixerTrack {
     Master,
     Music,
@@ -54,6 +55,15 @@ impl MixerState {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn when_mixer_track_variants_serialized_to_ron_then_each_deserializes_to_matching_variant() {
+        for track in MixerTrack::ALL {
+            let ron = ron::to_string(&track).unwrap();
+            let back: MixerTrack = ron::from_str(&ron).unwrap();
+            assert_eq!(track, back);
+        }
+    }
 
     #[test]
     fn when_default_mixer_state_then_all_tracks_are_one() {

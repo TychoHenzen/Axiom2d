@@ -12,3 +12,7 @@ crossbeam.workspace = true
 engine_core = { path = "../engine_core" }
 glam.workspace = true
 rapier2d.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+ron.workspace = true

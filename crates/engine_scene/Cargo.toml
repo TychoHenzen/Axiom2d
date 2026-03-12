@@ -10,3 +10,7 @@ workspace = true
 bevy_ecs = { workspace = true }
 engine_core = { path = "../engine_core" }
 glam = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+ron = { workspace = true }

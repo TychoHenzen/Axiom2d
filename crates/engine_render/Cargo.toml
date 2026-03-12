@@ -14,6 +14,7 @@ bevy_ecs = { workspace = true }
 engine_core = { path = "../engine_core" }
 engine_scene = { path = "../engine_scene" }
 glam = { workspace = true }
+serde = { workspace = true }
 thiserror = { workspace = true }
 bytemuck = { workspace = true }
 guillotiere = { workspace = true }
@@ -25,3 +26,4 @@ lyon = { workspace = true }
 
 [dev-dependencies]
 naga = { workspace = true }
+ron = { workspace = true }

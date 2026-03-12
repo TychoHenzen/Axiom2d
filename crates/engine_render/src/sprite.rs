@@ -3,13 +3,14 @@ use engine_core::color::Color;
 use engine_core::types::{Pixels, TextureId};
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
+use serde::{Deserialize, Serialize};
 
 use crate::camera::{Camera2D, aabb_intersects_view_rect, camera_view_rect};
 use crate::material::{Material2d, apply_material, effective_blend_mode, effective_shader_handle};
 use crate::rect::Rect;
 use crate::renderer::RendererRes;
 
-#[derive(Component, Debug, Clone, Copy, PartialEq)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Sprite {
     pub texture: TextureId,
     pub uv_rect: [f32; 4],
@@ -120,6 +121,25 @@ mod tests {
         let spy = SpyRenderer::new(log).with_sprite_capture(calls.clone());
         world.insert_resource(RendererRes::new(Box::new(spy)));
         calls
+    }
+
+    #[test]
+    fn when_sprite_serialized_to_ron_then_deserializes_to_equal_value() {
+        // Arrange
+        let sprite = Sprite {
+            texture: TextureId(7),
+            uv_rect: [0.1, 0.2, 0.9, 0.8],
+            color: Color::new(1.0, 0.5, 0.0, 1.0),
+            width: Pixels(64.0),
+            height: Pixels(128.0),
+        };
+
+        // Act
+        let ron = ron::to_string(&sprite).unwrap();
+        let back: Sprite = ron::from_str(&ron).unwrap();
+
+        // Assert
+        assert_eq!(sprite, back);
     }
 
     #[test]
@@ -864,14 +884,8 @@ mod tests {
 
     #[test]
     fn when_sprite_just_inside_view_right_edge_due_to_width_then_drawn() {
-        // Sprite at x=790, width=32 → entity_max.x = 790 + 32 = 822 > view_max.x = 800
-        // entity_min.x = 790 < view_max.x = 800, so it overlaps.
-        // If + were mutated to - : entity_max.x = 790 - 32 = 758, entirely inside.
-        // Still drawn, so we need a case where the width addition is critical.
-        //
-        // Sprite at x=805, width=32 → min=805, max=837. 805 > 800 → outside! Not drawn.
-        // But if we place sprite at x=-5, width=32 → min=-5, max=27. Overlaps [0,800].
-        // If + mutated to -: max = -5-32 = -37 < 0 → culled! This catches the mutant.
+        // Sprite at x=-5, width=32 → AABB [-5, 27] overlaps view [0, 800].
+        // If + were mutated to -: max = -5-32 = -37 < 0 → culled.
         let mut world = World::new();
         let log = insert_spy_with_viewport(&mut world, 800, 600);
         world.spawn(Camera2D {
@@ -902,8 +916,8 @@ mod tests {
 
     #[test]
     fn when_sprite_just_inside_view_bottom_edge_due_to_height_then_drawn() {
-        // Sprite at y=-5, height=32 → min_y=-5, max_y=27. View [0, 600]. Overlaps.
-        // If + mutated to -: max_y = -5-32 = -37 < 0 → culled!
+        // Sprite at y=-5, height=32 → AABB [-5, 27] overlaps view [0, 600].
+        // If + mutated to -: max_y = -5-32 = -37 < 0 → culled.
         let mut world = World::new();
         let log = insert_spy_with_viewport(&mut world, 800, 600);
         world.spawn(Camera2D {
