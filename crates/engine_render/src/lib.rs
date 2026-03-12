@@ -10,6 +10,8 @@ pub mod shape;
 pub mod sprite;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
+#[cfg(any(test, feature = "testing"))]
+pub mod visual_regression;
 pub mod window;
 
 mod wgpu_renderer;

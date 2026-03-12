@@ -7,7 +7,7 @@ version.workspace = true
 workspace = true
 
 [features]
-testing = []
+testing = ["dep:image-compare"]
 
 [dependencies]
 bevy_ecs = { workspace = true }
@@ -23,6 +23,7 @@ pollster = { workspace = true }
 wgpu = { workspace = true }
 winit = { workspace = true }
 lyon = { workspace = true }
+image-compare = { workspace = true, optional = true }
 
 [dev-dependencies]
 insta = { workspace = true }
