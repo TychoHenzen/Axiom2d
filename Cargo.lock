@@ -907,6 +907,7 @@ name = "engine_physics"
 version = "0.1.0"
 dependencies = [
  "bevy_ecs",
+ "crossbeam",
  "engine_core",
  "glam 0.29.3",
  "rapier2d",

@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::Entity;
+use crossbeam::channel::Receiver;
 use engine_core::prelude::Seconds;
 use glam::Vec2;
 use rapier2d::prelude::*;
 
 use crate::collider::Collider;
+use crate::collision_event::{CollisionEvent, CollisionKind};
 use crate::physics_backend::PhysicsBackend;
 use crate::rigid_body::RigidBody;
 
@@ -22,11 +24,17 @@ pub struct RapierBackend {
     multibody_joints: MultibodyJointSet,
     ccd_solver: CCDSolver,
     entity_to_handle: HashMap<Entity, RigidBodyHandle>,
+    collider_to_entity: HashMap<ColliderHandle, Entity>,
+    event_collector: ChannelEventCollector,
+    collision_recv: Receiver<rapier2d::geometry::CollisionEvent>,
 }
 
 impl RapierBackend {
     #[must_use]
     pub fn new(gravity: Vec2) -> Self {
+        let (collision_send, collision_recv) = crossbeam::channel::unbounded();
+        let (contact_force_send, _contact_force_recv) = crossbeam::channel::unbounded();
+        let event_collector = ChannelEventCollector::new(collision_send, contact_force_send);
         Self {
             gravity,
             pipeline: PhysicsPipeline::new(),
@@ -40,6 +48,9 @@ impl RapierBackend {
             multibody_joints: MultibodyJointSet::new(),
             ccd_solver: CCDSolver::new(),
             entity_to_handle: HashMap::new(),
+            collider_to_entity: HashMap::new(),
+            event_collector,
+            collision_recv,
         }
     }
 }
@@ -60,7 +71,7 @@ impl PhysicsBackend for RapierBackend {
             &mut self.ccd_solver,
             None,
             &(),
-            &(),
+            &self.event_collector,
         );
     }
 
@@ -94,9 +105,12 @@ impl PhysicsBackend for RapierBackend {
                     None => return false,
                 }
             }
-        };
-        self.colliders
-            .insert_with_parent(col.build(), body_handle, &mut self.bodies);
+        }
+        .active_events(ActiveEvents::COLLISION_EVENTS);
+        let collider_handle =
+            self.colliders
+                .insert_with_parent(col.build(), body_handle, &mut self.bodies);
+        self.collider_to_entity.insert(collider_handle, entity);
         true
     }
 
@@ -125,12 +139,38 @@ impl PhysicsBackend for RapierBackend {
         let body = self.bodies.get(*handle)?;
         Some(body.rotation().angle())
     }
+
+    fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
+        let mut events = Vec::new();
+        while let Ok(rapier_event) = self.collision_recv.try_recv() {
+            let (h1, h2, kind) = match rapier_event {
+                rapier2d::geometry::CollisionEvent::Started(h1, h2, _) => {
+                    (h1, h2, CollisionKind::Started)
+                }
+                rapier2d::geometry::CollisionEvent::Stopped(h1, h2, _) => {
+                    (h1, h2, CollisionKind::Stopped)
+                }
+            };
+            if let (Some(&entity_a), Some(&entity_b)) = (
+                self.collider_to_entity.get(&h1),
+                self.collider_to_entity.get(&h2),
+            ) {
+                events.push(CollisionEvent {
+                    entity_a,
+                    entity_b,
+                    kind,
+                });
+            }
+        }
+        events
+    }
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::collision_event::CollisionKind;
     use crate::test_helpers::{spawn_entities, spawn_entity};
 
     #[test]
@@ -266,6 +306,84 @@ mod tests {
         // Assert
         assert!(backend.body_position(entity).is_none());
         assert!(backend.body_rotation(entity).is_none());
+    }
+
+    #[test]
+    fn when_no_colliders_step_and_drain_then_no_events() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+
+        // Act
+        backend.step(Seconds(0.016));
+        let events = backend.drain_collision_events();
+
+        // Assert
+        assert!(events.is_empty());
+    }
+
+    #[test]
+    fn when_two_overlapping_circles_step_then_started_event_with_correct_entities() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entities = spawn_entities(2);
+        backend.add_body(entities[0], &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entities[0], &Collider::Circle(1.0));
+        backend.add_body(entities[1], &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entities[1], &Collider::Circle(1.0));
+
+        // Act
+        backend.step(Seconds(0.016));
+        let events = backend.drain_collision_events();
+
+        // Assert
+        assert_eq!(events.len(), 1, "expected 1 event, got {events:?}");
+        assert_eq!(events[0].kind, CollisionKind::Started);
+        let pair = (events[0].entity_a, events[0].entity_b);
+        assert!(
+            pair == (entities[0], entities[1]) || pair == (entities[1], entities[0]),
+            "expected entities {:?}, got {:?}",
+            (entities[0], entities[1]),
+            pair
+        );
+    }
+
+    #[test]
+    fn when_drain_called_twice_without_step_then_second_is_empty() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entities = spawn_entities(2);
+        backend.add_body(entities[0], &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entities[0], &Collider::Circle(1.0));
+        backend.add_body(entities[1], &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entities[1], &Collider::Circle(1.0));
+        backend.step(Seconds(0.016));
+        let _ = backend.drain_collision_events();
+
+        // Act
+        let events = backend.drain_collision_events();
+
+        // Assert
+        assert!(events.is_empty());
+    }
+
+    #[test]
+    fn when_body_removed_after_collision_then_drain_does_not_panic() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entities = spawn_entities(2);
+        backend.add_body(entities[0], &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entities[0], &Collider::Circle(1.0));
+        backend.add_body(entities[1], &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entities[1], &Collider::Circle(1.0));
+        backend.step(Seconds(0.016));
+        backend.remove_body(entities[0]);
+
+        // Act
+        backend.step(Seconds(0.016));
+        let events = backend.drain_collision_events();
+
+        // Assert (no panic; events may or may not be present)
+        let _ = events;
     }
 
     #[test]

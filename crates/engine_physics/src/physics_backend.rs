@@ -5,6 +5,7 @@ use engine_core::prelude::Seconds;
 use glam::Vec2;
 
 use crate::collider::Collider;
+use crate::collision_event::CollisionEvent;
 use crate::rigid_body::RigidBody;
 
 pub trait PhysicsBackend: Send + Sync {
@@ -14,6 +15,7 @@ pub trait PhysicsBackend: Send + Sync {
     fn remove_body(&mut self, entity: Entity);
     fn body_position(&self, entity: Entity) -> Option<Vec2>;
     fn body_rotation(&self, entity: Entity) -> Option<f32>;
+    fn drain_collision_events(&mut self) -> Vec<CollisionEvent>;
 }
 
 #[derive(Default)]
@@ -57,6 +59,10 @@ impl PhysicsBackend for NullPhysicsBackend {
 
     fn body_rotation(&self, _entity: Entity) -> Option<f32> {
         None
+    }
+
+    fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
+        Vec::new()
     }
 }
 
@@ -133,6 +139,18 @@ mod tests {
 
         // Act + Assert (no panic)
         backend.remove_body(entity);
+    }
+
+    #[test]
+    fn when_null_backend_drain_collision_events_then_returns_empty() {
+        // Arrange
+        let mut backend = NullPhysicsBackend::new();
+
+        // Act
+        let events = backend.drain_collision_events();
+
+        // Assert
+        assert!(events.is_empty());
     }
 
     #[test]
