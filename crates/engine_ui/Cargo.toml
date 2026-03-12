@@ -7,3 +7,13 @@ version.workspace = true
 workspace = true
 
 [dependencies]
+bevy_ecs = { workspace = true }
+engine_core = { path = "../engine_core" }
+engine_render = { path = "../engine_render" }
+engine_scene = { path = "../engine_scene" }
+glam = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+engine_render = { path = "../engine_render", features = ["testing"] }
+ron = { workspace = true }

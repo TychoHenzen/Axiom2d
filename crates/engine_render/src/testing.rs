@@ -8,6 +8,7 @@ use crate::material::{BlendMode, ShaderHandle};
 use crate::rect::Rect;
 use crate::renderer::Renderer;
 
+pub type RectCallLog = Arc<Mutex<Vec<Rect>>>;
 pub type SpriteCallLog = Arc<Mutex<Vec<(Rect, [f32; 4])>>>;
 pub type ShapeCallLog = Arc<Mutex<Vec<(Vec<[f32; 2]>, Vec<u32>, Color)>>>;
 pub type MatrixCapture = Arc<Mutex<Option<[[f32; 4]; 4]>>>;
@@ -19,6 +20,7 @@ pub type TextureBindCallLog = Arc<Mutex<Vec<(TextureId, u32)>>>;
 pub struct SpyRenderer {
     log: Arc<Mutex<Vec<String>>>,
     color_capture: Option<Arc<Mutex<Option<Color>>>>,
+    rect_calls: Option<RectCallLog>,
     sprite_calls: Option<SpriteCallLog>,
     shape_calls: Option<ShapeCallLog>,
     matrix_capture: Option<MatrixCapture>,
@@ -34,6 +36,7 @@ impl SpyRenderer {
         Self {
             log,
             color_capture: None,
+            rect_calls: None,
             sprite_calls: None,
             shape_calls: None,
             matrix_capture: None,
@@ -47,6 +50,11 @@ impl SpyRenderer {
 
     pub fn with_color_capture(mut self, color_capture: Arc<Mutex<Option<Color>>>) -> Self {
         self.color_capture = Some(color_capture);
+        self
+    }
+
+    pub fn with_rect_capture(mut self, rect_calls: RectCallLog) -> Self {
+        self.rect_calls = Some(rect_calls);
         self
     }
 
@@ -103,8 +111,11 @@ impl Renderer for SpyRenderer {
         }
     }
 
-    fn draw_rect(&mut self, _rect: Rect) {
+    fn draw_rect(&mut self, rect: Rect) {
         self.log_call("draw_rect");
+        if let Some(capture) = &self.rect_calls {
+            capture.lock().expect("rect capture poisoned").push(rect);
+        }
     }
 
     fn draw_sprite(&mut self, rect: Rect, uv_rect: [f32; 4]) {

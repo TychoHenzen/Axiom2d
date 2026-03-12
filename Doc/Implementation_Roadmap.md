@@ -4,13 +4,13 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (33 tests), engine_ecs (1 test), engine_render (213 tests), engine_app (39 tests), engine_input (53 tests), engine_scene (41 tests), engine_audio (61 tests), engine_physics (41 tests), engine_assets (19 tests + 1 doctest), axiom2d facade (15 tests), demo (41 tests). Total: 558 tests + 1 doctest.
+**Implemented crates:** engine_core (33 tests), engine_ecs (1 test), engine_render (213 tests), engine_app (39 tests), engine_input (53 tests), engine_scene (41 tests), engine_audio (61 tests), engine_physics (41 tests), engine_assets (19 tests + 1 doctest), engine_ui (30 tests), axiom2d facade (15 tests), demo (41 tests). Total: 588 tests + 1 doctest.
 
 **What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend with instanced quad rendering, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy, Visibility system (Visible/EffectiveVisibility) with hierarchy inheritance, RenderLayer enum + SortOrder for deterministic render ordering, TextureAtlas with guillotiere rect packing + AtlasBuilder + load_image_bytes (PNG/JPEG), Sprite component + sprite_render_system with visibility filtering and RenderLayer/SortOrder/BlendMode sorting, Camera2D component with world-to-screen/screen-to-world conversion + frustum culling + GPU view-projection uniform buffer, Shape component (Circle/Polygon variants) with Lyon tessellation + shape_render_system with visibility/sorting/culling/BlendMode, Post-processing framework with bloom (brightness extraction + separable Gaussian blur + composite), fullscreen quad utility, BloomSettings resource + post_process_system, Material2d component with BlendMode + ShaderHandle + TextureBinding + uniforms, ShaderRegistry for shader source management, #ifdef shader preprocessing, effective_blend_mode helper, set_blend_mode on Renderer trait with batching deduplication, DefaultPlugins auto-registration of all standard systems including post-processing, `render` feature flag for headless ECS-only mode, AudioBackend trait + NullAudioBackend + CpalBackend (with real sample mixing) + AudioRes resource wrapper, PlaybackId/SoundData value types, `audio` feature flag (default on) with DefaultPlugins integration, SoundEffect (fundsp factory closure per playback), SoundLibrary resource (named sound effects), PlaySound/PlaySoundBuffer command buffer, play_sound_system in Phase::PreUpdate, MixerTrack enum (Master/Music/Sfx/Ambient/Ui) + MixerState resource with per-track volumes (multiplicative stacking with global volume in mix_into), AudioBackend extended with play_on_track/set_track_volume, Spatial 2D audio: AudioListener marker + AudioEmitter component (volume/max_distance) + spatial_audio_system in Phase::PostUpdate computing stereo gains from GlobalTransform2D positions via distance_attenuation (linear falloff) and compute_pan (constant-power panning), play_sound_system applies SpatialGains with mono→stereo conversion and silent-sound culling, PhysicsBackend trait + NullPhysicsBackend + RapierBackend (rapier2d real physics) + PhysicsRes resource wrapper, RigidBody component (Dynamic/Static/Kinematic) + Collider component (Circle/Aabb/ConvexPolygon), entity-handle mapping for ECS↔rapier correlation, CollisionEvent/CollisionKind/CollisionEventBuffer for collision detection events, physics_step_system in Phase::PreUpdate, RapierBackend collision event wiring via ChannelEventCollector with collider-to-entity handle resolution, physics_sync_system for physics→ECS transform writeback (position + rotation independently gated, scale preserved), MouseState resource (button state + screen_pos + world_pos + scroll_delta) + MouseEventBuffer + mouse_input_system in Phase::Input + mouse_world_pos_system in Phase::PostUpdate (screen→world via Camera2D), App bridges winit CursorMoved/MouseInput/MouseWheel events to ECS, ActionMap extended with mouse button bindings.
 
 Serde + RON serialization on all pure-data types across engine crates (Color, Transform2D, Rect, Pixels, Seconds, TextureId, Sprite, Shape, Camera2D, BloomSettings, BlendMode, Material2d, RenderLayer, SortOrder, Visible, RigidBody, Collider, MixerTrack, AudioEmitter), SceneDef/SceneNodeDef scene format in engine_assets with index-based parent-child references and RON roundtrip support. Generic asset loading and caching via per-type AssetServer<T> with Handle<T> typed references, reference counting (add/clone_handle/remove with eviction at zero), RON file loading (load(path) with AssetError for I/O and parse failures), axiom2d facade re-exports engine_assets prelude.
 
-**Placeholder crates (empty):** engine_ui.
+**Placeholder crates (empty):** *(none — all crates are implemented)*.
 
 ---
 
@@ -275,13 +275,20 @@ Serde + RON serialization on all pure-data types across engine crates (Color, Tr
 
 ## Phase 7: UI
 
-### Step 7.1 — Basic UI Layout `[NOT STARTED]`
+### Step 7.1 — Basic UI Layout `[DONE]`
 **Crate:** engine_ui
 
-- [ ] `UiNode` component: rect, anchor point, margin
-- [ ] `FlexLayout` — simple row/column child arrangement
-- [ ] `Text` component with bitmap font rendering
-- [ ] UI renders in the UI RenderLayer during Phase::Render
+- [x] `UiNode` component: size (Vec2), anchor (Anchor enum with 9 variants), margin (Margin struct), background (Option<Color>)
+- [x] `Anchor` enum (TopLeft through BottomRight) + `anchor_offset` pure function for position computation
+- [x] `Margin` struct (top/right/bottom/left) with `total_horizontal()`/`total_vertical()` helpers
+- [x] `FlexLayout` component with `FlexDirection` (Row/Column) + gap spacing
+- [x] `compute_flex_offsets` pure function for testable layout math (handles margin integration)
+- [x] `ui_layout_system` — reads FlexLayout + Children + GlobalTransform2D, writes child Transform2D.position
+- [x] `ui_render_system` — draws UiNode backgrounds via `draw_rect()`, respects anchor offset and EffectiveVisibility
+- [x] `Text` component (data-only: content, font_size, color) — bitmap font glyph rendering deferred to Step 7.2
+- [x] All types derive Serialize/Deserialize with RON roundtrip tests
+- [x] Prelude re-exports all public types
+- [x] SpyRenderer extended with `RectCallLog` + `with_rect_capture()` for draw_rect call assertion
 
 ### Step 7.2 — Widgets (Deferred) `[NOT STARTED]`
 **Crate:** engine_ui
