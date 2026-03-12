@@ -4,7 +4,7 @@ This document tracks the gap between the architectural blueprint (`Doc/Axiom_Blu
 
 ## Current State (Baseline)
 
-**Implemented crates:** engine_core (33 tests), engine_ecs (1 test), engine_render (213 tests), engine_app (39 tests), engine_input (53 tests), engine_scene (41 tests), engine_audio (61 tests), engine_physics (41 tests), engine_assets (19 tests + 1 doctest), engine_ui (30 tests), axiom2d facade (15 tests), demo (41 tests). Total: 588 tests + 1 doctest.
+**Implemented crates:** engine_core (33 tests), engine_ecs (1 test), engine_render (213 tests), engine_app (39 tests), engine_input (53 tests), engine_scene (41 tests), engine_audio (61 tests), engine_physics (41 tests), engine_assets (19 tests + 1 doctest), engine_ui (66 tests), axiom2d facade (15 tests), demo (41 tests). Total: 624 tests + 1 doctest.
 
 **What works:** Archetypal ECS via bevy_ecs, 5-phase scheduling, Renderer trait + WgpuRenderer GPU backend with instanced quad rendering, App with winit integration, Plugin system, ClearColor/clear_system, SpyRenderer for testing, keyboard-controlled rectangle demo, DeltaTime/FixedTimestep/Time trait with FakeClock/SystemClock, time_system in PreUpdate, InputState/InputEventBuffer/input_system for keyboard input, App bridges winit keyboard events to ECS, ActionName/ActionMap for action-level input queries (action_pressed, action_just_pressed), Parent-Child hierarchy via ChildOf/Children with hierarchy_maintenance_system, SpawnChildExt for World, Transform propagation (GlobalTransform2D) through parent-child hierarchy, Visibility system (Visible/EffectiveVisibility) with hierarchy inheritance, RenderLayer enum + SortOrder for deterministic render ordering, TextureAtlas with guillotiere rect packing + AtlasBuilder + load_image_bytes (PNG/JPEG), Sprite component + sprite_render_system with visibility filtering and RenderLayer/SortOrder/BlendMode sorting, Camera2D component with world-to-screen/screen-to-world conversion + frustum culling + GPU view-projection uniform buffer, Shape component (Circle/Polygon variants) with Lyon tessellation + shape_render_system with visibility/sorting/culling/BlendMode, Post-processing framework with bloom (brightness extraction + separable Gaussian blur + composite), fullscreen quad utility, BloomSettings resource + post_process_system, Material2d component with BlendMode + ShaderHandle + TextureBinding + uniforms, ShaderRegistry for shader source management, #ifdef shader preprocessing, effective_blend_mode helper, set_blend_mode on Renderer trait with batching deduplication, DefaultPlugins auto-registration of all standard systems including post-processing, `render` feature flag for headless ECS-only mode, AudioBackend trait + NullAudioBackend + CpalBackend (with real sample mixing) + AudioRes resource wrapper, PlaybackId/SoundData value types, `audio` feature flag (default on) with DefaultPlugins integration, SoundEffect (fundsp factory closure per playback), SoundLibrary resource (named sound effects), PlaySound/PlaySoundBuffer command buffer, play_sound_system in Phase::PreUpdate, MixerTrack enum (Master/Music/Sfx/Ambient/Ui) + MixerState resource with per-track volumes (multiplicative stacking with global volume in mix_into), AudioBackend extended with play_on_track/set_track_volume, Spatial 2D audio: AudioListener marker + AudioEmitter component (volume/max_distance) + spatial_audio_system in Phase::PostUpdate computing stereo gains from GlobalTransform2D positions via distance_attenuation (linear falloff) and compute_pan (constant-power panning), play_sound_system applies SpatialGains with mono→stereo conversion and silent-sound culling, PhysicsBackend trait + NullPhysicsBackend + RapierBackend (rapier2d real physics) + PhysicsRes resource wrapper, RigidBody component (Dynamic/Static/Kinematic) + Collider component (Circle/Aabb/ConvexPolygon), entity-handle mapping for ECS↔rapier correlation, CollisionEvent/CollisionKind/CollisionEventBuffer for collision detection events, physics_step_system in Phase::PreUpdate, RapierBackend collision event wiring via ChannelEventCollector with collider-to-entity handle resolution, physics_sync_system for physics→ECS transform writeback (position + rotation independently gated, scale preserved), MouseState resource (button state + screen_pos + world_pos + scroll_delta) + MouseEventBuffer + mouse_input_system in Phase::Input + mouse_world_pos_system in Phase::PostUpdate (screen→world via Camera2D), App bridges winit CursorMoved/MouseInput/MouseWheel events to ECS, ActionMap extended with mouse button bindings.
 
@@ -290,12 +290,20 @@ Serde + RON serialization on all pure-data types across engine crates (Color, Tr
 - [x] Prelude re-exports all public types
 - [x] SpyRenderer extended with `RectCallLog` + `with_rect_capture()` for draw_rect call assertion
 
-### Step 7.2 — Widgets (Deferred) `[NOT STARTED]`
+### Step 7.2 — Widgets `[DONE]`
 **Crate:** engine_ui
+**New dep:** engine_input (for MouseState access in interaction system)
 
-- [ ] Button, Label, Panel, ProgressBar components
-- [ ] Interaction events: hover, click, focus
-- [ ] Style resources for theming
+- [x] Button component (disabled field) + button_render_system (UiTheme-driven colors)
+- [x] Panel component (border_color, border_width) + panel_render_system (background + 4-edge border)
+- [x] ProgressBar component (value, max) + progress_bar_render_system (background + clamped fill rect)
+- [x] Interaction component (None/Hovered/Pressed) + ui_interaction_system (AABB hit-testing via MouseState.world_pos + anchor_offset, visibility filtering, disabled button skip)
+- [x] UiEvent enum (Clicked, HoverEnter, HoverExit, FocusGained, FocusLost) + UiEventBuffer resource (Vec+drain pattern)
+- [x] FocusState resource (Option<Entity>) — click claims focus, focus transfer emits FocusLost/FocusGained events
+- [x] UiTheme resource (normal/hovered/pressed/disabled colors, text_color, font_size) — opt-in, not inserted by DefaultPlugins
+- [x] All types derive Serialize/Deserialize (except UiEvent — Entity is not serializable)
+- [x] Prelude re-exports all new public types and systems
+- [x] Shared test_helpers module with make_spy_world() (same pattern as engine_scene)
 
 ---
 

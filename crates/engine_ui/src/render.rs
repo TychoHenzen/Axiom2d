@@ -1,4 +1,5 @@
 use bevy_ecs::prelude::{Query, ResMut};
+use engine_core::prelude::Pixels;
 use engine_render::prelude::{Rect, RendererRes};
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D};
 
@@ -9,8 +10,6 @@ pub fn ui_render_system(
     nodes: Query<(&UiNode, &GlobalTransform2D, Option<&EffectiveVisibility>)>,
     mut renderer: ResMut<RendererRes>,
 ) {
-    use engine_core::prelude::Pixels;
-
     for (node, global_transform, visibility) in &nodes {
         if visibility.is_some_and(|v| !v.0) {
             continue;
@@ -42,20 +41,16 @@ mod tests {
 
     use bevy_ecs::prelude::{Schedule, World};
     use engine_core::prelude::{Color, Pixels};
-    use engine_render::prelude::RendererRes;
-    use engine_render::testing::{RectCallLog, SpyRenderer};
+    use engine_render::testing::RectCallLog;
     use engine_scene::prelude::GlobalTransform2D;
     use glam::{Affine2, Vec2};
 
     use crate::anchor::Anchor;
+    use crate::test_helpers::make_spy_world;
     use crate::ui_node::UiNode;
 
     fn setup_world_with_spy() -> (World, Schedule, Arc<Mutex<Vec<String>>>, RectCallLog) {
-        let mut world = World::new();
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let rect_cap: RectCallLog = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(Arc::clone(&log)).with_rect_capture(Arc::clone(&rect_cap));
-        world.insert_resource(RendererRes::new(Box::new(spy)));
+        let (world, log, rect_cap) = make_spy_world();
         let mut schedule = Schedule::default();
         schedule.add_systems(ui_render_system);
         (world, schedule, log, rect_cap)

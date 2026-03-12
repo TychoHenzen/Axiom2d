@@ -978,6 +978,7 @@ version = "0.1.0"
 dependencies = [
  "bevy_ecs",
  "engine_core",
+ "engine_input",
  "engine_render",
  "engine_scene",
  "glam 0.29.3",
