@@ -31,3 +31,9 @@ jobs:
         run: cargo build --verbose
       - name: Run tests
         run: cargo test --verbose
+      - name: Install mesa for software GPU
+        run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers
+      - name: Run visual regression tests
+        env:
+          WGPU_BACKEND: vulkan
+        run: cargo test -p engine_render --lib -- --ignored --test-threads=1

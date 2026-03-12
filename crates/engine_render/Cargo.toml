@@ -26,6 +26,7 @@ lyon = { workspace = true }
 image-compare = { workspace = true, optional = true }
 
 [dev-dependencies]
+image-compare = { workspace = true }
 insta = { workspace = true }
 naga = { workspace = true }
 proptest = { workspace = true }

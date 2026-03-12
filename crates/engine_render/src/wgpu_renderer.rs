@@ -10,7 +10,7 @@ use crate::rect::Rect;
 use crate::renderer::Renderer;
 use crate::window::WindowConfig;
 
-const SHADER_SRC: &str = "
+pub(crate) const SHADER_SRC: &str = "
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
@@ -52,7 +52,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 ";
 
-const SHAPE_SHADER_SRC: &str = "
+pub(crate) const SHAPE_SHADER_SRC: &str = "
 struct ShapeOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
@@ -1260,7 +1260,7 @@ impl WgpuRenderer {
     }
 }
 
-fn create_texture_bind_group(
+pub(crate) fn create_texture_bind_group(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     layout: &wgpu::BindGroupLayout,
