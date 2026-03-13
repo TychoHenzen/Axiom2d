@@ -970,6 +970,106 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
         assert!(md.contains("<blockquote>\n<details>\n<summary><strong>color</strong>"));
     }
 
+    // TC033: Kills mutant "replace + with - in parse_annotations" (line 140)
+    // When i=0 and annotation is first line, i+1=1 (correct), i-1 panics, i*1=0 re-reads @doc line
+    #[test]
+    fn when_annotation_on_first_line_then_still_finds_fn() {
+        // Arrange
+        let source = "/// @doc: First line annotation\n#[test]\nfn first_line_test() {}";
+
+        // Act
+        let result = parse_annotations(source);
+
+        // Assert
+        assert_eq!(
+            result.get("first_line_test"),
+            Some(&"First line annotation".to_string())
+        );
+    }
+
+    // TC034: Kills mutant "replace || with && in parse_annotations" (line 148, first ||)
+    // Empty line between @doc and #[test] should be skipped by the continue condition
+    #[test]
+    fn when_empty_line_between_annotation_and_test_then_still_matches() {
+        // Arrange
+        let source = "/// @doc: Gapped annotation\n\n#[test]\nfn gapped_test() {}";
+
+        // Act
+        let result = parse_annotations(source);
+
+        // Assert
+        assert_eq!(
+            result.get("gapped_test"),
+            Some(&"Gapped annotation".to_string())
+        );
+    }
+
+    // TC035: Kills mutant "replace || with && in parse_annotations" (line 148, second ||)
+    // Doc comment line between @doc and #[test] should be skipped
+    #[test]
+    fn when_doc_comment_between_annotation_and_test_then_still_matches() {
+        // Arrange
+        let source =
+            "/// @doc: Has extra docs\n/// some other doc\n#[test]\nfn extra_docs_test() {}";
+
+        // Act
+        let result = parse_annotations(source);
+
+        // Assert
+        assert_eq!(
+            result.get("extra_docs_test"),
+            Some(&"Has extra docs".to_string())
+        );
+    }
+
+    // TC036: Kills mutant "replace + with * in parse_test_locations" (line 169)
+    // When #[test] is on line 0 (i=0), i+1=1 (correct), i*1=0 re-reads #[test] itself
+    #[test]
+    fn when_test_attr_on_first_line_then_finds_fn_on_next_line() {
+        // Arrange
+        let source = "#[test]\nfn first_line_located() {}";
+
+        // Act
+        let result = parse_test_locations(source, "test.rs");
+
+        // Assert
+        assert_eq!(
+            result.get("first_line_located"),
+            Some(&SourceLocation {
+                file: "test.rs".to_string(),
+                line: 2,
+            })
+        );
+    }
+
+    // TC037: Kills mutant "replace || with && in parse_test_locations" (line 183, first ||)
+    // Empty line between #[test] and fn should be skipped (line number is i+2, not fn's actual line)
+    #[test]
+    fn when_empty_line_between_test_attr_and_fn_then_still_finds_location() {
+        // Arrange
+        let source = "#[test]\n\nfn spaced_test() {}";
+
+        // Act
+        let result = parse_test_locations(source, "test.rs");
+
+        // Assert
+        assert!(result.contains_key("spaced_test"));
+    }
+
+    // TC038: Kills mutant "replace || with && in parse_test_locations" (line 183, second ||)
+    // Doc comment between #[test] and fn should be skipped
+    #[test]
+    fn when_doc_comment_between_test_attr_and_fn_then_still_finds_location() {
+        // Arrange
+        let source = "#[test]\n/// doc line\nfn documented_test() {}";
+
+        // Act
+        let result = parse_test_locations(source, "test.rs");
+
+        // Assert
+        assert!(result.contains_key("documented_test"));
+    }
+
     // TC032
     #[test]
     fn when_test_foldout_then_wrapped_in_blockquote() {

@@ -35,4 +35,10 @@ exclude_re = [
     "WgpuRenderer::ensure_post_process",
     "WgpuRenderer::draw_scene_to",
     "WgpuRenderer::execute_bloom",
+    # living-docs main.rs — thin glue over filesystem/process I/O, logic tested in lib.rs
+    "in collect_annotations",
+    "in collect_sources",
+    "in scan_dir",
+    "replace main with",
+    "replace chrono_free_date",
 ]

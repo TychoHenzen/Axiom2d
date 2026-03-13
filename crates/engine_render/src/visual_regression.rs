@@ -313,7 +313,7 @@ impl HeadlessRenderer {
         self.draw_scene_to(&mut encoder, &view);
 
         let padded_row = padded_row_bytes(self.width, 4);
-        let buffer_size = (padded_row * self.height) as wgpu::BufferAddress;
+        let buffer_size = wgpu::BufferAddress::from(padded_row * self.height);
         let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: buffer_size,
@@ -542,7 +542,7 @@ const COPY_BYTES_PER_ROW_ALIGNMENT: u32 = 256;
 pub fn padded_row_bytes(width: u32, bytes_per_pixel: u32) -> u32 {
     let raw = width * bytes_per_pixel;
     let align = COPY_BYTES_PER_ROW_ALIGNMENT;
-    (raw + align - 1) / align * align
+    raw.div_ceil(align) * align
 }
 
 pub fn strip_row_padding(
