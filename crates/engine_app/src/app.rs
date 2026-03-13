@@ -601,6 +601,7 @@ mod tests {
         assert!(size.is_some());
     }
 
+    /// @doc: Resize updates both the WindowSize resource and calls renderer.resize() — dual sync
     #[test]
     fn when_handle_resize_called_then_window_size_resource_is_updated() {
         // Arrange
@@ -631,6 +632,7 @@ mod tests {
         );
     }
 
+    /// @doc: Phase execution order is fixed: Input → PreUpdate → Update → PostUpdate → Render
     #[test]
     fn when_handle_redraw_called_then_pre_update_runs_before_update() {
         use engine_core::time::{ClockRes, DeltaTime, FakeClock, time_system};

@@ -28,7 +28,7 @@ Aim for roughly **20-30%** of tests annotated. Over-annotating dilutes value.
 
 ## Current coverage
 
-28 annotations across 696 tests (~4%). Target: ~150 annotations (~22%).
+49 annotations across 696 tests (~7%). Target: ~150 annotations (~22%).
 
 ## Priority tiers
 
@@ -105,71 +105,71 @@ These tests document foundational behavior that other systems depend on. A contr
 
 These tests validate how systems interact. Annotations explain the ordering or contract, not the mechanics.
 
-#### engine_scene — hierarchy.rs (10 tests)
+#### engine_scene — hierarchy.rs (10 tests, 2 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_child_reparented_then_old_parent_loses_child` | hierarchy_maintenance_system rebuilds Children from scratch each frame — reparenting is automatic |
-| `when_all_children_removed_then_parent_children_component_removed` | Stale Children components are cleaned up when no ChildOf references remain |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_child_of_is_removed_then_parent_children_no_longer_contains_that_child` | Done | hierarchy_maintenance_system rebuilds Children from scratch each frame — reparenting is automatic |
+| `when_last_child_of_is_removed_then_parent_children_component_is_removed` | Done | Stale Children components are cleaned up when no ChildOf references remain |
 
-#### engine_scene — visibility.rs (12 tests)
+#### engine_scene — visibility.rs (12 tests, 2 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_parent_invisible_then_child_invisible` | AND-logic propagation: EffectiveVisibility = parent_effective AND child_visible |
-| `when_entity_has_no_visible_component_then_treated_as_visible` | Visible is opt-in — entities without it default to visible (no component = no hiding) |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_parent_is_hidden_and_child_is_visible_then_child_effective_visibility_is_false` | Done | AND-logic propagation: EffectiveVisibility = parent_effective AND child_visible |
+| `when_root_entity_has_no_visible_component_then_visibility_system_inserts_effective_visibility_true` | Done | Visible is opt-in — entities without it default to visible (no component = no hiding) |
 
-#### engine_scene — transform_propagation.rs (12 tests)
+#### engine_scene — transform_propagation.rs (12 tests, 2 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_parent_translated_then_child_global_includes_parent` | GlobalTransform2D = parent.global * child.local — standard affine composition |
-| `when_root_has_no_parent_then_global_equals_local` | Root entities (no ChildOf) copy Transform2D directly to GlobalTransform2D |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_child_has_translation_and_parent_has_translation_then_both_accumulate` | Done | GlobalTransform2D = parent.global * child.local — standard affine composition |
+| `when_root_entity_has_identity_transform_then_global_transform_equals_affine2_identity` | Done | Root entities (no ChildOf) copy Transform2D directly to GlobalTransform2D |
 
-#### engine_render — material.rs (12 tests)
+#### engine_render — material.rs (12 tests, 1 annotated) + sprite.rs dedup test (1 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_blend_mode_changes_then_set_blend_mode_called` | apply_material deduplicates — set_blend_mode only called when mode actually changes |
-| `when_ifdef_nested_then_inner_block_requires_both_defines` | #ifdef preprocessor supports nesting — inner block needs both outer and inner defines active |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_two_sprites_with_same_blend_mode_then_set_blend_mode_called_once` (sprite.rs) | Done | apply_material deduplicates — set_blend_mode only called when mode actually changes |
+| `when_preprocessing_with_define_present_then_ifdef_block_included` | Done | #ifdef preprocessor conditionally includes shader blocks for feature-based shader variants |
 
-#### engine_render — bloom.rs (9 tests)
+#### engine_render — bloom.rs (9 tests, 3 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_gaussian_weights_computed_then_sum_is_one` | Normalized kernel ensures bloom doesn't change overall image brightness |
-| `when_gaussian_weights_computed_then_symmetric` | Symmetry allows separable (H+V) blur — same kernel for both passes |
-| `when_bloom_settings_absent_then_no_post_process` | BloomSettings is opt-in — no resource insertion means zero post-process overhead |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_gaussian_weights_radius3_then_sum_is_one` | Done | Normalized kernel ensures bloom doesn't change overall image brightness |
+| `when_gaussian_weights_computed_then_kernel_is_symmetric` | Done | Symmetry allows separable (H+V) blur — same kernel for both passes |
+| `when_no_bloom_settings_then_post_process_system_skips` | Done | BloomSettings is opt-in — no resource insertion means zero post-process overhead |
 
-#### engine_render — shape.rs (37 tests)
+#### engine_render — shape.rs (37 tests, 2 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_circle_tessellated_then_vertices_on_circumference` | Lyon FillTessellator generates triangle fan — all vertices lie at radius distance from origin |
-| `when_polygon_fewer_than_3_points_then_empty_mesh` | Degenerate polygons (< 3 vertices) produce empty mesh — no GPU draw call issued |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_tessellating_circle_then_produces_nonempty_vertices_and_indices` | Done | Lyon FillTessellator generates triangle fan — all vertices lie at radius distance from origin |
+| `when_tessellating_polygon_with_fewer_than_three_points_then_returns_empty_mesh` | Done | Degenerate polygons (< 3 vertices) produce empty mesh — no GPU draw call issued |
 
-#### engine_app — app.rs (35 tests)
+#### engine_app — app.rs (35 tests, 2 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_handle_redraw_then_schedules_run_in_phase_order` | Phase execution order is fixed: Input → PreUpdate → Update → PostUpdate → Render |
-| `when_resize_then_window_size_and_renderer_updated` | Resize updates both the WindowSize resource and calls renderer.resize() — dual sync |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_handle_redraw_called_then_pre_update_runs_before_update` | Done | Phase execution order is fixed: Input → PreUpdate → Update → PostUpdate → Render |
+| `when_handle_resize_called_then_window_size_resource_is_updated` | Done | Resize updates both the WindowSize resource and calls renderer.resize() — dual sync |
 
-#### engine_audio — cpal_backend.rs (14 tests)
+#### engine_audio — cpal_backend.rs (14 tests, 3 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_mix_into_called_then_output_is_additive_sum` | Audio mixing is additive — all active sounds summed into output buffer, scaled by volume |
-| `when_sound_finishes_then_removed_from_active` | Sounds auto-evict when cursor reaches end — no explicit stop() needed for one-shots |
-| `when_track_volume_set_then_effective_volume_multiplied` | Effective volume = global_volume * track_volume — multiplicative stacking |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_two_active_sounds_then_output_is_sum` | Done | Audio mixing is additive — all active sounds summed into output buffer, scaled by volume |
+| `when_sound_shorter_than_buffer_then_removed_after_last_sample` | Done | Sounds auto-evict when cursor reaches end — no explicit stop() needed for one-shots |
+| `when_global_and_track_volume_both_half_then_output_quarter` | Done | Effective volume = global_volume * track_volume — multiplicative stacking |
 
-#### engine_ui — interaction.rs (16 tests)
+#### engine_ui — interaction.rs (16 tests, 3 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_mouse_over_node_then_interaction_is_hovered` | AABB hit-test uses anchor_offset to compute top-left from node position + size |
-| `when_disabled_button_hovered_then_interaction_unchanged` | Disabled buttons are excluded from hit-testing entirely — not just visually dimmed |
-| `when_node_clicked_then_focus_gained` | Click sets FocusState.focused — only one entity has focus at a time |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_cursor_inside_node_then_interaction_becomes_hovered` | Done | AABB hit-test uses anchor_offset to compute top-left from node position + size |
+| `when_disabled_button_then_interaction_stays_none` | Done | Disabled buttons are excluded from hit-testing entirely — not just visually dimmed |
+| `when_node_clicked_then_focus_state_updated` | Done | Click sets FocusState.focused — only one entity has focus at a time |
 
 ---
 

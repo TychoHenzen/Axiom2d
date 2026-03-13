@@ -624,6 +624,7 @@ mod tests {
         assert_eq!(calls.as_slice(), &[BlendMode::Alpha, BlendMode::Additive]);
     }
 
+    /// @doc: apply_material deduplicates — set_blend_mode only called when mode actually changes between sprites
     #[test]
     fn when_two_sprites_with_same_blend_mode_then_set_blend_mode_called_once() {
         // Arrange

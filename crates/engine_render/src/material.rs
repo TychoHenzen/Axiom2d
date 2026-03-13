@@ -232,6 +232,7 @@ mod tests {
         assert_eq!(result, None);
     }
 
+    /// @doc: #ifdef preprocessor conditionally includes shader blocks — enables feature-based shader variants
     #[test]
     fn when_preprocessing_with_define_present_then_ifdef_block_included() {
         // Arrange

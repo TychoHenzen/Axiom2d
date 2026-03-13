@@ -91,6 +91,7 @@ mod tests {
         assert_eq!(*effective, EffectiveVisibility(false));
     }
 
+    /// @doc: Visible is opt-in — entities without it default to visible (no component = no hiding)
     #[test]
     fn when_root_entity_has_no_visible_component_then_visibility_system_inserts_effective_visibility_true()
      {
@@ -122,6 +123,7 @@ mod tests {
         assert_eq!(*effective, EffectiveVisibility(true));
     }
 
+    /// @doc: AND-logic propagation: EffectiveVisibility = parent_effective AND child_visible
     #[test]
     fn when_parent_is_hidden_and_child_is_visible_then_child_effective_visibility_is_false() {
         // Arrange

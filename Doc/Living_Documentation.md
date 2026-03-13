@@ -519,7 +519,7 @@
 <details>
 <summary>When app new called, then delta time resource is present</summary>
 
-<code>crates\engine_app\src\app.rs:622</code>
+<code>crates\engine_app\src\app.rs:623</code>
 
 </details>
 </blockquote>
@@ -543,7 +543,7 @@
 <details>
 <summary>When app receives keyboard press, then event pushed to buffer</summary>
 
-<code>crates\engine_app\src\app.rs:668</code>
+<code>crates\engine_app\src\app.rs:670</code>
 
 </details>
 </blockquote>
@@ -551,7 +551,7 @@
 <details>
 <summary>When app receives keyboard release, then release event pushed to buffer</summary>
 
-<code>crates\engine_app\src\app.rs:684</code>
+<code>crates\engine_app\src\app.rs:686</code>
 
 </details>
 </blockquote>
@@ -559,7 +559,7 @@
 <details>
 <summary>When app receives unidentified physical key, then buffer remains empty</summary>
 
-<code>crates\engine_app\src\app.rs:703</code>
+<code>crates\engine_app\src\app.rs:705</code>
 
 </details>
 </blockquote>
@@ -567,7 +567,7 @@
 <details>
 <summary>When cursor moved event received by app, then screen pos updated</summary>
 
-<code>crates\engine_app\src\app.rs:722</code>
+<code>crates\engine_app\src\app.rs:724</code>
 
 </details>
 </blockquote>
@@ -575,7 +575,7 @@
 <details>
 <summary>When cursor moved without mouse state resource, then does not panic</summary>
 
-<code>crates\engine_app\src\app.rs:737</code>
+<code>crates\engine_app\src\app.rs:739</code>
 
 </details>
 </blockquote>
@@ -583,7 +583,9 @@
 <details>
 <summary>When handle redraw called, then pre update runs before update</summary>
 
-<code>crates\engine_app\src\app.rs:635</code>
+*Phase execution order is fixed: Input → PreUpdate → Update → PostUpdate → Render*
+
+<code>crates\engine_app\src\app.rs:637</code>
 
 </details>
 </blockquote>
@@ -623,7 +625,9 @@
 <details>
 <summary>When handle resize called, then window size resource is updated</summary>
 
-<code>crates\engine_app\src\app.rs:605</code>
+*Resize updates both the WindowSize resource and calls renderer.resize() — dual sync*
+
+<code>crates\engine_app\src\app.rs:606</code>
 
 </details>
 </blockquote>
@@ -631,7 +635,7 @@
 <details>
 <summary>When mouse button event received by app, then event pushed to buffer</summary>
 
-<code>crates\engine_app\src\app.rs:746</code>
+<code>crates\engine_app\src\app.rs:748</code>
 
 </details>
 </blockquote>
@@ -639,7 +643,7 @@
 <details>
 <summary>When mouse button event received without buffer resource, then does not panic</summary>
 
-<code>crates\engine_app\src\app.rs:768</code>
+<code>crates\engine_app\src\app.rs:770</code>
 
 </details>
 </blockquote>
@@ -703,7 +707,7 @@
 <details>
 <summary>When scroll event received by app, then mouse state scroll delta accumulated</summary>
 
-<code>crates\engine_app\src\app.rs:777</code>
+<code>crates\engine_app\src\app.rs:779</code>
 
 </details>
 </blockquote>
@@ -727,7 +731,7 @@
 <details>
 <summary>When set window config called, then window size reflects config</summary>
 
-<code>crates\engine_app\src\app.rs:792</code>
+<code>crates\engine_app\src\app.rs:794</code>
 
 </details>
 </blockquote>
@@ -1113,7 +1117,9 @@
 <details>
 <summary>When global and track volume both half, then output quarter</summary>
 
-<code>crates\engine_audio\src\cpal_backend.rs:386</code>
+*Effective volume = global_volume * track_volume — multiplicative stacking*
+
+<code>crates\engine_audio\src\cpal_backend.rs:389</code>
 
 </details>
 </blockquote>
@@ -1121,7 +1127,7 @@
 <details>
 <summary>When mix into with two tracks, then per track volume applied</summary>
 
-<code>crates\engine_audio\src\cpal_backend.rs:364</code>
+<code>crates\engine_audio\src\cpal_backend.rs:366</code>
 
 </details>
 </blockquote>
@@ -1145,7 +1151,7 @@
 <details>
 <summary>When set track volume on cpal, then internal state updated</summary>
 
-<code>crates\engine_audio\src\cpal_backend.rs:405</code>
+<code>crates\engine_audio\src\cpal_backend.rs:408</code>
 
 </details>
 </blockquote>
@@ -1169,7 +1175,7 @@
 <details>
 <summary>When sound longer than buffer, then cursor advances</summary>
 
-<code>crates\engine_audio\src\cpal_backend.rs:418</code>
+<code>crates\engine_audio\src\cpal_backend.rs:421</code>
 
 </details>
 </blockquote>
@@ -1177,7 +1183,9 @@
 <details>
 <summary>When sound shorter than buffer, then removed after last sample</summary>
 
-<code>crates\engine_audio\src\cpal_backend.rs:347</code>
+*Sounds auto-evict when cursor reaches end — no explicit stop() needed for one-shots*
+
+<code>crates\engine_audio\src\cpal_backend.rs:349</code>
 
 </details>
 </blockquote>
@@ -1201,7 +1209,9 @@
 <details>
 <summary>When two active sounds, then output is sum</summary>
 
-<code>crates\engine_audio\src\cpal_backend.rs:330</code>
+*Audio mixing is additive — all active sounds summed into output buffer, scaled by volume*
+
+<code>crates\engine_audio\src\cpal_backend.rs:331</code>
 
 </details>
 </blockquote>
@@ -3183,7 +3193,7 @@
 <details>
 <summary>When any radius, then gaussian weights sum to one and are symmetric</summary>
 
-<code>crates\engine_render\src\bloom.rs:193</code>
+<code>crates\engine_render\src\bloom.rs:196</code>
 
 </details>
 </blockquote>
@@ -3191,7 +3201,9 @@
 <details>
 <summary>When gaussian weights computed, then kernel is symmetric</summary>
 
-<code>crates\engine_render\src\bloom.rs:81</code>
+*Symmetry allows separable (H+V) blur — same kernel for both passes*
+
+<code>crates\engine_render\src\bloom.rs:83</code>
 
 </details>
 </blockquote>
@@ -3199,7 +3211,7 @@
 <details>
 <summary>When gaussian weights radius0, then single weight of one</summary>
 
-<code>crates\engine_render\src\bloom.rs:99</code>
+<code>crates\engine_render\src\bloom.rs:101</code>
 
 </details>
 </blockquote>
@@ -3215,7 +3227,9 @@
 <details>
 <summary>When gaussian weights radius3, then sum is one</summary>
 
-<code>crates\engine_render\src\bloom.rs:67</code>
+*Normalized kernel ensures bloom doesn't change overall image brightness*
+
+<code>crates\engine_render\src\bloom.rs:68</code>
 
 </details>
 </blockquote>
@@ -3223,7 +3237,7 @@
 <details>
 <summary>When gaussian weights radius3, then weight ratios match formula</summary>
 
-<code>crates\engine_render\src\bloom.rs:235</code>
+<code>crates\engine_render\src\bloom.rs:238</code>
 
 </details>
 </blockquote>
@@ -3539,7 +3553,7 @@
 <details>
 <summary>When comparing shader handles, then ordered by inner u32</summary>
 
-<code>crates\engine_render\src\material.rs:297</code>
+<code>crates\engine_render\src\material.rs:298</code>
 
 </details>
 </blockquote>
@@ -3547,7 +3561,7 @@
 <details>
 <summary>When effective shader handle with none, then returns default</summary>
 
-<code>crates\engine_render\src\material.rs:273</code>
+<code>crates\engine_render\src\material.rs:274</code>
 
 </details>
 </blockquote>
@@ -3555,7 +3569,7 @@
 <details>
 <summary>When effective shader handle with some, then returns material shader</summary>
 
-<code>crates\engine_render\src\material.rs:282</code>
+<code>crates\engine_render\src\material.rs:283</code>
 
 </details>
 </blockquote>
@@ -3579,7 +3593,9 @@
 <details>
 <summary>When preprocessing with define present, then ifdef block included</summary>
 
-<code>crates\engine_render\src\material.rs:236</code>
+*#ifdef preprocessor conditionally includes shader blocks — enables feature-based shader variants*
+
+<code>crates\engine_render\src\material.rs:237</code>
 
 </details>
 </blockquote>
@@ -3587,7 +3603,7 @@
 <details>
 <summary>When preprocessing without define, then ifdef block excluded</summary>
 
-<code>crates\engine_render\src\material.rs:309</code>
+<code>crates\engine_render\src\material.rs:310</code>
 
 </details>
 </blockquote>
@@ -3611,7 +3627,7 @@
 <details>
 <summary>When shader registry used as resource in system, then lookup works</summary>
 
-<code>crates\engine_render\src\material.rs:252</code>
+<code>crates\engine_render\src\material.rs:253</code>
 
 </details>
 </blockquote>
@@ -3763,7 +3779,7 @@
 <details>
 <summary>When circle aabb, then width and height equal double radius</summary>
 
-<code>crates\engine_render\src\shape.rs:346</code>
+<code>crates\engine_render\src\shape.rs:347</code>
 
 </details>
 </blockquote>
@@ -3771,7 +3787,7 @@
 <details>
 <summary>When no camera entity, then all shapes drawn without culling</summary>
 
-<code>crates\engine_render\src\shape.rs:1047</code>
+<code>crates\engine_render\src\shape.rs:1049</code>
 
 </details>
 </blockquote>
@@ -3779,7 +3795,7 @@
 <details>
 <summary>When polygon aabb, then matches point extents</summary>
 
-<code>crates\engine_render\src\shape.rs:359</code>
+<code>crates\engine_render\src\shape.rs:360</code>
 
 </details>
 </blockquote>
@@ -3795,7 +3811,7 @@
 <details>
 <summary>When shape at known position, then vertices offset by translation</summary>
 
-<code>crates\engine_render\src\shape.rs:712</code>
+<code>crates\engine_render\src\shape.rs:714</code>
 
 </details>
 </blockquote>
@@ -3803,7 +3819,7 @@
 <details>
 <summary>When shape at negative pos inside view, then drawn</summary>
 
-<code>crates\engine_render\src\shape.rs:894</code>
+<code>crates\engine_render\src\shape.rs:896</code>
 
 </details>
 </blockquote>
@@ -3811,7 +3827,7 @@
 <details>
 <summary>When shape barely inside view due to radius, then drawn</summary>
 
-<code>crates\engine_render\src\shape.rs:828</code>
+<code>crates\engine_render\src\shape.rs:830</code>
 
 </details>
 </blockquote>
@@ -3819,7 +3835,7 @@
 <details>
 <summary>When shape barely inside view due to y radius, then drawn</summary>
 
-<code>crates\engine_render\src\shape.rs:850</code>
+<code>crates\engine_render\src\shape.rs:852</code>
 
 </details>
 </blockquote>
@@ -3835,7 +3851,7 @@
 <details>
 <summary>When shape fully inside camera view, then drawn</summary>
 
-<code>crates\engine_render\src\shape.rs:787</code>
+<code>crates\engine_render\src\shape.rs:789</code>
 
 </details>
 </blockquote>
@@ -3843,7 +3859,7 @@
 <details>
 <summary>When shape fully outside camera view, then not drawn</summary>
 
-<code>crates\engine_render\src\shape.rs:760</code>
+<code>crates\engine_render\src\shape.rs:762</code>
 
 </details>
 </blockquote>
@@ -3851,7 +3867,7 @@
 <details>
 <summary>When shape has additive material, then set blend mode called with additive</summary>
 
-<code>crates\engine_render\src\shape.rs:468</code>
+<code>crates\engine_render\src\shape.rs:470</code>
 
 </details>
 </blockquote>
@@ -3859,7 +3875,7 @@
 <details>
 <summary>When shape has material, then set shader called with material shader</summary>
 
-<code>crates\engine_render\src\shape.rs:920</code>
+<code>crates\engine_render\src\shape.rs:922</code>
 
 </details>
 </blockquote>
@@ -3867,7 +3883,7 @@
 <details>
 <summary>When shape has material uniforms, then set material uniforms called</summary>
 
-<code>crates\engine_render\src\shape.rs:957</code>
+<code>crates\engine_render\src\shape.rs:959</code>
 
 </details>
 </blockquote>
@@ -3875,7 +3891,7 @@
 <details>
 <summary>When shape has no material, then set blend mode called with alpha</summary>
 
-<code>crates\engine_render\src\shape.rs:453</code>
+<code>crates\engine_render\src\shape.rs:455</code>
 
 </details>
 </blockquote>
@@ -3883,7 +3899,7 @@
 <details>
 <summary>When shape has no material, then set shader called with default</summary>
 
-<code>crates\engine_render\src\shape.rs:942</code>
+<code>crates\engine_render\src\shape.rs:944</code>
 
 </details>
 </blockquote>
@@ -3891,7 +3907,7 @@
 <details>
 <summary>When shape has no render layer, then treated as world layer</summary>
 
-<code>crates\engine_render\src\shape.rs:679</code>
+<code>crates\engine_render\src\shape.rs:681</code>
 
 </details>
 </blockquote>
@@ -3899,7 +3915,7 @@
 <details>
 <summary>When shape has texture bindings, then bind material texture called</summary>
 
-<code>crates\engine_render\src\shape.rs:979</code>
+<code>crates\engine_render\src\shape.rs:981</code>
 
 </details>
 </blockquote>
@@ -3907,7 +3923,7 @@
 <details>
 <summary>When shape near view min edge, then drawn</summary>
 
-<code>crates\engine_render\src\shape.rs:872</code>
+<code>crates\engine_render\src\shape.rs:874</code>
 
 </details>
 </blockquote>
@@ -3923,7 +3939,7 @@
 <details>
 <summary>When shape with effective visibility false, then not drawn</summary>
 
-<code>crates\engine_render\src\shape.rs:564</code>
+<code>crates\engine_render\src\shape.rs:566</code>
 
 </details>
 </blockquote>
@@ -3931,7 +3947,7 @@
 <details>
 <summary>When shape with global transform, then draw shape called once</summary>
 
-<code>crates\engine_render\src\shape.rs:524</code>
+<code>crates\engine_render\src\shape.rs:526</code>
 
 </details>
 </blockquote>
@@ -3939,7 +3955,7 @@
 <details>
 <summary>When shape with known color, then draw shape receives matching color</summary>
 
-<code>crates\engine_render\src\shape.rs:738</code>
+<code>crates\engine_render\src\shape.rs:740</code>
 
 </details>
 </blockquote>
@@ -3947,7 +3963,7 @@
 <details>
 <summary>When shape without global transform, then draw shape not called</summary>
 
-<code>crates\engine_render\src\shape.rs:544</code>
+<code>crates\engine_render\src\shape.rs:546</code>
 
 </details>
 </blockquote>
@@ -3955,7 +3971,7 @@
 <details>
 <summary>When tessellating circle, then all indices within vertex bounds</summary>
 
-<code>crates\engine_render\src\shape.rs:258</code>
+<code>crates\engine_render\src\shape.rs:259</code>
 
 </details>
 </blockquote>
@@ -3963,7 +3979,7 @@
 <details>
 <summary>When tessellating circle, then index count is multiple of three</summary>
 
-<code>crates\engine_render\src\shape.rs:246</code>
+<code>crates\engine_render\src\shape.rs:247</code>
 
 </details>
 </blockquote>
@@ -3971,7 +3987,9 @@
 <details>
 <summary>When tessellating circle, then produces nonempty vertices and indices</summary>
 
-<code>crates\engine_render\src\shape.rs:233</code>
+*Lyon FillTessellator generates triangle fan — all circle vertices lie at radius distance from origin*
+
+<code>crates\engine_render\src\shape.rs:234</code>
 
 </details>
 </blockquote>
@@ -3979,7 +3997,7 @@
 <details>
 <summary>When tessellating larger circle, then more vertices than smaller</summary>
 
-<code>crates\engine_render\src\shape.rs:288</code>
+<code>crates\engine_render\src\shape.rs:289</code>
 
 </details>
 </blockquote>
@@ -3987,7 +4005,9 @@
 <details>
 <summary>When tessellating polygon with fewer than three points, then returns empty mesh</summary>
 
-<code>crates\engine_render\src\shape.rs:378</code>
+*Degenerate polygons (< 3 vertices) produce empty mesh — no GPU draw call issued*
+
+<code>crates\engine_render\src\shape.rs:380</code>
 
 </details>
 </blockquote>
@@ -3995,7 +4015,7 @@
 <details>
 <summary>When tessellating quad polygon, then valid triangulated mesh</summary>
 
-<code>crates\engine_render\src\shape.rs:321</code>
+<code>crates\engine_render\src\shape.rs:322</code>
 
 </details>
 </blockquote>
@@ -4003,7 +4023,7 @@
 <details>
 <summary>When tessellating triangle polygon, then produces three vertices and three indices</summary>
 
-<code>crates\engine_render\src\shape.rs:302</code>
+<code>crates\engine_render\src\shape.rs:303</code>
 
 </details>
 </blockquote>
@@ -4011,7 +4031,7 @@
 <details>
 <summary>When tessellating zero radius circle, then does not panic</summary>
 
-<code>crates\engine_render\src\shape.rs:276</code>
+<code>crates\engine_render\src\shape.rs:277</code>
 
 </details>
 </blockquote>
@@ -4019,7 +4039,7 @@
 <details>
 <summary>When two shapes on different layers, then background drawn before world</summary>
 
-<code>crates\engine_render\src\shape.rs:609</code>
+<code>crates\engine_render\src\shape.rs:611</code>
 
 </details>
 </blockquote>
@@ -4027,7 +4047,7 @@
 <details>
 <summary>When two shapes same layer different sort order, then lower drawn first</summary>
 
-<code>crates\engine_render\src\shape.rs:643</code>
+<code>crates\engine_render\src\shape.rs:645</code>
 
 </details>
 </blockquote>
@@ -4035,7 +4055,7 @@
 <details>
 <summary>When two shapes with different blend modes, then set blend mode in sorted order</summary>
 
-<code>crates\engine_render\src\shape.rs:490</code>
+<code>crates\engine_render\src\shape.rs:492</code>
 
 </details>
 </blockquote>
@@ -4043,7 +4063,7 @@
 <details>
 <summary>When two shapes with different shaders, then shader dominates blend in sort</summary>
 
-<code>crates\engine_render\src\shape.rs:1004</code>
+<code>crates\engine_render\src\shape.rs:1006</code>
 
 </details>
 </blockquote>
@@ -4051,7 +4071,7 @@
 <details>
 <summary>When two visible shapes, then draw shape called twice</summary>
 
-<code>crates\engine_render\src\shape.rs:588</code>
+<code>crates\engine_render\src\shape.rs:590</code>
 
 </details>
 </blockquote>
@@ -4067,7 +4087,7 @@
 <details>
 <summary>When different layers, then layer overrides blend mode order</summary>
 
-<code>crates\engine_render\src\sprite.rs:694</code>
+<code>crates\engine_render\src\sprite.rs:695</code>
 
 </details>
 </blockquote>
@@ -4117,7 +4137,7 @@
 <details>
 <summary>When invisible entity with material, then no blend or draw calls</summary>
 
-<code>crates\engine_render\src\sprite.rs:777</code>
+<code>crates\engine_render\src\sprite.rs:778</code>
 
 </details>
 </blockquote>
@@ -4127,7 +4147,7 @@
 
 *Without a Camera2D entity, frustum culling is disabled entirely — all sprites are drawn*
 
-<code>crates\engine_render\src\sprite.rs:867</code>
+<code>crates\engine_render\src\sprite.rs:868</code>
 
 </details>
 </blockquote>
@@ -4135,7 +4155,7 @@
 <details>
 <summary>When same layer and blend different sort order, then lower sort first</summary>
 
-<code>crates\engine_render\src\sprite.rs:734</code>
+<code>crates\engine_render\src\sprite.rs:735</code>
 
 </details>
 </blockquote>
@@ -4143,7 +4163,7 @@
 <details>
 <summary>When same shader different blend, then blend sorts within shader group</summary>
 
-<code>crates\engine_render\src\sprite.rs:1156</code>
+<code>crates\engine_render\src\sprite.rs:1157</code>
 
 </details>
 </blockquote>
@@ -4159,7 +4179,7 @@
 <details>
 <summary>When sprite fully inside camera view, then draw sprite called</summary>
 
-<code>crates\engine_render\src\sprite.rs:839</code>
+<code>crates\engine_render\src\sprite.rs:840</code>
 
 </details>
 </blockquote>
@@ -4169,7 +4189,7 @@
 
 *Frustum culling skips draw calls for sprites whose AABB falls entirely outside the camera view rect*
 
-<code>crates\engine_render\src\sprite.rs:812</code>
+<code>crates\engine_render\src\sprite.rs:813</code>
 
 </details>
 </blockquote>
@@ -4185,7 +4205,7 @@
 <details>
 <summary>When sprite has empty uniforms, then set material uniforms not called</summary>
 
-<code>crates\engine_render\src\sprite.rs:1091</code>
+<code>crates\engine_render\src\sprite.rs:1092</code>
 
 </details>
 </blockquote>
@@ -4193,7 +4213,7 @@
 <details>
 <summary>When sprite has material, then set shader called with material shader</summary>
 
-<code>crates\engine_render\src\sprite.rs:954</code>
+<code>crates\engine_render\src\sprite.rs:955</code>
 
 </details>
 </blockquote>
@@ -4201,7 +4221,7 @@
 <details>
 <summary>When sprite has material uniforms, then set material uniforms called</summary>
 
-<code>crates\engine_render\src\sprite.rs:1054</code>
+<code>crates\engine_render\src\sprite.rs:1055</code>
 
 </details>
 </blockquote>
@@ -4209,7 +4229,7 @@
 <details>
 <summary>When sprite has multiple texture bindings, then all forwarded in order</summary>
 
-<code>crates\engine_render\src\sprite.rs:1213</code>
+<code>crates\engine_render\src\sprite.rs:1214</code>
 
 </details>
 </blockquote>
@@ -4225,7 +4245,7 @@
 <details>
 <summary>When sprite has no material, then bind material texture not called</summary>
 
-<code>crates\engine_render\src\sprite.rs:1244</code>
+<code>crates\engine_render\src\sprite.rs:1245</code>
 
 </details>
 </blockquote>
@@ -4241,7 +4261,7 @@
 <details>
 <summary>When sprite has no material, then set material uniforms not called</summary>
 
-<code>crates\engine_render\src\sprite.rs:1076</code>
+<code>crates\engine_render\src\sprite.rs:1077</code>
 
 </details>
 </blockquote>
@@ -4249,7 +4269,7 @@
 <details>
 <summary>When sprite has no material, then set shader called with default</summary>
 
-<code>crates\engine_render\src\sprite.rs:976</code>
+<code>crates\engine_render\src\sprite.rs:977</code>
 
 </details>
 </blockquote>
@@ -4273,7 +4293,7 @@
 <details>
 <summary>When sprite has texture bindings, then bind material texture called</summary>
 
-<code>crates\engine_render\src\sprite.rs:1188</code>
+<code>crates\engine_render\src\sprite.rs:1189</code>
 
 </details>
 </blockquote>
@@ -4281,7 +4301,7 @@
 <details>
 <summary>When sprite just inside view bottom edge due to height, then drawn</summary>
 
-<code>crates\engine_render\src\sprite.rs:922</code>
+<code>crates\engine_render\src\sprite.rs:923</code>
 
 </details>
 </blockquote>
@@ -4289,7 +4309,7 @@
 <details>
 <summary>When sprite just inside view right edge due to width, then drawn</summary>
 
-<code>crates\engine_render\src\sprite.rs:890</code>
+<code>crates\engine_render\src\sprite.rs:891</code>
 
 </details>
 </blockquote>
@@ -4307,7 +4327,7 @@
 
 *Edge-touching sprites are drawn — conservative culling avoids popping artifacts at view boundaries*
 
-<code>crates\engine_render\src\sprite.rs:1260</code>
+<code>crates\engine_render\src\sprite.rs:1261</code>
 
 </details>
 </blockquote>
@@ -4365,7 +4385,7 @@
 <details>
 <summary>When two sprites with different shaders, then set shader called for each</summary>
 
-<code>crates\engine_render\src\sprite.rs:991</code>
+<code>crates\engine_render\src\sprite.rs:992</code>
 
 </details>
 </blockquote>
@@ -4373,7 +4393,7 @@
 <details>
 <summary>When two sprites with different shaders, then shader dominates blend in sort</summary>
 
-<code>crates\engine_render\src\sprite.rs:1113</code>
+<code>crates\engine_render\src\sprite.rs:1114</code>
 
 </details>
 </blockquote>
@@ -4381,7 +4401,7 @@
 <details>
 <summary>When two sprites with same blend mode, then both drawn</summary>
 
-<code>crates\engine_render\src\sprite.rs:659</code>
+<code>crates\engine_render\src\sprite.rs:660</code>
 
 </details>
 </blockquote>
@@ -4389,7 +4409,9 @@
 <details>
 <summary>When two sprites with same blend mode, then set blend mode called once</summary>
 
-<code>crates\engine_render\src\sprite.rs:628</code>
+*apply_material deduplicates — set_blend_mode only called when mode actually changes between sprites*
+
+<code>crates\engine_render\src\sprite.rs:629</code>
 
 </details>
 </blockquote>
@@ -4397,7 +4419,7 @@
 <details>
 <summary>When two sprites with same shader, then set shader called once</summary>
 
-<code>crates\engine_render\src\sprite.rs:1023</code>
+<code>crates\engine_render\src\sprite.rs:1024</code>
 
 </details>
 </blockquote>
@@ -4898,7 +4920,7 @@
 <details>
 <summary>When arbitrary child of assignments, then children vec is sorted</summary>
 
-<code>crates\engine_scene\src\hierarchy.rs:197</code>
+<code>crates\engine_scene\src\hierarchy.rs:199</code>
 
 </details>
 </blockquote>
@@ -4906,7 +4928,7 @@
 <details>
 <summary>When child entity is despawned, then parent children no longer contains that child</summary>
 
-<code>crates\engine_scene\src\hierarchy.rs:176</code>
+<code>crates\engine_scene\src\hierarchy.rs:178</code>
 
 </details>
 </blockquote>
@@ -4914,7 +4936,9 @@
 <details>
 <summary>When child of is removed, then parent children no longer contains that child</summary>
 
-<code>crates\engine_scene\src\hierarchy.rs:140</code>
+*hierarchy_maintenance_system rebuilds Children from scratch each frame — reparenting is automatic*
+
+<code>crates\engine_scene\src\hierarchy.rs:141</code>
 
 </details>
 </blockquote>
@@ -4930,7 +4954,9 @@
 <details>
 <summary>When last child of is removed, then parent children component is removed</summary>
 
-<code>crates\engine_scene\src\hierarchy.rs:160</code>
+*Stale Children components are cleaned up when no ChildOf references remain for that parent*
+
+<code>crates\engine_scene\src\hierarchy.rs:162</code>
 
 </details>
 </blockquote>
@@ -4946,7 +4972,7 @@
 <details>
 <summary>When only child is despawned, then parent children component is removed</summary>
 
-<code>crates\engine_scene\src\hierarchy.rs:232</code>
+<code>crates\engine_scene\src\hierarchy.rs:234</code>
 
 </details>
 </blockquote>
@@ -5066,7 +5092,7 @@
 <details>
 <summary>When child has identity transform, then global transform equals parent</summary>
 
-<code>crates\engine_scene\src\transform_propagation.rs:112</code>
+<code>crates\engine_scene\src\transform_propagation.rs:113</code>
 
 </details>
 </blockquote>
@@ -5074,7 +5100,9 @@
 <details>
 <summary>When child has translation and parent has translation, then both accumulate</summary>
 
-<code>crates\engine_scene\src\transform_propagation.rs:134</code>
+*GlobalTransform2D = parent.global * child.local — standard affine composition*
+
+<code>crates\engine_scene\src\transform_propagation.rs:136</code>
 
 </details>
 </blockquote>
@@ -5082,7 +5110,7 @@
 <details>
 <summary>When entity has no transform2d, then propagation system does not insert global transform</summary>
 
-<code>crates\engine_scene\src\transform_propagation.rs:99</code>
+<code>crates\engine_scene\src\transform_propagation.rs:100</code>
 
 </details>
 </blockquote>
@@ -5090,7 +5118,7 @@
 <details>
 <summary>When hierarchy system runs before propagation, then children receive global transform</summary>
 
-<code>crates\engine_scene\src\transform_propagation.rs:303</code>
+<code>crates\engine_scene\src\transform_propagation.rs:305</code>
 
 </details>
 </blockquote>
@@ -5098,7 +5126,7 @@
 <details>
 <summary>When multiple root entities, then each gets independent global transform</summary>
 
-<code>crates\engine_scene\src\transform_propagation.rs:276</code>
+<code>crates\engine_scene\src\transform_propagation.rs:278</code>
 
 </details>
 </blockquote>
@@ -5106,7 +5134,7 @@
 <details>
 <summary>When parent has scale and child has translation, then child position is scaled</summary>
 
-<code>crates\engine_scene\src\transform_propagation.rs:164</code>
+<code>crates\engine_scene\src\transform_propagation.rs:166</code>
 
 </details>
 </blockquote>
@@ -5114,7 +5142,9 @@
 <details>
 <summary>When root entity has identity transform, then global transform equals affine2 identity</summary>
 
-<code>crates\engine_scene\src\transform_propagation.rs:66</code>
+*Root entities (no ChildOf) copy Transform2D directly to GlobalTransform2D*
+
+<code>crates\engine_scene\src\transform_propagation.rs:67</code>
 
 </details>
 </blockquote>
@@ -5130,7 +5160,7 @@
 <details>
 <summary>When root entity has translation only, then global transform matches</summary>
 
-<code>crates\engine_scene\src\transform_propagation.rs:80</code>
+<code>crates\engine_scene\src\transform_propagation.rs:81</code>
 
 </details>
 </blockquote>
@@ -5138,7 +5168,7 @@
 <details>
 <summary>When three level hierarchy, then grandchild accumulates all ancestors</summary>
 
-<code>crates\engine_scene\src\transform_propagation.rs:193</code>
+<code>crates\engine_scene\src\transform_propagation.rs:195</code>
 
 </details>
 </blockquote>
@@ -5146,7 +5176,7 @@
 <details>
 <summary>When transform updated and system reruns, then global transform reflects new value</summary>
 
-<code>crates\engine_scene\src\transform_propagation.rs:334</code>
+<code>crates\engine_scene\src\transform_propagation.rs:336</code>
 
 </details>
 </blockquote>
@@ -5154,7 +5184,7 @@
 <details>
 <summary>When two siblings, then each gets independent global transform</summary>
 
-<code>crates\engine_scene\src\transform_propagation.rs:232</code>
+<code>crates\engine_scene\src\transform_propagation.rs:234</code>
 
 </details>
 </blockquote>
@@ -5170,7 +5200,7 @@
 <details>
 <summary>When child has no visible component and parent is hidden, then child effective visibility is false</summary>
 
-<code>crates\engine_scene\src\visibility.rs:253</code>
+<code>crates\engine_scene\src\visibility.rs:255</code>
 
 </details>
 </blockquote>
@@ -5178,7 +5208,7 @@
 <details>
 <summary>When child has no visible component and parent is visible, then child effective visibility is true</summary>
 
-<code>crates\engine_scene\src\visibility.rs:236</code>
+<code>crates\engine_scene\src\visibility.rs:238</code>
 
 </details>
 </blockquote>
@@ -5186,7 +5216,7 @@
 <details>
 <summary>When hierarchy system runs before visibility system, then children receive effective visibility</summary>
 
-<code>crates\engine_scene\src\visibility.rs:197</code>
+<code>crates\engine_scene\src\visibility.rs:199</code>
 
 </details>
 </blockquote>
@@ -5194,7 +5224,9 @@
 <details>
 <summary>When parent is hidden and child is visible, then child effective visibility is false</summary>
 
-<code>crates\engine_scene\src\visibility.rs:126</code>
+*AND-logic propagation: EffectiveVisibility = parent_effective AND child_visible*
+
+<code>crates\engine_scene\src\visibility.rs:128</code>
 
 </details>
 </blockquote>
@@ -5202,7 +5234,7 @@
 <details>
 <summary>When parent is visible and child is hidden, then child effective visibility is false</summary>
 
-<code>crates\engine_scene\src\visibility.rs:142</code>
+<code>crates\engine_scene\src\visibility.rs:144</code>
 
 </details>
 </blockquote>
@@ -5210,7 +5242,7 @@
 <details>
 <summary>When parent visibility changed and system reruns, then child effective visibility updates</summary>
 
-<code>crates\engine_scene\src\visibility.rs:214</code>
+<code>crates\engine_scene\src\visibility.rs:216</code>
 
 </details>
 </blockquote>
@@ -5226,7 +5258,9 @@
 <details>
 <summary>When root entity has no visible component, then visibility system inserts effective visibility true</summary>
 
-<code>crates\engine_scene\src\visibility.rs:95</code>
+*Visible is opt-in — entities without it default to visible (no component = no hiding)*
+
+<code>crates\engine_scene\src\visibility.rs:96</code>
 
 </details>
 </blockquote>
@@ -5242,7 +5276,7 @@
 <details>
 <summary>When three level hierarchy with hidden root, then grandchild effective visibility is false</summary>
 
-<code>crates\engine_scene\src\visibility.rs:158</code>
+<code>crates\engine_scene\src\visibility.rs:160</code>
 
 </details>
 </blockquote>
@@ -5250,7 +5284,7 @@
 <details>
 <summary>When two siblings one hidden, then each gets independent effective visibility</summary>
 
-<code>crates\engine_scene\src\visibility.rs:176</code>
+<code>crates\engine_scene\src\visibility.rs:178</code>
 
 </details>
 </blockquote>
@@ -5258,7 +5292,7 @@
 <details>
 <summary>When visible parent has visible child, then child effective visibility is true</summary>
 
-<code>crates\engine_scene\src\visibility.rs:110</code>
+<code>crates\engine_scene\src\visibility.rs:111</code>
 
 </details>
 </blockquote>
@@ -5471,7 +5505,7 @@
 <details>
 <summary>When cursor enters node, then hover enter event emitted</summary>
 
-<code>crates\engine_ui\src\interaction.rs:406</code>
+<code>crates\engine_ui\src\interaction.rs:407</code>
 
 </details>
 </blockquote>
@@ -5479,7 +5513,7 @@
 <details>
 <summary>When cursor inside and left held, then interaction becomes pressed</summary>
 
-<code>crates\engine_ui\src\interaction.rs:201</code>
+<code>crates\engine_ui\src\interaction.rs:202</code>
 
 </details>
 </blockquote>
@@ -5487,7 +5521,9 @@
 <details>
 <summary>When cursor inside node, then interaction becomes hovered</summary>
 
-<code>crates\engine_ui\src\interaction.rs:126</code>
+*AABB hit-test uses anchor_offset to compute top-left from node position + size*
+
+<code>crates\engine_ui\src\interaction.rs:127</code>
 
 </details>
 </blockquote>
@@ -5495,7 +5531,7 @@
 <details>
 <summary>When cursor leaves node, then hover exit event emitted</summary>
 
-<code>crates\engine_ui\src\interaction.rs:431</code>
+<code>crates\engine_ui\src\interaction.rs:432</code>
 
 </details>
 </blockquote>
@@ -5503,7 +5539,7 @@
 <details>
 <summary>When cursor leaves node, then interaction reverts to none</summary>
 
-<code>crates\engine_ui\src\interaction.rs:343</code>
+<code>crates\engine_ui\src\interaction.rs:344</code>
 
 </details>
 </blockquote>
@@ -5511,7 +5547,7 @@
 <details>
 <summary>When cursor on node boundary, then interaction becomes hovered</summary>
 
-<code>crates\engine_ui\src\interaction.rs:151</code>
+<code>crates\engine_ui\src\interaction.rs:152</code>
 
 </details>
 </blockquote>
@@ -5519,7 +5555,7 @@
 <details>
 <summary>When cursor outside and left held, then interaction remains none</summary>
 
-<code>crates\engine_ui\src\interaction.rs:227</code>
+<code>crates\engine_ui\src\interaction.rs:228</code>
 
 </details>
 </blockquote>
@@ -5527,7 +5563,7 @@
 <details>
 <summary>When cursor outside node, then interaction remains none</summary>
 
-<code>crates\engine_ui\src\interaction.rs:176</code>
+<code>crates\engine_ui\src\interaction.rs:177</code>
 
 </details>
 </blockquote>
@@ -5535,7 +5571,7 @@
 <details>
 <summary>When different node clicked, then focus transfers</summary>
 
-<code>crates\engine_ui\src\interaction.rs:490</code>
+<code>crates\engine_ui\src\interaction.rs:492</code>
 
 </details>
 </blockquote>
@@ -5543,7 +5579,9 @@
 <details>
 <summary>When disabled button, then interaction stays none</summary>
 
-<code>crates\engine_ui\src\interaction.rs:559</code>
+*Disabled buttons are excluded from hit-testing entirely — not just visually dimmed*
+
+<code>crates\engine_ui\src\interaction.rs:562</code>
 
 </details>
 </blockquote>
@@ -5551,7 +5589,7 @@
 <details>
 <summary>When effective visibility false, then not hit tested</summary>
 
-<code>crates\engine_ui\src\interaction.rs:278</code>
+<code>crates\engine_ui\src\interaction.rs:279</code>
 
 </details>
 </blockquote>
@@ -5559,7 +5597,7 @@
 <details>
 <summary>When interaction roundtrip ron, then variant preserved</summary>
 
-<code>crates\engine_ui\src\interaction.rs:540</code>
+<code>crates\engine_ui\src\interaction.rs:542</code>
 
 </details>
 </blockquote>
@@ -5567,7 +5605,7 @@
 <details>
 <summary>When just pressed inside, then clicked event emitted</summary>
 
-<code>crates\engine_ui\src\interaction.rs:377</code>
+<code>crates\engine_ui\src\interaction.rs:378</code>
 
 </details>
 </blockquote>
@@ -5575,7 +5613,9 @@
 <details>
 <summary>When node clicked, then focus state updated</summary>
 
-<code>crates\engine_ui\src\interaction.rs:462</code>
+*Click sets FocusState.focused — only one entity has focus at a time*
+
+<code>crates\engine_ui\src\interaction.rs:464</code>
 
 </details>
 </blockquote>
@@ -5583,7 +5623,7 @@
 <details>
 <summary>When node has center anchor, then hit test accounts for offset</summary>
 
-<code>crates\engine_ui\src\interaction.rs:253</code>
+<code>crates\engine_ui\src\interaction.rs:254</code>
 
 </details>
 </blockquote>
@@ -5591,7 +5631,7 @@
 <details>
 <summary>When two overlapping nodes, then both receive interaction</summary>
 
-<code>crates\engine_ui\src\interaction.rs:304</code>
+<code>crates\engine_ui\src\interaction.rs:305</code>
 
 </details>
 </blockquote>

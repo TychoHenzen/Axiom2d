@@ -229,6 +229,7 @@ mod tests {
         assert_eq!(shape, back);
     }
 
+    /// @doc: Lyon FillTessellator generates triangle fan — all circle vertices lie at radius distance from origin
     #[test]
     fn when_tessellating_circle_then_produces_nonempty_vertices_and_indices() {
         // Arrange
@@ -374,6 +375,7 @@ mod tests {
         assert_eq!(max, Vec2::new(30.0, 40.0));
     }
 
+    /// @doc: Degenerate polygons (< 3 vertices) produce empty mesh — no GPU draw call issued
     #[test]
     fn when_tessellating_polygon_with_fewer_than_three_points_then_returns_empty_mesh() {
         // Arrange

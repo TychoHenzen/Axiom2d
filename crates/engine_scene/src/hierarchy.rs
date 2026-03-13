@@ -136,6 +136,7 @@ mod tests {
         assert_eq!(children.0, vec![child]);
     }
 
+    /// @doc: hierarchy_maintenance_system rebuilds Children from scratch each frame — reparenting is automatic
     #[test]
     fn when_child_of_is_removed_then_parent_children_no_longer_contains_that_child() {
         // Arrange
@@ -156,6 +157,7 @@ mod tests {
         assert_eq!(children.0, vec![child_b]);
     }
 
+    /// @doc: Stale Children components are cleaned up when no ChildOf references remain for that parent
     #[test]
     fn when_last_child_of_is_removed_then_parent_children_component_is_removed() {
         // Arrange

@@ -63,6 +63,7 @@ mod tests {
         assert!(weights[1] > weights[2]);
     }
 
+    /// @doc: Normalized kernel ensures bloom doesn't change overall image brightness
     #[test]
     fn when_gaussian_weights_radius3_then_sum_is_one() {
         // Act
@@ -77,6 +78,7 @@ mod tests {
         );
     }
 
+    /// @doc: Symmetry allows separable (H+V) blur — same kernel for both passes
     #[test]
     fn when_gaussian_weights_computed_then_kernel_is_symmetric() {
         // Act
@@ -166,6 +168,7 @@ mod tests {
             );
         }
 
+        /// @doc: BloomSettings is opt-in — no resource insertion means zero post-process overhead
         #[test]
         fn when_no_bloom_settings_then_post_process_system_skips() {
             // Arrange

@@ -122,6 +122,7 @@ mod tests {
         schedule.run(world);
     }
 
+    /// @doc: AABB hit-test uses anchor_offset to compute top-left from node position + size
     #[test]
     fn when_cursor_inside_node_then_interaction_becomes_hovered() {
         // Arrange
@@ -458,6 +459,7 @@ mod tests {
         assert!(events.contains(&UiEvent::HoverExit(entity)));
     }
 
+    /// @doc: Click sets FocusState.focused — only one entity has focus at a time
     #[test]
     fn when_node_clicked_then_focus_state_updated() {
         // Arrange
@@ -555,6 +557,7 @@ mod tests {
         }
     }
 
+    /// @doc: Disabled buttons are excluded from hit-testing entirely — not just visually dimmed
     #[test]
     fn when_disabled_button_then_interaction_stays_none() {
         // Arrange
