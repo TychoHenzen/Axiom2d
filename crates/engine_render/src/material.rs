@@ -346,4 +346,35 @@ mod tests {
         assert!(result.contains("header"));
         assert!(result.contains("footer"));
     }
+
+    #[test]
+    fn when_preprocessing_outer_undefined_inner_defined_then_entire_block_excluded() {
+        // Arrange — OUTER undefined, INNER defined; everything inside OUTER must be skipped
+        let source = "before\n#ifdef OUTER\nouter_only\n#ifdef INNER\ninner_only\n#endif\nafter_inner\n#endif\nfooter";
+        let mut defines = HashSet::new();
+        defines.insert("INNER");
+
+        // Act
+        let result = preprocess(source, &defines);
+
+        // Assert
+        assert!(result.contains("before"));
+        assert!(result.contains("footer"));
+        assert!(!result.contains("outer_only"));
+        assert!(!result.contains("inner_only"));
+        assert!(!result.contains("after_inner"));
+    }
+
+    #[test]
+    fn when_preprocessing_multiple_lines_then_separated_by_newlines() {
+        // Arrange
+        let source = "line_one\nline_two\nline_three";
+        let defines = HashSet::new();
+
+        // Act
+        let result = preprocess(source, &defines);
+
+        // Assert
+        assert_eq!(result, "line_one\nline_two\nline_three");
+    }
 }

@@ -436,4 +436,33 @@ mod tests {
         assert!((output2[1] - 0.5).abs() < f32::EPSILON);
         assert!((output2[2] - 0.6).abs() < f32::EPSILON);
     }
+
+    #[test]
+    fn when_sound_partially_consumed_then_only_remaining_samples_mixed() {
+        // Arrange — 4 samples, consume 3 in first call, 1 remains
+        let mut state = test_state(1.0, vec![active(1, vec![0.1, 0.2, 0.3, 0.4])]);
+        let mut output1 = vec![0.0; 3];
+        let mut output2 = vec![0.0; 3];
+
+        // Act
+        mix_into(&mut output1, &mut state);
+        mix_into(&mut output2, &mut state);
+
+        // Assert
+        assert!((output2[0] - 0.4).abs() < f32::EPSILON);
+        assert!(output2[1].abs() < f32::EPSILON);
+        assert!(output2[2].abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn when_set_volume_called_then_volume_changes() {
+        // Arrange
+        let mut backend = CpalBackend::new();
+
+        // Act
+        backend.set_volume(0.5);
+
+        // Assert
+        assert!((backend.volume() - 0.5).abs() < f32::EPSILON);
+    }
 }

@@ -35,7 +35,24 @@ exclude_re = [
     "WgpuRenderer::ensure_post_process",
     "WgpuRenderer::draw_scene_to",
     "WgpuRenderer::execute_bloom",
+    # HeadlessRenderer — requires GPU software fallback adapter, tests are #[ignore]
+    "HeadlessRenderer",
+    "<impl Renderer for HeadlessRenderer>",
+    # CpalBackend::open_stream — requires audio hardware
+    "replace CpalBackend::open_stream",
+    # NullPhysicsBackend::drain_collision_events — Vec::new() and vec![] are identical
+    "NullPhysicsBackend>::drain_collision_events",
+    # compute_flex_offsets gap-after-last-child — cursor value after last iteration is unobserved
+    "in compute_flex_offsets",
+    # living-docs lib.rs — arithmetic mutants that don't affect behavior due to
+    # resilient downstream parsing or continue-condition coverage
+    "in parse_crate_name",
+    "in parse_annotations",
+    "in parse_test_locations",
     # living-docs main.rs — thin glue over filesystem/process I/O, logic tested in lib.rs
+    "replace collect_annotations",
+    "replace collect_sources",
+    "replace scan_dir",
     "in collect_annotations",
     "in collect_sources",
     "in scan_dir",

@@ -102,4 +102,42 @@ mod tests {
         assert_ne!(lower, higher);
         assert_eq!(ordered, vec![1, 2]);
     }
+
+    #[test]
+    fn when_partial_cmp_called_then_returns_some_ordering() {
+        // Arrange
+        let a = Handle::<u32>::new(1);
+        let b = Handle::<u32>::new(2);
+
+        // Act
+        let result = a.partial_cmp(&b);
+
+        // Assert
+        assert_eq!(result, Some(std::cmp::Ordering::Less));
+    }
+
+    #[test]
+    fn when_different_ids_then_hash_values_differ() {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        // Arrange
+        let a = Handle::<u32>::new(1);
+        let b = Handle::<u32>::new(2);
+
+        // Act
+        let hash_a = {
+            let mut h = DefaultHasher::new();
+            a.hash(&mut h);
+            h.finish()
+        };
+        let hash_b = {
+            let mut h = DefaultHasher::new();
+            b.hash(&mut h);
+            h.finish()
+        };
+
+        // Assert
+        assert_ne!(hash_a, hash_b);
+    }
 }

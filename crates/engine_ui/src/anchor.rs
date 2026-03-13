@@ -118,14 +118,32 @@ mod tests {
 
         // Act / Assert
         assert_eq!(anchor_offset(Anchor::TopLeft, size), Vec2::new(0.0, 0.0));
-        assert_eq!(anchor_offset(Anchor::TopCenter, size), Vec2::new(-40.0, 0.0));
+        assert_eq!(
+            anchor_offset(Anchor::TopCenter, size),
+            Vec2::new(-40.0, 0.0)
+        );
         assert_eq!(anchor_offset(Anchor::TopRight, size), Vec2::new(-80.0, 0.0));
-        assert_eq!(anchor_offset(Anchor::CenterLeft, size), Vec2::new(0.0, -20.0));
+        assert_eq!(
+            anchor_offset(Anchor::CenterLeft, size),
+            Vec2::new(0.0, -20.0)
+        );
         assert_eq!(anchor_offset(Anchor::Center, size), Vec2::new(-40.0, -20.0));
-        assert_eq!(anchor_offset(Anchor::CenterRight, size), Vec2::new(-80.0, -20.0));
-        assert_eq!(anchor_offset(Anchor::BottomLeft, size), Vec2::new(0.0, -40.0));
-        assert_eq!(anchor_offset(Anchor::BottomCenter, size), Vec2::new(-40.0, -40.0));
-        assert_eq!(anchor_offset(Anchor::BottomRight, size), Vec2::new(-80.0, -40.0));
+        assert_eq!(
+            anchor_offset(Anchor::CenterRight, size),
+            Vec2::new(-80.0, -20.0)
+        );
+        assert_eq!(
+            anchor_offset(Anchor::BottomLeft, size),
+            Vec2::new(0.0, -40.0)
+        );
+        assert_eq!(
+            anchor_offset(Anchor::BottomCenter, size),
+            Vec2::new(-40.0, -40.0)
+        );
+        assert_eq!(
+            anchor_offset(Anchor::BottomRight, size),
+            Vec2::new(-80.0, -40.0)
+        );
     }
 
     #[test]
