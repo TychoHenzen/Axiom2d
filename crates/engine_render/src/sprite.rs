@@ -182,6 +182,7 @@ mod tests {
         assert_eq!(count, 0);
     }
 
+    /// @doc: EffectiveVisibility(false) is the earliest cull — filtered before sorting or frustum tests
     #[test]
     fn when_entity_has_effective_visibility_false_then_draw_sprite_not_called() {
         // Arrange
@@ -271,6 +272,7 @@ mod tests {
         assert_eq!(count, 2);
     }
 
+    /// @doc: RenderLayer is the primary sort key — Background draws before World regardless of SortOrder
     #[test]
     fn when_two_sprites_on_different_layers_then_background_drawn_before_world() {
         // Arrange
@@ -860,6 +862,7 @@ mod tests {
         assert_eq!(count, 1);
     }
 
+    /// @doc: Without a Camera2D entity, frustum culling is disabled entirely — all sprites are drawn
     #[test]
     fn when_no_camera_entity_then_all_sprites_drawn_without_culling() {
         // Arrange
@@ -1252,6 +1255,7 @@ mod tests {
         assert!(!log.iter().any(|s| s == "bind_material_texture"));
     }
 
+    /// @doc: Edge-touching sprites are drawn — conservative culling avoids popping artifacts at view boundaries
     #[test]
     fn when_sprite_straddles_camera_view_edge_then_draw_sprite_called() {
         // Arrange

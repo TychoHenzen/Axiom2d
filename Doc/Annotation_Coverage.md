@@ -28,7 +28,7 @@ Aim for roughly **20-30%** of tests annotated. Over-annotating dilutes value.
 
 ## Current coverage
 
-5 annotations across 690 tests (< 1%). Target: ~150 annotations (~22%).
+28 annotations across 696 tests (~4%). Target: ~150 annotations (~22%).
 
 ## Priority tiers
 
@@ -40,65 +40,64 @@ Annotations are organized by impact — Tier 1 tests explain core engine contrac
 
 These tests document foundational behavior that other systems depend on. A contributor reading these annotations should understand the engine's key design decisions.
 
-#### engine_core — time.rs (13 tests, 2 annotated)
+#### engine_core — time.rs (13 tests, 4 annotated)
 
 | Test | Status | Suggested annotation |
 |------|--------|---------------------|
 | `when_tick_large_delta_then_returns_multiple_steps_and_retains_remainder` | Done | Fix Your Timestep pattern |
 | `when_tick_across_frames_then_accumulator_carries_forward` | Done | Accumulator carry-forward |
-| `when_tick_below_step_size_then_returns_zero_steps` | TODO | Sub-step deltas accumulate silently — no simulation steps fire until a full step_size is reached |
-| `when_fake_clock_advanced_then_delta_returns_pending` | TODO | FakeClock enables deterministic testing — advance() accumulates, delta() drains |
-| `when_system_clock_delta_called_twice_then_second_call_returns_small_delta` | TODO | SystemClock tracks wall time — consecutive calls measure real elapsed time |
+| `when_tick_below_step_size_then_returns_zero_steps` | Done | Sub-step deltas accumulate silently — no simulation steps fire until a full step_size is reached |
+| `when_fake_clock_advanced_then_delta_returns_advancement` | Done | FakeClock enables deterministic testing — advance() accumulates, delta() drains |
+| `when_system_clock_delta_called_twice_then_second_call_returns_small_delta` | N/A | Test does not exist in codebase |
 
-#### engine_render — camera.rs (31 tests, 0 annotated)
+#### engine_render — camera.rs (31 tests, 6 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_camera_at_origin_zoom_one_then_identity_like_projection` | Default camera produces pixel-perfect 1:1 mapping at viewport center |
-| `when_world_to_screen_then_camera_pos_maps_to_viewport_center` | Camera position defines the world point that appears at screen center |
-| `when_screen_to_world_roundtrips_then_original_restored` | world_to_screen and screen_to_world are exact inverses |
-| `when_zoom_two_then_world_to_screen_doubles_distance` | Zoom multiplies screen-space distances — zoom 2 means objects appear 2x larger |
-| `when_no_camera_entity_then_default_projection_used` | camera_prepare_system always sets a projection — defaults to viewport-centered ortho |
-| `when_aabb_fully_outside_then_no_intersection` | Frustum culling AABB test — no edge overlap means no intersection |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_camera_uniform_from_camera_at_origin_zoom_one_then_origin_maps_to_ndc_center` | Done | Default camera produces pixel-perfect 1:1 mapping at viewport center |
+| `when_world_point_matches_camera_center_then_world_to_screen_returns_screen_center` | Done | Camera position defines the world point that appears at screen center |
+| `when_screen_to_world_after_world_to_screen_then_recovers_original_point` | Done | world_to_screen and screen_to_world are exact inverses |
+| `when_world_point_at_zoom_two_then_world_to_screen_reflects_magnification` | Done | Zoom multiplies screen-space distances — zoom 2 means objects appear 2x larger |
+| `when_camera_prepare_system_runs_without_camera_then_default_ortho_set` | Done | camera_prepare_system always sets a projection — defaults to viewport-centered ortho |
+| `when_entity_completely_left_of_view_then_aabb_intersects_returns_false` | Done | Frustum culling AABB test — no edge overlap means no intersection |
 
-#### engine_render — sprite.rs (42 tests, 1 annotated)
+#### engine_render — sprite.rs (42 tests, 5 annotated)
 
 | Test | Status | Suggested annotation |
 |------|--------|---------------------|
 | `when_sprite_fully_outside_camera_view_then_draw_sprite_not_called` | Done | Frustum culling skips draw calls |
-| `when_sprite_straddles_camera_view_edge_then_draw_sprite_called` | TODO | Edge-touching sprites are drawn — conservative culling avoids popping |
-| `when_no_camera_then_all_sprites_drawn` | TODO | Without a Camera2D entity, frustum culling is disabled entirely |
-| `when_sprites_have_different_render_layers_then_sorted_by_layer` | TODO | RenderLayer is the primary sort key — Background draws before UI regardless of SortOrder |
-| `when_sprite_invisible_then_draw_sprite_not_called` | TODO | EffectiveVisibility(false) is the earliest cull — before sorting or frustum tests |
+| `when_sprite_straddles_camera_view_edge_then_draw_sprite_called` | Done | Edge-touching sprites are drawn — conservative culling avoids popping |
+| `when_no_camera_entity_then_all_sprites_drawn_without_culling` | Done | Without a Camera2D entity, frustum culling is disabled entirely |
+| `when_two_sprites_on_different_layers_then_background_drawn_before_world` | Done | RenderLayer is the primary sort key — Background draws before UI regardless of SortOrder |
+| `when_entity_has_effective_visibility_false_then_draw_sprite_not_called` | Done | EffectiveVisibility(false) is the earliest cull — before sorting or frustum tests |
 
-#### engine_audio — spatial.rs (16 tests, 2 annotated)
+#### engine_audio — spatial.rs (16 tests, 6 annotated)
 
 | Test | Status | Suggested annotation |
 |------|--------|---------------------|
 | `when_emitter_right_of_listener_then_right_gain_one` | Done | Constant-power stereo panning |
 | `when_emitter_beyond_max_distance_then_gains_are_zero` | Done | Linear distance attenuation culling |
-| `when_emitter_ahead_of_listener_then_gains_equal` | TODO | Centered panning when emitter is on listener's forward axis (no left/right bias) |
-| `when_emitter_at_listener_then_gains_equal_no_nan` | TODO | Coincident positions must not produce NaN — atan2(0,0) edge case |
-| `when_emitter_is_child_entity_then_world_position_used` | TODO | Spatial audio uses GlobalTransform2D (world space), not local Transform2D |
-| `when_no_listener_then_gains_unchanged` | TODO | Without an AudioListener entity, spatial processing is a no-op |
+| `when_emitter_ahead_of_listener_then_gains_equal` | Done | Centered panning when emitter is on listener's forward axis (no left/right bias) |
+| `when_emitter_at_listener_then_gains_equal_no_nan` | Done | Coincident positions must not produce NaN — atan2(0,0) edge case |
+| `when_emitter_is_child_entity_then_world_position_used` | Done | Spatial audio uses GlobalTransform2D (world space), not local Transform2D |
+| `when_no_listener_then_system_runs_without_panic` | Done | Without an AudioListener entity, spatial processing is a no-op |
 
-#### engine_physics — rapier_backend.rs (13 tests, 0 annotated)
+#### engine_physics — rapier_backend.rs (13 tests, 5 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_dynamic_body_added_then_rapier_has_dynamic_body` | Body type mapping: ECS Dynamic → rapier Dynamic (free motion under forces) |
-| `when_static_body_added_then_rapier_has_fixed_body` | Body type mapping: ECS Static → rapier Fixed (immovable, infinite mass) |
-| `when_kinematic_body_added_then_rapier_has_kinematic_body` | Body type mapping: ECS Kinematic → rapier KinematicPositionBased (script-driven) |
-| `when_collision_occurs_then_event_drained` | Collision events flow: rapier ChannelEventCollector → drain → CollisionEventBuffer |
-| `when_body_removed_then_not_in_rapier` | Entity removal must clean up both rapier RigidBody and the entity↔handle map |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_dynamic_body_added_then_position_is_queryable` | Done | Body type mapping: ECS Dynamic → rapier Dynamic (free motion under forces) |
+| `when_body_type_mapping_then_static_is_fixed_and_kinematic_is_position_based` | Done | Body type mapping: ECS Static → rapier Fixed, ECS Kinematic → rapier KinematicPositionBased |
+| `when_two_overlapping_circles_step_then_started_event_with_correct_entities` | Done | Collision events flow: rapier ChannelEventCollector → drain → CollisionEventBuffer |
+| `when_remove_body_on_rapier_then_position_returns_none` | Done | Entity removal must clean up both rapier RigidBody and the entity↔handle map |
 
-#### engine_physics — physics_sync_system.rs (12 tests, 0 annotated)
+#### engine_physics — physics_sync_system.rs (12 tests, 3 annotated)
 
-| Test | Suggested annotation |
-|------|---------------------|
-| `when_physics_updates_position_then_transform_position_updated` | One-way sync: physics backend → Transform2D. ECS is the read side, rapier is the authority |
-| `when_physics_has_rotation_then_transform_rotation_updated` | Position and rotation are synced independently — either can be None without affecting the other |
-| `when_entity_has_no_rigid_body_then_transform_unchanged` | Only entities with RigidBody participate in physics sync — plain transforms are untouched |
+| Test | Status | Suggested annotation |
+|------|--------|---------------------|
+| `when_backend_returns_position_then_transform_position_is_updated` | Done | One-way sync: physics backend → Transform2D. ECS is the read side, rapier is the authority |
+| `when_backend_returns_position_only_then_rotation_field_is_unchanged` | Done | Position and rotation are synced independently — either can be None without affecting the other |
+| `when_entity_has_no_rigid_body_then_its_transform_is_not_touched` | Done | Only entities with RigidBody participate in physics sync — plain transforms are untouched |
 
 ---
 

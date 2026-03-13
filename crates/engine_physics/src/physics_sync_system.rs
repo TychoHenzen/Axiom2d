@@ -105,6 +105,7 @@ mod tests {
         run_sync(&mut world);
     }
 
+    /// @doc: One-way sync: physics backend → Transform2D. ECS is the read side, rapier is the authority
     #[test]
     fn when_backend_returns_position_then_transform_position_is_updated() {
         // Arrange
@@ -194,6 +195,7 @@ mod tests {
         assert_eq!(transform.rotation, 1.0);
     }
 
+    /// @doc: Position and rotation are synced independently — either can be None without affecting the other
     #[test]
     fn when_backend_returns_position_only_then_rotation_field_is_unchanged() {
         // Arrange
@@ -302,6 +304,7 @@ mod tests {
         assert_eq!(transform_b.position, Vec2::new(0.0, 2.0));
     }
 
+    /// @doc: Only entities with RigidBody participate in physics sync — plain transforms are untouched
     #[test]
     fn when_entity_has_no_rigid_body_then_its_transform_is_not_touched() {
         // Arrange

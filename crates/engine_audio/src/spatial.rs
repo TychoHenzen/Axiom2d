@@ -231,6 +231,7 @@ mod tests {
         assert!(right.abs() < 0.001, "right should be ~0, got {right}");
     }
 
+    /// @doc: Centered panning when emitter is on listener's forward axis — no left/right bias
     #[test]
     fn when_emitter_ahead_of_listener_then_gains_equal() {
         // Act
@@ -248,6 +249,7 @@ mod tests {
         );
     }
 
+    /// @doc: Coincident positions must not produce NaN — atan2(0,0) edge case handled by defaulting to centered pan
     #[test]
     fn when_emitter_at_listener_then_gains_equal_no_nan() {
         // Act
@@ -340,6 +342,7 @@ mod tests {
         assert!(gains.right > 0.0);
     }
 
+    /// @doc: Without an AudioListener entity, spatial processing is a no-op — gains remain unchanged
     #[test]
     fn when_no_listener_then_system_runs_without_panic() {
         // Arrange
@@ -397,6 +400,7 @@ mod tests {
         assert!(cmds[0].spatial_gains.is_none());
     }
 
+    /// @doc: Spatial audio uses GlobalTransform2D (world space), not local Transform2D — hierarchy must propagate first
     #[test]
     fn when_emitter_is_child_entity_then_world_position_used() {
         // Arrange

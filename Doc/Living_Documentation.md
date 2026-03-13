@@ -1489,7 +1489,7 @@
 <details>
 <summary>When any distance, then attenuation in zero to one</summary>
 
-<code>crates\engine_audio\src\spatial.rs:272</code>
+<code>crates\engine_audio\src\spatial.rs:274</code>
 
 </details>
 </blockquote>
@@ -1497,7 +1497,7 @@
 <details>
 <summary>When any two positions, then constant power property holds</summary>
 
-<code>crates\engine_audio\src\spatial.rs:290</code>
+<code>crates\engine_audio\src\spatial.rs:292</code>
 
 </details>
 </blockquote>
@@ -1545,7 +1545,9 @@
 <details>
 <summary>When emitter ahead of listener, then gains equal</summary>
 
-<code>crates\engine_audio\src\spatial.rs:235</code>
+*Centered panning when emitter is on listener's forward axis — no left/right bias*
+
+<code>crates\engine_audio\src\spatial.rs:236</code>
 
 </details>
 </blockquote>
@@ -1553,7 +1555,9 @@
 <details>
 <summary>When emitter at listener, then gains equal no nan</summary>
 
-<code>crates\engine_audio\src\spatial.rs:252</code>
+*Coincident positions must not produce NaN — atan2(0,0) edge case handled by defaulting to centered pan*
+
+<code>crates\engine_audio\src\spatial.rs:254</code>
 
 </details>
 </blockquote>
@@ -1563,7 +1567,7 @@
 
 *Linear distance attenuation drops to zero beyond max_distance, effectively culling inaudible sounds*
 
-<code>crates\engine_audio\src\spatial.rs:363</code>
+<code>crates\engine_audio\src\spatial.rs:366</code>
 
 </details>
 </blockquote>
@@ -1571,7 +1575,9 @@
 <details>
 <summary>When emitter is child entity, then world position used</summary>
 
-<code>crates\engine_audio\src\spatial.rs:401</code>
+*Spatial audio uses GlobalTransform2D (world space), not local Transform2D — hierarchy must propagate first*
+
+<code>crates\engine_audio\src\spatial.rs:405</code>
 
 </details>
 </blockquote>
@@ -1597,7 +1603,7 @@
 <details>
 <summary>When emitter to right, then spatial gains reflect pan and attenuation</summary>
 
-<code>crates\engine_audio\src\spatial.rs:313</code>
+<code>crates\engine_audio\src\spatial.rs:315</code>
 
 </details>
 </blockquote>
@@ -1605,7 +1611,9 @@
 <details>
 <summary>When no listener, then system runs without panic</summary>
 
-<code>crates\engine_audio\src\spatial.rs:344</code>
+*Without an AudioListener entity, spatial processing is a no-op — gains remain unchanged*
+
+<code>crates\engine_audio\src\spatial.rs:347</code>
 
 </details>
 </blockquote>
@@ -1613,7 +1621,7 @@
 <details>
 <summary>When play sound without emitter, then gains unchanged</summary>
 
-<code>crates\engine_audio\src\spatial.rs:383</code>
+<code>crates\engine_audio\src\spatial.rs:386</code>
 
 </details>
 </blockquote>
@@ -1722,7 +1730,7 @@
 <details>
 <summary>When any positive delta and step size, then accumulator stays below step size</summary>
 
-<code>crates\engine_core\src\time.rs:292</code>
+<code>crates\engine_core\src\time.rs:294</code>
 
 </details>
 </blockquote>
@@ -1730,7 +1738,7 @@
 <details>
 <summary>When clock res derefmut, then reaches inner delta</summary>
 
-<code>crates\engine_core\src\time.rs:203</code>
+<code>crates\engine_core\src\time.rs:204</code>
 
 </details>
 </blockquote>
@@ -1738,7 +1746,7 @@
 <details>
 <summary>When fake clock advanced multiple times, then delta accumulates</summary>
 
-<code>crates\engine_core\src\time.rs:174</code>
+<code>crates\engine_core\src\time.rs:175</code>
 
 </details>
 </blockquote>
@@ -1746,7 +1754,9 @@
 <details>
 <summary>When fake clock advanced, then delta returns advancement</summary>
 
-<code>crates\engine_core\src\time.rs:148</code>
+*FakeClock enables deterministic testing — advance() accumulates, delta() drains*
+
+<code>crates\engine_core\src\time.rs:149</code>
 
 </details>
 </blockquote>
@@ -1754,7 +1764,7 @@
 <details>
 <summary>When fake clock behind dyn time, then delta is correct</summary>
 
-<code>crates\engine_core\src\time.rs:189</code>
+<code>crates\engine_core\src\time.rs:190</code>
 
 </details>
 </blockquote>
@@ -1770,7 +1780,7 @@
 <details>
 <summary>When fake clock delta called twice, then second call returns zero</summary>
 
-<code>crates\engine_core\src\time.rs:160</code>
+<code>crates\engine_core\src\time.rs:161</code>
 
 </details>
 </blockquote>
@@ -1780,7 +1790,7 @@
 
 *Accumulator carries sub-step remainder across frames, ensuring no simulation time is lost*
 
-<code>crates\engine_core\src\time.rs:258</code>
+<code>crates\engine_core\src\time.rs:260</code>
 
 </details>
 </blockquote>
@@ -1788,7 +1798,9 @@
 <details>
 <summary>When tick below step size, then returns zero steps</summary>
 
-<code>crates\engine_core\src\time.rs:217</code>
+*Sub-step deltas accumulate silently — no simulation steps fire until a full step_size is reached*
+
+<code>crates\engine_core\src\time.rs:219</code>
 
 </details>
 </blockquote>
@@ -1796,7 +1808,7 @@
 <details>
 <summary>When tick exactly one step, then returns one step</summary>
 
-<code>crates\engine_core\src\time.rs:229</code>
+<code>crates\engine_core\src\time.rs:231</code>
 
 </details>
 </blockquote>
@@ -1806,7 +1818,7 @@
 
 *Fix Your Timestep pattern — large frame deltas produce multiple fixed steps with leftover accumulated for the next frame*
 
-<code>crates\engine_core\src\time.rs:243</code>
+<code>crates\engine_core\src\time.rs:245</code>
 
 </details>
 </blockquote>
@@ -1814,7 +1826,7 @@
 <details>
 <summary>When time system runs, then delta time updated from clock</summary>
 
-<code>crates\engine_core\src\time.rs:272</code>
+<code>crates\engine_core\src\time.rs:274</code>
 
 </details>
 </blockquote>
@@ -1822,7 +1834,7 @@
 <details>
 <summary>When time system runs twice without advance, then second delta is zero</summary>
 
-<code>crates\engine_core\src\time.rs:318</code>
+<code>crates\engine_core\src\time.rs:320</code>
 
 </details>
 </blockquote>
@@ -2661,7 +2673,7 @@
 <details>
 <summary>When backend returns both position and rotation, then both fields updated</summary>
 
-<code>crates\engine_physics\src\physics_sync_system.rs:151</code>
+<code>crates\engine_physics\src\physics_sync_system.rs:152</code>
 
 </details>
 </blockquote>
@@ -2669,7 +2681,7 @@
 <details>
 <summary>When backend returns none for unregistered entity, then transform is unchanged</summary>
 
-<code>crates\engine_physics\src\physics_sync_system.rs:173</code>
+<code>crates\engine_physics\src\physics_sync_system.rs:174</code>
 
 </details>
 </blockquote>
@@ -2677,7 +2689,9 @@
 <details>
 <summary>When backend returns position only, then rotation field is unchanged</summary>
 
-<code>crates\engine_physics\src\physics_sync_system.rs:198</code>
+*Position and rotation are synced independently — either can be None without affecting the other*
+
+<code>crates\engine_physics\src\physics_sync_system.rs:200</code>
 
 </details>
 </blockquote>
@@ -2685,7 +2699,9 @@
 <details>
 <summary>When backend returns position, then transform position is updated</summary>
 
-<code>crates\engine_physics\src\physics_sync_system.rs:109</code>
+*One-way sync: physics backend → Transform2D. ECS is the read side, rapier is the authority*
+
+<code>crates\engine_physics\src\physics_sync_system.rs:110</code>
 
 </details>
 </blockquote>
@@ -2693,7 +2709,7 @@
 <details>
 <summary>When backend returns rotation only, then position field is unchanged</summary>
 
-<code>crates\engine_physics\src\physics_sync_system.rs:225</code>
+<code>crates\engine_physics\src\physics_sync_system.rs:227</code>
 
 </details>
 </blockquote>
@@ -2701,7 +2717,7 @@
 <details>
 <summary>When backend returns rotation, then transform rotation is updated</summary>
 
-<code>crates\engine_physics\src\physics_sync_system.rs:130</code>
+<code>crates\engine_physics\src\physics_sync_system.rs:131</code>
 
 </details>
 </blockquote>
@@ -2709,7 +2725,9 @@
 <details>
 <summary>When entity has no rigid body, then its transform is not touched</summary>
 
-<code>crates\engine_physics\src\physics_sync_system.rs:306</code>
+*Only entities with RigidBody participate in physics sync — plain transforms are untouched*
+
+<code>crates\engine_physics\src\physics_sync_system.rs:309</code>
 
 </details>
 </blockquote>
@@ -2717,7 +2735,7 @@
 <details>
 <summary>When multiple entities registered, then each entity receives its own transform</summary>
 
-<code>crates\engine_physics\src\physics_sync_system.rs:278</code>
+<code>crates\engine_physics\src\physics_sync_system.rs:280</code>
 
 </details>
 </blockquote>
@@ -2733,7 +2751,7 @@
 <details>
 <summary>When rigid body is kinematic, then transform is still synced</summary>
 
-<code>crates\engine_physics\src\physics_sync_system.rs:352</code>
+<code>crates\engine_physics\src\physics_sync_system.rs:355</code>
 
 </details>
 </blockquote>
@@ -2741,7 +2759,7 @@
 <details>
 <summary>When rigid body is static, then transform is still synced</summary>
 
-<code>crates\engine_physics\src\physics_sync_system.rs:332</code>
+<code>crates\engine_physics\src\physics_sync_system.rs:335</code>
 
 </details>
 </blockquote>
@@ -2749,7 +2767,7 @@
 <details>
 <summary>When system runs, then transform scale is never modified</summary>
 
-<code>crates\engine_physics\src\physics_sync_system.rs:251</code>
+<code>crates\engine_physics\src\physics_sync_system.rs:253</code>
 
 </details>
 </blockquote>
@@ -2765,7 +2783,7 @@
 <details>
 <summary>When add collider for unknown entity, then returns false</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:268</code>
+<code>crates\engine_physics\src\rapier_backend.rs:270</code>
 
 </details>
 </blockquote>
@@ -2773,7 +2791,7 @@
 <details>
 <summary>When body removed after collision, then drain does not panic</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:370</code>
+<code>crates\engine_physics\src\rapier_backend.rs:374</code>
 
 </details>
 </blockquote>
@@ -2781,7 +2799,9 @@
 <details>
 <summary>When body type mapping, then static is fixed and kinematic is position based</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:217</code>
+*Body type mapping: ECS Static → rapier Fixed (immovable), ECS Kinematic → rapier KinematicPositionBased (script-driven)*
+
+<code>crates\engine_physics\src\rapier_backend.rs:219</code>
 
 </details>
 </blockquote>
@@ -2789,7 +2809,7 @@
 <details>
 <summary>When collider variants added, then all return true</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:244</code>
+<code>crates\engine_physics\src\rapier_backend.rs:246</code>
 
 </details>
 </blockquote>
@@ -2797,7 +2817,7 @@
 <details>
 <summary>When drain called twice without step, then second is empty</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:351</code>
+<code>crates\engine_physics\src\rapier_backend.rs:355</code>
 
 </details>
 </blockquote>
@@ -2805,7 +2825,9 @@
 <details>
 <summary>When dynamic body added, then position is queryable</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:186</code>
+*Body type mapping: ECS Dynamic → rapier Dynamic (free motion under forces)*
+
+<code>crates\engine_physics\src\rapier_backend.rs:187</code>
 
 </details>
 </blockquote>
@@ -2813,7 +2835,7 @@
 <details>
 <summary>When dynamic body steps under gravity, then y changes</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:281</code>
+<code>crates\engine_physics\src\rapier_backend.rs:283</code>
 
 </details>
 </blockquote>
@@ -2821,7 +2843,7 @@
 <details>
 <summary>When no colliders step and drain, then no events</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:312</code>
+<code>crates\engine_physics\src\rapier_backend.rs:315</code>
 
 </details>
 </blockquote>
@@ -2837,7 +2859,7 @@
 <details>
 <summary>When remove body for unknown entity on rapier, then no panic</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:390</code>
+<code>crates\engine_physics\src\rapier_backend.rs:394</code>
 
 </details>
 </blockquote>
@@ -2845,7 +2867,9 @@
 <details>
 <summary>When remove body on rapier, then position returns none</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:297</code>
+*Entity removal must clean up both rapier RigidBody and the entity↔handle map*
+
+<code>crates\engine_physics\src\rapier_backend.rs:300</code>
 
 </details>
 </blockquote>
@@ -2853,7 +2877,7 @@
 <details>
 <summary>When same entity added twice, then second returns false</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:203</code>
+<code>crates\engine_physics\src\rapier_backend.rs:204</code>
 
 </details>
 </blockquote>
@@ -2861,7 +2885,9 @@
 <details>
 <summary>When two overlapping circles step, then started event with correct entities</summary>
 
-<code>crates\engine_physics\src\rapier_backend.rs:325</code>
+*Collision events flow: rapier ChannelEventCollector → drain → CollisionEventBuffer with entity resolution*
+
+<code>crates\engine_physics\src\rapier_backend.rs:329</code>
 
 </details>
 </blockquote>
@@ -3213,7 +3239,7 @@
 <details>
 <summary>When any world point, then screen to world of world to screen recovers original</summary>
 
-<code>crates\engine_render\src\camera.rs:316</code>
+<code>crates\engine_render\src\camera.rs:319</code>
 
 </details>
 </blockquote>
@@ -3277,7 +3303,7 @@
 <details>
 <summary>When camera prepare system runs with camera, then set view projection called</summary>
 
-<code>crates\engine_render\src\camera.rs:527</code>
+<code>crates\engine_render\src\camera.rs:532</code>
 
 </details>
 </blockquote>
@@ -3285,7 +3311,9 @@
 <details>
 <summary>When camera prepare system runs without camera, then default ortho set</summary>
 
-<code>crates\engine_render\src\camera.rs:542</code>
+*camera_prepare_system always sets a projection — defaults to viewport-centered ortho when no Camera2D entity exists*
+
+<code>crates\engine_render\src\camera.rs:548</code>
 
 </details>
 </blockquote>
@@ -3293,7 +3321,7 @@
 <details>
 <summary>When camera uniform from camera at center, then viewport corners map to ndc corners</summary>
 
-<code>crates\engine_render\src\camera.rs:506</code>
+<code>crates\engine_render\src\camera.rs:511</code>
 
 </details>
 </blockquote>
@@ -3301,7 +3329,9 @@
 <details>
 <summary>When camera uniform from camera at origin zoom one, then origin maps to ndc center</summary>
 
-<code>crates\engine_render\src\camera.rs:474</code>
+*Default camera produces pixel-perfect 1:1 mapping — world origin lands at NDC center*
+
+<code>crates\engine_render\src\camera.rs:479</code>
 
 </details>
 </blockquote>
@@ -3309,7 +3339,7 @@
 <details>
 <summary>When camera uniform y flip, then top maps to positive ndc y</summary>
 
-<code>crates\engine_render\src\camera.rs:556</code>
+<code>crates\engine_render\src\camera.rs:562</code>
 
 </details>
 </blockquote>
@@ -3317,7 +3347,7 @@
 <details>
 <summary>When entity completely above view, then aabb intersects returns false</summary>
 
-<code>crates\engine_render\src\camera.rs:419</code>
+<code>crates\engine_render\src\camera.rs:423</code>
 
 </details>
 </blockquote>
@@ -3325,7 +3355,7 @@
 <details>
 <summary>When entity completely below view, then aabb intersects returns false</summary>
 
-<code>crates\engine_render\src\camera.rs:430</code>
+<code>crates\engine_render\src\camera.rs:434</code>
 
 </details>
 </blockquote>
@@ -3333,7 +3363,9 @@
 <details>
 <summary>When entity completely left of view, then aabb intersects returns false</summary>
 
-<code>crates\engine_render\src\camera.rs:397</code>
+*Frustum culling AABB test — entity fully outside on any axis means no intersection*
+
+<code>crates\engine_render\src\camera.rs:401</code>
 
 </details>
 </blockquote>
@@ -3341,7 +3373,7 @@
 <details>
 <summary>When entity completely right of view, then aabb intersects returns false</summary>
 
-<code>crates\engine_render\src\camera.rs:408</code>
+<code>crates\engine_render\src\camera.rs:412</code>
 
 </details>
 </blockquote>
@@ -3349,7 +3381,7 @@
 <details>
 <summary>When entity contains entire view, then aabb intersects returns true</summary>
 
-<code>crates\engine_render\src\camera.rs:463</code>
+<code>crates\engine_render\src\camera.rs:467</code>
 
 </details>
 </blockquote>
@@ -3357,7 +3389,7 @@
 <details>
 <summary>When entity exactly touches view edge, then aabb intersects returns true</summary>
 
-<code>crates\engine_render\src\camera.rs:452</code>
+<code>crates\engine_render\src\camera.rs:456</code>
 
 </details>
 </blockquote>
@@ -3365,7 +3397,7 @@
 <details>
 <summary>When entity fully inside view, then aabb intersects returns true</summary>
 
-<code>crates\engine_render\src\camera.rs:386</code>
+<code>crates\engine_render\src\camera.rs:389</code>
 
 </details>
 </blockquote>
@@ -3373,7 +3405,7 @@
 <details>
 <summary>When entity partially overlaps left edge, then aabb intersects returns true</summary>
 
-<code>crates\engine_render\src\camera.rs:441</code>
+<code>crates\engine_render\src\camera.rs:445</code>
 
 </details>
 </blockquote>
@@ -3381,7 +3413,7 @@
 <details>
 <summary>When no camera, then system uses viewport center</summary>
 
-<code>crates\engine_render\src\camera.rs:620</code>
+<code>crates\engine_render\src\camera.rs:626</code>
 
 </details>
 </blockquote>
@@ -3389,7 +3421,7 @@
 <details>
 <summary>When screen center, then screen to world returns camera position</summary>
 
-<code>crates\engine_render\src\camera.rs:281</code>
+<code>crates\engine_render\src\camera.rs:283</code>
 
 </details>
 </blockquote>
@@ -3397,7 +3429,9 @@
 <details>
 <summary>When screen to world after world to screen, then recovers original point</summary>
 
-<code>crates\engine_render\src\camera.rs:297</code>
+*world_to_screen and screen_to_world are exact inverses — roundtrip recovers the original point*
+
+<code>crates\engine_render\src\camera.rs:300</code>
 
 </details>
 </blockquote>
@@ -3405,7 +3439,7 @@
 <details>
 <summary>When view rect at zoom one, then half extents equal half viewport</summary>
 
-<code>crates\engine_render\src\camera.rs:350</code>
+<code>crates\engine_render\src\camera.rs:353</code>
 
 </details>
 </blockquote>
@@ -3413,7 +3447,7 @@
 <details>
 <summary>When view rect at zoom two, then half extents are halved</summary>
 
-<code>crates\engine_render\src\camera.rs:368</code>
+<code>crates\engine_render\src\camera.rs:371</code>
 
 </details>
 </blockquote>
@@ -3421,7 +3455,7 @@
 <details>
 <summary>When viewport height zero, then camera prepare system skips</summary>
 
-<code>crates\engine_render\src\camera.rs:602</code>
+<code>crates\engine_render\src\camera.rs:608</code>
 
 </details>
 </blockquote>
@@ -3429,7 +3463,7 @@
 <details>
 <summary>When viewport width zero, then camera prepare system skips</summary>
 
-<code>crates\engine_render\src\camera.rs:584</code>
+<code>crates\engine_render\src\camera.rs:590</code>
 
 </details>
 </blockquote>
@@ -3437,7 +3471,7 @@
 <details>
 <summary>When world point at viewport corner, then world to screen returns corner</summary>
 
-<code>crates\engine_render\src\camera.rs:249</code>
+<code>crates\engine_render\src\camera.rs:250</code>
 
 </details>
 </blockquote>
@@ -3445,7 +3479,9 @@
 <details>
 <summary>When world point at zoom two, then world to screen reflects magnification</summary>
 
-<code>crates\engine_render\src\camera.rs:265</code>
+*Zoom multiplies screen-space distances — zoom 2 means objects appear 2x larger*
+
+<code>crates\engine_render\src\camera.rs:267</code>
 
 </details>
 </blockquote>
@@ -3453,7 +3489,9 @@
 <details>
 <summary>When world point matches camera center, then world to screen returns screen center</summary>
 
-<code>crates\engine_render\src\camera.rs:233</code>
+*Camera position defines the world point that appears at screen center*
+
+<code>crates\engine_render\src\camera.rs:234</code>
 
 </details>
 </blockquote>
@@ -4029,7 +4067,7 @@
 <details>
 <summary>When different layers, then layer overrides blend mode order</summary>
 
-<code>crates\engine_render\src\sprite.rs:692</code>
+<code>crates\engine_render\src\sprite.rs:694</code>
 
 </details>
 </blockquote>
@@ -4037,7 +4075,9 @@
 <details>
 <summary>When entity has effective visibility false, then draw sprite not called</summary>
 
-<code>crates\engine_render\src\sprite.rs:186</code>
+*EffectiveVisibility(false) is the earliest cull — filtered before sorting or frustum tests*
+
+<code>crates\engine_render\src\sprite.rs:187</code>
 
 </details>
 </blockquote>
@@ -4045,7 +4085,7 @@
 <details>
 <summary>When entity has effective visibility true, then draw sprite called</summary>
 
-<code>crates\engine_render\src\sprite.rs:230</code>
+<code>crates\engine_render\src\sprite.rs:231</code>
 
 </details>
 </blockquote>
@@ -4053,7 +4093,7 @@
 <details>
 <summary>When entity has no effective visibility, then draw sprite called</summary>
 
-<code>crates\engine_render\src\sprite.rs:210</code>
+<code>crates\engine_render\src\sprite.rs:211</code>
 
 </details>
 </blockquote>
@@ -4077,7 +4117,7 @@
 <details>
 <summary>When invisible entity with material, then no blend or draw calls</summary>
 
-<code>crates\engine_render\src\sprite.rs:775</code>
+<code>crates\engine_render\src\sprite.rs:777</code>
 
 </details>
 </blockquote>
@@ -4085,7 +4125,9 @@
 <details>
 <summary>When no camera entity, then all sprites drawn without culling</summary>
 
-<code>crates\engine_render\src\sprite.rs:864</code>
+*Without a Camera2D entity, frustum culling is disabled entirely — all sprites are drawn*
+
+<code>crates\engine_render\src\sprite.rs:867</code>
 
 </details>
 </blockquote>
@@ -4093,7 +4135,7 @@
 <details>
 <summary>When same layer and blend different sort order, then lower sort first</summary>
 
-<code>crates\engine_render\src\sprite.rs:732</code>
+<code>crates\engine_render\src\sprite.rs:734</code>
 
 </details>
 </blockquote>
@@ -4101,7 +4143,7 @@
 <details>
 <summary>When same shader different blend, then blend sorts within shader group</summary>
 
-<code>crates\engine_render\src\sprite.rs:1153</code>
+<code>crates\engine_render\src\sprite.rs:1156</code>
 
 </details>
 </blockquote>
@@ -4109,7 +4151,7 @@
 <details>
 <summary>When sprite at known position, then rect xy match translation</summary>
 
-<code>crates\engine_render\src\sprite.rs:413</code>
+<code>crates\engine_render\src\sprite.rs:415</code>
 
 </details>
 </blockquote>
@@ -4117,7 +4159,7 @@
 <details>
 <summary>When sprite fully inside camera view, then draw sprite called</summary>
 
-<code>crates\engine_render\src\sprite.rs:837</code>
+<code>crates\engine_render\src\sprite.rs:839</code>
 
 </details>
 </blockquote>
@@ -4127,7 +4169,7 @@
 
 *Frustum culling skips draw calls for sprites whose AABB falls entirely outside the camera view rect*
 
-<code>crates\engine_render\src\sprite.rs:810</code>
+<code>crates\engine_render\src\sprite.rs:812</code>
 
 </details>
 </blockquote>
@@ -4135,7 +4177,7 @@
 <details>
 <summary>When sprite has additive material, then set blend mode called with additive</summary>
 
-<code>crates\engine_render\src\sprite.rs:559</code>
+<code>crates\engine_render\src\sprite.rs:561</code>
 
 </details>
 </blockquote>
@@ -4143,7 +4185,7 @@
 <details>
 <summary>When sprite has empty uniforms, then set material uniforms not called</summary>
 
-<code>crates\engine_render\src\sprite.rs:1088</code>
+<code>crates\engine_render\src\sprite.rs:1091</code>
 
 </details>
 </blockquote>
@@ -4151,7 +4193,7 @@
 <details>
 <summary>When sprite has material, then set shader called with material shader</summary>
 
-<code>crates\engine_render\src\sprite.rs:951</code>
+<code>crates\engine_render\src\sprite.rs:954</code>
 
 </details>
 </blockquote>
@@ -4159,7 +4201,7 @@
 <details>
 <summary>When sprite has material uniforms, then set material uniforms called</summary>
 
-<code>crates\engine_render\src\sprite.rs:1051</code>
+<code>crates\engine_render\src\sprite.rs:1054</code>
 
 </details>
 </blockquote>
@@ -4167,7 +4209,7 @@
 <details>
 <summary>When sprite has multiple texture bindings, then all forwarded in order</summary>
 
-<code>crates\engine_render\src\sprite.rs:1210</code>
+<code>crates\engine_render\src\sprite.rs:1213</code>
 
 </details>
 </blockquote>
@@ -4175,7 +4217,7 @@
 <details>
 <summary>When sprite has multiply material, then set blend mode called with multiply</summary>
 
-<code>crates\engine_render\src\sprite.rs:581</code>
+<code>crates\engine_render\src\sprite.rs:583</code>
 
 </details>
 </blockquote>
@@ -4183,7 +4225,7 @@
 <details>
 <summary>When sprite has no material, then bind material texture not called</summary>
 
-<code>crates\engine_render\src\sprite.rs:1241</code>
+<code>crates\engine_render\src\sprite.rs:1244</code>
 
 </details>
 </blockquote>
@@ -4191,7 +4233,7 @@
 <details>
 <summary>When sprite has no material, then set blend mode called with alpha</summary>
 
-<code>crates\engine_render\src\sprite.rs:544</code>
+<code>crates\engine_render\src\sprite.rs:546</code>
 
 </details>
 </blockquote>
@@ -4199,7 +4241,7 @@
 <details>
 <summary>When sprite has no material, then set material uniforms not called</summary>
 
-<code>crates\engine_render\src\sprite.rs:1073</code>
+<code>crates\engine_render\src\sprite.rs:1076</code>
 
 </details>
 </blockquote>
@@ -4207,7 +4249,7 @@
 <details>
 <summary>When sprite has no material, then set shader called with default</summary>
 
-<code>crates\engine_render\src\sprite.rs:973</code>
+<code>crates\engine_render\src\sprite.rs:976</code>
 
 </details>
 </blockquote>
@@ -4215,7 +4257,7 @@
 <details>
 <summary>When sprite has no render layer, then treated as world layer</summary>
 
-<code>crates\engine_render\src\sprite.rs:345</code>
+<code>crates\engine_render\src\sprite.rs:347</code>
 
 </details>
 </blockquote>
@@ -4223,7 +4265,7 @@
 <details>
 <summary>When sprite has no sort order, then treated as zero</summary>
 
-<code>crates\engine_render\src\sprite.rs:378</code>
+<code>crates\engine_render\src\sprite.rs:380</code>
 
 </details>
 </blockquote>
@@ -4231,7 +4273,7 @@
 <details>
 <summary>When sprite has texture bindings, then bind material texture called</summary>
 
-<code>crates\engine_render\src\sprite.rs:1185</code>
+<code>crates\engine_render\src\sprite.rs:1188</code>
 
 </details>
 </blockquote>
@@ -4239,7 +4281,7 @@
 <details>
 <summary>When sprite just inside view bottom edge due to height, then drawn</summary>
 
-<code>crates\engine_render\src\sprite.rs:919</code>
+<code>crates\engine_render\src\sprite.rs:922</code>
 
 </details>
 </blockquote>
@@ -4247,7 +4289,7 @@
 <details>
 <summary>When sprite just inside view right edge due to width, then drawn</summary>
 
-<code>crates\engine_render\src\sprite.rs:887</code>
+<code>crates\engine_render\src\sprite.rs:890</code>
 
 </details>
 </blockquote>
@@ -4263,7 +4305,9 @@
 <details>
 <summary>When sprite straddles camera view edge, then draw sprite called</summary>
 
-<code>crates\engine_render\src\sprite.rs:1256</code>
+*Edge-touching sprites are drawn — conservative culling avoids popping artifacts at view boundaries*
+
+<code>crates\engine_render\src\sprite.rs:1260</code>
 
 </details>
 </blockquote>
@@ -4271,7 +4315,7 @@
 <details>
 <summary>When sprite with known color, then rect color matches</summary>
 
-<code>crates\engine_render\src\sprite.rs:455</code>
+<code>crates\engine_render\src\sprite.rs:457</code>
 
 </details>
 </blockquote>
@@ -4279,7 +4323,7 @@
 <details>
 <summary>When sprite with known dimensions, then rect size matches</summary>
 
-<code>crates\engine_render\src\sprite.rs:432</code>
+<code>crates\engine_render\src\sprite.rs:434</code>
 
 </details>
 </blockquote>
@@ -4287,7 +4331,7 @@
 <details>
 <summary>When sprite with known uv rect, then draw sprite receives matching uv</summary>
 
-<code>crates\engine_render\src\sprite.rs:477</code>
+<code>crates\engine_render\src\sprite.rs:479</code>
 
 </details>
 </blockquote>
@@ -4295,7 +4339,9 @@
 <details>
 <summary>When two sprites on different layers, then background drawn before world</summary>
 
-<code>crates\engine_render\src\sprite.rs:275</code>
+*RenderLayer is the primary sort key — Background draws before World regardless of SortOrder*
+
+<code>crates\engine_render\src\sprite.rs:277</code>
 
 </details>
 </blockquote>
@@ -4303,7 +4349,7 @@
 <details>
 <summary>When two sprites same layer different sort order, then lower drawn first</summary>
 
-<code>crates\engine_render\src\sprite.rs:309</code>
+<code>crates\engine_render\src\sprite.rs:311</code>
 
 </details>
 </blockquote>
@@ -4311,7 +4357,7 @@
 <details>
 <summary>When two sprites with different blend modes, then set blend mode called in sorted order</summary>
 
-<code>crates\engine_render\src\sprite.rs:603</code>
+<code>crates\engine_render\src\sprite.rs:605</code>
 
 </details>
 </blockquote>
@@ -4319,7 +4365,7 @@
 <details>
 <summary>When two sprites with different shaders, then set shader called for each</summary>
 
-<code>crates\engine_render\src\sprite.rs:988</code>
+<code>crates\engine_render\src\sprite.rs:991</code>
 
 </details>
 </blockquote>
@@ -4327,7 +4373,7 @@
 <details>
 <summary>When two sprites with different shaders, then shader dominates blend in sort</summary>
 
-<code>crates\engine_render\src\sprite.rs:1110</code>
+<code>crates\engine_render\src\sprite.rs:1113</code>
 
 </details>
 </blockquote>
@@ -4335,7 +4381,7 @@
 <details>
 <summary>When two sprites with same blend mode, then both drawn</summary>
 
-<code>crates\engine_render\src\sprite.rs:657</code>
+<code>crates\engine_render\src\sprite.rs:659</code>
 
 </details>
 </blockquote>
@@ -4343,7 +4389,7 @@
 <details>
 <summary>When two sprites with same blend mode, then set blend mode called once</summary>
 
-<code>crates\engine_render\src\sprite.rs:626</code>
+<code>crates\engine_render\src\sprite.rs:628</code>
 
 </details>
 </blockquote>
@@ -4351,7 +4397,7 @@
 <details>
 <summary>When two sprites with same shader, then set shader called once</summary>
 
-<code>crates\engine_render\src\sprite.rs:1020</code>
+<code>crates\engine_render\src\sprite.rs:1023</code>
 
 </details>
 </blockquote>
@@ -4359,7 +4405,7 @@
 <details>
 <summary>When two visible sprites, then draw sprite called twice</summary>
 
-<code>crates\engine_render\src\sprite.rs:254</code>
+<code>crates\engine_render\src\sprite.rs:255</code>
 
 </details>
 </blockquote>

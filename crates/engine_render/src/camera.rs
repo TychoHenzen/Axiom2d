@@ -229,6 +229,7 @@ mod tests {
         assert!((view.w_axis.y - (-200.0)).abs() < 1e-6);
     }
 
+    /// @doc: Camera position defines the world point that appears at screen center
     #[test]
     fn when_world_point_matches_camera_center_then_world_to_screen_returns_screen_center() {
         // Arrange
@@ -261,6 +262,7 @@ mod tests {
         assert!((screen.y - 600.0).abs() < 1e-4);
     }
 
+    /// @doc: Zoom multiplies screen-space distances — zoom 2 means objects appear 2x larger
     #[test]
     fn when_world_point_at_zoom_two_then_world_to_screen_reflects_magnification() {
         // Arrange
@@ -293,6 +295,7 @@ mod tests {
         assert!((world.y - 300.0).abs() < 1e-4);
     }
 
+    /// @doc: world_to_screen and screen_to_world are exact inverses — roundtrip recovers the original point
     #[test]
     fn when_screen_to_world_after_world_to_screen_then_recovers_original_point() {
         // Arrange
@@ -393,6 +396,7 @@ mod tests {
         ));
     }
 
+    /// @doc: Frustum culling AABB test — entity fully outside on any axis means no intersection
     #[test]
     fn when_entity_completely_left_of_view_then_aabb_intersects_returns_false() {
         // Act / Assert
@@ -470,6 +474,7 @@ mod tests {
         ));
     }
 
+    /// @doc: Default camera produces pixel-perfect 1:1 mapping — world origin lands at NDC center
     #[test]
     fn when_camera_uniform_from_camera_at_origin_zoom_one_then_origin_maps_to_ndc_center() {
         // Arrange
@@ -538,6 +543,7 @@ mod tests {
         assert!(log.contains(&"set_view_projection".to_string()));
     }
 
+    /// @doc: camera_prepare_system always sets a projection — defaults to viewport-centered ortho when no Camera2D entity exists
     #[test]
     fn when_camera_prepare_system_runs_without_camera_then_default_ortho_set() {
         // Arrange
