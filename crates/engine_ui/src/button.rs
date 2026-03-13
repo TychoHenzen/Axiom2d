@@ -62,7 +62,6 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::{Schedule, World};
-    use engine_core::prelude::Color;
     use engine_render::testing::RectCallLog;
     use glam::{Affine2, Vec2};
 
@@ -203,6 +202,31 @@ mod tests {
         // Assert
         let calls = log.lock().unwrap();
         assert_eq!(calls.iter().filter(|c| *c == "draw_rect").count(), 0);
+    }
+
+    #[test]
+    fn when_button_with_center_anchor_then_draw_rect_offset_applied() {
+        // Arrange
+        let (mut world, mut schedule, _, rects) = setup_world_with_spy();
+        world.spawn((
+            Button { disabled: false },
+            UiNode {
+                size: Vec2::new(100.0, 40.0),
+                anchor: Anchor::Center,
+                ..UiNode::default()
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(200.0, 100.0))),
+            Interaction::None,
+        ));
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert — Center anchor offset = (-50, -20), so top_left = (150, 80)
+        let rects = rects.lock().unwrap();
+        assert_eq!(rects.len(), 1);
+        assert_eq!(rects[0].x, Pixels(150.0));
+        assert_eq!(rects[0].y, Pixels(80.0));
     }
 
     #[test]

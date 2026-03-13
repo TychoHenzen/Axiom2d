@@ -309,6 +309,22 @@ mod tests {
     }
 
     #[test]
+    fn when_button_held_but_frame_cleared_then_action_just_pressed_returns_false() {
+        // Arrange
+        let mut state = MouseState::default();
+        state.press(MouseButton::Left);
+        state.clear_frame_state();
+        let mut map = crate::action_map::ActionMap::default();
+        map.bind_mouse("fire", vec![MouseButton::Left]);
+
+        // Act
+        let result = state.action_just_pressed(&map, "fire");
+
+        // Assert
+        assert!(!result);
+    }
+
+    #[test]
     fn when_unbound_mouse_action_queried_then_action_pressed_returns_false() {
         // Arrange
         let mut state = MouseState::default();

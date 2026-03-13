@@ -62,3 +62,44 @@ impl<T> std::fmt::Debug for Handle<T> {
         f.debug_struct("Handle").field("id", &self.id).finish()
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use std::collections::{BTreeSet, HashMap};
+
+    #[test]
+    fn when_same_id_then_hashmap_deduplicates() {
+        // Arrange
+        let a = Handle::<u32>::new(42);
+        let b = Handle::<u32>::new(42);
+        let mut map: HashMap<Handle<u32>, &str> = HashMap::new();
+
+        // Act
+        map.insert(a, "first");
+        map.insert(b, "second");
+
+        // Assert
+        assert_eq!(map.len(), 1);
+        assert_eq!(map[&a], "second");
+        assert!(format!("{a:?}").contains("42"));
+    }
+
+    #[test]
+    fn when_different_ids_then_btreeset_orders_by_id() {
+        // Arrange
+        let lower = Handle::<u32>::new(1);
+        let higher = Handle::<u32>::new(2);
+        let mut set = BTreeSet::new();
+
+        // Act
+        set.insert(higher);
+        set.insert(lower);
+        let ordered: Vec<u32> = set.iter().map(|h| h.id).collect();
+
+        // Assert
+        assert_ne!(lower, higher);
+        assert_eq!(ordered, vec![1, 2]);
+    }
+}

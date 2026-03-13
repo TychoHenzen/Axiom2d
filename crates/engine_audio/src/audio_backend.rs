@@ -63,13 +63,16 @@ mod tests {
     }
 
     #[test]
-    fn when_play_called_then_returns_playback_id() {
+    fn when_play_called_then_play_count_increments() {
         // Arrange
         let mut backend = NullAudioBackend::new();
         let sound = minimal_sound();
 
         // Act
-        let _id: PlaybackId = backend.play(&sound);
+        backend.play(&sound);
+
+        // Assert
+        assert_eq!(backend.play_count(), 1);
     }
 
     #[test]
@@ -117,12 +120,30 @@ mod tests {
     }
 
     #[test]
-    fn when_play_on_track_called_then_returns_playback_id() {
+    fn when_play_on_track_called_then_play_count_increments() {
         // Arrange
         let mut backend = NullAudioBackend::new();
         let sound = minimal_sound();
 
         // Act
-        let _id: PlaybackId = backend.play_on_track(&sound, MixerTrack::Music);
+        backend.play_on_track(&sound, MixerTrack::Music);
+
+        // Assert
+        assert_eq!(backend.play_count(), 1);
+    }
+
+    #[test]
+    fn when_three_sounds_played_then_play_count_returns_three() {
+        // Arrange
+        let mut backend = NullAudioBackend::new();
+        let sound = minimal_sound();
+
+        // Act
+        backend.play(&sound);
+        backend.play(&sound);
+        backend.play(&sound);
+
+        // Assert
+        assert_eq!(backend.play_count(), 3);
     }
 }

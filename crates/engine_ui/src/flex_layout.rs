@@ -193,6 +193,45 @@ mod tests {
     }
 
     #[test]
+    fn when_column_with_bottom_margin_and_gap_then_spacing_accumulates() {
+        // Arrange
+        let layout = FlexLayout {
+            direction: FlexDirection::Column,
+            gap: 5.0,
+        };
+        let children = [
+            (
+                Vec2::new(50.0, 20.0),
+                Margin {
+                    bottom: 10.0,
+                    ..Margin::default()
+                },
+            ),
+            (
+                Vec2::new(50.0, 30.0),
+                Margin {
+                    top: 3.0,
+                    bottom: 7.0,
+                    ..Margin::default()
+                },
+            ),
+            (Vec2::new(50.0, 25.0), Margin::default()),
+        ];
+
+        // Act
+        let offsets = compute_flex_offsets(&layout, &children);
+
+        // Assert
+        // child[0]: cursor starts 0, leading=0, offset=(0,0), extent=20+10=30, gap=5, cursor=35
+        // child[1]: leading=3, cursor=38, offset=(0,38), extent=30+7=37, gap=5, cursor=80
+        // child[2]: leading=0, cursor=80, offset=(0,80)
+        assert_eq!(offsets.len(), 3);
+        assert_eq!(offsets[0], Vec2::new(0.0, 0.0));
+        assert_eq!(offsets[1], Vec2::new(0.0, 38.0));
+        assert_eq!(offsets[2], Vec2::new(0.0, 80.0));
+    }
+
+    #[test]
     fn when_empty_children_then_empty_offsets() {
         // Arrange
         let layout = FlexLayout {

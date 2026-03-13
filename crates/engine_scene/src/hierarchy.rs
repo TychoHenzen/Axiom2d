@@ -8,6 +8,7 @@ pub struct ChildOf(pub Entity);
 #[derive(Component, Debug, Clone, PartialEq)]
 pub struct Children(pub Vec<Entity>);
 
+#[allow(clippy::implicit_hasher)]
 pub fn hierarchy_maintenance_system(
     child_query: Query<(Entity, &ChildOf)>,
     parent_query: Query<Entity, With<Children>>,

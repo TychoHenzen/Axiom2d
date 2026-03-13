@@ -539,6 +539,56 @@ mod tests {
     }
 
     #[test]
+    fn when_cursor_inside_x_range_but_outside_y_range_then_not_hovered() {
+        // Arrange — node at (200, 100), size 100x50, cursor at (250, 200) → inside x, outside y
+        let mut world = setup_world(Vec2::new(250.0, 200.0));
+
+        let entity = world
+            .spawn((
+                UiNode {
+                    size: Vec2::new(100.0, 50.0),
+                    anchor: Anchor::TopLeft,
+                    ..UiNode::default()
+                },
+                GlobalTransform2D(Affine2::from_translation(Vec2::new(200.0, 100.0))),
+                Interaction::default(),
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let interaction = world.entity(entity).get::<Interaction>().unwrap();
+        assert_eq!(*interaction, Interaction::None);
+    }
+
+    #[test]
+    fn when_cursor_inside_y_range_but_outside_x_range_then_not_hovered() {
+        // Arrange — node at (200, 100), size 100x50, cursor at (50, 120) → outside x, inside y
+        let mut world = setup_world(Vec2::new(50.0, 120.0));
+
+        let entity = world
+            .spawn((
+                UiNode {
+                    size: Vec2::new(100.0, 50.0),
+                    anchor: Anchor::TopLeft,
+                    ..UiNode::default()
+                },
+                GlobalTransform2D(Affine2::from_translation(Vec2::new(200.0, 100.0))),
+                Interaction::default(),
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let interaction = world.entity(entity).get::<Interaction>().unwrap();
+        assert_eq!(*interaction, Interaction::None);
+    }
+
+    #[test]
     fn when_interaction_roundtrip_ron_then_variant_preserved() {
         // Arrange
         let variants = [
@@ -555,6 +605,35 @@ mod tests {
             // Assert
             assert_eq!(restored, variant);
         }
+    }
+
+    #[test]
+    fn when_invisible_entity_with_no_prior_hover_then_no_hover_exit_event() {
+        // Arrange — entity starts at Interaction::None, is invisible
+        let mut world = setup_world(Vec2::new(250.0, 120.0));
+
+        world
+            .spawn((
+                UiNode {
+                    size: Vec2::new(100.0, 50.0),
+                    anchor: Anchor::TopLeft,
+                    ..UiNode::default()
+                },
+                GlobalTransform2D(Affine2::from_translation(Vec2::new(200.0, 100.0))),
+                Interaction::None,
+                EffectiveVisibility(false),
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — no HoverExit because prev was already None
+        let events: Vec<UiEvent> = world.resource_mut::<UiEventBuffer>().drain().collect();
+        assert!(
+            !events.iter().any(|e| matches!(e, UiEvent::HoverExit(_))),
+            "should not emit HoverExit when prev=None, got {events:?}"
+        );
     }
 
     /// @doc: Disabled buttons are excluded from hit-testing entirely — not just visually dimmed

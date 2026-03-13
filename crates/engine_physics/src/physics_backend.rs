@@ -137,7 +137,7 @@ mod tests {
         let mut backend = NullPhysicsBackend::new();
         let entity = spawn_entity();
 
-        // Act + Assert (no panic)
+        // Act
         backend.remove_body(entity);
     }
 
@@ -151,6 +151,19 @@ mod tests {
 
         // Assert
         assert!(events.is_empty());
+    }
+
+    #[test]
+    fn when_add_collider_without_body_then_returns_false() {
+        // Arrange
+        let mut backend = NullPhysicsBackend::new();
+        let entity = spawn_entity();
+
+        // Act
+        let result = backend.add_collider(entity, &Collider::Circle(1.0));
+
+        // Assert
+        assert!(!result);
     }
 
     #[test]

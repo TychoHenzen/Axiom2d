@@ -217,6 +217,37 @@ mod tests {
     }
 
     #[test]
+    fn when_progress_bar_with_center_anchor_then_draw_rect_offset_applied() {
+        // Arrange
+        let (mut world, mut schedule, _, rects) = setup_world_with_spy();
+        world.spawn((
+            ProgressBar {
+                value: 50.0,
+                max: 100.0,
+            },
+            UiNode {
+                size: Vec2::new(200.0, 20.0),
+                anchor: Anchor::Center,
+                background: Some(Color::from_u8(50, 50, 50, 255)),
+                ..UiNode::default()
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(300.0, 100.0))),
+        ));
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert — Center anchor offset = (-100, -10), so top_left = (200, 90)
+        let rects = rects.lock().unwrap();
+        assert_eq!(rects.len(), 2);
+        assert_eq!(rects[0].x, Pixels(200.0));
+        assert_eq!(rects[0].y, Pixels(90.0));
+        assert_eq!(rects[1].x, Pixels(200.0));
+        assert_eq!(rects[1].y, Pixels(90.0));
+        assert_eq!(rects[1].width, Pixels(100.0));
+    }
+
+    #[test]
     fn when_progress_bar_invisible_then_no_draw() {
         // Arrange
         let (mut world, mut schedule, log, _) = setup_world_with_spy();

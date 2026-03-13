@@ -169,6 +169,63 @@ mod tests {
     }
 
     #[test]
+    fn when_panel_with_center_anchor_and_border_then_exact_border_positions() {
+        // Arrange — panel at (200, 100) with Center anchor, size 120x80, border_width 4
+        // Center offset = (-60, -40), so top_left = (140, 60)
+        let (mut world, mut schedule, _, rects) = setup_world_with_spy();
+        world.spawn((
+            Panel {
+                border_color: Some(Color::RED),
+                border_width: 4.0,
+            },
+            UiNode {
+                size: Vec2::new(120.0, 80.0),
+                anchor: Anchor::Center,
+                background: Some(Color::WHITE),
+                ..UiNode::default()
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(200.0, 100.0))),
+        ));
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert — 1 background + 4 borders
+        let rects = rects.lock().unwrap();
+        assert_eq!(rects.len(), 5);
+
+        // Background: top_left=(140,60), size=120x80
+        assert_eq!(rects[0].x, Pixels(140.0));
+        assert_eq!(rects[0].y, Pixels(60.0));
+        assert_eq!(rects[0].width, Pixels(120.0));
+        assert_eq!(rects[0].height, Pixels(80.0));
+
+        // Top edge: x=140, y=60, w=120, h=4
+        assert_eq!(rects[1].x, Pixels(140.0));
+        assert_eq!(rects[1].y, Pixels(60.0));
+        assert_eq!(rects[1].width, Pixels(120.0));
+        assert_eq!(rects[1].height, Pixels(4.0));
+
+        // Bottom edge: x=140, y=60+80-4=136, w=120, h=4
+        assert_eq!(rects[2].x, Pixels(140.0));
+        assert_eq!(rects[2].y, Pixels(136.0));
+        assert_eq!(rects[2].width, Pixels(120.0));
+        assert_eq!(rects[2].height, Pixels(4.0));
+
+        // Left edge: x=140, y=60+4=64, w=4, h=80-2*4=72
+        assert_eq!(rects[3].x, Pixels(140.0));
+        assert_eq!(rects[3].y, Pixels(64.0));
+        assert_eq!(rects[3].width, Pixels(4.0));
+        assert_eq!(rects[3].height, Pixels(72.0));
+
+        // Right edge: x=140+120-4=256, y=64, w=4, h=72
+        assert_eq!(rects[4].x, Pixels(256.0));
+        assert_eq!(rects[4].y, Pixels(64.0));
+        assert_eq!(rects[4].width, Pixels(4.0));
+        assert_eq!(rects[4].height, Pixels(72.0));
+    }
+
+    #[test]
     fn when_panel_invisible_then_no_draw() {
         // Arrange
         let (mut world, mut schedule, log, _) = setup_world_with_spy();

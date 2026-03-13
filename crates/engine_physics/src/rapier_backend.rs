@@ -178,7 +178,7 @@ mod tests {
         // Arrange
         let mut backend = RapierBackend::new(Vec2::new(0.0, -9.81));
 
-        // Act + Assert (no panic)
+        // Act
         backend.step(Seconds(0.016));
     }
 
@@ -297,6 +297,21 @@ mod tests {
 
     /// @doc: Entity removal must clean up both rapier RigidBody and the entity↔handle map
     #[test]
+    fn when_dynamic_body_added_then_rotation_returns_some() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+
+        // Act
+        let rotation = backend.body_rotation(entity);
+
+        // Assert
+        let rotation = rotation.expect("should return Some for living body");
+        assert!(rotation.abs() < 1e-4, "initial rotation should be ~0");
+    }
+
+    #[test]
     fn when_remove_body_on_rapier_then_position_returns_none() {
         // Arrange
         let mut backend = RapierBackend::new(Vec2::ZERO);
@@ -384,10 +399,7 @@ mod tests {
 
         // Act
         backend.step(Seconds(0.016));
-        let events = backend.drain_collision_events();
-
-        // Assert (no panic; events may or may not be present)
-        let _ = events;
+        let _ = backend.drain_collision_events();
     }
 
     #[test]
@@ -396,7 +408,7 @@ mod tests {
         let mut backend = RapierBackend::new(Vec2::ZERO);
         let entity = spawn_entity();
 
-        // Act + Assert (no panic)
+        // Act
         backend.remove_body(entity);
     }
 }

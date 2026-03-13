@@ -307,6 +307,32 @@ mod tests {
     }
 
     #[test]
+    fn when_all_blend_mode_variants_call_index_then_each_returns_discriminant() {
+        // Act / Assert
+        assert_eq!(BlendMode::Alpha.index(), 0);
+        assert_eq!(BlendMode::Additive.index(), 1);
+        assert_eq!(BlendMode::Multiply.index(), 2);
+    }
+
+    #[test]
+    fn when_preprocessing_nested_ifdef_with_outer_defined_inner_not_then_inner_excluded() {
+        // Arrange
+        let source = "before\n#ifdef OUTER\nmiddle\n#ifdef INNER\nskipped\n#endif\nafter_inner\n#endif\nfooter";
+        let mut defines = HashSet::new();
+        defines.insert("OUTER");
+
+        // Act
+        let result = preprocess(source, &defines);
+
+        // Assert
+        assert!(result.contains("before"));
+        assert!(result.contains("middle"));
+        assert!(!result.contains("skipped"));
+        assert!(result.contains("after_inner"));
+        assert!(result.contains("footer"));
+    }
+
+    #[test]
     fn when_preprocessing_without_define_then_ifdef_block_excluded() {
         // Arrange
         let source = "header\n#ifdef MY_FEATURE\nfeature_line\n#endif\nfooter";

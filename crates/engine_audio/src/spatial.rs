@@ -269,6 +269,19 @@ mod tests {
         );
     }
 
+    #[test]
+    fn when_listener_nonzero_and_emitter_to_left_then_left_gain_dominates() {
+        // Arrange — emitter at x=150, listener at x=200: emitter is LEFT of listener
+        let listener = Vec2::new(200.0, 0.0);
+        let emitter = Vec2::new(150.0, 0.0);
+
+        // Act
+        let (left, right) = compute_pan(listener, emitter);
+
+        // Assert — diff = (-50, 0) → leftward, so left should dominate
+        assert!(left > right, "left={left} should exceed right={right}");
+    }
+
     proptest::proptest! {
         #[test]
         fn when_any_distance_then_attenuation_in_zero_to_one(

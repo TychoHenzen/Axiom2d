@@ -1723,6 +1723,24 @@ mod tests {
     }
 
     #[test]
+    fn when_triangle_pushed_then_vertices_returns_three_and_is_empty_false() {
+        // Arrange
+        let positions = [[0.0_f32, 0.0], [1.0, 0.0], [0.5, 1.0]];
+        let indices = [0_u32, 1, 2];
+        let mut batch = ShapeBatch::new();
+
+        // Act
+        batch.push(&positions, &indices, Color::RED);
+
+        // Assert
+        assert!(!batch.is_empty());
+        assert_eq!(batch.vertices().len(), 3);
+        assert_eq!(batch.vertices()[0].position, [0.0, 0.0]);
+        assert_eq!(batch.vertices()[1].position, [1.0, 0.0]);
+        assert_eq!(batch.vertices()[2].position, [0.5, 1.0]);
+    }
+
+    #[test]
     fn when_shape_shader_parsed_then_no_error() {
         // Act
         let result = naga::front::wgsl::parse_str(SHAPE_SHADER_SRC);
