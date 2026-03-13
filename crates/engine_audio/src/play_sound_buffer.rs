@@ -62,6 +62,15 @@ impl PlaySoundBuffer {
     }
 }
 
+impl<'a> IntoIterator for &'a mut PlaySoundBuffer {
+    type Item = &'a mut PlaySound;
+    type IntoIter = std::slice::IterMut<'a, PlaySound>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {

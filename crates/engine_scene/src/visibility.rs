@@ -123,7 +123,7 @@ mod tests {
         assert_eq!(*effective, EffectiveVisibility(true));
     }
 
-    /// @doc: AND-logic propagation: EffectiveVisibility = parent_effective AND child_visible
+    /// @doc: AND-logic propagation: `EffectiveVisibility` = `parent_effective` AND `child_visible`
     #[test]
     fn when_parent_is_hidden_and_child_is_visible_then_child_effective_visibility_is_false() {
         // Arrange

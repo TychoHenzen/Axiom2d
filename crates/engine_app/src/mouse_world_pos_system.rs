@@ -9,7 +9,7 @@ pub fn mouse_world_pos_system(
     camera_query: Query<&Camera2D>,
     mut mouse: ResMut<MouseState>,
 ) {
-    let camera = camera_query.iter().next().cloned().unwrap_or_default();
+    let camera = camera_query.iter().next().copied().unwrap_or_default();
     let world_pos = screen_to_world(
         mouse.screen_pos(),
         &camera,

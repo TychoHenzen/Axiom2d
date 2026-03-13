@@ -122,7 +122,7 @@ mod tests {
         schedule.run(world);
     }
 
-    /// @doc: AABB hit-test uses anchor_offset to compute top-left from node position + size
+    /// @doc: AABB hit-test uses `anchor_offset` to compute top-left from node position + size
     #[test]
     fn when_cursor_inside_node_then_interaction_becomes_hovered() {
         // Arrange
@@ -506,7 +506,7 @@ mod tests {
             ))
             .id();
 
-        world
+        let _ = world
             .spawn((
                 UiNode {
                     size: Vec2::new(100.0, 100.0),
@@ -612,7 +612,7 @@ mod tests {
         // Arrange — entity starts at Interaction::None, is invisible
         let mut world = setup_world(Vec2::new(250.0, 120.0));
 
-        world
+        let _ = world
             .spawn((
                 UiNode {
                     size: Vec2::new(100.0, 50.0),

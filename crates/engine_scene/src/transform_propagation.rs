@@ -62,7 +62,7 @@ mod tests {
         assert!(world.get::<GlobalTransform2D>(entity).is_some());
     }
 
-    /// @doc: Root entities (no ChildOf) copy Transform2D directly to GlobalTransform2D
+    /// @doc: Root entities (no `ChildOf`) copy `Transform2D` directly to `GlobalTransform2D`
     #[test]
     fn when_root_entity_has_identity_transform_then_global_transform_equals_affine2_identity() {
         // Arrange
@@ -131,7 +131,7 @@ mod tests {
         assert!((child_global.0.translation.y).abs() < 1e-6);
     }
 
-    /// @doc: GlobalTransform2D = parent.global * child.local — standard affine composition
+    /// @doc: `GlobalTransform2D` = parent.global * child.local — standard affine composition
     #[test]
     fn when_child_has_translation_and_parent_has_translation_then_both_accumulate() {
         // Arrange

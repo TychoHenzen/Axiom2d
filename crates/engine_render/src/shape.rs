@@ -229,7 +229,7 @@ mod tests {
         assert_eq!(shape, back);
     }
 
-    /// @doc: Lyon FillTessellator generates triangle fan — all circle vertices lie at radius distance from origin
+    /// @doc: Lyon `FillTessellator` generates triangle fan — all circle vertices lie at radius distance from origin
     #[test]
     fn when_tessellating_circle_then_produces_nonempty_vertices_and_indices() {
         // Arrange

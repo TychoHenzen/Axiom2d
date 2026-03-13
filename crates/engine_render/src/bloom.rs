@@ -168,7 +168,7 @@ mod tests {
             );
         }
 
-        /// @doc: BloomSettings is opt-in — no resource insertion means zero post-process overhead
+        /// @doc: `BloomSettings` is opt-in — no resource insertion means zero post-process overhead
         #[test]
         fn when_no_bloom_settings_then_post_process_system_skips() {
             // Arrange

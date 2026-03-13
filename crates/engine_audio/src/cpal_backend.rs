@@ -344,7 +344,7 @@ mod tests {
         assert!((output[1] - 0.4).abs() < f32::EPSILON);
     }
 
-    /// @doc: Sounds auto-evict when cursor reaches end — no explicit stop() needed for one-shots
+    /// @doc: Sounds auto-evict when cursor reaches end — no explicit `stop()` needed for one-shots
     #[test]
     fn when_sound_shorter_than_buffer_then_removed_after_last_sample() {
         // Arrange
@@ -384,7 +384,7 @@ mod tests {
         assert!((output[0] - 0.8).abs() < f32::EPSILON);
     }
 
-    /// @doc: Effective volume = global_volume * track_volume — multiplicative stacking
+    /// @doc: Effective volume = `global_volume` * `track_volume` — multiplicative stacking
     #[test]
     fn when_global_and_track_volume_both_half_then_output_quarter() {
         // Arrange

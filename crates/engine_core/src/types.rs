@@ -58,7 +58,7 @@ pub struct EntityId(pub u64);
 
 #[cfg(test)]
 mod tests {
-    #[allow(clippy::unwrap_used)]
+    #![allow(clippy::unwrap_used)]
     use super::*;
 
     #[test]

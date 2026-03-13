@@ -144,7 +144,7 @@ mod tests {
         assert_eq!(clock.delta(), Seconds(0.0));
     }
 
-    /// @doc: FakeClock enables deterministic testing — advance() accumulates, delta() drains
+    /// @doc: `FakeClock` enables deterministic testing — `advance()` accumulates, `delta()` drains
     #[test]
     fn when_fake_clock_advanced_then_delta_returns_advancement() {
         // Arrange
@@ -214,7 +214,7 @@ mod tests {
         assert_eq!(dt, Seconds(0.25));
     }
 
-    /// @doc: Sub-step deltas accumulate silently — no simulation steps fire until a full step_size is reached
+    /// @doc: Sub-step deltas accumulate silently — no simulation steps fire until a full `step_size` is reached
     #[test]
     fn when_tick_below_step_size_then_returns_zero_steps() {
         // Arrange

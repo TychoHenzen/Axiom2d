@@ -70,6 +70,7 @@ impl Renderer for NullRenderer {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use std::collections::HashMap;
     use std::sync::{Arc, Mutex};
 
     use engine_core::types::Pixels;
@@ -158,7 +159,7 @@ mod tests {
             data: vec![255; 4],
             width: 1,
             height: 1,
-            lookups: Default::default(),
+            lookups: HashMap::default(),
         }
     }
 

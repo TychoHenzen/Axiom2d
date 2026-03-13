@@ -214,7 +214,7 @@ mod tests {
         assert!(!second);
     }
 
-    /// @doc: Body type mapping: ECS Static → rapier Fixed (immovable), ECS Kinematic → rapier KinematicPositionBased (script-driven)
+    /// @doc: Body type mapping: ECS Static → rapier Fixed (immovable), ECS Kinematic → rapier `KinematicPositionBased` (script-driven)
     #[test]
     fn when_body_type_mapping_then_static_is_fixed_and_kinematic_is_position_based() {
         // Arrange
@@ -295,7 +295,7 @@ mod tests {
         assert!(pos.y < 10.0, "expected y < 10.0, got {}", pos.y);
     }
 
-    /// @doc: Entity removal must clean up both rapier RigidBody and the entity↔handle map
+    /// @doc: Entity removal must clean up both rapier `RigidBody` and the entity↔handle map
     #[test]
     fn when_dynamic_body_added_then_rotation_returns_some() {
         // Arrange
@@ -339,7 +339,7 @@ mod tests {
         assert!(events.is_empty());
     }
 
-    /// @doc: Collision events flow: rapier ChannelEventCollector → drain → CollisionEventBuffer with entity resolution
+    /// @doc: Collision events flow: rapier `ChannelEventCollector` → drain → `CollisionEventBuffer` with entity resolution
     #[test]
     fn when_two_overlapping_circles_step_then_started_event_with_correct_entities() {
         // Arrange

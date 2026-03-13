@@ -720,13 +720,13 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
     #[test]
     fn when_source_has_doc_annotation_then_parse_annotations_extracts_it() {
         // Arrange
-        let source = r#"
+        let source = r"
     /// @doc: Verifies that byte-to-float conversion is correct
     #[test]
     fn when_from_u8_called_then_converts() {
         // test body
     }
-"#;
+";
 
         // Act
         let result = parse_annotations(source);
@@ -742,12 +742,12 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
     #[test]
     fn when_source_has_no_annotations_then_map_is_empty() {
         // Arrange
-        let source = r#"
+        let source = r"
     #[test]
     fn when_foo_then_bar() {
         // test body
     }
-"#;
+";
 
         // Act
         let result = parse_annotations(source);

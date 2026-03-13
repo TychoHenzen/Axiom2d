@@ -646,7 +646,7 @@ mod tests {
             data: vec![255; 4],
             width: 1,
             height: 1,
-            lookups: Default::default(),
+            lookups: std::collections::HashMap::default(),
         }
     }
 

@@ -584,8 +584,8 @@ mod tests {
     #[test]
     fn when_comparing_identical_buffers_then_ssim_score_is_one() {
         // Arrange
-        let a: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64);
-        let b: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64);
+        let a: Vec<u8> = [255, 0, 0, 255].repeat(64 * 64);
+        let b: Vec<u8> = [255, 0, 0, 255].repeat(64 * 64);
 
         // Act
         let score = ssim_compare(&a, &b, 64, 64);
@@ -600,8 +600,8 @@ mod tests {
     #[test]
     fn when_comparing_different_buffers_then_ssim_score_is_less_than_one() {
         // Arrange
-        let a: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64);
-        let b: Vec<u8> = vec![0, 0, 255, 255].repeat(64 * 64);
+        let a: Vec<u8> = [255, 0, 0, 255].repeat(64 * 64);
+        let b: Vec<u8> = [0, 0, 255, 255].repeat(64 * 64);
 
         // Act
         let score = ssim_compare(&a, &b, 64, 64);
@@ -616,7 +616,7 @@ mod tests {
     #[test]
     fn when_comparing_slightly_different_buffers_then_ssim_above_threshold() {
         // Arrange
-        let a: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64);
+        let a: Vec<u8> = [255, 0, 0, 255].repeat(64 * 64);
         let mut b = a.clone();
         b[0] = 254;
 
@@ -677,7 +677,7 @@ mod tests {
     use engine_core::types::Pixels;
 
     #[test]
-    #[ignore] // requires GPU (software fallback adapter)
+    #[ignore = "requires GPU (software fallback adapter)"]
     fn when_creating_headless_renderer_then_viewport_matches() {
         // Arrange / Act
         let renderer = HeadlessRenderer::new(128, 128);
@@ -687,7 +687,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // requires GPU (software fallback adapter)
+    #[ignore = "requires GPU (software fallback adapter)"]
     fn when_clearing_with_red_then_readback_pixels_are_all_red() {
         // Arrange
         let mut renderer = HeadlessRenderer::new(64, 64);
@@ -714,7 +714,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("test.png");
-        let pixels: Vec<u8> = vec![255, 0, 0, 255].repeat(4 * 4);
+        let pixels: Vec<u8> = [255, 0, 0, 255].repeat(4 * 4);
 
         // Act
         save_golden(&path, &pixels, 4, 4).unwrap();
@@ -731,7 +731,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("roundtrip.png");
-        let original: Vec<u8> = vec![255, 0, 0, 255].repeat(4 * 4);
+        let original: Vec<u8> = [255, 0, 0, 255].repeat(4 * 4);
         save_golden(&path, &original, 4, 4).unwrap();
 
         // Act
@@ -759,7 +759,7 @@ mod tests {
     #[test]
     fn when_comparing_largely_different_buffers_then_ssim_below_threshold() {
         // Arrange
-        let mut a: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64);
+        let mut a: Vec<u8> = [255, 0, 0, 255].repeat(64 * 64);
         for y in 0..32 {
             for x in 0..32 {
                 let idx = (y * 64 + x) * 4;
@@ -767,7 +767,7 @@ mod tests {
                 a[idx + 2] = 255;
             }
         }
-        let b: Vec<u8> = vec![255, 0, 0, 255].repeat(64 * 64);
+        let b: Vec<u8> = [255, 0, 0, 255].repeat(64 * 64);
 
         // Act
         let score = ssim_compare(&a, &b, 64, 64);
@@ -780,7 +780,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // requires GPU
+    #[ignore = "requires GPU"]
     fn when_drawing_white_rect_on_black_then_rect_region_is_white() {
         // Arrange
         let mut renderer = HeadlessRenderer::new(64, 64);
@@ -820,7 +820,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // requires GPU
+    #[ignore = "requires GPU"]
     fn when_rendering_same_scene_twice_then_buffers_are_identical() {
         // Arrange
         let mut renderer = HeadlessRenderer::new(64, 64);
@@ -840,7 +840,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // requires GPU
+    #[ignore = "requires GPU"]
     fn when_rendered_frame_compared_to_golden_then_ssim_passes_threshold() {
         // Arrange
         let mut renderer = HeadlessRenderer::new(64, 64);
@@ -861,7 +861,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // requires GPU
+    #[ignore = "requires GPU"]
     fn when_rendered_frame_differs_from_golden_then_ssim_fails_threshold() {
         // Arrange
         let mut renderer = HeadlessRenderer::new(64, 64);
@@ -884,7 +884,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // requires GPU
+    #[ignore = "requires GPU"]
     fn when_rendering_circle_shape_then_center_pixel_is_non_background() {
         // Arrange
         let mut renderer = HeadlessRenderer::new(128, 128);

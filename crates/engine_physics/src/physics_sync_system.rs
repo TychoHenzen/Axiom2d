@@ -105,7 +105,7 @@ mod tests {
         run_sync(&mut world);
     }
 
-    /// @doc: One-way sync: physics backend → Transform2D. ECS is the read side, rapier is the authority
+    /// @doc: One-way sync: physics backend → `Transform2D`. ECS is the read side, rapier is the authority
     #[test]
     fn when_backend_returns_position_then_transform_position_is_updated() {
         // Arrange
@@ -124,7 +124,7 @@ mod tests {
         // Assert
         let transform = world.get::<Transform2D>(entity).unwrap();
         assert_eq!(transform.position, Vec2::new(10.0, 20.0));
-        assert_eq!(transform.rotation, 0.0);
+        assert!((transform.rotation - 0.0).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -192,7 +192,7 @@ mod tests {
         // Assert
         let transform = world.get::<Transform2D>(entity).unwrap();
         assert_eq!(transform.position, Vec2::new(99.0, 99.0));
-        assert_eq!(transform.rotation, 1.0);
+        assert!((transform.rotation - 1.0).abs() < f32::EPSILON);
     }
 
     /// @doc: Position and rotation are synced independently — either can be None without affecting the other
@@ -220,7 +220,7 @@ mod tests {
         // Assert
         let transform = world.get::<Transform2D>(entity).unwrap();
         assert_eq!(transform.position, Vec2::new(1.0, 2.0));
-        assert_eq!(transform.rotation, 2.5);
+        assert!((transform.rotation - 2.5).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -246,7 +246,7 @@ mod tests {
         // Assert
         let transform = world.get::<Transform2D>(entity).unwrap();
         assert_eq!(transform.position, Vec2::new(7.0, 8.0));
-        assert_eq!(transform.rotation, 0.5);
+        assert!((transform.rotation - 0.5).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -304,7 +304,7 @@ mod tests {
         assert_eq!(transform_b.position, Vec2::new(0.0, 2.0));
     }
 
-    /// @doc: Only entities with RigidBody participate in physics sync — plain transforms are untouched
+    /// @doc: Only entities with `RigidBody` participate in physics sync — plain transforms are untouched
     #[test]
     fn when_entity_has_no_rigid_body_then_its_transform_is_not_touched() {
         // Arrange

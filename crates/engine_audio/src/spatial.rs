@@ -79,7 +79,7 @@ pub fn spatial_audio_system(
         listener_transform.0.translation.y,
     );
 
-    for cmd in buffer.iter_mut() {
+    for cmd in &mut *buffer {
         if cmd.spatial_gains.is_some() {
             continue;
         }
@@ -294,10 +294,7 @@ mod tests {
             // Assert
             assert!(
                 (0.0..=1.0).contains(&result),
-                "attenuation {} out of [0,1] for distance={}, max={}",
-                result,
-                distance,
-                max_distance
+                "attenuation {result} out of [0,1] for distance={distance}, max={max_distance}"
             );
         }
 
@@ -319,8 +316,8 @@ mod tests {
             );
 
             // Assert — gains in [0, 1]
-            assert!((0.0..=1.0).contains(&left), "left gain {} out of [0,1]", left);
-            assert!((0.0..=1.0).contains(&right), "right gain {} out of [0,1]", right);
+            assert!((0.0..=1.0).contains(&left), "left gain {left} out of [0,1]");
+            assert!((0.0..=1.0).contains(&right), "right gain {right} out of [0,1]");
         }
     }
 
@@ -355,7 +352,7 @@ mod tests {
         assert!(gains.right > 0.0);
     }
 
-    /// @doc: Without an AudioListener entity, spatial processing is a no-op — gains remain unchanged
+    /// @doc: Without an `AudioListener` entity, spatial processing is a no-op — gains remain unchanged
     #[test]
     fn when_no_listener_then_system_runs_without_panic() {
         // Arrange
@@ -374,7 +371,7 @@ mod tests {
         assert!(cmds[0].spatial_gains.is_none());
     }
 
-    /// @doc: Linear distance attenuation drops to zero beyond max_distance, effectively culling inaudible sounds
+    /// @doc: Linear distance attenuation drops to zero beyond `max_distance`, effectively culling inaudible sounds
     #[test]
     fn when_emitter_beyond_max_distance_then_gains_are_zero() {
         // Arrange
@@ -413,7 +410,7 @@ mod tests {
         assert!(cmds[0].spatial_gains.is_none());
     }
 
-    /// @doc: Spatial audio uses GlobalTransform2D (world space), not local Transform2D — hierarchy must propagate first
+    /// @doc: Spatial audio uses `GlobalTransform2D` (world space), not local `Transform2D` — hierarchy must propagate first
     #[test]
     fn when_emitter_is_child_entity_then_world_position_used() {
         // Arrange

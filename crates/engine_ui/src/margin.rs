@@ -29,8 +29,8 @@ mod tests {
         let margin = Margin::default();
 
         // Act / Assert
-        assert_eq!(margin.total_horizontal(), 0.0);
-        assert_eq!(margin.total_vertical(), 0.0);
+        assert!((margin.total_horizontal() - 0.0).abs() < f32::EPSILON);
+        assert!((margin.total_vertical() - 0.0).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -44,7 +44,7 @@ mod tests {
         };
 
         // Act / Assert
-        assert_eq!(margin.total_horizontal(), 30.0);
-        assert_eq!(margin.total_vertical(), 20.0);
+        assert!((margin.total_horizontal() - 30.0).abs() < f32::EPSILON);
+        assert!((margin.total_vertical() - 20.0).abs() < f32::EPSILON);
     }
 }

@@ -255,7 +255,7 @@ mod tests {
 
         // Arrange
         let mut registry = ShaderRegistry::new();
-        let handle = registry.register("@vertex fn vs_main() {}");
+        let _handle = registry.register("@vertex fn vs_main() {}");
         let mut world = World::new();
         world.insert_resource(registry);
         let mut schedule = Schedule::default();

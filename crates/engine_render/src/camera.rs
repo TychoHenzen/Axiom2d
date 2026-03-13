@@ -295,7 +295,7 @@ mod tests {
         assert!((world.y - 300.0).abs() < 1e-4);
     }
 
-    /// @doc: world_to_screen and screen_to_world are exact inverses — roundtrip recovers the original point
+    /// @doc: `world_to_screen` and `screen_to_world` are exact inverses — roundtrip recovers the original point
     #[test]
     fn when_screen_to_world_after_world_to_screen_then_recovers_original_point() {
         // Arrange
@@ -543,7 +543,7 @@ mod tests {
         assert!(log.contains(&"set_view_projection".to_string()));
     }
 
-    /// @doc: camera_prepare_system always sets a projection — defaults to viewport-centered ortho when no Camera2D entity exists
+    /// @doc: `camera_prepare_system` always sets a projection — defaults to viewport-centered ortho when no `Camera2D` entity exists
     #[test]
     fn when_camera_prepare_system_runs_without_camera_then_default_ortho_set() {
         // Arrange
