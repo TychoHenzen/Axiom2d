@@ -207,6 +207,7 @@ mod tests {
         assert!(result >= 0.0);
     }
 
+    /// @doc: Constant-power stereo panning — emitter fully to the right produces 100% right channel gain
     #[test]
     fn when_emitter_right_of_listener_then_right_gain_one() {
         // Act
@@ -357,6 +358,7 @@ mod tests {
         assert!(cmds[0].spatial_gains.is_none());
     }
 
+    /// @doc: Linear distance attenuation drops to zero beyond max_distance, effectively culling inaudible sounds
     #[test]
     fn when_emitter_beyond_max_distance_then_gains_are_zero() {
         // Arrange

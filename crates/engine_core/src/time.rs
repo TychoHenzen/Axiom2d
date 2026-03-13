@@ -238,6 +238,7 @@ mod tests {
         assert!(ts.accumulator.0.abs() < f32::EPSILON);
     }
 
+    /// @doc: Fix Your Timestep pattern — large frame deltas produce multiple fixed steps with leftover accumulated for the next frame
     #[test]
     fn when_tick_large_delta_then_returns_multiple_steps_and_retains_remainder() {
         // Arrange
@@ -252,6 +253,7 @@ mod tests {
         assert!((remainder - 0.002).abs() < f32::EPSILON * 10.0);
     }
 
+    /// @doc: Accumulator carries sub-step remainder across frames, ensuring no simulation time is lost
     #[test]
     fn when_tick_across_frames_then_accumulator_carries_forward() {
         // Arrange — use binary-exact fractions to avoid f32 rounding

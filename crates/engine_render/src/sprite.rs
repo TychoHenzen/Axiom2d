@@ -805,6 +805,7 @@ mod tests {
         log
     }
 
+    /// @doc: Frustum culling skips draw calls for sprites whose AABB falls entirely outside the camera view rect
     #[test]
     fn when_sprite_fully_outside_camera_view_then_draw_sprite_not_called() {
         // Arrange
