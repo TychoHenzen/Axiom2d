@@ -1,3 +1,6 @@
+use crate::splash::SplashPlugin;
+#[cfg(feature = "render")]
+use crate::splash::splash_render_system;
 use engine_app::mouse_world_pos_system::mouse_world_pos_system;
 use engine_app::prelude::{App, Phase, Plugin};
 #[cfg(feature = "audio")]
@@ -23,6 +26,8 @@ pub struct DefaultPlugins;
 
 impl Plugin for DefaultPlugins {
     fn build(&self, app: &mut App) {
+        app.add_plugin(SplashPlugin);
+
         app.world_mut().insert_resource(InputState::default());
         app.world_mut().insert_resource(InputEventBuffer::default());
         app.world_mut().insert_resource(MouseState::default());
@@ -72,6 +77,7 @@ impl Plugin for DefaultPlugins {
                     clear_system,
                     upload_atlas_system,
                     camera_prepare_system,
+                    splash_render_system,
                     sprite_render_system,
                     shape_render_system,
                     post_process_system,

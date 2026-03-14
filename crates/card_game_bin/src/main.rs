@@ -86,7 +86,6 @@ fn spawn_card(
 
 fn setup(app: &mut App) {
     app.add_plugin(DefaultPlugins);
-    app.add_plugin(SplashPlugin);
 
     let config = WindowConfig {
         title: "Card Game",

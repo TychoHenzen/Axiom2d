@@ -144,6 +144,48 @@ pub struct Stroke {
     pub width: f32,
 }
 
+/// Split a path into sub-contours at each `MoveTo` boundary.
+/// Each returned contour starts with `MoveTo` and ends with `Close`.
+pub fn split_contours(commands: &[PathCommand]) -> Vec<Vec<PathCommand>> {
+    let mut contours = Vec::new();
+    let mut current = Vec::new();
+    for cmd in commands {
+        if matches!(cmd, PathCommand::MoveTo(_)) && !current.is_empty() {
+            contours.push(std::mem::take(&mut current));
+        }
+        current.push(cmd.clone());
+    }
+    if !current.is_empty() {
+        contours.push(current);
+    }
+    contours
+}
+
+/// Sample `n+1` evenly-spaced points along a quadratic bezier curve.
+pub fn sample_quadratic(from: Vec2, control: Vec2, to: Vec2, n: usize) -> Vec<Vec2> {
+    (0..=n)
+        .map(|i| {
+            let t = i as f32 / n as f32;
+            let u = 1.0 - t;
+            from * (u * u) + control * (2.0 * u * t) + to * (t * t)
+        })
+        .collect()
+}
+
+/// Sample `n+1` evenly-spaced points along a cubic bezier curve.
+pub fn sample_cubic(from: Vec2, c1: Vec2, c2: Vec2, to: Vec2, n: usize) -> Vec<Vec2> {
+    (0..=n)
+        .map(|i| {
+            let t = i as f32 / n as f32;
+            let u = 1.0 - t;
+            from * (u * u * u)
+                + c1 * (3.0 * u * u * t)
+                + c2 * (3.0 * u * t * t)
+                + to * (t * t * t)
+        })
+        .collect()
+}
+
 #[derive(Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Shape {
     pub variant: ShapeVariant,

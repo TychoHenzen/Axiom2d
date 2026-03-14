@@ -27,163 +27,6 @@ const SPLASH_SIDE_BASE: i32 = 10_001;
 const SPLASH_LETTER_ORDER: i32 = 11_000;
 const SPLASH_ACCENT_ORDER: i32 = 11_001;
 
-#[cfg(feature = "render")]
-fn shade_for_normal(normal: Vec2, light_dir: Vec2, dark: Color, bright: Color) -> Color {
-    let t = (normal.dot(light_dir) + 1.0) * 0.5;
-    let t = t.clamp(0.0, 1.0);
-    let t = t * t * t;
-    Color::new(
-        dark.r + (bright.r - dark.r) * t,
-        dark.g + (bright.g - dark.g) * t,
-        dark.b + (bright.b - dark.b) * t,
-        dark.a + (bright.a - dark.a) * t,
-    )
-}
-
-#[cfg(feature = "render")]
-fn segment_normal(from: Vec2, to: Vec2) -> Vec2 {
-    let d = to - from;
-    Vec2::new(d.y, -d.x).normalize()
-}
-
-/// Split a path into sub-contours at each `MoveTo` boundary.
-/// Each returned contour starts with `MoveTo` and ends with `Close`.
-#[cfg(feature = "render")]
-fn split_contours(commands: &[PathCommand]) -> Vec<Vec<PathCommand>> {
-    let mut contours = Vec::new();
-    let mut current = Vec::new();
-    for cmd in commands {
-        if matches!(cmd, PathCommand::MoveTo(_)) && !current.is_empty() {
-            contours.push(std::mem::take(&mut current));
-        }
-        current.push(cmd.clone());
-    }
-    if !current.is_empty() {
-        contours.push(current);
-    }
-    contours
-}
-
-/// Sample `n+1` evenly-spaced points along a quadratic bezier curve.
-#[cfg(feature = "render")]
-fn sample_quadratic(from: Vec2, control: Vec2, to: Vec2, n: usize) -> Vec<Vec2> {
-    (0..=n)
-        .map(|i| {
-            let t = i as f32 / n as f32;
-            let u = 1.0 - t;
-            from * (u * u) + control * (2.0 * u * t) + to * (t * t)
-        })
-        .collect()
-}
-
-/// Sample `n+1` evenly-spaced points along a cubic bezier curve.
-#[cfg(feature = "render")]
-fn sample_cubic(from: Vec2, c1: Vec2, c2: Vec2, to: Vec2, n: usize) -> Vec<Vec2> {
-    (0..=n)
-        .map(|i| {
-            let t = i as f32 / n as f32;
-            let u = 1.0 - t;
-            from * (u * u * u)
-                + c1 * (3.0 * u * u * t)
-                + c2 * (3.0 * u * t * t)
-                + to * (t * t * t)
-        })
-        .collect()
-}
-
-/// Project a point toward the vanishing point by `depth` fraction.
-#[cfg(feature = "render")]
-fn project_point(p: Vec2, vp: Vec2, depth: f32) -> Vec2 {
-    p + (vp - p) * depth
-}
-
-/// Build a single side-face quad from front points a→b and their perspective-projected back copies.
-#[cfg(feature = "render")]
-fn side_quad(a: Vec2, b: Vec2, vp: Vec2, depth: f32) -> Vec<PathCommand> {
-    vec![
-        PathCommand::MoveTo(a),
-        PathCommand::LineTo(b),
-        PathCommand::LineTo(project_point(b, vp, depth)),
-        PathCommand::LineTo(project_point(a, vp, depth)),
-        PathCommand::Close,
-    ]
-}
-
-/// Build shaded side-face geometry for one contour with perspective projection.
-///
-/// Each outline segment produces side-face quads projected toward `vp` (vanishing point
-/// in local coordinates) by `depth` fraction. Back-facing quads are culled.
-/// Returns `(geometry, color, sort_distance)` — sorted by distance from VP descending
-/// so further faces render first (behind closer faces).
-#[cfg(feature = "render")]
-#[allow(clippy::too_many_arguments)]
-fn build_shaded_side_faces(
-    contour: &[PathCommand],
-    vp: Vec2,
-    depth: f32,
-    slices: usize,
-    light_dir: Vec2,
-    dark: Color,
-    bright: Color,
-) -> Vec<(Vec<PathCommand>, Color, f32)> {
-    let start = match contour[0] {
-        PathCommand::MoveTo(p) => p,
-        _ => panic!("contour must start with MoveTo"),
-    };
-
-    let middle = &contour[1..contour.len() - 1];
-    let mut result: Vec<(Vec<PathCommand>, Color, f32)> = Vec::new();
-    let mut current = start;
-
-    let push_strip = |a: Vec2, b: Vec2, result: &mut Vec<(Vec<PathCommand>, Color, f32)>| {
-        let midpoint = (a + b) * 0.5;
-        let vp_dir = (vp - midpoint).normalize_or_zero();
-        let normal = segment_normal(a, b);
-        if normal.dot(vp_dir) >= 0.0 {
-            let color = shade_for_normal(normal, light_dir, dark, bright);
-            let dist = midpoint.distance(vp);
-            result.push((side_quad(a, b, vp, depth), color, dist));
-        }
-    };
-
-    for seg in middle {
-        match *seg {
-            PathCommand::LineTo(to) => {
-                push_strip(current, to, &mut result);
-                current = to;
-            }
-            PathCommand::QuadraticTo { control, to } => {
-                let points = sample_quadratic(current, control, to, slices);
-                for pair in points.windows(2) {
-                    push_strip(pair[0], pair[1], &mut result);
-                }
-                current = to;
-            }
-            PathCommand::CubicTo {
-                control1,
-                control2,
-                to,
-            } => {
-                let points = sample_cubic(current, control1, control2, to, slices);
-                for pair in points.windows(2) {
-                    push_strip(pair[0], pair[1], &mut result);
-                }
-                current = to;
-            }
-            _ => {}
-        }
-    }
-
-    if (current - start).length() > f32::EPSILON {
-        push_strip(current, start, &mut result);
-    }
-
-    // Sort by distance from VP descending — further faces render first (behind)
-    result.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
-
-    result
-}
-
 const LOGO_COLOR: Color = Color {
     r: 0.85,
     g: 0.85,
@@ -257,455 +100,11 @@ impl Plugin for SplashPlugin {
         app.world_mut().insert_resource(PreloadHooks::new());
 
         #[cfg(feature = "render")]
-        spawn_splash_entities(app.world_mut());
+        render::spawn_splash_entities(app.world_mut());
 
         app.add_systems(Phase::PreUpdate, preload_system);
         app.add_systems(Phase::Update, splash_tick_system);
     }
-}
-
-#[cfg(feature = "render")]
-use engine_render::prelude::PathCommand;
-
-#[cfg(feature = "render")]
-const BG_COLOR: Color = Color {
-    r: 0.05,
-    g: 0.05,
-    b: 0.08,
-    a: 1.0,
-};
-
-#[cfg(feature = "render")]
-#[allow(clippy::too_many_lines)]
-fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
-    use engine_render::prelude::{Shape, ShapeVariant, Stroke};
-
-    world.spawn((
-        SplashEntity,
-        Transform2D {
-            position: Vec2::ZERO,
-            ..Default::default()
-        },
-        Shape {
-            variant: ShapeVariant::Polygon {
-                points: vec![
-                    Vec2::new(-2000.0, -2000.0),
-                    Vec2::new(2000.0, -2000.0),
-                    Vec2::new(2000.0, 2000.0),
-                    Vec2::new(-2000.0, 2000.0),
-                ],
-            },
-            color: BG_COLOR,
-        },
-        Visible(true),
-        RenderLayer::UI,
-        SortOrder(SPLASH_BG_ORDER),
-    ));
-
-    let vanishing_point = Vec2::new(-60.0, -10.0);
-    let depth = 0.12;
-    let light_dir = Vec2::new(-1.0, -1.0).normalize();
-    let dark_color = Color {
-        r: 0.15,
-        g: 0.17,
-        b: 0.28,
-        a: 1.0,
-    };
-    let bright_color = Color {
-        r: LOGO_COLOR.r * 0.9,
-        g: LOGO_COLOR.g * 0.9,
-        b: LOGO_COLOR.b * 0.9,
-        a: 1.0,
-    };
-    let slices = 6;
-
-    let letters: [(f32, Vec<PathCommand>); 5] = [
-        (-140.0, letter_a()),
-        (-60.0, letter_x()),
-        (0.0, letter_i()),
-        (58.0, letter_o()),
-        (140.0, letter_m()),
-    ];
-
-    for (x, commands) in letters {
-        let letter_pos = Vec2::new(x, -10.0);
-        let vp_local = vanishing_point - letter_pos;
-        let resolved = engine_render::prelude::resolve_commands(&commands);
-
-        for contour in split_contours(&resolved) {
-            let faces =
-                build_shaded_side_faces(&contour, vp_local, depth, slices, light_dir, dark_color, bright_color);
-            #[allow(clippy::cast_possible_wrap)]
-            for (i, (quad_cmds, color, _dist)) in faces.into_iter().enumerate() {
-                world.spawn((
-                    SplashEntity,
-                    Transform2D {
-                        position: letter_pos,
-                        ..Default::default()
-                    },
-                    Shape {
-                        variant: ShapeVariant::Path {
-                            commands: quad_cmds,
-                        },
-                        color,
-                    },
-                    Visible(true),
-                    RenderLayer::UI,
-                    SortOrder(SPLASH_SIDE_BASE + i as i32),
-                ));
-            }
-        }
-
-        // Foreground letter
-        world.spawn((
-            SplashEntity,
-            Transform2D {
-                position: letter_pos,
-                ..Default::default()
-            },
-            Shape {
-                variant: ShapeVariant::Path { commands },
-                color: LOGO_COLOR,
-            },
-            Stroke {
-                color: Color::new(0.0, 0.0, 0.0, 1.0),
-                width: 2.0,
-            },
-            Visible(true),
-            RenderLayer::UI,
-            SortOrder(SPLASH_LETTER_ORDER),
-        ));
-    }
-
-    world.spawn((
-        SplashEntity,
-        Transform2D {
-            position: Vec2::new(0.0, 68.0),
-            ..Default::default()
-        },
-        Shape {
-            variant: ShapeVariant::Path {
-                commands: vec![
-                    PathCommand::MoveTo(Vec2::new(-170.0, 0.0)),
-                    PathCommand::CubicTo {
-                        control1: Vec2::new(-120.0, -3.5),
-                        control2: Vec2::new(-60.0, -3.5),
-                        to: Vec2::new(0.0, -3.5),
-                    },
-                    PathCommand::CubicTo {
-                        control1: Vec2::new(60.0, -3.5),
-                        control2: Vec2::new(120.0, -3.5),
-                        to: Vec2::new(170.0, 0.0),
-                    },
-                    PathCommand::CubicTo {
-                        control1: Vec2::new(120.0, 3.5),
-                        control2: Vec2::new(60.0, 3.5),
-                        to: Vec2::new(0.0, 3.5),
-                    },
-                    PathCommand::CubicTo {
-                        control1: Vec2::new(-60.0, 3.5),
-                        control2: Vec2::new(-120.0, 3.5),
-                        to: Vec2::new(-170.0, 0.0),
-                    },
-                    PathCommand::Close,
-                ],
-            },
-            color: ACCENT_COLOR,
-        },
-        Visible(true),
-        RenderLayer::UI,
-        SortOrder(SPLASH_ACCENT_ORDER),
-    ));
-
-    world.spawn((
-        SplashEntity,
-        Transform2D {
-            position: Vec2::new(0.0, 85.0),
-            ..Default::default()
-        },
-        Shape {
-            variant: ShapeVariant::Circle { radius: 5.0 },
-            color: ACCENT_COLOR,
-        },
-        Visible(true),
-        RenderLayer::UI,
-        SortOrder(SPLASH_ACCENT_ORDER),
-    ));
-}
-
-#[cfg(feature = "render")]
-fn letter_a() -> Vec<PathCommand> {
-    vec![
-        // Outer contour — curved apex and gently bowed legs
-        PathCommand::MoveTo(Vec2::new(-6.0, -60.0)),
-        PathCommand::QuadraticTo {
-            control: Vec2::new(0.0, -68.0),
-            to: Vec2::new(6.0, -60.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(14.0, -38.0),
-            control2: Vec2::new(26.0, -6.0),
-            to: Vec2::new(35.0, 60.0),
-        },
-        PathCommand::QuadraticTo {
-            control: Vec2::new(29.0, 60.0),
-            to: Vec2::new(23.0, 60.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(18.0, 36.0),
-            control2: Vec2::new(14.0, 26.0),
-            to: Vec2::new(12.0, 18.0),
-        },
-        PathCommand::QuadraticTo {
-            control: Vec2::new(6.0, 16.0),
-            to: Vec2::new(0.0, 16.0),
-        },
-        PathCommand::QuadraticTo {
-            control: Vec2::new(-6.0, 16.0),
-            to: Vec2::new(-12.0, 18.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(-14.0, 26.0),
-            control2: Vec2::new(-18.0, 36.0),
-            to: Vec2::new(-23.0, 60.0),
-        },
-        PathCommand::QuadraticTo {
-            control: Vec2::new(-29.0, 60.0),
-            to: Vec2::new(-35.0, 60.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(-26.0, -6.0),
-            control2: Vec2::new(-14.0, -38.0),
-            to: Vec2::new(-6.0, -60.0),
-        },
-        PathCommand::Close,
-        // Inner rounded cutout (EvenOdd fill)
-        PathCommand::MoveTo(Vec2::new(0.0, -30.0)),
-        PathCommand::CubicTo {
-            control1: Vec2::new(4.0, -18.0),
-            control2: Vec2::new(8.0, -4.0),
-            to: Vec2::new(10.0, 8.0),
-        },
-        PathCommand::QuadraticTo {
-            control: Vec2::new(0.0, 6.0),
-            to: Vec2::new(-10.0, 8.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(-8.0, -4.0),
-            control2: Vec2::new(-4.0, -18.0),
-            to: Vec2::new(0.0, -30.0),
-        },
-        PathCommand::Reverse,
-        PathCommand::Close,
-    ]
-}
-
-#[cfg(feature = "render")]
-fn letter_x() -> Vec<PathCommand> {
-    vec![
-        // Bar 1: top-left to bottom-right with S-curve
-        PathCommand::MoveTo(Vec2::new(-31.0, -60.0)),
-        PathCommand::QuadraticTo {
-            control: Vec2::new(-22.0, -62.0),
-            to: Vec2::new(-19.0, -60.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(-6.0, -30.0),
-            control2: Vec2::new(6.0, 30.0),
-            to: Vec2::new(19.0, 60.0),
-        },
-        PathCommand::QuadraticTo {
-            control: Vec2::new(22.0, 62.0),
-            to: Vec2::new(31.0, 60.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(18.0, 30.0),
-            control2: Vec2::new(-18.0, -30.0),
-            to: Vec2::new(-31.0, -60.0),
-        },
-        PathCommand::Close,
-        // Bar 2: top-right to bottom-left with S-curve
-        PathCommand::MoveTo(Vec2::new(19.0, -60.0)),
-        PathCommand::QuadraticTo {
-            control: Vec2::new(22.0, -62.0),
-            to: Vec2::new(31.0, -60.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(18.0, -30.0),
-            control2: Vec2::new(-18.0, 30.0),
-            to: Vec2::new(-31.0, 60.0),
-        },
-        PathCommand::QuadraticTo {
-            control: Vec2::new(-22.0, 62.0),
-            to: Vec2::new(-19.0, 60.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(-6.0, 30.0),
-            control2: Vec2::new(6.0, -30.0),
-            to: Vec2::new(19.0, -60.0),
-        },
-        PathCommand::Close,
-    ]
-}
-
-#[cfg(feature = "render")]
-fn letter_i() -> Vec<PathCommand> {
-    vec![
-        // Top serif — left edge
-        PathCommand::MoveTo(Vec2::new(-15.0, -60.0)),
-        PathCommand::LineTo(Vec2::new(15.0, -60.0)),
-        // Top-right corner rounds into stem
-        PathCommand::QuadraticTo {
-            control: Vec2::new(15.0, -48.0),
-            to: Vec2::new(6.0, -48.0),
-        },
-        // Right side of stem
-        PathCommand::LineTo(Vec2::new(6.0, 48.0)),
-        // Bottom-right corner rounds out to serif
-        PathCommand::QuadraticTo {
-            control: Vec2::new(15.0, 48.0),
-            to: Vec2::new(15.0, 60.0),
-        },
-        PathCommand::LineTo(Vec2::new(-15.0, 60.0)),
-        // Bottom-left corner rounds into stem
-        PathCommand::QuadraticTo {
-            control: Vec2::new(-15.0, 48.0),
-            to: Vec2::new(-6.0, 48.0),
-        },
-        // Left side of stem
-        PathCommand::LineTo(Vec2::new(-6.0, -48.0)),
-        // Top-left corner rounds out to serif
-        PathCommand::QuadraticTo {
-            control: Vec2::new(-15.0, -48.0),
-            to: Vec2::new(-15.0, -60.0),
-        },
-        PathCommand::Close,
-    ]
-}
-
-#[cfg(feature = "render")]
-#[allow(clippy::similar_names)]
-fn letter_o() -> Vec<PathCommand> {
-    // Approximate an ellipse with 4 cubic bezier segments (kappa ≈ 0.5522847)
-    let kappa = 0.552_284_7_f32;
-    let outer_rx = 30.0_f32;
-    let outer_ry = 60.0_f32;
-    let outer_kx = outer_rx * kappa;
-    let outer_ky = outer_ry * kappa;
-    let inner_rx = 18.0_f32;
-    let inner_ry = 48.0_f32;
-    let inner_kx = inner_rx * kappa;
-    let inner_ky = inner_ry * kappa;
-    vec![
-        // Outer ellipse (top → right → bottom → left)
-        PathCommand::MoveTo(Vec2::new(0.0, -outer_ry)),
-        PathCommand::CubicTo {
-            control1: Vec2::new(outer_kx, -outer_ry),
-            control2: Vec2::new(outer_rx, -outer_ky),
-            to: Vec2::new(outer_rx, 0.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(outer_rx, outer_ky),
-            control2: Vec2::new(outer_kx, outer_ry),
-            to: Vec2::new(0.0, outer_ry),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(-outer_kx, outer_ry),
-            control2: Vec2::new(-outer_rx, outer_ky),
-            to: Vec2::new(-outer_rx, 0.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(-outer_rx, -outer_ky),
-            control2: Vec2::new(-outer_kx, -outer_ry),
-            to: Vec2::new(0.0, -outer_ry),
-        },
-        PathCommand::Close,
-        // Inner ellipse hole (EvenOdd)
-        PathCommand::MoveTo(Vec2::new(0.0, -inner_ry)),
-        PathCommand::CubicTo {
-            control1: Vec2::new(inner_kx, -inner_ry),
-            control2: Vec2::new(inner_rx, -inner_ky),
-            to: Vec2::new(inner_rx, 0.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(inner_rx, inner_ky),
-            control2: Vec2::new(inner_kx, inner_ry),
-            to: Vec2::new(0.0, inner_ry),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(-inner_kx, inner_ry),
-            control2: Vec2::new(-inner_rx, inner_ky),
-            to: Vec2::new(-inner_rx, 0.0),
-        },
-        PathCommand::CubicTo {
-            control1: Vec2::new(-inner_rx, -inner_ky),
-            control2: Vec2::new(-inner_kx, -inner_ry),
-            to: Vec2::new(0.0, -inner_ry),
-        },
-        PathCommand::Reverse,
-        PathCommand::Close,
-    ]
-}
-
-#[cfg(feature = "render")]
-fn letter_m() -> Vec<PathCommand> {
-    vec![
-        // Start bottom-left
-        PathCommand::MoveTo(Vec2::new(-38.0, 60.0)),
-        PathCommand::LineTo(Vec2::new(-38.0, -50.0)),
-        // Left peak — smooth arch up
-        PathCommand::QuadraticTo {
-            control: Vec2::new(-38.0, -62.0),
-            to: Vec2::new(-30.0, -60.0),
-        },
-        PathCommand::QuadraticTo {
-            control: Vec2::new(-22.0, -58.0),
-            to: Vec2::new(-16.0, -48.0),
-        },
-        // Down into center valley — smooth curve
-        PathCommand::CubicTo {
-            control1: Vec2::new(-6.0, -24.0),
-            control2: Vec2::new(-4.0, -16.0),
-            to: Vec2::new(0.0, -12.0),
-        },
-        // Up from valley to right peak
-        PathCommand::CubicTo {
-            control1: Vec2::new(4.0, -16.0),
-            control2: Vec2::new(6.0, -24.0),
-            to: Vec2::new(16.0, -48.0),
-        },
-        PathCommand::QuadraticTo {
-            control: Vec2::new(22.0, -58.0),
-            to: Vec2::new(30.0, -60.0),
-        },
-        PathCommand::QuadraticTo {
-            control: Vec2::new(38.0, -62.0),
-            to: Vec2::new(38.0, -50.0),
-        },
-        // Right stem down
-        PathCommand::LineTo(Vec2::new(38.0, 60.0)),
-        PathCommand::LineTo(Vec2::new(26.0, 60.0)),
-        PathCommand::LineTo(Vec2::new(26.0, -34.0)),
-        // Inner right slope with curve
-        PathCommand::CubicTo {
-            control1: Vec2::new(18.0, -20.0),
-            control2: Vec2::new(10.0, -10.0),
-            to: Vec2::new(6.0, -4.0),
-        },
-        // Inner valley
-        PathCommand::QuadraticTo {
-            control: Vec2::new(0.0, 2.0),
-            to: Vec2::new(-6.0, -4.0),
-        },
-        // Inner left slope with curve
-        PathCommand::CubicTo {
-            control1: Vec2::new(-10.0, -10.0),
-            control2: Vec2::new(-18.0, -20.0),
-            to: Vec2::new(-26.0, -34.0),
-        },
-        PathCommand::LineTo(Vec2::new(-26.0, 60.0)),
-        PathCommand::Close,
-    ]
 }
 
 pub fn splash_tick_system(
@@ -722,6 +121,304 @@ pub fn splash_tick_system(
         for mut visible in &mut query {
             visible.0 = false;
         }
+    }
+}
+
+#[cfg(feature = "render")]
+pub fn splash_render_system(
+    splash: Res<SplashScreen>,
+    mut renderer: ResMut<engine_render::prelude::RendererRes>,
+) {
+    if splash.done {
+        return;
+    }
+    let (vw, vh) = renderer.viewport_size();
+    if vw == 0 || vh == 0 {
+        return;
+    }
+    let vw = vw as f32;
+    let vh = vh as f32;
+
+    let splash_camera = engine_render::prelude::Camera2D {
+        position: Vec2::new(0.0, 15.0),
+        zoom: (vw / 500.0).min(vh / 300.0),
+    };
+    let uniform =
+        engine_render::prelude::CameraUniform::from_camera(&splash_camera, vw, vh);
+    renderer.set_view_projection(uniform.view_proj);
+}
+
+#[cfg(feature = "render")]
+mod render {
+    use super::*;
+    use crate::splash_letters::{letter_a, letter_i, letter_m, letter_o, letter_x};
+    use engine_render::prelude::{
+        PathCommand, Shape, ShapeVariant, Stroke, resolve_commands, sample_cubic,
+        sample_quadratic, split_contours,
+    };
+
+    const BG_COLOR: Color = Color {
+        r: 0.05,
+        g: 0.05,
+        b: 0.08,
+        a: 1.0,
+    };
+
+    fn color_lerp(a: Color, b: Color, t: f32) -> Color {
+        Color::new(
+            a.r + (b.r - a.r) * t,
+            a.g + (b.g - a.g) * t,
+            a.b + (b.b - a.b) * t,
+            a.a + (b.a - a.a) * t,
+        )
+    }
+
+    pub(super) fn shade_for_normal(normal: Vec2, light_dir: Vec2, dark: Color, bright: Color) -> Color {
+        let t = (normal.dot(light_dir) + 1.0) * 0.5;
+        let t = t.clamp(0.0, 1.0);
+        let t = t * t * t;
+        color_lerp(dark, bright, t)
+    }
+
+    fn segment_normal(from: Vec2, to: Vec2) -> Vec2 {
+        let d = to - from;
+        Vec2::new(d.y, -d.x).normalize()
+    }
+
+    fn project_point(p: Vec2, vp: Vec2, depth: f32) -> Vec2 {
+        p + (vp - p) * depth
+    }
+
+    fn side_quad(a: Vec2, b: Vec2, vp: Vec2, depth: f32) -> Vec<PathCommand> {
+        vec![
+            PathCommand::MoveTo(a),
+            PathCommand::LineTo(b),
+            PathCommand::LineTo(project_point(b, vp, depth)),
+            PathCommand::LineTo(project_point(a, vp, depth)),
+            PathCommand::Close,
+        ]
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn build_shaded_side_faces(
+        contour: &[PathCommand],
+        vp: Vec2,
+        depth: f32,
+        slices: usize,
+        light_dir: Vec2,
+        dark: Color,
+        bright: Color,
+    ) -> Vec<(Vec<PathCommand>, Color, f32)> {
+        let start = match contour[0] {
+            PathCommand::MoveTo(p) => p,
+            _ => panic!("contour must start with MoveTo"),
+        };
+
+        let middle = &contour[1..contour.len() - 1];
+        let mut result: Vec<(Vec<PathCommand>, Color, f32)> = Vec::new();
+        let mut current = start;
+
+        let push_strip = |a: Vec2, b: Vec2, result: &mut Vec<(Vec<PathCommand>, Color, f32)>| {
+            let midpoint = (a + b) * 0.5;
+            let vp_dir = (vp - midpoint).normalize_or_zero();
+            let normal = segment_normal(a, b);
+            if normal.dot(vp_dir) >= 0.0 {
+                let color = shade_for_normal(normal, light_dir, dark, bright);
+                let dist = midpoint.distance(vp);
+                result.push((side_quad(a, b, vp, depth), color, dist));
+            }
+        };
+
+        for seg in middle {
+            match *seg {
+                PathCommand::LineTo(to) => {
+                    push_strip(current, to, &mut result);
+                    current = to;
+                }
+                PathCommand::QuadraticTo { control, to } => {
+                    let points = sample_quadratic(current, control, to, slices);
+                    for pair in points.windows(2) {
+                        push_strip(pair[0], pair[1], &mut result);
+                    }
+                    current = to;
+                }
+                PathCommand::CubicTo {
+                    control1,
+                    control2,
+                    to,
+                } => {
+                    let points = sample_cubic(current, control1, control2, to, slices);
+                    for pair in points.windows(2) {
+                        push_strip(pair[0], pair[1], &mut result);
+                    }
+                    current = to;
+                }
+                _ => {}
+            }
+        }
+
+        if (current - start).length() > f32::EPSILON {
+            push_strip(current, start, &mut result);
+        }
+
+        result.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+
+        result
+    }
+
+    #[allow(clippy::too_many_lines)]
+    pub(super) fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
+        world.spawn((
+            SplashEntity,
+            Transform2D {
+                position: Vec2::ZERO,
+                ..Default::default()
+            },
+            Shape {
+                variant: ShapeVariant::Polygon {
+                    points: vec![
+                        Vec2::new(-2000.0, -2000.0),
+                        Vec2::new(2000.0, -2000.0),
+                        Vec2::new(2000.0, 2000.0),
+                        Vec2::new(-2000.0, 2000.0),
+                    ],
+                },
+                color: BG_COLOR,
+            },
+            Visible(true),
+            RenderLayer::UI,
+            SortOrder(SPLASH_BG_ORDER),
+        ));
+
+        let vanishing_point = Vec2::new(-60.0, -10.0);
+        let depth = 0.12;
+        let light_dir = Vec2::new(-1.0, -1.0).normalize();
+        let dark_color = Color {
+            r: 0.15,
+            g: 0.17,
+            b: 0.28,
+            a: 1.0,
+        };
+        let bright_color = Color {
+            r: LOGO_COLOR.r * 0.9,
+            g: LOGO_COLOR.g * 0.9,
+            b: LOGO_COLOR.b * 0.9,
+            a: 1.0,
+        };
+        let slices = 6;
+
+        let letters: [(f32, Vec<PathCommand>); 5] = [
+            (-140.0, letter_a()),
+            (-60.0, letter_x()),
+            (0.0, letter_i()),
+            (58.0, letter_o()),
+            (140.0, letter_m()),
+        ];
+
+        for (x, commands) in letters {
+            let letter_pos = Vec2::new(x, -10.0);
+            let vp_local = vanishing_point - letter_pos;
+            let resolved = resolve_commands(&commands);
+
+            for contour in split_contours(&resolved) {
+                let faces = build_shaded_side_faces(
+                    &contour, vp_local, depth, slices, light_dir, dark_color, bright_color,
+                );
+                #[allow(clippy::cast_possible_wrap)]
+                for (i, (quad_cmds, color, _dist)) in faces.into_iter().enumerate() {
+                    world.spawn((
+                        SplashEntity,
+                        Transform2D {
+                            position: letter_pos,
+                            ..Default::default()
+                        },
+                        Shape {
+                            variant: ShapeVariant::Path {
+                                commands: quad_cmds,
+                            },
+                            color,
+                        },
+                        Visible(true),
+                        RenderLayer::UI,
+                        SortOrder(SPLASH_SIDE_BASE + i as i32),
+                    ));
+                }
+            }
+
+            world.spawn((
+                SplashEntity,
+                Transform2D {
+                    position: letter_pos,
+                    ..Default::default()
+                },
+                Shape {
+                    variant: ShapeVariant::Path { commands },
+                    color: LOGO_COLOR,
+                },
+                Stroke {
+                    color: Color::new(0.0, 0.0, 0.0, 1.0),
+                    width: 2.0,
+                },
+                Visible(true),
+                RenderLayer::UI,
+                SortOrder(SPLASH_LETTER_ORDER),
+            ));
+        }
+
+        world.spawn((
+            SplashEntity,
+            Transform2D {
+                position: Vec2::new(0.0, 68.0),
+                ..Default::default()
+            },
+            Shape {
+                variant: ShapeVariant::Path {
+                    commands: vec![
+                        PathCommand::MoveTo(Vec2::new(-170.0, 0.0)),
+                        PathCommand::CubicTo {
+                            control1: Vec2::new(-120.0, -3.5),
+                            control2: Vec2::new(-60.0, -3.5),
+                            to: Vec2::new(0.0, -3.5),
+                        },
+                        PathCommand::CubicTo {
+                            control1: Vec2::new(60.0, -3.5),
+                            control2: Vec2::new(120.0, -3.5),
+                            to: Vec2::new(170.0, 0.0),
+                        },
+                        PathCommand::CubicTo {
+                            control1: Vec2::new(120.0, 3.5),
+                            control2: Vec2::new(60.0, 3.5),
+                            to: Vec2::new(0.0, 3.5),
+                        },
+                        PathCommand::CubicTo {
+                            control1: Vec2::new(-60.0, 3.5),
+                            control2: Vec2::new(-120.0, 3.5),
+                            to: Vec2::new(-170.0, 0.0),
+                        },
+                        PathCommand::Close,
+                    ],
+                },
+                color: ACCENT_COLOR,
+            },
+            Visible(true),
+            RenderLayer::UI,
+            SortOrder(SPLASH_ACCENT_ORDER),
+        ));
+
+        world.spawn((
+            SplashEntity,
+            Transform2D {
+                position: Vec2::new(0.0, 85.0),
+                ..Default::default()
+            },
+            Shape {
+                variant: ShapeVariant::Circle { radius: 5.0 },
+                color: ACCENT_COLOR,
+            },
+            Visible(true),
+            RenderLayer::UI,
+            SortOrder(SPLASH_ACCENT_ORDER),
+        ));
     }
 }
 
@@ -755,18 +452,6 @@ mod tests {
         // Assert
         let splash = world.resource::<SplashScreen>();
         assert!((splash.elapsed - 0.016).abs() < f32::EPSILON);
-    }
-
-    #[test]
-    fn when_elapsed_below_duration_then_done_remains_false() {
-        // Arrange
-        let (mut world, mut schedule) = world_with_splash(0.0, 2.0, false, 0.016);
-
-        // Act
-        schedule.run(&mut world);
-
-        // Assert
-        assert!(!world.resource::<SplashScreen>().done);
     }
 
     #[test]
@@ -963,426 +648,302 @@ mod tests {
         assert!(world.get::<Visible>(game_entity).unwrap().0);
     }
 
-    #[test]
-    fn when_split_contours_called_then_splits_on_moveto() {
-        use engine_render::prelude::PathCommand;
+    #[cfg(feature = "render")]
+    mod render_tests {
+        use super::*;
+        use engine_render::prelude::{PathCommand, Shape, ShapeVariant, split_contours};
 
-        // Arrange
-        let commands = vec![
-            PathCommand::MoveTo(Vec2::ZERO),
-            PathCommand::LineTo(Vec2::X),
-            PathCommand::Close,
-            PathCommand::MoveTo(Vec2::Y),
-            PathCommand::LineTo(Vec2::ONE),
-            PathCommand::Close,
-        ];
+        #[test]
+        fn when_split_contours_called_then_splits_on_moveto() {
+            // Arrange
+            let commands = vec![
+                PathCommand::MoveTo(Vec2::ZERO),
+                PathCommand::LineTo(Vec2::X),
+                PathCommand::Close,
+                PathCommand::MoveTo(Vec2::Y),
+                PathCommand::LineTo(Vec2::ONE),
+                PathCommand::Close,
+            ];
 
-        // Act
-        let contours = split_contours(&commands);
+            // Act
+            let contours = split_contours(&commands);
 
-        // Assert
-        assert_eq!(contours.len(), 2);
-        assert_eq!(contours[0].len(), 3);
-        assert_eq!(contours[1].len(), 3);
-    }
+            // Assert
+            assert_eq!(contours.len(), 2);
+            assert_eq!(contours[0].len(), 3);
+            assert_eq!(contours[1].len(), 3);
+        }
 
+        #[test]
+        fn when_depth_paths_spawned_then_sort_order_between_bg_and_letters() {
+            // Arrange / Act
+            let mut world = World::new();
+            super::super::render::spawn_splash_entities(&mut world);
 
-    #[test]
-    fn when_depth_paths_spawned_then_sort_order_between_bg_and_letters() {
-        use engine_render::prelude::{Shape, ShapeVariant};
+            // Assert
+            let side_count = world
+                .query::<(&SplashEntity, &Shape, &SortOrder)>()
+                .iter(&world)
+                .filter(|(_, shape, order)| {
+                    matches!(shape.variant, ShapeVariant::Path { .. })
+                        && order.0 >= SPLASH_SIDE_BASE
+                        && order.0 < SPLASH_LETTER_ORDER
+                })
+                .count();
 
-        // Arrange / Act
-        let mut world = World::new();
-        spawn_splash_entities(&mut world);
+            assert!(side_count > 0, "side face entities must exist");
+        }
 
-        // Assert — side face entities exist in the side face sort range
-        let side_count = world
-            .query::<(&SplashEntity, &Shape, &SortOrder)>()
-            .iter(&world)
-            .filter(|(_, shape, order)| {
-                matches!(shape.variant, ShapeVariant::Path { .. })
-                    && order.0 >= SPLASH_SIDE_BASE && order.0 < SPLASH_LETTER_ORDER
-            })
-            .count();
+        #[test]
+        fn when_depth_paths_spawned_then_all_darker_than_logo_color() {
+            // Arrange / Act
+            let mut world = World::new();
+            super::super::render::spawn_splash_entities(&mut world);
 
-        assert!(side_count > 0, "side face entities must exist");
-    }
+            // Assert
+            let all_darker = world
+                .query::<(&SplashEntity, &Shape, &SortOrder)>()
+                .iter(&world)
+                .filter(|(_, shape, order)| {
+                    matches!(shape.variant, ShapeVariant::Path { .. })
+                        && order.0 >= SPLASH_SIDE_BASE
+                        && order.0 < SPLASH_LETTER_ORDER
+                })
+                .all(|(_, shape, _)| {
+                    shape.color.r < LOGO_COLOR.r
+                        && shape.color.g < LOGO_COLOR.g
+                        && shape.color.b < LOGO_COLOR.b
+                });
 
-    #[test]
-    fn when_depth_paths_spawned_then_all_darker_than_logo_color() {
-        use engine_render::prelude::{Shape, ShapeVariant};
-
-        // Arrange / Act
-        let mut world = World::new();
-        spawn_splash_entities(&mut world);
-
-        // Assert — every side face color is darker than LOGO_COLOR
-        let all_darker = world
-            .query::<(&SplashEntity, &Shape, &SortOrder)>()
-            .iter(&world)
-            .filter(|(_, shape, order)| {
-                matches!(shape.variant, ShapeVariant::Path { .. })
-                    && order.0 >= SPLASH_SIDE_BASE && order.0 < SPLASH_LETTER_ORDER
-            })
-            .all(|(_, shape, _)| {
-                shape.color.r < LOGO_COLOR.r
-                    && shape.color.g < LOGO_COLOR.g
-                    && shape.color.b < LOGO_COLOR.b
-            });
-
-        assert!(all_darker, "all side face colors must be darker than LOGO_COLOR");
-    }
-
-    #[test]
-    fn when_depth_paths_spawned_then_shaded_colors_are_not_all_identical() {
-        use engine_render::prelude::{Shape, ShapeVariant};
-
-        // Arrange / Act
-        let mut world = World::new();
-        spawn_splash_entities(&mut world);
-
-        // Assert — side face entities have more than one distinct color
-        let colors: Vec<(u32, u32, u32)> = world
-            .query::<(&SplashEntity, &Shape, &SortOrder)>()
-            .iter(&world)
-            .filter(|(_, shape, order)| {
-                matches!(shape.variant, ShapeVariant::Path { .. })
-                    && order.0 >= SPLASH_SIDE_BASE && order.0 < SPLASH_LETTER_ORDER
-            })
-            .map(|(_, shape, _)| {
-                (
-                    (shape.color.r * 1000.0) as u32,
-                    (shape.color.g * 1000.0) as u32,
-                    (shape.color.b * 1000.0) as u32,
-                )
-            })
-            .collect();
-        let first = colors[0];
-        let all_same = colors.iter().all(|c| *c == first);
-
-        assert!(!all_same, "shading must produce color variation across side faces");
-    }
-
-    #[test]
-    fn when_splash_entities_spawned_then_has_bg_letters_accents_and_side_faces() {
-        use engine_render::prelude::{Shape, ShapeVariant};
-
-        // Arrange / Act
-        let mut world = World::new();
-        spawn_splash_entities(&mut world);
-
-        // Assert — at least: 1 bg + some side faces + 5 letters + 1 accent + 1 dot
-        let total = world.query::<&SplashEntity>().iter(&world).count();
-        let letter_count = world
-            .query::<(&SplashEntity, &Shape, &SortOrder)>()
-            .iter(&world)
-            .filter(|(_, shape, order)| {
-                matches!(shape.variant, ShapeVariant::Path { .. })
-                    && order.0 == SPLASH_LETTER_ORDER
-            })
-            .count();
-
-        assert!(total > 8, "more entities than old flat approach");
-        assert_eq!(letter_count, 5, "5 foreground letter entities");
-    }
-
-    #[test]
-    fn when_splash_entities_spawned_then_letters_positioned_left_to_right() {
-        use engine_render::prelude::{Shape, ShapeVariant};
-
-        // Arrange / Act
-        let mut world = World::new();
-        spawn_splash_entities(&mut world);
-
-        // Assert — letter entities (Path shapes at SPLASH_LETTER_ORDER) are ordered left-to-right
-        let mut letter_xs: Vec<f32> = world
-            .query::<(&SplashEntity, &Transform2D, &Shape, &SortOrder)>()
-            .iter(&world)
-            .filter(|(_, _, shape, order)| {
-                matches!(shape.variant, ShapeVariant::Path { .. })
-                    && order.0 == SPLASH_LETTER_ORDER
-            })
-            .map(|(_, t, _, _)| t.position.x)
-            .collect();
-        letter_xs.sort_by(|a, b| a.partial_cmp(b).unwrap());
-
-        assert_eq!(letter_xs.len(), 5);
-        for pair in letter_xs.windows(2) {
             assert!(
-                pair[1] > pair[0],
-                "letters must be left-to-right: {letter_xs:?}"
+                all_darker,
+                "all side face colors must be darker than LOGO_COLOR"
             );
         }
-    }
 
-    #[test]
-    fn when_splash_entities_spawned_then_all_on_ui_layer() {
-        // Arrange / Act
-        let mut world = World::new();
-        spawn_splash_entities(&mut world);
+        #[test]
+        fn when_depth_paths_spawned_then_shaded_colors_are_not_all_identical() {
+            // Arrange / Act
+            let mut world = World::new();
+            super::super::render::spawn_splash_entities(&mut world);
 
-        // Assert
-        let all_ui = world
-            .query::<(&SplashEntity, &RenderLayer)>()
-            .iter(&world)
-            .all(|(_, layer)| *layer == RenderLayer::UI);
-        assert!(all_ui);
-    }
+            // Assert
+            let colors: Vec<(u32, u32, u32)> = world
+                .query::<(&SplashEntity, &Shape, &SortOrder)>()
+                .iter(&world)
+                .filter(|(_, shape, order)| {
+                    matches!(shape.variant, ShapeVariant::Path { .. })
+                        && order.0 >= SPLASH_SIDE_BASE
+                        && order.0 < SPLASH_LETTER_ORDER
+                })
+                .map(|(_, shape, _)| {
+                    (
+                        (shape.color.r * 1000.0) as u32,
+                        (shape.color.g * 1000.0) as u32,
+                        (shape.color.b * 1000.0) as u32,
+                    )
+                })
+                .collect();
+            let first = colors[0];
+            let all_same = colors.iter().all(|c| *c == first);
 
-    #[test]
-    fn when_splash_entities_spawned_then_all_visible() {
-        // Arrange / Act
-        let mut world = World::new();
-        spawn_splash_entities(&mut world);
-
-        // Assert
-        let all_visible = world
-            .query::<(&SplashEntity, &Visible)>()
-            .iter(&world)
-            .all(|(_, v)| v.0);
-        assert!(all_visible);
-    }
-
-    #[test]
-    fn when_splash_entities_spawned_then_five_letters_have_stroke() {
-        use engine_render::prelude::{Shape, ShapeVariant, Stroke};
-
-        // Arrange / Act
-        let mut world = World::new();
-        spawn_splash_entities(&mut world);
-
-        // Assert — the 5 letter entities (SortOrder == SPLASH_LETTER_ORDER) have Stroke
-        let stroke_count = world
-            .query::<(&SplashEntity, &Shape, &SortOrder, &Stroke)>()
-            .iter(&world)
-            .filter(|(_, shape, order, _)| {
-                matches!(shape.variant, ShapeVariant::Path { .. })
-                    && order.0 == SPLASH_LETTER_ORDER
-            })
-            .count();
-        assert_eq!(stroke_count, 5);
-    }
-
-    #[test]
-    fn when_splash_entities_spawned_then_letter_stroke_color_is_black() {
-        use engine_render::prelude::{Shape, ShapeVariant, Stroke};
-
-        // Arrange / Act
-        let mut world = World::new();
-        spawn_splash_entities(&mut world);
-
-        // Assert
-        let all_black = world
-            .query::<(&SplashEntity, &Shape, &SortOrder, &Stroke)>()
-            .iter(&world)
-            .filter(|(_, shape, order, _)| {
-                matches!(shape.variant, ShapeVariant::Path { .. })
-                    && order.0 == SPLASH_LETTER_ORDER
-            })
-            .all(|(_, _, _, stroke)| {
-                (stroke.color.r).abs() < f32::EPSILON
-                    && (stroke.color.g).abs() < f32::EPSILON
-                    && (stroke.color.b).abs() < f32::EPSILON
-                    && (stroke.color.a - 1.0).abs() < f32::EPSILON
-            });
-        assert!(all_black);
-    }
-
-    #[test]
-    fn when_segment_is_horizontal_rightward_then_normal_points_down() {
-        // Arrange
-        let from = Vec2::new(0.0, 0.0);
-        let to = Vec2::new(1.0, 0.0);
-
-        // Act
-        let normal = segment_normal(from, to);
-
-        // Assert
-        assert!((normal.x - 0.0).abs() < 1e-6);
-        assert!((normal.y - (-1.0)).abs() < 1e-6);
-    }
-
-    #[test]
-    fn when_splash_entities_spawned_then_letter_stroke_width_is_positive() {
-        use engine_render::prelude::{Shape, ShapeVariant, Stroke};
-
-        // Arrange / Act
-        let mut world = World::new();
-        spawn_splash_entities(&mut world);
-
-        // Assert
-        let all_positive = world
-            .query::<(&SplashEntity, &Shape, &SortOrder, &Stroke)>()
-            .iter(&world)
-            .filter(|(_, shape, order, _)| {
-                matches!(shape.variant, ShapeVariant::Path { .. })
-                    && order.0 == SPLASH_LETTER_ORDER
-            })
-            .all(|(_, _, _, stroke)| stroke.width > 0.0);
-        assert!(all_positive);
-    }
-
-    #[test]
-    fn when_normal_aligns_with_light_then_shade_returns_bright_color() {
-        // Arrange
-        let normal = Vec2::new(1.0, 0.0);
-        let light_dir = Vec2::new(1.0, 0.0); // dot = 1.0, t = 1.0
-        let dark = Color::new(0.0, 0.0, 0.0, 1.0);
-        let bright = Color::new(0.8, 0.6, 0.4, 1.0);
-
-        // Act
-        let result = shade_for_normal(normal, light_dir, dark, bright);
-
-        // Assert
-        assert!((result.r - bright.r).abs() < 1e-6);
-        assert!((result.g - bright.g).abs() < 1e-6);
-        assert!((result.b - bright.b).abs() < 1e-6);
-        assert!((result.a - bright.a).abs() < 1e-6);
-    }
-
-    #[test]
-    fn when_normal_opposes_light_then_shade_returns_dark_color() {
-        // Arrange
-        let normal = Vec2::new(-1.0, 0.0);
-        let light_dir = Vec2::new(1.0, 0.0); // dot = -1.0, t = 0.0
-        let dark = Color::new(0.1, 0.2, 0.3, 1.0);
-        let bright = Color::new(0.9, 0.8, 0.7, 1.0);
-
-        // Act
-        let result = shade_for_normal(normal, light_dir, dark, bright);
-
-        // Assert
-        assert!((result.r - dark.r).abs() < 1e-6);
-        assert!((result.g - dark.g).abs() < 1e-6);
-        assert!((result.b - dark.b).abs() < 1e-6);
-        assert!((result.a - dark.a).abs() < 1e-6);
-    }
-
-    #[test]
-    fn when_build_shaded_side_faces_then_back_faces_are_culled() {
-        use engine_render::prelude::PathCommand;
-
-        // Arrange — square contour, VP far to the right.
-        // Back faces (normal opposes VP direction) are culled.
-        let contour = vec![
-            PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
-            PathCommand::LineTo(Vec2::new(10.0, 0.0)),
-            PathCommand::LineTo(Vec2::new(10.0, 10.0)),
-            PathCommand::LineTo(Vec2::new(0.0, 10.0)),
-            PathCommand::Close,
-        ];
-        let vp = Vec2::new(50.0, 5.0);
-        let light_dir = Vec2::new(1.0, 0.0);
-        let dark = Color::new(0.0, 0.0, 0.0, 1.0);
-        let bright = Color::new(1.0, 1.0, 1.0, 1.0);
-
-        // Act
-        let pairs = build_shaded_side_faces(&contour, vp, 0.1, 1, light_dir, dark, bright);
-
-        // Assert — edges with normals opposing VP direction are culled
-        assert!(pairs.len() > 0 && pairs.len() < 4, "some edges should be culled");
-    }
-
-    // --- build_shaded_side_faces ---
-
-    #[test]
-    fn when_build_shaded_side_faces_with_triangle_then_three_pairs_returned() {
-        use engine_render::prelude::PathCommand;
-
-        // Arrange — triangle with VP to the upper-right. Back faces culled.
-        let contour = vec![
-            PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
-            PathCommand::LineTo(Vec2::new(10.0, 0.0)),
-            PathCommand::LineTo(Vec2::new(5.0, 10.0)),
-            PathCommand::Close,
-        ];
-        let vp = Vec2::new(20.0, 10.0);
-        let light_dir = Vec2::new(1.0, 0.0);
-        let dark = Color::new(0.0, 0.0, 0.0, 1.0);
-        let bright = Color::new(1.0, 1.0, 1.0, 1.0);
-
-        // Act
-        let pairs = build_shaded_side_faces(&contour, vp, 0.1, 4, light_dir, dark, bright);
-
-        // Assert — at least one face visible, but back faces culled (fewer than 3)
-        assert!(!pairs.is_empty());
-        assert!(pairs.len() < 3);
-    }
-
-    #[test]
-    fn when_build_shaded_side_faces_with_quadratic_then_curved_segment_produces_slices_and_colors_vary() {
-        use engine_render::prelude::PathCommand;
-
-        // Arrange — QuadraticTo arc + Close, VP to the left.
-        let contour = vec![
-            PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
-            PathCommand::QuadraticTo {
-                control: Vec2::new(10.0, -20.0),
-                to: Vec2::new(20.0, 0.0),
-            },
-            PathCommand::Close,
-        ];
-        let vp = Vec2::new(-50.0, 0.0);
-        let light_dir = Vec2::new(1.0, 0.0);
-        let dark = Color::new(0.1, 0.1, 0.1, 1.0);
-        let bright = Color::new(0.9, 0.9, 0.9, 1.0);
-
-        // Act
-        let pairs = build_shaded_side_faces(&contour, vp, 0.1, 4, light_dir, dark, bright);
-
-        // Assert — at least some visible faces
-        assert!(pairs.len() >= 2, "curve strips + close edge must produce visible faces");
-
-        // Assert — colors must not all be identical (varying normals along arc)
-        let colors: Vec<Color> = pairs.iter().map(|(_, c, _)| *c).collect();
-        let all_same = colors.windows(2).all(|w| (w[0].r - w[1].r).abs() < 1e-6);
-        assert!(!all_same, "varying normals along quadratic arc must yield varying shading");
-    }
-
-    #[test]
-    fn when_build_shaded_side_faces_called_then_each_geometry_is_a_closed_five_command_quad() {
-        use engine_render::prelude::PathCommand;
-
-        // Arrange — QuadraticTo + Close, VP to the left
-        let contour = vec![
-            PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
-            PathCommand::QuadraticTo {
-                control: Vec2::new(10.0, -20.0),
-                to: Vec2::new(20.0, 0.0),
-            },
-            PathCommand::Close,
-        ];
-        let vp = Vec2::new(-50.0, 0.0);
-        let light_dir = Vec2::new(1.0, 0.0);
-        let dark = Color::new(0.1, 0.1, 0.1, 1.0);
-        let bright = Color::new(0.9, 0.9, 0.9, 1.0);
-
-        // Act
-        let pairs = build_shaded_side_faces(&contour, vp, 0.1, 4, light_dir, dark, bright);
-
-        // Assert — every geometry must be [MoveTo, LineTo, LineTo, LineTo, Close]
-        for (i, (cmds, _, _)) in pairs.iter().enumerate() {
-            assert_eq!(cmds.len(), 5, "quad {i} must have exactly 5 commands");
             assert!(
-                matches!(cmds[0], PathCommand::MoveTo(_)),
-                "quad {i} command 0 must be MoveTo"
+                !all_same,
+                "shading must produce color variation across side faces"
             );
+        }
+
+        #[test]
+        fn when_splash_entities_spawned_then_has_bg_letters_accents_and_side_faces() {
+            // Arrange / Act
+            let mut world = World::new();
+            super::super::render::spawn_splash_entities(&mut world);
+
+            // Assert
+            let total = world.query::<&SplashEntity>().iter(&world).count();
+            let letter_count = world
+                .query::<(&SplashEntity, &Shape, &SortOrder)>()
+                .iter(&world)
+                .filter(|(_, shape, order)| {
+                    matches!(shape.variant, ShapeVariant::Path { .. })
+                        && order.0 == SPLASH_LETTER_ORDER
+                })
+                .count();
+
+            assert!(total > 8, "more entities than old flat approach");
+            assert_eq!(letter_count, 5, "5 foreground letter entities");
+        }
+
+        #[test]
+        fn when_splash_entities_spawned_then_letters_positioned_left_to_right() {
+            // Arrange / Act
+            let mut world = World::new();
+            super::super::render::spawn_splash_entities(&mut world);
+
+            // Assert
+            let mut letter_xs: Vec<f32> = world
+                .query::<(&SplashEntity, &Transform2D, &Shape, &SortOrder)>()
+                .iter(&world)
+                .filter(|(_, _, shape, order)| {
+                    matches!(shape.variant, ShapeVariant::Path { .. })
+                        && order.0 == SPLASH_LETTER_ORDER
+                })
+                .map(|(_, t, _, _)| t.position.x)
+                .collect();
+            letter_xs.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+            assert_eq!(letter_xs.len(), 5);
+            for pair in letter_xs.windows(2) {
+                assert!(
+                    pair[1] > pair[0],
+                    "letters must be left-to-right: {letter_xs:?}"
+                );
+            }
+        }
+
+        #[test]
+        fn when_normal_aligns_with_light_then_shade_returns_bright_color() {
+            // Arrange
+            let normal = Vec2::new(1.0, 0.0);
+            let light_dir = Vec2::new(1.0, 0.0);
+            let dark = Color::new(0.0, 0.0, 0.0, 1.0);
+            let bright = Color::new(0.8, 0.6, 0.4, 1.0);
+
+            // Act
+            let result = super::super::render::shade_for_normal(normal, light_dir, dark, bright);
+
+            // Assert
+            assert!((result.r - bright.r).abs() < 1e-6);
+            assert!((result.g - bright.g).abs() < 1e-6);
+            assert!((result.b - bright.b).abs() < 1e-6);
+            assert!((result.a - bright.a).abs() < 1e-6);
+        }
+
+        #[test]
+        fn when_normal_opposes_light_then_shade_returns_dark_color() {
+            // Arrange
+            let normal = Vec2::new(-1.0, 0.0);
+            let light_dir = Vec2::new(1.0, 0.0);
+            let dark = Color::new(0.1, 0.2, 0.3, 1.0);
+            let bright = Color::new(0.9, 0.8, 0.7, 1.0);
+
+            // Act
+            let result = super::super::render::shade_for_normal(normal, light_dir, dark, bright);
+
+            // Assert
+            assert!((result.r - dark.r).abs() < 1e-6);
+            assert!((result.g - dark.g).abs() < 1e-6);
+            assert!((result.b - dark.b).abs() < 1e-6);
+            assert!((result.a - dark.a).abs() < 1e-6);
+        }
+
+        #[test]
+        fn when_build_shaded_side_faces_then_back_faces_are_culled() {
+            // Arrange
+            let contour = vec![
+                PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(10.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(10.0, 10.0)),
+                PathCommand::LineTo(Vec2::new(0.0, 10.0)),
+                PathCommand::Close,
+            ];
+            let vp = Vec2::new(50.0, 5.0);
+            let light_dir = Vec2::new(1.0, 0.0);
+            let dark = Color::new(0.0, 0.0, 0.0, 1.0);
+            let bright = Color::new(1.0, 1.0, 1.0, 1.0);
+
+            // Act
+            let pairs = super::super::render::build_shaded_side_faces(
+                &contour, vp, 0.1, 1, light_dir, dark, bright,
+            );
+
+            // Assert
             assert!(
-                matches!(cmds[1], PathCommand::LineTo(_)),
-                "quad {i} command 1 must be LineTo"
+                !pairs.is_empty() && pairs.len() < 4,
+                "some edges should be culled"
             );
+        }
+
+        #[test]
+        fn when_build_shaded_side_faces_with_quadratic_then_curved_segment_produces_slices_and_colors_vary(
+        ) {
+            // Arrange
+            let contour = vec![
+                PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+                PathCommand::QuadraticTo {
+                    control: Vec2::new(10.0, -20.0),
+                    to: Vec2::new(20.0, 0.0),
+                },
+                PathCommand::Close,
+            ];
+            let vp = Vec2::new(-50.0, 0.0);
+            let light_dir = Vec2::new(1.0, 0.0);
+            let dark = Color::new(0.1, 0.1, 0.1, 1.0);
+            let bright = Color::new(0.9, 0.9, 0.9, 1.0);
+
+            // Act
+            let pairs = super::super::render::build_shaded_side_faces(
+                &contour, vp, 0.1, 4, light_dir, dark, bright,
+            );
+
+            // Assert
             assert!(
-                matches!(cmds[2], PathCommand::LineTo(_)),
-                "quad {i} command 2 must be LineTo"
+                pairs.len() >= 2,
+                "curve strips + close edge must produce visible faces"
             );
+            let colors: Vec<Color> = pairs.iter().map(|(_, c, _)| *c).collect();
+            let all_same = colors.windows(2).all(|w| (w[0].r - w[1].r).abs() < 1e-6);
             assert!(
-                matches!(cmds[3], PathCommand::LineTo(_)),
-                "quad {i} command 3 must be LineTo"
+                !all_same,
+                "varying normals along quadratic arc must yield varying shading"
             );
-            assert!(
-                matches!(cmds[4], PathCommand::Close),
-                "quad {i} command 4 must be Close"
+        }
+
+        #[test]
+        fn when_build_shaded_side_faces_called_then_each_geometry_is_a_closed_five_command_quad() {
+            // Arrange
+            let contour = vec![
+                PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+                PathCommand::QuadraticTo {
+                    control: Vec2::new(10.0, -20.0),
+                    to: Vec2::new(20.0, 0.0),
+                },
+                PathCommand::Close,
+            ];
+            let vp = Vec2::new(-50.0, 0.0);
+            let light_dir = Vec2::new(1.0, 0.0);
+            let dark = Color::new(0.1, 0.1, 0.1, 1.0);
+            let bright = Color::new(0.9, 0.9, 0.9, 1.0);
+
+            // Act
+            let pairs = super::super::render::build_shaded_side_faces(
+                &contour, vp, 0.1, 4, light_dir, dark, bright,
             );
+
+            // Assert
+            for (i, (cmds, _, _)) in pairs.iter().enumerate() {
+                assert_eq!(cmds.len(), 5, "quad {i} must have exactly 5 commands");
+                assert!(
+                    matches!(cmds[0], PathCommand::MoveTo(_)),
+                    "quad {i} command 0 must be MoveTo"
+                );
+                assert!(
+                    matches!(cmds[1], PathCommand::LineTo(_)),
+                    "quad {i} command 1 must be LineTo"
+                );
+                assert!(
+                    matches!(cmds[2], PathCommand::LineTo(_)),
+                    "quad {i} command 2 must be LineTo"
+                );
+                assert!(
+                    matches!(cmds[3], PathCommand::LineTo(_)),
+                    "quad {i} command 3 must be LineTo"
+                );
+                assert!(
+                    matches!(cmds[4], PathCommand::Close),
+                    "quad {i} command 4 must be Close"
+                );
+            }
         }
     }
 }

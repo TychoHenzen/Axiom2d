@@ -83,7 +83,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 
 ### Render Pipeline
 
-`Clear → Atlas Upload → Camera Prepare → Sprite Pass → Shape Pass → Post-Process → Present`
+`Clear → Atlas Upload → Camera Prepare → Splash Camera → Sprite Pass → Shape Pass → Post-Process → Present`
 
 ## API Design Conventions
 

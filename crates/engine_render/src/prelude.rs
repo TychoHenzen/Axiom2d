@@ -17,7 +17,8 @@ pub use crate::rect::Rect;
 pub use crate::renderer::{NullRenderer, Renderer, RendererRes};
 pub use crate::shape::{
     PathCommand, Shape, ShapeVariant, Stroke, TessellatedMesh, resolve_commands, reverse_path,
-    shape_render_system, tessellate, tessellate_stroke,
+    sample_cubic, sample_quadratic, shape_render_system, split_contours, tessellate,
+    tessellate_stroke,
 };
 pub use crate::sprite::{Sprite, sprite_render_system};
 pub use crate::window::WindowConfig;
