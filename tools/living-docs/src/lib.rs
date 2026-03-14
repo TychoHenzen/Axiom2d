@@ -41,34 +41,35 @@ pub fn parse_test_entry(line: &str) -> Option<ParsedTest> {
         return None;
     }
 
-    // Doc-test format: "path\to\file.rs - qualified::Name (line N): test"
-    if let Some(rest) = trimmed.strip_suffix(": test") {
-        if let Some(dash_pos) = rest.find(" - ") {
-            let name = rest[dash_pos + 3..].to_string();
-            return Some(ParsedTest {
-                module: "doc_tests".to_string(),
-                name,
-            });
-        }
+    let rest = trimmed
+        .strip_suffix(": test")
+        .or_else(|| trimmed.strip_suffix(" ... ok"))
+        .or_else(|| trimmed.strip_suffix(" ... FAILED"))
+        .or_else(|| trimmed.strip_suffix(" ... ignored"))?;
 
-        // Standard format: "module::tests::test_name: test"
-        if let Some(tests_pos) = rest.find("::tests::") {
-            let module = rest[..tests_pos].to_string();
-            let name = rest[tests_pos + 9..].to_string();
-            let top_module = module.split("::").next().unwrap_or(&module).to_string();
-            return Some(ParsedTest {
-                module: top_module,
-                name,
-            });
-        }
+    if let Some(dash_pos) = rest.find(" - ") {
+        let name = rest[dash_pos + 3..].to_string();
+        return Some(ParsedTest {
+            module: "doc_tests".to_string(),
+            name,
+        });
+    }
 
-        // Root-level tests: "tests::test_name: test" (no module prefix)
-        if let Some(name) = rest.strip_prefix("tests::") {
-            return Some(ParsedTest {
-                module: "tests".to_string(),
-                name: name.to_string(),
-            });
-        }
+    if let Some(tests_pos) = rest.find("::tests::") {
+        let module = rest[..tests_pos].to_string();
+        let name = rest[tests_pos + 9..].to_string();
+        let top_module = module.split("::").next().unwrap_or(&module).to_string();
+        return Some(ParsedTest {
+            module: top_module,
+            name,
+        });
+    }
+
+    if let Some(name) = rest.strip_prefix("tests::") {
+        return Some(ParsedTest {
+            module: "tests".to_string(),
+            name: name.to_string(),
+        });
     }
 
     None
@@ -110,6 +111,8 @@ pub struct TestDoc {
     pub description: String,
     pub annotation: Option<String>,
     pub source: Option<SourceLocation>,
+    pub body: Option<String>,
+    pub passed: Option<bool>,
 }
 
 /// Source file path and line number for a test function.
@@ -125,6 +128,12 @@ pub type SourceMap = HashMap<String, SourceLocation>;
 /// Annotation map: maps `"crate_name::module::test_name"` → extended description.
 pub type AnnotationMap = HashMap<String, String>;
 
+/// Body map: maps test function name → extracted function body.
+pub type BodyMap = HashMap<String, String>;
+
+/// Result map: maps test function name → passed (true/false).
+pub type ResultMap = HashMap<String, bool>;
+
 /// Parse source file content for `/// @doc:` annotations above `#[test]` functions.
 ///
 /// Returns a map of test function name → annotation text.
@@ -136,7 +145,6 @@ pub fn parse_annotations(source: &str) -> HashMap<String, String> {
         let trimmed = line.trim();
         if let Some(rest) = trimmed.strip_prefix("/// @doc:") {
             let annotation = rest.trim().to_string();
-            // Look ahead for #[test] then fn name
             for next_line in &lines[(i + 1)..] {
                 let next = next_line.trim();
                 if next.starts_with("fn ") {
@@ -191,11 +199,118 @@ pub fn parse_test_locations(source: &str, file_path: &str) -> SourceMap {
     result
 }
 
+/// Scan source content for `#[test]` functions and extract their body lines.
+///
+/// Returns a map of test function name → the lines between the opening and
+/// closing braces (indentation preserved, trailing newline included).
+pub fn parse_test_bodies(source: &str) -> HashMap<String, String> {
+    let mut result = HashMap::new();
+    let lines: Vec<&str> = source.lines().collect();
+    let mut i = 0;
+
+    while i < lines.len() {
+        if lines[i].trim() != "#[test]" {
+            i += 1;
+            continue;
+        }
+
+        let fn_line_idx = {
+            let mut found = None;
+            for j in (i + 1)..lines.len() {
+                let next = lines[j].trim();
+                if next.starts_with("fn ") {
+                    found = Some(j);
+                    break;
+                }
+                if next.is_empty() || next.starts_with("#[") || next.starts_with("///") {
+                    continue;
+                }
+                break;
+            }
+            found
+        };
+
+        let Some(fn_idx) = fn_line_idx else {
+            i += 1;
+            continue;
+        };
+
+        let fn_line = lines[fn_idx].trim();
+        let Some(name) = fn_line.strip_prefix("fn ").and_then(|s| s.split('(').next()) else {
+            i = fn_idx + 1;
+            continue;
+        };
+        let name = name.trim().to_string();
+
+        let body_start_idx = if fn_line.ends_with('{') {
+            fn_idx + 1
+        } else {
+            let mut found = fn_idx + 1;
+            for j in (fn_idx + 1)..lines.len() {
+                if lines[j].trim() == "{" {
+                    found = j + 1;
+                    break;
+                }
+            }
+            found
+        };
+
+        let mut depth: usize = 1;
+        let mut body_lines: Vec<&str> = Vec::new();
+
+        for j in body_start_idx..lines.len() {
+            for ch in lines[j].chars() {
+                match ch {
+                    '{' => depth += 1,
+                    '}' => depth -= 1,
+                    _ => {}
+                }
+            }
+            if depth == 0 {
+                break;
+            }
+            body_lines.push(lines[j]);
+        }
+
+        let body = body_lines.join("\n") + "\n";
+        result.insert(name, body);
+
+        i = fn_idx + 1;
+    }
+
+    result
+}
+
+/// Parse cargo test output for pass/fail results.
+///
+/// Recognises lines like `module::tests::test_name ... ok` or `... FAILED`.
+/// Returns a map of bare test function name → passed (true/false).
+pub fn parse_test_results(output: &str) -> HashMap<String, bool> {
+    let mut result = HashMap::new();
+
+    for line in output.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_suffix(" ... ok")
+            && let Some(name) = rest.rsplit("::").next()
+        {
+            result.insert(name.to_string(), true);
+        } else if let Some(rest) = trimmed.strip_suffix(" ... FAILED")
+            && let Some(name) = rest.rsplit("::").next()
+        {
+            result.insert(name.to_string(), false);
+        }
+    }
+
+    result
+}
+
 /// Convert parsed cargo output into `CrateDoc` structs.
 pub fn convert_to_docs(
     parsed: &BTreeMap<String, Vec<ParsedTest>>,
     annotations: &AnnotationMap,
     sources: &SourceMap,
+    bodies: &BodyMap,
+    results: &ResultMap,
 ) -> Vec<CrateDoc> {
     parsed
         .iter()
@@ -213,6 +328,8 @@ pub fn convert_to_docs(
                     .or_else(|| annotations.get(&test.name))
                     .cloned();
                 let source = sources.get(&test.name).cloned();
+                let body = bodies.get(&test.name).cloned();
+                let passed = results.get(&test.name).copied();
                 modules
                     .entry(test.module.clone())
                     .or_default()
@@ -220,6 +337,8 @@ pub fn convert_to_docs(
                         description,
                         annotation,
                         source,
+                        body,
+                        passed,
                     });
             }
             CrateDoc {
@@ -260,21 +379,35 @@ pub fn generate_markdown(docs: &[CrateDoc], total: usize, date: &str) -> String 
                 tests.len()
             );
             for test in tests {
-                let has_details = test.annotation.is_some() || test.source.is_some();
+                let status = match test.passed {
+                    Some(true) => "\u{2705} ",
+                    Some(false) => "\u{274c} ",
+                    None => "",
+                };
+                let has_details = test.annotation.is_some()
+                    || test.source.is_some()
+                    || test.body.is_some();
                 if has_details {
                     let _ = writeln!(out, "<blockquote>");
                     let _ = writeln!(out, "<details>");
-                    let _ = writeln!(out, "<summary>{}</summary>\n", test.description);
+                    let _ = writeln!(
+                        out,
+                        "<summary>{status}{}</summary>\n",
+                        test.description
+                    );
                     if let Some(ref ann) = test.annotation {
                         let _ = writeln!(out, "*{ann}*\n");
                     }
                     if let Some(ref loc) = test.source {
                         let _ = writeln!(out, "<code>{}:{}</code>\n", loc.file, loc.line);
                     }
+                    if let Some(ref body) = test.body {
+                        let _ = writeln!(out, "```rust\n{body}```\n");
+                    }
                     let _ = writeln!(out, "</details>");
                     let _ = writeln!(out, "</blockquote>");
                 } else {
-                    let _ = writeln!(out, "- {}", test.description);
+                    let _ = writeln!(out, "- {status}{}", test.description);
                 }
             }
             let _ = writeln!(out, "\n</details>");
@@ -315,9 +448,10 @@ pub fn parse_cargo_output(output: &str) -> BTreeMap<String, Vec<ParsedTest>> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::{
-        AnnotationMap, CrateDoc, ParsedTest, SourceLocation, SourceMap, TestDoc, convert_to_docs,
-        generate_markdown, parse_annotations, parse_cargo_output, parse_crate_name,
-        parse_test_entry, parse_test_locations, to_readable_description,
+        AnnotationMap, BodyMap, CrateDoc, ParsedTest, ResultMap, SourceLocation, SourceMap,
+        TestDoc, convert_to_docs, generate_markdown, parse_annotations, parse_cargo_output,
+        parse_crate_name, parse_test_bodies, parse_test_entry, parse_test_locations,
+        parse_test_results, to_readable_description,
     };
     use std::collections::BTreeMap;
 
@@ -558,6 +692,8 @@ warning: some other warning
                 description: "When delta read, then returns seconds".to_string(),
                 annotation: None,
                 source: None,
+                body: None,
+                passed: None,
             }],
         );
         modules.insert(
@@ -566,6 +702,8 @@ warning: some other warning
                 description: "When from u8, then converts".to_string(),
                 annotation: None,
                 source: None,
+                body: None,
+                passed: None,
             }],
         );
         let docs = vec![CrateDoc {
@@ -593,6 +731,8 @@ warning: some other warning
                 description: "When delta read, then returns seconds".to_string(),
                 annotation: None,
                 source: None,
+                body: None,
+                passed: None,
             }],
         );
         let docs = vec![CrateDoc {
@@ -700,7 +840,9 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
         let parsed = parse_cargo_output(output);
         let annotations = AnnotationMap::new();
         let sources = SourceMap::new();
-        let docs = convert_to_docs(&parsed, &annotations, &sources);
+        let bodies = BodyMap::new();
+        let results = ResultMap::new();
+        let docs = convert_to_docs(&parsed, &annotations, &sources, &bodies, &results);
 
         // Act
         let total: usize = docs
@@ -767,6 +909,8 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
                 description: "When from u8, then converts".to_string(),
                 annotation: None,
                 source: None,
+                body: None,
+                passed: None,
             }],
         );
         let docs = vec![CrateDoc {
@@ -796,6 +940,8 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
                 description: "When from u8, then converts".to_string(),
                 annotation: None,
                 source: None,
+                body: None,
+                passed: None,
             }],
         );
         let docs = vec![CrateDoc {
@@ -822,6 +968,8 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
                 description: "When from u8 called, then converts".to_string(),
                 annotation: Some("Verifies byte-to-float conversion".to_string()),
                 source: None,
+                body: None,
+                passed: None,
             }],
         );
         let docs = vec![CrateDoc {
@@ -870,6 +1018,8 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
                     file: "crates/engine_core/src/color.rs".to_string(),
                     line: 42,
                 }),
+                body: None,
+                passed: None,
             }],
         );
         let docs = vec![CrateDoc {
@@ -898,6 +1048,8 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
                 description: "When from u8, then converts".to_string(),
                 annotation: None,
                 source: None,
+                body: None,
+                passed: None,
             }],
         );
         let docs = vec![CrateDoc {
@@ -927,6 +1079,8 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
                     file: "crates/engine_core/src/time.rs".to_string(),
                     line: 99,
                 }),
+                body: None,
+                passed: None,
             }],
         );
         let docs = vec![CrateDoc {
@@ -956,6 +1110,8 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
                 description: "When from u8, then converts".to_string(),
                 annotation: None,
                 source: None,
+                body: None,
+                passed: None,
             }],
         );
         let docs = vec![CrateDoc {
@@ -1070,6 +1226,538 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
         assert!(result.contains_key("documented_test"));
     }
 
+    // TC101
+    #[test]
+    fn when_source_has_one_test_fn_then_parse_test_bodies_returns_inner_lines() {
+        // Arrange
+        let source = "#[test]\nfn when_foo_then_bar() {\n    let x = 1;\n    assert_eq!(x, 1);\n}\n";
+
+        // Act
+        let result = parse_test_bodies(source);
+
+        // Assert
+        assert_eq!(
+            result.get("when_foo_then_bar"),
+            Some(&"    let x = 1;\n    assert_eq!(x, 1);\n".to_string()),
+        );
+    }
+
+    // TC102
+    #[test]
+    fn when_source_has_no_test_fns_then_parse_test_bodies_returns_empty() {
+        // Arrange
+        let source = "fn not_a_test() {\n    let x = 1;\n}\n";
+
+        // Act
+        let result = parse_test_bodies(source);
+
+        // Assert
+        assert!(result.is_empty());
+    }
+
+    // TC103
+    #[test]
+    fn when_source_has_multiple_test_fns_then_parse_test_bodies_returns_one_per_test() {
+        // Arrange
+        let source = "\
+#[test]
+fn test_a() {
+    let a = 1;
+}
+
+#[test]
+fn test_b() {
+    let b = 2;
+    let c = 3;
+}
+
+#[test]
+fn test_c() {
+    assert!(true);
+}
+";
+
+        // Act
+        let result = parse_test_bodies(source);
+
+        // Assert
+        assert_eq!(result.len(), 3);
+        assert_eq!(result.get("test_a"), Some(&"    let a = 1;\n".to_string()));
+        assert_eq!(
+            result.get("test_b"),
+            Some(&"    let b = 2;\n    let c = 3;\n".to_string())
+        );
+        assert_eq!(
+            result.get("test_c"),
+            Some(&"    assert!(true);\n".to_string())
+        );
+    }
+
+    // TC104
+    #[test]
+    fn when_test_fn_has_nested_braces_then_parse_test_bodies_includes_full_body() {
+        // Arrange
+        let source = "\
+#[test]
+fn when_nested_then_captures_all() {
+    if true {
+        let x = 1;
+    }
+    assert!(true);
+}
+";
+
+        // Act
+        let result = parse_test_bodies(source);
+
+        // Assert
+        assert_eq!(
+            result.get("when_nested_then_captures_all"),
+            Some(
+                &"    if true {\n        let x = 1;\n    }\n    assert!(true);\n".to_string()
+            )
+        );
+    }
+
+    // TC105
+    #[test]
+    fn when_ok_result_line_then_parse_test_results_returns_true() {
+        // Arrange
+        let output = "color::tests::when_from_u8_then_converts ... ok\n";
+
+        // Act
+        let result = parse_test_results(output);
+
+        // Assert
+        assert_eq!(result.get("when_from_u8_then_converts"), Some(&true));
+    }
+
+    // TC106
+    #[test]
+    fn when_failed_result_line_then_parse_test_results_returns_false() {
+        // Arrange
+        let output = "color::tests::when_from_u8_then_converts ... FAILED\n";
+
+        // Act
+        let result = parse_test_results(output);
+
+        // Assert
+        assert_eq!(result.get("when_from_u8_then_converts"), Some(&false));
+    }
+
+    // TC107
+    #[test]
+    fn when_mixed_results_then_parse_test_results_maps_each_correctly() {
+        // Arrange
+        let output = "\
+color::tests::when_from_u8_then_converts ... ok
+time::tests::when_delta_read_then_fails ... FAILED
+spatial::tests::when_position_set_then_stored ... ok
+";
+
+        // Act
+        let result = parse_test_results(output);
+
+        // Assert
+        assert_eq!(result.len(), 3);
+        assert_eq!(result.get("when_from_u8_then_converts"), Some(&true));
+        assert_eq!(result.get("when_delta_read_then_fails"), Some(&false));
+        assert_eq!(result.get("when_position_set_then_stored"), Some(&true));
+    }
+
+    // TC108
+    #[test]
+    fn when_no_result_lines_then_parse_test_results_returns_empty() {
+        // Arrange
+        let output = "\
+   Compiling engine_core v0.1.0
+warning: unused variable
+test result: ok. 5 passed; 0 failed
+";
+
+        // Act
+        let result = parse_test_results(output);
+
+        // Assert
+        assert!(result.is_empty());
+    }
+
+    // TC109
+    #[test]
+    fn when_convert_to_docs_with_empty_bodies_then_body_is_none() {
+        // Arrange
+        let mut parsed = BTreeMap::new();
+        parsed.insert(
+            "engine_core".to_string(),
+            vec![ParsedTest {
+                module: "color".to_string(),
+                name: "when_foo_then_bar".to_string(),
+            }],
+        );
+        let annotations = AnnotationMap::new();
+        let sources = SourceMap::new();
+        let bodies = BodyMap::new();
+        let results = ResultMap::new();
+
+        // Act
+        let docs = convert_to_docs(&parsed, &annotations, &sources, &bodies, &results);
+
+        // Assert
+        assert!(docs[0].modules["color"][0].body.is_none());
+    }
+
+    // TC110
+    #[test]
+    fn when_convert_to_docs_with_matching_body_then_body_is_some() {
+        // Arrange
+        let mut parsed = BTreeMap::new();
+        parsed.insert(
+            "engine_core".to_string(),
+            vec![ParsedTest {
+                module: "color".to_string(),
+                name: "when_foo_then_bar".to_string(),
+            }],
+        );
+        let annotations = AnnotationMap::new();
+        let sources = SourceMap::new();
+        let mut bodies = BodyMap::new();
+        bodies.insert(
+            "when_foo_then_bar".to_string(),
+            "    let x = 1;\n".to_string(),
+        );
+        let results = ResultMap::new();
+
+        // Act
+        let docs = convert_to_docs(&parsed, &annotations, &sources, &bodies, &results);
+
+        // Assert
+        assert_eq!(
+            docs[0].modules["color"][0].body,
+            Some("    let x = 1;\n".to_string())
+        );
+    }
+
+    // TC111
+    #[test]
+    fn when_convert_to_docs_with_empty_results_then_passed_is_none() {
+        // Arrange
+        let mut parsed = BTreeMap::new();
+        parsed.insert(
+            "engine_core".to_string(),
+            vec![ParsedTest {
+                module: "color".to_string(),
+                name: "when_foo_then_bar".to_string(),
+            }],
+        );
+        let annotations = AnnotationMap::new();
+        let sources = SourceMap::new();
+        let bodies = BodyMap::new();
+        let results = ResultMap::new();
+
+        // Act
+        let docs = convert_to_docs(&parsed, &annotations, &sources, &bodies, &results);
+
+        // Assert
+        assert!(docs[0].modules["color"][0].passed.is_none());
+    }
+
+    // TC112
+    #[test]
+    fn when_convert_to_docs_with_matching_result_then_passed_is_some() {
+        // Arrange
+        let mut parsed = BTreeMap::new();
+        parsed.insert(
+            "engine_core".to_string(),
+            vec![ParsedTest {
+                module: "color".to_string(),
+                name: "when_foo_then_bar".to_string(),
+            }],
+        );
+        let annotations = AnnotationMap::new();
+        let sources = SourceMap::new();
+        let bodies = BodyMap::new();
+        let mut results = ResultMap::new();
+        results.insert("when_foo_then_bar".to_string(), true);
+
+        // Act
+        let docs = convert_to_docs(&parsed, &annotations, &sources, &bodies, &results);
+
+        // Assert
+        assert_eq!(docs[0].modules["color"][0].passed, Some(true));
+    }
+
+    // TC113
+    #[test]
+    fn when_passing_test_with_no_details_then_list_item_has_checkmark() {
+        // Arrange
+        let mut modules = BTreeMap::new();
+        modules.insert(
+            "color".to_string(),
+            vec![TestDoc {
+                description: "When from u8, then converts".to_string(),
+                annotation: None,
+                source: None,
+                body: None,
+                passed: Some(true),
+            }],
+        );
+        let docs = vec![CrateDoc {
+            name: "engine_core".to_string(),
+            modules,
+        }];
+
+        // Act
+        let md = generate_markdown(&docs, 1, "2026-03-14");
+
+        // Assert
+        assert!(md.contains("- \u{2705} When from u8, then converts"));
+    }
+
+    // TC114
+    #[test]
+    fn when_failing_test_with_no_details_then_list_item_has_cross() {
+        // Arrange
+        let mut modules = BTreeMap::new();
+        modules.insert(
+            "color".to_string(),
+            vec![TestDoc {
+                description: "When from u8, then converts".to_string(),
+                annotation: None,
+                source: None,
+                body: None,
+                passed: Some(false),
+            }],
+        );
+        let docs = vec![CrateDoc {
+            name: "engine_core".to_string(),
+            modules,
+        }];
+
+        // Act
+        let md = generate_markdown(&docs, 1, "2026-03-14");
+
+        // Assert
+        assert!(md.contains("- \u{274c} When from u8, then converts"));
+    }
+
+    // TC115
+    #[test]
+    fn when_unknown_result_with_no_details_then_list_item_has_no_prefix() {
+        // Arrange
+        let mut modules = BTreeMap::new();
+        modules.insert(
+            "color".to_string(),
+            vec![TestDoc {
+                description: "When from u8, then converts".to_string(),
+                annotation: None,
+                source: None,
+                body: None,
+                passed: None,
+            }],
+        );
+        let docs = vec![CrateDoc {
+            name: "engine_core".to_string(),
+            modules,
+        }];
+
+        // Act
+        let md = generate_markdown(&docs, 1, "2026-03-14");
+
+        // Assert
+        assert!(md.contains("- When from u8, then converts"));
+        assert!(!md.contains("\u{2705}"));
+        assert!(!md.contains("\u{274c}"));
+    }
+
+    // TC116
+    #[test]
+    fn when_passing_test_with_body_then_foldout_has_checkmark_and_code_block() {
+        // Arrange
+        let mut modules = BTreeMap::new();
+        modules.insert(
+            "color".to_string(),
+            vec![TestDoc {
+                description: "When from u8, then converts".to_string(),
+                annotation: None,
+                source: None,
+                body: Some("    let x = 1;\n".to_string()),
+                passed: Some(true),
+            }],
+        );
+        let docs = vec![CrateDoc {
+            name: "engine_core".to_string(),
+            modules,
+        }];
+
+        // Act
+        let md = generate_markdown(&docs, 1, "2026-03-14");
+
+        // Assert
+        assert!(md.contains("<summary>\u{2705} When from u8, then converts</summary>"));
+        assert!(md.contains("```rust\n    let x = 1;\n```"));
+    }
+
+    // TC117
+    #[test]
+    fn when_test_has_annotation_and_body_then_annotation_before_code_block() {
+        // Arrange
+        let mut modules = BTreeMap::new();
+        modules.insert(
+            "color".to_string(),
+            vec![TestDoc {
+                description: "When from u8, then converts".to_string(),
+                annotation: Some("Verifies conversion".to_string()),
+                source: None,
+                body: Some("    let x = 1;\n".to_string()),
+                passed: None,
+            }],
+        );
+        let docs = vec![CrateDoc {
+            name: "engine_core".to_string(),
+            modules,
+        }];
+
+        // Act
+        let md = generate_markdown(&docs, 1, "2026-03-14");
+
+        // Assert
+        let ann_pos = md.find("*Verifies conversion*").expect("annotation");
+        let code_pos = md.find("```rust").expect("code block");
+        assert!(ann_pos < code_pos);
+    }
+
+    // TC118
+    #[test]
+    fn when_test_has_source_and_body_then_source_before_code_block() {
+        // Arrange
+        let mut modules = BTreeMap::new();
+        modules.insert(
+            "color".to_string(),
+            vec![TestDoc {
+                description: "When from u8, then converts".to_string(),
+                annotation: None,
+                source: Some(SourceLocation {
+                    file: "src/color.rs".to_string(),
+                    line: 42,
+                }),
+                body: Some("    let x = 1;\n".to_string()),
+                passed: None,
+            }],
+        );
+        let docs = vec![CrateDoc {
+            name: "engine_core".to_string(),
+            modules,
+        }];
+
+        // Act
+        let md = generate_markdown(&docs, 1, "2026-03-14");
+
+        // Assert
+        let loc_pos = md.find("<code>src/color.rs:42</code>").expect("location");
+        let code_pos = md.find("```rust").expect("code block");
+        assert!(loc_pos < code_pos);
+    }
+
+    // TC119
+    #[test]
+    fn when_test_has_all_details_then_order_is_annotation_source_code() {
+        // Arrange
+        let mut modules = BTreeMap::new();
+        modules.insert(
+            "color".to_string(),
+            vec![TestDoc {
+                description: "When from u8, then converts".to_string(),
+                annotation: Some("Verifies conversion".to_string()),
+                source: Some(SourceLocation {
+                    file: "src/color.rs".to_string(),
+                    line: 42,
+                }),
+                body: Some("    let x = 1;\n".to_string()),
+                passed: Some(true),
+            }],
+        );
+        let docs = vec![CrateDoc {
+            name: "engine_core".to_string(),
+            modules,
+        }];
+
+        // Act
+        let md = generate_markdown(&docs, 1, "2026-03-14");
+
+        // Assert
+        let ann_pos = md.find("*Verifies conversion*").expect("annotation");
+        let loc_pos = md.find("<code>src/color.rs:42</code>").expect("location");
+        let code_pos = md.find("```rust").expect("code block");
+        assert!(ann_pos < loc_pos);
+        assert!(loc_pos < code_pos);
+    }
+
+    // TC120
+    #[test]
+    fn when_test_has_annotation_but_no_body_then_no_code_block() {
+        // Arrange
+        let mut modules = BTreeMap::new();
+        modules.insert(
+            "color".to_string(),
+            vec![TestDoc {
+                description: "When from u8, then converts".to_string(),
+                annotation: Some("Verifies conversion".to_string()),
+                source: None,
+                body: None,
+                passed: None,
+            }],
+        );
+        let docs = vec![CrateDoc {
+            name: "engine_core".to_string(),
+            modules,
+        }];
+
+        // Act
+        let md = generate_markdown(&docs, 1, "2026-03-14");
+
+        // Assert
+        assert!(md.contains("*Verifies conversion*"));
+        assert!(!md.contains("```rust"));
+    }
+
+    // TC121
+    #[test]
+    fn when_full_pipeline_with_results_and_bodies_then_checkmarks_and_code_in_markdown() {
+        // Arrange
+        let cargo_output = "\
+     Running unittests src\\lib.rs (target\\debug\\deps\\engine_core-abc123.exe)
+color::tests::when_from_u8_then_converts ... ok
+time::tests::when_delta_read_then_returns_seconds ... ok
+2 tests, 0 benchmarks";
+
+        let source = "\
+#[test]
+fn when_from_u8_then_converts() {
+    let c = Color::from_u8(255);
+    assert_eq!(c, 1.0);
+}
+";
+
+        let parsed = parse_cargo_output(cargo_output);
+        let results = parse_test_results(cargo_output);
+        let annotations = AnnotationMap::new();
+        let sources = SourceMap::new();
+        let bodies = parse_test_bodies(source);
+
+        // Act
+        let docs = convert_to_docs(&parsed, &annotations, &sources, &bodies, &results);
+        let total: usize = docs
+            .iter()
+            .map(|d| d.modules.values().map(Vec::len).sum::<usize>())
+            .sum();
+        let md = generate_markdown(&docs, total, "2026-03-14");
+
+        // Assert
+        assert!(md.contains("<summary>\u{2705} When from u8, then converts</summary>"));
+        assert!(md.contains("```rust\n    let c = Color::from_u8(255);\n    assert_eq!(c, 1.0);\n```"));
+        assert!(md.contains("- \u{2705} When delta read, then returns seconds"));
+    }
+
     // TC032
     #[test]
     fn when_test_foldout_then_wrapped_in_blockquote() {
@@ -1084,6 +1772,8 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
                     file: "src/color.rs".to_string(),
                     line: 10,
                 }),
+                body: None,
+                passed: None,
             }],
         );
         let docs = vec![CrateDoc {

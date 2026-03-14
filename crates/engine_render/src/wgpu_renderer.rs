@@ -672,10 +672,7 @@ fn create_fullscreen_pipeline(
             })],
             compilation_options: wgpu::PipelineCompilationOptions::default(),
         }),
-        primitive: wgpu::PrimitiveState {
-            topology: wgpu::PrimitiveTopology::TriangleList,
-            ..Default::default()
-        },
+        primitive: wgpu::PrimitiveState::default(),
         depth_stencil: None,
         multisample: wgpu::MultisampleState::default(),
         multiview: None,
@@ -885,10 +882,7 @@ impl WgpuRenderer {
                     })],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 }),
-                primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::TriangleList,
-                    ..Default::default()
-                },
+                primitive: wgpu::PrimitiveState::default(),
                 depth_stencil: None,
                 multisample: wgpu::MultisampleState::default(),
                 multiview: None,
@@ -958,10 +952,7 @@ impl WgpuRenderer {
                     })],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 }),
-                primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::TriangleList,
-                    ..Default::default()
-                },
+                primitive: wgpu::PrimitiveState::default(),
                 depth_stencil: None,
                 multisample: wgpu::MultisampleState::default(),
                 multiview: None,
@@ -1299,11 +1290,7 @@ pub(crate) fn create_texture_bind_group(
         size,
     );
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-        mag_filter: wgpu::FilterMode::Nearest,
-        min_filter: wgpu::FilterMode::Nearest,
-        ..Default::default()
-    });
+    let sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
     device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: None,
         layout,

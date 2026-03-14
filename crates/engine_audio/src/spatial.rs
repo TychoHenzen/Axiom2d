@@ -27,7 +27,7 @@ pub fn compute_pan(listener_pos: Vec2, emitter_pos: Vec2) -> (f32, f32) {
         diff.normalize()
     };
 
-    let pan = (direction.x + 1.0) * 0.5;
+    let pan = ((direction.x + 1.0) * 0.5).clamp(0.0, 1.0);
     let left = (FRAC_PI_2 * pan).cos();
     let right = (FRAC_PI_2 * pan).sin();
     (left, right)
