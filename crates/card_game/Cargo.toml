@@ -1,0 +1,15 @@
+[package]
+name = "card_game"
+edition.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+bevy_ecs = { workspace = true }
+engine_core = { path = "../engine_core" }
+serde = { workspace = true }
+
+[dev-dependencies]
+ron = { workspace = true }

@@ -56,14 +56,14 @@ These extend `engine_physics` with capabilities the card game requires.
 
 ## Phase B: Core Card Data Model
 
-### Step B1 — Card Component and Zone `[NOT STARTED]`
+### Step B1 — Card Component and Zone `[DONE]`
 **Crate:** card_game
 **Why:** Foundation data types that every other system references.
 
-- [ ] `Card` component: `face_texture: TextureId`, `back_texture: TextureId`, `face_up: bool`
-- [ ] `CardZone` component enum: `Table`, `Hand(usize)`, `Stash { page: u8, col: u8, row: u8 }`
-- [ ] Derive Component, Debug, Clone, PartialEq, Serialize, Deserialize
-- [ ] Tests: zone equality, card default face_up state
+- [x] `Card` component: `face_texture: TextureId`, `back_texture: TextureId`, `face_up: bool`
+- [x] `CardZone` component enum: `Table`, `Hand(usize)`, `Stash { page: u8, col: u8, row: u8 }`
+- [x] Derive Component, Debug, Clone, PartialEq, Serialize, Deserialize
+- [x] Tests: zone equality, card default face_up state
 
 ### Step B2 — Hand Resource `[NOT STARTED]`
 **Crate:** card_game
