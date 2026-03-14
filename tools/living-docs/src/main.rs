@@ -1,7 +1,6 @@
 use living_docs::{
-    AnnotationMap, BodyMap, SourceMap, convert_to_docs, generate_markdown,
-    parse_annotations, parse_cargo_output, parse_test_bodies, parse_test_locations,
-    parse_test_results,
+    AnnotationMap, BodyMap, SourceMap, convert_to_docs, generate_markdown, parse_annotations,
+    parse_cargo_output, parse_test_bodies, parse_test_locations, parse_test_results,
 };
 use std::path::Path;
 use std::process::Command;
@@ -24,7 +23,12 @@ fn collect_from_dir(
     }
 }
 
-fn scan_dir(dir: &Path, annotations: &mut AnnotationMap, sources: &mut SourceMap, bodies: &mut BodyMap) {
+fn scan_dir(
+    dir: &Path,
+    annotations: &mut AnnotationMap,
+    sources: &mut SourceMap,
+    bodies: &mut BodyMap,
+) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };

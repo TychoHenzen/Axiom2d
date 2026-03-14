@@ -4,28 +4,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Axiom2d is an LLM-optimized 2D game engine written in Rust. The project is in early development (scaffolding stage). The full architectural vision is documented in `Doc/Axiom_Blueprint.md`. The implementation roadmap with progress tracking lives in `Doc/Implementation_Roadmap.md`.
+Axiom2d is an LLM-optimized 2D game engine written in Rust. The engine scaffolding is complete (all 12 crates implemented, 740+ tests). The full architectural vision is documented in `Doc/Axiom_Blueprint.md`. The engine implementation roadmap lives in `Doc/Implementation_Roadmap.md`. Known technical debt is tracked in `Doc/Technical_Debt_Audit.md`.
 
-## Implementation Roadmap
+## Current Focus: Card Game
 
-**Before starting feature work**, read `Doc/Implementation_Roadmap.md` to understand what's been done, what's next, and the dependency order between phases.
+We are now building the first real game on the engine — a card game with physics-based card manipulation. The implementation plan lives in `Doc/Card_Game_Roadmap.md`.
+
+**Before starting work**, read `Doc/Card_Game_Roadmap.md` to understand what's been done, what's next, and the dependency order between phases.
 
 ### Working on a step
 
 1. Pick the next `[NOT STARTED]` step that has all dependencies satisfied (check the dependency graph at the bottom of the roadmap).
-2. Mark the step `[IN PROGRESS]` in `Doc/Implementation_Roadmap.md` before writing code.
+2. Mark the step `[IN PROGRESS]` in `Doc/Card_Game_Roadmap.md` before writing code.
 3. Implement with tests (follow the Testing Strategy below). Each checkbox in the step is a deliverable — check it off as you complete it.
 4. Run `cargo.exe test` and `cargo.exe build` to verify everything passes.
 5. Mark the step `[DONE]` when all checkboxes are checked and tests pass.
 
 ### After completing a step
 
-1. Update `Doc/Implementation_Roadmap.md`: mark `[DONE]`, check all boxes.
-2. Update the **Implemented Abstractions** section in this file if new public types/traits/systems were added.
-3. Update the **Current State** baseline at the top of the roadmap (test counts, feature summary).
-4. run fmt -all
-5. If new crates gained real implementations, move them from "placeholder" to "implemented" in the Architecture section below.
-6. If new workspace dependencies were added, mention them in the Development Environment section.
+1. Update `Doc/Card_Game_Roadmap.md`: mark `[DONE]`, check all boxes.
+2. Update the memory file if new public types/traits/systems were added.
+3. Run `cargo.exe fmt --all`.
+4. If new workspace dependencies were added, mention them in the Development Environment section.
+
+### Engine changes
+
+Card game work may require engine extensions (Phase A in the roadmap). When modifying engine crates (e.g. `engine_physics`), also update `Doc/Implementation_Roadmap.md` if relevant and keep the engine's test suite passing.
 
 ## Development Environment
 

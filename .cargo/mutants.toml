@@ -52,9 +52,11 @@ exclude_re = [
     # living-docs main.rs — thin glue over filesystem/process I/O, logic tested in lib.rs
     "replace collect_annotations",
     "replace collect_sources",
+    "replace collect_from_dir",
     "replace scan_dir",
     "in collect_annotations",
     "in collect_sources",
+    "in collect_from_dir",
     "in scan_dir",
     "replace main with",
     "replace chrono_free_date",

@@ -216,13 +216,16 @@ pub fn parse_test_bodies(source: &str) -> HashMap<String, String> {
 
         let fn_line_idx = {
             let mut found = None;
-            for j in (i + 1)..lines.len() {
-                let next = lines[j].trim();
+            for (j, line) in lines.iter().enumerate().skip(i + 1) {
+                let next = line.trim();
                 if next.starts_with("fn ") {
                     found = Some(j);
                     break;
                 }
-                if next.is_empty() || next.starts_with("#[") || next.starts_with("///") {
+                if next.is_empty()
+                    || next.starts_with("#[") && next != "#[test]"
+                    || next.starts_with("///")
+                {
                     continue;
                 }
                 break;
@@ -236,30 +239,34 @@ pub fn parse_test_bodies(source: &str) -> HashMap<String, String> {
         };
 
         let fn_line = lines[fn_idx].trim();
-        let Some(name) = fn_line.strip_prefix("fn ").and_then(|s| s.split('(').next()) else {
-            i = fn_idx + 1;
-            continue;
-        };
-        let name = name.trim().to_string();
+        // strip_prefix always succeeds (fn_idx found via starts_with("fn ") check)
+        // split('(').next() always returns at least one element
+        let name = fn_line
+            .strip_prefix("fn ")
+            .expect("fn_idx found via starts_with check")
+            .split('(')
+            .next()
+            .expect("split always yields at least one element")
+            .trim()
+            .to_string();
+
+        let past_fn = fn_idx + 1;
 
         let body_start_idx = if fn_line.ends_with('{') {
-            fn_idx + 1
+            past_fn
         } else {
-            let mut found = fn_idx + 1;
-            for j in (fn_idx + 1)..lines.len() {
-                if lines[j].trim() == "{" {
-                    found = j + 1;
-                    break;
-                }
-            }
-            found
+            lines[past_fn..]
+                .iter()
+                .enumerate()
+                .find_map(|(offset, line)| (line.trim() == "{").then_some(past_fn + offset + 1))
+                .unwrap_or(past_fn)
         };
 
         let mut depth: usize = 1;
         let mut body_lines: Vec<&str> = Vec::new();
 
-        for j in body_start_idx..lines.len() {
-            for ch in lines[j].chars() {
+        for line in lines.iter().skip(body_start_idx) {
+            for ch in line.chars() {
                 match ch {
                     '{' => depth += 1,
                     '}' => depth -= 1,
@@ -269,13 +276,13 @@ pub fn parse_test_bodies(source: &str) -> HashMap<String, String> {
             if depth == 0 {
                 break;
             }
-            body_lines.push(lines[j]);
+            body_lines.push(line);
         }
 
         let body = body_lines.join("\n") + "\n";
         result.insert(name, body);
 
-        i = fn_idx + 1;
+        i = past_fn;
     }
 
     result
@@ -329,7 +336,7 @@ pub fn convert_to_docs(
                     .cloned();
                 let source = sources.get(&test.name).cloned();
                 let body = bodies.get(&test.name).cloned();
-                let passed = results.get(&test.name).copied();
+                let did_pass = results.get(&test.name).copied();
                 modules
                     .entry(test.module.clone())
                     .or_default()
@@ -338,7 +345,7 @@ pub fn convert_to_docs(
                         annotation,
                         source,
                         body,
-                        passed,
+                        passed: did_pass,
                     });
             }
             CrateDoc {
@@ -384,17 +391,12 @@ pub fn generate_markdown(docs: &[CrateDoc], total: usize, date: &str) -> String 
                     Some(false) => "\u{274c} ",
                     None => "",
                 };
-                let has_details = test.annotation.is_some()
-                    || test.source.is_some()
-                    || test.body.is_some();
+                let has_details =
+                    test.annotation.is_some() || test.source.is_some() || test.body.is_some();
                 if has_details {
                     let _ = writeln!(out, "<blockquote>");
                     let _ = writeln!(out, "<details>");
-                    let _ = writeln!(
-                        out,
-                        "<summary>{status}{}</summary>\n",
-                        test.description
-                    );
+                    let _ = writeln!(out, "<summary>{status}{}</summary>\n", test.description);
                     if let Some(ref ann) = test.annotation {
                         let _ = writeln!(out, "*{ann}*\n");
                     }
@@ -1230,7 +1232,8 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
     #[test]
     fn when_source_has_one_test_fn_then_parse_test_bodies_returns_inner_lines() {
         // Arrange
-        let source = "#[test]\nfn when_foo_then_bar() {\n    let x = 1;\n    assert_eq!(x, 1);\n}\n";
+        let source =
+            "#[test]\nfn when_foo_then_bar() {\n    let x = 1;\n    assert_eq!(x, 1);\n}\n";
 
         // Act
         let result = parse_test_bodies(source);
@@ -1313,9 +1316,7 @@ fn when_nested_then_captures_all() {
         // Assert
         assert_eq!(
             result.get("when_nested_then_captures_all"),
-            Some(
-                &"    if true {\n        let x = 1;\n    }\n    assert!(true);\n".to_string()
-            )
+            Some(&"    if true {\n        let x = 1;\n    }\n    assert!(true);\n".to_string())
         );
     }
 
@@ -1754,7 +1755,9 @@ fn when_from_u8_then_converts() {
 
         // Assert
         assert!(md.contains("<summary>\u{2705} When from u8, then converts</summary>"));
-        assert!(md.contains("```rust\n    let c = Color::from_u8(255);\n    assert_eq!(c, 1.0);\n```"));
+        assert!(
+            md.contains("```rust\n    let c = Color::from_u8(255);\n    assert_eq!(c, 1.0);\n```")
+        );
         assert!(md.contains("- \u{2705} When delta read, then returns seconds"));
     }
 
@@ -1787,6 +1790,108 @@ fn when_from_u8_then_converts() {
         // Assert
         assert!(
             md.contains("<blockquote>\n<details>\n<summary>When from u8, then converts</summary>")
+        );
+    }
+
+    // TC125: Kills mutant "replace || with && in parse_test_bodies" (line 225, first ||)
+    // Empty line between #[test] and fn should be skipped by the continue condition
+    #[test]
+    fn when_empty_line_between_test_attr_and_fn_then_body_still_extracted() {
+        // Arrange
+        let source = "#[test]\n\nfn spaced_test() {\n    let x = 1;\n}\n";
+
+        // Act
+        let result = parse_test_bodies(source);
+
+        // Assert
+        assert_eq!(
+            result.get("spaced_test"),
+            Some(&"    let x = 1;\n".to_string()),
+        );
+    }
+
+    // TC126: Kills mutant "replace || with && in parse_test_bodies" (line 225, second ||)
+    // Doc comment between #[test] and fn should be skipped
+    #[test]
+    fn when_doc_comment_between_test_attr_and_fn_then_body_still_extracted() {
+        // Arrange
+        let source = "#[test]\n/// some doc\nfn documented_test() {\n    let x = 2;\n}\n";
+
+        // Act
+        let result = parse_test_bodies(source);
+
+        // Assert
+        assert_eq!(
+            result.get("documented_test"),
+            Some(&"    let x = 2;\n".to_string()),
+        );
+    }
+
+    // TC127: Kills mutant "replace += with -= in parse_test_bodies" (line 234)
+    // and "replace += with *= in parse_test_bodies" (line 234)
+    // #[test] followed by non-fn, non-skippable line should not loop forever
+    #[test]
+    fn when_test_attr_not_followed_by_fn_then_skips_and_parses_next_test() {
+        // Arrange
+        let source = "\
+#[test]
+let x = 1;
+
+#[test]
+fn real_test() {
+    assert!(true);
+}
+";
+
+        // Act
+        let result = parse_test_bodies(source);
+
+        // Assert
+        assert_eq!(result.len(), 1);
+        assert_eq!(
+            result.get("real_test"),
+            Some(&"    assert!(true);\n".to_string()),
+        );
+    }
+
+    // TC129: Kills mutant "replace != with == in parse_test_bodies" (next != "#[test]")
+    // Non-test attribute between #[test] and fn should be skipped by continue
+    #[test]
+    fn when_non_test_attr_between_test_and_fn_then_body_still_extracted() {
+        // Arrange
+        let source = "#[test]\n#[allow(unused)]\nfn attr_test() {\n    let x = 3;\n}\n";
+
+        // Act
+        let result = parse_test_bodies(source);
+
+        // Assert
+        assert_eq!(
+            result.get("attr_test"),
+            Some(&"    let x = 3;\n".to_string()),
+        );
+    }
+
+    // TC128: Kills mutant "replace == with != in parse_test_bodies" (line 250)
+    // and "replace + with - / * in parse_test_bodies" (line 251)
+    // Brace on separate line from fn signature
+    #[test]
+    fn when_brace_on_separate_line_then_body_extracted_correctly() {
+        // Arrange
+        let source = "\
+#[test]
+fn separate_brace()
+{
+    let x = 42;
+}
+";
+
+        // Act
+        let result = parse_test_bodies(source);
+
+        // Assert
+        assert_eq!(
+            result.get("separate_brace"),
+            Some(&"    let x = 42;\n".to_string()),
         );
     }
 }
