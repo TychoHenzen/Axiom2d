@@ -1,0 +1,14 @@
+[package]
+name = "card_game_bin"
+edition.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+axiom2d = { path = "../axiom2d" }
+bevy_ecs = { workspace = true }
+card_game = { path = "../card_game" }
+engine_physics = { path = "../engine_physics" }
+glam = { workspace = true }

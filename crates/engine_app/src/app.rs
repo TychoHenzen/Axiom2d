@@ -162,7 +162,8 @@ impl ApplicationHandler for App {
                 f64::from(self.window_config.width),
                 f64::from(self.window_config.height),
             ))
-            .with_resizable(self.window_config.resizable);
+            .with_resizable(self.window_config.resizable)
+            .with_visible(false);
         let window = Arc::new(
             event_loop
                 .create_window(attrs)
@@ -170,8 +171,24 @@ impl ApplicationHandler for App {
         );
         let renderer = engine_render::create_renderer(window.clone(), &self.window_config);
 
-        self.window = Some(window);
         self.world.insert_resource(RendererRes::new(renderer));
+        self.window = Some(window.clone());
+
+        // Reset the clock so the first DeltaTime is near-zero, not the
+        // seconds spent on GPU initialization.
+        self.world
+            .insert_resource(engine_core::prelude::ClockRes::new(Box::new(
+                engine_core::time::SystemClock::new(),
+            )));
+
+        // Render a few frames while the window is still hidden to ensure
+        // the GPU has fully presented before the window becomes visible.
+        // This avoids the white flash from the OS compositor.
+        for _ in 0..3 {
+            self.handle_redraw();
+        }
+        window.set_visible(true);
+        window.request_redraw();
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {

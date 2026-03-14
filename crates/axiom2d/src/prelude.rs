@@ -10,3 +10,4 @@ pub use engine_render::prelude::*;
 pub use engine_scene::prelude::*;
 
 pub use crate::default_plugins::DefaultPlugins;
+pub use crate::splash::{PreloadHooks, SplashEntity, SplashPlugin, SplashScreen};

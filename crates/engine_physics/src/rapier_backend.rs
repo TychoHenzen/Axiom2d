@@ -705,10 +705,11 @@ mod tests {
         let pos = backend.body_position(entity).unwrap();
         let rot = backend.body_rotation(entity).unwrap();
         let (sin, cos) = rot.sin_cos();
-        let expected = pos + Vec2::new(
-            local_offset.x * cos - local_offset.y * sin,
-            local_offset.x * sin + local_offset.y * cos,
-        );
+        let expected = pos
+            + Vec2::new(
+                local_offset.x * cos - local_offset.y * sin,
+                local_offset.x * sin + local_offset.y * cos,
+            );
         assert!(
             (world_pt.x - expected.x).abs() < 1e-4,
             "x: got {}, expected {}",

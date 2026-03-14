@@ -11,7 +11,11 @@ pub struct Card {
 
 impl Card {
     pub fn face_down(face_texture: TextureId, back_texture: TextureId) -> Self {
-        Self { face_texture, back_texture, face_up: false }
+        Self {
+            face_texture,
+            back_texture,
+            face_up: false,
+        }
     }
 }
 

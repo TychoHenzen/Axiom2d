@@ -26,19 +26,55 @@ mod tests {
     #[test]
     fn when_two_stash_zones_differ_in_any_coordinate_then_not_equal() {
         // Arrange
-        let origin = CardZone::Stash { page: 0, col: 0, row: 0 };
+        let origin = CardZone::Stash {
+            page: 0,
+            col: 0,
+            row: 0,
+        };
 
         // Act + Assert
-        assert_ne!(origin, CardZone::Stash { page: 1, col: 0, row: 0 }, "page differs");
-        assert_ne!(origin, CardZone::Stash { page: 0, col: 1, row: 0 }, "col differs");
-        assert_ne!(origin, CardZone::Stash { page: 0, col: 0, row: 1 }, "row differs");
+        assert_ne!(
+            origin,
+            CardZone::Stash {
+                page: 1,
+                col: 0,
+                row: 0
+            },
+            "page differs"
+        );
+        assert_ne!(
+            origin,
+            CardZone::Stash {
+                page: 0,
+                col: 1,
+                row: 0
+            },
+            "col differs"
+        );
+        assert_ne!(
+            origin,
+            CardZone::Stash {
+                page: 0,
+                col: 0,
+                row: 1
+            },
+            "row differs"
+        );
     }
 
     #[test]
     fn when_same_stash_coordinates_then_zones_are_equal() {
         // Arrange
-        let a = CardZone::Stash { page: 2, col: 3, row: 4 };
-        let b = CardZone::Stash { page: 2, col: 3, row: 4 };
+        let a = CardZone::Stash {
+            page: 2,
+            col: 3,
+            row: 4,
+        };
+        let b = CardZone::Stash {
+            page: 2,
+            col: 3,
+            row: 4,
+        };
 
         // Assert
         assert_eq!(a, b);
@@ -50,7 +86,11 @@ mod tests {
         let zones = [
             CardZone::Table,
             CardZone::Hand(3),
-            CardZone::Stash { page: 1, col: 4, row: 7 },
+            CardZone::Stash {
+                page: 1,
+                col: 4,
+                row: 7,
+            },
         ];
 
         for zone in zones {

@@ -65,14 +65,14 @@ These extend `engine_physics` with capabilities the card game requires.
 - [x] Derive Component, Debug, Clone, PartialEq, Serialize, Deserialize
 - [x] Tests: zone equality, card default face_up state
 
-### Step B2 — Hand Resource `[NOT STARTED]`
+### Step B2 — Hand Resource `[DONE]`
 **Crate:** card_game
 **Why:** Ordered container for cards "in hand" at the bottom of the screen.
 
-- [ ] `Hand` resource: `cards: Vec<Entity>`, `max_size: usize`
-- [ ] Methods: `add(entity) -> Result<usize, HandFull>`, `remove(entity) -> Option<usize>`, `cards() -> &[Entity]`, `len()`, `is_full()`
-- [ ] `HandFull` error type
-- [ ] Tests: add returns index, add to full hand errors, remove returns former index, remove unknown returns None, ordering preserved
+- [x] `Hand` resource: `cards: Vec<Entity>`, `max_size: usize`
+- [x] Methods: `add(entity) -> Result<usize, HandFull>`, `remove(entity) -> Option<usize>`, `cards() -> &[Entity]`, `len()`, `is_full()`
+- [x] `HandFull` error type
+- [x] Tests: add returns index, add to full hand errors, remove returns former index, remove unknown returns None, ordering preserved
 
 ### Step B3 — StashGrid Resource `[NOT STARTED]`
 **Crate:** card_game
