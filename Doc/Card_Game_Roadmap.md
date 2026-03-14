@@ -34,14 +34,14 @@ These extend `engine_physics` with capabilities the card game requires.
 - [x] Implement on `NullPhysicsBackend`: no-op
 - [x] Tests: force at center produces linear motion without rotation, force off-center produces rotation, unknown entity is no-op, zero force is no-op
 
-### Step A2 — Configure Damping `[NOT STARTED]`
+### Step A2 — Configure Damping `[DONE]`
 **Crate:** engine_physics
 **Why:** Cards on the table need linear and angular damping to simulate table friction (poker felt). Without damping, cards slide forever. Must be configurable per body.
 
-- [ ] Add `fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32)` to `PhysicsBackend` trait
-- [ ] Implement on `RapierBackend`: look up body handle, set `linear_damping` and `angular_damping`
-- [ ] Implement on `NullPhysicsBackend`: no-op
-- [ ] Tests: high damping body stops faster than low damping body (step N times, compare positions), unknown entity is no-op
+- [x] Add `fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32)` to `PhysicsBackend` trait
+- [x] Implement on `RapierBackend`: look up body handle, set `linear_damping` and `angular_damping`
+- [x] Implement on `NullPhysicsBackend`: no-op
+- [x] Tests: high damping body stops faster than low damping body (step N times, compare positions), unknown entity is no-op
 
 ### Step A3 — Body World Transform Query `[NOT STARTED]`
 **Crate:** engine_physics

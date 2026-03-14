@@ -17,6 +17,7 @@ pub trait PhysicsBackend: Send + Sync {
     fn body_rotation(&self, entity: Entity) -> Option<f32>;
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent>;
     fn add_force_at_point(&mut self, entity: Entity, force: Vec2, world_point: Vec2);
+    fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32);
 }
 
 #[derive(Default)]
@@ -67,6 +68,8 @@ impl PhysicsBackend for NullPhysicsBackend {
     }
 
     fn add_force_at_point(&mut self, _entity: Entity, _force: Vec2, _world_point: Vec2) {}
+
+    fn set_damping(&mut self, _entity: Entity, _linear: f32, _angular: f32) {}
 }
 
 #[cfg(test)]
@@ -202,5 +205,26 @@ mod tests {
 
         // Act
         backend.add_force_at_point(entity, Vec2::new(0.0, -9.8), Vec2::ZERO);
+    }
+
+    #[test]
+    fn when_set_damping_on_registered_body_then_no_panic() {
+        // Arrange
+        let mut backend = NullPhysicsBackend::new();
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+
+        // Act
+        backend.set_damping(entity, 0.5, 0.1);
+    }
+
+    #[test]
+    fn when_set_damping_on_unknown_entity_then_no_panic() {
+        // Arrange
+        let mut backend = NullPhysicsBackend::new();
+        let entity = spawn_entity();
+
+        // Act
+        backend.set_damping(entity, 1.0, 0.0);
     }
 }

@@ -154,6 +154,17 @@ impl PhysicsBackend for RapierBackend {
         );
     }
 
+    fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32) {
+        let Some(&handle) = self.entity_to_handle.get(&entity) else {
+            return;
+        };
+        let Some(body) = self.bodies.get_mut(handle) else {
+            return;
+        };
+        body.set_linear_damping(linear);
+        body.set_angular_damping(angular);
+    }
+
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
         let mut events = Vec::new();
         while let Ok(rapier_event) = self.collision_recv.try_recv() {
@@ -437,6 +448,168 @@ mod tests {
     }
 
     #[test]
+    fn when_set_damping_on_unknown_entity_then_no_panic() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+
+        // Act
+        backend.set_damping(entity, 5.0, 3.0);
+    }
+
+    fn apply_impulse(backend: &mut RapierBackend, entity: Entity, force: Vec2, point: Vec2) {
+        backend.add_force_at_point(entity, force, point);
+        backend.step(Seconds(0.016));
+        let handle = backend.entity_to_handle[&entity];
+        let body = backend.bodies.get_mut(handle).unwrap();
+        body.reset_forces(false);
+        body.reset_torques(false);
+    }
+
+    #[test]
+    fn when_zero_damping_body_given_impulse_then_keeps_moving_after_force_stops() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entity, &Collider::Circle(0.5));
+        backend.set_damping(entity, 0.0, 0.0);
+        apply_impulse(&mut backend, entity, Vec2::new(5000.0, 0.0), Vec2::ZERO);
+
+        // Act
+        for _ in 0..10 {
+            backend.step(Seconds(0.016));
+        }
+
+        // Assert
+        let pos = backend.body_position(entity).unwrap();
+        assert!(
+            pos.x > 0.5,
+            "expected undamped body to coast to x > 0.5 after impulse, got {}",
+            pos.x
+        );
+    }
+
+    #[test]
+    fn when_high_linear_damping_then_travels_less_distance_than_zero_damping() {
+        // Arrange
+        let mut undamped = RapierBackend::new(Vec2::ZERO);
+        let entity_u = spawn_entity();
+        undamped.add_body(entity_u, &RigidBody::Dynamic, Vec2::ZERO);
+        undamped.add_collider(entity_u, &Collider::Circle(0.5));
+        undamped.set_damping(entity_u, 0.0, 0.0);
+
+        let mut damped = RapierBackend::new(Vec2::ZERO);
+        let entity_d = spawn_entity();
+        damped.add_body(entity_d, &RigidBody::Dynamic, Vec2::ZERO);
+        damped.add_collider(entity_d, &Collider::Circle(0.5));
+        damped.set_damping(entity_d, 20.0, 0.0);
+
+        // Act — one step with force, reset forces, then coast
+        apply_impulse(&mut undamped, entity_u, Vec2::new(5000.0, 0.0), Vec2::ZERO);
+        apply_impulse(&mut damped, entity_d, Vec2::new(5000.0, 0.0), Vec2::ZERO);
+
+        for _ in 0..30 {
+            undamped.step(Seconds(0.016));
+            damped.step(Seconds(0.016));
+        }
+
+        // Assert
+        let x_undamped = undamped.body_position(entity_u).unwrap().x;
+        let x_damped = damped.body_position(entity_d).unwrap().x;
+        assert!(
+            x_damped < x_undamped * 0.5,
+            "expected damped x ({}) < 50% of undamped x ({})",
+            x_damped,
+            x_undamped
+        );
+    }
+
+    #[test]
+    fn when_high_angular_damping_then_rotates_less_than_undamped() {
+        // Arrange
+        let mut undamped = RapierBackend::new(Vec2::ZERO);
+        let entity_u = spawn_entity();
+        undamped.add_body(entity_u, &RigidBody::Dynamic, Vec2::ZERO);
+        undamped.add_collider(entity_u, &Collider::Circle(0.5));
+        undamped.set_damping(entity_u, 0.0, 0.0);
+
+        let mut damped = RapierBackend::new(Vec2::ZERO);
+        let entity_d = spawn_entity();
+        damped.add_body(entity_d, &RigidBody::Dynamic, Vec2::ZERO);
+        damped.add_collider(entity_d, &Collider::Circle(0.5));
+        damped.set_damping(entity_d, 0.0, 20.0);
+
+        // Act — off-center force for 1 step to induce spin, then reset forces so they don't persist
+        apply_impulse(
+            &mut undamped,
+            entity_u,
+            Vec2::new(50.0, 0.0),
+            Vec2::new(0.0, 1.0),
+        );
+        apply_impulse(
+            &mut damped,
+            entity_d,
+            Vec2::new(50.0, 0.0),
+            Vec2::new(0.0, 1.0),
+        );
+
+        let handle_u = undamped.entity_to_handle[&entity_u];
+        let handle_d = damped.entity_to_handle[&entity_d];
+
+        for _ in 0..10 {
+            undamped.step(Seconds(0.016));
+            damped.step(Seconds(0.016));
+        }
+
+        // Assert — compare angular velocity since cumulative rotation wraps
+        let angvel_undamped = undamped.bodies.get(handle_u).unwrap().angvel().abs();
+        let angvel_damped = damped.bodies.get(handle_d).unwrap().angvel().abs();
+        assert!(
+            angvel_damped < angvel_undamped * 0.5,
+            "expected damped angvel ({}) < 50% of undamped angvel ({})",
+            angvel_damped,
+            angvel_undamped
+        );
+    }
+
+    #[test]
+    fn when_damping_reset_to_zero_then_body_moves_like_undamped() {
+        // Arrange
+        let mut reference = RapierBackend::new(Vec2::ZERO);
+        let entity_r = spawn_entity();
+        reference.add_body(entity_r, &RigidBody::Dynamic, Vec2::ZERO);
+        reference.add_collider(entity_r, &Collider::Circle(0.5));
+        reference.set_damping(entity_r, 0.0, 0.0);
+
+        let mut reset = RapierBackend::new(Vec2::ZERO);
+        let entity_s = spawn_entity();
+        reset.add_body(entity_s, &RigidBody::Dynamic, Vec2::ZERO);
+        reset.add_collider(entity_s, &Collider::Circle(0.5));
+        reset.set_damping(entity_s, 20.0, 20.0);
+        reset.set_damping(entity_s, 0.0, 0.0);
+
+        // Act — one step with force, reset forces, then coast
+        apply_impulse(&mut reference, entity_r, Vec2::new(5000.0, 0.0), Vec2::ZERO);
+        apply_impulse(&mut reset, entity_s, Vec2::new(5000.0, 0.0), Vec2::ZERO);
+
+        for _ in 0..30 {
+            reference.step(Seconds(0.016));
+            reset.step(Seconds(0.016));
+        }
+
+        // Assert
+        let x_reference = reference.body_position(entity_r).unwrap().x;
+        let x_reset = reset.body_position(entity_s).unwrap().x;
+        assert!(
+            (x_reset - x_reference).abs() < 1e-3,
+            "expected reset body x ({}) ≈ reference x ({})",
+            x_reset,
+            x_reference
+        );
+    }
+
+    #[test]
     fn when_zero_force_applied_at_center_then_body_does_not_move() {
         // Arrange
         let mut backend = RapierBackend::new(Vec2::ZERO);
@@ -471,7 +644,11 @@ mod tests {
         // Assert
         let pos = backend.body_position(entity).unwrap();
         let rot = backend.body_rotation(entity).unwrap();
-        assert!(pos.x > 0.0, "expected x > 0 after repeated +x force, got {}", pos.x);
+        assert!(
+            pos.x > 0.0,
+            "expected x > 0 after repeated +x force, got {}",
+            pos.x
+        );
         assert!(pos.y.abs() < 1e-4, "expected y ≈ 0, got {}", pos.y);
         assert!(rot.abs() < 1e-5, "expected no rotation, got {}", rot);
     }
@@ -486,11 +663,7 @@ mod tests {
 
         // Act
         for _ in 0..5 {
-            backend.add_force_at_point(
-                entity,
-                Vec2::new(1000.0, 0.0),
-                Vec2::new(0.0, 1.0),
-            );
+            backend.add_force_at_point(entity, Vec2::new(1000.0, 0.0), Vec2::new(0.0, 1.0));
             backend.step(Seconds(0.016));
         }
 

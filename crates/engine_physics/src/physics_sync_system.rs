@@ -89,6 +89,8 @@ mod tests {
         }
 
         fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
+
+        fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
     }
 
     fn run_sync(world: &mut World) {
