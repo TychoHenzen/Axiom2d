@@ -18,6 +18,16 @@ pub trait PhysicsBackend: Send + Sync {
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent>;
     fn add_force_at_point(&mut self, entity: Entity, force: Vec2, world_point: Vec2);
     fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32);
+
+    fn body_point_to_world(&self, entity: Entity, local_point: Vec2) -> Option<Vec2> {
+        let pos = self.body_position(entity)?;
+        let rot = self.body_rotation(entity)?;
+        let (sin, cos) = rot.sin_cos();
+        Some(pos + Vec2::new(
+            local_point.x * cos - local_point.y * sin,
+            local_point.x * sin + local_point.y * cos,
+        ))
+    }
 }
 
 #[derive(Default)]
@@ -226,5 +236,128 @@ mod tests {
 
         // Act
         backend.set_damping(entity, 1.0, 0.0);
+    }
+
+    // --- body_point_to_world tests ---
+
+    use std::collections::HashMap;
+
+    struct SpyPhysicsBackend {
+        positions: HashMap<Entity, Vec2>,
+        rotations: HashMap<Entity, f32>,
+    }
+
+    impl SpyPhysicsBackend {
+        fn new() -> Self {
+            Self {
+                positions: HashMap::new(),
+                rotations: HashMap::new(),
+            }
+        }
+
+        fn with_body(mut self, entity: Entity, position: Vec2, rotation: f32) -> Self {
+            self.positions.insert(entity, position);
+            self.rotations.insert(entity, rotation);
+            self
+        }
+    }
+
+    impl PhysicsBackend for SpyPhysicsBackend {
+        fn step(&mut self, _dt: Seconds) {}
+        fn add_body(&mut self, _: Entity, _: &RigidBody, _: Vec2) -> bool { false }
+        fn add_collider(&mut self, _: Entity, _: &Collider) -> bool { false }
+        fn remove_body(&mut self, _: Entity) {}
+        fn body_position(&self, entity: Entity) -> Option<Vec2> {
+            self.positions.get(&entity).copied()
+        }
+        fn body_rotation(&self, entity: Entity) -> Option<f32> {
+            self.rotations.get(&entity).copied()
+        }
+        fn drain_collision_events(&mut self) -> Vec<CollisionEvent> { Vec::new() }
+        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
+        fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
+    }
+
+    #[test]
+    fn when_local_origin_then_returns_body_position() {
+        // Arrange
+        let entity = spawn_entity();
+        let backend = SpyPhysicsBackend::new()
+            .with_body(entity, Vec2::new(5.0, 3.0), 0.0);
+
+        // Act
+        let result = backend.body_point_to_world(entity, Vec2::ZERO);
+
+        // Assert
+        let world_pos = result.unwrap();
+        assert!((world_pos.x - 5.0).abs() < 1e-6);
+        assert!((world_pos.y - 3.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn when_unrotated_then_local_offset_translates_directly() {
+        // Arrange
+        let entity = spawn_entity();
+        let backend = SpyPhysicsBackend::new()
+            .with_body(entity, Vec2::new(5.0, 3.0), 0.0);
+
+        // Act
+        let result = backend.body_point_to_world(entity, Vec2::new(1.0, 0.0));
+
+        // Assert
+        let world_pos = result.unwrap();
+        assert!((world_pos.x - 6.0).abs() < 1e-6);
+        assert!((world_pos.y - 3.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn when_rotated_90_degrees_then_local_offset_rotated() {
+        // Arrange
+        let entity = spawn_entity();
+        let quarter_turn = std::f32::consts::FRAC_PI_2;
+        let backend = SpyPhysicsBackend::new()
+            .with_body(entity, Vec2::ZERO, quarter_turn);
+
+        // Act
+        let result = backend.body_point_to_world(entity, Vec2::new(1.0, 0.0));
+
+        // Assert
+        let world_pos = result.unwrap();
+        assert!(world_pos.x.abs() < 1e-6);
+        assert!((world_pos.y - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn when_rotated_and_translated_then_both_applied() {
+        // Arrange
+        let entity = spawn_entity();
+        let quarter_turn = std::f32::consts::FRAC_PI_4; // 45 degrees
+        let backend = SpyPhysicsBackend::new()
+            .with_body(entity, Vec2::new(10.0, 5.0), quarter_turn);
+
+        // Act
+        let result = backend.body_point_to_world(entity, Vec2::new(2.0, 0.0));
+
+        // Assert
+        let world_pos = result.unwrap();
+        let cos = quarter_turn.cos();
+        let sin = quarter_turn.sin();
+        let expected_x = 10.0 + 2.0 * cos;
+        let expected_y = 5.0 + 2.0 * sin;
+        assert!((world_pos.x - expected_x).abs() < 1e-4);
+        assert!((world_pos.y - expected_y).abs() < 1e-4);
+    }
+
+    #[test]
+    fn when_unknown_entity_then_body_point_to_world_returns_none() {
+        // Arrange
+        let entity = spawn_entity();
+        let backend = SpyPhysicsBackend::new();
+
+        // Act
+        let result = backend.body_point_to_world(entity, Vec2::new(1.0, 0.0));
+
+        // Assert
+        assert!(result.is_none());
     }
 }

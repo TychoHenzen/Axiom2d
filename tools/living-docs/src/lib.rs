@@ -1894,4 +1894,48 @@ fn separate_brace()
             Some(&"    let x = 42;\n".to_string()),
         );
     }
+
+    // TC130: Kills mutant "replace && with || in parse_test_bodies" (line 226)
+    // Non-attribute line between #[test] and fn should stop the scan, not skip it
+    #[test]
+    fn when_non_skippable_line_between_test_attr_and_fn_then_fn_not_extracted() {
+        // Arrange
+        let source = "\
+#[test]
+const X: i32 = 1;
+fn false_positive() {
+    unreachable!();
+}
+";
+
+        // Act
+        let result = parse_test_bodies(source);
+
+        // Assert
+        assert!(result.is_empty());
+    }
+
+    // TC131: Kills mutant "replace + with - in parse_test_bodies" (line 261, past_fn + offset)
+    // When { is separated from fn by a blank line, offset > 0 distinguishes + from -
+    #[test]
+    fn when_blank_line_between_fn_sig_and_brace_then_body_excludes_brace() {
+        // Arrange
+        let source = "\
+#[test]
+fn gap_brace()
+
+{
+    let y = 99;
+}
+";
+
+        // Act
+        let result = parse_test_bodies(source);
+
+        // Assert
+        assert_eq!(
+            result.get("gap_brace"),
+            Some(&"    let y = 99;\n".to_string()),
+        );
+    }
 }

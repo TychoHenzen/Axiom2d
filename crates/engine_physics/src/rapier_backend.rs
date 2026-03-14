@@ -677,4 +677,49 @@ mod tests {
             rot
         );
     }
+
+    #[test]
+    fn when_rapier_body_rotated_then_body_point_to_world_matches_manual_transform() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::new(3.0, 4.0));
+        backend.add_collider(entity, &Collider::Circle(0.5));
+        backend.set_damping(entity, 0.0, 0.0);
+        apply_impulse(
+            &mut backend,
+            entity,
+            Vec2::new(50.0, 0.0),
+            Vec2::new(3.0, 5.0),
+        );
+        for _ in 0..5 {
+            backend.step(Seconds(0.016));
+        }
+
+        // Act
+        let local_offset = Vec2::new(1.0, 0.5);
+        let result = backend.body_point_to_world(entity, local_offset);
+
+        // Assert
+        let world_pt = result.unwrap();
+        let pos = backend.body_position(entity).unwrap();
+        let rot = backend.body_rotation(entity).unwrap();
+        let (sin, cos) = rot.sin_cos();
+        let expected = pos + Vec2::new(
+            local_offset.x * cos - local_offset.y * sin,
+            local_offset.x * sin + local_offset.y * cos,
+        );
+        assert!(
+            (world_pt.x - expected.x).abs() < 1e-4,
+            "x: got {}, expected {}",
+            world_pt.x,
+            expected.x
+        );
+        assert!(
+            (world_pt.y - expected.y).abs() < 1e-4,
+            "y: got {}, expected {}",
+            world_pt.y,
+            expected.y
+        );
+    }
 }

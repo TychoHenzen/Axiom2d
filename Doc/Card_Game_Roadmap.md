@@ -43,14 +43,14 @@ These extend `engine_physics` with capabilities the card game requires.
 - [x] Implement on `NullPhysicsBackend`: no-op
 - [x] Tests: high damping body stops faster than low damping body (step N times, compare positions), unknown entity is no-op
 
-### Step A3 — Body World Transform Query `[NOT STARTED]`
+### Step A3 — Body World Transform Query `[DONE]`
 **Crate:** engine_physics
 **Why:** During drag, we need the body's current position AND rotation to compute where the local-space grab offset is in world space. `body_position` and `body_rotation` already exist on the trait, but we need to verify they work together for this use case. If they don't provide sufficient precision mid-step, add a combined query.
 
-- [ ] Verify existing `body_position(entity)` and `body_rotation(entity)` return current values after `step()`
-- [ ] Add `fn body_point_to_world(&self, entity: Entity, local_point: Vec2) -> Option<Vec2>` convenience method — computes `body_pos + rotate(local_point, body_rotation)`
-- [ ] Default trait implementation using `body_position` + `body_rotation` (no per-backend override needed unless rapier provides a more precise native method)
-- [ ] Tests: local origin maps to body position, rotated body transforms local offset correctly, unknown entity returns None
+- [x] Verify existing `body_position(entity)` and `body_rotation(entity)` return current values after `step()`
+- [x] Add `fn body_point_to_world(&self, entity: Entity, local_point: Vec2) -> Option<Vec2>` convenience method — computes `body_pos + rotate(local_point, body_rotation)`
+- [x] Default trait implementation using `body_position` + `body_rotation` (no per-backend override needed unless rapier provides a more precise native method)
+- [x] Tests: local origin maps to body position, rotated body transforms local offset correctly, unknown entity returns None
 
 ---
 
