@@ -16,6 +16,7 @@ pub trait PhysicsBackend: Send + Sync {
     fn body_position(&self, entity: Entity) -> Option<Vec2>;
     fn body_rotation(&self, entity: Entity) -> Option<f32>;
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent>;
+    fn add_force_at_point(&mut self, entity: Entity, force: Vec2, world_point: Vec2);
 }
 
 #[derive(Default)]
@@ -64,6 +65,8 @@ impl PhysicsBackend for NullPhysicsBackend {
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
         Vec::new()
     }
+
+    fn add_force_at_point(&mut self, _entity: Entity, _force: Vec2, _world_point: Vec2) {}
 }
 
 #[cfg(test)]
@@ -178,5 +181,26 @@ mod tests {
 
         // Assert
         assert!(result);
+    }
+
+    #[test]
+    fn when_add_force_at_point_on_registered_body_then_no_panic() {
+        // Arrange
+        let mut backend = NullPhysicsBackend::new();
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+
+        // Act
+        backend.add_force_at_point(entity, Vec2::new(10.0, 0.0), Vec2::ZERO);
+    }
+
+    #[test]
+    fn when_add_force_at_point_on_unknown_entity_then_no_panic() {
+        // Arrange
+        let mut backend = NullPhysicsBackend::new();
+        let entity = spawn_entity();
+
+        // Act
+        backend.add_force_at_point(entity, Vec2::new(0.0, -9.8), Vec2::ZERO);
     }
 }

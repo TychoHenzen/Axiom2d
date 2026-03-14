@@ -79,6 +79,8 @@ mod tests {
         fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
             std::mem::take(&mut self.events)
         }
+
+        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
     }
 
     fn setup_world(step_count: Arc<AtomicU32>) -> World {

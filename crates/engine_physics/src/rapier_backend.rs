@@ -140,6 +140,20 @@ impl PhysicsBackend for RapierBackend {
         Some(body.rotation().angle())
     }
 
+    fn add_force_at_point(&mut self, entity: Entity, force: Vec2, world_point: Vec2) {
+        let Some(&handle) = self.entity_to_handle.get(&entity) else {
+            return;
+        };
+        let Some(body) = self.bodies.get_mut(handle) else {
+            return;
+        };
+        body.add_force_at_point(
+            vector![force.x, force.y],
+            point![world_point.x, world_point.y],
+            true,
+        );
+    }
+
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
         let mut events = Vec::new();
         while let Ok(rapier_event) = self.collision_recv.try_recv() {
@@ -295,7 +309,6 @@ mod tests {
         assert!(pos.y < 10.0, "expected y < 10.0, got {}", pos.y);
     }
 
-    /// @doc: Entity removal must clean up both rapier `RigidBody` and the entity↔handle map
     #[test]
     fn when_dynamic_body_added_then_rotation_returns_some() {
         // Arrange
@@ -311,6 +324,7 @@ mod tests {
         assert!(rotation.abs() < 1e-4, "initial rotation should be ~0");
     }
 
+    /// @doc: Entity removal must clean up both rapier `RigidBody` and the entity↔handle map
     #[test]
     fn when_remove_body_on_rapier_then_position_returns_none() {
         // Arrange
@@ -410,5 +424,84 @@ mod tests {
 
         // Act
         backend.remove_body(entity);
+    }
+
+    #[test]
+    fn when_add_force_at_point_for_unknown_entity_then_no_panic() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+
+        // Act
+        backend.add_force_at_point(entity, Vec2::new(100.0, 0.0), Vec2::ZERO);
+    }
+
+    #[test]
+    fn when_zero_force_applied_at_center_then_body_does_not_move() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entity, &Collider::Circle(0.5));
+
+        // Act
+        backend.add_force_at_point(entity, Vec2::ZERO, Vec2::ZERO);
+        backend.step(Seconds(0.016));
+
+        // Assert
+        let pos = backend.body_position(entity).unwrap();
+        assert!(pos.x.abs() < 1e-4, "expected ~0 x, got {}", pos.x);
+        assert!(pos.y.abs() < 1e-4, "expected ~0 y, got {}", pos.y);
+    }
+
+    #[test]
+    fn when_sustained_x_force_at_center_then_only_x_grows_and_rotation_stays_zero() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entity, &Collider::Circle(0.5));
+
+        // Act
+        for _ in 0..5 {
+            backend.add_force_at_point(entity, Vec2::new(1000.0, 0.0), Vec2::ZERO);
+            backend.step(Seconds(0.016));
+        }
+
+        // Assert
+        let pos = backend.body_position(entity).unwrap();
+        let rot = backend.body_rotation(entity).unwrap();
+        assert!(pos.x > 0.0, "expected x > 0 after repeated +x force, got {}", pos.x);
+        assert!(pos.y.abs() < 1e-4, "expected y ≈ 0, got {}", pos.y);
+        assert!(rot.abs() < 1e-5, "expected no rotation, got {}", rot);
+    }
+
+    #[test]
+    fn when_sustained_x_force_at_offset_y_point_then_body_translates_and_rotates() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entity, &Collider::Circle(0.5));
+
+        // Act
+        for _ in 0..5 {
+            backend.add_force_at_point(
+                entity,
+                Vec2::new(1000.0, 0.0),
+                Vec2::new(0.0, 1.0),
+            );
+            backend.step(Seconds(0.016));
+        }
+
+        // Assert
+        let pos = backend.body_position(entity).unwrap();
+        let rot = backend.body_rotation(entity).unwrap();
+        assert!(pos.x > 0.0, "expected x > 0, got {}", pos.x);
+        assert!(
+            rot.abs() > 1e-5,
+            "expected rotation from torque, got {}",
+            rot
+        );
     }
 }

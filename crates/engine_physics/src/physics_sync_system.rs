@@ -87,6 +87,8 @@ mod tests {
         fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
             Vec::new()
         }
+
+        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
     }
 
     fn run_sync(world: &mut World) {
@@ -124,7 +126,7 @@ mod tests {
         // Assert
         let transform = world.get::<Transform2D>(entity).unwrap();
         assert_eq!(transform.position, Vec2::new(10.0, 20.0));
-        assert!((transform.rotation - 0.0).abs() < f32::EPSILON);
+        assert!(transform.rotation.abs() < f32::EPSILON);
     }
 
     #[test]
