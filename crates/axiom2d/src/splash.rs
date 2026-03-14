@@ -105,8 +105,16 @@ impl Plugin for SplashPlugin {
 }
 
 #[cfg(feature = "render")]
+const BG_COLOR: Color = Color {
+    r: 0.05,
+    g: 0.05,
+    b: 0.08,
+    a: 1.0,
+};
+
+#[cfg(feature = "render")]
 fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
-    use engine_render::prelude::{Shape, ShapeVariant};
+    use engine_render::prelude::{PathCommand, Shape, ShapeVariant};
 
     // Full-screen dark background
     world.spawn((
@@ -124,54 +132,71 @@ fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
                     Vec2::new(-2000.0, 2000.0),
                 ],
             },
-            color: Color {
-                r: 0.05,
-                g: 0.05,
-                b: 0.08,
-                a: 1.0,
-            },
+            color: BG_COLOR,
         },
         Visible(true),
         RenderLayer::UI,
         SortOrder(SPLASH_SORT_ORDER),
     ));
 
-    // Stylized "A" — main triangle
-    world.spawn((
-        SplashEntity,
-        Transform2D {
-            position: Vec2::ZERO,
-            ..Default::default()
-        },
-        Shape {
-            variant: ShapeVariant::Polygon {
-                points: vec![
-                    Vec2::new(0.0, -80.0),
-                    Vec2::new(60.0, 60.0),
-                    Vec2::new(-60.0, 60.0),
-                ],
-            },
-            color: LOGO_COLOR,
-        },
-        Visible(true),
-        RenderLayer::UI,
-        SortOrder(SPLASH_SORT_ORDER + 1),
-    ));
+    // "AXIOM" letters positioned left-to-right, centered at origin
+    let letters: [(f32, Vec<PathCommand>); 5] = [
+        (-140.0, letter_a()),
+        (-60.0, letter_x()),
+        (0.0, letter_i()),
+        (58.0, letter_o()),
+        (140.0, letter_m()),
+    ];
 
-    // Horizontal bar through the "A"
+    for (x, commands) in letters {
+        world.spawn((
+            SplashEntity,
+            Transform2D {
+                position: Vec2::new(x, -10.0),
+                ..Default::default()
+            },
+            Shape {
+                variant: ShapeVariant::Path { commands },
+                color: LOGO_COLOR,
+            },
+            Visible(true),
+            RenderLayer::UI,
+            SortOrder(SPLASH_SORT_ORDER + 1),
+        ));
+    }
+
+    // Accent line under the text — tapered lens shape
     world.spawn((
         SplashEntity,
         Transform2D {
-            position: Vec2::new(0.0, 15.0),
+            position: Vec2::new(0.0, 68.0),
             ..Default::default()
         },
         Shape {
-            variant: ShapeVariant::Polygon {
-                points: vec![
-                    Vec2::new(-35.0, -5.0),
-                    Vec2::new(35.0, -5.0),
-                    Vec2::new(35.0, 5.0),
-                    Vec2::new(-35.0, 5.0),
+            variant: ShapeVariant::Path {
+                commands: vec![
+                    PathCommand::MoveTo(Vec2::new(-170.0, 0.0)),
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-120.0, -3.5),
+                        control2: Vec2::new(-60.0, -3.5),
+                        to: Vec2::new(0.0, -3.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(60.0, -3.5),
+                        control2: Vec2::new(120.0, -3.5),
+                        to: Vec2::new(170.0, 0.0),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(120.0, 3.5),
+                        control2: Vec2::new(60.0, 3.5),
+                        to: Vec2::new(0.0, 3.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-60.0, 3.5),
+                        control2: Vec2::new(-120.0, 3.5),
+                        to: Vec2::new(-170.0, 0.0),
+                    },
+                    PathCommand::Close,
                 ],
             },
             color: ACCENT_COLOR,
@@ -181,20 +206,20 @@ fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
         SortOrder(SPLASH_SORT_ORDER + 2),
     ));
 
-    // Accent diamond below the "A"
+    // Small accent diamond centered below the accent line
     world.spawn((
         SplashEntity,
         Transform2D {
-            position: Vec2::new(0.0, 100.0),
+            position: Vec2::new(0.0, 85.0),
             ..Default::default()
         },
         Shape {
             variant: ShapeVariant::Polygon {
                 points: vec![
-                    Vec2::new(0.0, -8.0),
-                    Vec2::new(8.0, 0.0),
-                    Vec2::new(0.0, 8.0),
-                    Vec2::new(-8.0, 0.0),
+                    Vec2::new(0.0, -6.0),
+                    Vec2::new(6.0, 0.0),
+                    Vec2::new(0.0, 6.0),
+                    Vec2::new(-6.0, 0.0),
                 ],
             },
             color: ACCENT_COLOR,
@@ -203,6 +228,145 @@ fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
         RenderLayer::UI,
         SortOrder(SPLASH_SORT_ORDER + 2),
     ));
+}
+
+/// Futuristic angular "A" — outer contour with crossbar notch + triangular inner hole.
+#[cfg(feature = "render")]
+fn letter_a() -> Vec<engine_render::prelude::PathCommand> {
+    use engine_render::prelude::PathCommand;
+    vec![
+        // Outer contour
+        PathCommand::MoveTo(Vec2::new(0.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(35.0, 60.0)),
+        PathCommand::LineTo(Vec2::new(23.0, 60.0)),
+        PathCommand::LineTo(Vec2::new(10.0, 18.0)),
+        PathCommand::LineTo(Vec2::new(-10.0, 18.0)),
+        PathCommand::LineTo(Vec2::new(-23.0, 60.0)),
+        PathCommand::LineTo(Vec2::new(-35.0, 60.0)),
+        PathCommand::Close,
+        // Inner triangular hole (EvenOdd fill)
+        PathCommand::MoveTo(Vec2::new(0.0, -34.0)),
+        PathCommand::LineTo(Vec2::new(10.0, 10.0)),
+        PathCommand::LineTo(Vec2::new(-10.0, 10.0)),
+        PathCommand::Close,
+    ]
+}
+
+/// Futuristic "X" — two crossing diagonal bars with EvenOdd diamond cutout at center.
+#[cfg(feature = "render")]
+fn letter_x() -> Vec<engine_render::prelude::PathCommand> {
+    use engine_render::prelude::PathCommand;
+    vec![
+        // Bar 1: top-left to bottom-right
+        PathCommand::MoveTo(Vec2::new(-31.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(-19.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(31.0, 60.0)),
+        PathCommand::LineTo(Vec2::new(19.0, 60.0)),
+        PathCommand::Close,
+        // Bar 2: top-right to bottom-left
+        PathCommand::MoveTo(Vec2::new(19.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(31.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(-19.0, 60.0)),
+        PathCommand::LineTo(Vec2::new(-31.0, 60.0)),
+        PathCommand::Close,
+    ]
+}
+
+/// Futuristic "I" — vertical bar with angular serif caps.
+#[cfg(feature = "render")]
+fn letter_i() -> Vec<engine_render::prelude::PathCommand> {
+    use engine_render::prelude::PathCommand;
+    vec![
+        PathCommand::MoveTo(Vec2::new(-15.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(15.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(15.0, -48.0)),
+        PathCommand::LineTo(Vec2::new(6.0, -48.0)),
+        PathCommand::LineTo(Vec2::new(6.0, 48.0)),
+        PathCommand::LineTo(Vec2::new(15.0, 48.0)),
+        PathCommand::LineTo(Vec2::new(15.0, 60.0)),
+        PathCommand::LineTo(Vec2::new(-15.0, 60.0)),
+        PathCommand::LineTo(Vec2::new(-15.0, 48.0)),
+        PathCommand::LineTo(Vec2::new(-6.0, 48.0)),
+        PathCommand::LineTo(Vec2::new(-6.0, -48.0)),
+        PathCommand::LineTo(Vec2::new(-15.0, -48.0)),
+        PathCommand::Close,
+    ]
+}
+
+/// Futuristic "O" — beveled rectangle with smooth QuadraticTo corners + inner hole.
+#[cfg(feature = "render")]
+fn letter_o() -> Vec<engine_render::prelude::PathCommand> {
+    use engine_render::prelude::PathCommand;
+    vec![
+        // Outer contour with rounded corners
+        PathCommand::MoveTo(Vec2::new(-12.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(12.0, -60.0)),
+        PathCommand::QuadraticTo {
+            control: Vec2::new(30.0, -60.0),
+            to: Vec2::new(30.0, -42.0),
+        },
+        PathCommand::LineTo(Vec2::new(30.0, 42.0)),
+        PathCommand::QuadraticTo {
+            control: Vec2::new(30.0, 60.0),
+            to: Vec2::new(12.0, 60.0),
+        },
+        PathCommand::LineTo(Vec2::new(-12.0, 60.0)),
+        PathCommand::QuadraticTo {
+            control: Vec2::new(-30.0, 60.0),
+            to: Vec2::new(-30.0, 42.0),
+        },
+        PathCommand::LineTo(Vec2::new(-30.0, -42.0)),
+        PathCommand::QuadraticTo {
+            control: Vec2::new(-30.0, -60.0),
+            to: Vec2::new(-12.0, -60.0),
+        },
+        PathCommand::Close,
+        // Inner hole with rounded corners
+        PathCommand::MoveTo(Vec2::new(-2.0, -48.0)),
+        PathCommand::LineTo(Vec2::new(2.0, -48.0)),
+        PathCommand::QuadraticTo {
+            control: Vec2::new(18.0, -48.0),
+            to: Vec2::new(18.0, -32.0),
+        },
+        PathCommand::LineTo(Vec2::new(18.0, 32.0)),
+        PathCommand::QuadraticTo {
+            control: Vec2::new(18.0, 48.0),
+            to: Vec2::new(2.0, 48.0),
+        },
+        PathCommand::LineTo(Vec2::new(-2.0, 48.0)),
+        PathCommand::QuadraticTo {
+            control: Vec2::new(-18.0, 48.0),
+            to: Vec2::new(-18.0, 32.0),
+        },
+        PathCommand::LineTo(Vec2::new(-18.0, -32.0)),
+        PathCommand::QuadraticTo {
+            control: Vec2::new(-18.0, -48.0),
+            to: Vec2::new(-2.0, -48.0),
+        },
+        PathCommand::Close,
+    ]
+}
+
+/// Futuristic "M" — angular M with sharp peaks and center valley.
+#[cfg(feature = "render")]
+fn letter_m() -> Vec<engine_render::prelude::PathCommand> {
+    use engine_render::prelude::PathCommand;
+    vec![
+        PathCommand::MoveTo(Vec2::new(-38.0, 60.0)),
+        PathCommand::LineTo(Vec2::new(-38.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(-22.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(0.0, -20.0)),
+        PathCommand::LineTo(Vec2::new(22.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(38.0, -60.0)),
+        PathCommand::LineTo(Vec2::new(38.0, 60.0)),
+        PathCommand::LineTo(Vec2::new(26.0, 60.0)),
+        PathCommand::LineTo(Vec2::new(26.0, -40.0)),
+        PathCommand::LineTo(Vec2::new(6.0, -4.0)),
+        PathCommand::LineTo(Vec2::new(-6.0, -4.0)),
+        PathCommand::LineTo(Vec2::new(-26.0, -40.0)),
+        PathCommand::LineTo(Vec2::new(-26.0, 60.0)),
+        PathCommand::Close,
+    ]
 }
 
 pub fn splash_tick_system(
@@ -458,5 +622,90 @@ mod tests {
 
         // Assert
         assert!(world.get::<Visible>(game_entity).unwrap().0);
+    }
+
+    #[test]
+    fn when_splash_entities_spawned_then_eight_entities_created() {
+        // Arrange / Act
+        let mut world = World::new();
+        spawn_splash_entities(&mut world);
+
+        // Assert — 1 background + 5 letters + 1 accent line + 1 accent diamond
+        let count = world.query::<&SplashEntity>().iter(&world).count();
+        assert_eq!(count, 8);
+    }
+
+    #[test]
+    fn when_splash_entities_spawned_then_five_path_shapes_exist() {
+        use engine_render::prelude::{Shape, ShapeVariant};
+
+        // Arrange / Act
+        let mut world = World::new();
+        spawn_splash_entities(&mut world);
+
+        // Assert — the 5 letter entities use ShapeVariant::Path
+        let path_count = world
+            .query::<(&SplashEntity, &Shape)>()
+            .iter(&world)
+            .filter(|(_, shape)| matches!(shape.variant, ShapeVariant::Path { .. }))
+            .count();
+        assert_eq!(path_count, 6); // 5 letters + 1 accent line
+    }
+
+    #[test]
+    fn when_splash_entities_spawned_then_letters_positioned_left_to_right() {
+        use engine_render::prelude::{Shape, ShapeVariant};
+
+        // Arrange / Act
+        let mut world = World::new();
+        spawn_splash_entities(&mut world);
+
+        // Assert — letter entities (Path shapes on SPLASH_SORT_ORDER+1) are ordered left-to-right
+        let mut letter_xs: Vec<f32> = world
+            .query::<(&SplashEntity, &Transform2D, &Shape, &SortOrder)>()
+            .iter(&world)
+            .filter(|(_, _, shape, order)| {
+                matches!(shape.variant, ShapeVariant::Path { .. })
+                    && order.0 == SPLASH_SORT_ORDER + 1
+            })
+            .map(|(_, t, _, _)| t.position.x)
+            .collect();
+        letter_xs.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+        assert_eq!(letter_xs.len(), 5);
+        for pair in letter_xs.windows(2) {
+            assert!(
+                pair[1] > pair[0],
+                "letters must be left-to-right: {letter_xs:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn when_splash_entities_spawned_then_all_on_ui_layer() {
+        // Arrange / Act
+        let mut world = World::new();
+        spawn_splash_entities(&mut world);
+
+        // Assert
+        let all_ui = world
+            .query::<(&SplashEntity, &RenderLayer)>()
+            .iter(&world)
+            .all(|(_, layer)| *layer == RenderLayer::UI);
+        assert!(all_ui);
+    }
+
+    #[test]
+    fn when_splash_entities_spawned_then_all_visible() {
+        // Arrange / Act
+        let mut world = World::new();
+        spawn_splash_entities(&mut world);
+
+        // Assert
+        let all_visible = world
+            .query::<(&SplashEntity, &Visible)>()
+            .iter(&world)
+            .all(|(_, v)| v.0);
+        assert!(all_visible);
     }
 }

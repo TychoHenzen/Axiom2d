@@ -42,6 +42,21 @@ pub struct HeadlessRenderer {
 }
 
 impl HeadlessRenderer {
+    /// Try to create a headless renderer, returning `None` if no GPU adapter is available.
+    /// Useful for tests that should run when a GPU is present but skip gracefully in CI.
+    pub fn try_new(width: u32, height: u32) -> Option<Self> {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            force_fallback_adapter: true,
+            compatible_surface: None,
+            ..Default::default()
+        }))?;
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default(), None))
+                .ok()?;
+        Some(Self::build(device, queue, width, height))
+    }
+
     #[allow(clippy::too_many_lines)]
     pub fn new(width: u32, height: u32) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
@@ -56,6 +71,12 @@ impl HeadlessRenderer {
         let (device, queue) =
             pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default(), None))
                 .expect("failed to create GPU device");
+
+        Self::build(device, queue, width, height)
+    }
+
+    #[allow(clippy::too_many_lines)]
+    fn build(device: wgpu::Device, queue: wgpu::Queue, width: u32, height: u32) -> Self {
 
         let output_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: None,
@@ -677,20 +698,22 @@ mod tests {
     use engine_core::types::Pixels;
 
     #[test]
-    #[ignore = "requires GPU (software fallback adapter)"]
     fn when_creating_headless_renderer_then_viewport_matches() {
         // Arrange / Act
-        let renderer = HeadlessRenderer::new(128, 128);
+        let Some(renderer) = HeadlessRenderer::try_new(128, 128) else {
+            return; // no GPU available — skip
+        };
 
         // Assert
         assert_eq!(renderer.viewport_size(), (128, 128));
     }
 
     #[test]
-    #[ignore = "requires GPU (software fallback adapter)"]
     fn when_clearing_with_red_then_readback_pixels_are_all_red() {
         // Arrange
-        let mut renderer = HeadlessRenderer::new(64, 64);
+        let Some(mut renderer) = HeadlessRenderer::try_new(64, 64) else {
+            return;
+        };
         let red = engine_core::color::Color::new(1.0, 0.0, 0.0, 1.0);
 
         // Act
@@ -780,10 +803,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires GPU"]
     fn when_drawing_white_rect_on_black_then_rect_region_is_white() {
         // Arrange
-        let mut renderer = HeadlessRenderer::new(64, 64);
+        let Some(mut renderer) = HeadlessRenderer::try_new(64, 64) else {
+            return;
+        };
         let black = engine_core::color::Color::new(0.0, 0.0, 0.0, 1.0);
         renderer.clear(black);
 
@@ -820,10 +844,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires GPU"]
     fn when_rendering_same_scene_twice_then_buffers_are_identical() {
         // Arrange
-        let mut renderer = HeadlessRenderer::new(64, 64);
+        let Some(mut renderer) = HeadlessRenderer::try_new(64, 64) else {
+            return;
+        };
         let blue = engine_core::color::Color::new(0.0, 0.0, 1.0, 1.0);
 
         // Act
@@ -840,10 +865,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires GPU"]
     fn when_rendered_frame_compared_to_golden_then_ssim_passes_threshold() {
         // Arrange
-        let mut renderer = HeadlessRenderer::new(64, 64);
+        let Some(mut renderer) = HeadlessRenderer::try_new(64, 64) else {
+            return;
+        };
         let blue = engine_core::color::Color::new(0.0, 0.0, 1.0, 1.0);
         renderer.clear(blue);
         let pixels = renderer.render_to_buffer();
@@ -861,10 +887,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires GPU"]
     fn when_rendered_frame_differs_from_golden_then_ssim_fails_threshold() {
         // Arrange
-        let mut renderer = HeadlessRenderer::new(64, 64);
+        let Some(mut renderer) = HeadlessRenderer::try_new(64, 64) else {
+            return;
+        };
         let blue = engine_core::color::Color::new(0.0, 0.0, 1.0, 1.0);
         renderer.clear(blue);
         let blue_pixels = renderer.render_to_buffer();
@@ -884,10 +911,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires GPU"]
     fn when_rendering_circle_shape_then_center_pixel_is_non_background() {
         // Arrange
-        let mut renderer = HeadlessRenderer::new(128, 128);
+        let Some(mut renderer) = HeadlessRenderer::try_new(128, 128) else {
+            return;
+        };
         let black = engine_core::color::Color::new(0.0, 0.0, 0.0, 1.0);
         renderer.clear(black);
 

@@ -15,6 +15,8 @@ pub use crate::material::{
 };
 pub use crate::rect::Rect;
 pub use crate::renderer::{NullRenderer, Renderer, RendererRes};
-pub use crate::shape::{Shape, ShapeVariant, TessellatedMesh, shape_render_system, tessellate};
+pub use crate::shape::{
+    PathCommand, Shape, ShapeVariant, TessellatedMesh, shape_render_system, tessellate,
+};
 pub use crate::sprite::{Sprite, sprite_render_system};
 pub use crate::window::WindowConfig;
