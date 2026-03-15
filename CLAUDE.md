@@ -65,7 +65,7 @@ Workspace-level clippy lints are configured in the root `Cargo.toml` under `[wor
 ### CI Workflows
 
 Two GitHub Actions workflows in `.github/workflows/`:
-- **`ci.yml`** (every push/PR to master): fmt + build + test — fast gate for every commit.
+- **`ci.yml`** (every push/PR to master): autofix (clippy --fix + fmt, pushes fixes back) → build + test — fast gate for every commit.
 - **`quality.yml`** (daily at 06:00 UTC + manual `workflow_dispatch`): clippy, audit, docs, coverage, mutants — expensive checks run on a schedule to conserve Actions minutes.
 
 ## Architecture (Planned)

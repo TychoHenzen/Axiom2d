@@ -6,25 +6,50 @@ on:
   pull_request:
     branches: ["master"]
 
+permissions:
+  contents: write
+
 env:
   CARGO_TERM_COLOR: always
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  fmt:
+  autofix:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt
-      - name: Check formatting
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - name: Auto-fix clippy
+        run: cargo clippy --workspace --all-targets --fix --allow-dirty --allow-staged
+        continue-on-error: true
+      - name: Auto-fix formatting
+        run: cargo fmt --all
+      - name: Push fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "style: auto-fix fmt and clippy issues"
+            git push
+          fi
+      - name: Verify formatting
         run: cargo fmt --all --check
 
   build-and-test:
+    needs: autofix
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Install system dependencies
