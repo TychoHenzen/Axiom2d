@@ -5,7 +5,7 @@ use std::collections::HashMap;
 #[error("slot is already occupied")]
 pub struct SlotOccupied;
 
-#[derive(Resource)]
+#[derive(Resource, Debug, Clone, PartialEq)]
 pub struct StashGrid {
     slots: HashMap<(u8, u8, u8), Entity>,
     width: u8,
@@ -57,6 +57,18 @@ impl StashGrid {
 
     pub fn set_current_page(&mut self, page: u8) {
         self.current_page = page.min(self.page_count.saturating_sub(1));
+    }
+
+    pub fn width(&self) -> u8 {
+        self.width
+    }
+
+    pub fn height(&self) -> u8 {
+        self.height
+    }
+
+    pub fn page_count(&self) -> u8 {
+        self.page_count
     }
 
     pub fn first_empty(&self, page: u8) -> Option<(u8, u8)> {
@@ -284,6 +296,33 @@ mod tests {
 
         // Assert
         assert_eq!(grid.get(2, 0, 0), None);
+    }
+
+    #[test]
+    fn when_width_called_then_returns_constructed_width() {
+        // Arrange
+        let grid = StashGrid::new(10, 8, 3);
+
+        // Act / Assert
+        assert_eq!(grid.width(), 10);
+    }
+
+    #[test]
+    fn when_height_called_then_returns_constructed_height() {
+        // Arrange
+        let grid = StashGrid::new(10, 8, 3);
+
+        // Act / Assert
+        assert_eq!(grid.height(), 8);
+    }
+
+    #[test]
+    fn when_page_count_called_then_returns_constructed_page_count() {
+        // Arrange
+        let grid = StashGrid::new(10, 8, 3);
+
+        // Act / Assert
+        assert_eq!(grid.page_count(), 3);
     }
 
     #[test]

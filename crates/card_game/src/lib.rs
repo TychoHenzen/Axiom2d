@@ -10,3 +10,5 @@ pub mod hand;
 pub mod prelude;
 pub mod spawn_table_card;
 pub mod stash_grid;
+pub mod stash_render;
+pub mod stash_toggle;

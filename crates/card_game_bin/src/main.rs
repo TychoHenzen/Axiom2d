@@ -10,7 +10,7 @@ const TABLE_COLOR: Color = Color {
     a: 1.0,
 };
 const CARD_WIDTH: f32 = 60.0;
-const CARD_HEIGHT: f32 = 84.0;
+const CARD_HEIGHT: f32 = 90.0;
 const CARD_COLLISION_GROUP: u32 = 0b0001;
 const CARD_COLLISION_FILTER: u32 = 0b0010;
 
@@ -159,6 +159,8 @@ fn setup(app: &mut App) {
     world.insert_resource(CollisionEventBuffer::default());
     world.insert_resource(DragState::default());
     world.insert_resource(CameraDragState::default());
+    world.insert_resource(StashVisible::default());
+    world.insert_resource(StashGrid::new(10, 10, 1));
     world.insert_resource(ClearColor(Color {
         r: 0.1,
         g: 0.1,
@@ -193,7 +195,12 @@ fn setup(app: &mut App) {
             Phase::Update,
             (card_pick_system, card_drag_system, card_release_system).chain(),
         )
-        .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system));
+        .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system))
+        .add_systems(Phase::Update, stash_toggle_system)
+        .add_systems(
+            Phase::Render,
+            stash_render_system.after(shape_render_system),
+        );
 }
 
 fn main() {

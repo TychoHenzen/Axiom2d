@@ -14,3 +14,7 @@ pub use crate::drag_state::{DragInfo, DragState};
 pub use crate::hand::{Hand, HandFull};
 pub use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH, spawn_table_card};
 pub use crate::stash_grid::{SlotOccupied, StashGrid};
+pub use crate::stash_render::{
+    GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_SIZE, SLOT_STRIDE, stash_render_system,
+};
+pub use crate::stash_toggle::{StashVisible, stash_toggle_system};

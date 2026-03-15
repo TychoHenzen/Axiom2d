@@ -203,15 +203,15 @@ These extend `engine_physics` with capabilities the card game requires.
 
 ## Phase G: Stash Grid Inventory
 
-### Step G1 — Stash Grid Rendering `[NOT STARTED]`
+### Step G1 — Stash Grid Rendering `[DONE]`
 **Crate:** card_game
 **Why:** Visual grid of inventory slots for storing cards.
 
-- [ ] Spawn 10x10 UiNode slot entities (RenderLayer::UI) — positioned by (col * cell_w, row * cell_h) offset from grid origin
-- [ ] Occupied slots render a small card icon (scaled-down sprite showing card face or back based on Card.face_up)
-- [ ] Empty slots render as empty bordered rects (Panel component with border)
-- [ ] Stash visibility: togglable via key press (e.g. Tab or I key)
-- [ ] Tests: correct number of slot entities spawned, occupied slot shows icon, empty slot shows border only
+- [x] Render system draws width×height slot rects positioned by (col * SLOT_SIZE, row * SLOT_SIZE) offset from grid origin
+- [x] Occupied slots render with the card's Shape color
+- [x] Empty slots render with SLOT_COLOR constant (dark grey)
+- [x] Stash visibility: togglable via Tab key press (StashVisible resource + stash_toggle_system)
+- [x] Tests: 6 render tests (hidden=no draw, count, empty slot color, occupied slot color, column spacing, row spacing) + 4 toggle tests (default hidden, open, close, no-op without keypress) + 3 accessor tests (width, height, page_count)
 
 ### Step G2 — Stash Drag and Drop `[NOT STARTED]`
 **Crate:** card_game
