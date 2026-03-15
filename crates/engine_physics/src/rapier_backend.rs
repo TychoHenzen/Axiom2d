@@ -167,6 +167,12 @@ impl PhysicsBackend for RapierBackend {
         body.set_angvel(angular_velocity, true);
     }
 
+    fn body_angular_velocity(&self, entity: Entity) -> Option<f32> {
+        let handle = self.entity_to_handle.get(&entity)?;
+        let body = self.bodies.get(*handle)?;
+        Some(body.angvel())
+    }
+
     fn add_force_at_point(&mut self, entity: Entity, force: Vec2, world_point: Vec2) {
         let Some(&handle) = self.entity_to_handle.get(&entity) else {
             return;
@@ -190,6 +196,24 @@ impl PhysicsBackend for RapierBackend {
         };
         body.set_linear_damping(linear);
         body.set_angular_damping(angular);
+    }
+
+    fn set_collision_group(&mut self, entity: Entity, membership: u32, filter: u32) {
+        let Some(&handle) = self.entity_to_handle.get(&entity) else {
+            return;
+        };
+        let groups = InteractionGroups::new(
+            Group::from_bits_truncate(membership),
+            Group::from_bits_truncate(filter),
+        );
+        let Some(body) = self.bodies.get(handle) else {
+            return;
+        };
+        for &collider_handle in body.colliders() {
+            if let Some(collider) = self.colliders.get_mut(collider_handle) {
+                collider.set_collision_groups(groups);
+            }
+        }
     }
 
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
@@ -811,5 +835,151 @@ mod tests {
             world_pt.y,
             expected.y
         );
+    }
+
+    #[test]
+    fn when_body_angular_velocity_on_new_body_then_returns_zero() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+
+        // Act
+        let angvel = backend.body_angular_velocity(entity);
+
+        // Assert
+        let angvel = angvel.expect("should return Some for living body");
+        assert!(angvel.abs() < 1e-4, "initial angular velocity should be ~0, got {angvel}");
+    }
+
+    #[test]
+    fn when_body_angular_velocity_on_unknown_entity_then_returns_none() {
+        // Arrange
+        let backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+
+        // Act
+        let angvel = backend.body_angular_velocity(entity);
+
+        // Assert
+        assert!(angvel.is_none());
+    }
+
+    #[test]
+    fn when_body_angular_velocity_after_set_then_returns_set_value() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entity, &Collider::Circle(0.5));
+        backend.set_damping(entity, 0.0, 0.0);
+        backend.set_angular_velocity(entity, 5.0);
+
+        // Act
+        let angvel = backend.body_angular_velocity(entity);
+
+        // Assert
+        let angvel = angvel.expect("should return Some");
+        assert!((angvel - 5.0).abs() < 1e-4, "expected ~5.0, got {angvel}");
+    }
+
+    #[test]
+    fn when_body_angular_velocity_negative_then_sign_preserved() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entity, &Collider::Circle(0.5));
+        backend.set_damping(entity, 0.0, 0.0);
+        backend.set_angular_velocity(entity, -3.0);
+
+        // Act
+        let angvel = backend.body_angular_velocity(entity);
+
+        // Assert
+        let angvel = angvel.expect("should return Some");
+        assert!((angvel - (-3.0)).abs() < 1e-4, "expected ~-3.0, got {angvel}");
+    }
+
+    #[test]
+    fn when_set_collision_group_on_unknown_entity_then_no_panic() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+
+        // Act
+        backend.set_collision_group(entity, 1, 2);
+    }
+
+    #[test]
+    fn when_same_exclusive_group_then_no_collision_event() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entities = spawn_entities(2);
+        backend.add_body(entities[0], &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entities[0], &Collider::Circle(1.0));
+        backend.add_body(entities[1], &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entities[1], &Collider::Circle(1.0));
+        // Both cards: member of group 1, filter allows only group 2
+        backend.set_collision_group(entities[0], 0b0001, 0b0010);
+        backend.set_collision_group(entities[1], 0b0001, 0b0010);
+
+        // Act
+        backend.step(Seconds(0.016));
+        let events = backend.drain_collision_events();
+
+        // Assert
+        assert!(events.is_empty(), "cards in same exclusive group should not collide, got {events:?}");
+    }
+
+    #[test]
+    fn when_card_and_wall_groups_then_collision_event_fires() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entities = spawn_entities(2);
+        let card = entities[0];
+        let wall = entities[1];
+        backend.add_body(card, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(card, &Collider::Circle(1.0));
+        backend.add_body(wall, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(wall, &Collider::Circle(1.0));
+        // Card: member of group 1, collides with group 2
+        backend.set_collision_group(card, 0b0001, 0b0010);
+        // Wall: member of group 2, collides with group 1
+        backend.set_collision_group(wall, 0b0010, 0b0001);
+
+        // Act
+        backend.step(Seconds(0.016));
+        let events = backend.drain_collision_events();
+
+        // Assert
+        assert_eq!(events.len(), 1, "card-wall collision should fire, got {events:?}");
+        let pair = (events[0].entity_a, events[0].entity_b);
+        assert!(
+            pair == (card, wall) || pair == (wall, card),
+            "expected card-wall pair, got {pair:?}"
+        );
+    }
+
+    #[test]
+    fn when_collision_group_set_after_collider_added_then_filter_applied() {
+        // Arrange — add bodies+colliders first, THEN set groups (the expected card game usage)
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entities = spawn_entities(2);
+        backend.add_body(entities[0], &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entities[0], &Collider::Circle(1.0));
+        backend.add_body(entities[1], &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entities[1], &Collider::Circle(1.0));
+
+        // Retroactively set exclusive groups
+        backend.set_collision_group(entities[0], 0b0001, 0b0010);
+        backend.set_collision_group(entities[1], 0b0001, 0b0010);
+
+        // Act
+        backend.step(Seconds(0.016));
+        let events = backend.drain_collision_events();
+
+        // Assert
+        assert!(events.is_empty(), "retroactive group filter should suppress collision, got {events:?}");
     }
 }

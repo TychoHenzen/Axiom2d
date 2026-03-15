@@ -1,4 +1,5 @@
 pub mod card;
+pub mod card_damping;
 pub mod card_drag;
 pub mod card_pick;
 pub mod card_release;

@@ -96,7 +96,12 @@ mod tests {
 
         fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
 
+        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
+            None
+        }
+
         fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
+        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
     }
 
     fn run_sync(world: &mut World) {

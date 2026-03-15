@@ -20,7 +20,9 @@ pub trait PhysicsBackend: Send + Sync {
     fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2);
     fn set_angular_velocity(&mut self, entity: Entity, angular_velocity: f32);
     fn add_force_at_point(&mut self, entity: Entity, force: Vec2, world_point: Vec2);
+    fn body_angular_velocity(&self, entity: Entity) -> Option<f32>;
     fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32);
+    fn set_collision_group(&mut self, entity: Entity, membership: u32, filter: u32);
 
     fn body_point_to_world(&self, entity: Entity, local_point: Vec2) -> Option<Vec2> {
         let pos = self.body_position(entity)?;
@@ -92,12 +94,20 @@ impl PhysicsBackend for NullPhysicsBackend {
 
     fn add_force_at_point(&mut self, _entity: Entity, _force: Vec2, _world_point: Vec2) {}
 
+    fn body_angular_velocity(&self, _entity: Entity) -> Option<f32> {
+        None
+    }
+
     fn set_damping(&mut self, _entity: Entity, _linear: f32, _angular: f32) {}
+
+    fn set_collision_group(&mut self, _entity: Entity, _membership: u32, _filter: u32) {}
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
     use crate::test_helpers::spawn_entity;
 
@@ -196,6 +206,19 @@ mod tests {
     }
 
     #[test]
+    fn when_body_angular_velocity_on_null_backend_then_returns_none() {
+        // Arrange
+        let backend = NullPhysicsBackend::new();
+        let entity = spawn_entity();
+
+        // Act
+        let result = backend.body_angular_velocity(entity);
+
+        // Assert
+        assert!(result.is_none());
+    }
+
+    #[test]
     fn when_add_collider_without_body_then_returns_false() {
         // Arrange
         let mut backend = NullPhysicsBackend::new();
@@ -264,9 +287,27 @@ mod tests {
         backend.set_damping(entity, 1.0, 0.0);
     }
 
-    // --- body_point_to_world tests ---
+    #[test]
+    fn when_set_collision_group_on_unknown_entity_then_no_panic() {
+        // Arrange
+        let mut backend = NullPhysicsBackend::new();
+        let entity = spawn_entity();
 
-    use std::collections::HashMap;
+        // Act
+        backend.set_collision_group(entity, 1, 2);
+    }
+
+    #[test]
+    fn when_set_collision_group_on_registered_body_then_no_panic() {
+        // Arrange
+        let mut backend = NullPhysicsBackend::new();
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entity, &Collider::Circle(1.0));
+
+        // Act
+        backend.set_collision_group(entity, 1, 2);
+    }
 
     struct SpyPhysicsBackend {
         positions: HashMap<Entity, Vec2>,
@@ -312,7 +353,11 @@ mod tests {
         fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
         fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
         fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
+        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
+            None
+        }
         fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
+        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
     }
 
     #[test]

@@ -11,8 +11,8 @@ const TABLE_COLOR: Color = Color {
 };
 const CARD_WIDTH: f32 = 60.0;
 const CARD_HEIGHT: f32 = 84.0;
-const CARD_LINEAR_DAMPING: f32 = 3.0;
-const CARD_ANGULAR_DAMPING: f32 = 2.0;
+const CARD_COLLISION_GROUP: u32 = 0b0001;
+const CARD_COLLISION_FILTER: u32 = 0b0010;
 
 const CARD_COLORS: [Color; 5] = [
     Color {
@@ -82,7 +82,7 @@ fn spawn_card(
 
     physics.add_body(entity, &RigidBody::Dynamic, position);
     physics.add_collider(entity, &collider);
-    physics.set_damping(entity, CARD_LINEAR_DAMPING, CARD_ANGULAR_DAMPING);
+    physics.set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER);
 
     entity
 }
@@ -181,7 +181,7 @@ fn setup(app: &mut App) {
     app.set_window_config(config)
         .add_systems(
             Phase::PreUpdate,
-            (physics_step_system, physics_sync_system).chain(),
+            (physics_step_system, physics_sync_system, card_damping_system).chain(),
         )
         .add_systems(
             Phase::Update,

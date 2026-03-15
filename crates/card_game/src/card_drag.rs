@@ -6,6 +6,7 @@ use glam::Vec2;
 use crate::drag_state::DragState;
 
 pub const DRAG_GAIN: f32 = 20.0;
+pub const MAX_ANGULAR_VELOCITY: f32 = 15.0;
 
 pub fn card_drag_system(
     mouse: Res<MouseState>,
@@ -33,7 +34,8 @@ pub fn card_drag_system(
     if arm_len_sq < 1e-4 {
         physics.set_linear_velocity(info.entity, desired);
     } else {
-        let omega = arm.perp_dot(desired) / arm_len_sq;
+        let raw_omega = arm.perp_dot(desired) / arm_len_sq;
+        let omega = raw_omega.clamp(-MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY);
         let perp_arm = Vec2::new(-arm.y, arm.x);
         let v_center = desired - omega * perp_arm;
         physics.set_linear_velocity(info.entity, v_center);
@@ -52,7 +54,7 @@ mod tests {
     use engine_physics::prelude::{PhysicsBackend, PhysicsRes};
     use glam::Vec2;
 
-    use super::{DRAG_GAIN, card_drag_system};
+    use super::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
     use crate::card_zone::CardZone;
     use crate::drag_state::{DragInfo, DragState};
 
@@ -114,7 +116,11 @@ mod tests {
                 .push((entity, angular_velocity));
         }
         fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
+        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
+            None
+        }
         fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
+        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
     }
 
     fn run_system(world: &mut World) {
@@ -480,5 +486,32 @@ mod tests {
         // Assert
         let calls = vel_log.lock().unwrap();
         assert!(calls.is_empty());
+    }
+
+    #[test]
+    fn when_edge_grab_produces_extreme_spin_then_angular_velocity_clamped() {
+        // Arrange — body at origin, grabbed at (5,0), cursor at (5, 500)
+        // raw_omega = arm.perp_dot(desired) / arm_len_sq would be huge
+        let entity = spawn_entity();
+        let (mut world, _vel_log, ang_log) = setup_drag_world(
+            entity,
+            Vec2::new(5.0, 0.0),
+            Vec2::ZERO,
+            0.0,
+            Vec2::new(5.0, 500.0),
+            true,
+        );
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let a_calls = ang_log.lock().unwrap();
+        assert_eq!(a_calls.len(), 1);
+        assert!(
+            a_calls[0].1.abs() <= MAX_ANGULAR_VELOCITY + 1e-6,
+            "angular velocity should be clamped to ±{MAX_ANGULAR_VELOCITY}, got {}",
+            a_calls[0].1
+        );
     }
 }

@@ -1,5 +1,9 @@
 pub use crate::card::Card;
-pub use crate::card_drag::{DRAG_GAIN, card_drag_system};
+pub use crate::card_damping::{
+    BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG, MIN_DRAG_FACTOR, SPIN_DRAG_DECAY_RATE,
+    card_damping_system, compute_card_damping,
+};
+pub use crate::card_drag::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
 pub use crate::card_pick::card_pick_system;
 pub use crate::card_release::card_release_system;
 pub use crate::card_zone::CardZone;
