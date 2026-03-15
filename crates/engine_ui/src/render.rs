@@ -3,8 +3,8 @@ use engine_core::prelude::Pixels;
 use engine_render::prelude::{Rect, RendererRes};
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D};
 
-use crate::anchor::anchor_offset;
-use crate::ui_node::UiNode;
+use crate::layout::anchor_offset;
+use crate::widget::UiNode;
 
 pub fn ui_render_system(
     nodes: Query<(&UiNode, &GlobalTransform2D, Option<&EffectiveVisibility>)>,
@@ -45,9 +45,9 @@ mod tests {
     use engine_scene::prelude::GlobalTransform2D;
     use glam::{Affine2, Vec2};
 
-    use crate::anchor::Anchor;
+    use crate::layout::Anchor;
     use crate::test_helpers::make_spy_world;
-    use crate::ui_node::UiNode;
+    use crate::widget::UiNode;
 
     fn setup_world_with_spy() -> (World, Schedule, Arc<Mutex<Vec<String>>>, RectCallLog) {
         let (world, log, rect_cap) = make_spy_world();

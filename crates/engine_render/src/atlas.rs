@@ -3,38 +3,12 @@ use std::collections::HashMap;
 use bevy_ecs::prelude::{Commands, Res, ResMut, Resource};
 use engine_core::types::TextureId;
 
+pub use crate::image_data::{AtlasError, ImageData, load_image_bytes};
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TextureHandle {
     pub texture_id: TextureId,
     pub uv_rect: [f32; 4],
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum AtlasError {
-    #[error("atlas is full")]
-    NoSpace,
-    #[error("data length mismatch: expected {expected} bytes, got {actual}")]
-    DataLengthMismatch { expected: usize, actual: usize },
-    #[error("invalid dimensions: width and height must be non-zero")]
-    InvalidDimensions,
-    #[error("image decode error: {0}")]
-    DecodeError(String),
-}
-
-pub struct ImageData {
-    pub width: u32,
-    pub height: u32,
-    pub data: Vec<u8>,
-}
-
-pub fn load_image_bytes(bytes: &[u8]) -> Result<ImageData, AtlasError> {
-    let img = image::load_from_memory(bytes).map_err(|e| AtlasError::DecodeError(e.to_string()))?;
-    let rgba = img.to_rgba8();
-    Ok(ImageData {
-        width: rgba.width(),
-        height: rgba.height(),
-        data: rgba.into_raw(),
-    })
 }
 
 pub(crate) fn normalize_uv_rect(
@@ -198,7 +172,7 @@ impl AtlasBuilder {
 #[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use super::{
-        AtlasBuilder, AtlasError, AtlasUploaded, TextureAtlas, load_image_bytes, normalize_uv_rect,
+        AtlasBuilder, AtlasError, AtlasUploaded, TextureAtlas, normalize_uv_rect,
         upload_atlas_system,
     };
     use engine_core::types::TextureId;
@@ -493,59 +467,6 @@ mod tests {
         assert_eq!(sample(h_blue.uv_rect), &[0, 0, 255, 255]);
     }
 
-    fn make_1x1_png(r: u8, g: u8, b: u8, a: u8) -> Vec<u8> {
-        use image::ImageEncoder;
-        let mut buf = Vec::new();
-        {
-            let encoder = image::codecs::png::PngEncoder::new(&mut buf);
-            encoder
-                .write_image(&[r, g, b, a], 1, 1, image::ExtendedColorType::Rgba8)
-                .unwrap();
-        }
-        buf
-    }
-
-    #[test]
-    fn when_loading_valid_png_then_returns_correct_image_data() {
-        // Arrange
-        let png_bytes = make_1x1_png(255, 0, 0, 255);
-
-        // Act
-        let img = load_image_bytes(&png_bytes).unwrap();
-
-        // Assert
-        assert_eq!(img.width, 1);
-        assert_eq!(img.height, 1);
-        assert_eq!(img.data, vec![255, 0, 0, 255]);
-    }
-
-    #[test]
-    fn when_loading_invalid_bytes_then_returns_decode_error() {
-        // Act
-        let result = load_image_bytes(&[0x00, 0x01, 0x02]);
-
-        // Assert
-        assert!(matches!(result, Err(AtlasError::DecodeError(_))));
-    }
-
-    #[test]
-    fn when_loading_image_and_adding_to_atlas_then_dimensions_preserved() {
-        // Arrange
-        let png_bytes = make_1x1_png(0, 255, 0, 255);
-        let img = load_image_bytes(&png_bytes).unwrap();
-        let mut builder = AtlasBuilder::new(256, 256);
-
-        // Act
-        let handle = builder.add_image(img.width, img.height, &img.data).unwrap();
-
-        // Assert — UV rect encodes a 1x1 pixel region
-        let [u0, v0, u1, v1] = handle.uv_rect;
-        let pixel_w = ((u1 - u0) * 256.0).round() as u32;
-        let pixel_h = ((v1 - v0) * 256.0).round() as u32;
-        assert_eq!(pixel_w, 1);
-        assert_eq!(pixel_h, 1);
-    }
-
     #[test]
     fn when_normalizing_uv_rect_then_output_is_in_zero_one_range() {
         // Act
@@ -641,14 +562,7 @@ mod tests {
         assert_eq!(&atlas.data[off..off + 4], [255, 255, 255, 255]);
     }
 
-    fn minimal_atlas() -> TextureAtlas {
-        TextureAtlas {
-            data: vec![255; 4],
-            width: 1,
-            height: 1,
-            lookups: std::collections::HashMap::default(),
-        }
-    }
+    use crate::test_helpers::minimal_atlas;
 
     fn insert_spy(
         world: &mut bevy_ecs::world::World,

@@ -5,7 +5,8 @@ use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer,
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
-use crate::camera::{Camera2D, aabb_intersects_view_rect, camera_view_rect};
+use crate::camera::Camera2D;
+use crate::culling::{aabb_intersects_view_rect, camera_view_rect};
 use crate::material::{Material2d, apply_material, effective_blend_mode, effective_shader_handle};
 use crate::rect::Rect;
 use crate::renderer::RendererRes;
@@ -87,7 +88,8 @@ mod tests {
     use glam::Affine2;
 
     use super::*;
-    use crate::material::{BlendMode, Material2d, ShaderHandle, TextureBinding};
+    use crate::material::{BlendMode, Material2d, TextureBinding};
+    use crate::shader::ShaderHandle;
     use crate::testing::{
         BlendCallLog, SpyRenderer, insert_spy, insert_spy_with_blend_capture,
         insert_spy_with_shader_capture, insert_spy_with_texture_bind_capture,

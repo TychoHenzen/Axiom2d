@@ -7,9 +7,10 @@ use engine_core::color::Color;
 use engine_core::types::TextureId;
 
 use crate::atlas::TextureAtlas;
-use crate::material::{BlendMode, ShaderHandle};
+use crate::material::BlendMode;
 use crate::rect::Rect;
 use crate::renderer::Renderer;
+use crate::shader::ShaderHandle;
 use crate::wgpu_renderer::{
     Instance, QUAD_INDICES, QUAD_VERTICES, QuadVertex, SHADER_SRC, SHAPE_SHADER_SRC, ShapeBatch,
     ShapeVertex, blend_mode_to_blend_state, compute_batch_ranges, create_texture_bind_group,

@@ -2,7 +2,7 @@ use bevy_ecs::component::Component;
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
-use crate::margin::Margin;
+use super::margin::Margin;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FlexDirection {

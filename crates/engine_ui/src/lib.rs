@@ -1,17 +1,10 @@
-pub mod anchor;
-pub mod button;
-pub mod flex_layout;
 pub mod interaction;
 pub mod layout;
-pub mod margin;
-pub mod panel;
 pub mod prelude;
-pub mod progress_bar;
 pub mod render;
-pub mod text;
 pub mod theme;
 pub mod ui_event;
-pub mod ui_node;
+pub mod widget;
 
 #[cfg(test)]
 pub(crate) mod test_helpers {

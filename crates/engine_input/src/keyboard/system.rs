@@ -1,8 +1,8 @@
 use bevy_ecs::prelude::ResMut;
 use winit::event::ElementState;
 
-use crate::input_event_buffer::InputEventBuffer;
-use crate::input_state::InputState;
+use super::buffer::InputEventBuffer;
+use super::state::InputState;
 
 pub fn input_system(mut buffer: ResMut<InputEventBuffer>, mut state: ResMut<InputState>) {
     state.clear_frame_state();
@@ -21,8 +21,8 @@ mod tests {
     use winit::event::ElementState;
     use winit::keyboard::KeyCode;
 
-    use crate::input_event_buffer::InputEventBuffer;
-    use crate::input_state::InputState;
+    use crate::keyboard::InputEventBuffer;
+    use crate::keyboard::InputState;
 
     use super::*;
 

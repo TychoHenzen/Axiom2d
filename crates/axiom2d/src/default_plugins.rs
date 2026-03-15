@@ -5,8 +5,8 @@ use engine_app::mouse_world_pos_system::mouse_world_pos_system;
 use engine_app::prelude::{App, Phase, Plugin};
 #[cfg(feature = "audio")]
 use engine_audio::{
-    audio_backend::NullAudioBackend, audio_res::AudioRes, play_sound_buffer::PlaySoundBuffer,
-    play_sound_system::play_sound_system, spatial::spatial_audio_system,
+    audio_res::AudioRes, backend::NullAudioBackend, playback::PlaySoundBuffer,
+    playback::play_sound_system, spatial::spatial_audio_system,
 };
 use engine_core::prelude::{ClockRes, SystemClock, time_system};
 use engine_ecs::prelude::IntoScheduleConfigs;
@@ -382,7 +382,7 @@ mod tests {
         // Assert
         assert!(
             app.world()
-                .get_resource::<engine_audio::play_sound_buffer::PlaySoundBuffer>()
+                .get_resource::<engine_audio::playback::PlaySoundBuffer>()
                 .is_some()
         );
     }

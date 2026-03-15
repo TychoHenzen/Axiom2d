@@ -1,10 +1,10 @@
 use bevy_ecs::prelude::{Res, ResMut};
 
+use super::buffer::PlaySoundBuffer;
 use crate::audio_res::AudioRes;
 use crate::mixer::MixerState;
-use crate::play_sound_buffer::PlaySoundBuffer;
-use crate::sound_data::SoundData;
-use crate::sound_library::SoundLibrary;
+use crate::sound::SoundData;
+use crate::sound::SoundLibrary;
 use crate::spatial::SpatialGains;
 
 const DEFAULT_SAMPLE_RATE: u32 = 44_100;
@@ -76,12 +76,10 @@ mod tests {
 
     use bevy_ecs::prelude::{Schedule, World};
 
-    use crate::audio_backend::AudioBackend;
+    use crate::backend::AudioBackend;
     use crate::mixer::{MixerState, MixerTrack};
-    use crate::play_sound_buffer::PlaySound;
-    use crate::playback_id::PlaybackId;
-    use crate::sound_data::SoundData;
-    use crate::sound_effect::SoundEffect;
+    use crate::playback::{PlaySound, PlaybackId};
+    use crate::sound::{SoundData, SoundEffect};
 
     use super::*;
 

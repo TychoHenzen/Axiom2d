@@ -2,8 +2,9 @@ use bevy_ecs::prelude::Resource;
 use engine_core::color::Color;
 
 use crate::atlas::TextureAtlas;
-use crate::material::{BlendMode, ShaderHandle};
+use crate::material::BlendMode;
 use crate::rect::Rect;
+use crate::shader::ShaderHandle;
 use engine_core::types::TextureId;
 
 pub trait Renderer {
@@ -70,7 +71,7 @@ impl Renderer for NullRenderer {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::collections::HashMap;
+
     use std::sync::{Arc, Mutex};
 
     use engine_core::types::Pixels;
@@ -154,22 +155,13 @@ mod tests {
         renderer.resize(800, 600);
     }
 
-    fn minimal_atlas() -> crate::atlas::TextureAtlas {
-        crate::atlas::TextureAtlas {
-            data: vec![255; 4],
-            width: 1,
-            height: 1,
-            lookups: HashMap::default(),
-        }
-    }
-
     #[test]
     fn when_null_renderer_upload_atlas_then_does_not_panic() {
         // Arrange
         let mut renderer = NullRenderer;
 
         // Act
-        renderer.upload_atlas(&minimal_atlas());
+        renderer.upload_atlas(&crate::test_helpers::minimal_atlas());
     }
 
     #[test]
@@ -189,7 +181,7 @@ mod tests {
         let mut renderer = NullRenderer;
 
         // Act
-        renderer.set_shader(crate::material::ShaderHandle(0));
+        renderer.set_shader(crate::shader::ShaderHandle(0));
         renderer.set_material_uniforms(&[1, 2, 3]);
         renderer.bind_material_texture(engine_core::types::TextureId(0), 2);
     }

@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::{Query, Res, ResMut};
-use engine_input::mouse_state::MouseState;
+use engine_input::mouse::MouseState;
 use engine_render::camera::{Camera2D, screen_to_world};
 
 use crate::window_size::WindowSize;
@@ -23,7 +23,7 @@ pub fn mouse_world_pos_system(
 #[allow(clippy::unwrap_used)]
 mod tests {
     use bevy_ecs::prelude::{Schedule, World};
-    use engine_input::mouse_state::MouseState;
+    use engine_input::mouse::MouseState;
     use engine_render::camera::Camera2D;
     use glam::Vec2;
 

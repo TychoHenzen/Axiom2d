@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bevy_ecs::resource::Resource;
 
-use crate::sound_effect::SoundEffect;
+use super::effect::SoundEffect;
 
 #[derive(Resource, Default)]
 pub struct SoundLibrary {

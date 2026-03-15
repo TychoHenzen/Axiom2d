@@ -597,7 +597,7 @@ impl Renderer for WgpuRenderer {
         self.current_blend_mode = mode;
     }
 
-    fn set_shader(&mut self, _shader: crate::material::ShaderHandle) {}
+    fn set_shader(&mut self, _shader: crate::shader::ShaderHandle) {}
 
     fn set_material_uniforms(&mut self, _data: &[u8]) {}
 

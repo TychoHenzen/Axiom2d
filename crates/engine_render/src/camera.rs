@@ -2,6 +2,7 @@ use bevy_ecs::prelude::{Component, Query, ResMut, Resource};
 use glam::{Mat4, Vec2};
 use serde::{Deserialize, Serialize};
 
+use crate::culling::camera_view_rect;
 use crate::renderer::RendererRes;
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -46,38 +47,6 @@ pub fn screen_to_world(
     centered / camera.zoom + camera.position
 }
 
-pub(crate) fn camera_view_rect(
-    camera: &Camera2D,
-    viewport_width: f32,
-    viewport_height: f32,
-) -> (Vec2, Vec2) {
-    let half_w = viewport_width / (2.0 * camera.zoom);
-    let half_h = viewport_height / (2.0 * camera.zoom);
-    let min = Vec2::new(camera.position.x - half_w, camera.position.y - half_h);
-    let max = Vec2::new(camera.position.x + half_w, camera.position.y + half_h);
-    (min, max)
-}
-
-pub(crate) fn aabb_intersects_view_rect(
-    entity_min: Vec2,
-    entity_max: Vec2,
-    view_min: Vec2,
-    view_max: Vec2,
-) -> bool {
-    entity_max.x >= view_min.x
-        && entity_min.x <= view_max.x
-        && entity_max.y >= view_min.y
-        && entity_min.y <= view_max.y
-}
-
-#[cfg(test)]
-fn compute_view_matrix(camera: &Camera2D) -> Mat4 {
-    let scale = Mat4::from_scale(glam::Vec3::new(camera.zoom, camera.zoom, 1.0));
-    let translation =
-        Mat4::from_translation(glam::Vec3::new(-camera.position.x, -camera.position.y, 0.0));
-    scale * translation
-}
-
 #[derive(Resource, Debug, Clone, Copy)]
 pub struct CameraUniform {
     pub view_proj: [[f32; 4]; 4],
@@ -100,17 +69,17 @@ impl CameraUniform {
 }
 
 pub fn camera_prepare_system(query: Query<&Camera2D>, mut renderer: ResMut<RendererRes>) {
-    let (vw, vh) = renderer.viewport_size();
-    if vw == 0 || vh == 0 {
+    let (viewport_width, viewport_height) = renderer.viewport_size();
+    if viewport_width == 0 || viewport_height == 0 {
         return;
     }
-    let vw = vw as f32;
-    let vh = vh as f32;
+    let viewport_width = viewport_width as f32;
+    let viewport_height = viewport_height as f32;
     let camera = query.iter().next().copied().unwrap_or(Camera2D {
-        position: Vec2::new(vw / 2.0, vh / 2.0),
+        position: Vec2::new(viewport_width / 2.0, viewport_height / 2.0),
         zoom: 1.0,
     });
-    let uniform = CameraUniform::from_camera(&camera, vw, vh);
+    let uniform = CameraUniform::from_camera(&camera, viewport_width, viewport_height);
     renderer.set_view_projection(uniform.view_proj);
 }
 
@@ -122,6 +91,14 @@ mod tests {
     use glam::{Mat4, Vec2};
 
     use super::*;
+    use crate::culling::aabb_intersects_view_rect;
+
+    fn compute_view_matrix(camera: &Camera2D) -> Mat4 {
+        let scale = Mat4::from_scale(glam::Vec3::new(camera.zoom, camera.zoom, 1.0));
+        let translation =
+            Mat4::from_translation(glam::Vec3::new(-camera.position.x, -camera.position.y, 0.0));
+        scale * translation
+    }
     use crate::renderer::RendererRes;
     use crate::testing::{SpyRenderer, insert_spy_with_viewport};
 

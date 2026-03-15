@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::mixer::{MixerTrack, TRACK_COUNT};
-use crate::playback_id::PlaybackId;
+use crate::playback::PlaybackId;
 
 pub(crate) struct ActiveSound {
     pub(crate) id: PlaybackId,
@@ -45,7 +45,7 @@ pub(crate) fn mix_into(output: &mut [f32], state: &mut SharedState) {
 mod tests {
     use super::*;
     use crate::mixer::MixerTrack;
-    use crate::playback_id::PlaybackId;
+    use crate::playback::PlaybackId;
 
     fn test_state(volume: f32, sounds: Vec<ActiveSound>) -> SharedState {
         SharedState {

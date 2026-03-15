@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use engine_scene::prelude::GlobalTransform2D;
 
-use crate::play_sound_buffer::PlaySoundBuffer;
+use crate::playback::PlaySoundBuffer;
 
 /// Linear distance attenuation: 1.0 at distance 0, 0.0 at `max_distance`, clamped.
 #[must_use]
@@ -111,7 +111,7 @@ mod tests {
     };
     use glam::Affine2;
 
-    use crate::play_sound_buffer::{PlaySound, PlaySoundBuffer};
+    use crate::playback::{PlaySound, PlaySoundBuffer};
 
     use super::*;
 

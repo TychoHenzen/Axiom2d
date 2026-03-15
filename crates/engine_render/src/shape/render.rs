@@ -4,7 +4,8 @@ use glam::Vec2;
 
 use super::components::{Shape, Stroke};
 use super::tessellate::{shape_aabb, tessellate, tessellate_stroke};
-use crate::camera::{Camera2D, aabb_intersects_view_rect, camera_view_rect};
+use crate::camera::Camera2D;
+use crate::culling::{aabb_intersects_view_rect, camera_view_rect};
 use crate::material::{Material2d, apply_material, effective_blend_mode, effective_shader_handle};
 use crate::renderer::RendererRes;
 
@@ -99,8 +100,9 @@ mod tests {
 
     use super::*;
     use crate::camera::Camera2D;
-    use crate::material::{BlendMode, ShaderHandle, TextureBinding};
+    use crate::material::{BlendMode, TextureBinding};
     use crate::renderer::RendererRes;
+    use crate::shader::ShaderHandle;
     use crate::shape::{PathCommand, ShapeVariant};
     use crate::testing::{
         ShapeCallLog, SpyRenderer, insert_spy, insert_spy_with_blend_capture,

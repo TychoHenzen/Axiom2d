@@ -1,6 +1,6 @@
 use fundsp::prelude::AudioUnit;
 
-use crate::sound_data::SoundData;
+use super::data::SoundData;
 
 pub struct SoundEffect {
     factory: Box<dyn Fn() -> Box<dyn AudioUnit> + Send + Sync>,

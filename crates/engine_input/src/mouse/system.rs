@@ -1,8 +1,8 @@
 use bevy_ecs::prelude::ResMut;
 use winit::event::ElementState;
 
-use crate::mouse_event_buffer::MouseEventBuffer;
-use crate::mouse_state::MouseState;
+use super::buffer::MouseEventBuffer;
+use super::state::MouseState;
 
 pub fn mouse_input_system(mut buffer: ResMut<MouseEventBuffer>, mut state: ResMut<MouseState>) {
     state.clear_frame_state();
@@ -26,8 +26,8 @@ mod tests {
     use winit::event::ElementState;
     use winit::event::MouseButton;
 
-    use crate::mouse_event_buffer::MouseEventBuffer;
-    use crate::mouse_state::MouseState;
+    use crate::mouse::MouseEventBuffer;
+    use crate::mouse::MouseState;
 
     use super::*;
 

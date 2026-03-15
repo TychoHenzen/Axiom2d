@@ -1,6 +1,6 @@
 use crate::mixer::MixerTrack;
-use crate::playback_id::PlaybackId;
-use crate::sound_data::SoundData;
+use crate::playback::PlaybackId;
+use crate::sound::SoundData;
 
 pub trait AudioBackend: Send + Sync {
     fn play(&mut self, sound: &SoundData) -> PlaybackId;
@@ -53,14 +53,7 @@ impl AudioBackend for NullAudioBackend {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-
-    fn minimal_sound() -> SoundData {
-        SoundData {
-            samples: vec![0.0],
-            sample_rate: 44_100,
-            channels: 1,
-        }
-    }
+    use crate::test_helpers::minimal_sound;
 
     #[test]
     fn when_play_called_then_play_count_increments() {

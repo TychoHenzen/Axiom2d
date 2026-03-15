@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::Resource;
 
-use crate::audio_backend::AudioBackend;
+use crate::backend::AudioBackend;
 
 #[derive(Resource)]
 pub struct AudioRes(Box<dyn AudioBackend + Send + Sync>);

@@ -3,7 +3,7 @@ use std::vec::Drain;
 use bevy_ecs::prelude::Resource;
 use winit::event::ElementState;
 
-use crate::mouse_state::MouseButton;
+use super::state::MouseButton;
 
 #[derive(Resource, Debug, Default)]
 pub struct MouseEventBuffer {

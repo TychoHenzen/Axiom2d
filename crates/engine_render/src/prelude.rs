@@ -9,11 +9,12 @@ pub use crate::camera::{
 pub use crate::clear::{ClearColor, clear_system};
 pub use crate::create_renderer;
 pub use crate::material::{
-    BlendMode, Material2d, ShaderHandle, ShaderRegistry, TextureBinding, apply_material,
-    effective_blend_mode, effective_shader_handle, preprocess,
+    BlendMode, Material2d, TextureBinding, apply_material, effective_blend_mode,
+    effective_shader_handle,
 };
 pub use crate::rect::Rect;
 pub use crate::renderer::{NullRenderer, Renderer, RendererRes};
+pub use crate::shader::{ShaderHandle, ShaderRegistry, preprocess};
 pub use crate::shape::{
     PathCommand, Shape, ShapeVariant, Stroke, TessellatedMesh, resolve_commands, reverse_path,
     sample_cubic, sample_quadratic, shape_render_system, split_contours, tessellate,

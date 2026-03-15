@@ -5,9 +5,10 @@ use engine_core::color::Color;
 
 use engine_core::types::TextureId;
 
-use crate::material::{BlendMode, ShaderHandle};
+use crate::material::BlendMode;
 use crate::rect::Rect;
 use crate::renderer::{Renderer, RendererRes};
+use crate::shader::ShaderHandle;
 
 pub type RectCallLog = Arc<Mutex<Vec<Rect>>>;
 pub type SpriteCallLog = Arc<Mutex<Vec<(Rect, [f32; 4])>>>;
@@ -446,7 +447,7 @@ mod tests {
         let mut spy = SpyRenderer::new(log.clone());
 
         // Act
-        spy.set_shader(crate::material::ShaderHandle(42));
+        spy.set_shader(crate::shader::ShaderHandle(42));
 
         // Assert
         assert_eq!(log.lock().unwrap().as_slice(), &["set_shader"]);
@@ -460,11 +461,11 @@ mod tests {
         let mut spy = SpyRenderer::new(log).with_shader_capture(shader_calls.clone());
 
         // Act
-        spy.set_shader(crate::material::ShaderHandle(7));
+        spy.set_shader(crate::shader::ShaderHandle(7));
 
         // Assert
         let calls = shader_calls.lock().unwrap();
-        assert_eq!(calls.as_slice(), &[crate::material::ShaderHandle(7)]);
+        assert_eq!(calls.as_slice(), &[crate::shader::ShaderHandle(7)]);
     }
 
     #[test]

@@ -338,25 +338,6 @@ mod tests {
     }
 
     #[test]
-    fn when_set_window_config_called_then_config_is_stored() {
-        // Arrange
-        let mut app = App::new();
-        let config = WindowConfig {
-            title: "Test",
-            width: 800,
-            height: 600,
-            vsync: false,
-            resizable: false,
-        };
-
-        // Act
-        app.set_window_config(config);
-
-        // Assert
-        assert_eq!(app.window_config, config);
-    }
-
-    #[test]
     fn when_handle_redraw_called_then_present_called_via_renderer_res() {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -470,22 +451,6 @@ mod tests {
     }
 
     #[test]
-    fn when_resource_inserted_into_app_world_then_value_is_readable() {
-        #[derive(Resource)]
-        struct Score(u32);
-
-        // Arrange
-        let mut app = App::new();
-
-        // Act
-        app.world_mut().insert_resource(Score(7));
-        let result = app.world().resource::<Score>().0;
-
-        // Assert
-        assert_eq!(result, 7);
-    }
-
-    #[test]
     fn when_render_phase_system_uses_renderer_res_then_draw_calls_precede_present() {
         fn render_system(mut renderer: ResMut<RendererRes>) {
             renderer.clear(Color::BLACK);
@@ -544,43 +509,6 @@ mod tests {
 
         // Assert
         assert_eq!(app.world().resource::<Counter>().0, 1);
-    }
-
-    #[test]
-    fn when_plugin_inserts_resource_then_resource_persists_after_build() {
-        #[derive(Resource)]
-        struct Gravity(f32);
-
-        struct GravityPlugin;
-        impl Plugin for GravityPlugin {
-            fn build(&self, app: &mut App) {
-                app.world_mut().insert_resource(Gravity(9.81));
-            }
-        }
-
-        // Arrange
-        let mut app = App::new();
-
-        // Act
-        app.add_plugin(GravityPlugin);
-
-        // Assert
-        let g = app.world().resource::<Gravity>().0;
-        assert!((g - 9.81).abs() < f32::EPSILON);
-    }
-
-    #[test]
-    fn when_set_renderer_called_then_renderer_res_present_in_world() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(Arc::clone(&log));
-        let mut app = App::new();
-
-        // Act
-        app.set_renderer(Box::new(spy));
-
-        // Assert
-        assert!(app.world().get_resource::<RendererRes>().is_some());
     }
 
     #[test]

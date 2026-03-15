@@ -1,15 +1,14 @@
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::prelude::{Query, Res, ResMut, Resource};
-use engine_input::mouse_state::MouseState;
+use engine_input::mouse::MouseState;
 use engine_input::prelude::MouseButton;
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D};
 use serde::{Deserialize, Serialize};
 
-use crate::anchor::anchor_offset;
-use crate::button::Button;
+use crate::layout::anchor_offset;
 use crate::ui_event::{UiEvent, UiEventBuffer};
-use crate::ui_node::UiNode;
+use crate::widget::{Button, UiNode};
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Interaction {
@@ -102,9 +101,9 @@ mod tests {
     use engine_scene::prelude::GlobalTransform2D;
     use glam::{Affine2, Vec2};
 
-    use crate::anchor::Anchor;
+    use crate::layout::Anchor;
     use crate::ui_event::{UiEvent, UiEventBuffer};
-    use crate::ui_node::UiNode;
+    use crate::widget::UiNode;
 
     fn setup_world(world_pos: Vec2) -> World {
         let mut world = World::new();
@@ -652,7 +651,7 @@ mod tests {
                 },
                 GlobalTransform2D(Affine2::from_translation(Vec2::new(200.0, 100.0))),
                 Interaction::default(),
-                crate::button::Button { disabled: true },
+                crate::widget::Button { disabled: true },
             ))
             .id();
 

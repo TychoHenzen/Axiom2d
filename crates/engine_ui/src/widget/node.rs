@@ -3,8 +3,8 @@ use engine_core::prelude::Color;
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
-use crate::anchor::Anchor;
-use crate::margin::Margin;
+use crate::layout::Anchor;
+use crate::layout::Margin;
 
 #[derive(Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UiNode {
@@ -29,8 +29,8 @@ impl Default for UiNode {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::flex_layout::{FlexDirection, FlexLayout};
-    use crate::text::Text;
+    use crate::layout::{FlexDirection, FlexLayout};
+    use crate::widget::Text;
 
     #[test]
     fn when_ui_node_roundtrip_ron_then_preserved() {

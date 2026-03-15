@@ -5,10 +5,10 @@ use engine_render::prelude::{Rect, RendererRes};
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D};
 use serde::{Deserialize, Serialize};
 
-use crate::anchor::anchor_offset;
+use super::node::UiNode;
 use crate::interaction::Interaction;
+use crate::layout::anchor_offset;
 use crate::theme::UiTheme;
-use crate::ui_node::UiNode;
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Button {
@@ -65,7 +65,7 @@ mod tests {
     use engine_render::testing::RectCallLog;
     use glam::{Affine2, Vec2};
 
-    use crate::anchor::Anchor;
+    use crate::layout::Anchor;
     use crate::test_helpers::make_spy_world;
 
     fn setup_world_with_spy() -> (World, Schedule, Arc<Mutex<Vec<String>>>, RectCallLog) {

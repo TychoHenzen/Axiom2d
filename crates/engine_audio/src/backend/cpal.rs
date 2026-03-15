@@ -2,11 +2,11 @@ use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
-use crate::audio_backend::AudioBackend;
+use super::traits::AudioBackend;
 use crate::mixer::MixerTrack;
 use crate::mixer_engine::{ActiveSound, SharedState, mix_into};
-use crate::playback_id::PlaybackId;
-use crate::sound_data::SoundData;
+use crate::playback::PlaybackId;
+use crate::sound::SoundData;
 
 use crate::mixer::TRACK_COUNT;
 
@@ -131,14 +131,7 @@ impl AudioBackend for CpalBackend {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-
-    fn minimal_sound() -> SoundData {
-        SoundData {
-            samples: vec![0.0],
-            sample_rate: 44_100,
-            channels: 1,
-        }
-    }
+    use crate::test_helpers::minimal_sound;
 
     fn sound_with_samples(samples: Vec<f32>) -> SoundData {
         SoundData {

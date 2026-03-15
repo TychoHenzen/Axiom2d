@@ -2,9 +2,9 @@ use bevy_ecs::prelude::Query;
 use engine_core::prelude::Transform2D;
 use engine_scene::prelude::{Children, GlobalTransform2D};
 
-use crate::flex_layout::{FlexLayout, compute_flex_offsets};
-use crate::margin::Margin;
-use crate::ui_node::UiNode;
+use super::flex::{FlexLayout, compute_flex_offsets};
+use super::margin::Margin;
+use crate::widget::UiNode;
 
 pub fn ui_layout_system(
     parents: Query<(&FlexLayout, &Children, &GlobalTransform2D)>,
@@ -41,7 +41,7 @@ mod tests {
     use engine_scene::prelude::ChildOf;
     use glam::{Affine2, Vec2};
 
-    use crate::flex_layout::FlexDirection;
+    use crate::layout::FlexDirection;
 
     fn run_layout(world: &mut World) {
         use bevy_ecs::schedule::IntoScheduleConfigs;
