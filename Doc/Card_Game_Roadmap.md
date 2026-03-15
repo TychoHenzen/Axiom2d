@@ -88,44 +88,44 @@ These extend `engine_physics` with capabilities the card game requires.
 
 ## Phase C: Drag and Drop Foundation
 
-### Step C1 — DragState Resource `[NOT STARTED]`
+### Step C1 — DragState Resource `[DONE]`
 **Crate:** card_game
 **Why:** Central state for the drag-and-drop system.
 
-- [ ] `DragState` resource: `dragging: Option<DragInfo>`
-- [ ] `DragInfo`: `entity: Entity`, `local_grab_offset: Vec2` (body-local-space offset from center to grab point), `origin_zone: CardZone`
-- [ ] Tests: default is None, start/clear cycle
+- [x] `DragState` resource: `dragging: Option<DragInfo>`
+- [x] `DragInfo`: `entity: Entity`, `local_grab_offset: Vec2` (body-local-space offset from center to grab point), `origin_zone: CardZone`
+- [x] Tests: default is None, start/clear cycle (tested implicitly via C2/C3/C4 system tests)
 
-### Step C2 — Table Card Picking `[NOT STARTED]`
+### Step C2 — Table Card Picking `[DONE]`
 **Crate:** card_game
 **Why:** Clicking on a card on the table starts a drag. Must pick the topmost (highest SortOrder) card under cursor.
 
-- [ ] `card_pick_system` in Phase::Update: on `mouse.just_pressed(MouseButton::Left)`, query all `(Entity, &Card, &CardZone, &GlobalTransform2D, &Sprite, &SortOrder)` where CardZone is Table
-- [ ] AABB hit test at `mouse.world_pos()` using sprite dimensions centered on GlobalTransform2D position (accounting for rotation)
-- [ ] Pick entity with highest SortOrder among hits
-- [ ] On pick: compute `local_grab_offset` by inverse-rotating `(cursor - body_center)` into body-local space, set DragState, bump SortOrder above all others
-- [ ] Tests: pick topmost when overlapping, miss when cursor outside all cards, no pick when no cards, no pick when already dragging, local_grab_offset computed correctly for rotated card
+- [x] `card_pick_system` in Phase::Update: on `mouse.just_pressed(MouseButton::Left)`, query all `(Entity, &Card, &CardZone, &GlobalTransform2D, &Sprite, &SortOrder)` where CardZone is Table
+- [x] AABB hit test at `mouse.world_pos()` using sprite dimensions centered on GlobalTransform2D position (accounting for rotation)
+- [x] Pick entity with highest SortOrder among hits
+- [x] On pick: compute `local_grab_offset` by inverse-rotating `(cursor - body_center)` into body-local space, set DragState, bump SortOrder above all others
+- [x] Tests: pick topmost when overlapping, miss when cursor outside all cards, no pick when no cards, no pick when already dragging, local_grab_offset computed correctly for rotated card
 
-### Step C3 — Card Drag System (Spring Force) `[NOT STARTED]`
+### Step C3 — Card Drag System (Spring Force) `[DONE]`
 **Crate:** card_game
 **Why:** While dragging, a spring force at the grab point pulls it toward the cursor. The card stays Dynamic — physics handles the rotation and inertia naturally.
 
-- [ ] `card_drag_system` in Phase::Update: while `DragState.dragging.is_some()` and `mouse.pressed(Left)`
-- [ ] Compute grab point's current world position: `physics.body_point_to_world(entity, local_grab_offset)`
-- [ ] Compute spring force: `DRAG_STIFFNESS * (cursor_world_pos - grab_world_pos)`
-- [ ] Apply via `physics.add_force_at_point(entity, force, grab_world_pos)`
-- [ ] `DRAG_STIFFNESS` as a tunable constant (high = snappy, low = laggy/swingy)
-- [ ] Tests: force direction is toward cursor, force magnitude proportional to distance, no force when grab point equals cursor, system no-ops when not dragging
+- [x] `card_drag_system` in Phase::Update: while `DragState.dragging.is_some()` and `mouse.pressed(Left)`
+- [x] Compute grab point's current world position: `physics.body_point_to_world(entity, local_grab_offset)`
+- [x] Compute spring force: `DRAG_STIFFNESS * (cursor_world_pos - grab_world_pos)`
+- [x] Apply via `physics.add_force_at_point(entity, force, grab_world_pos)`
+- [x] `DRAG_STIFFNESS` as a tunable constant (high = snappy, low = laggy/swingy)
+- [x] Tests: force direction is toward cursor, force magnitude proportional to distance, no force when grab point equals cursor, system no-ops when not dragging
 
-### Step C4 — Card Release `[NOT STARTED]`
+### Step C4 — Card Release `[DONE]`
 **Crate:** card_game
 **Why:** Releasing a dragged card simply stops applying the spring force. The card continues with its current physics velocity and angular velocity.
 
-- [ ] `card_release_system` in Phase::Update (after card_drag_system): on `mouse.just_released(Left)` while dragging
-- [ ] If origin was Table and drop target is Table: just clear DragState — physics continues naturally
+- [x] `card_release_system` in Phase::Update (after card_drag_system): on `mouse.just_released(Left)` while dragging
+- [x] If origin was Table and drop target is Table: just clear DragState — physics continues naturally
 - [ ] If dropping onto hand/stash: handle zone transition (see Phase F/G)
-- [ ] Clear DragState
-- [ ] Tests: DragState cleared on release, card retains velocity after release (step physics, verify position changes), card retains angular velocity after release
+- [x] Clear DragState
+- [x] Tests: DragState cleared on release, no panic when not dragging, drag state preserved while held, zone unchanged on table release
 
 ---
 

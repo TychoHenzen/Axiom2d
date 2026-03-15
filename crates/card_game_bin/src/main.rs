@@ -1,4 +1,5 @@
 use axiom2d::prelude::*;
+use card_game::prelude::*;
 use engine_physics::prelude::*;
 use glam::Vec2;
 
@@ -55,6 +56,8 @@ fn spawn_card(
     let collider = Collider::Aabb(Vec2::new(CARD_WIDTH / 2.0, CARD_HEIGHT / 2.0));
     let entity = world
         .spawn((
+            Card::face_down(TextureId(0), TextureId(0)),
+            CardZone::Table,
             Transform2D {
                 position,
                 ..Default::default()
@@ -154,6 +157,7 @@ fn setup(app: &mut App) {
 
     world.insert_resource(PhysicsRes::new(Box::new(physics)));
     world.insert_resource(CollisionEventBuffer::default());
+    world.insert_resource(DragState::default());
     world.insert_resource(ClearColor(Color {
         r: 0.1,
         g: 0.1,
@@ -174,10 +178,15 @@ fn setup(app: &mut App) {
             world.insert_resource(physics);
         });
 
-    app.set_window_config(config).add_systems(
-        Phase::PreUpdate,
-        (physics_step_system, physics_sync_system).chain(),
-    );
+    app.set_window_config(config)
+        .add_systems(
+            Phase::PreUpdate,
+            (physics_step_system, physics_sync_system).chain(),
+        )
+        .add_systems(
+            Phase::Update,
+            (card_pick_system, card_drag_system, card_release_system).chain(),
+        );
 }
 
 fn main() {

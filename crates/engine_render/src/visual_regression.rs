@@ -77,7 +77,6 @@ impl HeadlessRenderer {
 
     #[allow(clippy::too_many_lines)]
     fn build(device: wgpu::Device, queue: wgpu::Queue, width: u32, height: u32) -> Self {
-
         let output_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: wgpu::Extent3d {

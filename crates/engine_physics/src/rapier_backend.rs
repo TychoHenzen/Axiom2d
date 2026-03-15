@@ -140,6 +140,33 @@ impl PhysicsBackend for RapierBackend {
         Some(body.rotation().angle())
     }
 
+    fn body_linear_velocity(&self, entity: Entity) -> Option<Vec2> {
+        let handle = self.entity_to_handle.get(&entity)?;
+        let body = self.bodies.get(*handle)?;
+        let vel = body.linvel();
+        Some(Vec2::new(vel.x, vel.y))
+    }
+
+    fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2) {
+        let Some(&handle) = self.entity_to_handle.get(&entity) else {
+            return;
+        };
+        let Some(body) = self.bodies.get_mut(handle) else {
+            return;
+        };
+        body.set_linvel(vector![velocity.x, velocity.y], true);
+    }
+
+    fn set_angular_velocity(&mut self, entity: Entity, angular_velocity: f32) {
+        let Some(&handle) = self.entity_to_handle.get(&entity) else {
+            return;
+        };
+        let Some(body) = self.bodies.get_mut(handle) else {
+            return;
+        };
+        body.set_angvel(angular_velocity, true);
+    }
+
     fn add_force_at_point(&mut self, entity: Entity, force: Vec2, world_point: Vec2) {
         let Some(&handle) = self.entity_to_handle.get(&entity) else {
             return;

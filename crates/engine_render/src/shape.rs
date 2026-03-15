@@ -178,10 +178,7 @@ pub fn sample_cubic(from: Vec2, c1: Vec2, c2: Vec2, to: Vec2, n: usize) -> Vec<V
         .map(|i| {
             let t = i as f32 / n as f32;
             let u = 1.0 - t;
-            from * (u * u * u)
-                + c1 * (3.0 * u * u * t)
-                + c2 * (3.0 * u * t * t)
-                + to * (t * t * t)
+            from * (u * u * u) + c1 * (3.0 * u * u * t) + c2 * (3.0 * u * t * t) + to * (t * t * t)
         })
         .collect()
 }
@@ -472,10 +469,11 @@ pub fn shape_render_system(
     for (shape, transform, _, _, _, mat, stroke) in shapes {
         let pos = transform.0.translation;
         let (local_min, local_max) = shape_aabb(&shape.variant);
+        let local_radius = local_min.abs().max(local_max.abs()).length();
 
         if let Some((view_min, view_max)) = view_rect {
-            let entity_min = Vec2::new(pos.x + local_min.x, pos.y + local_min.y);
-            let entity_max = Vec2::new(pos.x + local_max.x, pos.y + local_max.y);
+            let entity_min = Vec2::new(pos.x - local_radius, pos.y - local_radius);
+            let entity_max = Vec2::new(pos.x + local_radius, pos.y + local_radius);
             if !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max) {
                 continue;
             }
@@ -483,11 +481,15 @@ pub fn shape_render_system(
 
         apply_material(&mut **renderer, mat, &mut last_shader, &mut last_blend_mode);
 
+        let affine = transform.0;
         let mesh = tessellate(&shape.variant);
         let offset_vertices: Vec<[f32; 2]> = mesh
             .vertices
             .iter()
-            .map(|v| [v[0] + pos.x, v[1] + pos.y])
+            .map(|v| {
+                let world = affine.transform_point2(Vec2::new(v[0], v[1]));
+                [world.x, world.y]
+            })
             .collect();
 
         renderer.draw_shape(&offset_vertices, &mesh.indices, shape.color);
@@ -497,7 +499,10 @@ pub fn shape_render_system(
             let stroke_vertices: Vec<[f32; 2]> = stroke_mesh
                 .vertices
                 .iter()
-                .map(|v| [v[0] + pos.x, v[1] + pos.y])
+                .map(|v| {
+                    let world = affine.transform_point2(Vec2::new(v[0], v[1]));
+                    [world.x, world.y]
+                })
                 .collect();
             renderer.draw_shape(&stroke_vertices, &stroke_mesh.indices, stroke.color);
         }

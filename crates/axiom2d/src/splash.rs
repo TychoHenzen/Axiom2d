@@ -143,8 +143,7 @@ pub fn splash_render_system(
         position: Vec2::new(0.0, 15.0),
         zoom: (vw / 500.0).min(vh / 300.0),
     };
-    let uniform =
-        engine_render::prelude::CameraUniform::from_camera(&splash_camera, vw, vh);
+    let uniform = engine_render::prelude::CameraUniform::from_camera(&splash_camera, vw, vh);
     renderer.set_view_projection(uniform.view_proj);
 }
 
@@ -153,8 +152,8 @@ mod render {
     use super::*;
     use crate::splash_letters::{letter_a, letter_i, letter_m, letter_o, letter_x};
     use engine_render::prelude::{
-        PathCommand, Shape, ShapeVariant, Stroke, resolve_commands, sample_cubic,
-        sample_quadratic, split_contours,
+        PathCommand, Shape, ShapeVariant, Stroke, resolve_commands, sample_cubic, sample_quadratic,
+        split_contours,
     };
 
     const BG_COLOR: Color = Color {
@@ -173,7 +172,12 @@ mod render {
         )
     }
 
-    pub(super) fn shade_for_normal(normal: Vec2, light_dir: Vec2, dark: Color, bright: Color) -> Color {
+    pub(super) fn shade_for_normal(
+        normal: Vec2,
+        light_dir: Vec2,
+        dark: Color,
+        bright: Color,
+    ) -> Color {
         let t = (normal.dot(light_dir) + 1.0) * 0.5;
         let t = t.clamp(0.0, 1.0);
         let t = t * t * t;
@@ -322,7 +326,13 @@ mod render {
 
             for contour in split_contours(&resolved) {
                 let faces = build_shaded_side_faces(
-                    &contour, vp_local, depth, slices, light_dir, dark_color, bright_color,
+                    &contour,
+                    vp_local,
+                    depth,
+                    slices,
+                    light_dir,
+                    dark_color,
+                    bright_color,
                 );
                 #[allow(clippy::cast_possible_wrap)]
                 for (i, (quad_cmds, color, _dist)) in faces.into_iter().enumerate() {
@@ -865,8 +875,8 @@ mod tests {
         }
 
         #[test]
-        fn when_build_shaded_side_faces_with_quadratic_then_curved_segment_produces_slices_and_colors_vary(
-        ) {
+        fn when_build_shaded_side_faces_with_quadratic_then_curved_segment_produces_slices_and_colors_vary()
+         {
             // Arrange
             let contour = vec![
                 PathCommand::MoveTo(Vec2::new(0.0, 0.0)),

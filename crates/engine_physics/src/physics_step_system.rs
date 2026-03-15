@@ -80,6 +80,12 @@ mod tests {
             std::mem::take(&mut self.events)
         }
 
+        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
+            None
+        }
+        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
+        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
+
         fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
 
         fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}

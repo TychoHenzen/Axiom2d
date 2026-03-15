@@ -16,6 +16,9 @@ pub trait PhysicsBackend: Send + Sync {
     fn body_position(&self, entity: Entity) -> Option<Vec2>;
     fn body_rotation(&self, entity: Entity) -> Option<f32>;
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent>;
+    fn body_linear_velocity(&self, entity: Entity) -> Option<Vec2>;
+    fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2);
+    fn set_angular_velocity(&mut self, entity: Entity, angular_velocity: f32);
     fn add_force_at_point(&mut self, entity: Entity, force: Vec2, world_point: Vec2);
     fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32);
 
@@ -78,6 +81,14 @@ impl PhysicsBackend for NullPhysicsBackend {
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
         Vec::new()
     }
+
+    fn body_linear_velocity(&self, _entity: Entity) -> Option<Vec2> {
+        None
+    }
+
+    fn set_linear_velocity(&mut self, _entity: Entity, _velocity: Vec2) {}
+
+    fn set_angular_velocity(&mut self, _entity: Entity, _angular_velocity: f32) {}
 
     fn add_force_at_point(&mut self, _entity: Entity, _force: Vec2, _world_point: Vec2) {}
 
@@ -282,6 +293,11 @@ mod tests {
         fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
             Vec::new()
         }
+        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
+            Some(Vec2::ZERO)
+        }
+        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
+        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
         fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
         fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
     }
