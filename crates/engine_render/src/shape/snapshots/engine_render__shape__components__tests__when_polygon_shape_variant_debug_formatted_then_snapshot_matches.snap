@@ -1,6 +1,6 @@
 ---
-source: crates/engine_render/src/shape.rs
-assertion_line: 191
+source: crates/engine_render/src/shape/components.rs
+assertion_line: 53
 expression: debug
 ---
 Polygon {

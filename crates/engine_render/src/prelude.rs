@@ -4,8 +4,7 @@ pub use crate::atlas::{
 };
 pub use crate::bloom::{BloomSettings, compute_gaussian_weights, post_process_system};
 pub use crate::camera::{
-    Camera2D, CameraUniform, camera_prepare_system, compute_view_matrix, screen_to_world,
-    world_to_screen,
+    Camera2D, CameraUniform, camera_prepare_system, screen_to_world, world_to_screen,
 };
 pub use crate::clear::{ClearColor, clear_system};
 pub use crate::create_renderer;

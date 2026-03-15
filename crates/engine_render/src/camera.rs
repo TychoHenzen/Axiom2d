@@ -70,7 +70,8 @@ pub(crate) fn aabb_intersects_view_rect(
         && entity_min.y <= view_max.y
 }
 
-pub fn compute_view_matrix(camera: &Camera2D) -> Mat4 {
+#[cfg(test)]
+fn compute_view_matrix(camera: &Camera2D) -> Mat4 {
     let scale = Mat4::from_scale(glam::Vec3::new(camera.zoom, camera.zoom, 1.0));
     let translation =
         Mat4::from_translation(glam::Vec3::new(-camera.position.x, -camera.position.y, 0.0));
@@ -122,7 +123,7 @@ mod tests {
 
     use super::*;
     use crate::renderer::RendererRes;
-    use crate::testing::SpyRenderer;
+    use crate::testing::{SpyRenderer, insert_spy_with_viewport};
 
     #[test]
     fn when_camera2d_serialized_to_ron_then_deserializes_to_equal_value() {
@@ -494,17 +495,6 @@ mod tests {
         let mut schedule = bevy_ecs::schedule::Schedule::default();
         schedule.add_systems(camera_prepare_system);
         schedule.run(world);
-    }
-
-    fn insert_spy_with_viewport(
-        world: &mut bevy_ecs::world::World,
-        width: u32,
-        height: u32,
-    ) -> Arc<Mutex<Vec<String>>> {
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(log.clone()).with_viewport(width, height);
-        world.insert_resource(RendererRes::new(Box::new(spy)));
-        log
     }
 
     #[test]

@@ -89,7 +89,9 @@ mod tests {
     use super::*;
     use crate::material::{BlendMode, Material2d, ShaderHandle, TextureBinding};
     use crate::testing::{
-        BlendCallLog, ShaderCallLog, SpyRenderer, TextureBindCallLog, UniformCallLog,
+        BlendCallLog, SpyRenderer, insert_spy, insert_spy_with_blend_capture,
+        insert_spy_with_shader_capture, insert_spy_with_texture_bind_capture,
+        insert_spy_with_uniform_capture, insert_spy_with_viewport,
     };
 
     fn run_system(world: &mut World) {
@@ -106,13 +108,6 @@ mod tests {
             width: Pixels(32.0),
             height: Pixels(32.0),
         }
-    }
-
-    fn insert_spy(world: &mut World) -> Arc<Mutex<Vec<String>>> {
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(log.clone());
-        world.insert_resource(RendererRes::new(Box::new(spy)));
-        log
     }
 
     fn insert_spy_with_capture(world: &mut World) -> crate::testing::SpriteCallLog {
@@ -497,38 +492,6 @@ mod tests {
         assert_eq!(calls[0].1, uv);
     }
 
-    fn insert_spy_with_shader_capture(world: &mut World) -> ShaderCallLog {
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let shader_calls: ShaderCallLog = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(log).with_shader_capture(shader_calls.clone());
-        world.insert_resource(RendererRes::new(Box::new(spy)));
-        shader_calls
-    }
-
-    fn insert_spy_with_uniform_capture(world: &mut World) -> UniformCallLog {
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let uniform_calls: UniformCallLog = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(log).with_uniform_capture(uniform_calls.clone());
-        world.insert_resource(RendererRes::new(Box::new(spy)));
-        uniform_calls
-    }
-
-    fn insert_spy_with_texture_bind_capture(world: &mut World) -> TextureBindCallLog {
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let texture_bind_calls: TextureBindCallLog = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(log).with_texture_bind_capture(texture_bind_calls.clone());
-        world.insert_resource(RendererRes::new(Box::new(spy)));
-        texture_bind_calls
-    }
-
-    fn insert_spy_with_blend_capture(world: &mut World) -> BlendCallLog {
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let blend_calls: BlendCallLog = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(log).with_blend_capture(blend_calls.clone());
-        world.insert_resource(RendererRes::new(Box::new(spy)));
-        blend_calls
-    }
-
     fn insert_spy_with_blend_and_sprite_capture(
         world: &mut World,
     ) -> (BlendCallLog, crate::testing::SpriteCallLog) {
@@ -795,17 +758,6 @@ mod tests {
         // Assert
         let calls = blend_calls.lock().unwrap();
         assert!(calls.is_empty());
-    }
-
-    fn insert_spy_with_viewport(
-        world: &mut World,
-        width: u32,
-        height: u32,
-    ) -> Arc<Mutex<Vec<String>>> {
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(log.clone()).with_viewport(width, height);
-        world.insert_resource(RendererRes::new(Box::new(spy)));
-        log
     }
 
     /// @doc: Frustum culling skips draw calls for sprites whose AABB falls entirely outside the camera view rect

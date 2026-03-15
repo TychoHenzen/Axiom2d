@@ -2,6 +2,7 @@ pub mod audio_backend;
 pub mod audio_res;
 pub mod cpal_backend;
 pub mod mixer;
+pub(crate) mod mixer_engine;
 pub mod play_sound_buffer;
 pub mod play_sound_system;
 pub mod playback_id;

@@ -1,12 +1,13 @@
 use std::sync::{Arc, Mutex};
 
+use bevy_ecs::world::World;
 use engine_core::color::Color;
 
 use engine_core::types::TextureId;
 
 use crate::material::{BlendMode, ShaderHandle};
 use crate::rect::Rect;
-use crate::renderer::Renderer;
+use crate::renderer::{Renderer, RendererRes};
 
 pub type RectCallLog = Arc<Mutex<Vec<Rect>>>;
 pub type SpriteCallLog = Arc<Mutex<Vec<(Rect, [f32; 4])>>>;
@@ -202,6 +203,56 @@ impl Renderer for SpyRenderer {
     fn resize(&mut self, _width: u32, _height: u32) {
         self.log_call("resize");
     }
+}
+
+pub fn insert_spy(world: &mut World) -> Arc<Mutex<Vec<String>>> {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log.clone());
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+    log
+}
+
+pub fn insert_spy_with_viewport(
+    world: &mut World,
+    width: u32,
+    height: u32,
+) -> Arc<Mutex<Vec<String>>> {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log.clone()).with_viewport(width, height);
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+    log
+}
+
+pub fn insert_spy_with_blend_capture(world: &mut World) -> BlendCallLog {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let blend_calls: BlendCallLog = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log).with_blend_capture(blend_calls.clone());
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+    blend_calls
+}
+
+pub fn insert_spy_with_shader_capture(world: &mut World) -> ShaderCallLog {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let shader_calls: ShaderCallLog = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log).with_shader_capture(shader_calls.clone());
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+    shader_calls
+}
+
+pub fn insert_spy_with_uniform_capture(world: &mut World) -> UniformCallLog {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let uniform_calls: UniformCallLog = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log).with_uniform_capture(uniform_calls.clone());
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+    uniform_calls
+}
+
+pub fn insert_spy_with_texture_bind_capture(world: &mut World) -> TextureBindCallLog {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let texture_bind_calls: TextureBindCallLog = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log).with_texture_bind_capture(texture_bind_calls.clone());
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+    texture_bind_calls
 }
 
 #[cfg(test)]
