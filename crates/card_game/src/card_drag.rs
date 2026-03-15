@@ -539,7 +539,11 @@ mod tests {
 
         // Assert — rotation path must be taken (angular velocity set and nonzero)
         let a_calls = ang_log.lock().unwrap();
-        assert_eq!(a_calls.len(), 1, "rotation path should set angular velocity");
+        assert_eq!(
+            a_calls.len(),
+            1,
+            "rotation path should set angular velocity"
+        );
         assert!(
             a_calls[0].1.abs() > 0.0,
             "angular velocity should be nonzero at exact threshold, got {}",

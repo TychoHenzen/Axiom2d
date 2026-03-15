@@ -2685,6 +2685,9 @@ mod tests {
             .iter()
             .filter(|s| s.as_str() == "draw_shape")
             .count();
-        assert_eq!(count, 1, "shape whose AABB touches view_max.y should be rendered");
+        assert_eq!(
+            count, 1,
+            "shape whose AABB touches view_max.y should be rendered"
+        );
     }
 }
