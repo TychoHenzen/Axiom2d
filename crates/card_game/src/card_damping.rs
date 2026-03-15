@@ -11,7 +11,9 @@ pub const MIN_DRAG_FACTOR: f32 = 0.25;
 
 #[must_use]
 pub fn compute_card_damping(angular_velocity: f32) -> (f32, f32) {
-    let factor = (-SPIN_DRAG_DECAY_RATE * angular_velocity.abs()).exp().max(MIN_DRAG_FACTOR);
+    let factor = (-SPIN_DRAG_DECAY_RATE * angular_velocity.abs())
+        .exp()
+        .max(MIN_DRAG_FACTOR);
     (BASE_LINEAR_DRAG * factor, BASE_ANGULAR_DRAG * factor)
 }
 
@@ -187,7 +189,10 @@ mod tests {
             self.angular_velocities.get(&entity).copied()
         }
         fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32) {
-            self.damping_log.lock().unwrap().push((entity, linear, angular));
+            self.damping_log
+                .lock()
+                .unwrap()
+                .push((entity, linear, angular));
         }
         fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
     }
@@ -220,9 +225,10 @@ mod tests {
         // Arrange
         let damping_log: DampingLog = Arc::new(Mutex::new(Vec::new()));
         let mut world = World::new();
-        let entity = world.spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table)).id();
-        let spy = SpyPhysicsBackend::new(damping_log.clone())
-            .with_angular_velocity(entity, 0.0);
+        let entity = world
+            .spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table))
+            .id();
+        let spy = SpyPhysicsBackend::new(damping_log.clone()).with_angular_velocity(entity, 0.0);
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
 
         // Act
@@ -241,9 +247,10 @@ mod tests {
         // Arrange
         let damping_log: DampingLog = Arc::new(Mutex::new(Vec::new()));
         let mut world = World::new();
-        let entity = world.spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table)).id();
-        let spy = SpyPhysicsBackend::new(damping_log.clone())
-            .with_angular_velocity(entity, 20.0);
+        let entity = world
+            .spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table))
+            .id();
+        let spy = SpyPhysicsBackend::new(damping_log.clone()).with_angular_velocity(entity, 20.0);
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
 
         // Act
@@ -252,8 +259,14 @@ mod tests {
         // Assert
         let calls = damping_log.lock().unwrap();
         assert_eq!(calls.len(), 1);
-        assert!(calls[0].1 < BASE_LINEAR_DRAG, "expected reduced linear drag");
-        assert!(calls[0].2 < BASE_ANGULAR_DRAG, "expected reduced angular drag");
+        assert!(
+            calls[0].1 < BASE_LINEAR_DRAG,
+            "expected reduced linear drag"
+        );
+        assert!(
+            calls[0].2 < BASE_ANGULAR_DRAG,
+            "expected reduced angular drag"
+        );
     }
 
     #[test]
@@ -279,9 +292,15 @@ mod tests {
         // Arrange
         let damping_log: DampingLog = Arc::new(Mutex::new(Vec::new()));
         let mut world = World::new();
-        let e1 = world.spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table)).id();
-        let e2 = world.spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table)).id();
-        let e3 = world.spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table)).id();
+        let e1 = world
+            .spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table))
+            .id();
+        let e2 = world
+            .spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table))
+            .id();
+        let e3 = world
+            .spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table))
+            .id();
         let spy = SpyPhysicsBackend::new(damping_log.clone())
             .with_angular_velocity(e1, 0.0)
             .with_angular_velocity(e2, 5.0)
@@ -305,10 +324,15 @@ mod tests {
         // Arrange
         let damping_log: DampingLog = Arc::new(Mutex::new(Vec::new()));
         let mut world = World::new();
-        let table_entity = world.spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table)).id();
-        world.spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Hand(0)));
-        let spy = SpyPhysicsBackend::new(damping_log.clone())
-            .with_angular_velocity(table_entity, 0.0);
+        let table_entity = world
+            .spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table))
+            .id();
+        world.spawn((
+            Card::face_down(TextureId(0), TextureId(0)),
+            CardZone::Hand(0),
+        ));
+        let spy =
+            SpyPhysicsBackend::new(damping_log.clone()).with_angular_velocity(table_entity, 0.0);
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
 
         // Act

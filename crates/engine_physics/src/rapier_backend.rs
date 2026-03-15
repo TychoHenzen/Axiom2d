@@ -788,7 +788,7 @@ mod tests {
 
         // Assert
         let rot = backend.body_rotation(entity).unwrap();
-        assert!(rot.abs() > 0.5, "expected body to rotate, got rot={}", rot);
+        assert!(rot.abs() > 0.5, "expected body to rotate, got rot={rot}");
     }
 
     #[test]
@@ -849,7 +849,10 @@ mod tests {
 
         // Assert
         let angvel = angvel.expect("should return Some for living body");
-        assert!(angvel.abs() < 1e-4, "initial angular velocity should be ~0, got {angvel}");
+        assert!(
+            angvel.abs() < 1e-4,
+            "initial angular velocity should be ~0, got {angvel}"
+        );
     }
 
     #[test]
@@ -898,7 +901,10 @@ mod tests {
 
         // Assert
         let angvel = angvel.expect("should return Some");
-        assert!((angvel - (-3.0)).abs() < 1e-4, "expected ~-3.0, got {angvel}");
+        assert!(
+            (angvel - (-3.0)).abs() < 1e-4,
+            "expected ~-3.0, got {angvel}"
+        );
     }
 
     #[test]
@@ -929,7 +935,10 @@ mod tests {
         let events = backend.drain_collision_events();
 
         // Assert
-        assert!(events.is_empty(), "cards in same exclusive group should not collide, got {events:?}");
+        assert!(
+            events.is_empty(),
+            "cards in same exclusive group should not collide, got {events:?}"
+        );
     }
 
     #[test]
@@ -953,7 +962,11 @@ mod tests {
         let events = backend.drain_collision_events();
 
         // Assert
-        assert_eq!(events.len(), 1, "card-wall collision should fire, got {events:?}");
+        assert_eq!(
+            events.len(),
+            1,
+            "card-wall collision should fire, got {events:?}"
+        );
         let pair = (events[0].entity_a, events[0].entity_b);
         assert!(
             pair == (card, wall) || pair == (wall, card),
@@ -980,6 +993,9 @@ mod tests {
         let events = backend.drain_collision_events();
 
         // Assert
-        assert!(events.is_empty(), "retroactive group filter should suppress collision, got {events:?}");
+        assert!(
+            events.is_empty(),
+            "retroactive group filter should suppress collision, got {events:?}"
+        );
     }
 }

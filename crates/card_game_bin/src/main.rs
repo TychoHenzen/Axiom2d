@@ -182,16 +182,18 @@ fn setup(app: &mut App) {
     app.set_window_config(config)
         .add_systems(
             Phase::PreUpdate,
-            (physics_step_system, physics_sync_system, card_damping_system).chain(),
+            (
+                physics_step_system,
+                physics_sync_system,
+                card_damping_system,
+            )
+                .chain(),
         )
         .add_systems(
             Phase::Update,
             (card_pick_system, card_drag_system, card_release_system).chain(),
         )
-        .add_systems(
-            Phase::Update,
-            (camera_drag_system, camera_zoom_system),
-        );
+        .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system));
 }
 
 fn main() {

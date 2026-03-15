@@ -26,15 +26,15 @@ pub fn camera_drag_system(
         return;
     }
 
-    if mouse.pressed(MouseButton::Right) {
-        if let Some(anchor) = drag_state.anchor_screen_pos {
-            let delta = mouse.screen_pos() - anchor;
-            if let Ok(mut camera) = query.single_mut() {
-                let zoom = camera.zoom;
-                camera.position -= delta / zoom;
-            }
-            drag_state.anchor_screen_pos = Some(mouse.screen_pos());
+    if mouse.pressed(MouseButton::Right)
+        && let Some(anchor) = drag_state.anchor_screen_pos
+    {
+        let delta = mouse.screen_pos() - anchor;
+        if let Ok(mut camera) = query.single_mut() {
+            let zoom = camera.zoom;
+            camera.position -= delta / zoom;
         }
+        drag_state.anchor_screen_pos = Some(mouse.screen_pos());
     }
 }
 
@@ -261,8 +261,8 @@ mod tests {
     #[test]
     fn when_card_drag_active_then_rmb_pan_still_works() {
         // Arrange
-        use crate::drag_state::{DragInfo, DragState};
         use crate::card_zone::CardZone;
+        use crate::drag_state::{DragInfo, DragState};
 
         let mut world = World::new();
         world.spawn(Camera2D::default());
