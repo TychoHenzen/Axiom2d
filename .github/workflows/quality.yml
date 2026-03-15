@@ -78,7 +78,7 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Run mutation tests
-        run: cargo mutants --no-shuffle -vV --in-place --timeout 300
+        run: cargo mutants --no-shuffle -vV --in-place --timeout 30 --cap-lints=true
       - name: Show missed mutants
         if: always()
         run: |

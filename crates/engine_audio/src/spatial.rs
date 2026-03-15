@@ -438,6 +438,47 @@ mod tests {
     }
 
     #[test]
+    fn when_nonzero_listener_and_fractional_volume_then_gains_exact() {
+        // Arrange — listener at (100,0), emitter at (150,0): diff = (50,0), distance = 50
+        // atten = 1 - 50/200 = 0.75; emitter right of listener → right gain ≈ 1.0
+        // expected right = 1.0 * 0.75 * 0.5 = 0.375
+        let listener = Vec2::new(100.0, 0.0);
+        let emitter = Vec2::new(150.0, 0.0);
+
+        // Act
+        let gains = compute_spatial_gains(listener, emitter, 0.5, 200.0);
+
+        // Assert
+        assert!(
+            (gains.right - 0.375).abs() < 1e-4,
+            "expected right ≈ 0.375, got {}",
+            gains.right
+        );
+        // left pan is ~0 when fully right-panned
+        assert!(gains.right > gains.left, "should be right-panned");
+    }
+
+    #[test]
+    fn when_emitter_at_epsilon_distance_then_panned_not_centered() {
+        // Arrange — emitter displaced only in X by a tiny but non-zero amount.
+        // 2^-11 squared = 2^-22 > EPSILON (2^-23), so length_squared > EPSILON and
+        // the coincident-position guard does not fire — compute_pan normalizes the
+        // direction and returns a right-biased result, not the centered fallback.
+        // This test catches regressions where the guard is widened (e.g. via a larger
+        // threshold) causing tiny-displacement inputs to be incorrectly centered.
+        let x = 2.0_f32.powi(-11);
+
+        // Act
+        let (left, right) = compute_pan(Vec2::ZERO, Vec2::new(x, 0.0));
+
+        // Assert — should be right-panned (right ≈ 1.0), not centered (≈ 0.707)
+        assert!(
+            right > left + 0.1,
+            "should be right-panned, not centered: left={left}, right={right}"
+        );
+    }
+
+    #[test]
     fn when_play_sound_without_emitter_then_gains_unchanged() {
         // Arrange
         let mut world = setup_world();

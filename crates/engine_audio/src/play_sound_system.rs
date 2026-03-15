@@ -430,4 +430,30 @@ mod tests {
         // Assert
         assert_eq!(*play_count.lock().unwrap(), 0);
     }
+
+    #[test]
+    fn when_gain_exactly_epsilon_then_sound_not_culled() {
+        // Arrange — left = EPSILON (not < EPSILON), right = 0.0 → should NOT be culled
+        let play_count = Arc::new(Mutex::new(0u32));
+        let mut world = setup_world(&play_count);
+        let mut library = SoundLibrary::default();
+        library.register("beep", test_effect());
+        world.insert_resource(library);
+        let mut cmd = PlaySound::new("beep");
+        cmd.spatial_gains = Some(crate::spatial::SpatialGains {
+            left: f32::EPSILON,
+            right: 0.0,
+        });
+        world.resource_mut::<PlaySoundBuffer>().push(cmd);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — EPSILON is not < EPSILON, so the culling condition is false and sound plays
+        assert_eq!(
+            *play_count.lock().unwrap(),
+            1,
+            "gain of exactly EPSILON should not be culled"
+        );
+    }
 }

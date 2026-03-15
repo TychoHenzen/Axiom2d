@@ -2586,4 +2586,105 @@ mod tests {
         // Assert
         assert_eq!(roundtrip, path);
     }
+
+    // Mutant 1: delete match arm PathCommand::MoveTo(_) in resolve_commands (line 58).
+    // Without the explicit arm, contour_start stays 0 and Reverse in the second contour
+    // incorrectly reverses from the very beginning of the path.
+    #[test]
+    fn when_resolve_commands_with_two_contours_then_second_reverse_only_affects_second() {
+        // Arrange — first contour is a line, second is a triangle with Reverse before Close
+        let cmds = vec![
+            PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+            PathCommand::LineTo(Vec2::new(10.0, 0.0)),
+            PathCommand::Close,
+            PathCommand::MoveTo(Vec2::new(20.0, 0.0)),
+            PathCommand::LineTo(Vec2::new(30.0, 0.0)),
+            PathCommand::LineTo(Vec2::new(25.0, 10.0)),
+            PathCommand::Reverse,
+            PathCommand::Close,
+        ];
+
+        // Act
+        let resolved = resolve_commands(&cmds);
+
+        // Assert — first contour must be exactly unchanged
+        assert_eq!(resolved[0], PathCommand::MoveTo(Vec2::new(0.0, 0.0)));
+        assert_eq!(resolved[1], PathCommand::LineTo(Vec2::new(10.0, 0.0)));
+        assert_eq!(resolved[2], PathCommand::Close);
+        // Second contour starts at index 3 with the correct MoveTo position
+        assert_eq!(resolved[3], PathCommand::MoveTo(Vec2::new(25.0, 10.0)));
+    }
+
+    // Mutant 2: delete `!` in build_lyon_path Close arm (line 305).
+    // `if !needs_begin` becomes `if needs_begin`, so Close never ends the path
+    // builder — the contour is left open.  For stroke tessellation this omits
+    // the closing segment, producing fewer vertices than a properly closed path.
+    #[test]
+    fn when_path_close_command_then_stroke_has_more_vertices_than_open_path() {
+        // Arrange
+        let closed = ShapeVariant::Path {
+            commands: vec![
+                PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(10.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(5.0, 10.0)),
+                PathCommand::Close,
+            ],
+        };
+        let open = ShapeVariant::Path {
+            commands: vec![
+                PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(10.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(5.0, 10.0)),
+            ],
+        };
+
+        // Act
+        let closed_mesh = tessellate_stroke(&closed, 1.0);
+        let open_mesh = tessellate_stroke(&open, 1.0);
+
+        // Assert — closing the path adds a third stroke segment
+        assert!(
+            closed_mesh.vertices.len() > open_mesh.vertices.len(),
+            "closed stroke ({} verts) should have more vertices than open ({} verts)",
+            closed_mesh.vertices.len(),
+            open_mesh.vertices.len()
+        );
+    }
+
+    // Mutant 3: `pos.y - local_radius` → `pos.y / local_radius` in shape_render_system
+    // (line 474).  When pos.y is negative and |pos.y| > local_radius, the division
+    // yields a value larger than entity_max.y, producing an inverted AABB that fails
+    // the intersection test and incorrectly culls a visible shape.
+    #[test]
+    fn when_shape_at_negative_y_near_view_edge_then_not_culled() {
+        // Arrange — viewport 2×2 → view y ∈ [-1, 1].
+        // Circle at (0, 31) with radius 30: correct entity_min.y = 31-30 = 1 ≤ view_max.y=1
+        // → just inside view and must be drawn.
+        // Mutant: entity_min.y = 31/30 ≈ 1.033 > view_max.y=1 → incorrectly culled.
+        let mut world = World::new();
+        let log = insert_spy_with_viewport(&mut world, 2, 2);
+        world.spawn(Camera2D {
+            position: Vec2::new(0.0, 0.0),
+            zoom: 1.0,
+        });
+        world.spawn((
+            Shape {
+                variant: ShapeVariant::Circle { radius: 30.0 },
+                color: Color::new(1.0, 0.0, 0.0, 1.0),
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(0.0, 31.0))),
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let count = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.as_str() == "draw_shape")
+            .count();
+        assert_eq!(count, 1, "shape whose AABB touches view_max.y should be rendered");
+    }
 }

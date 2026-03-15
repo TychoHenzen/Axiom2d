@@ -489,6 +489,65 @@ mod tests {
     }
 
     #[test]
+    fn when_body_not_at_origin_then_arm_direction_is_grab_minus_body_pos() {
+        // Arrange — body at (0,5), offset (3,0), cursor one unit above grab point (3,6)
+        // grab_world = (3,5), correct arm = (3,5)-(0,5) = (3,0)
+        // desired = GAIN*(0,1) is purely perpendicular to arm → pure rotation, v_center ≈ zero
+        // mutant arm = (3,5)+(0,5) = (3,10): omega ≈ 0.55, v_center ≈ (5.5, 18.35)
+        let entity = spawn_entity();
+        let (mut world, vel_log, ang_log) = setup_drag_world(
+            entity,
+            Vec2::new(3.0, 0.0),
+            Vec2::new(0.0, 5.0),
+            0.0,
+            Vec2::new(3.0, 6.0),
+            true,
+        );
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — perpendicular pull should produce ~zero center velocity
+        let v_calls = vel_log.lock().unwrap();
+        let a_calls = ang_log.lock().unwrap();
+        assert_eq!(v_calls.len(), 1);
+        assert_eq!(a_calls.len(), 1);
+        assert!(
+            v_calls[0].1.length() < 1.0,
+            "perpendicular pull on correct arm should yield v_center ≈ zero, got {}",
+            v_calls[0].1
+        );
+    }
+
+    #[test]
+    fn when_arm_len_sq_exactly_at_threshold_then_rotation_path_used() {
+        // Arrange — arm_len_sq == 1e-4 exactly (arm = (0.01, 0))
+        // `<` is false at exactly 1e-4 → rotation path → angular velocity IS set
+        // `<=` would be true → center path → angular velocity NOT set
+        let entity = spawn_entity();
+        let (mut world, _vel_log, ang_log) = setup_drag_world(
+            entity,
+            Vec2::new(0.01, 0.0),
+            Vec2::ZERO,
+            0.0,
+            Vec2::new(0.01, 1.0),
+            true,
+        );
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — rotation path must be taken (angular velocity set and nonzero)
+        let a_calls = ang_log.lock().unwrap();
+        assert_eq!(a_calls.len(), 1, "rotation path should set angular velocity");
+        assert!(
+            a_calls[0].1.abs() > 0.0,
+            "angular velocity should be nonzero at exact threshold, got {}",
+            a_calls[0].1
+        );
+    }
+
+    #[test]
     fn when_edge_grab_produces_extreme_spin_then_angular_velocity_clamped() {
         // Arrange — body at origin, grabbed at (5,0), cursor at (5, 500)
         // raw_omega = arm.perp_dot(desired) / arm_len_sq would be huge

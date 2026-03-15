@@ -113,6 +113,26 @@ mod tests {
     }
 
     #[test]
+    fn when_scroll_clear_system_runs_then_scroll_delta_zeroed() {
+        // Arrange
+        let mut world = setup_world();
+        world
+            .resource_mut::<MouseState>()
+            .add_scroll_delta(glam::Vec2::new(1.0, 2.0));
+
+        // Act
+        let mut schedule = Schedule::default();
+        schedule.add_systems(scroll_clear_system);
+        schedule.run(&mut world);
+
+        // Assert
+        assert_eq!(
+            world.resource::<MouseState>().scroll_delta(),
+            glam::Vec2::ZERO
+        );
+    }
+
+    #[test]
     fn when_mouse_input_system_runs_second_frame_then_just_pressed_is_cleared() {
         // Arrange
         let mut world = setup_world();
