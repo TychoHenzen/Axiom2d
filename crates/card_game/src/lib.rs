@@ -1,3 +1,4 @@
+pub mod camera_drag;
 pub mod card;
 pub mod card_damping;
 pub mod card_drag;

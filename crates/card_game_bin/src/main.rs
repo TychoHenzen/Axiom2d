@@ -158,6 +158,7 @@ fn setup(app: &mut App) {
     world.insert_resource(PhysicsRes::new(Box::new(physics)));
     world.insert_resource(CollisionEventBuffer::default());
     world.insert_resource(DragState::default());
+    world.insert_resource(CameraDragState::default());
     world.insert_resource(ClearColor(Color {
         r: 0.1,
         g: 0.1,
@@ -186,6 +187,10 @@ fn setup(app: &mut App) {
         .add_systems(
             Phase::Update,
             (card_pick_system, card_drag_system, card_release_system).chain(),
+        )
+        .add_systems(
+            Phase::Update,
+            (camera_drag_system, camera_zoom_system),
         );
 }
 

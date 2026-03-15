@@ -14,6 +14,10 @@ pub fn mouse_input_system(mut buffer: ResMut<MouseEventBuffer>, mut state: ResMu
     }
 }
 
+pub fn scroll_clear_system(mut state: ResMut<MouseState>) {
+    state.clear_scroll_delta();
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {

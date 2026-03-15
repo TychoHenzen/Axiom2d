@@ -12,6 +12,7 @@ use engine_core::prelude::{ClockRes, SystemClock, time_system};
 use engine_ecs::prelude::IntoScheduleConfigs;
 use engine_input::prelude::{
     InputEventBuffer, InputState, MouseEventBuffer, MouseState, input_system, mouse_input_system,
+    scroll_clear_system,
 };
 #[cfg(feature = "render")]
 use engine_render::prelude::{
@@ -45,6 +46,7 @@ impl Plugin for DefaultPlugins {
                 transform_propagation_system,
                 visibility_system,
                 mouse_world_pos_system,
+                scroll_clear_system,
             )
                 .chain(),
         );
@@ -63,6 +65,7 @@ impl Plugin for DefaultPlugins {
                     visibility_system,
                     spatial_audio_system,
                     mouse_world_pos_system,
+                    scroll_clear_system,
                 )
                     .chain(),
             );

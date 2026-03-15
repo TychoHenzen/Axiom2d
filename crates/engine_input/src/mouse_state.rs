@@ -41,6 +41,9 @@ impl MouseState {
     pub fn clear_frame_state(&mut self) {
         self.just_pressed.clear();
         self.just_released.clear();
+    }
+
+    pub fn clear_scroll_delta(&mut self) {
         self.scroll_delta = Vec2::ZERO;
     }
 
@@ -212,13 +215,26 @@ mod tests {
     }
 
     #[test]
-    fn when_frame_cleared_then_scroll_delta_is_zero() {
+    fn when_frame_cleared_then_scroll_delta_is_preserved() {
         // Arrange
         let mut state = MouseState::default();
         state.add_scroll_delta(Vec2::new(2.0, 5.0));
 
         // Act
         state.clear_frame_state();
+
+        // Assert
+        assert_eq!(state.scroll_delta(), Vec2::new(2.0, 5.0));
+    }
+
+    #[test]
+    fn when_clear_scroll_delta_called_then_scroll_delta_is_zero() {
+        // Arrange
+        let mut state = MouseState::default();
+        state.add_scroll_delta(Vec2::new(2.0, 5.0));
+
+        // Act
+        state.clear_scroll_delta();
 
         // Assert
         assert_eq!(state.scroll_delta(), Vec2::ZERO);

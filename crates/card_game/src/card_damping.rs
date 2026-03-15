@@ -192,10 +192,6 @@ mod tests {
         fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
     }
 
-    fn spawn_entity() -> Entity {
-        World::new().spawn_empty().id()
-    }
-
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
         schedule.add_systems(card_damping_system);

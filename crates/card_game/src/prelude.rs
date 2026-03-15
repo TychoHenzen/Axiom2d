@@ -1,3 +1,6 @@
+pub use crate::camera_drag::{
+    ZOOM_MIN, ZOOM_SPEED, CameraDragState, camera_drag_system, camera_zoom_system,
+};
 pub use crate::card::Card;
 pub use crate::card_damping::{
     BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG, MIN_DRAG_FACTOR, SPIN_DRAG_DECAY_RATE,

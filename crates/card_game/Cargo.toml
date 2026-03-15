@@ -10,6 +10,7 @@ workspace = true
 bevy_ecs = { workspace = true }
 engine_core = { path = "../engine_core" }
 engine_input = { path = "../engine_input" }
+engine_render = { path = "../engine_render" }
 engine_physics = { path = "../engine_physics" }
 engine_scene = { path = "../engine_scene" }
 glam = { workspace = true }
