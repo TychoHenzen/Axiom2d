@@ -322,6 +322,51 @@ mod tests {
     }
 
     #[test]
+    fn when_compute_spatial_gains_then_left_equals_pan_times_attenuation_times_volume() {
+        // Arrange — emitter at (50, 0), listener at origin, max_distance=200, volume=0.8
+        let listener = Vec2::ZERO;
+        let emitter = Vec2::new(50.0, 0.0);
+
+        // Act
+        let gains = compute_spatial_gains(listener, emitter, 0.8, 200.0);
+
+        // Assert — manual computation
+        let distance = 50.0;
+        let atten = distance_attenuation(distance, 200.0); // 1 - 50/200 = 0.75
+        let (pan_l, pan_r) = compute_pan(listener, emitter);
+        let expected_left = pan_l * atten * 0.8;
+        let expected_right = pan_r * atten * 0.8;
+        assert!(
+            (gains.left - expected_left).abs() < 1e-6,
+            "left: expected {expected_left}, got {}",
+            gains.left
+        );
+        assert!(
+            (gains.right - expected_right).abs() < 1e-6,
+            "right: expected {expected_right}, got {}",
+            gains.right
+        );
+    }
+
+    #[test]
+    fn when_compute_spatial_gains_emitter_behind_listener_then_direction_reverses() {
+        // Arrange — emitter to the left
+        let listener = Vec2::new(100.0, 0.0);
+        let emitter = Vec2::new(50.0, 0.0);
+
+        // Act
+        let gains = compute_spatial_gains(listener, emitter, 1.0, 200.0);
+
+        // Assert — emitter is to the LEFT of listener, so left gain > right
+        assert!(
+            gains.left > gains.right,
+            "left ({}) should exceed right ({}) for leftward emitter",
+            gains.left,
+            gains.right
+        );
+    }
+
+    #[test]
     fn when_emitter_to_right_then_spatial_gains_reflect_pan_and_attenuation() {
         // Arrange
         let mut world = setup_world();

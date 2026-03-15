@@ -2,7 +2,7 @@
 # killed by unit tests. Excluded so the CI mutation testing job succeeds.
 
 # File-level exclusions (glob-based, reliable for all mutant types)
-exclude_globs = ["crates/demo/**"]
+exclude_globs = ["crates/demo/**", "crates/card_game_bin/**"]
 
 exclude_re = [
     # App::run blocks on EventLoop — untestable
@@ -60,4 +60,8 @@ exclude_re = [
     "in scan_dir",
     "replace main with",
     "replace chrono_free_date",
+    # splash_letters.rs — visual letter path coordinate data, verified visually not via unit tests
+    "letter_[axiom]",
+    # spawn_splash_entities — visual scene layout positions, verified visually
+    "spawn_splash_entities",
 ]

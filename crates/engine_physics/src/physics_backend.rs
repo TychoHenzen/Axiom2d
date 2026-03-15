@@ -183,6 +183,19 @@ mod tests {
     }
 
     #[test]
+    fn when_body_linear_velocity_on_null_backend_then_returns_none() {
+        // Arrange
+        let backend = NullPhysicsBackend::new();
+        let entity = spawn_entity();
+
+        // Act
+        let result = backend.body_linear_velocity(entity);
+
+        // Assert
+        assert!(result.is_none());
+    }
+
+    #[test]
     fn when_add_collider_without_body_then_returns_false() {
         // Arrange
         let mut backend = NullPhysicsBackend::new();

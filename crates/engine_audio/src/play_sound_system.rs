@@ -334,6 +334,82 @@ mod tests {
     }
 
     #[test]
+    fn when_apply_spatial_gains_mono_then_stereo_samples_scaled() {
+        // Arrange
+        let mono = SoundData {
+            samples: vec![1.0, 0.5, -0.5],
+            sample_rate: 44_100,
+            channels: 1,
+        };
+        let gains = crate::spatial::SpatialGains {
+            left: 0.3,
+            right: 0.7,
+        };
+
+        // Act
+        let result = super::apply_spatial_gains(&mono, gains);
+
+        // Assert — 3 mono frames → 6 stereo samples
+        assert_eq!(result.channels, 2);
+        assert_eq!(result.samples.len(), 6);
+        assert!((result.samples[0] - 1.0 * 0.3).abs() < 1e-6); // frame 0 left
+        assert!((result.samples[1] - 1.0 * 0.7).abs() < 1e-6); // frame 0 right
+        assert!((result.samples[2] - 0.5 * 0.3).abs() < 1e-6); // frame 1 left
+        assert!((result.samples[3] - 0.5 * 0.7).abs() < 1e-6); // frame 1 right
+    }
+
+    #[test]
+    fn when_apply_spatial_gains_stereo_then_channels_scaled_independently() {
+        // Arrange
+        let stereo = SoundData {
+            samples: vec![1.0, 0.8, 0.6, 0.4],
+            sample_rate: 44_100,
+            channels: 2,
+        };
+        let gains = crate::spatial::SpatialGains {
+            left: 0.5,
+            right: 0.25,
+        };
+
+        // Act
+        let result = super::apply_spatial_gains(&stereo, gains);
+
+        // Assert — 2 stereo frames → 4 samples
+        assert_eq!(result.channels, 2);
+        assert_eq!(result.samples.len(), 4);
+        assert!((result.samples[0] - 1.0 * 0.5).abs() < 1e-6); // frame 0 left
+        assert!((result.samples[1] - 0.8 * 0.25).abs() < 1e-6); // frame 0 right
+        assert!((result.samples[2] - 0.6 * 0.5).abs() < 1e-6); // frame 1 left
+        assert!((result.samples[3] - 0.4 * 0.25).abs() < 1e-6); // frame 1 right
+    }
+
+    #[test]
+    fn when_one_gain_zero_other_nonzero_then_sound_still_plays() {
+        // Arrange — only left is zero, right is nonzero → should NOT be culled
+        let play_count = Arc::new(Mutex::new(0u32));
+        let mut world = setup_world(&play_count);
+        let mut library = SoundLibrary::default();
+        library.register("beep", test_effect());
+        world.insert_resource(library);
+        let mut cmd = PlaySound::new("beep");
+        cmd.spatial_gains = Some(crate::spatial::SpatialGains {
+            left: 0.0,
+            right: 0.5,
+        });
+        world.resource_mut::<PlaySoundBuffer>().push(cmd);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert_eq!(
+            *play_count.lock().unwrap(),
+            1,
+            "should play when one channel is nonzero"
+        );
+    }
+
+    #[test]
     fn when_both_gains_zero_then_play_sound_skips_backend() {
         // Arrange
         let play_count = Arc::new(Mutex::new(0u32));

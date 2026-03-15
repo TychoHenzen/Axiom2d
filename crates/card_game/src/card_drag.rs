@@ -266,7 +266,10 @@ mod tests {
 
         // Assert
         let calls = ang_log.lock().unwrap();
-        assert!(calls.is_empty(), "center grab should not set angular velocity");
+        assert!(
+            calls.is_empty(),
+            "center grab should not set angular velocity"
+        );
     }
 
     #[test]
@@ -342,14 +345,8 @@ mod tests {
         let rotation = std::f32::consts::FRAC_PI_4;
         let local_offset = Vec2::new(10.0, 0.0);
         let cursor = Vec2::new(15.0, 5.0);
-        let (mut world, vel_log, ang_log) = setup_drag_world(
-            entity,
-            local_offset,
-            Vec2::ZERO,
-            rotation,
-            cursor,
-            true,
-        );
+        let (mut world, vel_log, ang_log) =
+            setup_drag_world(entity, local_offset, Vec2::ZERO, rotation, cursor, true);
 
         // Act
         run_system(&mut world);
@@ -373,14 +370,82 @@ mod tests {
     }
 
     #[test]
+    fn when_dragging_off_center_with_nonzero_body_pos_then_arm_computed_correctly() {
+        // Arrange — body at (10, 0), grabbed at local (5, 0), cursor at (20, 0)
+        // grab_world = (15, 0), arm = grab_world - body_pos = (5, 0)
+        // desired = GAIN * ((20,0) - (15,0)) = GAIN * (5, 0)
+        // With correct arm (5,0): displacement along arm → pure translation, no rotation
+        // With mutated arm (grab_world + body_pos = (25,0)): completely wrong physics
+        let entity = spawn_entity();
+        let body_pos = Vec2::new(10.0, 0.0);
+        let local_offset = Vec2::new(5.0, 0.0);
+        let cursor = Vec2::new(20.0, 0.0);
+        let (mut world, vel_log, ang_log) =
+            setup_drag_world(entity, local_offset, body_pos, 0.0, cursor, true);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — displacement along arm should yield ~zero angular velocity
+        let a_calls = ang_log.lock().unwrap();
+        assert_eq!(a_calls.len(), 1);
+        assert!(
+            a_calls[0].1.abs() < 1e-4,
+            "along-arm pull with nonzero body_pos should give ~zero rotation, got {}",
+            a_calls[0].1
+        );
+
+        // Assert — velocity should point in +X direction (toward cursor)
+        let v_calls = vel_log.lock().unwrap();
+        assert_eq!(v_calls.len(), 1);
+        assert!(
+            v_calls[0].1.x > 0.0,
+            "velocity should point toward cursor (+X), got {}",
+            v_calls[0].1.x
+        );
+    }
+
+    #[test]
+    fn when_arm_length_just_above_threshold_then_rotation_path_used() {
+        // Arrange — arm_len_sq needs to be >= 1e-4 (arm length >= 0.01)
+        // body at origin, grabbed at (0.02, 0), cursor pulled perpendicular at (0.02, 1.0)
+        // arm = (0.02, 0), arm_len_sq = 0.0004 > 1e-4 → rotation path
+        let entity = spawn_entity();
+        let (mut world, _vel_log, ang_log) = setup_drag_world(
+            entity,
+            Vec2::new(0.02, 0.0),
+            Vec2::ZERO,
+            0.0,
+            Vec2::new(0.02, 1.0),
+            true,
+        );
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — rotation path must be taken (angular velocity set)
+        let a_calls = ang_log.lock().unwrap();
+        assert_eq!(
+            a_calls.len(),
+            1,
+            "rotation path should set angular velocity"
+        );
+        assert!(
+            a_calls[0].1.abs() > 0.1,
+            "angular velocity should be nonzero, got {}",
+            a_calls[0].1
+        );
+    }
+
+    #[test]
     fn when_not_dragging_then_no_velocity_set() {
         // Arrange
         let mut world = World::new();
         let vel_log: VelocityLog = Arc::new(Mutex::new(Vec::new()));
         let ang_log: AngularVelocityLog = Arc::new(Mutex::new(Vec::new()));
         let entity = spawn_entity();
-        let spy = SpyPhysicsBackend::new(vel_log.clone(), ang_log)
-            .with_body(entity, Vec2::ZERO, 0.0);
+        let spy =
+            SpyPhysicsBackend::new(vel_log.clone(), ang_log).with_body(entity, Vec2::ZERO, 0.0);
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);

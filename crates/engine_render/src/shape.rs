@@ -68,7 +68,7 @@ pub fn resolve_commands(commands: &[PathCommand]) -> Vec<PathCommand> {
     result
 }
 
-/// Reverse the winding order of a single contour (MoveTo ... Close).
+/// Reverse the winding order of a single contour (`MoveTo` ... Close).
 ///
 /// Each segment's direction is flipped and the segment order is reversed,
 /// so the resulting path traces the same shape in the opposite direction.
@@ -77,9 +77,8 @@ pub fn reverse_path(commands: &[PathCommand]) -> Vec<PathCommand> {
         return Vec::new();
     }
 
-    let start = match commands[0] {
-        PathCommand::MoveTo(p) => p,
-        _ => return commands.to_vec(),
+    let PathCommand::MoveTo(start) = commands[0] else {
+        return commands.to_vec();
     };
 
     // Collect endpoints for each segment to know "from" positions
@@ -1872,7 +1871,7 @@ mod tests {
 
         // Assert
         assert!(mesh.vertices.len() > 2);
-        assert!(mesh.indices.len() > 0);
+        assert!(!mesh.indices.is_empty());
         assert_eq!(mesh.indices.len() % 3, 0);
     }
 
@@ -2191,6 +2190,381 @@ mod tests {
             PathCommand::Close,
         ];
         assert_eq!(resolved, expected);
+    }
+
+    // --- resolve_commands tests ---
+
+    #[test]
+    fn when_resolve_commands_with_moveto_then_records_contour_start() {
+        // Arrange — two contours, second MoveTo should start fresh
+        let commands = vec![
+            PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+            PathCommand::LineTo(Vec2::new(10.0, 0.0)),
+            PathCommand::Close,
+            PathCommand::MoveTo(Vec2::new(20.0, 0.0)),
+            PathCommand::LineTo(Vec2::new(30.0, 0.0)),
+            PathCommand::Close,
+        ];
+
+        // Act
+        let resolved = resolve_commands(&commands);
+
+        // Assert — both contours preserved, second MoveTo position intact
+        assert_eq!(resolved.len(), 6);
+        assert_eq!(resolved[0], PathCommand::MoveTo(Vec2::new(0.0, 0.0)));
+        assert_eq!(resolved[3], PathCommand::MoveTo(Vec2::new(20.0, 0.0)));
+    }
+
+    // --- split_contours tests ---
+
+    #[test]
+    fn when_split_contours_single_contour_then_returns_one_vec() {
+        // Arrange
+        let commands = vec![
+            PathCommand::MoveTo(Vec2::ZERO),
+            PathCommand::LineTo(Vec2::X),
+            PathCommand::Close,
+        ];
+
+        // Act
+        let contours = split_contours(&commands);
+
+        // Assert
+        assert_eq!(contours.len(), 1);
+        assert_eq!(contours[0].len(), 3);
+    }
+
+    #[test]
+    fn when_split_contours_empty_then_returns_empty() {
+        // Act
+        let contours = split_contours(&[]);
+
+        // Assert
+        assert!(contours.is_empty());
+    }
+
+    #[test]
+    fn when_split_contours_three_contours_then_returns_three() {
+        // Arrange
+        let commands = vec![
+            PathCommand::MoveTo(Vec2::ZERO),
+            PathCommand::LineTo(Vec2::X),
+            PathCommand::Close,
+            PathCommand::MoveTo(Vec2::Y),
+            PathCommand::LineTo(Vec2::ONE),
+            PathCommand::Close,
+            PathCommand::MoveTo(Vec2::new(5.0, 5.0)),
+            PathCommand::LineTo(Vec2::new(6.0, 6.0)),
+            PathCommand::Close,
+        ];
+
+        // Act
+        let contours = split_contours(&commands);
+
+        // Assert
+        assert_eq!(contours.len(), 3);
+    }
+
+    #[test]
+    fn when_split_contours_then_each_starts_with_moveto() {
+        // Arrange
+        let commands = vec![
+            PathCommand::MoveTo(Vec2::ZERO),
+            PathCommand::LineTo(Vec2::X),
+            PathCommand::Close,
+            PathCommand::MoveTo(Vec2::Y),
+            PathCommand::LineTo(Vec2::ONE),
+            PathCommand::Close,
+        ];
+
+        // Act
+        let contours = split_contours(&commands);
+
+        // Assert
+        for (i, contour) in contours.iter().enumerate() {
+            assert!(
+                matches!(contour[0], PathCommand::MoveTo(_)),
+                "contour {i} should start with MoveTo"
+            );
+        }
+    }
+
+    // --- sample_quadratic tests ---
+
+    #[test]
+    fn when_sample_quadratic_then_first_point_equals_from() {
+        // Arrange
+        let from = Vec2::new(1.0, 2.0);
+        let control = Vec2::new(5.0, 10.0);
+        let to = Vec2::new(9.0, 2.0);
+
+        // Act
+        let points = sample_quadratic(from, control, to, 4);
+
+        // Assert
+        assert!(
+            (points[0] - from).length() < 1e-6,
+            "first point should be from: {:?}",
+            points[0]
+        );
+    }
+
+    #[test]
+    fn when_sample_quadratic_then_last_point_equals_to() {
+        // Arrange
+        let from = Vec2::new(1.0, 2.0);
+        let control = Vec2::new(5.0, 10.0);
+        let to = Vec2::new(9.0, 2.0);
+
+        // Act
+        let points = sample_quadratic(from, control, to, 4);
+
+        // Assert
+        assert!(
+            (points[4] - to).length() < 1e-6,
+            "last point should be to: {:?}",
+            points[4]
+        );
+    }
+
+    #[test]
+    fn when_sample_quadratic_then_returns_n_plus_one_points() {
+        // Act
+        let points = sample_quadratic(Vec2::ZERO, Vec2::Y, Vec2::X, 8);
+
+        // Assert
+        assert_eq!(points.len(), 9);
+    }
+
+    #[test]
+    fn when_sample_quadratic_midpoint_then_follows_bezier_formula() {
+        // Arrange — at t=0.5: (1-t)^2 * from + 2*(1-t)*t * control + t^2 * to
+        let from = Vec2::new(0.0, 0.0);
+        let control = Vec2::new(0.0, 10.0);
+        let to = Vec2::new(10.0, 0.0);
+
+        // Act
+        let points = sample_quadratic(from, control, to, 2);
+
+        // Assert — midpoint (t=0.5): 0.25*(0,0) + 0.5*(0,10) + 0.25*(10,0) = (2.5, 5.0)
+        let mid = points[1];
+        assert!(
+            (mid.x - 2.5).abs() < 1e-4,
+            "expected mid.x=2.5, got {}",
+            mid.x
+        );
+        assert!(
+            (mid.y - 5.0).abs() < 1e-4,
+            "expected mid.y=5.0, got {}",
+            mid.y
+        );
+    }
+
+    // --- sample_cubic tests ---
+
+    #[test]
+    fn when_sample_cubic_then_first_point_equals_from() {
+        // Arrange
+        let from = Vec2::new(1.0, 2.0);
+        let c1 = Vec2::new(3.0, 10.0);
+        let c2 = Vec2::new(7.0, 10.0);
+        let to = Vec2::new(9.0, 2.0);
+
+        // Act
+        let points = sample_cubic(from, c1, c2, to, 4);
+
+        // Assert
+        assert!(
+            (points[0] - from).length() < 1e-6,
+            "first point should be from: {:?}",
+            points[0]
+        );
+    }
+
+    #[test]
+    fn when_sample_cubic_then_last_point_equals_to() {
+        // Arrange
+        let from = Vec2::new(1.0, 2.0);
+        let c1 = Vec2::new(3.0, 10.0);
+        let c2 = Vec2::new(7.0, 10.0);
+        let to = Vec2::new(9.0, 2.0);
+
+        // Act
+        let points = sample_cubic(from, c1, c2, to, 4);
+
+        // Assert
+        assert!(
+            (points[4] - to).length() < 1e-6,
+            "last point should be to: {:?}",
+            points[4]
+        );
+    }
+
+    #[test]
+    fn when_sample_cubic_then_returns_n_plus_one_points() {
+        // Act
+        let points = sample_cubic(Vec2::ZERO, Vec2::Y, Vec2::X, Vec2::ONE, 6);
+
+        // Assert
+        assert_eq!(points.len(), 7);
+    }
+
+    #[test]
+    fn when_sample_cubic_midpoint_then_follows_bezier_formula() {
+        // Arrange — at t=0.5: (1-t)^3*p0 + 3*(1-t)^2*t*p1 + 3*(1-t)*t^2*p2 + t^3*p3
+        let from = Vec2::new(0.0, 0.0);
+        let c1 = Vec2::new(0.0, 10.0);
+        let c2 = Vec2::new(10.0, 10.0);
+        let to = Vec2::new(10.0, 0.0);
+
+        // Act
+        let points = sample_cubic(from, c1, c2, to, 2);
+
+        // Assert — midpoint (t=0.5):
+        // 0.125*(0,0) + 3*0.25*0.5*(0,10) + 3*0.5*0.25*(10,10) + 0.125*(10,0)
+        // = (0,0) + 0.375*(0,10) + 0.375*(10,10) + (1.25,0)
+        // = (0, 3.75) + (3.75, 3.75) + (1.25, 0)
+        // = (5.0, 7.5)
+        let mid = points[1];
+        assert!(
+            (mid.x - 5.0).abs() < 1e-3,
+            "expected mid.x=5.0, got {}",
+            mid.x
+        );
+        assert!(
+            (mid.y - 7.5).abs() < 1e-3,
+            "expected mid.y=7.5, got {}",
+            mid.y
+        );
+    }
+
+    #[test]
+    fn when_sample_quadratic_with_collinear_points_then_midpoint_on_line() {
+        // Arrange — all three points on a line → quadratic degenerates to line
+        let from = Vec2::new(0.0, 0.0);
+        let control = Vec2::new(5.0, 5.0);
+        let to = Vec2::new(10.0, 10.0);
+
+        // Act
+        let points = sample_quadratic(from, control, to, 4);
+
+        // Assert — all points should lie on y = x
+        for (i, p) in points.iter().enumerate() {
+            assert!(
+                (p.x - p.y).abs() < 1e-4,
+                "point {i} should be on y=x line: ({}, {})",
+                p.x,
+                p.y
+            );
+        }
+    }
+
+    // --- build_lyon_path tests ---
+
+    #[test]
+    fn when_build_lyon_path_with_close_then_produces_closed_path() {
+        // Arrange
+        let variant = ShapeVariant::Path {
+            commands: vec![
+                PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(10.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(5.0, 10.0)),
+                PathCommand::Close,
+            ],
+        };
+
+        // Act
+        let mesh = tessellate(&variant);
+
+        // Assert — closed triangle should produce vertices and indices
+        assert!(!mesh.vertices.is_empty(), "should produce vertices");
+        assert!(!mesh.indices.is_empty(), "should produce indices");
+    }
+
+    #[test]
+    fn when_build_lyon_path_without_close_then_still_produces_geometry() {
+        // Arrange — open path (no Close command)
+        let variant = ShapeVariant::Path {
+            commands: vec![
+                PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(10.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(10.0, 10.0)),
+                PathCommand::LineTo(Vec2::new(0.0, 10.0)),
+            ],
+        };
+
+        // Act
+        let mesh = tessellate(&variant);
+
+        // Assert — open path should still be tessellatable
+        assert!(!mesh.vertices.is_empty());
+    }
+
+    // --- tessellate_stroke tests ---
+
+    #[test]
+    fn when_tessellate_stroke_polygon_with_fewer_than_3_points_then_empty() {
+        // Arrange
+        let variant = ShapeVariant::Polygon {
+            points: vec![Vec2::ZERO, Vec2::X],
+        };
+
+        // Act
+        let mesh = tessellate_stroke(&variant, 2.0);
+
+        // Assert
+        assert!(mesh.vertices.is_empty());
+        assert!(mesh.indices.is_empty());
+    }
+
+    #[test]
+    fn when_tessellate_stroke_polygon_with_3_points_then_produces_geometry() {
+        // Arrange
+        let variant = ShapeVariant::Polygon {
+            points: vec![Vec2::ZERO, Vec2::new(10.0, 0.0), Vec2::new(5.0, 10.0)],
+        };
+
+        // Act
+        let mesh = tessellate_stroke(&variant, 2.0);
+
+        // Assert
+        assert!(!mesh.vertices.is_empty());
+        assert!(!mesh.indices.is_empty());
+    }
+
+    // --- shape_render_system radius offset test ---
+
+    #[test]
+    fn when_shape_at_view_edge_then_not_culled() {
+        // Arrange — shape at position (395, 300) with radius 10
+        // Camera at (400, 300), viewport 800x600 → view rect roughly [0..800, 0..600]
+        // Entity at (395, 300) with radius 10 → AABB [385, 405] × [290, 310] — inside view
+        // If the - were mutated to / in pos.y - local_radius, the min would be wrong
+        let mut world = World::new();
+        let log = insert_spy_with_viewport(&mut world, 800, 600);
+        world.spawn(Camera2D {
+            position: Vec2::new(400.0, 300.0),
+            zoom: 1.0,
+        });
+        world.spawn((
+            Shape {
+                variant: ShapeVariant::Circle { radius: 10.0 },
+                color: Color::new(1.0, 0.0, 0.0, 1.0),
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(395.0, 300.0))),
+        ));
+
+        // Act
+        let mut schedule = Schedule::default();
+        schedule.add_systems(shape_render_system);
+        schedule.run(&mut world);
+
+        // Assert — the shape should be rendered (not culled)
+        let calls = log.lock().unwrap();
+        assert!(
+            calls.iter().any(|c| c == "draw_shape"),
+            "shape at view edge should be rendered, not culled"
+        );
     }
 
     #[test]

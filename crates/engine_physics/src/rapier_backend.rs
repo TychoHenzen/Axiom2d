@@ -546,9 +546,7 @@ mod tests {
         let x_damped = damped.body_position(entity_d).unwrap().x;
         assert!(
             x_damped < x_undamped * 0.5,
-            "expected damped x ({}) < 50% of undamped x ({})",
-            x_damped,
-            x_undamped
+            "expected damped x ({x_damped}) < 50% of undamped x ({x_undamped})"
         );
     }
 
@@ -594,9 +592,7 @@ mod tests {
         let angvel_damped = damped.bodies.get(handle_d).unwrap().angvel().abs();
         assert!(
             angvel_damped < angvel_undamped * 0.5,
-            "expected damped angvel ({}) < 50% of undamped angvel ({})",
-            angvel_damped,
-            angvel_undamped
+            "expected damped angvel ({angvel_damped}) < 50% of undamped angvel ({angvel_undamped})"
         );
     }
 
@@ -630,9 +626,7 @@ mod tests {
         let x_reset = reset.body_position(entity_s).unwrap().x;
         assert!(
             (x_reset - x_reference).abs() < 1e-3,
-            "expected reset body x ({}) ≈ reference x ({})",
-            x_reset,
-            x_reference
+            "expected reset body x ({x_reset}) ≈ reference x ({x_reference})"
         );
     }
 
@@ -677,7 +671,7 @@ mod tests {
             pos.x
         );
         assert!(pos.y.abs() < 1e-4, "expected y ≈ 0, got {}", pos.y);
-        assert!(rot.abs() < 1e-5, "expected no rotation, got {}", rot);
+        assert!(rot.abs() < 1e-5, "expected no rotation, got {rot}");
     }
 
     #[test]
@@ -698,11 +692,79 @@ mod tests {
         let pos = backend.body_position(entity).unwrap();
         let rot = backend.body_rotation(entity).unwrap();
         assert!(pos.x > 0.0, "expected x > 0, got {}", pos.x);
+        assert!(rot.abs() > 1e-5, "expected rotation from torque, got {rot}");
+    }
+
+    #[test]
+    fn when_body_linear_velocity_queried_then_returns_current_velocity() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entity, &Collider::Circle(0.5));
+        backend.set_damping(entity, 0.0, 0.0);
+        backend.set_linear_velocity(entity, Vec2::new(5.0, -3.0));
+
+        // Act
+        let vel = backend.body_linear_velocity(entity);
+
+        // Assert
+        let vel = vel.expect("should return Some for living body");
+        assert!((vel.x - 5.0).abs() < 1e-4, "expected vx=5.0, got {}", vel.x);
         assert!(
-            rot.abs() > 1e-5,
-            "expected rotation from torque, got {}",
-            rot
+            (vel.y - (-3.0)).abs() < 1e-4,
+            "expected vy=-3.0, got {}",
+            vel.y
         );
+    }
+
+    #[test]
+    fn when_body_linear_velocity_on_unknown_entity_then_returns_none() {
+        // Arrange
+        let backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+
+        // Act
+        let vel = backend.body_linear_velocity(entity);
+
+        // Assert
+        assert!(vel.is_none());
+    }
+
+    #[test]
+    fn when_set_linear_velocity_then_body_moves_accordingly() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entity, &Collider::Circle(0.5));
+        backend.set_damping(entity, 0.0, 0.0);
+
+        // Act
+        backend.set_linear_velocity(entity, Vec2::new(100.0, 0.0));
+        backend.step(Seconds(0.1));
+
+        // Assert
+        let pos = backend.body_position(entity).unwrap();
+        assert!(pos.x > 5.0, "expected body to move right, got x={}", pos.x);
+    }
+
+    #[test]
+    fn when_set_angular_velocity_then_body_rotates() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+        backend.add_collider(entity, &Collider::Circle(0.5));
+        backend.set_damping(entity, 0.0, 0.0);
+
+        // Act
+        backend.set_angular_velocity(entity, 10.0);
+        backend.step(Seconds(0.1));
+
+        // Assert
+        let rot = backend.body_rotation(entity).unwrap();
+        assert!(rot.abs() > 0.5, "expected body to rotate, got rot={}", rot);
     }
 
     #[test]

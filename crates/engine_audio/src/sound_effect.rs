@@ -96,6 +96,18 @@ mod tests {
     }
 
     #[test]
+    fn when_synthesize_with_half_second_duration_then_frame_count_is_half_sample_rate() {
+        // Arrange
+        let effect = test_effect();
+
+        // Act
+        let sound = effect.synthesize(44_100, 0.5);
+
+        // Assert — frame_count = (44100 * 0.5) = 22050, channels = 1
+        assert_eq!(sound.samples.len(), 22_050);
+    }
+
+    #[test]
     fn when_synthesize_called_twice_then_each_call_returns_fresh_sound_data() {
         // Arrange
         let effect = test_effect();

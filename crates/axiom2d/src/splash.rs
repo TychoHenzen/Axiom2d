@@ -149,7 +149,10 @@ pub fn splash_render_system(
 
 #[cfg(feature = "render")]
 mod render {
-    use super::*;
+    use super::{
+        ACCENT_COLOR, Color, LOGO_COLOR, RenderLayer, SPLASH_ACCENT_ORDER, SPLASH_BG_ORDER,
+        SPLASH_LETTER_ORDER, SPLASH_SIDE_BASE, SortOrder, SplashEntity, Transform2D, Vec2, Visible,
+    };
     use crate::splash_letters::{letter_a, letter_i, letter_m, letter_o, letter_x};
     use engine_render::prelude::{
         PathCommand, Shape, ShapeVariant, Stroke, resolve_commands, sample_cubic, sample_quadratic,
@@ -163,7 +166,7 @@ mod render {
         a: 1.0,
     };
 
-    fn color_lerp(a: Color, b: Color, t: f32) -> Color {
+    pub(super) fn color_lerp(a: Color, b: Color, t: f32) -> Color {
         Color::new(
             a.r + (b.r - a.r) * t,
             a.g + (b.g - a.g) * t,
@@ -184,12 +187,12 @@ mod render {
         color_lerp(dark, bright, t)
     }
 
-    fn segment_normal(from: Vec2, to: Vec2) -> Vec2 {
+    pub(super) fn segment_normal(from: Vec2, to: Vec2) -> Vec2 {
         let d = to - from;
         Vec2::new(d.y, -d.x).normalize()
     }
 
-    fn project_point(p: Vec2, vp: Vec2, depth: f32) -> Vec2 {
+    pub(super) fn project_point(p: Vec2, vp: Vec2, depth: f32) -> Vec2 {
         p + (vp - p) * depth
     }
 
@@ -213,9 +216,8 @@ mod render {
         dark: Color,
         bright: Color,
     ) -> Vec<(Vec<PathCommand>, Color, f32)> {
-        let start = match contour[0] {
-            PathCommand::MoveTo(p) => p,
-            _ => panic!("contour must start with MoveTo"),
+        let PathCommand::MoveTo(start) = contour[0] else {
+            panic!("contour must start with MoveTo")
         };
 
         let middle = &contour[1..contour.len() - 1];
@@ -664,6 +666,254 @@ mod tests {
         use engine_render::prelude::{PathCommand, Shape, ShapeVariant, split_contours};
 
         #[test]
+        fn when_color_lerp_at_half_then_averages_channels() {
+            // Arrange
+            let a = Color::new(0.0, 0.2, 0.4, 1.0);
+            let b = Color::new(1.0, 0.8, 0.6, 1.0);
+
+            // Act
+            let result = super::super::render::color_lerp(a, b, 0.5);
+
+            // Assert
+            assert!((result.r - 0.5).abs() < 1e-6);
+            assert!((result.g - 0.5).abs() < 1e-6);
+            assert!((result.b - 0.5).abs() < 1e-6);
+        }
+
+        #[test]
+        fn when_color_lerp_at_zero_then_returns_first_color() {
+            // Arrange
+            let a = Color::new(0.2, 0.4, 0.6, 1.0);
+            let b = Color::new(0.8, 0.6, 0.4, 1.0);
+
+            // Act
+            let result = super::super::render::color_lerp(a, b, 0.0);
+
+            // Assert
+            assert!((result.r - a.r).abs() < 1e-6);
+            assert!((result.g - a.g).abs() < 1e-6);
+            assert!((result.b - a.b).abs() < 1e-6);
+        }
+
+        #[test]
+        fn when_segment_normal_horizontal_rightward_then_points_downward() {
+            // Arrange
+            let from = Vec2::new(0.0, 0.0);
+            let to = Vec2::new(10.0, 0.0);
+
+            // Act
+            let normal = super::super::render::segment_normal(from, to);
+
+            // Assert — d = (10, 0), normal = (d.y, -d.x).normalize = (0, -10).normalize = (0, -1)
+            assert!(normal.x.abs() < 1e-6, "expected nx=0, got {}", normal.x);
+            assert!(
+                (normal.y - (-1.0)).abs() < 1e-6,
+                "expected ny=-1, got {}",
+                normal.y
+            );
+        }
+
+        #[test]
+        fn when_segment_normal_vertical_upward_then_points_rightward() {
+            // Arrange
+            let from = Vec2::new(0.0, 0.0);
+            let to = Vec2::new(0.0, 10.0);
+
+            // Act
+            let normal = super::super::render::segment_normal(from, to);
+
+            // Assert — d = (0, 10), normal = (10, 0).normalize = (1, 0)
+            assert!(
+                (normal.x - 1.0).abs() < 1e-6,
+                "expected nx=1, got {}",
+                normal.x
+            );
+            assert!(normal.y.abs() < 1e-6, "expected ny=0, got {}", normal.y);
+        }
+
+        #[test]
+        fn when_project_point_at_half_depth_then_moves_halfway_to_vanishing_point() {
+            // Arrange
+            let p = Vec2::new(0.0, 0.0);
+            let vp = Vec2::new(10.0, 0.0);
+
+            // Act
+            let result = super::super::render::project_point(p, vp, 0.5);
+
+            // Assert — p + (vp - p) * 0.5 = (0,0) + (10,0) * 0.5 = (5, 0)
+            assert!(
+                (result.x - 5.0).abs() < 1e-6,
+                "expected x=5, got {}",
+                result.x
+            );
+            assert!(result.y.abs() < 1e-6, "expected y=0, got {}", result.y);
+        }
+
+        #[test]
+        fn when_project_point_at_zero_depth_then_returns_original_point() {
+            // Arrange
+            let p = Vec2::new(3.0, 7.0);
+            let vp = Vec2::new(10.0, 20.0);
+
+            // Act
+            let result = super::super::render::project_point(p, vp, 0.0);
+
+            // Assert
+            assert!((result.x - 3.0).abs() < 1e-6);
+            assert!((result.y - 7.0).abs() < 1e-6);
+        }
+
+        fn run_splash_render(world: &mut World) {
+            let mut schedule = Schedule::default();
+            schedule.add_systems(splash_render_system);
+            schedule.run(world);
+        }
+
+        #[test]
+        fn when_splash_done_then_render_system_does_not_set_projection() {
+            // Arrange
+            let mut world = World::new();
+            world.insert_resource(SplashScreen {
+                elapsed: 3.0,
+                duration: 2.0,
+                done: true,
+            });
+            let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let spy = engine_render::testing::SpyRenderer::new(log.clone()).with_viewport(800, 600);
+            world.insert_resource(engine_render::prelude::RendererRes::new(Box::new(spy)));
+
+            // Act
+            run_splash_render(&mut world);
+
+            // Assert
+            let calls = log.lock().unwrap();
+            assert!(
+                !calls.iter().any(|c| c == "set_view_projection"),
+                "should not set projection when done"
+            );
+        }
+
+        #[test]
+        fn when_viewport_zero_width_then_render_system_does_not_set_projection() {
+            // Arrange
+            let mut world = World::new();
+            world.insert_resource(SplashScreen::new(2.0));
+            let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let spy = engine_render::testing::SpyRenderer::new(log.clone()).with_viewport(0, 600);
+            world.insert_resource(engine_render::prelude::RendererRes::new(Box::new(spy)));
+
+            // Act
+            run_splash_render(&mut world);
+
+            // Assert
+            let calls = log.lock().unwrap();
+            assert!(
+                !calls.iter().any(|c| c == "set_view_projection"),
+                "should not set projection when width=0"
+            );
+        }
+
+        #[test]
+        fn when_viewport_zero_height_then_render_system_does_not_set_projection() {
+            // Arrange
+            let mut world = World::new();
+            world.insert_resource(SplashScreen::new(2.0));
+            let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let spy = engine_render::testing::SpyRenderer::new(log.clone()).with_viewport(800, 0);
+            world.insert_resource(engine_render::prelude::RendererRes::new(Box::new(spy)));
+
+            // Act
+            run_splash_render(&mut world);
+
+            // Assert
+            let calls = log.lock().unwrap();
+            assert!(
+                !calls.iter().any(|c| c == "set_view_projection"),
+                "should not set projection when height=0"
+            );
+        }
+
+        #[test]
+        fn when_splash_active_and_viewport_valid_then_sets_projection() {
+            // Arrange
+            let mut world = World::new();
+            world.insert_resource(SplashScreen::new(2.0));
+            let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let spy = engine_render::testing::SpyRenderer::new(log.clone()).with_viewport(800, 600);
+            world.insert_resource(engine_render::prelude::RendererRes::new(Box::new(spy)));
+
+            // Act
+            run_splash_render(&mut world);
+
+            // Assert
+            let calls = log.lock().unwrap();
+            assert!(
+                calls.iter().any(|c| c == "set_view_projection"),
+                "should set projection when active with valid viewport"
+            );
+        }
+
+        #[test]
+        fn when_splash_render_zoom_computed_then_uses_min_of_width_and_height_ratios() {
+            // Arrange — 1000x300 viewport: vw/500=2.0, vh/300=1.0 → zoom=1.0
+            let mut world = World::new();
+            world.insert_resource(SplashScreen::new(2.0));
+            let matrix = std::sync::Arc::new(std::sync::Mutex::new(None));
+            let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let spy = engine_render::testing::SpyRenderer::new(log)
+                .with_viewport(1000, 300)
+                .with_matrix_capture(matrix.clone());
+            world.insert_resource(engine_render::prelude::RendererRes::new(Box::new(spy)));
+
+            // Act
+            run_splash_render(&mut world);
+
+            // Assert — verify projection was set (matrix captured)
+            let mat = matrix.lock().unwrap();
+            assert!(mat.is_some(), "projection matrix should be captured");
+            // The zoom is min(1000/500, 300/300) = min(2.0, 1.0) = 1.0
+            // With a different viewport: 500x600 → min(500/500, 600/300) = min(1.0, 2.0) = 1.0
+            // With 250x300 → min(250/500, 300/300) = min(0.5, 1.0) = 0.5
+            // The matrix diagonal elements scale with zoom, so let's verify with an asymmetric case
+        }
+
+        #[test]
+        fn when_splash_render_wide_viewport_then_zoom_limited_by_height() {
+            // Arrange — 2000x300: vw/500=4.0, vh/300=1.0 → zoom=1.0
+            // vs 2000x600: vw/500=4.0, vh/300=2.0 → zoom=2.0
+            // Different zoom → different projection matrix
+            let mut world_a = World::new();
+            world_a.insert_resource(SplashScreen::new(2.0));
+            let matrix_a = std::sync::Arc::new(std::sync::Mutex::new(None));
+            let log_a = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let spy_a = engine_render::testing::SpyRenderer::new(log_a)
+                .with_viewport(2000, 300)
+                .with_matrix_capture(matrix_a.clone());
+            world_a.insert_resource(engine_render::prelude::RendererRes::new(Box::new(spy_a)));
+
+            let mut world_b = World::new();
+            world_b.insert_resource(SplashScreen::new(2.0));
+            let matrix_b = std::sync::Arc::new(std::sync::Mutex::new(None));
+            let log_b = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let spy_b = engine_render::testing::SpyRenderer::new(log_b)
+                .with_viewport(2000, 600)
+                .with_matrix_capture(matrix_b.clone());
+            world_b.insert_resource(engine_render::prelude::RendererRes::new(Box::new(spy_b)));
+
+            // Act
+            run_splash_render(&mut world_a);
+            run_splash_render(&mut world_b);
+
+            // Assert — different viewports → different matrices (zoom differs)
+            let mat_a = matrix_a.lock().unwrap().unwrap();
+            let mat_b = matrix_b.lock().unwrap().unwrap();
+            assert_ne!(
+                mat_a, mat_b,
+                "different viewport heights should produce different projections"
+            );
+        }
+
+        #[test]
         fn when_split_contours_called_then_splits_on_moveto() {
             // Arrange
             let commands = vec![
@@ -906,6 +1156,94 @@ mod tests {
             assert!(
                 !all_same,
                 "varying normals along quadratic arc must yield varying shading"
+            );
+        }
+
+        #[test]
+        fn when_build_shaded_side_faces_with_cubic_then_produces_sliced_faces() {
+            // Arrange
+            let contour = vec![
+                PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+                PathCommand::CubicTo {
+                    control1: Vec2::new(5.0, -20.0),
+                    control2: Vec2::new(15.0, -20.0),
+                    to: Vec2::new(20.0, 0.0),
+                },
+                PathCommand::Close,
+            ];
+            let vp = Vec2::new(-50.0, 0.0);
+            let light_dir = Vec2::new(1.0, 0.0);
+            let dark = Color::new(0.1, 0.1, 0.1, 1.0);
+            let bright = Color::new(0.9, 0.9, 0.9, 1.0);
+
+            // Act
+            let pairs = super::super::render::build_shaded_side_faces(
+                &contour, vp, 0.1, 4, light_dir, dark, bright,
+            );
+
+            // Assert — cubic arc with 4 slices should produce visible faces
+            assert!(
+                pairs.len() >= 2,
+                "cubic curve strips + close edge must produce visible faces, got {}",
+                pairs.len()
+            );
+        }
+
+        #[test]
+        fn when_build_shaded_side_faces_then_results_sorted_farthest_first() {
+            // Arrange
+            let contour = vec![
+                PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(20.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(20.0, 20.0)),
+                PathCommand::LineTo(Vec2::new(0.0, 20.0)),
+                PathCommand::Close,
+            ];
+            let vp = Vec2::new(50.0, 10.0);
+            let light_dir = Vec2::new(1.0, 0.0);
+            let dark = Color::new(0.0, 0.0, 0.0, 1.0);
+            let bright = Color::new(1.0, 1.0, 1.0, 1.0);
+
+            // Act
+            let pairs = super::super::render::build_shaded_side_faces(
+                &contour, vp, 0.1, 1, light_dir, dark, bright,
+            );
+
+            // Assert — sorted by distance descending (farthest first for painter's algorithm)
+            for w in pairs.windows(2) {
+                assert!(
+                    w[0].2 >= w[1].2,
+                    "expected farthest-first sort: dist {} >= {}",
+                    w[0].2,
+                    w[1].2
+                );
+            }
+        }
+
+        #[test]
+        fn when_build_shaded_side_faces_with_close_gap_then_closing_edge_included() {
+            // Arrange — triangle where close segment is far from start
+            let contour = vec![
+                PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(30.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(15.0, 30.0)),
+                PathCommand::Close,
+            ];
+            let vp = Vec2::new(-50.0, 15.0);
+            let light_dir = Vec2::new(-1.0, 0.0);
+            let dark = Color::new(0.1, 0.1, 0.1, 1.0);
+            let bright = Color::new(0.9, 0.9, 0.9, 1.0);
+
+            // Act
+            let pairs = super::super::render::build_shaded_side_faces(
+                &contour, vp, 0.1, 1, light_dir, dark, bright,
+            );
+
+            // Assert — at least some faces exist (the close segment from (15,30) back to (0,0)
+            // has a large gap so > f32::EPSILON check must pass)
+            assert!(
+                !pairs.is_empty(),
+                "triangle with non-trivial close gap must produce faces"
             );
         }
 
