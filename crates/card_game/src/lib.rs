@@ -8,3 +8,5 @@ pub mod card_zone;
 pub mod drag_state;
 pub mod hand;
 pub mod prelude;
+pub mod spawn_table_card;
+pub mod stash_grid;

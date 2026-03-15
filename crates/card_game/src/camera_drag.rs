@@ -403,7 +403,10 @@ mod tests {
     fn when_scroll_by_two_then_zoom_equals_initial_plus_speed_times_delta() {
         // Arrange
         let mut world = World::new();
-        world.spawn(Camera2D { position: Vec2::ZERO, zoom: 1.0 });
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
         let mut mouse = MouseState::default();
         mouse.add_scroll_delta(Vec2::new(0.0, 2.0));
         world.insert_resource(mouse);

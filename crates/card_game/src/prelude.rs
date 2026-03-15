@@ -12,3 +12,5 @@ pub use crate::card_release::card_release_system;
 pub use crate::card_zone::CardZone;
 pub use crate::drag_state::{DragInfo, DragState};
 pub use crate::hand::{Hand, HandFull};
+pub use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH, spawn_table_card};
+pub use crate::stash_grid::{SlotOccupied, StashGrid};

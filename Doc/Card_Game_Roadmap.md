@@ -74,15 +74,15 @@ These extend `engine_physics` with capabilities the card game requires.
 - [x] `HandFull` error type
 - [x] Tests: add returns index, add to full hand errors, remove returns former index, remove unknown returns None, ordering preserved
 
-### Step B3 — StashGrid Resource `[NOT STARTED]`
+### Step B3 — StashGrid Resource `[DONE]`
 **Crate:** card_game
 **Why:** 10x10 paged grid for card storage, ARPG inventory style.
 
-- [ ] `StashGrid` resource: `slots: HashMap<(u8, u8), Entity>`, `width: u8`, `height: u8`, `page_count: u8`, `current_page: u8`
-- [ ] Page-aware methods: `place(page, col, row, entity) -> Result<(), SlotOccupied>`, `take(page, col, row) -> Option<Entity>`, `get(page, col, row) -> Option<&Entity>`
-- [ ] `first_empty(page) -> Option<(u8, u8)>` — scans for first unoccupied slot on a page
-- [ ] `SlotOccupied` error type
-- [ ] Tests: place and retrieve, place on occupied slot errors, take empties slot, first_empty finds gap, first_empty returns None when page full, out-of-bounds coordinates
+- [x] `StashGrid` resource: `slots: HashMap<(u8, u8, u8), Entity>` (page, col, row key), `width: u8`, `height: u8`, `page_count: u8`, `current_page: u8`
+- [x] Page-aware methods: `place(page, col, row, entity) -> Result<(), SlotOccupied>`, `take(page, col, row) -> Option<Entity>`, `get(page, col, row) -> Option<&Entity>`
+- [x] `first_empty(page) -> Option<(u8, u8)>` — scans column-major for first unoccupied slot on a page
+- [x] `SlotOccupied` error type
+- [x] Tests: place and retrieve, place on occupied slot errors, take empties slot, first_empty finds gap, first_empty returns None when page full, out-of-bounds coordinates (15 tests)
 
 ---
 
@@ -131,23 +131,25 @@ These extend `engine_physics` with capabilities the card game requires.
 
 ## Phase D: Table Physics Configuration
 
-### Step D1 — Card Body Setup `[NOT STARTED]`
+### Step D1 — Card Body Setup `[DONE]`
 **Crate:** card_game
 **Why:** Cards need specific physics parameters for poker-table feel.
 
-- [ ] `spawn_table_card` helper: creates entity with Card, CardZone::Table, Sprite, Transform2D, RigidBody::Dynamic, Collider::Aabb, RenderLayer::World, SortOrder
-- [ ] After spawn: register with physics backend via `add_body` + `add_collider`
-- [ ] Configure damping: linear ~3.0, angular ~2.0 (tunable constants) via `set_damping`
-- [ ] Gravity should be zero (top-down table view) — configure RapierBackend with `gravity = Vec2::ZERO`
-- [ ] Tests: spawned card has all expected components, physics body registered, damping applied
+- [x] `spawn_table_card` helper: creates entity with Card, CardZone::Table, Sprite, Transform2D, RigidBody::Dynamic, Collider::Aabb(half), RenderLayer::World, SortOrder(0)
+- [x] After spawn: register with physics backend via `add_body` + `add_collider`
+- [x] Configure damping: initial set_damping with BASE_LINEAR_DRAG (8.0) and BASE_ANGULAR_DRAG (5.0), then card_damping_system adjusts per-frame based on angular velocity
+- [x] Gravity should be zero (top-down table view) — RapierBackend initialized with `Vec2::ZERO` gravity (deferred to H1 game plugin)
+- [x] Tests: physics body registered, collider registered, initial damping applied (3 tests)
+- [x] Constants: CARD_WIDTH=60.0, CARD_HEIGHT=90.0 (matching existing half-extents in card_pick tests)
 
-### Step D2 — Table Boundaries `[NOT STARTED]`
+### Step D2 — Camera Drag (replaces Table Boundaries) `[DONE]`
 **Crate:** card_game
-**Why:** Cards shouldn't fly off the table area.
+**Why:** Instead of constraining cards with walls, the camera follows the action. Players pan with right-click drag and zoom with scroll wheel, giving an infinite playspace.
 
-- [ ] Spawn 4 static wall entities (RigidBody::Static + Collider::Aabb) around table perimeter
-- [ ] Wall positions derived from table size constants
-- [ ] Tests: walls registered as static bodies in physics backend
+- [x] `CameraDragState` resource with anchor_screen_pos tracking
+- [x] `camera_drag_system` in Phase::Update: right-click drag pans Camera2D by delta
+- [x] `camera_zoom_system` in Phase::Update: scroll wheel zooms Camera2D with ZOOM_MIN floor
+- [x] Tests: 22 tests covering drag start/move/release, zoom in/out/clamping, no-camera edge cases
 
 ---
 
@@ -285,7 +287,8 @@ A3 (body_point_to_world)──┘         │
 B1 (Card/Zone)──→ C1 (DragState) → C2 (pick) → C3 → C4 (release)
                                                         │
                                                         ↓
-                                                  D1 (body setup) → D2 (boundaries)
+                                                  D1 (body setup) ✓
+                                                  D2 (camera drag) ✓
 B2 (Hand)───────→ F1 (hand layout) → F2 (hand interaction)
 B3 (StashGrid)──→ G1 (grid render) → G2 (stash drag) → G3 (preview) → G4 (pages)
 
@@ -297,4 +300,4 @@ H2 (polish) ← after H1
 
 **Critical path:** A1–A3 → B1 → C1 → C2 → C3 → C4 → H1
 
-**Parallelizable after C4:** D1/D2, E1/E2, F1/F2, G1–G4
+**Parallelizable after C4:** E1/E2, F1/F2, G1–G4 (D1/D2 done)
