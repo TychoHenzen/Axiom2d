@@ -171,10 +171,7 @@ impl AtlasBuilder {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
-    use super::{
-        AtlasBuilder, AtlasError, AtlasUploaded, TextureAtlas, normalize_uv_rect,
-        upload_atlas_system,
-    };
+    use super::{AtlasBuilder, AtlasError, AtlasUploaded, normalize_uv_rect, upload_atlas_system};
     use engine_core::types::TextureId;
 
     #[test]
