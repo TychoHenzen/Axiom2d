@@ -442,13 +442,13 @@ impl WgpuRenderer {
                 let bytes: &[u8; 64] = bytemuck::cast_ref(&draw.model);
                 model_data[offset..offset + 64].copy_from_slice(bytes);
             }
-            let model_buffer =
-                self.device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: None,
-                        contents: &model_data,
-                        usage: wgpu::BufferUsages::UNIFORM,
-                    });
+            let model_buffer = self
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: &model_data,
+                    usage: wgpu::BufferUsages::UNIFORM,
+                });
             let model_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
                 layout: &self.model_bind_group_layout,
@@ -656,10 +656,12 @@ impl Renderer for WgpuRenderer {
         if self.shader_cache.contains_key(&handle) {
             return;
         }
-        let shader_module = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: None,
-            source: wgpu::ShaderSource::Wgsl(source.into()),
-        });
+        let shader_module = self
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: None,
+                source: wgpu::ShaderSource::Wgsl(source.into()),
+            });
         let pipelines = create_shape_pipelines(
             &self.device,
             &shader_module,

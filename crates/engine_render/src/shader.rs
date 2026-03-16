@@ -226,8 +226,8 @@ mod tests {
 
     #[test]
     fn when_shader_registry_has_one_entry_and_system_runs_then_compile_shader_called_once() {
-        use bevy_ecs::prelude::{Schedule, World};
         use crate::testing::insert_spy_with_compile_shader_capture;
+        use bevy_ecs::prelude::{Schedule, World};
 
         // Arrange
         let mut world = World::new();
@@ -250,8 +250,8 @@ mod tests {
 
     #[test]
     fn when_shader_registry_has_two_entries_and_system_runs_then_compile_shader_called_for_each() {
-        use bevy_ecs::prelude::{Schedule, World};
         use crate::testing::insert_spy_with_compile_shader_capture;
+        use bevy_ecs::prelude::{Schedule, World};
 
         // Arrange
         let mut world = World::new();
@@ -277,8 +277,8 @@ mod tests {
 
     #[test]
     fn when_shader_registry_is_empty_and_system_runs_then_compile_shader_not_called() {
-        use bevy_ecs::prelude::{Schedule, World};
         use crate::testing::insert_spy_with_compile_shader_capture;
+        use bevy_ecs::prelude::{Schedule, World};
 
         // Arrange
         let mut world = World::new();
@@ -297,8 +297,8 @@ mod tests {
 
     #[test]
     fn when_shader_registry_absent_from_world_and_system_runs_then_no_panic() {
-        use bevy_ecs::prelude::{Schedule, World};
         use crate::testing::insert_spy;
+        use bevy_ecs::prelude::{Schedule, World};
 
         // Arrange
         let mut world = World::new();
@@ -312,12 +312,12 @@ mod tests {
 
     #[test]
     fn when_shader_prepare_runs_before_shape_render_then_compile_precedes_draw_in_log() {
+        use crate::shape::Shape;
+        use crate::testing::insert_spy;
         use bevy_ecs::prelude::{Schedule, World};
         use bevy_ecs::schedule::IntoScheduleConfigs;
         use engine_scene::prelude::GlobalTransform2D;
         use glam::Affine2;
-        use crate::testing::insert_spy;
-        use crate::shape::Shape;
 
         // Arrange
         let mut world = World::new();
@@ -333,10 +333,7 @@ mod tests {
             GlobalTransform2D(Affine2::IDENTITY),
         ));
         let mut schedule = Schedule::default();
-        schedule.add_systems((
-            shader_prepare_system,
-            crate::shape::shape_render_system,
-        ).chain());
+        schedule.add_systems((shader_prepare_system, crate::shape::shape_render_system).chain());
 
         // Act
         schedule.run(&mut world);
@@ -345,10 +342,7 @@ mod tests {
         let log = log.lock().unwrap();
         let compile_pos = log.iter().position(|s| s == "compile_shader");
         let draw_pos = log.iter().position(|s| s == "draw_shape");
-        assert!(
-            compile_pos.is_some(),
-            "compile_shader should appear in log"
-        );
+        assert!(compile_pos.is_some(), "compile_shader should appear in log");
         assert!(draw_pos.is_some(), "draw_shape should appear in log");
         assert!(
             compile_pos.unwrap() < draw_pos.unwrap(),

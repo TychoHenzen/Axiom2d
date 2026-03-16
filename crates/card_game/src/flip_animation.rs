@@ -28,7 +28,7 @@ pub fn flip_animation_system(
     mut commands: Commands,
 ) {
     for (entity, mut anim, mut card, mut transform) in &mut query {
-        anim.progress += dt.0 .0 / anim.duration.0;
+        anim.progress += dt.0.0 / anim.duration.0;
 
         if anim.progress >= 1.0 {
             transform.scale.x = 1.0;
@@ -55,7 +55,7 @@ mod tests {
     use engine_core::prelude::{DeltaTime, Seconds, TextureId, Transform2D};
     use glam::Vec2;
 
-    use super::{flip_animation_system, FlipAnimation};
+    use super::{FlipAnimation, flip_animation_system};
     use crate::card::Card;
 
     fn run_system(world: &mut World) {
@@ -136,12 +136,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let scale_x = world
-            .entity(entity)
-            .get::<Transform2D>()
-            .unwrap()
-            .scale
-            .x;
+        let scale_x = world.entity(entity).get::<Transform2D>().unwrap().scale.x;
         assert!((scale_x - 0.5).abs() < 1e-5);
     }
 
@@ -170,12 +165,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let scale_x = world
-            .entity(entity)
-            .get::<Transform2D>()
-            .unwrap()
-            .scale
-            .x;
+        let scale_x = world.entity(entity).get::<Transform2D>().unwrap().scale.x;
         assert!(scale_x.abs() < 1e-5, "scale.x should be 0.0 at midpoint");
     }
 
@@ -204,12 +194,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let scale_x = world
-            .entity(entity)
-            .get::<Transform2D>()
-            .unwrap()
-            .scale
-            .x;
+        let scale_x = world.entity(entity).get::<Transform2D>().unwrap().scale.x;
         assert!((scale_x - 0.5).abs() < 1e-5);
     }
 
@@ -350,12 +335,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let scale_x = world
-            .entity(entity)
-            .get::<Transform2D>()
-            .unwrap()
-            .scale
-            .x;
+        let scale_x = world.entity(entity).get::<Transform2D>().unwrap().scale.x;
         assert!((scale_x - 1.0).abs() < 1e-5);
     }
 
@@ -423,9 +403,7 @@ mod tests {
 
         // Act — animation completes, then visibility sync runs
         let mut schedule = Schedule::default();
-        schedule.add_systems(
-            (flip_animation_system, card_face_visibility_sync_system).chain(),
-        );
+        schedule.add_systems((flip_animation_system, card_face_visibility_sync_system).chain());
         schedule.run(&mut world);
 
         // Assert — animation done, face_up=true, front visible, back hidden

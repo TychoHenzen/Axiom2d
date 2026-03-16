@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::camera::Camera2D;
 use crate::culling::{aabb_intersects_view_rect, camera_view_rect};
-use crate::material::{Material2d, apply_material, effective_blend_mode, effective_shader_handle};
+use crate::material::{Material2d, apply_material};
 use crate::rect::Rect;
 use crate::renderer::RendererRes;
 

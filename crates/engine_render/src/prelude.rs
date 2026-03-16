@@ -16,9 +16,9 @@ pub use crate::rect::Rect;
 pub use crate::renderer::{IDENTITY_MODEL, NullRenderer, Renderer, RendererRes};
 pub use crate::shader::{ShaderHandle, ShaderRegistry, preprocess, shader_prepare_system};
 pub use crate::shape::{
-    PathCommand, Shape, ShapeVariant, Stroke, TessellatedMesh, affine2_to_mat4,
-    resolve_commands, reverse_path, sample_cubic, sample_quadratic, shape_render_system,
-    split_contours, tessellate, tessellate_stroke,
+    PathCommand, Shape, ShapeVariant, Stroke, TessellatedMesh, affine2_to_mat4, resolve_commands,
+    reverse_path, sample_cubic, sample_quadratic, shape_render_system, split_contours, tessellate,
+    tessellate_stroke,
 };
 pub use crate::sprite::{Sprite, sprite_render_system};
 pub use crate::window::WindowConfig;

@@ -6,7 +6,7 @@ use super::components::{Shape, Stroke};
 use super::tessellate::{shape_aabb, tessellate, tessellate_stroke};
 use crate::camera::Camera2D;
 use crate::culling::{aabb_intersects_view_rect, camera_view_rect};
-use crate::material::{Material2d, apply_material, effective_blend_mode, effective_shader_handle};
+use crate::material::{Material2d, apply_material};
 use crate::renderer::RendererRes;
 
 pub fn affine2_to_mat4(affine: &glam::Affine2) -> [[f32; 4]; 4] {
@@ -75,7 +75,12 @@ pub fn shape_render_system(
 
         if let Some(stroke) = stroke {
             let stroke_mesh = tessellate_stroke(&shape.variant, stroke.width);
-            renderer.draw_shape(&stroke_mesh.vertices, &stroke_mesh.indices, stroke.color, model);
+            renderer.draw_shape(
+                &stroke_mesh.vertices,
+                &stroke_mesh.indices,
+                stroke.color,
+                model,
+            );
         }
     }
 }

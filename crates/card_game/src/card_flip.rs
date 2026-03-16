@@ -67,7 +67,7 @@ mod tests {
     use crate::card::Card;
     use crate::card_zone::CardZone;
     use crate::drag_state::{DragInfo, DragState};
-    use crate::flip_animation::{FlipAnimation, FLIP_DURATION};
+    use crate::flip_animation::{FLIP_DURATION, FlipAnimation};
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -137,7 +137,10 @@ mod tests {
 
         // Assert — animation targets the toggled state, not an immediate write
         let anim = world.entity(card).get::<FlipAnimation>().unwrap();
-        assert!(anim.target_face_up, "flip from face-down should target face-up");
+        assert!(
+            anim.target_face_up,
+            "flip from face-down should target face-up"
+        );
     }
 
     #[test]

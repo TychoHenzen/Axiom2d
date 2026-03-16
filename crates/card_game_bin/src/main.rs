@@ -1,6 +1,5 @@
 use axiom2d::prelude::*;
 use card_game::prelude::*;
-use engine_physics::prelude::*;
 use glam::Vec2;
 
 const TABLE_COLOR: Color = Color {
@@ -106,9 +105,7 @@ fn setup(app: &mut App) {
         a: 1.0,
     }));
 
-    let art_shader = register_card_art_shader(
-        &mut world.resource_mut::<ShaderRegistry>(),
-    );
+    let art_shader = register_card_art_shader(&mut world.resource_mut::<ShaderRegistry>());
     world.insert_resource(art_shader);
 
     spawn_scene(world);

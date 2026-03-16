@@ -481,13 +481,13 @@ impl HeadlessRenderer {
                 let bytes: &[u8; 64] = bytemuck::cast_ref(mat);
                 model_data[offset..offset + 64].copy_from_slice(bytes);
             }
-            let model_buffer =
-                self.device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: None,
-                        contents: &model_data,
-                        usage: wgpu::BufferUsages::UNIFORM,
-                    });
+            let model_buffer = self
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: &model_data,
+                    usage: wgpu::BufferUsages::UNIFORM,
+                });
             let model_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
                 layout: &self.model_bind_group_layout,
