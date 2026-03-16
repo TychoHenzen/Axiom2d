@@ -261,7 +261,10 @@ mod tests {
             None
         }
         fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32) {
-            self.dampings.lock().unwrap().push((entity, linear, angular));
+            self.dampings
+                .lock()
+                .unwrap()
+                .push((entity, linear, angular));
         }
         fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
     }

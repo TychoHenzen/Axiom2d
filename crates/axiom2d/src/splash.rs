@@ -1734,10 +1734,8 @@ mod tests {
                 })
                 .map(|(_, t, _)| t.position.x)
                 .collect();
-            let unique_xs: std::collections::HashSet<u32> = side_xs
-                .iter()
-                .map(|x| (*x * 100.0) as u32)
-                .collect();
+            let unique_xs: std::collections::HashSet<u32> =
+                side_xs.iter().map(|x| (*x * 100.0) as u32).collect();
             assert!(
                 unique_xs.len() >= 3,
                 "side faces must have multiple distinct x positions (one per letter), got {unique_xs:?}"
