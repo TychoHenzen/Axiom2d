@@ -871,10 +871,6 @@ mod tests {
             // Assert — verify projection was set (matrix captured)
             let mat = matrix.lock().unwrap();
             assert!(mat.is_some(), "projection matrix should be captured");
-            // The zoom is min(1000/500, 300/300) = min(2.0, 1.0) = 1.0
-            // With a different viewport: 500x600 → min(500/500, 600/300) = min(1.0, 2.0) = 1.0
-            // With 250x300 → min(250/500, 300/300) = min(0.5, 1.0) = 0.5
-            // The matrix diagonal elements scale with zoom, so let's verify with an asymmetric case
         }
 
         #[test]
@@ -1294,13 +1290,10 @@ mod tests {
             }
         }
 
-        // --- Mutation gap: zoom formula `/` replaced with `%` or `*` (line 144) ---
-
         #[test]
         #[allow(clippy::float_cmp)]
         fn when_splash_render_square_viewport_then_zoom_matches_expected_matrix() {
-            // Arrange — 1000x600: zoom = min(1000/500, 600/300) = min(2.0, 2.0) = 2.0
-            // A `/` → `%` or `*` mutant would produce zoom = min(0.0,0.0) or min(500000,180000)
+            // Arrange — 1000x600: vw/500=2.0, vh/300=2.0 → zoom=2.0
             let mut world = World::new();
             world.insert_resource(SplashScreen::new(2.0));
             let matrix = std::sync::Arc::new(std::sync::Mutex::new(None));
@@ -1331,8 +1324,7 @@ mod tests {
         #[test]
         #[allow(clippy::float_cmp)]
         fn when_splash_render_height_constrained_viewport_then_zoom_limited_by_height_ratio() {
-            // Arrange — 2000x300: vw/500=4.0, vh/300=1.0 → zoom = min(4.0, 1.0) = 1.0
-            // A `/` → `*` mutant gives min(1_000_000, 90_000) = 90_000, not 1.0
+            // Arrange — 2000x300: vw/500=4.0, vh/300=1.0 → zoom=1.0
             let mut world = World::new();
             world.insert_resource(SplashScreen::new(2.0));
             let matrix = std::sync::Arc::new(std::sync::Mutex::new(None));
@@ -1360,12 +1352,9 @@ mod tests {
             );
         }
 
-        // --- Mutation gap: color_lerp alpha channel `+` replaced with `-` (line 174) ---
-
         #[test]
         fn when_color_lerp_at_half_then_alpha_channel_is_also_averaged() {
-            // Arrange — both r,g,b are 0→1 but a specifically tests the alpha branch
-            // Mutant a.a - (b.a - a.a)*t = 0 - 0.5 = -0.5, correct = 0 + 0.5 = 0.5
+            // Arrange — a.a=0, b.a=1, t=0.5 → expected alpha=0.5
             let a = Color::new(0.0, 0.0, 0.0, 0.0);
             let b = Color::new(1.0, 1.0, 1.0, 1.0);
 
@@ -1400,13 +1389,9 @@ mod tests {
             );
         }
 
-        // --- Mutation gap: shade_for_normal `*` replaced with `/` (line 184) ---
-
         #[test]
         fn when_normal_perpendicular_to_light_then_shade_produces_midrange_not_bright() {
-            // Arrange — normal=(0,1), light_dir=(1,0): dot=0
-            // Correct: (0+1)*0.5 = 0.5 → t = 0.5^3 = 0.125 → dim color
-            // Mutant `*`→`/`: (0+1)/0.5 = 2.0 → clamped=1.0 → t=1.0 → bright color
+            // Arrange — normal=(0,1), light_dir=(1,0): dot=0 → t=0.5^3=0.125 → dim result
             let normal = Vec2::new(0.0, 1.0);
             let light_dir = Vec2::new(1.0, 0.0);
             let dark = Color::new(0.0, 0.0, 0.0, 1.0);
@@ -1429,13 +1414,9 @@ mod tests {
             );
         }
 
-        // --- Mutation gap: project_point `-` replaced with `+` (line 196) ---
-
         #[test]
         fn when_project_point_nonzero_start_toward_origin_then_moves_toward_vanishing_point() {
-            // Arrange — p=(10,0), vp=(0,0), depth=0.5
-            // Correct: (10,0) + ((0,0)-(10,0))*0.5 = (10,0)+(-5,0) = (5,0)
-            // Mutant `-`→`+`: (10,0) + ((0,0)+(10,0))*0.5 = (10,0)+(5,0) = (15,0)
+            // Arrange — p=(10,0), vp=(0,0), depth=0.5 → expected (5,0)
             let p = Vec2::new(10.0, 0.0);
             let vp = Vec2::new(0.0, 0.0);
 
@@ -1453,9 +1434,7 @@ mod tests {
 
         #[test]
         fn when_project_point_with_offset_vanishing_point_then_interpolates_correctly() {
-            // Arrange — p=(0,10), vp=(0,-10), depth=0.25
-            // Correct: (0,10) + ((0,-10)-(0,10))*0.25 = (0,10)+(0,-5) = (0,5)
-            // Mutant: (0,10) + ((0,-10)+(0,10))*0.25 = (0,10)+(0,0) = (0,10) — no movement!
+            // Arrange — p=(0,10), vp=(0,-10), depth=0.25 → expected (0,5)
             let p = Vec2::new(0.0, 10.0);
             let vp = Vec2::new(0.0, -10.0);
 
@@ -1471,16 +1450,94 @@ mod tests {
             );
         }
 
-        // --- Mutation gap: build_shaded_side_faces line 228 midpoint `*` → `/` ---
+        #[test]
+        #[allow(clippy::float_cmp)]
+        fn when_splash_render_width_constrained_then_zoom_limited_by_width_ratio() {
+            // Arrange — 250x600: vw/500=0.5, vh/300=2.0 → zoom=0.5
+            let mut world = World::new();
+            world.insert_resource(SplashScreen::new(2.0));
+            let matrix = std::sync::Arc::new(std::sync::Mutex::new(None));
+            let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let spy = engine_render::testing::SpyRenderer::new(log)
+                .with_viewport(250, 600)
+                .with_matrix_capture(matrix.clone());
+            world.insert_resource(engine_render::prelude::RendererRes::new(Box::new(spy)));
+
+            let expected_camera = engine_render::prelude::Camera2D {
+                position: Vec2::new(0.0, 15.0),
+                zoom: 0.5,
+            };
+            let expected =
+                engine_render::prelude::CameraUniform::from_camera(&expected_camera, 250.0, 600.0);
+
+            // Act
+            run_splash_render(&mut world);
+
+            // Assert
+            let mat = matrix.lock().unwrap().expect("matrix should be captured");
+            assert_eq!(
+                mat, expected.view_proj,
+                "zoom=0.5 (width-limited) produces the wrong projection matrix"
+            );
+        }
+
+        #[test]
+        fn when_build_shaded_side_faces_single_segment_then_dist_equals_midpoint_to_vp() {
+            // Arrange — segment (0,0)→(20,0), vp at (10,-50); midpoint=(10,0), dist=50.0
+            let contour = vec![
+                PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(20.0, 0.0)),
+                PathCommand::Close,
+            ];
+            let vp = Vec2::new(10.0, -50.0);
+            let light_dir = Vec2::new(0.0, -1.0);
+            let dark = Color::new(0.0, 0.0, 0.0, 1.0);
+            let bright = Color::new(1.0, 1.0, 1.0, 1.0);
+
+            // Act
+            let faces = super::super::render::build_shaded_side_faces(
+                &contour, vp, 0.1, 1, light_dir, dark, bright,
+            );
+
+            // Assert
+            assert!(!faces.is_empty(), "at least one face should be visible");
+            let dist = faces[0].2;
+            assert!(
+                (dist - 50.0).abs() < 0.1,
+                "dist from midpoint (10,0) to vp (10,-50) should be 50.0, got {dist}"
+            );
+        }
+
+        #[test]
+        fn when_build_shaded_side_faces_triangle_then_vp_dir_determines_face_count() {
+            // Arrange — triangle (-10,0)→(10,0)→(0,10), vp=(5,5): exactly 1 visible face
+            let contour = vec![
+                PathCommand::MoveTo(Vec2::new(-10.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(10.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(0.0, 10.0)),
+                PathCommand::Close,
+            ];
+            let vp = Vec2::new(5.0, 5.0);
+            let light_dir = Vec2::new(1.0, 0.0);
+            let dark = Color::new(0.0, 0.0, 0.0, 1.0);
+            let bright = Color::new(1.0, 1.0, 1.0, 1.0);
+
+            // Act
+            let faces = super::super::render::build_shaded_side_faces(
+                &contour, vp, 0.1, 1, light_dir, dark, bright,
+            );
+
+            // Assert — exactly 1 visible face (segment 2 only)
+            assert_eq!(
+                faces.len(),
+                1,
+                "only the segment facing vp should be visible"
+            );
+        }
 
         #[test]
         fn when_build_shaded_side_faces_triangle_then_exactly_two_front_faces_visible() {
-            // Arrange — triangle pointing right, vanishing point far left
-            // MoveTo(0,0) → LineTo(10,0) → LineTo(5,10) → Close
-            // vp = (-100, 5): faces with normals pointing toward vp (leftward) are visible
-            // segment (0,0)→(10,0): normal=(0,-1), vp_dir points left-down → dot < 0 → culled
-            // segment (10,0)→(5,10): normal points left → dot >= 0 → visible
-            // close segment (5,10)→(0,0): normal points left-down → dot >= 0 → visible
+            // Arrange — triangle (0,0)→(10,0)→(5,10), vp far left; 2 faces visible
             let contour = vec![
                 PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
                 PathCommand::LineTo(Vec2::new(10.0, 0.0)),
@@ -1497,38 +1554,24 @@ mod tests {
                 &contour, vp, 0.1, 1, light_dir, dark, bright,
             );
 
-            // Assert — midpoint mutation changes distance-to-vp which changes sort order;
-            // the culling check verifies correct face-normal vs vp_dir computation
+            // Assert
             assert!(
                 !faces.is_empty(),
                 "triangle should have at least one visible face"
             );
-            // All returned faces must have the 5-command quad structure
             for (cmds, _, _) in &faces {
                 assert_eq!(cmds.len(), 5);
             }
         }
 
-        // --- Mutation gap: build_shaded_side_faces line 231 `>=` → `>` ---
-
         #[test]
         fn when_face_normal_exactly_perpendicular_to_vp_dir_then_face_is_included() {
-            // Arrange — segment (0,0)→(10,0): normal=(0,-1)
-            // vp placed at (5,50): vp_dir from midpoint (5,0) = normalize((0,50)) = (0,1)
-            // dot = (0,-1)·(0,1) = -1 < 0 → culled (back-face)
-            // Place vp at (5,-50): vp_dir = normalize((0,-50)) = (0,-1)
-            // dot = (0,-1)·(0,-1) = 1 ≥ 0 → included
-            // For exactly perpendicular: need normal·vp_dir = 0
-            // segment (0,0)→(10,0): normal=(0,-1); vp_dir perpendicular = (1,0) or (-1,0)
-            // vp at (1000, 0) relative to midpoint (5,0): vp_dir = normalize((995,0)) ≈ (1,0)
-            // dot = (0,-1)·(1,0) = 0 → `>= 0` includes it, `> 0` excludes it
+            // Arrange — segment (0,0)→(10,0): normal=(0,-1); vp to the right → dot=0 → included
             let contour = vec![
                 PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
                 PathCommand::LineTo(Vec2::new(10.0, 0.0)),
                 PathCommand::Close,
             ];
-            // vp directly to the right of the segment midpoint (5,0) → vp_dir = (1,0)
-            // segment normal = (0,-1), dot with (1,0) = 0 exactly
             let vp = Vec2::new(1000.0, 0.0);
             let light_dir = Vec2::new(1.0, 0.0);
             let dark = Color::new(0.0, 0.0, 0.0, 1.0);
@@ -1539,23 +1582,16 @@ mod tests {
                 &contour, vp, 0.1, 1, light_dir, dark, bright,
             );
 
-            // Assert — >= 0 means dot=0 face IS included; > 0 would exclude it
-            // close segment (10,0)→(0,0) also runs (current != start), so at least 1 face
+            // Assert
             assert!(
                 !faces.is_empty(),
                 "at least one face with dot=0 must be included by >= check"
             );
         }
 
-        // --- Mutation gap: build_shaded_side_faces line 266 closing segment ---
-
         #[test]
         fn when_build_shaded_side_faces_open_triangle_then_closing_segment_produces_a_face() {
-            // Arrange — isoceles triangle with vp behind it; closing segment (apex→start) faces vp
-            // After LineTo(10,0) and LineTo(5,10): current=(5,10), start=(0,0)
-            // (current - start).length() = sqrt(125) >> EPSILON → closing segment processed
-            // Mutant `current + start = (5,10)` length still >> EPSILON → no kill here
-            // BUT verifying face count kills mutations that skip middle segments entirely
+            // Arrange — triangle with vp above; at least one face must be visible
             let contour = vec![
                 PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
                 PathCommand::LineTo(Vec2::new(10.0, 0.0)),
@@ -1582,10 +1618,7 @@ mod tests {
 
         #[test]
         fn when_closing_segment_coincides_with_start_then_no_closing_face_added() {
-            // Arrange — contour where the last LineTo returns exactly to start
-            // current - start = (0,0) → length=0 ≤ EPSILON → no closing edge
-            // Mutant `current + start = (0,0)` → same result, mutation survives here
-            // but the test documents the intended boundary behavior
+            // Arrange — last LineTo returns to start: closing edge is degenerate, skipped
             let contour = vec![
                 PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
                 PathCommand::LineTo(Vec2::new(10.0, 0.0)),
@@ -1602,25 +1635,16 @@ mod tests {
                 &contour, vp, 0.1, 1, light_dir, dark, bright,
             );
 
-            // Assert — one face for (0,0)→(10,0) segment (facing down, vp is below → visible);
-            // (10,0)→(0,0) has same normal but reversed orientation — both candidates run,
-            // closing segment skipped because length=0
-            // The main assertion: no panic and well-defined face count
+            // Assert — no panic and no more faces than the two non-degenerate edges
             assert!(
                 faces.len() <= 2,
                 "degenerate triangle should not produce more faces than edges"
             );
         }
 
-        // --- Mutation gap: build_shaded_side_faces midpoint sort key ---
-
         #[test]
         fn when_two_segments_at_different_distances_from_vp_then_farther_is_sorted_first() {
-            // Arrange — two-segment contour where segments have different distances to vp
-            // (0,0)→(20,0) midpoint=(10,0), vp=(10,50): dist=50
-            // (20,0)→(10,20) midpoint=(15,10), vp=(10,50): dist≈40.3
-            // Correct sort: dist=50 first, dist≈40.3 second
-            // Midpoint mutant `(a-b)*0.5` would give (−5,0) and (5,−5), scrambling distances
+            // Arrange — segment (0,0)→(20,0) midpoint dist=50; (20,0)→(10,20) midpoint dist≈40.3
             let contour = vec![
                 PathCommand::MoveTo(Vec2::new(0.0, 0.0)),
                 PathCommand::LineTo(Vec2::new(20.0, 0.0)),
@@ -1654,6 +1678,70 @@ mod tests {
                     "all face distances must be positive (midpoint is not vp itself)"
                 );
             }
+        }
+
+        #[test]
+        fn when_splash_entities_spawned_then_accent_ellipse_at_y_68() {
+            // Arrange / Act
+            let mut world = World::new();
+            super::super::render::spawn_splash_entities(&mut world);
+
+            // Assert — accent entities have SortOrder(SPLASH_ACCENT_ORDER)
+            let accent_positions: Vec<Vec2> = world
+                .query::<(&SplashEntity, &Transform2D, &Shape, &SortOrder)>()
+                .iter(&world)
+                .filter(|(_, _, _, order)| order.0 == SPLASH_ACCENT_ORDER)
+                .map(|(_, t, _, _)| t.position)
+                .collect();
+            assert!(
+                accent_positions.iter().any(|p| (p.y - 68.0).abs() < 1e-4),
+                "ellipse accent must be at y=68.0, positions: {accent_positions:?}"
+            );
+        }
+
+        #[test]
+        fn when_splash_entities_spawned_then_accent_dot_at_y_85() {
+            // Arrange / Act
+            let mut world = World::new();
+            super::super::render::spawn_splash_entities(&mut world);
+
+            // Assert
+            let accent_positions: Vec<Vec2> = world
+                .query::<(&SplashEntity, &Transform2D, &Shape, &SortOrder)>()
+                .iter(&world)
+                .filter(|(_, _, _, order)| order.0 == SPLASH_ACCENT_ORDER)
+                .map(|(_, t, _, _)| t.position)
+                .collect();
+            assert!(
+                accent_positions.iter().any(|p| (p.y - 85.0).abs() < 1e-4),
+                "dot accent must be at y=85.0, positions: {accent_positions:?}"
+            );
+        }
+
+        #[test]
+        fn when_splash_entities_spawned_then_side_face_positions_spread_across_letter_x_values() {
+            // Arrange / Act
+            let mut world = World::new();
+            super::super::render::spawn_splash_entities(&mut world);
+
+            // Assert — side-face entities (SPLASH_SIDE_BASE..SPLASH_LETTER_ORDER) have
+            // different x positions corresponding to letter positions
+            let side_xs: Vec<f32> = world
+                .query::<(&SplashEntity, &Transform2D, &SortOrder)>()
+                .iter(&world)
+                .filter(|(_, _, order)| {
+                    order.0 >= SPLASH_SIDE_BASE && order.0 < SPLASH_LETTER_ORDER
+                })
+                .map(|(_, t, _)| t.position.x)
+                .collect();
+            let unique_xs: std::collections::HashSet<u32> = side_xs
+                .iter()
+                .map(|x| (*x * 100.0) as u32)
+                .collect();
+            assert!(
+                unique_xs.len() >= 3,
+                "side faces must have multiple distinct x positions (one per letter), got {unique_xs:?}"
+            );
         }
     }
 }

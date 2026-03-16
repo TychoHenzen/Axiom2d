@@ -971,14 +971,9 @@ mod tests {
         assert_eq!(count, 0);
     }
 
-    // --- shape_render_system radius offset test ---
-
     #[test]
     fn when_shape_at_view_edge_then_not_culled() {
-        // Arrange — shape at position (395, 300) with radius 10
-        // Camera at (400, 300), viewport 800x600 → view rect roughly [0..800, 0..600]
-        // Entity at (395, 300) with radius 10 → AABB [385, 405] × [290, 310] — inside view
-        // If the - were mutated to / in pos.y - local_radius, the min would be wrong
+        // Arrange — circle r=10 at (395,300): AABB [385,405]×[290,310] overlaps view [0,800]×[0,600]
         let mut world = World::new();
         let log = insert_spy_with_viewport(&mut world, 800, 600);
         world.spawn(Camera2D {
@@ -994,9 +989,7 @@ mod tests {
         ));
 
         // Act
-        let mut schedule = Schedule::default();
-        schedule.add_systems(shape_render_system);
-        schedule.run(&mut world);
+        run_system(&mut world);
 
         // Assert — the shape should be rendered (not culled)
         let calls = log.lock().unwrap();
@@ -1006,16 +999,9 @@ mod tests {
         );
     }
 
-    // Mutant 3: `pos.y - local_radius` → `pos.y / local_radius` in shape_render_system
-    // (line 474).  When pos.y is negative and |pos.y| > local_radius, the division
-    // yields a value larger than entity_max.y, producing an inverted AABB that fails
-    // the intersection test and incorrectly culls a visible shape.
     #[test]
-    fn when_shape_at_negative_y_near_view_edge_then_not_culled() {
-        // Arrange — viewport 2×2 → view y ∈ [-1, 1].
-        // Circle at (0, 31) with radius 30: correct entity_min.y = 31-30 = 1 ≤ view_max.y=1
-        // → just inside view and must be drawn.
-        // Mutant: entity_min.y = 31/30 ≈ 1.033 > view_max.y=1 → incorrectly culled.
+    fn when_shape_at_positive_y_near_view_edge_then_not_culled() {
+        // Arrange — viewport 2×2 → view y ∈ [-1, 1]; circle r=1 at (0,2): AABB y [0.586, 3.414] overlaps
         let mut world = World::new();
         let log = insert_spy_with_viewport(&mut world, 2, 2);
         world.spawn(Camera2D {
@@ -1024,10 +1010,10 @@ mod tests {
         });
         world.spawn((
             Shape {
-                variant: ShapeVariant::Circle { radius: 30.0 },
+                variant: ShapeVariant::Circle { radius: 1.0 },
                 color: Color::new(1.0, 0.0, 0.0, 1.0),
             },
-            GlobalTransform2D(Affine2::from_translation(Vec2::new(0.0, 31.0))),
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(0.0, 2.0))),
         ));
 
         // Act
@@ -1042,7 +1028,7 @@ mod tests {
             .count();
         assert_eq!(
             count, 1,
-            "shape whose AABB touches view_max.y should be rendered"
+            "shape whose AABB overlaps view_max.y should be rendered"
         );
     }
 }

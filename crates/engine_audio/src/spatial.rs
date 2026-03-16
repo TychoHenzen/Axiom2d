@@ -459,6 +459,34 @@ mod tests {
     }
 
     #[test]
+    fn when_emitter_ahead_then_spatial_gains_multiply_pan_by_attenuation() {
+        // Arrange — centered panning (emitter directly ahead), non-trivial attenuation
+        let listener = Vec2::ZERO;
+        let emitter = Vec2::new(0.0, 50.0);
+
+        // Act
+        let gains = compute_spatial_gains(listener, emitter, 1.0, 100.0);
+
+        // Assert — both channels should be attenuated (not amplified)
+        assert!(
+            gains.left < 1.0,
+            "left must be attenuated, got {}",
+            gains.left
+        );
+        assert!(
+            gains.right < 1.0,
+            "right must be attenuated, got {}",
+            gains.right
+        );
+        let expected = std::f32::consts::FRAC_1_SQRT_2 * 0.5;
+        assert!(
+            (gains.left - expected).abs() < 1e-4,
+            "left expected {expected}, got {}",
+            gains.left
+        );
+    }
+
+    #[test]
     fn when_emitter_at_epsilon_distance_then_panned_not_centered() {
         // Arrange — emitter displaced only in X by a tiny but non-zero amount.
         // 2^-11 squared = 2^-22 > EPSILON (2^-23), so length_squared > EPSILON and

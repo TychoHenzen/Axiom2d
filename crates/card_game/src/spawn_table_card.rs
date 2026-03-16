@@ -204,30 +204,29 @@ mod tests {
     use engine_physics::prelude::{
         Collider, CollisionEvent, PhysicsBackend, PhysicsRes, RigidBody,
     };
+    use engine_render::prelude::ShapeVariant;
+    use engine_scene::prelude::{ChildOf, Visible};
     use glam::Vec2;
 
     use super::*;
+    use crate::card_face_side::CardFaceSide;
 
-    type AddBodyLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
-    type AddColliderLog = Arc<Mutex<Vec<Entity>>>;
+    type BodyLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
+    type ColliderLog = Arc<Mutex<Vec<Entity>>>;
     type DampingLog = Arc<Mutex<Vec<(Entity, f32, f32)>>>;
 
     struct SpyPhysicsBackend {
-        add_body_log: AddBodyLog,
-        add_collider_log: AddColliderLog,
-        damping_log: DampingLog,
+        bodies: BodyLog,
+        colliders: ColliderLog,
+        dampings: DampingLog,
     }
 
     impl SpyPhysicsBackend {
-        fn new(
-            add_body_log: AddBodyLog,
-            add_collider_log: AddColliderLog,
-            damping_log: DampingLog,
-        ) -> Self {
+        fn new(bodies: BodyLog, colliders: ColliderLog, dampings: DampingLog) -> Self {
             Self {
-                add_body_log,
-                add_collider_log,
-                damping_log,
+                bodies,
+                colliders,
+                dampings,
             }
         }
     }
@@ -235,11 +234,11 @@ mod tests {
     impl PhysicsBackend for SpyPhysicsBackend {
         fn step(&mut self, _dt: Seconds) {}
         fn add_body(&mut self, entity: Entity, _body_type: &RigidBody, position: Vec2) -> bool {
-            self.add_body_log.lock().unwrap().push((entity, position));
+            self.bodies.lock().unwrap().push((entity, position));
             true
         }
         fn add_collider(&mut self, entity: Entity, _collider: &Collider) -> bool {
-            self.add_collider_log.lock().unwrap().push(entity);
+            self.colliders.lock().unwrap().push(entity);
             true
         }
         fn remove_body(&mut self, _: Entity) {}
@@ -262,31 +261,28 @@ mod tests {
             None
         }
         fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32) {
-            self.damping_log
-                .lock()
-                .unwrap()
-                .push((entity, linear, angular));
+            self.dampings.lock().unwrap().push((entity, linear, angular));
         }
         fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
     }
 
-    fn make_spy_world() -> (World, AddBodyLog, AddColliderLog, DampingLog) {
-        let add_body_log: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
-        let add_collider_log: AddColliderLog = Arc::new(Mutex::new(Vec::new()));
-        let damping_log: DampingLog = Arc::new(Mutex::new(Vec::new()));
+    fn make_spy_world() -> (World, BodyLog, ColliderLog, DampingLog) {
+        let bodies: BodyLog = Arc::new(Mutex::new(Vec::new()));
+        let colliders: ColliderLog = Arc::new(Mutex::new(Vec::new()));
+        let dampings: DampingLog = Arc::new(Mutex::new(Vec::new()));
         let mut world = World::new();
         world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new(
-            add_body_log.clone(),
-            add_collider_log.clone(),
-            damping_log.clone(),
+            bodies.clone(),
+            colliders.clone(),
+            dampings.clone(),
         ))));
-        (world, add_body_log, add_collider_log, damping_log)
+        (world, bodies, colliders, dampings)
     }
 
     #[test]
     fn when_spawning_table_card_then_physics_body_registered() {
         // Arrange
-        let (mut world, add_body_log, _, _) = make_spy_world();
+        let (mut world, bodies, _, _) = make_spy_world();
         let card = Card::face_down(TextureId(1), TextureId(2));
         let pos = Vec2::new(100.0, 50.0);
 
@@ -294,7 +290,7 @@ mod tests {
         let entity = spawn_table_card(&mut world, card, pos, Vec2::new(CARD_WIDTH, CARD_HEIGHT));
 
         // Assert
-        let calls = add_body_log.lock().unwrap();
+        let calls = bodies.lock().unwrap();
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0].0, entity);
         assert_eq!(calls[0].1, pos);
@@ -303,7 +299,7 @@ mod tests {
     #[test]
     fn when_spawning_table_card_then_physics_collider_registered() {
         // Arrange
-        let (mut world, _, add_collider_log, _) = make_spy_world();
+        let (mut world, _, colliders, _) = make_spy_world();
         let card = Card::face_down(TextureId(1), TextureId(2));
 
         // Act
@@ -315,7 +311,7 @@ mod tests {
         );
 
         // Assert
-        let calls = add_collider_log.lock().unwrap();
+        let calls = colliders.lock().unwrap();
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0], entity);
     }
@@ -323,7 +319,7 @@ mod tests {
     #[test]
     fn when_spawning_table_card_then_initial_damping_set() {
         // Arrange
-        let (mut world, _, _, damping_log) = make_spy_world();
+        let (mut world, _, _, dampings) = make_spy_world();
         let card = Card::face_down(TextureId(1), TextureId(2));
 
         // Act
@@ -335,18 +331,34 @@ mod tests {
         );
 
         // Assert
-        let calls = damping_log.lock().unwrap();
+        let calls = dampings.lock().unwrap();
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0].0, entity);
         assert!((calls[0].1 - BASE_LINEAR_DRAG).abs() < 1e-4);
         assert!((calls[0].2 - BASE_ANGULAR_DRAG).abs() < 1e-4);
     }
 
-    // --- Visual card hierarchy tests ---
+    #[test]
+    fn when_spawning_table_card_then_collider_is_half_card_size() {
+        // Arrange
+        let (mut world, _, _, _) = make_spy_world();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+        let card_size = Vec2::new(80.0, 120.0);
 
-    use crate::card_face_side::CardFaceSide;
-    use engine_render::prelude::ShapeVariant;
-    use engine_scene::prelude::{ChildOf, Visible};
+        // Act
+        let entity = spawn_table_card(&mut world, card, Vec2::ZERO, card_size);
+
+        // Assert
+        let collider = world.get::<Collider>(entity).unwrap();
+        let Collider::Aabb(half) = collider else {
+            panic!("expected Collider::Aabb");
+        };
+        let expected = card_size * 0.5;
+        assert!(
+            (half.x - expected.x).abs() < 1e-6 && (half.y - expected.y).abs() < 1e-6,
+            "expected half={expected}, got {half}"
+        );
+    }
 
     fn children_visible_for_side(world: &mut World, root: Entity, side: CardFaceSide) -> Vec<bool> {
         let mut q = world.query::<(&ChildOf, &CardFaceSide, &Visible)>();

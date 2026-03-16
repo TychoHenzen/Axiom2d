@@ -326,6 +326,42 @@ mod tests {
     }
 
     #[test]
+    fn when_set_current_page_within_range_then_current_page_returns_it() {
+        // Arrange
+        let mut grid = StashGrid::new(10, 10, 3);
+
+        // Act
+        grid.set_current_page(2);
+
+        // Assert
+        assert_eq!(grid.current_page(), 2);
+    }
+
+    #[test]
+    fn when_set_current_page_beyond_count_then_clamped_to_last_page() {
+        // Arrange
+        let mut grid = StashGrid::new(10, 10, 3);
+
+        // Act
+        grid.set_current_page(5);
+
+        // Assert
+        assert_eq!(grid.current_page(), 2);
+    }
+
+    #[test]
+    fn when_set_current_page_on_single_page_grid_then_stays_zero() {
+        // Arrange
+        let mut grid = StashGrid::new(10, 10, 1);
+
+        // Act
+        grid.set_current_page(1);
+
+        // Assert
+        assert_eq!(grid.current_page(), 0);
+    }
+
+    #[test]
     fn when_placing_on_different_pages_then_same_coordinates_are_independent() {
         // Arrange
         let mut world = World::new();
