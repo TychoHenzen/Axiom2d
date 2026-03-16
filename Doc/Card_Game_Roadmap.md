@@ -155,13 +155,17 @@ These extend `engine_physics` with capabilities the card game requires.
 
 ## Phase E: Card Flip
 
-### Step E1 — Flip Detection `[NOT STARTED]`
+### Step E1 — Flip Detection + Card Visual Hierarchy `[DONE]`
 **Crate:** card_game
-**Why:** Right-clicking a table card initiates a flip.
+**Why:** Right-clicking a table card initiates a flip. Cards rendered as composed shape hierarchies (trading card layout).
 
-- [ ] `card_flip_system` in Phase::Update: on `mouse.just_pressed(MouseButton::Right)`, hit-test table cards (same AABB logic as C2)
-- [ ] On hit: toggle `Card.face_up`, begin flip animation
-- [ ] Tests: right-click on card toggles face_up, right-click on empty space does nothing, no flip during drag
+- [x] `CardFaceSide` enum (Front/Back) marker component for child entities
+- [x] `spawn_visual_card` — creates root entity (Card, Transform2D, RigidBody, Collider, no Sprite) with child entities: 4 Front shapes (border, name strip, art area, description strip) + 2 Back shapes (border, pattern)
+- [x] `card_face_visibility_sync_system` — reads Card.face_up, sets Visible on CardFaceSide children (Front=face_up, Back=!face_up)
+- [x] `card_flip_system` in Phase::Update: on `mouse.just_pressed(MouseButton::Right)`, AABB hit-test table cards (reuses collider_half_extents/local_space_hit from card_pick), picks topmost SortOrder, toggles Card.face_up
+- [x] Guards: no flip during active drag, only CardZone::Table cards, only just_pressed (not held)
+- [x] Integration: flip → visibility sync chain updates children visibility
+- [x] Tests: 19 tests (7 spawn hierarchy, 5 visibility sync, 6 flip detection, 1 integration)
 
 ### Step E2 — Flip Animation (Scale.x Tween) `[NOT STARTED]`
 **Crate:** card_game

@@ -9,98 +9,10 @@ const TABLE_COLOR: Color = Color {
     b: 0.2,
     a: 1.0,
 };
-const CARD_WIDTH: f32 = 60.0;
-const CARD_HEIGHT: f32 = 90.0;
 const CARD_COLLISION_GROUP: u32 = 0b0001;
 const CARD_COLLISION_FILTER: u32 = 0b0010;
 
-const CARD_COLORS: [Color; 5] = [
-    Color {
-        r: 0.9,
-        g: 0.2,
-        b: 0.2,
-        a: 1.0,
-    },
-    Color {
-        r: 0.2,
-        g: 0.4,
-        b: 0.9,
-        a: 1.0,
-    },
-    Color {
-        r: 0.9,
-        g: 0.8,
-        b: 0.1,
-        a: 1.0,
-    },
-    Color {
-        r: 0.1,
-        g: 0.8,
-        b: 0.3,
-        a: 1.0,
-    },
-    Color {
-        r: 0.8,
-        g: 0.3,
-        b: 0.8,
-        a: 1.0,
-    },
-];
-
-fn spawn_card(
-    world: &mut bevy_ecs::world::World,
-    physics: &mut dyn PhysicsBackend,
-    position: Vec2,
-    color: Color,
-) -> bevy_ecs::prelude::Entity {
-    let collider = Collider::Aabb(Vec2::new(CARD_WIDTH / 2.0, CARD_HEIGHT / 2.0));
-    let entity = world
-        .spawn((
-            Card::face_down(TextureId(0), TextureId(0)),
-            CardZone::Table,
-            Transform2D {
-                position,
-                ..Default::default()
-            },
-            Shape {
-                variant: ShapeVariant::Polygon {
-                    points: vec![
-                        Vec2::new(-CARD_WIDTH / 2.0, -CARD_HEIGHT / 2.0),
-                        Vec2::new(CARD_WIDTH / 2.0, -CARD_HEIGHT / 2.0),
-                        Vec2::new(CARD_WIDTH / 2.0, CARD_HEIGHT / 2.0),
-                        Vec2::new(-CARD_WIDTH / 2.0, CARD_HEIGHT / 2.0),
-                    ],
-                },
-                color,
-            },
-            RigidBody::Dynamic,
-            collider.clone(),
-            RenderLayer::World,
-            SortOrder(1),
-        ))
-        .id();
-
-    physics.add_body(entity, &RigidBody::Dynamic, position);
-    physics.add_collider(entity, &collider);
-    physics.set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER);
-
-    entity
-}
-
-fn setup(app: &mut App) {
-    app.add_plugin(DefaultPlugins);
-
-    let config = WindowConfig {
-        title: "Card Game",
-        width: 1024,
-        height: 768,
-        ..Default::default()
-    };
-
-    let mut physics = RapierBackend::new(Vec2::ZERO);
-
-    let world = app.world_mut();
-
+fn spawn_scene(world: &mut bevy_ecs::world::World) {
     // Table background
     world.spawn((
         Transform2D {
@@ -137,13 +49,19 @@ fn setup(app: &mut App) {
         Vec2::new(120.0, 10.0),
     ];
 
+    let card_size = Vec2::new(CARD_WIDTH, CARD_HEIGHT);
     let mut card_entities = Vec::new();
-    for (i, &pos) in card_positions.iter().enumerate() {
-        let entity = spawn_card(world, &mut physics, pos, CARD_COLORS[i]);
+    for &pos in &card_positions {
+        let card = Card::face_down(TextureId(0), TextureId(0));
+        let entity = spawn_visual_card(world, card, pos, card_size);
         card_entities.push(entity);
     }
 
-    // Give a couple of cards an initial push so they slide
+    // Set collision groups and give initial impulses
+    let mut physics = world.resource_mut::<PhysicsRes>();
+    for &entity in &card_entities {
+        physics.set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER);
+    }
     physics.add_force_at_point(
         card_entities[0],
         Vec2::new(5000.0, 2000.0),
@@ -154,8 +72,20 @@ fn setup(app: &mut App) {
         Vec2::new(-3000.0, 4000.0),
         Vec2::new(60.0, -20.0),
     );
+}
 
-    world.insert_resource(PhysicsRes::new(Box::new(physics)));
+fn setup(app: &mut App) {
+    app.add_plugin(DefaultPlugins);
+
+    let config = WindowConfig {
+        title: "Card Game",
+        width: 1024,
+        height: 768,
+        ..Default::default()
+    };
+
+    let world = app.world_mut();
+    world.insert_resource(PhysicsRes::new(Box::new(RapierBackend::new(Vec2::ZERO))));
     world.insert_resource(CollisionEventBuffer::default());
     world.insert_resource(DragState::default());
     world.insert_resource(CameraDragState::default());
@@ -168,7 +98,8 @@ fn setup(app: &mut App) {
         a: 1.0,
     }));
 
-    // Register preload hooks to warm up physics during splash
+    spawn_scene(world);
+
     app.world_mut()
         .resource_mut::<PreloadHooks>()
         .add(|world: &mut bevy_ecs::world::World| {
@@ -193,10 +124,20 @@ fn setup(app: &mut App) {
         )
         .add_systems(
             Phase::Update,
-            (card_pick_system, card_drag_system, card_release_system).chain(),
+            (
+                card_pick_system,
+                card_drag_system,
+                card_release_system,
+                card_flip_system,
+            )
+                .chain(),
         )
         .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system))
         .add_systems(Phase::Update, stash_toggle_system)
+        .add_systems(
+            Phase::PostUpdate,
+            (card_face_visibility_sync_system, sort_propagation_system),
+        )
         .add_systems(
             Phase::Render,
             stash_render_system.after(shape_render_system),

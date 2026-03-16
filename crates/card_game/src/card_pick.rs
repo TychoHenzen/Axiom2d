@@ -8,14 +8,14 @@ use crate::card::Card;
 use crate::card_zone::CardZone;
 use crate::drag_state::{DragInfo, DragState};
 
-fn collider_half_extents(collider: &Collider) -> Option<Vec2> {
+pub(crate) fn collider_half_extents(collider: &Collider) -> Option<Vec2> {
     match collider {
         Collider::Aabb(half) => Some(*half),
         _ => None,
     }
 }
 
-fn local_space_hit(cursor_local: Vec2, half: Vec2) -> bool {
+pub(crate) fn local_space_hit(cursor_local: Vec2, half: Vec2) -> bool {
     cursor_local.x.abs() <= half.x && cursor_local.y.abs() <= half.y
 }
 

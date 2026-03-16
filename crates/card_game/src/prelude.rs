@@ -7,12 +7,16 @@ pub use crate::card_damping::{
     card_damping_system, compute_card_damping,
 };
 pub use crate::card_drag::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
+pub use crate::card_face_side::CardFaceSide;
+pub use crate::card_face_visibility::card_face_visibility_sync_system;
+pub use crate::card_flip::card_flip_system;
 pub use crate::card_pick::card_pick_system;
 pub use crate::card_release::card_release_system;
 pub use crate::card_zone::CardZone;
 pub use crate::drag_state::{DragInfo, DragState};
 pub use crate::hand::{Hand, HandFull};
-pub use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH, spawn_table_card};
+pub use crate::sort_propagation::{LocalSortOrder, SORT_STRIDE, sort_propagation_system};
+pub use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH, spawn_table_card, spawn_visual_card};
 pub use crate::stash_grid::{SlotOccupied, StashGrid};
 pub use crate::stash_render::{
     GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_SIZE, SLOT_STRIDE, stash_render_system,

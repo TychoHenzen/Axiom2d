@@ -1,16 +1,158 @@
 use bevy_ecs::prelude::{Entity, World};
 use engine_core::prelude::{Color, Pixels, Transform2D};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
-use engine_render::prelude::Sprite;
-use engine_scene::prelude::{RenderLayer, SortOrder};
+use engine_render::prelude::{Shape, ShapeVariant, Sprite};
+use engine_scene::prelude::{ChildOf, RenderLayer, SortOrder, Visible};
 use glam::Vec2;
 
 use crate::card::Card;
 use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
+use crate::card_face_side::CardFaceSide;
 use crate::card_zone::CardZone;
+use crate::sort_propagation::LocalSortOrder;
 
 pub const CARD_WIDTH: f32 = 60.0;
 pub const CARD_HEIGHT: f32 = 90.0;
+
+fn rect_polygon(half_w: f32, half_h: f32) -> ShapeVariant {
+    ShapeVariant::Polygon {
+        points: vec![
+            Vec2::new(-half_w, -half_h),
+            Vec2::new(half_w, -half_h),
+            Vec2::new(half_w, half_h),
+            Vec2::new(-half_w, half_h),
+        ],
+    }
+}
+
+struct FaceChildDef {
+    side: CardFaceSide,
+    visible: bool,
+    offset: Vec2,
+    half_w: f32,
+    half_h: f32,
+    color: Color,
+    sort: i32,
+}
+
+fn spawn_face_child(world: &mut World, root: Entity, def: &FaceChildDef) {
+    world.spawn((
+        ChildOf(root),
+        def.side,
+        Visible(def.visible),
+        Shape {
+            variant: rect_polygon(def.half_w, def.half_h),
+            color: def.color,
+        },
+        Transform2D {
+            position: def.offset,
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        },
+        RenderLayer::World,
+        LocalSortOrder(def.sort),
+        SortOrder(0),
+    ));
+}
+
+pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_size: Vec2) -> Entity {
+    let half = card_size * 0.5;
+    let face_up = card.face_up;
+
+    let root = world
+        .spawn((
+            card,
+            CardZone::Table,
+            Transform2D {
+                position,
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            RigidBody::Dynamic,
+            Collider::Aabb(half),
+            RenderLayer::World,
+            SortOrder(0),
+        ))
+        .id();
+
+    if let Some(mut physics) = world.get_resource_mut::<PhysicsRes>() {
+        physics.add_body(root, &RigidBody::Dynamic, position);
+        physics.add_collider(root, &Collider::Aabb(half));
+        physics.set_damping(root, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
+    }
+
+    // Front face: border + name strip + art area + description strip
+    // Note: positive world-Y = screen bottom (Y-flipped camera projection)
+    let (w, h) = (card_size.x, card_size.y);
+    let front_children = [
+        FaceChildDef {
+            side: CardFaceSide::Front,
+            visible: face_up,
+            offset: Vec2::ZERO,
+            half_w: w * 0.5,
+            half_h: h * 0.5,
+            color: Color::WHITE,
+            sort: 1,
+        },
+        FaceChildDef {
+            side: CardFaceSide::Front,
+            visible: face_up,
+            offset: Vec2::new(0.0, -(h * 0.5 - 7.5)),
+            half_w: w * 0.45,
+            half_h: 7.5,
+            color: Color::from_u8(220, 220, 220, 255),
+            sort: 2,
+        },
+        FaceChildDef {
+            side: CardFaceSide::Front,
+            visible: face_up,
+            offset: Vec2::new(0.0, -(h * 0.1)),
+            half_w: w * 0.45,
+            half_h: 22.5,
+            color: Color::from_u8(180, 200, 230, 255),
+            sort: 3,
+        },
+        FaceChildDef {
+            side: CardFaceSide::Front,
+            visible: face_up,
+            offset: Vec2::new(0.0, h * 0.5 - 15.0),
+            half_w: w * 0.45,
+            half_h: 15.0,
+            color: Color::from_u8(240, 240, 200, 255),
+            sort: 4,
+        },
+    ];
+    for def in &front_children {
+        spawn_face_child(world, root, def);
+    }
+
+    // Back face: border + center pattern
+    let back_children = [
+        FaceChildDef {
+            side: CardFaceSide::Back,
+            visible: !face_up,
+            offset: Vec2::ZERO,
+            half_w: w * 0.5,
+            half_h: h * 0.5,
+            color: Color::from_u8(30, 60, 120, 255),
+            sort: 1,
+        },
+        FaceChildDef {
+            side: CardFaceSide::Back,
+            visible: !face_up,
+            offset: Vec2::ZERO,
+            half_w: w * 0.3,
+            half_h: h * 0.3,
+            color: Color::from_u8(60, 100, 180, 255),
+            sort: 2,
+        },
+    ];
+    for def in &back_children {
+        spawn_face_child(world, root, def);
+    }
+
+    root
+}
 
 pub fn spawn_table_card(world: &mut World, card: Card, position: Vec2, card_size: Vec2) -> Entity {
     let half = card_size * 0.5;
@@ -198,5 +340,207 @@ mod tests {
         assert_eq!(calls[0].0, entity);
         assert!((calls[0].1 - BASE_LINEAR_DRAG).abs() < 1e-4);
         assert!((calls[0].2 - BASE_ANGULAR_DRAG).abs() < 1e-4);
+    }
+
+    // --- Visual card hierarchy tests ---
+
+    use crate::card_face_side::CardFaceSide;
+    use engine_render::prelude::ShapeVariant;
+    use engine_scene::prelude::{ChildOf, Visible};
+
+    fn children_visible_for_side(world: &mut World, root: Entity, side: CardFaceSide) -> Vec<bool> {
+        let mut q = world.query::<(&ChildOf, &CardFaceSide, &Visible)>();
+        q.iter(world)
+            .filter(|(parent, s, _)| parent.0 == root && **s == side)
+            .map(|(_, _, v)| v.0)
+            .collect()
+    }
+
+    #[test]
+    fn when_spawn_visual_card_face_down_then_front_children_not_visible() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            card,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+        );
+
+        // Assert
+        let results = children_visible_for_side(&mut world, root, CardFaceSide::Front);
+        assert!(!results.is_empty(), "expected at least one Front child");
+        assert!(results.iter().all(|v| !v));
+    }
+
+    #[test]
+    fn when_spawn_visual_card_face_down_then_back_children_visible() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            card,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+        );
+
+        // Assert
+        let results = children_visible_for_side(&mut world, root, CardFaceSide::Back);
+        assert!(!results.is_empty(), "expected at least one Back child");
+        assert!(results.iter().all(|v| *v));
+    }
+
+    #[test]
+    fn when_spawn_visual_card_face_up_then_front_visible_back_hidden() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card {
+            face_texture: TextureId(1),
+            back_texture: TextureId(2),
+            face_up: true,
+        };
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            card,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+        );
+
+        // Assert
+        let front = children_visible_for_side(&mut world, root, CardFaceSide::Front);
+        let back = children_visible_for_side(&mut world, root, CardFaceSide::Back);
+        assert!(!front.is_empty(), "expected at least one Front child");
+        assert!(front.iter().all(|v| *v));
+        assert!(!back.is_empty(), "expected at least one Back child");
+        assert!(back.iter().all(|v| !v));
+    }
+
+    fn children_with_shape_for_side(world: &mut World, root: Entity, side: CardFaceSide) -> usize {
+        let mut q = world.query::<(&ChildOf, &CardFaceSide, &engine_render::prelude::Shape)>();
+        q.iter(world)
+            .filter(|(parent, s, _)| parent.0 == root && **s == side)
+            .count()
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_front_face_has_four_shape_children() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            card,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+        );
+
+        // Assert
+        assert_eq!(
+            children_with_shape_for_side(&mut world, root, CardFaceSide::Front),
+            4
+        );
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_back_face_has_at_least_two_shape_children() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            card,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+        );
+
+        // Assert
+        assert!(children_with_shape_for_side(&mut world, root, CardFaceSide::Back) >= 2);
+    }
+
+    fn border_shape_for_side(
+        world: &mut World,
+        root: Entity,
+        side: CardFaceSide,
+    ) -> Option<engine_render::prelude::Shape> {
+        let mut q = world.query::<(
+            &ChildOf,
+            &CardFaceSide,
+            &engine_render::prelude::Shape,
+            &SortOrder,
+        )>();
+        q.iter(world)
+            .filter(|(parent, s, _, _)| parent.0 == root && **s == side)
+            .min_by_key(|(_, _, _, sort)| sort.0)
+            .map(|(_, _, shape, _)| shape.clone())
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_front_border_matches_card_dimensions() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            card,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+        );
+
+        // Assert
+        let border = border_shape_for_side(&mut world, root, CardFaceSide::Front)
+            .expect("front border should exist");
+        let ShapeVariant::Polygon { ref points } = border.variant else {
+            panic!("expected Polygon variant for border");
+        };
+        let min_x = points.iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
+        let max_x = points.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
+        let min_y = points.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
+        let max_y = points.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
+        let width = max_x - min_x;
+        let height = max_y - min_y;
+        assert!(
+            (width - CARD_WIDTH).abs() < 1e-4,
+            "width={width} expected {CARD_WIDTH}"
+        );
+        assert!(
+            (height - CARD_HEIGHT).abs() < 1e-4,
+            "height={height} expected {CARD_HEIGHT}"
+        );
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_front_and_back_borders_have_different_colors() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            card,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+        );
+
+        // Assert
+        let front =
+            border_shape_for_side(&mut world, root, CardFaceSide::Front).expect("front border");
+        let back =
+            border_shape_for_side(&mut world, root, CardFaceSide::Back).expect("back border");
+        assert_ne!(front.color, back.color);
     }
 }
