@@ -1,12 +1,14 @@
-use bevy_ecs::prelude::{Entity, Query, Res, ResMut};
+use bevy_ecs::prelude::{Commands, Entity, Query, Res, ResMut};
 use engine_input::prelude::{MouseButton, MouseState};
-use engine_physics::prelude::Collider;
-use engine_scene::prelude::{GlobalTransform2D, SortOrder};
+use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
+use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 
 use crate::card::Card;
+use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card_zone::CardZone;
 use crate::drag_state::{DragInfo, DragState};
+use crate::hand::Hand;
 
 pub(crate) fn collider_half_extents(collider: &Collider) -> Option<Vec2> {
     match collider {
@@ -22,6 +24,9 @@ pub(crate) fn local_space_hit(cursor_local: Vec2, half: Vec2) -> bool {
 pub fn card_pick_system(
     mouse: Res<MouseState>,
     mut drag_state: ResMut<DragState>,
+    mut hand: ResMut<Hand>,
+    mut physics: ResMut<PhysicsRes>,
+    mut commands: Commands,
     mut query: Query<(
         Entity,
         &Card,
@@ -49,7 +54,6 @@ pub fn card_pick_system(
 
     let best = query
         .iter()
-        .filter(|(_, _, zone, _, _, _)| **zone == CardZone::Table)
         .filter(|(_, _, _, transform, collider, _)| {
             let Some(half) = collider_half_extents(collider) else {
                 return false;
@@ -58,13 +62,26 @@ pub fn card_pick_system(
             local_space_hit(cursor_local, half)
         })
         .max_by_key(|(_, _, _, _, _, sort)| sort.0)
-        .map(|(entity, _, zone, transform, _, _)| {
+        .map(|(entity, _, zone, transform, collider, _)| {
             let cursor_delta = cursor - transform.0.translation;
             let local_grab_offset = transform.0.matrix2.inverse().mul_vec2(cursor_delta);
-            (entity, *zone, local_grab_offset)
+            (entity, *zone, local_grab_offset, collider.clone())
         });
 
-    if let Some((entity, zone, local_grab_offset)) = best {
+    if let Some((entity, zone, local_grab_offset, collider)) = best {
+        if let CardZone::Hand(_) = zone {
+            hand.remove(entity);
+            let position = query
+                .get(entity)
+                .map(|(_, _, _, t, _, _)| t.0.translation)
+                .unwrap_or(Vec2::ZERO);
+            physics.add_body(entity, &RigidBody::Dynamic, position);
+            physics.add_collider(entity, &collider);
+            physics.set_damping(entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
+            commands.entity(entity).insert(RigidBody::Dynamic);
+            commands.entity(entity).insert(RenderLayer::World);
+        }
+
         drag_state.dragging = Some(DragInfo {
             entity,
             local_grab_offset,
@@ -79,17 +96,22 @@ pub fn card_pick_system(
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use std::sync::{Arc, Mutex};
+
     use bevy_ecs::prelude::*;
-    use engine_core::prelude::TextureId;
+    use engine_core::prelude::{Seconds, TextureId};
     use engine_input::prelude::{MouseButton, MouseState};
-    use engine_physics::prelude::Collider;
-    use engine_scene::prelude::{GlobalTransform2D, SortOrder};
+    use engine_physics::prelude::{
+        Collider, CollisionEvent, NullPhysicsBackend, PhysicsBackend, PhysicsRes, RigidBody,
+    };
+    use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
     use glam::{Affine2, Vec2};
 
     use super::card_pick_system;
     use crate::card::Card;
     use crate::card_zone::CardZone;
     use crate::drag_state::DragState;
+    use crate::hand::Hand;
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -99,6 +121,11 @@ mod tests {
 
     fn default_collider() -> Collider {
         Collider::Aabb(Vec2::new(30.0, 45.0))
+    }
+
+    fn insert_pick_resources(world: &mut World) {
+        world.insert_resource(Hand::new(10));
+        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::new())));
     }
 
     #[test]
@@ -119,6 +146,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -144,6 +172,7 @@ mod tests {
         mouse.set_world_pos(Vec2::new(100.0, 50.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -168,6 +197,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -193,6 +223,7 @@ mod tests {
         mouse.set_world_pos(Vec2::new(200.0, 200.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -210,6 +241,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -245,6 +277,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -279,6 +312,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -314,6 +348,7 @@ mod tests {
                 origin_zone: CardZone::Table,
             }),
         });
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -342,6 +377,7 @@ mod tests {
         mouse.set_world_pos(Vec2::new(110.0, 50.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -382,6 +418,7 @@ mod tests {
         mouse.set_world_pos(Vec2::new(100.0, 50.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -414,6 +451,7 @@ mod tests {
         mouse.set_world_pos(Vec2::new(30.0, 0.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -424,8 +462,7 @@ mod tests {
 
     #[test]
     fn when_rotated_card_clicked_inside_obb_then_picked() {
-        // Arrange — card at origin, rotated 45 degrees, half extents (30, 45)
-        // Click at (20, 20) — inside the rotated rectangle but outside the AABB
+        // Arrange
         let mut world = World::new();
         let angle = std::f32::consts::FRAC_PI_4;
         world.spawn((
@@ -444,6 +481,7 @@ mod tests {
         mouse.set_world_pos(Vec2::new(20.0, 20.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
@@ -454,8 +492,7 @@ mod tests {
 
     #[test]
     fn when_rotated_card_clicked_outside_obb_then_not_picked() {
-        // Arrange — card at origin, rotated 45 degrees, half extents (30, 45)
-        // Click at (50, 0) — outside the rotated rectangle
+        // Arrange
         let mut world = World::new();
         let angle = std::f32::consts::FRAC_PI_4;
         world.spawn((
@@ -474,11 +511,256 @@ mod tests {
         mouse.set_world_pos(Vec2::new(50.0, 0.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
 
         // Assert
         assert!(world.resource::<DragState>().dragging.is_none());
+    }
+
+    // --- Hand pick tests ---
+
+    type BodyLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
+    type ColliderLog = Arc<Mutex<Vec<Entity>>>;
+    type DampingLog = Arc<Mutex<Vec<(Entity, f32, f32)>>>;
+
+    struct SpyPhysicsBackend {
+        bodies: BodyLog,
+        colliders: ColliderLog,
+        dampings: DampingLog,
+    }
+
+    impl SpyPhysicsBackend {
+        fn new(bodies: BodyLog, colliders: ColliderLog, dampings: DampingLog) -> Self {
+            Self {
+                bodies,
+                colliders,
+                dampings,
+            }
+        }
+    }
+
+    impl PhysicsBackend for SpyPhysicsBackend {
+        fn step(&mut self, _dt: Seconds) {}
+        fn add_body(&mut self, entity: Entity, _body_type: &RigidBody, position: Vec2) -> bool {
+            self.bodies.lock().unwrap().push((entity, position));
+            true
+        }
+        fn add_collider(&mut self, entity: Entity, _collider: &Collider) -> bool {
+            self.colliders.lock().unwrap().push(entity);
+            true
+        }
+        fn remove_body(&mut self, _: Entity) {}
+        fn body_position(&self, _: Entity) -> Option<Vec2> {
+            None
+        }
+        fn body_rotation(&self, _: Entity) -> Option<f32> {
+            None
+        }
+        fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
+            Vec::new()
+        }
+        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
+            None
+        }
+        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
+        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
+        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
+        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
+            None
+        }
+        fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32) {
+            self.dampings
+                .lock()
+                .unwrap()
+                .push((entity, linear, angular));
+        }
+        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
+    }
+
+    fn make_spy_physics() -> (
+        Box<dyn PhysicsBackend + Send + Sync>,
+        BodyLog,
+        ColliderLog,
+        DampingLog,
+    ) {
+        let bodies: BodyLog = Arc::new(Mutex::new(Vec::new()));
+        let colliders: ColliderLog = Arc::new(Mutex::new(Vec::new()));
+        let dampings: DampingLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyPhysicsBackend::new(bodies.clone(), colliders.clone(), dampings.clone());
+        (Box::new(spy), bodies, colliders, dampings)
+    }
+
+    #[test]
+    fn when_left_click_on_hand_card_then_drag_origin_is_hand() {
+        // Arrange
+        let mut world = World::new();
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Hand(0),
+                default_collider(),
+                GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+                SortOrder(0),
+            ))
+            .id();
+        let mut hand = Hand::new(10);
+        hand.add(card_entity).unwrap();
+        world.insert_resource(hand);
+        let (spy, _, _, _) = make_spy_physics();
+        world.insert_resource(PhysicsRes::new(spy));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::ZERO);
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let drag = world.resource::<DragState>().dragging;
+        assert_eq!(drag.map(|d| d.origin_zone), Some(CardZone::Hand(0)));
+    }
+
+    #[test]
+    fn when_pick_from_hand_then_card_removed_from_hand_resource() {
+        // Arrange
+        let mut world = World::new();
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Hand(0),
+                default_collider(),
+                GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+                SortOrder(0),
+            ))
+            .id();
+        let mut hand = Hand::new(10);
+        hand.add(card_entity).unwrap();
+        world.insert_resource(hand);
+        let (spy, _, _, _) = make_spy_physics();
+        world.insert_resource(PhysicsRes::new(spy));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::ZERO);
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(world.resource::<Hand>().is_empty());
+    }
+
+    #[test]
+    fn when_pick_from_hand_then_physics_body_added() {
+        // Arrange
+        let mut world = World::new();
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Hand(0),
+                default_collider(),
+                GlobalTransform2D(Affine2::from_translation(Vec2::new(50.0, 200.0))),
+                SortOrder(0),
+            ))
+            .id();
+        let mut hand = Hand::new(10);
+        hand.add(card_entity).unwrap();
+        world.insert_resource(hand);
+        let (spy, bodies, _, _) = make_spy_physics();
+        world.insert_resource(PhysicsRes::new(spy));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::new(50.0, 200.0));
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = bodies.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].0, card_entity);
+        assert_eq!(calls[0].1, Vec2::new(50.0, 200.0));
+    }
+
+    #[test]
+    fn when_pick_from_hand_then_render_layer_becomes_world() {
+        // Arrange
+        let mut world = World::new();
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Hand(0),
+                default_collider(),
+                GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+                RenderLayer::UI,
+                SortOrder(0),
+            ))
+            .id();
+        let mut hand = Hand::new(10);
+        hand.add(card_entity).unwrap();
+        world.insert_resource(hand);
+        let (spy, _, _, _) = make_spy_physics();
+        world.insert_resource(PhysicsRes::new(spy));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::ZERO);
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let layer = world.get::<RenderLayer>(card_entity).unwrap();
+        assert_eq!(*layer, RenderLayer::World);
+    }
+
+    #[test]
+    fn when_hand_card_and_table_card_overlap_then_highest_sort_wins() {
+        // Arrange
+        let mut world = World::new();
+        let _table_card = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                default_collider(),
+                GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+                SortOrder(3),
+            ))
+            .id();
+        let hand_card = world
+            .spawn((
+                Card::face_down(TextureId(3), TextureId(4)),
+                CardZone::Hand(0),
+                default_collider(),
+                GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+                SortOrder(10),
+            ))
+            .id();
+        let mut hand = Hand::new(10);
+        hand.add(hand_card).unwrap();
+        world.insert_resource(hand);
+        let (spy, _, _, _) = make_spy_physics();
+        world.insert_resource(PhysicsRes::new(spy));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::ZERO);
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let drag = world.resource::<DragState>().dragging;
+        assert_eq!(drag.map(|d| d.entity), Some(hand_card));
     }
 }

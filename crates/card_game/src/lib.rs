@@ -12,6 +12,7 @@ pub mod card_zone;
 pub mod drag_state;
 pub mod flip_animation;
 pub mod hand;
+pub mod hand_layout;
 pub mod prelude;
 pub mod sort_propagation;
 pub mod spawn_table_card;

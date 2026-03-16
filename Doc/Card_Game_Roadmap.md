@@ -184,25 +184,25 @@ These extend `engine_physics` with capabilities the card game requires.
 
 ## Phase F: Hand Inventory
 
-### Step F1 — Hand Layout System `[NOT STARTED]`
+### Step F1 — Hand Layout System `[DONE]`
 **Crate:** card_game
 **Why:** Cards in the player's hand are displayed in a row at the bottom of the screen, unaffected by physics.
 
-- [ ] `hand_layout_system` in Phase::PostUpdate: reads Hand resource, positions each card entity using compute_flex_offsets (horizontal, centered at screen bottom)
-- [ ] Hand cards: RenderLayer::UI, no RigidBody, Visible(true)
-- [ ] Card sprites sized down or kept at table size (design decision)
-- [ ] Tests: cards positioned horizontally with spacing, empty hand produces no positioning, card order matches Hand.cards order
+- [x] `hand_layout_system` in Phase::PostUpdate: reads Hand resource, positions each card entity centered horizontally at screen bottom using screen_to_world conversion
+- [x] Constants: HAND_GAP (8.0 px between cards), HAND_BOTTOM_MARGIN (60.0 px up from bottom)
+- [x] Camera-aware: uses Camera2D for screen→world conversion, falls back to Camera2D::default()
+- [x] Guards: early return on empty hand or zero viewport dimensions
+- [x] Gracefully skips hand entities missing Transform2D (no panic)
+- [x] Tests: 14 tests (empty hand, zero viewport w/h, single card x/y centering, two-card order/gap/centering, three-card uniform spacing, no-camera fallback, camera offset, camera zoom, shared y, missing component)
 
-### Step F2 — Hand Interaction `[NOT STARTED]`
+### Step F2 — Hand Interaction `[DONE]`
 **Crate:** card_game
 **Why:** Drag cards from hand to table and from table to hand.
 
-- [ ] Extend card_pick_system: also check hand card hit-testing (screen-space, RenderLayer::UI)
-- [ ] On pick from hand: set DragState with origin_zone = Hand(index), remove from Hand resource, remove physics body if present, begin drag
-- [ ] Extend card_release_system drop targets:
-  - Drop on table area: add physics body (Dynamic), set CardZone::Table, set RenderLayer::World, configure damping
-  - Drop on hand area (screen bottom region): remove physics body (if from table), add to Hand, set CardZone::Hand, set RenderLayer::UI
-- [ ] Tests: pick from hand starts drag, drop on table adds physics body, drop on hand area removes physics body, hand capacity respected
+- [x] Extend card_pick_system: world-space hit-testing now includes all zones (Hand + Table). Hand cards keep Collider component for unified query. On pick from hand: remove from Hand resource, add physics body at current position, insert RenderLayer::World + RigidBody::Dynamic via Commands, set DragState with origin_zone = Hand(index)
+- [x] Extend card_release_system: screen-space drop zone check via HAND_DROP_ZONE_HEIGHT (120px from bottom). Drop on hand area: remove physics body, add to Hand, set CardZone::Hand(index) + RenderLayer::UI. Drop on table area: add physics body at current Transform2D.position, set CardZone::Table + RenderLayer::World. Hand-full fallback: card stays on table.
+- [x] Constants: HAND_DROP_ZONE_HEIGHT = 120.0 (screen pixels from bottom defining hand drop zone)
+- [x] Tests: 5 new card_pick tests (hand origin zone, remove from hand, physics body added, render layer change, sort order overlap) + 7 new card_release tests (hand drop: added to hand, zone change, render layer, physics removed; table drop from hand: zone change, physics added; hand full fallback)
 
 ---
 
