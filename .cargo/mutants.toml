@@ -64,6 +64,10 @@ exclude_re = [
     "letter_[axiom]",
     # spawn_splash_entities — visual scene layout positions, verified visually
     "spawn_splash_entities",
+    # WgpuRenderer::reset_frame_state — clears GPU frame buffers, only observable via rendered output
+    "replace WgpuRenderer::reset_frame_state with",
+    # run_fullscreen_pass — issues GPU render pass commands, untestable without GPU
+    "replace run_fullscreen_pass with",
     # compute_pan: diff.length_squared() < EPSILON vs <= EPSILON — boundary at exact
     # f32::EPSILON is unreachable with floating-point inputs; semantically equivalent
     "replace < with <= in compute_pan",

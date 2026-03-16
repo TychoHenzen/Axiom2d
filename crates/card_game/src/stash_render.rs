@@ -209,4 +209,115 @@ mod tests {
             "expected stride {SLOT_STRIDE}, got {dy}"
         );
     }
+
+    #[test]
+    fn when_slot_stride_then_equals_slot_size_plus_gap() {
+        // Assert — SLOT_STRIDE must be the sum, not difference or product
+        assert!(
+            (SLOT_STRIDE - (SLOT_SIZE + SLOT_GAP)).abs() < 1e-6,
+            "SLOT_STRIDE={SLOT_STRIDE}, expected {}",
+            SLOT_SIZE + SLOT_GAP
+        );
+    }
+
+    #[test]
+    fn when_rect_vertices_then_corners_at_expected_positions() {
+        // Arrange
+        let x = 10.0;
+        let y = 20.0;
+        let w = 30.0;
+        let h = 40.0;
+
+        // Act
+        let verts = rect_vertices(x, y, w, h);
+
+        // Assert
+        assert_eq!(verts[0], [10.0, 20.0]);
+        assert_eq!(verts[1], [40.0, 20.0]); // x + w
+        assert_eq!(verts[2], [40.0, 60.0]); // x + w, y + h
+        assert_eq!(verts[3], [10.0, 60.0]); // x, y + h
+    }
+
+    #[test]
+    fn when_viewport_width_zero_then_no_shapes_drawn() {
+        // Arrange — viewport (0, 768) should trigger early return via || guard
+        let mut world = World::new();
+        world.insert_resource(StashGrid::new(2, 2, 1));
+        world.insert_resource(StashVisible(true));
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_shape_capture(shape_calls.clone())
+            .with_viewport(0, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(shape_calls.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn when_viewport_height_zero_then_no_shapes_drawn() {
+        // Arrange — viewport (1024, 0) should trigger early return via || guard
+        let mut world = World::new();
+        world.insert_resource(StashGrid::new(2, 2, 1));
+        world.insert_resource(StashVisible(true));
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_shape_capture(shape_calls.clone())
+            .with_viewport(1024, 0);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(shape_calls.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn when_camera_zoom_two_then_slot_size_halved() {
+        // Arrange — zoom=2 → world_slot_size = SLOT_SIZE / 2 = 25
+        let mut world = World::new();
+        world.insert_resource(StashGrid::new(1, 1, 1));
+        world.insert_resource(StashVisible(true));
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_shape_capture(shape_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 2.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — the drawn quad width should be SLOT_SIZE / zoom = 25
+        let calls = shape_calls.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        let verts = &calls[0].0;
+        let quad_width = verts[1][0] - verts[0][0];
+        let expected = SLOT_SIZE / 2.0;
+        assert!(
+            (quad_width - expected).abs() < 0.1,
+            "quad_width={quad_width}, expected {expected}"
+        );
+    }
 }

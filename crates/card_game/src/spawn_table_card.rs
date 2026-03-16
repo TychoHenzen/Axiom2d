@@ -613,6 +613,163 @@ mod tests {
         assert_eq!(mat.shader, art_shader.0);
     }
 
+    fn child_by_side_and_sort(
+        world: &mut World,
+        root: Entity,
+        side: CardFaceSide,
+        sort: i32,
+    ) -> Option<(Transform2D, engine_render::prelude::Shape)> {
+        let mut q = world.query::<(
+            &ChildOf,
+            &CardFaceSide,
+            &LocalSortOrder,
+            &Transform2D,
+            &engine_render::prelude::Shape,
+        )>();
+        q.iter(world)
+            .find(|(parent, s, local_sort, _, _)| {
+                parent.0 == root && **s == side && local_sort.0 == sort
+            })
+            .map(|(_, _, _, t, s)| (*t, s.clone()))
+    }
+
+    fn polygon_half_extents(shape: &engine_render::prelude::Shape) -> (f32, f32) {
+        let ShapeVariant::Polygon { ref points } = shape.variant else {
+            panic!("expected Polygon");
+        };
+        let max_x = points.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
+        let max_y = points.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
+        (max_x, max_y)
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_root_collider_half_is_card_size_times_half() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+        let card_size = Vec2::new(100.0, 200.0);
+
+        // Act
+        let root = spawn_visual_card(&mut world, card, Vec2::ZERO, card_size);
+
+        // Assert
+        let collider = world.get::<Collider>(root).unwrap();
+        let Collider::Aabb(half) = collider else {
+            panic!("expected Collider::Aabb");
+        };
+        assert!((half.x - 50.0).abs() < 1e-4, "half.x={}", half.x);
+        assert!((half.y - 100.0).abs() < 1e-4, "half.y={}", half.y);
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_front_name_strip_position_and_size_correct() {
+        // Arrange — card_size=(100, 200), w=100, h=200
+        // Name strip (Front sort=2): offset=(0, -(h*0.5 - 7.5))=(0, -92.5), half_w=w*0.45=45
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+        let card_size = Vec2::new(100.0, 200.0);
+
+        // Act
+        let root = spawn_visual_card(&mut world, card, Vec2::ZERO, card_size);
+
+        // Assert
+        let (t, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Front, 2)
+            .expect("front sort=2 child");
+        assert!((t.position.y - (-92.5)).abs() < 1e-4, "y={}", t.position.y);
+        let (hw, _) = polygon_half_extents(&shape);
+        assert!((hw - 45.0).abs() < 1e-4, "half_w={hw}");
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_front_art_area_position_and_size_correct() {
+        // Arrange — art area (Front sort=3): offset=(0, -(h*0.1))=(0, -20), half_w=w*0.45=45
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+        let card_size = Vec2::new(100.0, 200.0);
+
+        // Act
+        let root = spawn_visual_card(&mut world, card, Vec2::ZERO, card_size);
+
+        // Assert
+        let (t, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Front, 3)
+            .expect("front sort=3 child");
+        assert!((t.position.y - (-20.0)).abs() < 1e-4, "y={}", t.position.y);
+        let (hw, _) = polygon_half_extents(&shape);
+        assert!((hw - 45.0).abs() < 1e-4, "half_w={hw}");
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_front_description_strip_position_and_size_correct() {
+        // Arrange — desc strip (Front sort=4): offset=(0, h*0.5 - 15)=(0, 85), half_w=w*0.45=45
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+        let card_size = Vec2::new(100.0, 200.0);
+
+        // Act
+        let root = spawn_visual_card(&mut world, card, Vec2::ZERO, card_size);
+
+        // Assert
+        let (t, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Front, 4)
+            .expect("front sort=4 child");
+        assert!((t.position.y - 85.0).abs() < 1e-4, "y={}", t.position.y);
+        let (hw, _) = polygon_half_extents(&shape);
+        assert!((hw - 45.0).abs() < 1e-4, "half_w={hw}");
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_back_border_matches_card_half_size() {
+        // Arrange — back border (Back sort=1): half_w=w*0.5=50, half_h=h*0.5=100
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+        let card_size = Vec2::new(100.0, 200.0);
+
+        // Act
+        let root = spawn_visual_card(&mut world, card, Vec2::ZERO, card_size);
+
+        // Assert
+        let (_, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Back, 1)
+            .expect("back sort=1 child");
+        let (hw, hh) = polygon_half_extents(&shape);
+        assert!((hw - 50.0).abs() < 1e-4, "half_w={hw}");
+        assert!((hh - 100.0).abs() < 1e-4, "half_h={hh}");
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_back_center_pattern_uses_thirty_percent() {
+        // Arrange — back center (Back sort=2): half_w=w*0.3=30, half_h=h*0.3=60
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+        let card_size = Vec2::new(100.0, 200.0);
+
+        // Act
+        let root = spawn_visual_card(&mut world, card, Vec2::ZERO, card_size);
+
+        // Assert
+        let (_, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Back, 2)
+            .expect("back sort=2 child");
+        let (hw, hh) = polygon_half_extents(&shape);
+        assert!((hw - 30.0).abs() < 1e-4, "half_w={hw}");
+        assert!((hh - 60.0).abs() < 1e-4, "half_h={hh}");
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_front_border_half_size_matches_card_half() {
+        // Arrange — front border (Front sort=1): half_w=w*0.5=50, half_h=h*0.5=100
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+        let card_size = Vec2::new(100.0, 200.0);
+
+        // Act
+        let root = spawn_visual_card(&mut world, card, Vec2::ZERO, card_size);
+
+        // Assert
+        let (_, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Front, 1)
+            .expect("front sort=1 child");
+        let (hw, hh) = polygon_half_extents(&shape);
+        assert!((hw - 50.0).abs() < 1e-4, "half_w={hw}");
+        assert!((hh - 100.0).abs() < 1e-4, "half_h={hh}");
+    }
+
     #[test]
     fn when_no_card_art_shader_then_art_area_has_no_material2d() {
         // Arrange

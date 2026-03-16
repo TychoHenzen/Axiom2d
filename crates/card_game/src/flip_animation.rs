@@ -416,6 +416,35 @@ mod tests {
     }
 
     #[test]
+    fn when_progress_exactly_at_midpoint_then_face_up_changes_to_target() {
+        // Arrange — progress exactly 0.5, dt=0 so progress stays at 0.5
+        // The `< 0.5` branch does NOT flip face_up; the `>= 0.5` (else) branch does.
+        let mut world = World::new();
+        world.insert_resource(DeltaTime(Seconds(0.0)));
+        let entity = world
+            .spawn((
+                FlipAnimation {
+                    duration: Seconds(1.0),
+                    progress: 0.5,
+                    target_face_up: true,
+                },
+                default_card(false),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — at exactly 0.5, the else branch runs, so face_up becomes target
+        assert!(world.entity(entity).get::<Card>().unwrap().face_up);
+    }
+
+    #[test]
     fn when_multiple_cards_animating_then_each_progresses_independently() {
         // Arrange
         let mut world = World::new();

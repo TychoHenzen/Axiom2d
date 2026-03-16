@@ -346,6 +346,29 @@ mod tests {
     }
 
     #[test]
+    fn when_compute_spatial_gains_left_panned_then_left_equals_pan_times_attenuation_times_volume()
+    {
+        // Arrange — emitter to the LEFT of listener so pan_left ≈ 1.0
+        let listener = Vec2::ZERO;
+        let emitter = Vec2::new(-50.0, 0.0);
+
+        // Act
+        let gains = compute_spatial_gains(listener, emitter, 0.8, 200.0);
+
+        // Assert — manual: distance=50, atten=0.75, pan_left≈1.0
+        // expected left = 1.0 * 0.75 * 0.8 = 0.6
+        let distance = 50.0;
+        let atten = distance_attenuation(distance, 200.0);
+        let (pan_l, _) = compute_pan(listener, emitter);
+        let expected_left = pan_l * atten * 0.8;
+        assert!(
+            (gains.left - expected_left).abs() < 1e-6,
+            "left: expected {expected_left}, got {}",
+            gains.left
+        );
+    }
+
+    #[test]
     fn when_compute_spatial_gains_emitter_behind_listener_then_direction_reverses() {
         // Arrange — emitter to the left
         let listener = Vec2::new(100.0, 0.0);
