@@ -68,9 +68,27 @@ pub fn reverse_path(commands: &[PathCommand]) -> Vec<PathCommand> {
         return commands.to_vec();
     };
 
-    // Collect endpoints for each segment to know "from" positions
+    let endpoints = collect_endpoints(start, &commands[1..]);
+    let last_endpoint = *endpoints.last().expect("path has no segments");
+    let mut result = vec![PathCommand::MoveTo(last_endpoint)];
+
+    let segments = &commands[1..];
+    let segment_count = segments
+        .iter()
+        .filter(|c| !matches!(c, PathCommand::Close | PathCommand::Reverse))
+        .count();
+
+    for i in (0..segment_count).rev() {
+        reverse_segment(&segments[i], endpoints[i], &mut result);
+    }
+
+    result.push(PathCommand::Close);
+    result
+}
+
+fn collect_endpoints(start: Vec2, commands: &[PathCommand]) -> Vec<Vec2> {
     let mut endpoints = vec![start];
-    for cmd in &commands[1..] {
+    for cmd in commands {
         match *cmd {
             PathCommand::MoveTo(p) | PathCommand::LineTo(p) => endpoints.push(p),
             PathCommand::QuadraticTo { to, .. } | PathCommand::CubicTo { to, .. } => {
@@ -79,42 +97,28 @@ pub fn reverse_path(commands: &[PathCommand]) -> Vec<PathCommand> {
             PathCommand::Close | PathCommand::Reverse => {}
         }
     }
+    endpoints
+}
 
-    // The reversed path starts at the last endpoint before Close
-    let last_endpoint = *endpoints.last().expect("path has no segments");
-    let mut result = vec![PathCommand::MoveTo(last_endpoint)];
-
-    // Walk segments in reverse (skip MoveTo at [0] and Close at end)
-    let segments = &commands[1..];
-    let segment_count = segments
-        .iter()
-        .filter(|c| !matches!(c, PathCommand::Close | PathCommand::Reverse))
-        .count();
-
-    for i in (0..segment_count).rev() {
-        let from = endpoints[i];
-        match segments[i] {
-            PathCommand::LineTo(_) => {
-                result.push(PathCommand::LineTo(from));
-            }
-            PathCommand::QuadraticTo { control, .. } => {
-                result.push(PathCommand::QuadraticTo { control, to: from });
-            }
-            PathCommand::CubicTo {
-                control1, control2, ..
-            } => {
-                result.push(PathCommand::CubicTo {
-                    control1: control2,
-                    control2: control1,
-                    to: from,
-                });
-            }
-            _ => {}
+fn reverse_segment(cmd: &PathCommand, from: Vec2, result: &mut Vec<PathCommand>) {
+    match *cmd {
+        PathCommand::LineTo(_) => {
+            result.push(PathCommand::LineTo(from));
         }
+        PathCommand::QuadraticTo { control, .. } => {
+            result.push(PathCommand::QuadraticTo { control, to: from });
+        }
+        PathCommand::CubicTo {
+            control1, control2, ..
+        } => {
+            result.push(PathCommand::CubicTo {
+                control1: control2,
+                control2: control1,
+                to: from,
+            });
+        }
+        _ => {}
     }
-
-    result.push(PathCommand::Close);
-    result
 }
 
 /// Split a path into sub-contours at each `MoveTo` boundary.

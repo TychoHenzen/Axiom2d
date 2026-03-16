@@ -20,6 +20,25 @@ pub struct Sprite {
     pub height: Pixels,
 }
 
+fn is_sprite_culled(sprite: &Sprite, pos: Vec2, view_rect: Option<(Vec2, Vec2)>) -> bool {
+    let Some((view_min, view_max)) = view_rect else {
+        return false;
+    };
+    let entity_min = Vec2::new(pos.x, pos.y);
+    let entity_max = Vec2::new(pos.x + sprite.width.0, pos.y + sprite.height.0);
+    !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max)
+}
+
+fn compute_view_rect(
+    camera_query: &Query<&Camera2D>,
+    renderer: &RendererRes,
+) -> Option<(Vec2, Vec2)> {
+    camera_query.iter().next().map(|cam| {
+        let (vw, vh) = renderer.viewport_size();
+        camera_view_rect(cam, vw as f32, vh as f32)
+    })
+}
+
 #[allow(clippy::type_complexity)]
 pub fn sprite_render_system(
     query: Query<(
@@ -33,39 +52,22 @@ pub fn sprite_render_system(
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
 ) {
-    let view_rect = camera_query.iter().next().map(|camera| {
-        let (vw, vh) = renderer.viewport_size();
-        camera_view_rect(camera, vw as f32, vh as f32)
-    });
-
-    let mut sprites: Vec<_> = query
-        .iter()
-        .filter(|(_, _, _, _, vis, _)| vis.is_none_or(|v| v.0))
-        .collect();
-
-    sprites.sort_by_key(|(_, _, layer, sort, _, _mat)| {
+    let view_rect = compute_view_rect(&camera_query, &renderer);
+    let mut sprites: Vec<_> = query.iter().filter(|t| t.4.is_none_or(|v| v.0)).collect();
+    sprites.sort_by_key(|t| {
         (
-            layer.copied().unwrap_or(RenderLayer::World),
-            sort.copied().unwrap_or_default(),
+            t.2.copied().unwrap_or(RenderLayer::World),
+            t.3.copied().unwrap_or_default(),
         )
     });
-
     let mut last_shader = None;
     let mut last_blend_mode = None;
-
     for (sprite, transform, _, _, _, mat) in sprites {
         let pos = transform.0.translation;
-
-        if let Some((view_min, view_max)) = view_rect {
-            let entity_min = Vec2::new(pos.x, pos.y);
-            let entity_max = Vec2::new(pos.x + sprite.width.0, pos.y + sprite.height.0);
-            if !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max) {
-                continue;
-            }
+        if is_sprite_culled(sprite, pos, view_rect) {
+            continue;
         }
-
         apply_material(&mut **renderer, mat, &mut last_shader, &mut last_blend_mode);
-
         let rect = Rect {
             x: Pixels(pos.x),
             y: Pixels(pos.y),

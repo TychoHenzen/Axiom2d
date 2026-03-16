@@ -42,41 +42,52 @@ pub fn panel_render_system(
         }
 
         if let Some(border_color) = panel.border_color {
-            let bw = panel.border_width;
-            // Top edge
-            renderer.draw_rect(Rect {
-                x: Pixels(top_left.x),
-                y: Pixels(top_left.y),
-                width: Pixels(node.size.x),
-                height: Pixels(bw),
-                color: border_color,
-            });
-            // Bottom edge
-            renderer.draw_rect(Rect {
-                x: Pixels(top_left.x),
-                y: Pixels(top_left.y + node.size.y - bw),
-                width: Pixels(node.size.x),
-                height: Pixels(bw),
-                color: border_color,
-            });
-            // Left edge
-            renderer.draw_rect(Rect {
-                x: Pixels(top_left.x),
-                y: Pixels(top_left.y + bw),
-                width: Pixels(bw),
-                height: Pixels(node.size.y - 2.0 * bw),
-                color: border_color,
-            });
-            // Right edge
-            renderer.draw_rect(Rect {
-                x: Pixels(top_left.x + node.size.x - bw),
-                y: Pixels(top_left.y + bw),
-                width: Pixels(bw),
-                height: Pixels(node.size.y - 2.0 * bw),
-                color: border_color,
-            });
+            draw_borders(
+                &mut renderer,
+                top_left,
+                node.size,
+                panel.border_width,
+                border_color,
+            );
         }
     }
+}
+
+fn draw_borders(
+    renderer: &mut RendererRes,
+    top_left: glam::Vec2,
+    size: glam::Vec2,
+    bw: f32,
+    color: Color,
+) {
+    renderer.draw_rect(Rect {
+        x: Pixels(top_left.x),
+        y: Pixels(top_left.y),
+        width: Pixels(size.x),
+        height: Pixels(bw),
+        color,
+    });
+    renderer.draw_rect(Rect {
+        x: Pixels(top_left.x),
+        y: Pixels(top_left.y + size.y - bw),
+        width: Pixels(size.x),
+        height: Pixels(bw),
+        color,
+    });
+    renderer.draw_rect(Rect {
+        x: Pixels(top_left.x),
+        y: Pixels(top_left.y + bw),
+        width: Pixels(bw),
+        height: Pixels(size.y - 2.0 * bw),
+        color,
+    });
+    renderer.draw_rect(Rect {
+        x: Pixels(top_left.x + size.x - bw),
+        y: Pixels(top_left.y + bw),
+        width: Pixels(bw),
+        height: Pixels(size.y - 2.0 * bw),
+        color,
+    });
 }
 
 #[cfg(test)]

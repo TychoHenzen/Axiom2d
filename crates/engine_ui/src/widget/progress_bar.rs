@@ -52,12 +52,7 @@ pub fn progress_bar_render_system(
             });
         }
 
-        let fraction = if bar.max == 0.0 {
-            0.0
-        } else {
-            (bar.value / bar.max).clamp(0.0, 1.0)
-        };
-        let fill_width = fraction * node.size.x;
+        let fill_width = fill_width(bar, node.size.x);
 
         if fill_width > 0.0 {
             renderer.draw_rect(Rect {
@@ -68,6 +63,14 @@ pub fn progress_bar_render_system(
                 color: theme.normal_color,
             });
         }
+    }
+}
+
+fn fill_width(bar: &ProgressBar, node_width: f32) -> f32 {
+    if bar.max == 0.0 {
+        0.0
+    } else {
+        (bar.value / bar.max).clamp(0.0, 1.0) * node_width
     }
 }
 

@@ -13,8 +13,8 @@ use crate::renderer::Renderer;
 use crate::shader::ShaderHandle;
 use crate::wgpu_renderer::{
     Instance, QUAD_INDICES, QUAD_VERTICES, QuadVertex, SHADER_SRC, SHAPE_SHADER_SRC, ShapeBatch,
-    ShapeVertex, blend_mode_to_blend_state, compute_batch_ranges, create_texture_bind_group,
-    rect_to_instance,
+    ShapeVertex, TextureData, blend_mode_to_blend_state, compute_batch_ranges,
+    create_texture_bind_group, rect_to_instance,
 };
 
 const HEADLESS_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
@@ -240,8 +240,16 @@ impl HeadlessRenderer {
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let texture_bind_group =
-            create_texture_bind_group(&device, &queue, &texture_bind_group_layout, 1, 1, &[255; 4]);
+        let texture_bind_group = create_texture_bind_group(
+            &device,
+            &queue,
+            &texture_bind_group_layout,
+            TextureData {
+                width: 1,
+                height: 1,
+                data: &[255; 4],
+            },
+        );
 
         let shape_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
@@ -584,9 +592,11 @@ impl Renderer for HeadlessRenderer {
             &self.device,
             &self.queue,
             &self.texture_bind_group_layout,
-            atlas.width,
-            atlas.height,
-            &atlas.data,
+            TextureData {
+                width: atlas.width,
+                height: atlas.height,
+                data: &atlas.data,
+            },
         );
     }
 

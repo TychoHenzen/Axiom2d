@@ -11,16 +11,9 @@ pub struct TextureHandle {
     pub uv_rect: [f32; 4],
 }
 
-pub(crate) fn normalize_uv_rect(
-    x: u32,
-    y: u32,
-    w: u32,
-    h: u32,
-    atlas_w: u32,
-    atlas_h: u32,
-) -> [f32; 4] {
-    let aw = atlas_w as f32;
-    let ah = atlas_h as f32;
+pub(crate) fn normalize_uv_rect(x: u32, y: u32, w: u32, h: u32, atlas: (u32, u32)) -> [f32; 4] {
+    let aw = atlas.0 as f32;
+    let ah = atlas.1 as f32;
     [
         x as f32 / aw,
         y as f32 / ah,
@@ -59,6 +52,20 @@ pub fn upload_atlas_system(
     let Some(atlas) = atlas else { return };
     renderer.upload_atlas(&atlas);
     commands.insert_resource(AtlasUploaded);
+}
+
+fn validate_image_data(width: u32, height: u32, data: &[u8]) -> Result<(), AtlasError> {
+    if width == 0 || height == 0 {
+        return Err(AtlasError::InvalidDimensions);
+    }
+    let expected = (width * height * 4) as usize;
+    if data.len() != expected {
+        return Err(AtlasError::DataLengthMismatch {
+            expected,
+            actual: data.len(),
+        });
+    }
+    Ok(())
 }
 
 struct PendingImage {
@@ -101,39 +108,34 @@ impl AtlasBuilder {
         height: u32,
         data: &[u8],
     ) -> Result<TextureHandle, AtlasError> {
-        if width == 0 || height == 0 {
-            return Err(AtlasError::InvalidDimensions);
-        }
-        let expected = (width * height * 4) as usize;
-        if data.len() != expected {
-            return Err(AtlasError::DataLengthMismatch {
-                expected,
-                actual: data.len(),
-            });
-        }
+        validate_image_data(width, height, data)?;
         let alloc = self
             .allocator
             .allocate(guillotiere::size2(width as i32, height as i32))
             .ok_or(AtlasError::NoSpace)?;
-        let atlas_w = self.width();
-        let atlas_h = self.height();
         let rect = alloc.rectangle;
-        let uv_rect = normalize_uv_rect(
-            rect.min.x as u32,
-            rect.min.y as u32,
-            (rect.max.x - rect.min.x) as u32,
-            (rect.max.y - rect.min.y) as u32,
-            atlas_w,
-            atlas_h,
-        );
+        let x = rect.min.x as u32;
+        let y = rect.min.y as u32;
+        let w = (rect.max.x - rect.min.x) as u32;
+        let h = (rect.max.y - rect.min.y) as u32;
+        let uv = normalize_uv_rect(x, y, w, h, (self.width(), self.height()));
+        self.push_pending(data, [x, y, w, h], uv)
+    }
+
+    fn push_pending(
+        &mut self,
+        data: &[u8],
+        pos: [u32; 4],
+        uv_rect: [f32; 4],
+    ) -> Result<TextureHandle, AtlasError> {
         let id = self.next_id;
         self.next_id += 1;
         self.pending.push(PendingImage {
             data: data.to_vec(),
-            x: rect.min.x as u32,
-            y: rect.min.y as u32,
-            width: (rect.max.x - rect.min.x) as u32,
-            height: (rect.max.y - rect.min.y) as u32,
+            x: pos[0],
+            y: pos[1],
+            width: pos[2],
+            height: pos[3],
             texture_id: TextureId(id),
             uv_rect,
         });
@@ -467,7 +469,7 @@ mod tests {
     #[test]
     fn when_normalizing_uv_rect_then_output_is_in_zero_one_range() {
         // Act
-        let uv = normalize_uv_rect(10, 20, 40, 60, 100, 100);
+        let uv = normalize_uv_rect(10, 20, 40, 60, (100, 100));
 
         // Assert
         assert_eq!(uv, [0.10, 0.20, 0.50, 0.80]);
@@ -476,7 +478,7 @@ mod tests {
     #[test]
     fn when_normalizing_uv_rect_at_origin_then_starts_at_zero() {
         // Act
-        let uv = normalize_uv_rect(0, 0, 32, 32, 256, 256);
+        let uv = normalize_uv_rect(0, 0, 32, 32, (256, 256));
 
         // Assert
         assert_eq!(uv, [0.0, 0.0, 0.125, 0.125]);

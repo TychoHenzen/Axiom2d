@@ -2,7 +2,7 @@ use bevy_ecs::prelude::{Query, ResMut};
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 
-use super::components::{Shape, Stroke};
+use super::components::{Shape, ShapeVariant, Stroke};
 use super::tessellate::{shape_aabb, tessellate, tessellate_stroke};
 use crate::camera::Camera2D;
 use crate::culling::{aabb_intersects_view_rect, camera_view_rect};
@@ -20,6 +20,27 @@ pub fn affine2_to_mat4(affine: &glam::Affine2) -> [[f32; 4]; 4] {
     ]
 }
 
+fn is_shape_culled(pos: Vec2, variant: &ShapeVariant, view_rect: Option<(Vec2, Vec2)>) -> bool {
+    let Some((view_min, view_max)) = view_rect else {
+        return false;
+    };
+    let (local_min, local_max) = shape_aabb(variant);
+    let r = local_min.abs().max(local_max.abs()).length();
+    let entity_min = Vec2::new(pos.x - r, pos.y - r);
+    let entity_max = Vec2::new(pos.x + r, pos.y + r);
+    !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max)
+}
+
+fn compute_view_rect(
+    camera_query: &Query<&Camera2D>,
+    renderer: &RendererRes,
+) -> Option<(Vec2, Vec2)> {
+    camera_query.iter().next().map(|cam| {
+        let (vw, vh) = renderer.viewport_size();
+        camera_view_rect(cam, vw as f32, vh as f32)
+    })
+}
+
 #[allow(clippy::type_complexity)]
 pub fn shape_render_system(
     query: Query<(
@@ -34,53 +55,27 @@ pub fn shape_render_system(
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
 ) {
-    let view_rect = camera_query.iter().next().map(|camera| {
-        let (vw, vh) = renderer.viewport_size();
-        camera_view_rect(camera, vw as f32, vh as f32)
-    });
-
-    let mut shapes: Vec<_> = query
-        .iter()
-        .filter(|(_, _, _, _, vis, _, _)| vis.is_none_or(|v| v.0))
-        .collect();
-
-    shapes.sort_by_key(|(_, _, layer, sort, _, _mat, _)| {
+    let view_rect = compute_view_rect(&camera_query, &renderer);
+    let mut shapes: Vec<_> = query.iter().filter(|t| t.4.is_none_or(|v| v.0)).collect();
+    shapes.sort_by_key(|t| {
         (
-            layer.copied().unwrap_or(RenderLayer::World),
-            sort.copied().unwrap_or_default(),
+            t.2.copied().unwrap_or(RenderLayer::World),
+            t.3.copied().unwrap_or_default(),
         )
     });
-
     let mut last_shader = None;
     let mut last_blend_mode = None;
-
     for (shape, transform, _, _, _, mat, stroke) in shapes {
-        let pos = transform.0.translation;
-        let (local_min, local_max) = shape_aabb(&shape.variant);
-        let local_radius = local_min.abs().max(local_max.abs()).length();
-
-        if let Some((view_min, view_max)) = view_rect {
-            let entity_min = Vec2::new(pos.x - local_radius, pos.y - local_radius);
-            let entity_max = Vec2::new(pos.x + local_radius, pos.y + local_radius);
-            if !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max) {
-                continue;
-            }
+        if is_shape_culled(transform.0.translation, &shape.variant, view_rect) {
+            continue;
         }
-
         apply_material(&mut **renderer, mat, &mut last_shader, &mut last_blend_mode);
-
         let model = affine2_to_mat4(&transform.0);
         let mesh = tessellate(&shape.variant);
         renderer.draw_shape(&mesh.vertices, &mesh.indices, shape.color, model);
-
         if let Some(stroke) = stroke {
-            let stroke_mesh = tessellate_stroke(&shape.variant, stroke.width);
-            renderer.draw_shape(
-                &stroke_mesh.vertices,
-                &stroke_mesh.indices,
-                stroke.color,
-                model,
-            );
+            let sm = tessellate_stroke(&shape.variant, stroke.width);
+            renderer.draw_shape(&sm.vertices, &sm.indices, stroke.color, model);
         }
     }
 }

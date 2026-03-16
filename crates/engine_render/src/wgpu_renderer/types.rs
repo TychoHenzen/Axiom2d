@@ -130,45 +130,19 @@ pub(crate) fn rect_to_instance(rect: &Rect) -> Instance {
     }
 }
 
+pub(crate) struct TextureData<'a> {
+    pub(crate) width: u32,
+    pub(crate) height: u32,
+    pub(crate) data: &'a [u8],
+}
+
 pub(crate) fn create_texture_bind_group(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     layout: &wgpu::BindGroupLayout,
-    width: u32,
-    height: u32,
-    data: &[u8],
+    tex: TextureData<'_>,
 ) -> wgpu::BindGroup {
-    let size = wgpu::Extent3d {
-        width,
-        height,
-        depth_or_array_layers: 1,
-    };
-    let texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: None,
-        size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8UnormSrgb,
-        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-        view_formats: &[],
-    });
-    queue.write_texture(
-        wgpu::TexelCopyTextureInfo {
-            texture: &texture,
-            mip_level: 0,
-            origin: wgpu::Origin3d::ZERO,
-            aspect: wgpu::TextureAspect::All,
-        },
-        data,
-        wgpu::TexelCopyBufferLayout {
-            offset: 0,
-            bytes_per_row: Some(4 * width),
-            rows_per_image: Some(height),
-        },
-        size,
-    );
-    let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let view = upload_texture(device, queue, &tex);
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
     device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: None,
@@ -184,6 +158,49 @@ pub(crate) fn create_texture_bind_group(
             },
         ],
     })
+}
+
+fn rgba_texture_descriptor(tex: &TextureData<'_>) -> wgpu::TextureDescriptor<'static> {
+    wgpu::TextureDescriptor {
+        label: None,
+        size: wgpu::Extent3d {
+            width: tex.width,
+            height: tex.height,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[],
+    }
+}
+
+fn upload_texture(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    tex: &TextureData<'_>,
+) -> wgpu::TextureView {
+    let desc = rgba_texture_descriptor(tex);
+    let size = desc.size;
+    let texture = device.create_texture(&desc);
+    queue.write_texture(
+        wgpu::TexelCopyTextureInfo {
+            texture: &texture,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        },
+        tex.data,
+        wgpu::TexelCopyBufferLayout {
+            offset: 0,
+            bytes_per_row: Some(4 * tex.width),
+            rows_per_image: Some(tex.height),
+        },
+        size,
+    );
+    texture.create_view(&wgpu::TextureViewDescriptor::default())
 }
 
 #[allow(clippy::cast_possible_truncation)]
@@ -238,19 +255,23 @@ pub(crate) fn blend_mode_to_blend_state(mode: crate::material::BlendMode) -> wgp
     }
 }
 
+pub(super) struct FullscreenPass<'a> {
+    pub(super) target: &'a wgpu::TextureView,
+    pub(super) pipeline: &'a wgpu::RenderPipeline,
+    pub(super) tex_bg: &'a wgpu::BindGroup,
+    pub(super) params_bg: &'a wgpu::BindGroup,
+}
+
+#[allow(clippy::cast_possible_truncation)]
 pub(super) fn run_fullscreen_pass(
     encoder: &mut wgpu::CommandEncoder,
-    target: &wgpu::TextureView,
-    pipeline: &wgpu::RenderPipeline,
-    tex_bg: &wgpu::BindGroup,
-    params_bg: &wgpu::BindGroup,
-    vertex_buffer: &wgpu::Buffer,
-    index_buffer: &wgpu::Buffer,
+    buffers: &FullscreenBuffers<'_>,
+    desc: &FullscreenPass<'_>,
 ) {
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: None,
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-            view: target,
+            view: desc.target,
             resolve_target: None,
             ops: wgpu::Operations {
                 load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
@@ -261,30 +282,17 @@ pub(super) fn run_fullscreen_pass(
         timestamp_writes: None,
         occlusion_query_set: None,
     });
-    draw_fullscreen_quad(
-        &mut pass,
-        pipeline,
-        tex_bg,
-        params_bg,
-        vertex_buffer,
-        index_buffer,
-    );
+    pass.set_pipeline(desc.pipeline);
+    pass.set_bind_group(0, desc.tex_bg, &[]);
+    pass.set_bind_group(1, desc.params_bg, &[]);
+    pass.set_vertex_buffer(0, buffers.vertex.slice(..));
+    pass.set_index_buffer(buffers.index.slice(..), wgpu::IndexFormat::Uint16);
+    pass.draw_indexed(0..QUAD_INDICES.len() as u32, 0, 0..1);
 }
 
-pub(super) fn draw_fullscreen_quad(
-    pass: &mut wgpu::RenderPass,
-    pipeline: &wgpu::RenderPipeline,
-    tex_bg: &wgpu::BindGroup,
-    params_bg: &wgpu::BindGroup,
-    vertex_buffer: &wgpu::Buffer,
-    index_buffer: &wgpu::Buffer,
-) {
-    pass.set_pipeline(pipeline);
-    pass.set_bind_group(0, tex_bg, &[]);
-    pass.set_bind_group(1, params_bg, &[]);
-    pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-    pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-    pass.draw_indexed(0..QUAD_INDICES.len() as u32, 0, 0..1);
+pub(super) struct FullscreenBuffers<'a> {
+    pub(super) vertex: &'a wgpu::Buffer,
+    pub(super) index: &'a wgpu::Buffer,
 }
 
 #[cfg(test)]
