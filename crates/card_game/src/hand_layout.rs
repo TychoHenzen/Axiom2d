@@ -329,7 +329,7 @@ mod tests {
         // Assert
         let ax = world.get::<Transform2D>(a).unwrap().position.x;
         let bx = world.get::<Transform2D>(b).unwrap().position.x;
-        let expected = (CARD_WIDTH + HAND_GAP) / 2.0;
+        let expected = f32::midpoint(CARD_WIDTH, HAND_GAP);
         assert!(
             (bx - ax - expected).abs() < 1e-3,
             "expected gap≈{expected}, got {}",
