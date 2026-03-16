@@ -33,6 +33,8 @@ pub struct HeadlessRenderer {
     camera_uniform_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
     shape_pipelines: [wgpu::RenderPipeline; 3],
+    model_bind_group_layout: wgpu::BindGroupLayout,
+    model_uniform_align: u32,
     clear_color: Color,
     pending_instances: Vec<Instance>,
     instance_blend_modes: Vec<BlendMode>,
@@ -40,6 +42,7 @@ pub struct HeadlessRenderer {
     shape_batch: ShapeBatch,
     shape_blend_modes: Vec<BlendMode>,
     shape_index_offsets: Vec<u32>,
+    shape_models: Vec<[[f32; 4]; 4]>,
 }
 
 impl HeadlessRenderer {
@@ -245,10 +248,27 @@ impl HeadlessRenderer {
             source: wgpu::ShaderSource::Wgsl(SHAPE_SHADER_SRC.into()),
         });
 
+        let model_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: true,
+                        min_binding_size: wgpu::BufferSize::new(64),
+                    },
+                    count: None,
+                }],
+            });
+
+        let model_uniform_align = device.limits().min_uniform_buffer_offset_alignment;
+
         let shape_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: None,
-                bind_group_layouts: &[&camera_bind_group_layout],
+                bind_group_layouts: &[&camera_bind_group_layout, &model_bind_group_layout],
                 push_constant_ranges: &[],
             });
 
@@ -312,6 +332,8 @@ impl HeadlessRenderer {
             camera_uniform_buffer,
             camera_bind_group,
             shape_pipelines,
+            model_bind_group_layout,
+            model_uniform_align,
             clear_color: Color::BLACK,
             pending_instances: Vec::new(),
             instance_blend_modes: Vec::new(),
@@ -319,6 +341,7 @@ impl HeadlessRenderer {
             shape_batch: ShapeBatch::new(),
             shape_blend_modes: Vec::new(),
             shape_index_offsets: Vec::new(),
+            shape_models: Vec::new(),
         }
     }
 
@@ -381,6 +404,7 @@ impl HeadlessRenderer {
         self.shape_batch.clear();
         self.shape_blend_modes.clear();
         self.shape_index_offsets.clear();
+        self.shape_models.clear();
 
         pixels
     }
@@ -447,19 +471,57 @@ impl HeadlessRenderer {
                         usage: wgpu::BufferUsages::INDEX,
                     });
 
+            // Pack model matrices into a dynamic uniform buffer
+            let align = self.model_uniform_align as usize;
+            let aligned_entry = align.max(64);
+            let buf_size = self.shape_models.len() * aligned_entry;
+            let mut model_data = vec![0u8; buf_size];
+            for (i, mat) in self.shape_models.iter().enumerate() {
+                let offset = i * aligned_entry;
+                let bytes: &[u8; 64] = bytemuck::cast_ref(mat);
+                model_data[offset..offset + 64].copy_from_slice(bytes);
+            }
+            let model_buffer =
+                self.device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: None,
+                        contents: &model_data,
+                        usage: wgpu::BufferUsages::UNIFORM,
+                    });
+            let model_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &self.model_bind_group_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: &model_buffer,
+                        offset: 0,
+                        size: wgpu::BufferSize::new(64),
+                    }),
+                }],
+            });
+
             pass.set_bind_group(0, &self.camera_bind_group, &[]);
             pass.set_vertex_buffer(0, vertex_buffer.slice(..));
             pass.set_index_buffer(shape_index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 
             let total_indices = self.shape_batch.index_count() as u32;
-            for (mode, shape_range) in compute_batch_ranges(&self.shape_blend_modes) {
-                let idx_start = self.shape_index_offsets[shape_range.start as usize];
-                let idx_end = if (shape_range.end as usize) < self.shape_index_offsets.len() {
-                    self.shape_index_offsets[shape_range.end as usize]
+            let mut last_blend = None;
+            for (i, &blend_mode) in self.shape_blend_modes.iter().enumerate() {
+                if last_blend != Some(blend_mode) {
+                    pass.set_pipeline(&self.shape_pipelines[blend_mode.index()]);
+                    last_blend = Some(blend_mode);
+                }
+
+                let dyn_offset = (i * aligned_entry) as u32;
+                pass.set_bind_group(1, &model_bind_group, &[dyn_offset]);
+
+                let idx_start = self.shape_index_offsets[i];
+                let idx_end = if i + 1 < self.shape_index_offsets.len() {
+                    self.shape_index_offsets[i + 1]
                 } else {
                     total_indices
                 };
-                pass.set_pipeline(&self.shape_pipelines[mode.index()]);
                 pass.draw_indexed(idx_start..idx_end, 0, 0..1);
             }
         }
@@ -475,6 +537,7 @@ impl Renderer for HeadlessRenderer {
         self.shape_batch.clear();
         self.shape_blend_modes.clear();
         self.shape_index_offsets.clear();
+        self.shape_models.clear();
     }
 
     fn draw_rect(&mut self, rect: Rect) {
@@ -489,11 +552,18 @@ impl Renderer for HeadlessRenderer {
         self.instance_blend_modes.push(self.current_blend_mode);
     }
 
-    fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color) {
+    fn draw_shape(
+        &mut self,
+        vertices: &[[f32; 2]],
+        indices: &[u32],
+        color: Color,
+        model: [[f32; 4]; 4],
+    ) {
         self.shape_blend_modes.push(self.current_blend_mode);
         #[allow(clippy::cast_possible_truncation)]
         self.shape_index_offsets
             .push(self.shape_batch.index_count() as u32);
+        self.shape_models.push(model);
         self.shape_batch.push(vertices, indices, color);
     }
 
@@ -506,6 +576,8 @@ impl Renderer for HeadlessRenderer {
     fn set_material_uniforms(&mut self, _data: &[u8]) {}
 
     fn bind_material_texture(&mut self, _texture: TextureId, _binding: u32) {}
+
+    fn compile_shader(&mut self, _handle: ShaderHandle, _source: &str) {}
 
     fn upload_atlas(&mut self, atlas: &TextureAtlas) {
         self.texture_bind_group = create_texture_bind_group(
@@ -930,12 +1002,18 @@ mod tests {
         renderer.set_view_projection(proj.view_proj);
 
         let mesh = crate::shape::tessellate(&crate::shape::ShapeVariant::Circle { radius: 20.0 });
-        let vertices: Vec<[f32; 2]> = mesh
-            .vertices
-            .iter()
-            .map(|v| [v[0] + 64.0, v[1] + 64.0])
-            .collect();
-        renderer.draw_shape(&vertices, &mesh.indices, engine_core::color::Color::WHITE);
+        let model: [[f32; 4]; 4] = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [64.0, 64.0, 0.0, 1.0],
+        ];
+        renderer.draw_shape(
+            &mesh.vertices,
+            &mesh.indices,
+            engine_core::color::Color::WHITE,
+            model,
+        );
 
         // Act
         let pixels = renderer.render_to_buffer();

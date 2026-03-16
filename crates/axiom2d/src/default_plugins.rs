@@ -14,10 +14,14 @@ use engine_input::prelude::{
     InputEventBuffer, InputState, MouseEventBuffer, MouseState, input_system, mouse_input_system,
     scroll_clear_system,
 };
+#[cfg(feature = "physics")]
+use engine_physics::prelude::{
+    CollisionEventBuffer, PhysicsRes, physics_step_system, physics_sync_system,
+};
 #[cfg(feature = "render")]
 use engine_render::prelude::{
-    ClearColor, camera_prepare_system, clear_system, post_process_system, shape_render_system,
-    sprite_render_system, upload_atlas_system,
+    ClearColor, ShaderRegistry, camera_prepare_system, clear_system, post_process_system,
+    shader_prepare_system, shape_render_system, sprite_render_system, upload_atlas_system,
 };
 use engine_scene::prelude::{
     hierarchy_maintenance_system, transform_propagation_system, visibility_system,
@@ -38,6 +42,20 @@ impl Plugin for DefaultPlugins {
 
         app.add_systems(Phase::Input, (input_system, mouse_input_system));
         app.add_systems(Phase::PreUpdate, time_system);
+
+        #[cfg(feature = "physics")]
+        {
+            app.world_mut().insert_resource(PhysicsRes::new(Box::new(
+                engine_physics::prelude::NullPhysicsBackend::new(),
+            )));
+            app.world_mut()
+                .insert_resource(CollisionEventBuffer::default());
+            app.add_systems(
+                Phase::PreUpdate,
+                (physics_step_system, physics_sync_system).chain(),
+            );
+        }
+
         #[cfg(not(feature = "audio"))]
         app.add_systems(
             Phase::PostUpdate,
@@ -74,12 +92,14 @@ impl Plugin for DefaultPlugins {
         #[cfg(feature = "render")]
         {
             app.world_mut().insert_resource(ClearColor::default());
+            app.world_mut().insert_resource(ShaderRegistry::default());
             app.add_systems(
                 Phase::Render,
                 (
                     clear_system,
                     upload_atlas_system,
                     camera_prepare_system,
+                    shader_prepare_system,
                     splash_render_system,
                     sprite_render_system,
                     shape_render_system,
@@ -436,6 +456,31 @@ mod tests {
         let mouse = app.world().resource::<engine_input::prelude::MouseState>();
         assert!(!mouse.just_pressed(winit::event::MouseButton::Left));
         assert!(mouse.pressed(winit::event::MouseButton::Left));
+    }
+
+    #[cfg(feature = "render")]
+    #[test]
+    fn when_shader_registered_and_frame_runs_then_compile_shader_called() {
+        // Arrange
+        let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let spy = engine_render::testing::SpyRenderer::new(std::sync::Arc::clone(&log));
+
+        let mut app = app_with_default_plugins();
+        app.world_mut()
+            .insert_resource(engine_render::prelude::RendererRes::new(Box::new(spy)));
+        app.world_mut()
+            .resource_mut::<engine_render::prelude::ShaderRegistry>()
+            .register("test_shader_source");
+
+        // Act
+        app.handle_redraw();
+
+        // Assert
+        let calls = log.lock().unwrap();
+        assert!(
+            calls.iter().any(|c| c == "compile_shader"),
+            "compile_shader should be called when shaders are registered"
+        );
     }
 
     #[test]

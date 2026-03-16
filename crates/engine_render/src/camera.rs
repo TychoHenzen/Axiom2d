@@ -93,12 +93,6 @@ mod tests {
     use super::*;
     use crate::culling::aabb_intersects_view_rect;
 
-    fn compute_view_matrix(camera: &Camera2D) -> Mat4 {
-        let scale = Mat4::from_scale(glam::Vec3::new(camera.zoom, camera.zoom, 1.0));
-        let translation =
-            Mat4::from_translation(glam::Vec3::new(-camera.position.x, -camera.position.y, 0.0));
-        scale * translation
-    }
     use crate::renderer::RendererRes;
     use crate::testing::{SpyRenderer, insert_spy_with_viewport};
 
@@ -129,19 +123,22 @@ mod tests {
     }
 
     #[test]
-    fn when_camera_at_origin_with_zoom_one_then_view_matrix_is_identity() {
+    fn when_camera_at_origin_zoom_one_then_ndc_center_is_zero() {
         // Arrange
         let camera = Camera2D::default();
 
         // Act
-        let view = compute_view_matrix(&camera);
+        let uniform = CameraUniform::from_camera(&camera, 800.0, 600.0);
 
-        // Assert
-        assert_eq!(view, Mat4::IDENTITY);
+        // Assert — world origin (camera position) maps to NDC (0,0)
+        let vp = Mat4::from_cols_array_2d(&uniform.view_proj);
+        let origin = vp * glam::Vec4::new(0.0, 0.0, 0.0, 1.0);
+        assert!((origin.x).abs() < 1e-5);
+        assert!((origin.y).abs() < 1e-5);
     }
 
     #[test]
-    fn when_camera_at_nonzero_position_then_view_matrix_translates_by_negative_position() {
+    fn when_camera_at_offset_then_offset_point_maps_to_ndc_center() {
         // Arrange
         let camera = Camera2D {
             position: Vec2::new(100.0, 200.0),
@@ -149,48 +146,51 @@ mod tests {
         };
 
         // Act
-        let view = compute_view_matrix(&camera);
+        let uniform = CameraUniform::from_camera(&camera, 800.0, 600.0);
 
-        // Assert
-        let translation = view.w_axis;
-        assert!((translation.x - (-100.0)).abs() < 1e-6);
-        assert!((translation.y - (-200.0)).abs() < 1e-6);
+        // Assert — camera position maps to NDC (0,0)
+        let vp = Mat4::from_cols_array_2d(&uniform.view_proj);
+        let center = vp * glam::Vec4::new(100.0, 200.0, 0.0, 1.0);
+        assert!((center.x).abs() < 1e-5);
+        assert!((center.y).abs() < 1e-5);
     }
 
     #[test]
-    fn when_camera_at_origin_with_zoom_two_then_view_matrix_scales_by_two() {
-        // Arrange
+    fn when_camera_zoom_two_then_half_viewport_in_world_maps_to_ndc_edge() {
+        // Arrange — zoom 2 means half the world extent fits in the viewport
         let camera = Camera2D {
             position: Vec2::ZERO,
             zoom: 2.0,
         };
 
         // Act
-        let view = compute_view_matrix(&camera);
+        let uniform = CameraUniform::from_camera(&camera, 800.0, 600.0);
 
-        // Assert
-        assert!((view.x_axis.x - 2.0).abs() < 1e-6);
-        assert!((view.y_axis.y - 2.0).abs() < 1e-6);
+        // Assert — at zoom 2, world point at (200, 0) maps to NDC x=1
+        let vp = Mat4::from_cols_array_2d(&uniform.view_proj);
+        let edge = vp * glam::Vec4::new(200.0, 0.0, 0.0, 1.0);
+        assert!((edge.x - 1.0).abs() < 1e-4);
     }
 
     #[test]
-    fn when_camera_at_origin_with_zoom_half_then_view_matrix_scales_by_half() {
-        // Arrange
+    fn when_camera_zoom_half_then_double_viewport_in_world_maps_to_ndc_edge() {
+        // Arrange — zoom 0.5 means double the world extent fits in the viewport
         let camera = Camera2D {
             position: Vec2::ZERO,
             zoom: 0.5,
         };
 
         // Act
-        let view = compute_view_matrix(&camera);
+        let uniform = CameraUniform::from_camera(&camera, 800.0, 600.0);
 
-        // Assert
-        assert!((view.x_axis.x - 0.5).abs() < 1e-6);
-        assert!((view.y_axis.y - 0.5).abs() < 1e-6);
+        // Assert — at zoom 0.5, world point at (800, 0) maps to NDC x=1
+        let vp = Mat4::from_cols_array_2d(&uniform.view_proj);
+        let edge = vp * glam::Vec4::new(800.0, 0.0, 0.0, 1.0);
+        assert!((edge.x - 1.0).abs() < 1e-4);
     }
 
     #[test]
-    fn when_camera_at_position_with_nonunit_zoom_then_view_matrix_combines_translation_and_scale() {
+    fn when_camera_at_position_with_zoom_then_ndc_combines_offset_and_scale() {
         // Arrange
         let camera = Camera2D {
             position: Vec2::new(50.0, 100.0),
@@ -198,13 +198,13 @@ mod tests {
         };
 
         // Act
-        let view = compute_view_matrix(&camera);
+        let uniform = CameraUniform::from_camera(&camera, 800.0, 600.0);
 
-        // Assert
-        assert!((view.x_axis.x - 2.0).abs() < 1e-6);
-        assert!((view.y_axis.y - 2.0).abs() < 1e-6);
-        assert!((view.w_axis.x - (-100.0)).abs() < 1e-6);
-        assert!((view.w_axis.y - (-200.0)).abs() < 1e-6);
+        // Assert — camera center maps to NDC (0,0), edge point maps correctly
+        let vp = Mat4::from_cols_array_2d(&uniform.view_proj);
+        let center = vp * glam::Vec4::new(50.0, 100.0, 0.0, 1.0);
+        assert!((center.x).abs() < 1e-4);
+        assert!((center.y).abs() < 1e-4);
     }
 
     /// @doc: Camera position defines the world point that appears at screen center

@@ -43,11 +43,9 @@ pub fn sprite_render_system(
         .filter(|(_, _, _, _, vis, _)| vis.is_none_or(|v| v.0))
         .collect();
 
-    sprites.sort_by_key(|(_, _, layer, sort, _, mat)| {
+    sprites.sort_by_key(|(_, _, layer, sort, _, _mat)| {
         (
             layer.copied().unwrap_or(RenderLayer::World),
-            effective_shader_handle(*mat),
-            effective_blend_mode(*mat),
             sort.copied().unwrap_or_default(),
         )
     });
@@ -82,8 +80,6 @@ pub fn sprite_render_system(
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
-    use std::sync::{Arc, Mutex};
-
     use bevy_ecs::prelude::*;
     use glam::Affine2;
 
@@ -91,9 +87,10 @@ mod tests {
     use crate::material::{BlendMode, Material2d, TextureBinding};
     use crate::shader::ShaderHandle;
     use crate::testing::{
-        BlendCallLog, SpyRenderer, insert_spy, insert_spy_with_blend_capture,
-        insert_spy_with_shader_capture, insert_spy_with_texture_bind_capture,
-        insert_spy_with_uniform_capture, insert_spy_with_viewport,
+        insert_spy, insert_spy_with_blend_and_sprite_capture, insert_spy_with_blend_capture,
+        insert_spy_with_shader_capture, insert_spy_with_sprite_capture,
+        insert_spy_with_texture_bind_capture, insert_spy_with_uniform_capture,
+        insert_spy_with_viewport,
     };
 
     fn run_system(world: &mut World) {
@@ -110,14 +107,6 @@ mod tests {
             width: Pixels(32.0),
             height: Pixels(32.0),
         }
-    }
-
-    fn insert_spy_with_capture(world: &mut World) -> crate::testing::SpriteCallLog {
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let calls = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(log).with_sprite_capture(calls.clone());
-        world.insert_resource(RendererRes::new(Box::new(spy)));
-        calls
     }
 
     #[test]
@@ -225,30 +214,6 @@ mod tests {
     }
 
     #[test]
-    fn when_entity_has_effective_visibility_true_then_draw_sprite_called() {
-        // Arrange
-        let mut world = World::new();
-        let log = insert_spy(&mut world);
-        world.spawn((
-            default_sprite(),
-            GlobalTransform2D(Affine2::IDENTITY),
-            EffectiveVisibility(true),
-        ));
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let count = log
-            .lock()
-            .unwrap()
-            .iter()
-            .filter(|s| s.as_str() == "draw_sprite")
-            .count();
-        assert_eq!(count, 1);
-    }
-
-    #[test]
     fn when_two_visible_sprites_then_draw_sprite_called_twice() {
         // Arrange
         let mut world = World::new();
@@ -274,7 +239,7 @@ mod tests {
     fn when_two_sprites_on_different_layers_then_background_drawn_before_world() {
         // Arrange
         let mut world = World::new();
-        let calls = insert_spy_with_capture(&mut world);
+        let calls = insert_spy_with_sprite_capture(&mut world);
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
@@ -308,7 +273,7 @@ mod tests {
     fn when_two_sprites_same_layer_different_sort_order_then_lower_drawn_first() {
         // Arrange
         let mut world = World::new();
-        let calls = insert_spy_with_capture(&mut world);
+        let calls = insert_spy_with_sprite_capture(&mut world);
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
@@ -344,7 +309,7 @@ mod tests {
     fn when_sprite_has_no_render_layer_then_treated_as_world_layer() {
         // Arrange
         let mut world = World::new();
-        let calls = insert_spy_with_capture(&mut world);
+        let calls = insert_spy_with_sprite_capture(&mut world);
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
@@ -377,7 +342,7 @@ mod tests {
     fn when_sprite_has_no_sort_order_then_treated_as_zero() {
         // Arrange
         let mut world = World::new();
-        let calls = insert_spy_with_capture(&mut world);
+        let calls = insert_spy_with_sprite_capture(&mut world);
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
@@ -412,7 +377,7 @@ mod tests {
     fn when_sprite_at_known_position_then_rect_xy_match_translation() {
         // Arrange
         let mut world = World::new();
-        let calls = insert_spy_with_capture(&mut world);
+        let calls = insert_spy_with_sprite_capture(&mut world);
         world.spawn((
             default_sprite(),
             GlobalTransform2D(Affine2::from_translation(glam::Vec2::new(100.0, 200.0))),
@@ -431,7 +396,7 @@ mod tests {
     fn when_sprite_with_known_dimensions_then_rect_size_matches() {
         // Arrange
         let mut world = World::new();
-        let calls = insert_spy_with_capture(&mut world);
+        let calls = insert_spy_with_sprite_capture(&mut world);
         world.spawn((
             Sprite {
                 width: Pixels(48.0),
@@ -454,7 +419,7 @@ mod tests {
     fn when_sprite_with_known_color_then_rect_color_matches() {
         // Arrange
         let mut world = World::new();
-        let calls = insert_spy_with_capture(&mut world);
+        let calls = insert_spy_with_sprite_capture(&mut world);
         let color = Color::new(1.0, 0.0, 0.5, 1.0);
         world.spawn((
             Sprite {
@@ -476,7 +441,7 @@ mod tests {
     fn when_sprite_with_known_uv_rect_then_draw_sprite_receives_matching_uv() {
         // Arrange
         let mut world = World::new();
-        let calls = insert_spy_with_capture(&mut world);
+        let calls = insert_spy_with_sprite_capture(&mut world);
         let uv = [0.25, 0.0, 0.75, 1.0];
         world.spawn((
             Sprite {
@@ -492,19 +457,6 @@ mod tests {
         // Assert
         let calls = calls.lock().unwrap();
         assert_eq!(calls[0].1, uv);
-    }
-
-    fn insert_spy_with_blend_and_sprite_capture(
-        world: &mut World,
-    ) -> (BlendCallLog, crate::testing::SpriteCallLog) {
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let blend_calls: BlendCallLog = Arc::new(Mutex::new(Vec::new()));
-        let sprite_calls = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(log)
-            .with_blend_capture(blend_calls.clone())
-            .with_sprite_capture(sprite_calls.clone());
-        world.insert_resource(RendererRes::new(Box::new(spy)));
-        (blend_calls, sprite_calls)
     }
 
     #[test]
@@ -567,24 +519,29 @@ mod tests {
     }
 
     #[test]
-    fn when_two_sprites_with_different_blend_modes_then_set_blend_mode_called_in_sorted_order() {
+    fn when_two_sprites_with_different_blend_modes_then_both_blend_modes_applied() {
         // Arrange
         let mut world = World::new();
         let blend_calls = insert_spy_with_blend_capture(&mut world);
         world.spawn((
             default_sprite(),
             GlobalTransform2D(Affine2::IDENTITY),
+            SortOrder(1),
             Material2d {
                 blend_mode: BlendMode::Additive,
                 ..Material2d::default()
             },
         ));
-        world.spawn((default_sprite(), GlobalTransform2D(Affine2::IDENTITY)));
+        world.spawn((
+            default_sprite(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            SortOrder(0),
+        ));
 
         // Act
         run_system(&mut world);
 
-        // Assert
+        // Assert — SortOrder determines draw order
         let calls = blend_calls.lock().unwrap();
         assert_eq!(calls.as_slice(), &[BlendMode::Alpha, BlendMode::Additive]);
     }
@@ -700,7 +657,7 @@ mod tests {
     fn when_same_layer_and_blend_different_sort_order_then_lower_sort_first() {
         // Arrange
         let mut world = World::new();
-        let calls = insert_spy_with_capture(&mut world);
+        let calls = insert_spy_with_sprite_capture(&mut world);
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
@@ -1065,32 +1022,31 @@ mod tests {
     }
 
     #[test]
-    fn when_two_sprites_with_different_shaders_then_shader_dominates_blend_in_sort() {
+    fn when_two_sprites_with_different_shaders_then_sort_order_controls_draw_order() {
         // Arrange
         let mut world = World::new();
-        let calls = insert_spy_with_capture(&mut world);
+        let calls = insert_spy_with_sprite_capture(&mut world);
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
-        // Sprite A: ShaderHandle(1), BlendMode::Alpha
         world.spawn((
             Sprite {
                 color: red,
                 ..default_sprite()
             },
             GlobalTransform2D(Affine2::IDENTITY),
+            SortOrder(1),
             Material2d {
                 shader: ShaderHandle(1),
-                blend_mode: BlendMode::Alpha,
                 ..Material2d::default()
             },
         ));
-        // Sprite B: ShaderHandle(0), BlendMode::Additive
         world.spawn((
             Sprite {
                 color: blue,
                 ..default_sprite()
             },
             GlobalTransform2D(Affine2::IDENTITY),
+            SortOrder(0),
             Material2d {
                 shader: ShaderHandle(0),
                 blend_mode: BlendMode::Additive,
@@ -1101,20 +1057,21 @@ mod tests {
         // Act
         run_system(&mut world);
 
-        // Assert — ShaderHandle(0) < ShaderHandle(1), so blue drawn first
+        // Assert — SortOrder(0) drawn first regardless of shader
         let calls = calls.lock().unwrap();
         assert_eq!(calls[0].0.color, blue);
         assert_eq!(calls[1].0.color, red);
     }
 
     #[test]
-    fn when_same_shader_different_blend_then_blend_sorts_within_shader_group() {
+    fn when_same_shader_different_blend_then_sort_order_controls_draw_order() {
         // Arrange
         let mut world = World::new();
         let blend_calls = insert_spy_with_blend_capture(&mut world);
         world.spawn((
             default_sprite(),
             GlobalTransform2D(Affine2::IDENTITY),
+            SortOrder(1),
             Material2d {
                 shader: ShaderHandle(0),
                 blend_mode: BlendMode::Additive,
@@ -1124,6 +1081,7 @@ mod tests {
         world.spawn((
             default_sprite(),
             GlobalTransform2D(Affine2::IDENTITY),
+            SortOrder(0),
             Material2d {
                 shader: ShaderHandle(0),
                 blend_mode: BlendMode::Alpha,
@@ -1134,7 +1092,7 @@ mod tests {
         // Act
         run_system(&mut world);
 
-        // Assert — Alpha < Additive in Ord
+        // Assert — SortOrder determines order
         let calls = blend_calls.lock().unwrap();
         assert_eq!(calls.as_slice(), &[BlendMode::Alpha, BlendMode::Additive]);
     }

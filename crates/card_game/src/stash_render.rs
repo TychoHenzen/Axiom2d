@@ -61,7 +61,12 @@ pub fn stash_render_system(
                 .map_or(SLOT_COLOR, |shape| shape.color);
 
             let verts = rect_vertices(wp.x, wp.y, world_slot_size, world_slot_size);
-            renderer.draw_shape(&verts, &RECT_INDICES, color);
+            renderer.draw_shape(
+                &verts,
+                &RECT_INDICES,
+                color,
+                engine_render::prelude::IDENTITY_MODEL,
+            );
         }
     }
 }

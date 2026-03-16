@@ -221,26 +221,15 @@ pub(crate) fn shape_aabb(variant: &ShapeVariant) -> (Vec2, Vec2) {
             (min, max)
         }
         ShapeVariant::Path { commands } => {
-            let endpoints: Vec<Vec2> = commands
-                .iter()
-                .filter_map(|cmd| match cmd {
-                    PathCommand::MoveTo(p) | PathCommand::LineTo(p) => Some(*p),
-                    PathCommand::QuadraticTo { to, .. } | PathCommand::CubicTo { to, .. } => {
-                        Some(*to)
-                    }
-                    PathCommand::Close | PathCommand::Reverse => None,
-                })
-                .collect();
-            if endpoints.is_empty() {
+            let mut iter = commands.iter().filter_map(|cmd| match cmd {
+                PathCommand::MoveTo(p) | PathCommand::LineTo(p) => Some(*p),
+                PathCommand::QuadraticTo { to, .. } | PathCommand::CubicTo { to, .. } => Some(*to),
+                PathCommand::Close | PathCommand::Reverse => None,
+            });
+            let Some(first) = iter.next() else {
                 return (Vec2::ZERO, Vec2::ZERO);
-            }
-            let mut min = endpoints[0];
-            let mut max = endpoints[0];
-            for &p in &endpoints[1..] {
-                min = min.min(p);
-                max = max.max(p);
-            }
-            (min, max)
+            };
+            iter.fold((first, first), |(min, max), p| (min.min(p), max.max(p)))
         }
     }
 }
@@ -806,8 +795,6 @@ mod tests {
         assert!(min.y <= 0.0);
     }
 
-    // --- build_lyon_path tests ---
-
     #[test]
     fn when_build_lyon_path_with_close_then_produces_closed_path() {
         // Arrange
@@ -846,8 +833,6 @@ mod tests {
         // Assert — open path should still be tessellatable
         assert!(!mesh.vertices.is_empty());
     }
-
-    // --- tessellate_stroke tests ---
 
     #[test]
     fn when_tessellate_stroke_polygon_with_fewer_than_3_points_then_empty() {

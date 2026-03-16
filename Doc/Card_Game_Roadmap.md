@@ -167,17 +167,18 @@ These extend `engine_physics` with capabilities the card game requires.
 - [x] Integration: flip → visibility sync chain updates children visibility
 - [x] Tests: 19 tests (7 spawn hierarchy, 5 visibility sync, 6 flip detection, 1 integration)
 
-### Step E2 — Flip Animation (Scale.x Tween) `[NOT STARTED]`
+### Step E2 — Flip Animation (Scale.x Tween) `[DONE]`
 **Crate:** card_game
-**Why:** Smooth visual flip in the card's local space — scale.x shrinks to 0, texture swaps, scale.x grows back.
+**Why:** Smooth visual flip in the card's local space — scale.x shrinks to 0, face_up swaps at midpoint, scale.x grows back.
 
-- [ ] `FlipAnimation` component: `progress: f32` (0.0 → 1.0), `duration: Seconds`, `swapped: bool`
-- [ ] `flip_animation_system` in Phase::Update: advance progress by dt/duration each frame
+- [x] `FlipAnimation` component: `progress: f32` (0.0 → 1.0), `duration: Seconds`, `target_face_up: bool`
+- [x] `flip_animation_system` in Phase::Update: advance progress by dt/duration each frame
   - progress < 0.5: `scale.x = 1.0 - progress * 2.0` (shrink to 0)
-  - At progress crossing 0.5 (first frame past midpoint): swap Sprite.uv_rect between face and back, set `swapped = true`
+  - At progress crossing 0.5 (first frame past midpoint): set `card.face_up = target_face_up`
   - progress >= 0.5: `scale.x = (progress - 0.5) * 2.0` (grow back to 1)
-  - At progress >= 1.0: remove FlipAnimation component, ensure scale.x = 1.0
-- [ ] Tests: scale.x at midpoint is 0, texture swaps at midpoint, animation completes and component removed, multiple flips queue correctly
+  - At progress >= 1.0: remove FlipAnimation component, set scale.x = 1.0, ensure face_up = target
+- [x] `card_flip_system` modified: inserts FlipAnimation instead of toggling face_up directly; skips entities already animating (Has<FlipAnimation> guard)
+- [x] Tests: 13 flip_animation tests (progress advance, scale formula first/second half + midpoint, face_up toggle at midpoint, idempotent past midpoint, completion removes component + restores scale, multi-entity independence, visibility sync integration) + 8 updated card_flip tests
 
 ---
 

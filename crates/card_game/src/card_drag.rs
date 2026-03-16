@@ -162,9 +162,7 @@ mod tests {
         (world, velocity_log, angular_velocity_log)
     }
 
-    fn spawn_entity() -> Entity {
-        World::new().spawn_empty().id()
-    }
+    use crate::test_helpers::spawn_entity;
 
     #[test]
     fn when_dragging_at_center_then_velocity_points_toward_cursor() {

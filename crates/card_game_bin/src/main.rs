@@ -51,8 +51,16 @@ fn spawn_scene(world: &mut bevy_ecs::world::World) {
 
     let card_size = Vec2::new(CARD_WIDTH, CARD_HEIGHT);
     let mut card_entities = Vec::new();
-    for &pos in &card_positions {
-        let card = Card::face_down(TextureId(0), TextureId(0));
+    for (i, &pos) in card_positions.iter().enumerate() {
+        let card = if i == 2 {
+            Card {
+                face_texture: TextureId(0),
+                back_texture: TextureId(0),
+                face_up: true,
+            }
+        } else {
+            Card::face_down(TextureId(0), TextureId(0))
+        };
         let entity = spawn_visual_card(world, card, pos, card_size);
         card_entities.push(entity);
     }
@@ -98,6 +106,11 @@ fn setup(app: &mut App) {
         a: 1.0,
     }));
 
+    let art_shader = register_card_art_shader(
+        &mut world.resource_mut::<ShaderRegistry>(),
+    );
+    world.insert_resource(art_shader);
+
     spawn_scene(world);
 
     app.world_mut()
@@ -129,6 +142,7 @@ fn setup(app: &mut App) {
                 card_drag_system,
                 card_release_system,
                 card_flip_system,
+                flip_animation_system,
             )
                 .chain(),
         )

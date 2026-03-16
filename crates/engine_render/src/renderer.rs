@@ -7,16 +7,30 @@ use crate::rect::Rect;
 use crate::shader::ShaderHandle;
 use engine_core::types::TextureId;
 
+pub const IDENTITY_MODEL: [[f32; 4]; 4] = [
+    [1.0, 0.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0, 0.0],
+    [0.0, 0.0, 1.0, 0.0],
+    [0.0, 0.0, 0.0, 1.0],
+];
+
 pub trait Renderer {
     fn clear(&mut self, color: Color);
     fn draw_rect(&mut self, rect: Rect);
     fn draw_sprite(&mut self, rect: Rect, uv_rect: [f32; 4]);
-    fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color);
+    fn draw_shape(
+        &mut self,
+        vertices: &[[f32; 2]],
+        indices: &[u32],
+        color: Color,
+        model: [[f32; 4]; 4],
+    );
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]);
     fn set_blend_mode(&mut self, mode: BlendMode);
     fn set_shader(&mut self, shader: ShaderHandle);
     fn set_material_uniforms(&mut self, data: &[u8]);
     fn bind_material_texture(&mut self, texture: TextureId, binding: u32);
+    fn compile_shader(&mut self, handle: ShaderHandle, source: &str);
     fn upload_atlas(&mut self, atlas: &TextureAtlas);
     fn viewport_size(&self) -> (u32, u32);
     fn apply_post_process(&mut self);
@@ -53,12 +67,20 @@ impl Renderer for NullRenderer {
     fn clear(&mut self, _color: Color) {}
     fn draw_rect(&mut self, _rect: Rect) {}
     fn draw_sprite(&mut self, _rect: Rect, _uv_rect: [f32; 4]) {}
-    fn draw_shape(&mut self, _vertices: &[[f32; 2]], _indices: &[u32], _color: Color) {}
+    fn draw_shape(
+        &mut self,
+        _vertices: &[[f32; 2]],
+        _indices: &[u32],
+        _color: Color,
+        _model: [[f32; 4]; 4],
+    ) {
+    }
     fn set_view_projection(&mut self, _matrix: [[f32; 4]; 4]) {}
     fn set_blend_mode(&mut self, _mode: BlendMode) {}
     fn set_shader(&mut self, _shader: ShaderHandle) {}
     fn set_material_uniforms(&mut self, _data: &[u8]) {}
     fn bind_material_texture(&mut self, _texture: TextureId, _binding: u32) {}
+    fn compile_shader(&mut self, _handle: ShaderHandle, _source: &str) {}
     fn upload_atlas(&mut self, _atlas: &TextureAtlas) {}
     fn viewport_size(&self) -> (u32, u32) {
         (0, 0)
@@ -91,121 +113,31 @@ mod tests {
     }
 
     #[test]
-    fn when_null_renderer_clears_then_does_not_panic() {
+    fn when_null_renderer_all_methods_called_then_none_panic() {
         // Arrange
         let mut renderer = NullRenderer;
 
         // Act
         renderer.clear(Color::BLACK);
-    }
-
-    #[test]
-    fn when_null_renderer_presents_then_does_not_panic() {
-        // Arrange
-        let mut renderer = NullRenderer;
-
-        // Act
-        renderer.present();
-    }
-
-    #[test]
-    fn when_null_renderer_draws_rect_then_does_not_panic() {
-        // Arrange
-        let mut renderer = NullRenderer;
-
-        // Act
         renderer.draw_rect(sample_rect());
-    }
-
-    #[test]
-    fn when_null_renderer_draws_sprite_then_does_not_panic() {
-        // Arrange
-        let mut renderer = NullRenderer;
-
-        // Act
         renderer.draw_sprite(sample_rect(), [0.0, 0.0, 1.0, 1.0]);
-    }
-
-    #[test]
-    fn when_null_renderer_draws_shape_then_does_not_panic() {
-        // Arrange
-        let mut renderer = NullRenderer;
-        let vertices = [[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]];
-        let indices = [0u32, 1, 2];
-
-        // Act
-        renderer.draw_shape(&vertices, &indices, Color::WHITE);
-    }
-
-    #[test]
-    fn when_null_renderer_set_view_projection_then_does_not_panic() {
-        // Arrange
-        let mut renderer = NullRenderer;
-
-        // Act
+        renderer.draw_shape(
+            &[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]],
+            &[0, 1, 2],
+            Color::WHITE,
+            IDENTITY_MODEL,
+        );
         renderer.set_view_projection([[0.0f32; 4]; 4]);
-    }
-
-    #[test]
-    fn when_null_renderer_resizes_then_does_not_panic() {
-        // Arrange
-        let mut renderer = NullRenderer;
-
-        // Act
-        renderer.resize(800, 600);
-    }
-
-    #[test]
-    fn when_null_renderer_upload_atlas_then_does_not_panic() {
-        // Arrange
-        let mut renderer = NullRenderer;
-
-        // Act
-        renderer.upload_atlas(&crate::test_helpers::minimal_atlas());
-    }
-
-    #[test]
-    fn when_null_renderer_set_blend_mode_then_does_not_panic() {
-        // Arrange
-        let mut renderer = NullRenderer;
-
-        // Act
         renderer.set_blend_mode(BlendMode::Alpha);
-        renderer.set_blend_mode(BlendMode::Additive);
-        renderer.set_blend_mode(BlendMode::Multiply);
-    }
-
-    #[test]
-    fn when_null_renderer_set_shader_and_uniforms_and_texture_then_does_not_panic() {
-        // Arrange
-        let mut renderer = NullRenderer;
-
-        // Act
         renderer.set_shader(crate::shader::ShaderHandle(0));
         renderer.set_material_uniforms(&[1, 2, 3]);
         renderer.bind_material_texture(engine_core::types::TextureId(0), 2);
-    }
-
-    #[test]
-    fn when_null_renderer_applies_post_process_then_does_not_panic() {
-        // Arrange
-        let mut renderer = NullRenderer;
-
-        // Act
+        renderer.upload_atlas(&crate::test_helpers::minimal_atlas());
+        renderer.compile_shader(crate::shader::ShaderHandle(1), "@vertex fn vs_shape() {}");
         renderer.apply_post_process();
-    }
-
-    #[test]
-    fn when_null_renderer_viewport_size_then_returns_zero_zero() {
-        // Arrange
-        let renderer = NullRenderer;
-
-        // Act
-        let (w, h) = renderer.viewport_size();
-
-        // Assert
-        assert_eq!(w, 0);
-        assert_eq!(h, 0);
+        renderer.resize(800, 600);
+        renderer.present();
+        assert_eq!(renderer.viewport_size(), (0, 0));
     }
 
     #[test]

@@ -31,9 +31,7 @@ mod tests {
         schedule.run(world);
     }
 
-    fn spawn_entity() -> Entity {
-        World::new().spawn_empty().id()
-    }
+    use crate::test_helpers::spawn_entity;
 
     #[test]
     fn when_mouse_released_while_dragging_then_drag_state_cleared() {

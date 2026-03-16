@@ -1,11 +1,12 @@
 use bevy_ecs::prelude::{Entity, World};
 use engine_core::prelude::{Color, Pixels, Transform2D};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
-use engine_render::prelude::{Shape, ShapeVariant, Sprite};
+use engine_render::prelude::{Material2d, ShaderHandle, Shape, ShapeVariant, Sprite};
 use engine_scene::prelude::{ChildOf, RenderLayer, SortOrder, Visible};
 use glam::Vec2;
 
 use crate::card::Card;
+use crate::card_art_shader::CardArtShader;
 use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card_face_side::CardFaceSide;
 use crate::card_zone::CardZone;
@@ -33,26 +34,35 @@ struct FaceChildDef {
     half_h: f32,
     color: Color,
     sort: i32,
+    shader: Option<ShaderHandle>,
 }
 
 fn spawn_face_child(world: &mut World, root: Entity, def: &FaceChildDef) {
-    world.spawn((
-        ChildOf(root),
-        def.side,
-        Visible(def.visible),
-        Shape {
-            variant: rect_polygon(def.half_w, def.half_h),
-            color: def.color,
-        },
-        Transform2D {
-            position: def.offset,
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        },
-        RenderLayer::World,
-        LocalSortOrder(def.sort),
-        SortOrder(0),
-    ));
+    let entity = world
+        .spawn((
+            ChildOf(root),
+            def.side,
+            Visible(def.visible),
+            Shape {
+                variant: rect_polygon(def.half_w, def.half_h),
+                color: def.color,
+            },
+            Transform2D {
+                position: def.offset,
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            RenderLayer::World,
+            LocalSortOrder(def.sort),
+            SortOrder(0),
+        ))
+        .id();
+    if let Some(shader) = def.shader {
+        world.entity_mut(entity).insert(Material2d {
+            shader,
+            ..Material2d::default()
+        });
+    }
 }
 
 pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_size: Vec2) -> Entity {
@@ -84,6 +94,7 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
     // Front face: border + name strip + art area + description strip
     // Note: positive world-Y = screen bottom (Y-flipped camera projection)
     let (w, h) = (card_size.x, card_size.y);
+    let art_shader = world.get_resource::<CardArtShader>().map(|s| s.0);
     let front_children = [
         FaceChildDef {
             side: CardFaceSide::Front,
@@ -93,6 +104,7 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
             half_h: h * 0.5,
             color: Color::WHITE,
             sort: 1,
+            shader: None,
         },
         FaceChildDef {
             side: CardFaceSide::Front,
@@ -102,6 +114,7 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
             half_h: 7.5,
             color: Color::from_u8(220, 220, 220, 255),
             sort: 2,
+            shader: None,
         },
         FaceChildDef {
             side: CardFaceSide::Front,
@@ -111,6 +124,7 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
             half_h: 22.5,
             color: Color::from_u8(180, 200, 230, 255),
             sort: 3,
+            shader: art_shader,
         },
         FaceChildDef {
             side: CardFaceSide::Front,
@@ -120,6 +134,7 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
             half_h: 15.0,
             color: Color::from_u8(240, 240, 200, 255),
             sort: 4,
+            shader: None,
         },
     ];
     for def in &front_children {
@@ -136,6 +151,7 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
             half_h: h * 0.5,
             color: Color::from_u8(30, 60, 120, 255),
             sort: 1,
+            shader: None,
         },
         FaceChildDef {
             side: CardFaceSide::Back,
@@ -145,6 +161,7 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
             half_h: h * 0.3,
             color: Color::from_u8(60, 100, 180, 255),
             sort: 2,
+            shader: None,
         },
     ];
     for def in &back_children {
@@ -557,5 +574,73 @@ mod tests {
         let back =
             border_shape_for_side(&mut world, root, CardFaceSide::Back).expect("back border");
         assert_ne!(front.color, back.color);
+    }
+
+    #[test]
+    fn when_card_art_shader_registered_then_art_area_has_material2d() {
+        // Arrange
+        let mut world = World::new();
+        let mut registry = engine_render::prelude::ShaderRegistry::new();
+        let art_shader = crate::card_art_shader::register_card_art_shader(&mut registry);
+        world.insert_resource(registry);
+        world.insert_resource(art_shader);
+        let card = Card {
+            face_texture: TextureId(1),
+            back_texture: TextureId(2),
+            face_up: true,
+        };
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            card,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+        );
+
+        // Assert — art area is front child at sort 3
+        let mut q = world.query::<(
+            &ChildOf,
+            &CardFaceSide,
+            &LocalSortOrder,
+            Option<&Material2d>,
+        )>();
+        let art_child = q.iter(&world).find(|(parent, side, sort, _)| {
+            parent.0 == root && **side == CardFaceSide::Front && sort.0 == 3
+        });
+        let (_, _, _, mat) = art_child.expect("art area child should exist");
+        let mat = mat.expect("art area should have Material2d");
+        assert_eq!(mat.shader, art_shader.0);
+    }
+
+    #[test]
+    fn when_no_card_art_shader_then_art_area_has_no_material2d() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            card,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+        );
+
+        // Assert
+        let mut q = world.query::<(
+            &ChildOf,
+            &CardFaceSide,
+            &LocalSortOrder,
+            Option<&Material2d>,
+        )>();
+        let art_child = q.iter(&world).find(|(parent, side, sort, _)| {
+            parent.0 == root && **side == CardFaceSide::Front && sort.0 == 3
+        });
+        let (_, _, _, mat) = art_child.expect("art area child should exist");
+        assert!(
+            mat.is_none(),
+            "art area should not have Material2d without shader resource"
+        );
     }
 }

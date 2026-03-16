@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use wgpu::util::DeviceExt;
@@ -7,6 +8,7 @@ use engine_core::color::Color;
 
 use crate::rect::Rect;
 use crate::renderer::Renderer;
+use crate::shader::ShaderHandle;
 use crate::window::WindowConfig;
 
 use super::bloom::PostProcessResources;
@@ -19,7 +21,59 @@ use super::types::{
 
 struct ShapeDrawRecord {
     blend_mode: crate::material::BlendMode,
+    shader_handle: ShaderHandle,
     index_offset: u32,
+    model: [[f32; 4]; 4],
+}
+
+fn create_shape_pipelines(
+    device: &wgpu::Device,
+    shader_module: &wgpu::ShaderModule,
+    layout: &wgpu::PipelineLayout,
+    format: wgpu::TextureFormat,
+) -> [wgpu::RenderPipeline; 3] {
+    crate::material::BlendMode::ALL.map(|mode| {
+        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: None,
+            layout: Some(layout),
+            vertex: wgpu::VertexState {
+                module: shader_module,
+                entry_point: Some("vs_shape"),
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: size_of::<ShapeVertex>() as wgpu::BufferAddress,
+                    step_mode: wgpu::VertexStepMode::Vertex,
+                    attributes: &[
+                        wgpu::VertexAttribute {
+                            format: wgpu::VertexFormat::Float32x2,
+                            offset: 0,
+                            shader_location: 0,
+                        },
+                        wgpu::VertexAttribute {
+                            format: wgpu::VertexFormat::Float32x4,
+                            offset: 8,
+                            shader_location: 1,
+                        },
+                    ],
+                }],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: shader_module,
+                entry_point: Some("fs_shape"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format,
+                    blend: Some(blend_mode_to_blend_state(mode)),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            }),
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None,
+            cache: None,
+        })
+    })
 }
 
 pub struct WgpuRenderer {
@@ -41,6 +95,12 @@ pub struct WgpuRenderer {
     shape_batch: ShapeBatch,
     shape_draws: Vec<ShapeDrawRecord>,
     shape_pipelines: [wgpu::RenderPipeline; 3],
+    shape_pipeline_layout: wgpu::PipelineLayout,
+    model_bind_group_layout: wgpu::BindGroupLayout,
+    model_uniform_align: u32,
+    shader_cache: HashMap<ShaderHandle, [wgpu::RenderPipeline; 3]>,
+    active_shader: ShaderHandle,
+    surface_format: wgpu::TextureFormat,
     post_process: Option<PostProcessResources>,
     post_process_pending: bool,
     bloom_threshold: f32,
@@ -229,55 +289,32 @@ impl WgpuRenderer {
             source: wgpu::ShaderSource::Wgsl(SHAPE_SHADER_SRC.into()),
         });
 
+        let model_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: true,
+                        min_binding_size: wgpu::BufferSize::new(64),
+                    },
+                    count: None,
+                }],
+            });
+
+        let model_uniform_align = device.limits().min_uniform_buffer_offset_alignment;
+
         let shape_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: None,
-                bind_group_layouts: &[&camera_bind_group_layout],
+                bind_group_layouts: &[&camera_bind_group_layout, &model_bind_group_layout],
                 push_constant_ranges: &[],
             });
 
-        let shape_pipelines = crate::material::BlendMode::ALL.map(|mode| {
-            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: None,
-                layout: Some(&shape_pipeline_layout),
-                vertex: wgpu::VertexState {
-                    module: &shape_shader,
-                    entry_point: Some("vs_shape"),
-                    buffers: &[wgpu::VertexBufferLayout {
-                        array_stride: size_of::<ShapeVertex>() as wgpu::BufferAddress,
-                        step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &[
-                            wgpu::VertexAttribute {
-                                format: wgpu::VertexFormat::Float32x2,
-                                offset: 0,
-                                shader_location: 0,
-                            },
-                            wgpu::VertexAttribute {
-                                format: wgpu::VertexFormat::Float32x4,
-                                offset: 8,
-                                shader_location: 1,
-                            },
-                        ],
-                    }],
-                    compilation_options: wgpu::PipelineCompilationOptions::default(),
-                },
-                fragment: Some(wgpu::FragmentState {
-                    module: &shape_shader,
-                    entry_point: Some("fs_shape"),
-                    targets: &[Some(wgpu::ColorTargetState {
-                        format,
-                        blend: Some(blend_mode_to_blend_state(mode)),
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
-                    compilation_options: wgpu::PipelineCompilationOptions::default(),
-                }),
-                primitive: wgpu::PrimitiveState::default(),
-                depth_stencil: None,
-                multisample: wgpu::MultisampleState::default(),
-                multiview: None,
-                cache: None,
-            })
-        });
+        let shape_pipelines =
+            create_shape_pipelines(&device, &shape_shader, &shape_pipeline_layout, format);
 
         Self {
             surface,
@@ -298,6 +335,12 @@ impl WgpuRenderer {
             shape_batch: ShapeBatch::new(),
             shape_draws: Vec::new(),
             shape_pipelines,
+            shape_pipeline_layout,
+            model_bind_group_layout,
+            model_uniform_align,
+            shader_cache: HashMap::new(),
+            active_shader: ShaderHandle(0),
+            surface_format: format,
             post_process: None,
             post_process_pending: false,
             bloom_threshold: 0.8,
@@ -309,6 +352,7 @@ impl WgpuRenderer {
         self.pending_instances.clear();
         self.instance_blend_modes.clear();
         self.current_blend_mode = crate::material::BlendMode::Alpha;
+        self.active_shader = ShaderHandle(0);
         self.shape_batch.clear();
         self.shape_draws.clear();
     }
@@ -388,20 +432,67 @@ impl WgpuRenderer {
                     usage: wgpu::BufferUsages::INDEX,
                 });
 
+            // Pack model matrices into a dynamic uniform buffer (aligned per device)
+            let align = self.model_uniform_align as usize;
+            let aligned_entry = align.max(64);
+            let buf_size = self.shape_draws.len() * aligned_entry;
+            let mut model_data = vec![0u8; buf_size];
+            for (i, draw) in self.shape_draws.iter().enumerate() {
+                let offset = i * aligned_entry;
+                let bytes: &[u8; 64] = bytemuck::cast_ref(&draw.model);
+                model_data[offset..offset + 64].copy_from_slice(bytes);
+            }
+            let model_buffer =
+                self.device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: None,
+                        contents: &model_data,
+                        usage: wgpu::BufferUsages::UNIFORM,
+                    });
+            let model_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &self.model_bind_group_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: &model_buffer,
+                        offset: 0,
+                        size: wgpu::BufferSize::new(64),
+                    }),
+                }],
+            });
+
             pass.set_bind_group(0, &self.camera_bind_group, &[]);
             pass.set_vertex_buffer(0, vertex_buffer.slice(..));
             pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 
-            let blend_modes: Vec<_> = self.shape_draws.iter().map(|d| d.blend_mode).collect();
             let total_indices = self.shape_batch.index_count() as u32;
-            for (mode, shape_range) in compute_batch_ranges(&blend_modes) {
-                let idx_start = self.shape_draws[shape_range.start as usize].index_offset;
-                let idx_end = if (shape_range.end as usize) < self.shape_draws.len() {
-                    self.shape_draws[shape_range.end as usize].index_offset
+            let mut last_pipeline_key: Option<(ShaderHandle, crate::material::BlendMode)> = None;
+
+            for (i, draw) in self.shape_draws.iter().enumerate() {
+                let key = (draw.shader_handle, draw.blend_mode);
+
+                if last_pipeline_key != Some(key) {
+                    let pipeline = if key.0 == ShaderHandle(0) {
+                        &self.shape_pipelines[key.1.index()]
+                    } else if let Some(cached) = self.shader_cache.get(&key.0) {
+                        &cached[key.1.index()]
+                    } else {
+                        &self.shape_pipelines[key.1.index()]
+                    };
+                    pass.set_pipeline(pipeline);
+                    last_pipeline_key = Some(key);
+                }
+
+                let dyn_offset = (i * aligned_entry) as u32;
+                pass.set_bind_group(1, &model_bind_group, &[dyn_offset]);
+
+                let idx_start = draw.index_offset;
+                let idx_end = if i + 1 < self.shape_draws.len() {
+                    self.shape_draws[i + 1].index_offset
                 } else {
                     total_indices
                 };
-                pass.set_pipeline(&self.shape_pipelines[mode.index()]);
                 pass.draw_indexed(idx_start..idx_end, 0, 0..1);
             }
         }
@@ -530,11 +621,19 @@ impl Renderer for WgpuRenderer {
         self.instance_blend_modes.push(self.current_blend_mode);
     }
 
-    fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color) {
+    fn draw_shape(
+        &mut self,
+        vertices: &[[f32; 2]],
+        indices: &[u32],
+        color: Color,
+        model: [[f32; 4]; 4],
+    ) {
         #[allow(clippy::cast_possible_truncation)]
         self.shape_draws.push(ShapeDrawRecord {
             blend_mode: self.current_blend_mode,
+            shader_handle: self.active_shader,
             index_offset: self.shape_batch.index_count() as u32,
+            model,
         });
         self.shape_batch.push(vertices, indices, color);
     }
@@ -543,14 +642,32 @@ impl Renderer for WgpuRenderer {
         self.current_blend_mode = mode;
     }
 
-    // TODO(shader-cache): wire to GPU pipeline cache when shader variant compilation is implemented
-    fn set_shader(&mut self, _shader: crate::shader::ShaderHandle) {}
+    fn set_shader(&mut self, shader: ShaderHandle) {
+        self.active_shader = shader;
+    }
 
     // TODO(shader-cache): upload uniform buffer per-material when GPU pipeline cache exists
     fn set_material_uniforms(&mut self, _data: &[u8]) {}
 
     // TODO(shader-cache): bind texture to material slot when GPU pipeline cache exists
     fn bind_material_texture(&mut self, _texture: engine_core::types::TextureId, _binding: u32) {}
+
+    fn compile_shader(&mut self, handle: ShaderHandle, source: &str) {
+        if self.shader_cache.contains_key(&handle) {
+            return;
+        }
+        let shader_module = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: wgpu::ShaderSource::Wgsl(source.into()),
+        });
+        let pipelines = create_shape_pipelines(
+            &self.device,
+            &shader_module,
+            &self.shape_pipeline_layout,
+            self.surface_format,
+        );
+        self.shader_cache.insert(handle, pipelines);
+    }
 
     fn upload_atlas(&mut self, atlas: &crate::atlas::TextureAtlas) {
         self.texture_bind_group = create_texture_bind_group(

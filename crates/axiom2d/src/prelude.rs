@@ -5,6 +5,8 @@ pub use engine_audio::prelude::*;
 pub use engine_core::prelude::*;
 pub use engine_ecs::prelude::*;
 pub use engine_input::prelude::*;
+#[cfg(feature = "physics")]
+pub use engine_physics::prelude::*;
 #[cfg(feature = "render")]
 pub use engine_render::prelude::*;
 pub use engine_scene::prelude::*;

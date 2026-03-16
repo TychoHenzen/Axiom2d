@@ -12,12 +12,13 @@ use crate::shader::ShaderHandle;
 
 pub type RectCallLog = Arc<Mutex<Vec<Rect>>>;
 pub type SpriteCallLog = Arc<Mutex<Vec<(Rect, [f32; 4])>>>;
-pub type ShapeCallLog = Arc<Mutex<Vec<(Vec<[f32; 2]>, Vec<u32>, Color)>>>;
+pub type ShapeCallLog = Arc<Mutex<Vec<(Vec<[f32; 2]>, Vec<u32>, Color, [[f32; 4]; 4])>>>;
 pub type MatrixCapture = Arc<Mutex<Option<[[f32; 4]; 4]>>>;
-pub type BlendCallLog = Arc<Mutex<Vec<BlendMode>>>;
-pub type ShaderCallLog = Arc<Mutex<Vec<ShaderHandle>>>;
-pub type UniformCallLog = Arc<Mutex<Vec<Vec<u8>>>>;
-pub type TextureBindCallLog = Arc<Mutex<Vec<(TextureId, u32)>>>;
+pub type BlendCapture = Arc<Mutex<Vec<BlendMode>>>;
+pub type ShaderCapture = Arc<Mutex<Vec<ShaderHandle>>>;
+pub type UniformCapture = Arc<Mutex<Vec<Vec<u8>>>>;
+pub type TextureBindCapture = Arc<Mutex<Vec<(TextureId, u32)>>>;
+pub type CompileShaderCapture = Arc<Mutex<Vec<(ShaderHandle, String)>>>;
 
 pub struct SpyRenderer {
     log: Arc<Mutex<Vec<String>>>,
@@ -26,10 +27,11 @@ pub struct SpyRenderer {
     sprite_calls: Option<SpriteCallLog>,
     shape_calls: Option<ShapeCallLog>,
     matrix_capture: Option<MatrixCapture>,
-    blend_calls: Option<BlendCallLog>,
-    shader_calls: Option<ShaderCallLog>,
-    uniform_calls: Option<UniformCallLog>,
-    texture_bind_calls: Option<TextureBindCallLog>,
+    blend_calls: Option<BlendCapture>,
+    shader_calls: Option<ShaderCapture>,
+    uniform_calls: Option<UniformCapture>,
+    texture_bind_calls: Option<TextureBindCapture>,
+    compile_shader_calls: Option<CompileShaderCapture>,
     viewport: (u32, u32),
 }
 
@@ -46,6 +48,7 @@ impl SpyRenderer {
             shader_calls: None,
             uniform_calls: None,
             texture_bind_calls: None,
+            compile_shader_calls: None,
             viewport: (0, 0),
         }
     }
@@ -75,23 +78,31 @@ impl SpyRenderer {
         self
     }
 
-    pub fn with_blend_capture(mut self, blend_calls: BlendCallLog) -> Self {
+    pub fn with_blend_capture(mut self, blend_calls: BlendCapture) -> Self {
         self.blend_calls = Some(blend_calls);
         self
     }
 
-    pub fn with_shader_capture(mut self, shader_calls: ShaderCallLog) -> Self {
+    pub fn with_shader_capture(mut self, shader_calls: ShaderCapture) -> Self {
         self.shader_calls = Some(shader_calls);
         self
     }
 
-    pub fn with_uniform_capture(mut self, uniform_calls: UniformCallLog) -> Self {
+    pub fn with_uniform_capture(mut self, uniform_calls: UniformCapture) -> Self {
         self.uniform_calls = Some(uniform_calls);
         self
     }
 
-    pub fn with_texture_bind_capture(mut self, texture_bind_calls: TextureBindCallLog) -> Self {
+    pub fn with_texture_bind_capture(mut self, texture_bind_calls: TextureBindCapture) -> Self {
         self.texture_bind_calls = Some(texture_bind_calls);
+        self
+    }
+
+    pub fn with_compile_shader_capture(
+        mut self,
+        compile_shader_calls: CompileShaderCapture,
+    ) -> Self {
+        self.compile_shader_calls = Some(compile_shader_calls);
         self
     }
 
@@ -130,13 +141,20 @@ impl Renderer for SpyRenderer {
         }
     }
 
-    fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color) {
+    fn draw_shape(
+        &mut self,
+        vertices: &[[f32; 2]],
+        indices: &[u32],
+        color: Color,
+        model: [[f32; 4]; 4],
+    ) {
         self.log_call("draw_shape");
         if let Some(capture) = &self.shape_calls {
             capture.lock().expect("shape capture poisoned").push((
                 vertices.to_vec(),
                 indices.to_vec(),
                 color,
+                model,
             ));
         }
     }
@@ -175,6 +193,16 @@ impl Renderer for SpyRenderer {
                 .lock()
                 .expect("texture bind capture poisoned")
                 .push((texture, binding));
+        }
+    }
+
+    fn compile_shader(&mut self, handle: ShaderHandle, source: &str) {
+        self.log_call("compile_shader");
+        if let Some(capture) = &self.compile_shader_calls {
+            capture
+                .lock()
+                .expect("compile_shader capture poisoned")
+                .push((handle, source.to_owned()));
         }
     }
 
@@ -235,20 +263,63 @@ fn insert_spy_capturing<T: 'static>(
     capture
 }
 
-pub fn insert_spy_with_blend_capture(world: &mut World) -> BlendCallLog {
+pub fn insert_spy_with_blend_capture(world: &mut World) -> BlendCapture {
     insert_spy_capturing(world, SpyRenderer::with_blend_capture)
 }
 
-pub fn insert_spy_with_shader_capture(world: &mut World) -> ShaderCallLog {
+pub fn insert_spy_with_shader_capture(world: &mut World) -> ShaderCapture {
     insert_spy_capturing(world, SpyRenderer::with_shader_capture)
 }
 
-pub fn insert_spy_with_uniform_capture(world: &mut World) -> UniformCallLog {
+pub fn insert_spy_with_uniform_capture(world: &mut World) -> UniformCapture {
     insert_spy_capturing(world, SpyRenderer::with_uniform_capture)
 }
 
-pub fn insert_spy_with_texture_bind_capture(world: &mut World) -> TextureBindCallLog {
+pub fn insert_spy_with_texture_bind_capture(world: &mut World) -> TextureBindCapture {
     insert_spy_capturing(world, SpyRenderer::with_texture_bind_capture)
+}
+
+pub fn insert_spy_with_sprite_capture(world: &mut World) -> SpriteCallLog {
+    insert_spy_capturing(world, SpyRenderer::with_sprite_capture)
+}
+
+pub fn insert_spy_with_shape_capture(world: &mut World) -> ShapeCallLog {
+    insert_spy_capturing(world, SpyRenderer::with_shape_capture)
+}
+
+pub fn insert_spy_with_shape_and_viewport(
+    world: &mut World,
+    width: u32,
+    height: u32,
+) -> ShapeCallLog {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log)
+        .with_shape_capture(calls.clone())
+        .with_viewport(width, height);
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+    calls
+}
+
+pub fn insert_spy_with_compile_shader_capture(world: &mut World) -> CompileShaderCapture {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let capture: CompileShaderCapture = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log).with_compile_shader_capture(capture.clone());
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+    capture
+}
+
+pub fn insert_spy_with_blend_and_sprite_capture(
+    world: &mut World,
+) -> (BlendCapture, SpriteCallLog) {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let blend_calls: BlendCapture = Arc::new(Mutex::new(Vec::new()));
+    let sprite_calls = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log)
+        .with_blend_capture(blend_calls.clone())
+        .with_sprite_capture(sprite_calls.clone());
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+    (blend_calls, sprite_calls)
 }
 
 #[cfg(test)]
@@ -262,99 +333,58 @@ mod tests {
     use crate::renderer::Renderer;
 
     #[test]
-    fn when_clear_called_then_log_records_clear_string() {
+    fn when_each_method_called_then_log_records_matching_string() {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));
         let mut spy = SpyRenderer::new(log.clone());
 
         // Act
         spy.clear(Color::WHITE);
-
-        // Assert
-        assert_eq!(log.lock().unwrap().as_slice(), &["clear"]);
-    }
-
-    #[test]
-    fn when_draw_rect_called_then_log_records_draw_rect_string() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::new(log.clone());
-        let rect = Rect::default();
-
-        // Act
-        spy.draw_rect(rect);
-
-        // Assert
-        assert_eq!(log.lock().unwrap().as_slice(), &["draw_rect"]);
-    }
-
-    #[test]
-    fn when_present_called_then_log_records_present_string() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::new(log.clone());
-
-        // Act
-        spy.present();
-
-        // Assert
-        assert_eq!(log.lock().unwrap().as_slice(), &["present"]);
-    }
-
-    #[test]
-    fn when_resize_called_then_log_records_resize_string() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::new(log.clone());
-
-        // Act
-        spy.resize(800, 600);
-
-        // Assert
-        assert_eq!(log.lock().unwrap().as_slice(), &["resize"]);
-    }
-
-    #[test]
-    fn when_draw_sprite_called_then_log_records_draw_sprite_string() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::new(log.clone());
-
-        // Act
+        spy.draw_rect(Rect::default());
         spy.draw_sprite(Rect::default(), [0.0, 0.0, 1.0, 1.0]);
-
-        // Assert
-        assert_eq!(log.lock().unwrap().as_slice(), &["draw_sprite"]);
-    }
-
-    #[test]
-    fn when_set_view_projection_called_then_log_records_set_view_projection() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::new(log.clone());
-
-        // Act
-        spy.set_view_projection([[0.0f32; 4]; 4]);
-
-        // Assert
-        assert_eq!(log.lock().unwrap().as_slice(), &["set_view_projection"]);
-    }
-
-    #[test]
-    fn when_draw_shape_called_then_log_records_draw_shape_string() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::new(log.clone());
-
-        // Act
         spy.draw_shape(
             &[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]],
             &[0, 1, 2],
             Color::WHITE,
+            crate::renderer::IDENTITY_MODEL,
         );
+        spy.set_view_projection([[0.0f32; 4]; 4]);
+        spy.set_blend_mode(BlendMode::Additive);
+        spy.set_shader(crate::shader::ShaderHandle(0));
+        spy.set_material_uniforms(&[1]);
+        spy.bind_material_texture(engine_core::types::TextureId(0), 0);
+        spy.compile_shader(crate::shader::ShaderHandle(1), "source");
+        spy.upload_atlas(&crate::atlas::TextureAtlas {
+            data: vec![255; 4],
+            width: 1,
+            height: 1,
+            lookups: std::collections::HashMap::default(),
+        });
+        spy.apply_post_process();
+        spy.resize(800, 600);
+        spy.present();
 
         // Assert
-        assert_eq!(log.lock().unwrap().as_slice(), &["draw_shape"]);
+        let entries = log.lock().unwrap();
+        assert_eq!(
+            entries.as_slice(),
+            &[
+                "clear",
+                "draw_rect",
+                "draw_sprite",
+                "draw_shape",
+                "set_view_projection",
+                "set_blend_mode",
+                "set_shader",
+                "set_material_uniforms",
+                "bind_material_texture",
+                "compile_shader",
+                "upload_atlas",
+                "apply_post_process",
+                "resize",
+                "present",
+            ]
+        );
     }
 
     #[test]
@@ -366,7 +396,12 @@ mod tests {
         let color = Color::new(1.0, 0.0, 0.0, 1.0);
 
         // Act
-        spy.draw_shape(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]], &[0, 1, 2], color);
+        spy.draw_shape(
+            &[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]],
+            &[0, 1, 2],
+            color,
+            crate::renderer::IDENTITY_MODEL,
+        );
 
         // Assert
         let calls = shape_calls.lock().unwrap();
@@ -375,23 +410,10 @@ mod tests {
     }
 
     #[test]
-    fn when_set_blend_mode_called_then_log_records_set_blend_mode() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::new(log.clone());
-
-        // Act
-        spy.set_blend_mode(BlendMode::Additive);
-
-        // Assert
-        assert_eq!(log.lock().unwrap().as_slice(), &["set_blend_mode"]);
-    }
-
-    #[test]
     fn when_set_blend_mode_called_twice_with_capture_then_both_calls_recorded_in_order() {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));
-        let blend_calls: BlendCallLog = Arc::new(Mutex::new(Vec::new()));
+        let blend_calls: BlendCapture = Arc::new(Mutex::new(Vec::new()));
         let mut spy = SpyRenderer::new(log).with_blend_capture(blend_calls.clone());
 
         // Act
@@ -404,55 +426,10 @@ mod tests {
     }
 
     #[test]
-    fn when_upload_atlas_called_then_log_records_upload_atlas() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::new(log.clone());
-        let atlas = crate::atlas::TextureAtlas {
-            data: vec![255; 4],
-            width: 1,
-            height: 1,
-            lookups: std::collections::HashMap::default(),
-        };
-
-        // Act
-        spy.upload_atlas(&atlas);
-
-        // Assert
-        assert_eq!(log.lock().unwrap().as_slice(), &["upload_atlas"]);
-    }
-
-    #[test]
-    fn when_apply_post_process_called_then_log_records_apply_post_process() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::new(log.clone());
-
-        // Act
-        spy.apply_post_process();
-
-        // Assert
-        assert_eq!(log.lock().unwrap().as_slice(), &["apply_post_process"]);
-    }
-
-    #[test]
-    fn when_set_shader_called_then_log_records_set_shader() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::new(log.clone());
-
-        // Act
-        spy.set_shader(crate::shader::ShaderHandle(42));
-
-        // Assert
-        assert_eq!(log.lock().unwrap().as_slice(), &["set_shader"]);
-    }
-
-    #[test]
     fn when_set_shader_called_with_capture_then_handle_matches() {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));
-        let shader_calls: ShaderCallLog = Arc::new(Mutex::new(Vec::new()));
+        let shader_calls: ShaderCapture = Arc::new(Mutex::new(Vec::new()));
         let mut spy = SpyRenderer::new(log).with_shader_capture(shader_calls.clone());
 
         // Act
@@ -467,7 +444,7 @@ mod tests {
     fn when_set_material_uniforms_called_with_capture_then_bytes_match() {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));
-        let uniform_calls: UniformCallLog = Arc::new(Mutex::new(Vec::new()));
+        let uniform_calls: UniformCapture = Arc::new(Mutex::new(Vec::new()));
         let mut spy = SpyRenderer::new(log).with_uniform_capture(uniform_calls.clone());
 
         // Act
@@ -482,7 +459,7 @@ mod tests {
     fn when_bind_material_texture_called_with_capture_then_entry_matches() {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));
-        let texture_bind_calls: TextureBindCallLog = Arc::new(Mutex::new(Vec::new()));
+        let texture_bind_calls: TextureBindCapture = Arc::new(Mutex::new(Vec::new()));
         let mut spy = SpyRenderer::new(log).with_texture_bind_capture(texture_bind_calls.clone());
 
         // Act
@@ -491,6 +468,23 @@ mod tests {
         // Assert
         let calls = texture_bind_calls.lock().unwrap();
         assert_eq!(calls.as_slice(), &[(engine_core::types::TextureId(3), 1)]);
+    }
+
+    #[test]
+    fn when_compile_shader_called_with_capture_then_handle_and_source_recorded() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let capture: CompileShaderCapture = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log).with_compile_shader_capture(capture.clone());
+
+        // Act
+        spy.compile_shader(crate::shader::ShaderHandle(7), "fn vs_shape() {}");
+
+        // Assert
+        let calls = capture.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].0, crate::shader::ShaderHandle(7));
+        assert_eq!(calls[0].1, "fn vs_shape() {}");
     }
 
     #[test]

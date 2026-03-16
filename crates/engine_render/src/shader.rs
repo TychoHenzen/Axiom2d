@@ -6,10 +6,19 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ShaderHandle(pub u32);
 
-#[derive(Default, Resource)]
+#[derive(Resource)]
 pub struct ShaderRegistry {
     sources: HashMap<ShaderHandle, String>,
     next_id: u32,
+}
+
+impl Default for ShaderRegistry {
+    fn default() -> Self {
+        Self {
+            sources: HashMap::new(),
+            next_id: 1, // 0 is reserved for the built-in default shader
+        }
+    }
 }
 
 impl ShaderRegistry {
@@ -27,6 +36,10 @@ impl ShaderRegistry {
 
     pub fn lookup(&self, handle: ShaderHandle) -> Option<&str> {
         self.sources.get(&handle).map(String::as_str)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (ShaderHandle, &str)> {
+        self.sources.iter().map(|(&h, s)| (h, s.as_str()))
     }
 }
 
@@ -54,6 +67,16 @@ pub fn preprocess(source: &str, defines: &HashSet<&str>) -> String {
     }
 
     output
+}
+
+pub fn shader_prepare_system(
+    registry: Option<bevy_ecs::prelude::Res<ShaderRegistry>>,
+    mut renderer: bevy_ecs::prelude::ResMut<crate::renderer::RendererRes>,
+) {
+    let Some(registry) = registry else { return };
+    for (handle, source) in registry.iter() {
+        renderer.compile_shader(handle, source);
+    }
 }
 
 #[cfg(test)]
@@ -124,7 +147,7 @@ mod tests {
         let mut schedule = Schedule::default();
         schedule.add_systems(|registry: Res<ShaderRegistry>| {
             assert_eq!(
-                registry.lookup(ShaderHandle(0)),
+                registry.lookup(ShaderHandle(1)),
                 Some("@vertex fn vs_main() {}")
             );
         });
@@ -199,6 +222,138 @@ mod tests {
         assert!(!result.contains("outer_only"));
         assert!(!result.contains("inner_only"));
         assert!(!result.contains("after_inner"));
+    }
+
+    #[test]
+    fn when_shader_registry_has_one_entry_and_system_runs_then_compile_shader_called_once() {
+        use bevy_ecs::prelude::{Schedule, World};
+        use crate::testing::insert_spy_with_compile_shader_capture;
+
+        // Arrange
+        let mut world = World::new();
+        let capture = insert_spy_with_compile_shader_capture(&mut world);
+        let mut registry = ShaderRegistry::new();
+        let handle = registry.register("my_shader_source");
+        world.insert_resource(registry);
+        let mut schedule = Schedule::default();
+        schedule.add_systems(shader_prepare_system);
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        let calls = capture.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].0, handle);
+        assert_eq!(calls[0].1, "my_shader_source");
+    }
+
+    #[test]
+    fn when_shader_registry_has_two_entries_and_system_runs_then_compile_shader_called_for_each() {
+        use bevy_ecs::prelude::{Schedule, World};
+        use crate::testing::insert_spy_with_compile_shader_capture;
+
+        // Arrange
+        let mut world = World::new();
+        let capture = insert_spy_with_compile_shader_capture(&mut world);
+        let mut registry = ShaderRegistry::new();
+        let h1 = registry.register("shader_a");
+        let h2 = registry.register("shader_b");
+        world.insert_resource(registry);
+        let mut schedule = Schedule::default();
+        schedule.add_systems(shader_prepare_system);
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        let calls = capture.lock().unwrap();
+        assert_eq!(calls.len(), 2);
+        let mut handles: Vec<_> = calls.iter().map(|(h, _)| *h).collect();
+        handles.sort();
+        assert!(handles.contains(&h1));
+        assert!(handles.contains(&h2));
+    }
+
+    #[test]
+    fn when_shader_registry_is_empty_and_system_runs_then_compile_shader_not_called() {
+        use bevy_ecs::prelude::{Schedule, World};
+        use crate::testing::insert_spy_with_compile_shader_capture;
+
+        // Arrange
+        let mut world = World::new();
+        let capture = insert_spy_with_compile_shader_capture(&mut world);
+        world.insert_resource(ShaderRegistry::new());
+        let mut schedule = Schedule::default();
+        schedule.add_systems(shader_prepare_system);
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        let calls = capture.lock().unwrap();
+        assert!(calls.is_empty());
+    }
+
+    #[test]
+    fn when_shader_registry_absent_from_world_and_system_runs_then_no_panic() {
+        use bevy_ecs::prelude::{Schedule, World};
+        use crate::testing::insert_spy;
+
+        // Arrange
+        let mut world = World::new();
+        let _log = insert_spy(&mut world);
+        let mut schedule = Schedule::default();
+        schedule.add_systems(shader_prepare_system);
+
+        // Act — should not panic
+        schedule.run(&mut world);
+    }
+
+    #[test]
+    fn when_shader_prepare_runs_before_shape_render_then_compile_precedes_draw_in_log() {
+        use bevy_ecs::prelude::{Schedule, World};
+        use bevy_ecs::schedule::IntoScheduleConfigs;
+        use engine_scene::prelude::GlobalTransform2D;
+        use glam::Affine2;
+        use crate::testing::insert_spy;
+        use crate::shape::Shape;
+
+        // Arrange
+        let mut world = World::new();
+        let log = insert_spy(&mut world);
+        let mut registry = ShaderRegistry::new();
+        registry.register("test_shader");
+        world.insert_resource(registry);
+        world.spawn((
+            Shape {
+                variant: crate::shape::ShapeVariant::Circle { radius: 10.0 },
+                color: engine_core::color::Color::WHITE,
+            },
+            GlobalTransform2D(Affine2::IDENTITY),
+        ));
+        let mut schedule = Schedule::default();
+        schedule.add_systems((
+            shader_prepare_system,
+            crate::shape::shape_render_system,
+        ).chain());
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        let log = log.lock().unwrap();
+        let compile_pos = log.iter().position(|s| s == "compile_shader");
+        let draw_pos = log.iter().position(|s| s == "draw_shape");
+        assert!(
+            compile_pos.is_some(),
+            "compile_shader should appear in log"
+        );
+        assert!(draw_pos.is_some(), "draw_shape should appear in log");
+        assert!(
+            compile_pos.unwrap() < draw_pos.unwrap(),
+            "compile_shader must run before draw_shape"
+        );
     }
 
     #[test]

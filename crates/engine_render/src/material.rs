@@ -55,11 +55,7 @@ pub fn effective_blend_mode(material: Option<&Material2d>) -> BlendMode {
     material.map_or(BlendMode::Alpha, |m| m.blend_mode)
 }
 
-/// Applies per-entity material state changes to the renderer with deduplication.
-///
-/// Calls `set_shader` and `set_blend_mode` only when the value differs from the
-/// previous entity's values.  Uploads uniforms and texture bindings unconditionally
-/// each entity (they are per-draw-call data, not stateful pipeline switches).
+/// Applies per-entity material state to the renderer, deduplicating shader and blend-mode switches.
 pub fn apply_material(
     renderer: &mut dyn crate::renderer::Renderer,
     material: Option<&Material2d>,
