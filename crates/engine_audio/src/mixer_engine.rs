@@ -18,9 +18,7 @@ pub(crate) struct SharedState {
 }
 
 pub(crate) fn mix_into(output: &mut [f32], state: &mut SharedState) {
-    for sample in output.iter_mut() {
-        *sample = 0.0;
-    }
+    output.fill(0.0);
 
     for sound in &mut state.active_sounds {
         let remaining = sound.samples.len() - sound.cursor;

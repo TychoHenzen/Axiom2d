@@ -224,36 +224,31 @@ pub fn insert_spy_with_viewport(
     log
 }
 
-pub fn insert_spy_with_blend_capture(world: &mut World) -> BlendCallLog {
+fn insert_spy_capturing<T: 'static>(
+    world: &mut World,
+    attach: fn(SpyRenderer, Arc<Mutex<Vec<T>>>) -> SpyRenderer,
+) -> Arc<Mutex<Vec<T>>> {
     let log = Arc::new(Mutex::new(Vec::new()));
-    let blend_calls: BlendCallLog = Arc::new(Mutex::new(Vec::new()));
-    let spy = SpyRenderer::new(log).with_blend_capture(blend_calls.clone());
+    let capture: Arc<Mutex<Vec<T>>> = Arc::new(Mutex::new(Vec::new()));
+    let spy = attach(SpyRenderer::new(log), capture.clone());
     world.insert_resource(RendererRes::new(Box::new(spy)));
-    blend_calls
+    capture
+}
+
+pub fn insert_spy_with_blend_capture(world: &mut World) -> BlendCallLog {
+    insert_spy_capturing(world, SpyRenderer::with_blend_capture)
 }
 
 pub fn insert_spy_with_shader_capture(world: &mut World) -> ShaderCallLog {
-    let log = Arc::new(Mutex::new(Vec::new()));
-    let shader_calls: ShaderCallLog = Arc::new(Mutex::new(Vec::new()));
-    let spy = SpyRenderer::new(log).with_shader_capture(shader_calls.clone());
-    world.insert_resource(RendererRes::new(Box::new(spy)));
-    shader_calls
+    insert_spy_capturing(world, SpyRenderer::with_shader_capture)
 }
 
 pub fn insert_spy_with_uniform_capture(world: &mut World) -> UniformCallLog {
-    let log = Arc::new(Mutex::new(Vec::new()));
-    let uniform_calls: UniformCallLog = Arc::new(Mutex::new(Vec::new()));
-    let spy = SpyRenderer::new(log).with_uniform_capture(uniform_calls.clone());
-    world.insert_resource(RendererRes::new(Box::new(spy)));
-    uniform_calls
+    insert_spy_capturing(world, SpyRenderer::with_uniform_capture)
 }
 
 pub fn insert_spy_with_texture_bind_capture(world: &mut World) -> TextureBindCallLog {
-    let log = Arc::new(Mutex::new(Vec::new()));
-    let texture_bind_calls: TextureBindCallLog = Arc::new(Mutex::new(Vec::new()));
-    let spy = SpyRenderer::new(log).with_texture_bind_capture(texture_bind_calls.clone());
-    world.insert_resource(RendererRes::new(Box::new(spy)));
-    texture_bind_calls
+    insert_spy_capturing(world, SpyRenderer::with_texture_bind_capture)
 }
 
 #[cfg(test)]

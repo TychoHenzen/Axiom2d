@@ -40,7 +40,7 @@ pub fn sprite_render_system(
 
     let mut sprites: Vec<_> = query
         .iter()
-        .filter(|(_, _, _, _, vis, _)| !vis.is_some_and(|v| !v.0))
+        .filter(|(_, _, _, _, vis, _)| vis.is_none_or(|v| v.0))
         .collect();
 
     sprites.sort_by_key(|(_, _, layer, sort, _, mat)| {

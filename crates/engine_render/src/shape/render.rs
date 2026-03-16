@@ -9,6 +9,16 @@ use crate::culling::{aabb_intersects_view_rect, camera_view_rect};
 use crate::material::{Material2d, apply_material, effective_blend_mode, effective_shader_handle};
 use crate::renderer::RendererRes;
 
+fn transform_vertices(vertices: &[[f32; 2]], affine: glam::Affine2) -> Vec<[f32; 2]> {
+    vertices
+        .iter()
+        .map(|v| {
+            let world = affine.transform_point2(Vec2::new(v[0], v[1]));
+            [world.x, world.y]
+        })
+        .collect()
+}
+
 #[allow(clippy::type_complexity)]
 pub fn shape_render_system(
     query: Query<(
@@ -30,7 +40,7 @@ pub fn shape_render_system(
 
     let mut shapes: Vec<_> = query
         .iter()
-        .filter(|(_, _, _, _, vis, _, _)| !vis.is_some_and(|v| !v.0))
+        .filter(|(_, _, _, _, vis, _, _)| vis.is_none_or(|v| v.0))
         .collect();
 
     shapes.sort_by_key(|(_, _, layer, sort, _, mat, _)| {
@@ -62,28 +72,13 @@ pub fn shape_render_system(
 
         let affine = transform.0;
         let mesh = tessellate(&shape.variant);
-        let offset_vertices: Vec<[f32; 2]> = mesh
-            .vertices
-            .iter()
-            .map(|v| {
-                let world = affine.transform_point2(Vec2::new(v[0], v[1]));
-                [world.x, world.y]
-            })
-            .collect();
-
-        renderer.draw_shape(&offset_vertices, &mesh.indices, shape.color);
+        let world_vertices = transform_vertices(&mesh.vertices, affine);
+        renderer.draw_shape(&world_vertices, &mesh.indices, shape.color);
 
         if let Some(stroke) = stroke {
             let stroke_mesh = tessellate_stroke(&shape.variant, stroke.width);
-            let stroke_vertices: Vec<[f32; 2]> = stroke_mesh
-                .vertices
-                .iter()
-                .map(|v| {
-                    let world = affine.transform_point2(Vec2::new(v[0], v[1]));
-                    [world.x, world.y]
-                })
-                .collect();
-            renderer.draw_shape(&stroke_vertices, &stroke_mesh.indices, stroke.color);
+            let stroke_verts = transform_vertices(&stroke_mesh.vertices, affine);
+            renderer.draw_shape(&stroke_verts, &stroke_mesh.indices, stroke.color);
         }
     }
 }

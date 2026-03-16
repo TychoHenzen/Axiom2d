@@ -33,7 +33,7 @@ impl RapierBackend {
     #[must_use]
     pub fn new(gravity: Vec2) -> Self {
         let (collision_send, collision_recv) = crossbeam::channel::unbounded();
-        let (contact_force_send, _contact_force_recv) = crossbeam::channel::unbounded();
+        let contact_force_send = crossbeam::channel::unbounded().0;
         let event_collector = ChannelEventCollector::new(collision_send, contact_force_send);
         Self {
             gravity,

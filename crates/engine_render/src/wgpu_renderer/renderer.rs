@@ -13,9 +13,14 @@ use super::bloom::PostProcessResources;
 use super::shaders::{SHADER_SRC, SHAPE_SHADER_SRC};
 use super::types::{
     BloomParamsUniform, Instance, QUAD_INDICES, QUAD_VERTICES, QuadVertex, ShapeBatch, ShapeVertex,
-    blend_mode_to_blend_state, compute_batch_ranges, create_texture_bind_group,
-    draw_fullscreen_quad, rect_to_instance,
+    blend_mode_to_blend_state, compute_batch_ranges, create_texture_bind_group, rect_to_instance,
+    run_fullscreen_pass,
 };
+
+struct ShapeDrawRecord {
+    blend_mode: crate::material::BlendMode,
+    index_offset: u32,
+}
 
 pub struct WgpuRenderer {
     surface: wgpu::Surface<'static>,
@@ -34,8 +39,7 @@ pub struct WgpuRenderer {
     instance_blend_modes: Vec<crate::material::BlendMode>,
     current_blend_mode: crate::material::BlendMode,
     shape_batch: ShapeBatch,
-    shape_blend_modes: Vec<crate::material::BlendMode>,
-    shape_index_offsets: Vec<u32>,
+    shape_draws: Vec<ShapeDrawRecord>,
     shape_pipelines: [wgpu::RenderPipeline; 3],
     post_process: Option<PostProcessResources>,
     post_process_pending: bool,
@@ -292,14 +296,21 @@ impl WgpuRenderer {
             instance_blend_modes: Vec::new(),
             current_blend_mode: crate::material::BlendMode::Alpha,
             shape_batch: ShapeBatch::new(),
-            shape_blend_modes: Vec::new(),
-            shape_index_offsets: Vec::new(),
+            shape_draws: Vec::new(),
             shape_pipelines,
             post_process: None,
             post_process_pending: false,
             bloom_threshold: 0.8,
             bloom_intensity: 0.3,
         }
+    }
+
+    fn reset_frame_state(&mut self) {
+        self.pending_instances.clear();
+        self.instance_blend_modes.clear();
+        self.current_blend_mode = crate::material::BlendMode::Alpha;
+        self.shape_batch.clear();
+        self.shape_draws.clear();
     }
 
     fn ensure_post_process(&mut self) {
@@ -381,11 +392,12 @@ impl WgpuRenderer {
             pass.set_vertex_buffer(0, vertex_buffer.slice(..));
             pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 
+            let blend_modes: Vec<_> = self.shape_draws.iter().map(|d| d.blend_mode).collect();
             let total_indices = self.shape_batch.index_count() as u32;
-            for (mode, shape_range) in compute_batch_ranges(&self.shape_blend_modes) {
-                let idx_start = self.shape_index_offsets[shape_range.start as usize];
-                let idx_end = if (shape_range.end as usize) < self.shape_index_offsets.len() {
-                    self.shape_index_offsets[shape_range.end as usize]
+            for (mode, shape_range) in compute_batch_ranges(&blend_modes) {
+                let idx_start = self.shape_draws[shape_range.start as usize].index_offset;
+                let idx_end = if (shape_range.end as usize) < self.shape_draws.len() {
+                    self.shape_draws[shape_range.end as usize].index_offset
                 } else {
                     total_indices
                 };
@@ -395,7 +407,6 @@ impl WgpuRenderer {
         }
     }
 
-    #[allow(clippy::too_many_lines)]
     fn execute_bloom(
         &self,
         encoder: &mut wgpu::CommandEncoder,
@@ -460,117 +471,51 @@ impl WgpuRenderer {
             }),
         );
 
-        {
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &pp.ping_view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            draw_fullscreen_quad(
-                &mut pass,
-                &pp.brightness_pipeline,
-                &pp.scene_bg,
-                &pp.brightness_params.1,
-                &pp.fs_vertex_buffer,
-                &self.index_buffer,
-            );
-        }
-
-        {
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &pp.pong_view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            draw_fullscreen_quad(
-                &mut pass,
-                &pp.blur_pipeline,
-                &pp.ping_bg,
-                &pp.h_blur_params.1,
-                &pp.fs_vertex_buffer,
-                &self.index_buffer,
-            );
-        }
-
-        {
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &pp.ping_view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            draw_fullscreen_quad(
-                &mut pass,
-                &pp.blur_pipeline,
-                &pp.pong_bg,
-                &pp.v_blur_params.1,
-                &pp.fs_vertex_buffer,
-                &self.index_buffer,
-            );
-        }
-
-        {
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: swapchain_view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            draw_fullscreen_quad(
-                &mut pass,
-                &pp.composite_pipeline,
-                &pp.composite_bg,
-                &pp.composite_params.1,
-                &pp.fs_vertex_buffer,
-                &self.index_buffer,
-            );
-        }
+        let ib = &self.index_buffer;
+        let vb = &pp.fs_vertex_buffer;
+        run_fullscreen_pass(
+            encoder,
+            &pp.ping_view,
+            &pp.brightness_pipeline,
+            &pp.scene_bg,
+            &pp.brightness_params.1,
+            vb,
+            ib,
+        );
+        run_fullscreen_pass(
+            encoder,
+            &pp.pong_view,
+            &pp.blur_pipeline,
+            &pp.ping_bg,
+            &pp.h_blur_params.1,
+            vb,
+            ib,
+        );
+        run_fullscreen_pass(
+            encoder,
+            &pp.ping_view,
+            &pp.blur_pipeline,
+            &pp.pong_bg,
+            &pp.v_blur_params.1,
+            vb,
+            ib,
+        );
+        run_fullscreen_pass(
+            encoder,
+            swapchain_view,
+            &pp.composite_pipeline,
+            &pp.composite_bg,
+            &pp.composite_params.1,
+            vb,
+            ib,
+        );
     }
 }
 
 impl Renderer for WgpuRenderer {
     fn clear(&mut self, color: Color) {
         self.clear_color = color;
-        self.pending_instances.clear();
-        self.instance_blend_modes.clear();
-        self.current_blend_mode = crate::material::BlendMode::Alpha;
-        self.shape_batch.clear();
-        self.shape_blend_modes.clear();
-        self.shape_index_offsets.clear();
+        self.reset_frame_state();
     }
 
     fn draw_rect(&mut self, rect: Rect) {
@@ -586,10 +531,11 @@ impl Renderer for WgpuRenderer {
     }
 
     fn draw_shape(&mut self, vertices: &[[f32; 2]], indices: &[u32], color: Color) {
-        self.shape_blend_modes.push(self.current_blend_mode);
         #[allow(clippy::cast_possible_truncation)]
-        self.shape_index_offsets
-            .push(self.shape_batch.index_count() as u32);
+        self.shape_draws.push(ShapeDrawRecord {
+            blend_mode: self.current_blend_mode,
+            index_offset: self.shape_batch.index_count() as u32,
+        });
         self.shape_batch.push(vertices, indices, color);
     }
 
@@ -597,10 +543,13 @@ impl Renderer for WgpuRenderer {
         self.current_blend_mode = mode;
     }
 
+    // TODO(shader-cache): wire to GPU pipeline cache when shader variant compilation is implemented
     fn set_shader(&mut self, _shader: crate::shader::ShaderHandle) {}
 
+    // TODO(shader-cache): upload uniform buffer per-material when GPU pipeline cache exists
     fn set_material_uniforms(&mut self, _data: &[u8]) {}
 
+    // TODO(shader-cache): bind texture to material slot when GPU pipeline cache exists
     fn bind_material_texture(&mut self, _texture: engine_core::types::TextureId, _binding: u32) {}
 
     fn upload_atlas(&mut self, atlas: &crate::atlas::TextureAtlas) {

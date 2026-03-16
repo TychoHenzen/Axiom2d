@@ -238,6 +238,39 @@ pub(crate) fn blend_mode_to_blend_state(mode: crate::material::BlendMode) -> wgp
     }
 }
 
+pub(super) fn run_fullscreen_pass(
+    encoder: &mut wgpu::CommandEncoder,
+    target: &wgpu::TextureView,
+    pipeline: &wgpu::RenderPipeline,
+    tex_bg: &wgpu::BindGroup,
+    params_bg: &wgpu::BindGroup,
+    vertex_buffer: &wgpu::Buffer,
+    index_buffer: &wgpu::Buffer,
+) {
+    let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: None,
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+            view: target,
+            resolve_target: None,
+            ops: wgpu::Operations {
+                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                store: wgpu::StoreOp::Store,
+            },
+        })],
+        depth_stencil_attachment: None,
+        timestamp_writes: None,
+        occlusion_query_set: None,
+    });
+    draw_fullscreen_quad(
+        &mut pass,
+        pipeline,
+        tex_bg,
+        params_bg,
+        vertex_buffer,
+        index_buffer,
+    );
+}
+
 pub(super) fn draw_fullscreen_quad(
     pass: &mut wgpu::RenderPass,
     pipeline: &wgpu::RenderPipeline,

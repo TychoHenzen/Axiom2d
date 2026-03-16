@@ -119,50 +119,12 @@ impl PostProcessResources {
         let pong_texture = create_render_texture(device, format, half_w, half_h);
         let pong_view = pong_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let scene_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
-            layout: &single_tex_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&scene_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-            ],
-        });
-
-        let ping_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
-            layout: &single_tex_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&ping_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-            ],
-        });
-
-        let pong_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
-            layout: &single_tex_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&pong_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-            ],
-        });
+        let scene_bg =
+            create_single_tex_bind_group(device, &single_tex_layout, &scene_view, &sampler);
+        let ping_bg =
+            create_single_tex_bind_group(device, &single_tex_layout, &ping_view, &sampler);
+        let pong_bg =
+            create_single_tex_bind_group(device, &single_tex_layout, &pong_view, &sampler);
 
         let composite_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
@@ -326,6 +288,28 @@ impl PostProcessResources {
     ) {
         *self = Self::new(device, format, width, height, threshold, intensity);
     }
+}
+
+fn create_single_tex_bind_group(
+    device: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    view: &wgpu::TextureView,
+    sampler: &wgpu::Sampler,
+) -> wgpu::BindGroup {
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: None,
+        layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::Sampler(sampler),
+            },
+        ],
+    })
 }
 
 fn create_render_texture(

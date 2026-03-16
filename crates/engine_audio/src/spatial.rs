@@ -74,10 +74,7 @@ pub fn spatial_audio_system(
     let Ok(listener_transform) = listener_q.single() else {
         return;
     };
-    let listener_pos = Vec2::new(
-        listener_transform.0.translation.x,
-        listener_transform.0.translation.y,
-    );
+    let listener_pos = listener_transform.0.translation;
 
     for cmd in &mut *buffer {
         if cmd.spatial_gains.is_some() {
@@ -89,7 +86,7 @@ pub fn spatial_audio_system(
         };
 
         if let Ok((emitter, transform)) = emitter_q.get(emitter_entity) {
-            let emitter_pos = Vec2::new(transform.0.translation.x, transform.0.translation.y);
+            let emitter_pos = transform.0.translation;
             cmd.spatial_gains = Some(compute_spatial_gains(
                 listener_pos,
                 emitter_pos,
