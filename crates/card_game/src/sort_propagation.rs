@@ -116,7 +116,7 @@ mod tests {
         run_system(&mut world);
         assert_eq!(
             world.entity(child).get::<SortOrder>().unwrap().0,
-            1 * SORT_STRIDE + 2
+            SORT_STRIDE + 2
         );
 
         // Act — bump parent sort (like card_pick_system does)

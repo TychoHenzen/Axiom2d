@@ -72,7 +72,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        assert_eq!(world.entity(front).get::<Visible>().unwrap().0, true);
+        assert!(world.entity(front).get::<Visible>().unwrap().0);
     }
 
     #[test]
@@ -85,7 +85,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        assert_eq!(world.entity(back).get::<Visible>().unwrap().0, false);
+        assert!(!world.entity(back).get::<Visible>().unwrap().0);
     }
 
     #[test]
@@ -98,8 +98,8 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        assert_eq!(world.entity(front).get::<Visible>().unwrap().0, false);
-        assert_eq!(world.entity(back).get::<Visible>().unwrap().0, true);
+        assert!(!world.entity(front).get::<Visible>().unwrap().0);
+        assert!(world.entity(back).get::<Visible>().unwrap().0);
     }
 
     #[test]
@@ -135,10 +135,9 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        assert_eq!(world.entity(front_child).get::<Visible>().unwrap().0, true);
-        assert_eq!(
-            world.entity(unrelated).get::<Visible>().unwrap().0,
-            false,
+        assert!(world.entity(front_child).get::<Visible>().unwrap().0);
+        assert!(
+            !world.entity(unrelated).get::<Visible>().unwrap().0,
             "unrelated child should not be modified"
         );
     }
