@@ -230,6 +230,18 @@ mod tests {
         assert!((grandchild_global.0.translation.x - 6.0).abs() < 1e-6);
     }
 
+    fn spawn_child_at(world: &mut World, parent: Entity, x: f32, y: f32) -> Entity {
+        world
+            .spawn((
+                Transform2D {
+                    position: Vec2::new(x, y),
+                    ..Transform2D::default()
+                },
+                ChildOf(parent),
+            ))
+            .id()
+    }
+
     #[test]
     fn when_two_siblings_then_each_gets_independent_global_transform() {
         // Arrange
@@ -240,27 +252,9 @@ mod tests {
                 ..Transform2D::default()
             })
             .id();
-        let child_a = world
-            .spawn((
-                Transform2D {
-                    position: Vec2::new(1.0, 0.0),
-                    ..Transform2D::default()
-                },
-                ChildOf(parent),
-            ))
-            .id();
-        let child_b = world
-            .spawn((
-                Transform2D {
-                    position: Vec2::new(0.0, 2.0),
-                    ..Transform2D::default()
-                },
-                ChildOf(parent),
-            ))
-            .id();
-        world
-            .entity_mut(parent)
-            .insert(Children(vec![child_a, child_b]));
+        let child_a = spawn_child_at(&mut world, parent, 1.0, 0.0);
+        let child_b = spawn_child_at(&mut world, parent, 0.0, 2.0);
+        world.entity_mut(parent).insert(Children(vec![child_a, child_b]));
 
         // Act
         run_transform_system(&mut world);

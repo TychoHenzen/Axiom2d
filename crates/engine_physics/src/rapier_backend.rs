@@ -517,14 +517,44 @@ mod tests {
         body.reset_torques(false);
     }
 
-    #[test]
-    fn when_zero_damping_body_given_impulse_then_keeps_moving_after_force_stops() {
-        // Arrange
-        let mut backend = RapierBackend::new(Vec2::ZERO);
+    fn damped_body(gravity: Vec2, linear: f32, angular: f32) -> (RapierBackend, Entity) {
+        let mut backend = RapierBackend::new(gravity);
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
         backend.add_collider(entity, &Collider::Circle(0.5));
-        backend.set_damping(entity, 0.0, 0.0);
+        backend.set_damping(entity, linear, angular);
+        (backend, entity)
+    }
+
+    fn manual_rotate_point(backend: &RapierBackend, entity: Entity, offset: Vec2) -> Vec2 {
+        let pos = backend.body_position(entity).unwrap();
+        let rot = backend.body_rotation(entity).unwrap();
+        let (sin, cos) = rot.sin_cos();
+        pos + Vec2::new(
+            offset.x * cos - offset.y * sin,
+            offset.x * sin + offset.y * cos,
+        )
+    }
+
+    fn assert_vec2_approx(actual: Vec2, expected: Vec2, epsilon: f32) {
+        assert!(
+            (actual.x - expected.x).abs() < epsilon,
+            "x: got {}, expected {}",
+            actual.x,
+            expected.x
+        );
+        assert!(
+            (actual.y - expected.y).abs() < epsilon,
+            "y: got {}, expected {}",
+            actual.y,
+            expected.y
+        );
+    }
+
+    #[test]
+    fn when_zero_damping_body_given_impulse_then_keeps_moving_after_force_stops() {
+        // Arrange
+        let (mut backend, entity) = damped_body(Vec2::ZERO, 0.0, 0.0);
         apply_impulse(&mut backend, entity, Vec2::new(5000.0, 0.0), Vec2::ZERO);
 
         // Act
@@ -544,17 +574,8 @@ mod tests {
     #[test]
     fn when_high_linear_damping_then_travels_less_distance_than_zero_damping() {
         // Arrange
-        let mut undamped = RapierBackend::new(Vec2::ZERO);
-        let entity_u = spawn_entity();
-        undamped.add_body(entity_u, &RigidBody::Dynamic, Vec2::ZERO);
-        undamped.add_collider(entity_u, &Collider::Circle(0.5));
-        undamped.set_damping(entity_u, 0.0, 0.0);
-
-        let mut damped = RapierBackend::new(Vec2::ZERO);
-        let entity_d = spawn_entity();
-        damped.add_body(entity_d, &RigidBody::Dynamic, Vec2::ZERO);
-        damped.add_collider(entity_d, &Collider::Circle(0.5));
-        damped.set_damping(entity_d, 20.0, 0.0);
+        let (mut undamped, entity_u) = damped_body(Vec2::ZERO, 0.0, 0.0);
+        let (mut damped, entity_d) = damped_body(Vec2::ZERO, 20.0, 0.0);
 
         // Act — one step with force, reset forces, then coast
         apply_impulse(&mut undamped, entity_u, Vec2::new(5000.0, 0.0), Vec2::ZERO);
@@ -577,31 +598,14 @@ mod tests {
     #[test]
     fn when_high_angular_damping_then_rotates_less_than_undamped() {
         // Arrange
-        let mut undamped = RapierBackend::new(Vec2::ZERO);
-        let entity_u = spawn_entity();
-        undamped.add_body(entity_u, &RigidBody::Dynamic, Vec2::ZERO);
-        undamped.add_collider(entity_u, &Collider::Circle(0.5));
-        undamped.set_damping(entity_u, 0.0, 0.0);
+        let (mut undamped, entity_u) = damped_body(Vec2::ZERO, 0.0, 0.0);
+        let (mut damped, entity_d) = damped_body(Vec2::ZERO, 0.0, 20.0);
 
-        let mut damped = RapierBackend::new(Vec2::ZERO);
-        let entity_d = spawn_entity();
-        damped.add_body(entity_d, &RigidBody::Dynamic, Vec2::ZERO);
-        damped.add_collider(entity_d, &Collider::Circle(0.5));
-        damped.set_damping(entity_d, 0.0, 20.0);
-
-        // Act — off-center force for 1 step to induce spin, then reset forces so they don't persist
-        apply_impulse(
-            &mut undamped,
-            entity_u,
-            Vec2::new(50.0, 0.0),
-            Vec2::new(0.0, 1.0),
-        );
-        apply_impulse(
-            &mut damped,
-            entity_d,
-            Vec2::new(50.0, 0.0),
-            Vec2::new(0.0, 1.0),
-        );
+        // Act — off-center force to induce spin
+        let spin_force = Vec2::new(50.0, 0.0);
+        let spin_point = Vec2::new(0.0, 1.0);
+        apply_impulse(&mut undamped, entity_u, spin_force, spin_point);
+        apply_impulse(&mut damped, entity_d, spin_force, spin_point);
 
         let handle_u = undamped.entity_to_handle[&entity_u];
         let handle_d = damped.entity_to_handle[&entity_d];
@@ -798,43 +802,18 @@ mod tests {
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::new(3.0, 4.0));
         backend.add_collider(entity, &Collider::Circle(0.5));
-        backend.set_damping(entity, 0.0, 0.0);
-        apply_impulse(
-            &mut backend,
-            entity,
-            Vec2::new(50.0, 0.0),
-            Vec2::new(3.0, 5.0),
-        );
+        apply_impulse(&mut backend, entity, Vec2::new(50.0, 0.0), Vec2::new(3.0, 5.0));
         for _ in 0..5 {
             backend.step(Seconds(0.016));
         }
 
         // Act
         let local_offset = Vec2::new(1.0, 0.5);
-        let result = backend.body_point_to_world(entity, local_offset);
+        let world_pt = backend.body_point_to_world(entity, local_offset).unwrap();
 
         // Assert
-        let world_pt = result.unwrap();
-        let pos = backend.body_position(entity).unwrap();
-        let rot = backend.body_rotation(entity).unwrap();
-        let (sin, cos) = rot.sin_cos();
-        let expected = pos
-            + Vec2::new(
-                local_offset.x * cos - local_offset.y * sin,
-                local_offset.x * sin + local_offset.y * cos,
-            );
-        assert!(
-            (world_pt.x - expected.x).abs() < 1e-4,
-            "x: got {}, expected {}",
-            world_pt.x,
-            expected.x
-        );
-        assert!(
-            (world_pt.y - expected.y).abs() < 1e-4,
-            "y: got {}, expected {}",
-            world_pt.y,
-            expected.y
-        );
+        let expected = manual_rotate_point(&backend, entity, local_offset);
+        assert_vec2_approx(world_pt, expected, 1e-4);
     }
 
     #[test]

@@ -27,6 +27,10 @@ We are now building the first real game on the engine — a card game with physi
 3. Run `cargo.exe fmt --all`.
 4. If new workspace dependencies were added, mention them in the Development Environment section.
 
+### Before committing
+
+Run `cargo.exe clean` before committing. Incremental compilation artifacts bloat `target/` (~100MB per build) and accumulate across debug/flycheck directories.
+
 ### Engine changes
 
 Card game work may require engine extensions (Phase A in the roadmap). When modifying engine crates (e.g. `engine_physics`), also update `Doc/Implementation_Roadmap.md` if relevant and keep the engine's test suite passing.

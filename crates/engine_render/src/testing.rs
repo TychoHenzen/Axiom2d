@@ -332,13 +332,7 @@ mod tests {
     use super::*;
     use crate::renderer::Renderer;
 
-    #[test]
-    fn when_each_method_called_then_log_records_matching_string() {
-        // Arrange
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let mut spy = SpyRenderer::new(log.clone());
-
-        // Act
+    fn call_every_renderer_method(spy: &mut SpyRenderer) {
         spy.clear(Color::WHITE);
         spy.draw_rect(Rect::default());
         spy.draw_sprite(Rect::default(), [0.0, 0.0, 1.0, 1.0]);
@@ -363,28 +357,37 @@ mod tests {
         spy.apply_post_process();
         spy.resize(800, 600);
         spy.present();
+    }
+
+    const ALL_METHOD_NAMES: &[&str] = &[
+        "clear",
+        "draw_rect",
+        "draw_sprite",
+        "draw_shape",
+        "set_view_projection",
+        "set_blend_mode",
+        "set_shader",
+        "set_material_uniforms",
+        "bind_material_texture",
+        "compile_shader",
+        "upload_atlas",
+        "apply_post_process",
+        "resize",
+        "present",
+    ];
+
+    #[test]
+    fn when_each_method_called_then_log_records_matching_string() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log.clone());
+
+        // Act
+        call_every_renderer_method(&mut spy);
 
         // Assert
         let entries = log.lock().unwrap();
-        assert_eq!(
-            entries.as_slice(),
-            &[
-                "clear",
-                "draw_rect",
-                "draw_sprite",
-                "draw_shape",
-                "set_view_projection",
-                "set_blend_mode",
-                "set_shader",
-                "set_material_uniforms",
-                "bind_material_texture",
-                "compile_shader",
-                "upload_atlas",
-                "apply_post_process",
-                "resize",
-                "present",
-            ]
-        );
+        assert_eq!(entries.as_slice(), ALL_METHOD_NAMES);
     }
 
     #[test]

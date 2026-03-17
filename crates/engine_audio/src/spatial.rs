@@ -100,7 +100,7 @@ pub fn spatial_audio_system(
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use bevy_ecs::prelude::{Schedule, World};
+    use bevy_ecs::prelude::{Entity, Schedule, World};
     use bevy_ecs::schedule::IntoScheduleConfigs;
     use engine_core::prelude::Transform2D;
     use engine_scene::prelude::{
@@ -544,21 +544,14 @@ mod tests {
         assert!(cmds[0].spatial_gains.is_none());
     }
 
-    /// @doc: Spatial audio uses `GlobalTransform2D` (world space), not local `Transform2D` — hierarchy must propagate first
-    #[test]
-    fn when_emitter_is_child_entity_then_world_position_used() {
-        // Arrange
-        let mut world = setup_world();
-        spawn_listener(&mut world, 0.0, 0.0);
-
-        // Parent at (80, 0), child emitter at local (0, 0) -> world (80, 0)
+    fn spawn_child_emitter(world: &mut World, parent_x: f32) -> Entity {
         let parent = world
             .spawn((Transform2D {
-                position: Vec2::new(80.0, 0.0),
+                position: Vec2::new(parent_x, 0.0),
                 ..Default::default()
             },))
             .id();
-        let child = world
+        world
             .spawn((
                 Transform2D::default(),
                 ChildOf(parent),
@@ -567,9 +560,10 @@ mod tests {
                     max_distance: 200.0,
                 },
             ))
-            .id();
+            .id()
+    }
 
-        // Run hierarchy + transform propagation first
+    fn run_hierarchy_and_spatial_system(world: &mut World) {
         let mut schedule = Schedule::default();
         schedule.add_systems(
             (
@@ -579,17 +573,27 @@ mod tests {
             )
                 .chain(),
         );
+        schedule.run(world);
+    }
+
+    /// @doc: Spatial audio uses `GlobalTransform2D` (world space), not local `Transform2D` — hierarchy must propagate first
+    #[test]
+    fn when_emitter_is_child_entity_then_world_position_used() {
+        // Arrange
+        let mut world = setup_world();
+        spawn_listener(&mut world, 0.0, 0.0);
+        let child = spawn_child_emitter(&mut world, 80.0);
         world
             .resource_mut::<PlaySoundBuffer>()
             .push(PlaySound::at_emitter("beep", child));
-        schedule.run(&mut world);
 
-        // Assert
+        // Act
+        run_hierarchy_and_spatial_system(&mut world);
+
+        // Assert — emitter at world (80, 0), listener at (0, 0): right-panned with attenuation
         let cmds: Vec<_> = world.resource_mut::<PlaySoundBuffer>().drain().collect();
         assert_eq!(cmds.len(), 1);
         let gains = cmds[0].spatial_gains.expect("should have spatial gains");
-        // Emitter at world (80, 0) relative to listener at (0, 0)
-        // -> right-panned, distance attenuation = 1 - 80/200 = 0.6
         assert!(gains.right > gains.left, "should be right-panned");
         assert!(
             gains.right > 0.0 && gains.right < 1.0,

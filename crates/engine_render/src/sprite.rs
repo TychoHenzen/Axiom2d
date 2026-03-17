@@ -111,6 +111,10 @@ mod tests {
         }
     }
 
+    fn colored_sprite(color: Color) -> Sprite {
+        Sprite { color, ..default_sprite() }
+    }
+
     #[test]
     fn when_sprite_serialized_to_ron_then_deserializes_to_equal_value() {
         // Arrange
@@ -623,22 +627,13 @@ mod tests {
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
-            Sprite {
-                color: red,
-                ..default_sprite()
-            },
+            colored_sprite(red),
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::Background,
-            Material2d {
-                blend_mode: BlendMode::Additive,
-                ..Material2d::default()
-            },
+            Material2d { blend_mode: BlendMode::Additive, ..Material2d::default() },
         ));
         world.spawn((
-            Sprite {
-                color: blue,
-                ..default_sprite()
-            },
+            colored_sprite(blue),
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
         ));
@@ -662,31 +657,20 @@ mod tests {
         let calls = insert_spy_with_sprite_capture(&mut world);
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
+        let additive = Material2d { blend_mode: BlendMode::Additive, ..Material2d::default() };
         world.spawn((
-            Sprite {
-                color: red,
-                ..default_sprite()
-            },
+            colored_sprite(red),
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
             SortOrder(10),
-            Material2d {
-                blend_mode: BlendMode::Additive,
-                ..Material2d::default()
-            },
+            additive.clone(),
         ));
         world.spawn((
-            Sprite {
-                color: blue,
-                ..default_sprite()
-            },
+            colored_sprite(blue),
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
             SortOrder(1),
-            Material2d {
-                blend_mode: BlendMode::Additive,
-                ..Material2d::default()
-            },
+            additive,
         ));
 
         // Act
@@ -1031,29 +1015,16 @@ mod tests {
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
         world.spawn((
-            Sprite {
-                color: red,
-                ..default_sprite()
-            },
+            colored_sprite(red),
             GlobalTransform2D(Affine2::IDENTITY),
             SortOrder(1),
-            Material2d {
-                shader: ShaderHandle(1),
-                ..Material2d::default()
-            },
+            Material2d { shader: ShaderHandle(1), ..Material2d::default() },
         ));
         world.spawn((
-            Sprite {
-                color: blue,
-                ..default_sprite()
-            },
+            colored_sprite(blue),
             GlobalTransform2D(Affine2::IDENTITY),
             SortOrder(0),
-            Material2d {
-                shader: ShaderHandle(0),
-                blend_mode: BlendMode::Additive,
-                ..Material2d::default()
-            },
+            Material2d { shader: ShaderHandle(0), blend_mode: BlendMode::Additive, ..Material2d::default() },
         ));
 
         // Act

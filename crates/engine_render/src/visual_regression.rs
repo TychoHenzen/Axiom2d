@@ -45,6 +45,13 @@ pub struct HeadlessRenderer {
     shape_models: Vec<[[f32; 4]; 4]>,
 }
 
+struct ShapeGpuResources {
+    vertex_buffer: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
+    model_bind_group: wgpu::BindGroup,
+    aligned_entry: usize,
+}
+
 impl HeadlessRenderer {
     /// Try to create a headless renderer, returning `None` if no GPU adapter is available.
     /// Useful for tests that should run when a GPU is present but skip gracefully in CI.
@@ -364,15 +371,17 @@ impl HeadlessRenderer {
 
         self.draw_scene_to(&mut encoder, &view);
 
-        let padded_row = padded_row_bytes(self.width, 4);
-        let buffer_size = wgpu::BufferAddress::from(padded_row * self.height);
-        let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: buffer_size,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            mapped_at_creation: false,
-        });
+        let pixels = self.read_back_pixels(encoder);
+        self.reset_frame_state();
+        pixels
+    }
 
+    fn copy_texture_to_staging(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        staging: &wgpu::Buffer,
+        padded_row: u32,
+    ) {
         encoder.copy_texture_to_buffer(
             wgpu::TexelCopyTextureInfo {
                 texture: &self.output_texture,
@@ -381,7 +390,7 @@ impl HeadlessRenderer {
                 aspect: wgpu::TextureAspect::All,
             },
             wgpu::TexelCopyBufferInfo {
-                buffer: &staging,
+                buffer: staging,
                 layout: wgpu::TexelCopyBufferLayout {
                     offset: 0,
                     bytes_per_row: Some(padded_row),
@@ -394,7 +403,19 @@ impl HeadlessRenderer {
                 depth_or_array_layers: 1,
             },
         );
+    }
 
+    fn read_back_pixels(&self, mut encoder: wgpu::CommandEncoder) -> Vec<u8> {
+        let padded_row = padded_row_bytes(self.width, 4);
+        let buffer_size = wgpu::BufferAddress::from(padded_row * self.height);
+        let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: buffer_size,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+
+        self.copy_texture_to_staging(&mut encoder, &staging, padded_row);
         self.queue.submit(Some(encoder.finish()));
 
         let slice = staging.slice(..);
@@ -405,7 +426,10 @@ impl HeadlessRenderer {
         let pixels = strip_row_padding(&data, self.width, self.height, padded_row, 4);
         drop(data);
         staging.unmap();
+        pixels
+    }
 
+    fn reset_frame_state(&mut self) {
         self.pending_instances.clear();
         self.instance_blend_modes.clear();
         self.current_blend_mode = BlendMode::Alpha;
@@ -413,11 +437,129 @@ impl HeadlessRenderer {
         self.shape_blend_modes.clear();
         self.shape_index_offsets.clear();
         self.shape_models.clear();
+    }
 
-        pixels
+    fn create_quad_instance_buffer(&self) -> Option<wgpu::Buffer> {
+        if self.pending_instances.is_empty() {
+            return None;
+        }
+        Some(
+            self.device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: bytemuck::cast_slice(&self.pending_instances),
+                    usage: wgpu::BufferUsages::VERTEX,
+                }),
+        )
+    }
+
+    fn create_shape_gpu_resources(&self) -> Option<ShapeGpuResources> {
+        if self.shape_batch.is_empty() {
+            return None;
+        }
+        let vertex_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(self.shape_batch.vertices()),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+        let index_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(self.shape_batch.indices()),
+                usage: wgpu::BufferUsages::INDEX,
+            });
+        let (model_bind_group, aligned_entry) = self.create_model_bind_group();
+        Some(ShapeGpuResources {
+            vertex_buffer,
+            index_buffer,
+            model_bind_group,
+            aligned_entry,
+        })
+    }
+
+    fn create_model_bind_group(&self) -> (wgpu::BindGroup, usize) {
+        let align = self.model_uniform_align as usize;
+        let aligned_entry = align.max(64);
+        let buf_size = self.shape_models.len() * aligned_entry;
+        let mut model_data = vec![0u8; buf_size];
+        for (i, mat) in self.shape_models.iter().enumerate() {
+            let offset = i * aligned_entry;
+            let bytes: &[u8; 64] = bytemuck::cast_ref(mat);
+            model_data[offset..offset + 64].copy_from_slice(bytes);
+        }
+        let model_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: &model_data,
+                usage: wgpu::BufferUsages::UNIFORM,
+            });
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &self.model_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                    buffer: &model_buffer,
+                    offset: 0,
+                    size: wgpu::BufferSize::new(64),
+                }),
+            }],
+        });
+        (bind_group, aligned_entry)
     }
 
     #[allow(clippy::cast_possible_truncation)]
+    fn draw_quad_instances<'a>(
+        &'a self,
+        pass: &mut wgpu::RenderPass<'a>,
+        instance_buffer: &'a wgpu::Buffer,
+    ) {
+        pass.set_bind_group(0, &self.texture_bind_group, &[]);
+        pass.set_bind_group(1, &self.camera_bind_group, &[]);
+        pass.set_vertex_buffer(0, self.quad_vertex_buffer.slice(..));
+        pass.set_vertex_buffer(1, instance_buffer.slice(..));
+        pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+        for (mode, range) in compute_batch_ranges(&self.instance_blend_modes) {
+            pass.set_pipeline(&self.quad_pipelines[mode.index()]);
+            pass.draw_indexed(0..QUAD_INDICES.len() as u32, 0, range);
+        }
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    fn draw_shapes<'a>(
+        &'a self,
+        pass: &mut wgpu::RenderPass<'a>,
+        resources: &'a ShapeGpuResources,
+    ) {
+        pass.set_bind_group(0, &self.camera_bind_group, &[]);
+        pass.set_vertex_buffer(0, resources.vertex_buffer.slice(..));
+        pass.set_index_buffer(resources.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+
+        let total_indices = self.shape_batch.index_count() as u32;
+        let mut last_blend = None;
+        for (i, &blend_mode) in self.shape_blend_modes.iter().enumerate() {
+            if last_blend != Some(blend_mode) {
+                pass.set_pipeline(&self.shape_pipelines[blend_mode.index()]);
+                last_blend = Some(blend_mode);
+            }
+            let dyn_offset = (i * resources.aligned_entry) as u32;
+            pass.set_bind_group(1, &resources.model_bind_group, &[dyn_offset]);
+
+            let idx_start = self.shape_index_offsets[i];
+            let idx_end = self
+                .shape_index_offsets
+                .get(i + 1)
+                .copied()
+                .unwrap_or(total_indices);
+            pass.draw_indexed(idx_start..idx_end, 0, 0..1);
+        }
+    }
+
     fn draw_scene_to(&self, encoder: &mut wgpu::CommandEncoder, target_view: &wgpu::TextureView) {
         let clear_color = wgpu::Color {
             r: f64::from(self.clear_color.r),
@@ -425,6 +567,9 @@ impl HeadlessRenderer {
             b: f64::from(self.clear_color.b),
             a: f64::from(self.clear_color.a),
         };
+
+        let instance_buffer = self.create_quad_instance_buffer();
+        let shape_resources = self.create_shape_gpu_resources();
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
@@ -441,97 +586,11 @@ impl HeadlessRenderer {
             occlusion_query_set: None,
         });
 
-        if !self.pending_instances.is_empty() {
-            let instance_buffer =
-                self.device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: None,
-                        contents: bytemuck::cast_slice(&self.pending_instances),
-                        usage: wgpu::BufferUsages::VERTEX,
-                    });
-
-            pass.set_bind_group(0, &self.texture_bind_group, &[]);
-            pass.set_bind_group(1, &self.camera_bind_group, &[]);
-            pass.set_vertex_buffer(0, self.quad_vertex_buffer.slice(..));
-            pass.set_vertex_buffer(1, instance_buffer.slice(..));
-            pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-
-            for (mode, range) in compute_batch_ranges(&self.instance_blend_modes) {
-                pass.set_pipeline(&self.quad_pipelines[mode.index()]);
-                pass.draw_indexed(0..QUAD_INDICES.len() as u32, 0, range);
-            }
+        if let Some(ref ib) = instance_buffer {
+            self.draw_quad_instances(&mut pass, ib);
         }
-
-        if !self.shape_batch.is_empty() {
-            let vertex_buffer = self
-                .device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(self.shape_batch.vertices()),
-                    usage: wgpu::BufferUsages::VERTEX,
-                });
-
-            let shape_index_buffer =
-                self.device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: None,
-                        contents: bytemuck::cast_slice(self.shape_batch.indices()),
-                        usage: wgpu::BufferUsages::INDEX,
-                    });
-
-            // Pack model matrices into a dynamic uniform buffer
-            let align = self.model_uniform_align as usize;
-            let aligned_entry = align.max(64);
-            let buf_size = self.shape_models.len() * aligned_entry;
-            let mut model_data = vec![0u8; buf_size];
-            for (i, mat) in self.shape_models.iter().enumerate() {
-                let offset = i * aligned_entry;
-                let bytes: &[u8; 64] = bytemuck::cast_ref(mat);
-                model_data[offset..offset + 64].copy_from_slice(bytes);
-            }
-            let model_buffer = self
-                .device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: &model_data,
-                    usage: wgpu::BufferUsages::UNIFORM,
-                });
-            let model_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &self.model_bind_group_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &model_buffer,
-                        offset: 0,
-                        size: wgpu::BufferSize::new(64),
-                    }),
-                }],
-            });
-
-            pass.set_bind_group(0, &self.camera_bind_group, &[]);
-            pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-            pass.set_index_buffer(shape_index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-
-            let total_indices = self.shape_batch.index_count() as u32;
-            let mut last_blend = None;
-            for (i, &blend_mode) in self.shape_blend_modes.iter().enumerate() {
-                if last_blend != Some(blend_mode) {
-                    pass.set_pipeline(&self.shape_pipelines[blend_mode.index()]);
-                    last_blend = Some(blend_mode);
-                }
-
-                let dyn_offset = (i * aligned_entry) as u32;
-                pass.set_bind_group(1, &model_bind_group, &[dyn_offset]);
-
-                let idx_start = self.shape_index_offsets[i];
-                let idx_end = if i + 1 < self.shape_index_offsets.len() {
-                    self.shape_index_offsets[i + 1]
-                } else {
-                    total_indices
-                };
-                pass.draw_indexed(idx_start..idx_end, 0, 0..1);
-            }
+        if let Some(ref sr) = shape_resources {
+            self.draw_shapes(&mut pass, sr);
         }
     }
 }
@@ -539,13 +598,7 @@ impl HeadlessRenderer {
 impl Renderer for HeadlessRenderer {
     fn clear(&mut self, color: Color) {
         self.clear_color = color;
-        self.pending_instances.clear();
-        self.instance_blend_modes.clear();
-        self.current_blend_mode = BlendMode::Alpha;
-        self.shape_batch.clear();
-        self.shape_blend_modes.clear();
-        self.shape_index_offsets.clear();
-        self.shape_models.clear();
+        self.reset_frame_state();
     }
 
     fn draw_rect(&mut self, rect: Rect) {
@@ -992,31 +1045,26 @@ mod tests {
         );
     }
 
-    #[test]
-    fn when_rendering_circle_shape_then_center_pixel_is_non_background() {
-        // Arrange
-        let Some(mut renderer) = HeadlessRenderer::try_new(128, 128) else {
-            return;
-        };
-        let black = engine_core::color::Color::new(0.0, 0.0, 0.0, 1.0);
-        renderer.clear(black);
-
+    fn setup_centered_camera(renderer: &mut HeadlessRenderer, size: f32) {
+        let half = size / 2.0;
         let proj = crate::camera::CameraUniform::from_camera(
             &crate::camera::Camera2D {
-                position: glam::Vec2::new(64.0, 64.0),
+                position: glam::Vec2::new(half, half),
                 zoom: 1.0,
             },
-            128.0,
-            128.0,
+            size,
+            size,
         );
         renderer.set_view_projection(proj.view_proj);
+    }
 
-        let mesh = crate::shape::tessellate(&crate::shape::ShapeVariant::Circle { radius: 20.0 });
+    fn draw_circle_at_center(renderer: &mut HeadlessRenderer, center: f32, radius: f32) {
+        let mesh = crate::shape::tessellate(&crate::shape::ShapeVariant::Circle { radius });
         let model: [[f32; 4]; 4] = [
             [1.0, 0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0],
-            [64.0, 64.0, 0.0, 1.0],
+            [center, center, 0.0, 1.0],
         ];
         renderer.draw_shape(
             &mesh.vertices,
@@ -1024,6 +1072,17 @@ mod tests {
             engine_core::color::Color::WHITE,
             model,
         );
+    }
+
+    #[test]
+    fn when_rendering_circle_shape_then_center_pixel_is_non_background() {
+        // Arrange
+        let Some(mut renderer) = HeadlessRenderer::try_new(128, 128) else {
+            return;
+        };
+        renderer.clear(engine_core::color::Color::new(0.0, 0.0, 0.0, 1.0));
+        setup_centered_camera(&mut renderer, 128.0);
+        draw_circle_at_center(&mut renderer, 64.0, 20.0);
 
         // Act
         let pixels = renderer.render_to_buffer();

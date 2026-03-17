@@ -783,6 +783,10 @@ mod tests {
         assert_eq!(calls.as_slice(), &[(TextureId(4), 0)]);
     }
 
+    fn colored_shape(color: Color) -> Shape {
+        Shape { color, ..default_shape() }
+    }
+
     #[test]
     fn when_two_shapes_with_different_shaders_then_sort_order_controls_draw_order() {
         // Arrange
@@ -790,32 +794,17 @@ mod tests {
         let calls = insert_spy_with_shape_capture(&mut world);
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
-        // Shape A: ShaderHandle(1), SortOrder(1)
         world.spawn((
-            Shape {
-                color: red,
-                ..default_shape()
-            },
+            colored_shape(red),
             GlobalTransform2D(Affine2::IDENTITY),
             SortOrder(1),
-            Material2d {
-                shader: ShaderHandle(1),
-                ..Material2d::default()
-            },
+            Material2d { shader: ShaderHandle(1), ..Material2d::default() },
         ));
-        // Shape B: ShaderHandle(0), SortOrder(0)
         world.spawn((
-            Shape {
-                color: blue,
-                ..default_shape()
-            },
+            colored_shape(blue),
             GlobalTransform2D(Affine2::IDENTITY),
             SortOrder(0),
-            Material2d {
-                shader: ShaderHandle(0),
-                blend_mode: BlendMode::Additive,
-                ..Material2d::default()
-            },
+            Material2d { shader: ShaderHandle(0), blend_mode: BlendMode::Additive, ..Material2d::default() },
         ));
 
         // Act
