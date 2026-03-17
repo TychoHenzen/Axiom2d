@@ -24,23 +24,25 @@ impl ScaleSpring {
 
 pub fn scale_spring_system(
     dt: Res<DeltaTime>,
-    mut query: Query<(Entity, &mut Transform2D, &mut ScaleSpring, Has<FlipAnimation>)>,
+    mut query: Query<(
+        Entity,
+        &mut Transform2D,
+        &mut ScaleSpring,
+        Has<FlipAnimation>,
+    )>,
     mut commands: Commands,
 ) {
     let Seconds(dt_secs) = dt.0;
 
     for (entity, mut transform, mut spring, has_flip) in &mut query {
-        let (sc, sv) =
-            spring_step(transform.scale.y, spring.target, spring.velocity, dt_secs);
+        let (sc, sv) = spring_step(transform.scale.y, spring.target, spring.velocity, dt_secs);
         transform.scale.y = sc;
         if !has_flip {
             transform.scale.x = sc;
         }
         spring.velocity = sv;
 
-        if (sc - spring.target).abs() < CONVERGE_THRESHOLD
-            && sv.abs() < CONVERGE_THRESHOLD
-        {
+        if (sc - spring.target).abs() < CONVERGE_THRESHOLD && sv.abs() < CONVERGE_THRESHOLD {
             transform.scale.y = spring.target;
             if !has_flip {
                 transform.scale.x = spring.target;

@@ -869,17 +869,15 @@ mod tests {
 
     fn run_both_systems(world: &mut World) {
         let mut schedule = Schedule::default();
-        schedule.add_systems(
-            (hand_layout_system, crate::scale_spring::scale_spring_system).chain(),
-        );
+        schedule
+            .add_systems((hand_layout_system, crate::scale_spring::scale_spring_system).chain());
         schedule.run(world);
     }
 
     fn run_both_n_frames(world: &mut World, n: usize) {
         let mut schedule = Schedule::default();
-        schedule.add_systems(
-            (hand_layout_system, crate::scale_spring::scale_spring_system).chain(),
-        );
+        schedule
+            .add_systems((hand_layout_system, crate::scale_spring::scale_spring_system).chain());
         for _ in 0..n {
             schedule.run(world);
         }
@@ -930,7 +928,8 @@ mod tests {
         let t = world.get::<Transform2D>(entity).unwrap();
         assert!(
             (t.scale.x - FAN_SCALE / 2.0).abs() < 0.01,
-            "expected scale.x≈{} after convergence, got {}", FAN_SCALE / 2.0,
+            "expected scale.x≈{} after convergence, got {}",
+            FAN_SCALE / 2.0,
             t.scale.x
         );
     }
@@ -981,7 +980,8 @@ mod tests {
         let t = world.get::<Transform2D>(entity).unwrap();
         assert!(
             (t.scale.x - FAN_SCALE / 2.0).abs() < 1e-5,
-            "expected scale.x to remain≈{}, got {}", FAN_SCALE / 2.0,
+            "expected scale.x to remain≈{}, got {}",
+            FAN_SCALE / 2.0,
             t.scale.x
         );
     }
@@ -1007,7 +1007,8 @@ mod tests {
         let t = world.get::<Transform2D>(entity).unwrap();
         assert!(
             (t.scale.x - FAN_SCALE / 4.0).abs() < 1e-3,
-            "expected scale.x≈{} at zoom=4, got {}", FAN_SCALE / 4.0,
+            "expected scale.x≈{} at zoom=4, got {}",
+            FAN_SCALE / 4.0,
             t.scale.x
         );
     }
