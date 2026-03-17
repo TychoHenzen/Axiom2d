@@ -784,7 +784,10 @@ mod tests {
     }
 
     fn colored_shape(color: Color) -> Shape {
-        Shape { color, ..default_shape() }
+        Shape {
+            color,
+            ..default_shape()
+        }
     }
 
     #[test]
@@ -798,13 +801,20 @@ mod tests {
             colored_shape(red),
             GlobalTransform2D(Affine2::IDENTITY),
             SortOrder(1),
-            Material2d { shader: ShaderHandle(1), ..Material2d::default() },
+            Material2d {
+                shader: ShaderHandle(1),
+                ..Material2d::default()
+            },
         ));
         world.spawn((
             colored_shape(blue),
             GlobalTransform2D(Affine2::IDENTITY),
             SortOrder(0),
-            Material2d { shader: ShaderHandle(0), blend_mode: BlendMode::Additive, ..Material2d::default() },
+            Material2d {
+                shader: ShaderHandle(0),
+                blend_mode: BlendMode::Additive,
+                ..Material2d::default()
+            },
         ));
 
         // Act

@@ -802,7 +802,12 @@ mod tests {
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::new(3.0, 4.0));
         backend.add_collider(entity, &Collider::Circle(0.5));
-        apply_impulse(&mut backend, entity, Vec2::new(50.0, 0.0), Vec2::new(3.0, 5.0));
+        apply_impulse(
+            &mut backend,
+            entity,
+            Vec2::new(50.0, 0.0),
+            Vec2::new(3.0, 5.0),
+        );
         for _ in 0..5 {
             backend.step(Seconds(0.016));
         }

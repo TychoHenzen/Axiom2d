@@ -254,7 +254,9 @@ mod tests {
             .id();
         let child_a = spawn_child_at(&mut world, parent, 1.0, 0.0);
         let child_b = spawn_child_at(&mut world, parent, 0.0, 2.0);
-        world.entity_mut(parent).insert(Children(vec![child_a, child_b]));
+        world
+            .entity_mut(parent)
+            .insert(Children(vec![child_a, child_b]));
 
         // Act
         run_transform_system(&mut world);

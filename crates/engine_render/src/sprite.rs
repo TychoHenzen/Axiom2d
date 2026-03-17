@@ -112,7 +112,10 @@ mod tests {
     }
 
     fn colored_sprite(color: Color) -> Sprite {
-        Sprite { color, ..default_sprite() }
+        Sprite {
+            color,
+            ..default_sprite()
+        }
     }
 
     #[test]
@@ -630,7 +633,10 @@ mod tests {
             colored_sprite(red),
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::Background,
-            Material2d { blend_mode: BlendMode::Additive, ..Material2d::default() },
+            Material2d {
+                blend_mode: BlendMode::Additive,
+                ..Material2d::default()
+            },
         ));
         world.spawn((
             colored_sprite(blue),
@@ -657,7 +663,10 @@ mod tests {
         let calls = insert_spy_with_sprite_capture(&mut world);
         let red = Color::new(1.0, 0.0, 0.0, 1.0);
         let blue = Color::new(0.0, 0.0, 1.0, 1.0);
-        let additive = Material2d { blend_mode: BlendMode::Additive, ..Material2d::default() };
+        let additive = Material2d {
+            blend_mode: BlendMode::Additive,
+            ..Material2d::default()
+        };
         world.spawn((
             colored_sprite(red),
             GlobalTransform2D(Affine2::IDENTITY),
@@ -1018,13 +1027,20 @@ mod tests {
             colored_sprite(red),
             GlobalTransform2D(Affine2::IDENTITY),
             SortOrder(1),
-            Material2d { shader: ShaderHandle(1), ..Material2d::default() },
+            Material2d {
+                shader: ShaderHandle(1),
+                ..Material2d::default()
+            },
         ));
         world.spawn((
             colored_sprite(blue),
             GlobalTransform2D(Affine2::IDENTITY),
             SortOrder(0),
-            Material2d { shader: ShaderHandle(0), blend_mode: BlendMode::Additive, ..Material2d::default() },
+            Material2d {
+                shader: ShaderHandle(0),
+                blend_mode: BlendMode::Additive,
+                ..Material2d::default()
+            },
         ));
 
         // Act
