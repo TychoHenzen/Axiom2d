@@ -715,9 +715,16 @@ mod tests {
         let zone = world.get::<CardZone>(entity).unwrap();
         assert_eq!(*zone, CardZone::Table);
         let hand = world.resource::<Hand>();
-        assert!(hand.cards().is_empty(), "card should not be added to hand when viewport height is 0");
+        assert!(
+            hand.cards().is_empty(),
+            "card should not be added to hand when viewport height is 0"
+        );
         let calls = add_log.lock().unwrap();
-        assert_eq!(calls.len(), 1, "physics body should be re-added for table drop");
+        assert_eq!(
+            calls.len(),
+            1,
+            "physics body should be re-added for table drop"
+        );
     }
 
     #[test]
