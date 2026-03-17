@@ -20,6 +20,12 @@ pub struct HandSpring {
     pub angular_velocity: f32,
 }
 
+impl Default for HandSpring {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HandSpring {
     pub fn new() -> Self {
         Self {

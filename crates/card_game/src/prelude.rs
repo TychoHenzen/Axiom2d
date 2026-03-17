@@ -22,8 +22,8 @@ pub use crate::flip_animation::{FLIP_DURATION, FlipAnimation, flip_animation_sys
 pub use crate::hand::{Hand, HandFull};
 pub use crate::hand_layout::{
     FAN_ARC_DEGREES, FAN_BOTTOM_OFFSET, FAN_CARD_SPACING_DEGREES, FAN_RADIUS, HandSpring,
-    SPRING_DAMPING, SPRING_STIFFNESS,
-    fan_angle, fan_screen_position, hand_layout_system, spring_step,
+    SPRING_DAMPING, SPRING_STIFFNESS, fan_angle, fan_screen_position, hand_layout_system,
+    spring_step,
 };
 pub use crate::sort_propagation::{LocalSortOrder, SORT_STRIDE, sort_propagation_system};
 pub use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH, spawn_table_card, spawn_visual_card};
