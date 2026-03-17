@@ -8,8 +8,6 @@ const TABLE_COLOR: Color = Color {
     b: 0.2,
     a: 1.0,
 };
-const CARD_COLLISION_GROUP: u32 = 0b0001;
-const CARD_COLLISION_FILTER: u32 = 0b0010;
 
 fn spawn_scene(world: &mut bevy_ecs::world::World) {
     // Table background
@@ -98,6 +96,7 @@ fn setup(app: &mut App) {
     world.insert_resource(CameraDragState::default());
     world.insert_resource(StashVisible::default());
     world.insert_resource(StashGrid::new(10, 10, 1));
+    world.insert_resource(Hand::new(10));
     world.insert_resource(ClearColor(Color {
         r: 0.1,
         g: 0.1,
@@ -147,7 +146,11 @@ fn setup(app: &mut App) {
         .add_systems(Phase::Update, stash_toggle_system)
         .add_systems(
             Phase::PostUpdate,
-            (card_face_visibility_sync_system, sort_propagation_system),
+            (
+                card_face_visibility_sync_system,
+                sort_propagation_system,
+                hand_layout_system,
+            ),
         )
         .add_systems(
             Phase::Render,

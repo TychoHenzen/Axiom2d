@@ -10,6 +10,11 @@ use crate::card_zone::CardZone;
 use crate::drag_state::{DragInfo, DragState};
 use crate::hand::Hand;
 
+pub const CARD_COLLISION_GROUP: u32 = 0b0001;
+pub const CARD_COLLISION_FILTER: u32 = 0b0010;
+pub const DRAGGED_COLLISION_GROUP: u32 = 0;
+pub const DRAGGED_COLLISION_FILTER: u32 = 0;
+
 pub(crate) fn collider_half_extents(collider: &Collider) -> Option<Vec2> {
     match collider {
         Collider::Aabb(half) => Some(*half),
@@ -78,8 +83,13 @@ pub fn card_pick_system(
             physics.add_body(entity, &RigidBody::Dynamic, position);
             physics.add_collider(entity, &collider);
             physics.set_damping(entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
+            physics.set_collision_group(entity, DRAGGED_COLLISION_GROUP, DRAGGED_COLLISION_FILTER);
             commands.entity(entity).insert(RigidBody::Dynamic);
             commands.entity(entity).insert(RenderLayer::World);
+        }
+
+        if matches!(zone, CardZone::Table) {
+            physics.set_collision_group(entity, DRAGGED_COLLISION_GROUP, DRAGGED_COLLISION_FILTER);
         }
 
         drag_state.dragging = Some(DragInfo {

@@ -40,9 +40,7 @@ pub fn flip_animation_system(
         if anim.progress < 0.5 {
             transform.scale.x = 1.0 - anim.progress * 2.0;
         } else {
-            if card.face_up != anim.target_face_up {
-                card.face_up = anim.target_face_up;
-            }
+            card.face_up = anim.target_face_up;
             transform.scale.x = (anim.progress - 0.5) * 2.0;
         }
     }
@@ -78,7 +76,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(DeltaTime(Seconds(0.016)));
 
-        // Act + Assert (no panic)
+        // Act
         run_system(&mut world);
     }
 
@@ -228,7 +226,7 @@ mod tests {
 
     #[test]
     fn when_face_up_already_matches_target_past_midpoint_then_face_up_unchanged() {
-        // Arrange — face_up already set to target, animation past midpoint
+        // Arrange
         let mut world = World::new();
         world.insert_resource(DeltaTime(Seconds(0.05)));
         let entity = world
@@ -250,7 +248,6 @@ mod tests {
         // Act
         run_system(&mut world);
 
-        // Assert — face_up stays true (not toggled again)
         assert!(world.entity(entity).get::<Card>().unwrap().face_up);
     }
 
@@ -373,7 +370,7 @@ mod tests {
         use crate::card_face_visibility::card_face_visibility_sync_system;
         use engine_scene::prelude::{ChildOf, Children, Visible};
 
-        // Arrange — face-down card near completion, children have stale visibility
+        // Arrange
         let mut world = World::new();
         world.insert_resource(DeltaTime(Seconds(0.1)));
         let root = world
@@ -401,12 +398,12 @@ mod tests {
         children.sort();
         world.entity_mut(root).insert(Children(children));
 
-        // Act — animation completes, then visibility sync runs
+        // Act
         let mut schedule = Schedule::default();
         schedule.add_systems((flip_animation_system, card_face_visibility_sync_system).chain());
         schedule.run(&mut world);
 
-        // Assert — animation done, face_up=true, front visible, back hidden
+        // Assert
         assert!(world.entity(root).get::<FlipAnimation>().is_none());
         let scale_x = world.entity(root).get::<Transform2D>().unwrap().scale.x;
         assert!((scale_x - 1.0).abs() < 1e-5);
@@ -417,8 +414,7 @@ mod tests {
 
     #[test]
     fn when_progress_exactly_at_midpoint_then_face_up_changes_to_target() {
-        // Arrange — progress exactly 0.5, dt=0 so progress stays at 0.5
-        // The `< 0.5` branch does NOT flip face_up; the `>= 0.5` (else) branch does.
+        // Arrange
         let mut world = World::new();
         world.insert_resource(DeltaTime(Seconds(0.0)));
         let entity = world
@@ -440,7 +436,6 @@ mod tests {
         // Act
         run_system(&mut world);
 
-        // Assert — at exactly 0.5, the else branch runs, so face_up becomes target
         assert!(world.entity(entity).get::<Card>().unwrap().face_up);
     }
 

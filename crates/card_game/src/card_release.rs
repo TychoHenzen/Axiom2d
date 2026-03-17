@@ -5,10 +5,14 @@ use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
 use engine_render::prelude::RendererRes;
 use engine_scene::prelude::RenderLayer;
 
+use crate::card::Card;
 use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
+use crate::card_pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
 use crate::card_zone::CardZone;
 use crate::drag_state::DragState;
+use crate::flip_animation::FlipAnimation;
 use crate::hand::Hand;
+use crate::hand_layout::HandSpring;
 
 pub const HAND_DROP_ZONE_HEIGHT: f32 = 120.0;
 
@@ -24,6 +28,7 @@ pub fn card_release_system(
     renderer: Res<RendererRes>,
     mut commands: Commands,
     transform_query: Query<(&Transform2D, &Collider)>,
+    card_query: Query<&Card>,
 ) {
     let Some(info) = drag_state.dragging else {
         return;
@@ -37,7 +42,8 @@ pub fn card_release_system(
     let screen_y = mouse.screen_pos().y;
 
     if vh > 0.0 && is_hand_drop_zone(screen_y, vh) {
-        drop_on_hand(info.entity, &mut hand, &mut physics, &mut commands);
+        let face_up = card_query.get(info.entity).is_ok_and(|c| c.face_up);
+        drop_on_hand(info.entity, face_up, &mut hand, &mut physics, &mut commands);
     } else {
         drop_on_table(info.entity, &mut physics, &mut commands, &transform_query);
     }
@@ -47,6 +53,7 @@ pub fn card_release_system(
 
 fn drop_on_hand(
     entity: Entity,
+    face_up: bool,
     hand: &mut Hand,
     physics: &mut PhysicsRes,
     commands: &mut Commands,
@@ -59,6 +66,10 @@ fn drop_on_hand(
         commands.entity(entity).insert(CardZone::Table);
     }
     commands.entity(entity).insert(RenderLayer::UI);
+    commands.entity(entity).insert(HandSpring::new());
+    if !face_up {
+        commands.entity(entity).insert(FlipAnimation::start(true));
+    }
 }
 
 fn drop_on_table(
@@ -72,6 +83,7 @@ fn drop_on_table(
         physics.add_body(entity, &RigidBody::Dynamic, position);
         physics.add_collider(entity, collider);
         physics.set_damping(entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
+        physics.set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER);
     }
     commands.entity(entity).insert(RigidBody::Dynamic);
     commands.entity(entity).insert(CardZone::Table);
@@ -284,11 +296,9 @@ mod tests {
         assert_eq!(*zone, CardZone::Table);
     }
 
-    // --- Hand drop tests ---
-
     #[test]
     fn when_release_in_hand_area_from_table_then_card_added_to_hand() {
-        // Arrange — screen_y = 550, vh = 600, zone height = 120 → 550 >= 480 → hand zone
+        // Arrange
         let (mut world, _, _) = make_release_world(600, 550.0);
         let entity = world
             .spawn((
@@ -425,7 +435,7 @@ mod tests {
 
     #[test]
     fn when_release_on_table_from_hand_then_zone_becomes_table() {
-        // Arrange — screen_y = 100, not in hand zone
+        // Arrange
         let (mut world, _, _) = make_release_world(600, 100.0);
         let entity = world
             .spawn((
@@ -494,8 +504,147 @@ mod tests {
     }
 
     #[test]
+    fn when_face_down_card_released_into_hand_then_flip_animation_inserted() {
+        // Arrange
+        let (mut world, _, _) = make_release_world(600, 550.0);
+        let entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                RigidBody::Dynamic,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Table,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let flip = world.get::<crate::flip_animation::FlipAnimation>(entity);
+        assert!(flip.is_some(), "expected FlipAnimation to be inserted");
+        assert!(flip.unwrap().target_face_up, "expected target_face_up=true");
+    }
+
+    #[test]
+    fn when_face_up_card_released_into_hand_then_no_flip_animation() {
+        // Arrange
+        let (mut world, _, _) = make_release_world(600, 550.0);
+        let mut card = Card::face_down(TextureId(1), TextureId(2));
+        card.face_up = true;
+        let entity = world
+            .spawn((
+                card,
+                CardZone::Table,
+                RigidBody::Dynamic,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Table,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let flip = world.get::<crate::flip_animation::FlipAnimation>(entity);
+        assert!(flip.is_none(), "expected no FlipAnimation for face-up card");
+    }
+
+    #[test]
+    fn when_face_down_card_released_on_table_then_no_flip_animation() {
+        // Arrange
+        let (mut world, _, _) = make_release_world(600, 100.0);
+        let entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Table,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let flip = world.get::<crate::flip_animation::FlipAnimation>(entity);
+        assert!(flip.is_none(), "expected no FlipAnimation for table drop");
+    }
+
+    #[test]
+    fn when_face_down_card_released_into_hand_then_also_added_to_hand() {
+        // Arrange
+        let (mut world, _, _) = make_release_world(600, 550.0);
+        let entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                RigidBody::Dynamic,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Table,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        let hand = world.resource::<Hand>();
+        assert!(hand.cards().contains(&entity), "expected card in hand");
+        let flip = world.get::<crate::flip_animation::FlipAnimation>(entity);
+        assert!(flip.is_some(), "expected FlipAnimation also present");
+    }
+
+    #[test]
     fn when_hand_full_and_release_in_hand_area_then_card_stays_on_table() {
-        // Arrange — hand is full (max_size=1, one card already in it)
+        // Arrange
         let (mut world, _, _) = make_release_world(600, 550.0);
         let existing = world.spawn_empty().id();
         let mut hand = Hand::new(1);
