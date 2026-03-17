@@ -684,6 +684,43 @@ mod tests {
     }
 
     #[test]
+    fn when_viewport_height_zero_then_card_dropped_on_table_not_hand() {
+        // Arrange — viewport height 0 means the hand drop zone check should be skipped
+        let (mut world, _, add_log) = make_release_world(0, 100.0);
+        let entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::new(50.0, 50.0),
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Table,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — card should be on table, NOT in hand
+        let zone = world.get::<CardZone>(entity).unwrap();
+        assert_eq!(*zone, CardZone::Table);
+        let hand = world.resource::<Hand>();
+        assert!(hand.cards().is_empty(), "card should not be added to hand when viewport height is 0");
+        let calls = add_log.lock().unwrap();
+        assert_eq!(calls.len(), 1, "physics body should be re-added for table drop");
+    }
+
+    #[test]
     fn when_release_to_hand_then_handspring_inserted() {
         // Arrange
         let (mut world, _, _) = make_release_world(600, 550.0);

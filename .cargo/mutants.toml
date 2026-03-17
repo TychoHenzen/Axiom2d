@@ -2,7 +2,13 @@
 # killed by unit tests. Excluded so the CI mutation testing job succeeds.
 
 # File-level exclusions (glob-based, reliable for all mutant types)
-exclude_globs = ["crates/demo/**", "crates/card_game_bin/**"]
+exclude_globs = [
+    "crates/demo/**",
+    "crates/card_game_bin/**",
+    # wgpu_renderer is the GPU backend — every function requires a live GPU device.
+    # Pure utility functions should live outside this module if they need testing.
+    "crates/engine_render/src/wgpu_renderer/**",
+]
 
 exclude_re = [
     # App::run blocks on EventLoop — untestable
@@ -71,6 +77,9 @@ exclude_re = [
     # compute_pan: diff.length_squared() < EPSILON vs <= EPSILON — boundary at exact
     # f32::EPSILON is unreachable with floating-point inputs; semantically equivalent
     "replace < with <= in compute_pan",
+    # visual_regression: HeadlessRenderer GPU topology/adapter fields — require GPU, tests are #[ignore]
+    "in HeadlessRenderer::build",
+    "in HeadlessRenderer::try_new",
     # build_shaded_side_faces: contour[1..len-1] → contour[1..len/1=len] — extra Close
     # command is ignored by the `_ => {}` match arm; semantically equivalent.
     # Also covers the closing-segment `current - start` → `current / start` at line 266

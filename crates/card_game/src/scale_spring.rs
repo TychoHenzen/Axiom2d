@@ -187,6 +187,97 @@ mod tests {
     }
 
     #[test]
+    fn when_position_converged_but_velocity_above_threshold_then_spring_not_removed() {
+        // Arrange — position very close to target, but velocity still above CONVERGE_THRESHOLD.
+        // This catches the mutation && → || (which would remove the spring when EITHER converges).
+        let mut world = make_world();
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::splat(1.00001),
+                },
+                ScaleSpring {
+                    target: 1.0,
+                    velocity: 0.001,
+                },
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — spring should still exist because velocity hasn't converged
+        assert!(
+            world.get::<ScaleSpring>(entity).is_some(),
+            "spring should not be removed when velocity is above threshold"
+        );
+    }
+
+    #[test]
+    fn when_position_at_exact_threshold_boundary_then_spring_not_removed() {
+        // Arrange — set up so |sc - target| ≈ CONVERGE_THRESHOLD exactly after spring_step.
+        // Use tiny dt so spring barely moves from initial position.
+        // Initial: scale = target + CONVERGE_THRESHOLD, velocity = 0, dt ≈ 0
+        // After step: sc ≈ target + CONVERGE_THRESHOLD, sv ≈ 0
+        // With <: CONVERGE_THRESHOLD < CONVERGE_THRESHOLD = false → NOT removed
+        // With <=: CONVERGE_THRESHOLD <= CONVERGE_THRESHOLD = true → removed
+        let mut world = World::new();
+        world.insert_resource(DeltaTime(Seconds(1e-10)));
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::splat(1.0 + CONVERGE_THRESHOLD),
+                },
+                ScaleSpring::new(1.0),
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<ScaleSpring>(entity).is_some(),
+            "spring should not be removed when position displacement equals threshold exactly"
+        );
+    }
+
+    #[test]
+    fn when_velocity_at_exact_threshold_boundary_then_spring_not_removed() {
+        // Arrange — velocity ≈ CONVERGE_THRESHOLD after spring_step, position converged.
+        // With <: CONVERGE_THRESHOLD < CONVERGE_THRESHOLD = false → NOT removed
+        // With <=: CONVERGE_THRESHOLD <= CONVERGE_THRESHOLD = true → removed
+        let mut world = World::new();
+        world.insert_resource(DeltaTime(Seconds(1e-10)));
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                ScaleSpring {
+                    target: 1.0,
+                    velocity: CONVERGE_THRESHOLD,
+                },
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<ScaleSpring>(entity).is_some(),
+            "spring should not be removed when velocity equals threshold exactly"
+        );
+    }
+
+    #[test]
     fn when_scale_at_target_with_zero_velocity_then_immediately_removed() {
         // Arrange
         let mut world = make_world();

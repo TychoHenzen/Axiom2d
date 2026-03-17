@@ -434,6 +434,39 @@ mod tests {
     }
 
     #[test]
+    fn when_path_moveto_nonorigin_then_vertices_are_near_moveto_point() {
+        // Arrange — MoveTo to (50,50), then draw a triangle there.
+        // If apply_move_to incorrectly returns true, ensure_begun would start
+        // a new sub-path at (0,0), shifting the geometry to the origin.
+        let variant = ShapeVariant::Path {
+            commands: vec![
+                PathCommand::MoveTo(Vec2::new(50.0, 50.0)),
+                PathCommand::LineTo(Vec2::new(150.0, 50.0)),
+                PathCommand::LineTo(Vec2::new(100.0, 150.0)),
+                PathCommand::Close,
+            ],
+        };
+
+        // Act
+        let mesh = tessellate(&variant);
+
+        // Assert — all vertices should be in the [50,150] range, NOT near origin
+        assert!(!mesh.vertices.is_empty());
+        for v in &mesh.vertices {
+            assert!(
+                v[0] >= 49.0 && v[0] <= 151.0,
+                "vertex x={} outside expected [50,150] range",
+                v[0]
+            );
+            assert!(
+                v[1] >= 49.0 && v[1] <= 151.0,
+                "vertex y={} outside expected [50,150] range",
+                v[1]
+            );
+        }
+    }
+
+    #[test]
     fn when_tessellating_circle_then_index_count_is_multiple_of_three() {
         // Arrange
         let variant = ShapeVariant::Circle { radius: 50.0 };

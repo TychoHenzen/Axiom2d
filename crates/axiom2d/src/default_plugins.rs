@@ -499,6 +499,34 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "physics")]
+    #[test]
+    fn when_default_plugins_then_physics_res_is_present() {
+        // Arrange
+        let app = app_with_default_plugins();
+
+        // Assert
+        assert!(
+            app.world()
+                .get_resource::<engine_physics::prelude::PhysicsRes>()
+                .is_some()
+        );
+    }
+
+    #[cfg(feature = "physics")]
+    #[test]
+    fn when_default_plugins_then_collision_event_buffer_is_present() {
+        // Arrange
+        let app = app_with_default_plugins();
+
+        // Assert
+        assert!(
+            app.world()
+                .get_resource::<engine_physics::prelude::CollisionEventBuffer>()
+                .is_some()
+        );
+    }
+
     #[test]
     fn when_key_pressed_and_second_frame_runs_then_just_pressed_is_false() {
         // Arrange

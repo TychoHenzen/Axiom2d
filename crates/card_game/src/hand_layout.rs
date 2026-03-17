@@ -654,6 +654,44 @@ mod tests {
     }
 
     #[test]
+    fn when_fan_screen_position_at_30_degrees_then_x_uses_radius_times_sin() {
+        // Arrange — non-zero angle reveals whether radius = FAN_RADIUS * FAN_SCALE
+        // and whether x offset = sin(angle) * radius (not sin(angle) + or / radius)
+        let angle = std::f32::consts::FRAC_PI_6; // 30 degrees
+        let radius = FAN_RADIUS * FAN_SCALE;
+        let expected_x = 400.0 + angle.sin() * radius;
+
+        // Act
+        let pos = fan_screen_position(angle, 800.0, 600.0);
+
+        // Assert
+        assert!(
+            (pos.x - expected_x).abs() < 1e-3,
+            "expected x≈{expected_x}, got {}",
+            pos.x
+        );
+    }
+
+    #[test]
+    fn when_fan_screen_position_at_30_degrees_then_y_uses_radius_times_cos() {
+        // Arrange — non-zero angle reveals whether y offset = cos(angle) * radius
+        let angle = std::f32::consts::FRAC_PI_6;
+        let radius = FAN_RADIUS * FAN_SCALE;
+        let pivot_y = 600.0 - FAN_BOTTOM_OFFSET + radius;
+        let expected_y = pivot_y - angle.cos() * radius;
+
+        // Act
+        let pos = fan_screen_position(angle, 800.0, 600.0);
+
+        // Assert
+        assert!(
+            (pos.y - expected_y).abs() < 1e-3,
+            "expected y≈{expected_y}, got {}",
+            pos.y
+        );
+    }
+
+    #[test]
     fn when_spring_step_from_zero_toward_target_then_moves_toward_target() {
         // Act
         let (pos, vel) = spring_step(0.0, 100.0, 0.0, 0.016);
