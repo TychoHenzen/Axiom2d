@@ -1,15 +1,18 @@
-use bevy_ecs::prelude::{Component, Query, Res};
+use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res};
 use engine_core::prelude::{DeltaTime, Seconds, Transform2D};
 use engine_render::prelude::{Camera2D, RendererRes, screen_to_world};
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
 use crate::hand::Hand;
+use crate::scale_spring::ScaleSpring;
 
-pub const FAN_ARC_DEGREES: f32 = 30.0;
-pub const FAN_CARD_SPACING_DEGREES: f32 = 5.0;
-pub const FAN_RADIUS: f32 = 600.0;
+pub const FAN_ARC_DEGREES: f32 = 45.0;
+pub const FAN_CARD_SPACING_DEGREES: f32 = 8.0;
+pub const FAN_RADIUS: f32 = 400.0;
 pub const FAN_BOTTOM_OFFSET: f32 = 80.0;
+
+pub const FAN_SCALE: f32 = 3.0;
 
 pub const SPRING_STIFFNESS: f32 = 200.0;
 pub const SPRING_DAMPING: f32 = 20.0;
@@ -55,11 +58,12 @@ pub fn fan_angle(index: usize, count: usize) -> f32 {
 }
 
 pub fn fan_screen_position(angle: f32, viewport_width: f32, viewport_height: f32) -> Vec2 {
+    let radius = FAN_RADIUS * FAN_SCALE;
     let pivot_x = viewport_width / 2.0;
-    let pivot_y = viewport_height - FAN_BOTTOM_OFFSET + FAN_RADIUS;
+    let pivot_y = viewport_height - FAN_BOTTOM_OFFSET + radius;
     Vec2::new(
-        pivot_x + angle.sin() * FAN_RADIUS,
-        pivot_y - angle.cos() * FAN_RADIUS,
+        pivot_x + angle.sin() * radius,
+        pivot_y - angle.cos() * radius,
     )
 }
 
@@ -68,7 +72,8 @@ pub fn hand_layout_system(
     dt: Res<DeltaTime>,
     camera_query: Query<&Camera2D>,
     renderer: Res<RendererRes>,
-    mut cards: Query<(&mut Transform2D, Option<&mut HandSpring>)>,
+    mut cards: Query<(Entity, &mut Transform2D, Option<&mut HandSpring>)>,
+    mut commands: Commands,
 ) {
     if hand.is_empty() {
         return;
@@ -89,13 +94,14 @@ pub fn hand_layout_system(
 
     let n = hand.len();
     let Seconds(dt_secs) = dt.0;
+    let target_scale = FAN_SCALE / camera.zoom;
 
-    for (i, &entity) in hand.cards().iter().enumerate() {
+    for (i, &card_entity) in hand.cards().iter().enumerate() {
         let angle = fan_angle(i, n);
         let screen_pos = fan_screen_position(angle, vw, vh);
         let target_pos = screen_to_world(screen_pos, &camera, vw, vh);
 
-        if let Ok((mut transform, spring)) = cards.get_mut(entity) {
+        if let Ok((_, mut transform, spring)) = cards.get_mut(card_entity) {
             if let Some(mut spring) = spring {
                 let (px, vx) = spring_step(
                     transform.position.x,
@@ -115,9 +121,13 @@ pub fn hand_layout_system(
                 transform.rotation = rot;
                 spring.velocity = Vec2::new(vx, vy);
                 spring.angular_velocity = av;
+                commands
+                    .entity(card_entity)
+                    .insert(ScaleSpring::new(target_scale));
             } else {
                 transform.position = target_pos;
                 transform.rotation = angle;
+                transform.scale = Vec2::splat(target_scale);
             }
         }
     }
@@ -128,6 +138,7 @@ pub fn hand_layout_system(
 mod tests {
     use super::*;
     use bevy_ecs::prelude::{Entity, Schedule, World};
+    use bevy_ecs::schedule::IntoScheduleConfigs;
     use engine_render::testing::SpyRenderer;
     use std::sync::{Arc, Mutex};
 
@@ -747,6 +758,257 @@ mod tests {
             (t.rotation - target_angle).abs() < 0.01,
             "expected rotation≈{target_angle}, got {}",
             t.rotation
+        );
+    }
+
+    #[test]
+    fn when_hand_card_without_spring_at_zoom_one_then_scale_is_fan_scale() {
+        // Arrange
+        let mut world = make_world(800, 600);
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+        let entity = add_card_to_hand(&mut world);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert!(
+            (t.scale.x - FAN_SCALE).abs() < 1e-3,
+            "expected scale.x≈{FAN_SCALE} at zoom=1, got {}",
+            t.scale.x
+        );
+        assert!(
+            (t.scale.y - FAN_SCALE).abs() < 1e-3,
+            "expected scale.y≈{FAN_SCALE} at zoom=1, got {}",
+            t.scale.y
+        );
+    }
+
+    #[test]
+    fn when_hand_card_without_spring_at_zoom_two_then_scale_is_fan_scale_over_two() {
+        // Arrange
+        let mut world = make_world(800, 600);
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 2.0,
+        });
+        let entity = add_card_to_hand(&mut world);
+        let expected = FAN_SCALE / 2.0;
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert!(
+            (t.scale.x - expected).abs() < 1e-3,
+            "expected scale.x≈{expected} at zoom=2, got {}",
+            t.scale.x
+        );
+        assert!(
+            (t.scale.y - expected).abs() < 1e-3,
+            "expected scale.y≈{expected} at zoom=2, got {}",
+            t.scale.y
+        );
+    }
+
+    #[test]
+    fn when_hand_card_without_spring_at_zoom_point_five_then_scale_is_double_fan_scale() {
+        // Arrange
+        let mut world = make_world(800, 600);
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 0.5,
+        });
+        let entity = add_card_to_hand(&mut world);
+        let expected = FAN_SCALE / 0.5;
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert!(
+            (t.scale.x - expected).abs() < 1e-3,
+            "expected scale.x≈{expected} at zoom=0.5, got {}",
+            t.scale.x
+        );
+        assert!(
+            (t.scale.y - expected).abs() < 1e-3,
+            "expected scale.y≈{expected} at zoom=0.5, got {}",
+            t.scale.y
+        );
+    }
+
+    #[test]
+    fn when_no_camera_then_hand_card_scale_defaults_to_fan_scale() {
+        // Arrange
+        let mut world = make_world(800, 600);
+        let entity = add_card_to_hand(&mut world);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert!(
+            (t.scale.x - FAN_SCALE).abs() < 1e-3,
+            "expected scale.x≈{FAN_SCALE} with default zoom, got {}",
+            t.scale.x
+        );
+        assert!(
+            (t.scale.y - FAN_SCALE).abs() < 1e-3,
+            "expected scale.y≈{FAN_SCALE} with default zoom, got {}",
+            t.scale.y
+        );
+    }
+
+    fn run_both_systems(world: &mut World) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems(
+            (hand_layout_system, crate::scale_spring::scale_spring_system).chain(),
+        );
+        schedule.run(world);
+    }
+
+    fn run_both_n_frames(world: &mut World, n: usize) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems(
+            (hand_layout_system, crate::scale_spring::scale_spring_system).chain(),
+        );
+        for _ in 0..n {
+            schedule.run(world);
+        }
+    }
+
+    #[test]
+    fn when_hand_card_with_spring_at_zoom_two_one_frame_then_scale_moves_toward_target() {
+        // Arrange
+        let mut world = make_world(800, 600);
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 2.0,
+        });
+        let entity = add_spring_card_to_hand(&mut world, Vec2::ZERO);
+        let target = FAN_SCALE / 2.0;
+
+        // Act
+        run_both_systems(&mut world);
+
+        // Assert — starts at 1.0, target is FAN_SCALE/2; should move toward target but not arrive
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert!(
+            (t.scale.x - 1.0).abs() > 1e-3,
+            "expected scale.x to move away from initial 1.0, got {}",
+            t.scale.x
+        );
+        assert!(
+            (t.scale.x - target).abs() > 1e-3,
+            "expected scale.x not to reach {target} in one frame, got {}",
+            t.scale.x
+        );
+    }
+
+    #[test]
+    fn when_hand_card_with_spring_at_zoom_two_many_frames_then_scale_converges() {
+        // Arrange
+        let mut world = make_world(800, 600);
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 2.0,
+        });
+        let entity = add_spring_card_to_hand(&mut world, Vec2::ZERO);
+
+        // Act
+        run_both_n_frames(&mut world, 300);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert!(
+            (t.scale.x - FAN_SCALE / 2.0).abs() < 0.01,
+            "expected scale.x≈{} after convergence, got {}", FAN_SCALE / 2.0,
+            t.scale.x
+        );
+    }
+
+    #[test]
+    fn when_hand_card_with_spring_then_scale_spring_inserted() {
+        // Arrange
+        let mut world = make_world(800, 600);
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 2.0,
+        });
+        let entity = add_spring_card_to_hand(&mut world, Vec2::ZERO);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let scale_spring = world.get::<ScaleSpring>(entity);
+        assert!(scale_spring.is_some(), "ScaleSpring should be inserted");
+        assert_eq!(scale_spring.unwrap().target, FAN_SCALE / 2.0);
+    }
+
+    #[test]
+    fn when_hand_card_with_spring_scale_at_target_then_stable() {
+        // Arrange
+        let mut world = make_world(800, 600);
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 2.0,
+        });
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::splat(FAN_SCALE / 2.0),
+                },
+                HandSpring::new(),
+            ))
+            .id();
+        world.resource_mut::<Hand>().add(entity).unwrap();
+
+        // Act
+        run_both_systems(&mut world);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert!(
+            (t.scale.x - FAN_SCALE / 2.0).abs() < 1e-5,
+            "expected scale.x to remain≈{}, got {}", FAN_SCALE / 2.0,
+            t.scale.x
+        );
+    }
+
+    #[test]
+    fn when_zoom_changes_between_frames_then_scale_updates() {
+        // Arrange
+        let mut world = make_world(800, 600);
+        let camera_entity = world
+            .spawn(Camera2D {
+                position: Vec2::ZERO,
+                zoom: 1.0,
+            })
+            .id();
+        let entity = add_card_to_hand(&mut world);
+        run_system(&mut world);
+
+        // Act
+        world.get_mut::<Camera2D>(camera_entity).unwrap().zoom = 4.0;
+        run_system(&mut world);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert!(
+            (t.scale.x - FAN_SCALE / 4.0).abs() < 1e-3,
+            "expected scale.x≈{} at zoom=4, got {}", FAN_SCALE / 4.0,
+            t.scale.x
         );
     }
 

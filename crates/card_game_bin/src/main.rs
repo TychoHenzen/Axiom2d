@@ -152,6 +152,7 @@ fn setup(app: &mut App) {
                 hand_layout_system,
             ),
         )
+        .add_systems(Phase::PostUpdate, scale_spring_system)
         .add_systems(
             Phase::Render,
             stash_render_system.after(shape_render_system),

@@ -14,6 +14,7 @@ pub mod flip_animation;
 pub mod hand;
 pub mod hand_layout;
 pub mod prelude;
+pub mod scale_spring;
 pub mod sort_propagation;
 pub mod spawn_table_card;
 pub mod stash_grid;

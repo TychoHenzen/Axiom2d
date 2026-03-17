@@ -9,6 +9,8 @@ use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card_zone::CardZone;
 use crate::drag_state::{DragInfo, DragState};
 use crate::hand::Hand;
+use crate::hand_layout::HandSpring;
+use crate::scale_spring::ScaleSpring;
 
 pub const CARD_COLLISION_GROUP: u32 = 0b0001;
 pub const CARD_COLLISION_FILTER: u32 = 0b0010;
@@ -86,6 +88,8 @@ pub fn card_pick_system(
             physics.set_collision_group(entity, DRAGGED_COLLISION_GROUP, DRAGGED_COLLISION_FILTER);
             commands.entity(entity).insert(RigidBody::Dynamic);
             commands.entity(entity).insert(RenderLayer::World);
+            commands.entity(entity).remove::<HandSpring>();
+            commands.entity(entity).insert(ScaleSpring::new(1.0));
         }
 
         if matches!(zone, CardZone::Table) {
@@ -122,6 +126,8 @@ mod tests {
     use crate::card_zone::CardZone;
     use crate::drag_state::DragState;
     use crate::hand::Hand;
+    use crate::hand_layout::HandSpring;
+    use crate::scale_spring::ScaleSpring;
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -772,5 +778,103 @@ mod tests {
         // Assert
         let drag = world.resource::<DragState>().dragging;
         assert_eq!(drag.map(|d| d.entity), Some(hand_card));
+    }
+
+    #[test]
+    fn when_pick_from_hand_then_scale_spring_inserted() {
+        // Arrange
+        let mut world = World::new();
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Hand(0),
+                default_collider(),
+                GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+                SortOrder(0),
+            ))
+            .id();
+        let mut hand = Hand::new(10);
+        hand.add(card_entity).unwrap();
+        world.insert_resource(hand);
+        let (spy, _, _, _) = make_spy_physics();
+        world.insert_resource(PhysicsRes::new(spy));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::ZERO);
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let spring = world.get::<ScaleSpring>(card_entity);
+        assert!(spring.is_some(), "ScaleSpring should be inserted");
+        assert_eq!(spring.unwrap().target, 1.0);
+    }
+
+    #[test]
+    fn when_pick_from_hand_then_handspring_removed() {
+        // Arrange
+        let mut world = World::new();
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Hand(0),
+                default_collider(),
+                GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+                SortOrder(0),
+                HandSpring::new(),
+            ))
+            .id();
+        let mut hand = Hand::new(10);
+        hand.add(card_entity).unwrap();
+        world.insert_resource(hand);
+        let (spy, _, _, _) = make_spy_physics();
+        world.insert_resource(PhysicsRes::new(spy));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::ZERO);
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<HandSpring>(card_entity).is_none(),
+            "HandSpring should be removed when picking from hand"
+        );
+    }
+
+    #[test]
+    fn when_pick_from_table_then_no_scale_spring() {
+        // Arrange
+        let mut world = World::new();
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                default_collider(),
+                GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+                SortOrder(0),
+            ))
+            .id();
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::ZERO);
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<ScaleSpring>(card_entity).is_none(),
+            "table cards should not get ScaleSpring"
+        );
     }
 }

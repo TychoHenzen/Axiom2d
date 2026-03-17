@@ -110,7 +110,9 @@ mod tests {
     use crate::card::Card;
     use crate::card_zone::CardZone;
     use crate::drag_state::{DragInfo, DragState};
+    use crate::flip_animation::FlipAnimation;
     use crate::hand::Hand;
+    use crate::hand_layout::HandSpring;
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -533,7 +535,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let flip = world.get::<crate::flip_animation::FlipAnimation>(entity);
+        let flip = world.get::<FlipAnimation>(entity);
         assert!(flip.is_some(), "expected FlipAnimation to be inserted");
         assert!(flip.unwrap().target_face_up, "expected target_face_up=true");
     }
@@ -570,7 +572,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let flip = world.get::<crate::flip_animation::FlipAnimation>(entity);
+        let flip = world.get::<FlipAnimation>(entity);
         assert!(flip.is_none(), "expected no FlipAnimation for face-up card");
     }
 
@@ -603,7 +605,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let flip = world.get::<crate::flip_animation::FlipAnimation>(entity);
+        let flip = world.get::<FlipAnimation>(entity);
         assert!(flip.is_none(), "expected no FlipAnimation for table drop");
     }
 
@@ -638,7 +640,7 @@ mod tests {
 
         let hand = world.resource::<Hand>();
         assert!(hand.cards().contains(&entity), "expected card in hand");
-        let flip = world.get::<crate::flip_animation::FlipAnimation>(entity);
+        let flip = world.get::<FlipAnimation>(entity);
         assert!(flip.is_some(), "expected FlipAnimation also present");
     }
 
@@ -678,5 +680,41 @@ mod tests {
         // Assert
         let zone = world.get::<CardZone>(entity).unwrap();
         assert_eq!(*zone, CardZone::Table);
+    }
+
+    #[test]
+    fn when_release_to_hand_then_handspring_inserted() {
+        // Arrange
+        let (mut world, _, _) = make_release_world(600, 550.0);
+        let entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                RigidBody::Dynamic,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Table,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<HandSpring>(entity).is_some(),
+            "HandSpring should be inserted on release to hand"
+        );
     }
 }

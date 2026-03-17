@@ -25,6 +25,7 @@ pub use crate::hand_layout::{
     SPRING_DAMPING, SPRING_STIFFNESS, fan_angle, fan_screen_position, hand_layout_system,
     spring_step,
 };
+pub use crate::scale_spring::{ScaleSpring, scale_spring_system};
 pub use crate::sort_propagation::{LocalSortOrder, SORT_STRIDE, sort_propagation_system};
 pub use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH, spawn_table_card, spawn_visual_card};
 pub use crate::stash_grid::{SlotOccupied, StashGrid};

@@ -30,18 +30,20 @@ pub fn flip_animation_system(
     for (entity, mut anim, mut card, mut transform) in &mut query {
         anim.progress += dt.0.0 / anim.duration.0;
 
+        let base_scale = transform.scale.y;
+
         if anim.progress >= 1.0 {
-            transform.scale.x = 1.0;
+            transform.scale.x = base_scale;
             card.face_up = anim.target_face_up;
             commands.entity(entity).remove::<FlipAnimation>();
             continue;
         }
 
         if anim.progress < 0.5 {
-            transform.scale.x = 1.0 - anim.progress * 2.0;
+            transform.scale.x = base_scale * (1.0 - anim.progress * 2.0);
         } else {
             card.face_up = anim.target_face_up;
-            transform.scale.x = (anim.progress - 0.5) * 2.0;
+            transform.scale.x = base_scale * ((anim.progress - 0.5) * 2.0);
         }
     }
 }
