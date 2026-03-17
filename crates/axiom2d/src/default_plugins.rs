@@ -32,82 +32,98 @@ pub struct DefaultPlugins;
 impl Plugin for DefaultPlugins {
     fn build(&self, app: &mut App) {
         app.add_plugin(SplashPlugin);
+        register_core_resources(app);
+        register_core_systems(app);
+        register_physics(app);
+        register_post_update_systems(app);
+        register_render(app);
+    }
+}
 
-        app.world_mut().insert_resource(InputState::default());
-        app.world_mut().insert_resource(InputEventBuffer::default());
-        app.world_mut().insert_resource(MouseState::default());
-        app.world_mut().insert_resource(MouseEventBuffer::default());
+fn register_core_resources(app: &mut App) {
+    app.world_mut().insert_resource(InputState::default());
+    app.world_mut().insert_resource(InputEventBuffer::default());
+    app.world_mut().insert_resource(MouseState::default());
+    app.world_mut().insert_resource(MouseEventBuffer::default());
+    app.world_mut()
+        .insert_resource(ClockRes::new(Box::new(SystemClock::new())));
+}
+
+fn register_core_systems(app: &mut App) {
+    app.add_systems(Phase::Input, (input_system, mouse_input_system));
+    app.add_systems(Phase::PreUpdate, time_system);
+}
+
+fn register_physics(app: &mut App) {
+    #[cfg(feature = "physics")]
+    {
+        app.world_mut().insert_resource(PhysicsRes::new(Box::new(
+            engine_physics::prelude::NullPhysicsBackend::new(),
+        )));
         app.world_mut()
-            .insert_resource(ClockRes::new(Box::new(SystemClock::new())));
+            .insert_resource(CollisionEventBuffer::default());
+        app.add_systems(
+            Phase::PreUpdate,
+            (physics_step_system, physics_sync_system).chain(),
+        );
+    }
+}
 
-        app.add_systems(Phase::Input, (input_system, mouse_input_system));
-        app.add_systems(Phase::PreUpdate, time_system);
+#[allow(clippy::too_many_lines)]
+fn register_post_update_systems(app: &mut App) {
+    #[cfg(not(feature = "audio"))]
+    app.add_systems(
+        Phase::PostUpdate,
+        (
+            hierarchy_maintenance_system,
+            transform_propagation_system,
+            visibility_system,
+            mouse_world_pos_system,
+            scroll_clear_system,
+        )
+            .chain(),
+    );
 
-        #[cfg(feature = "physics")]
-        {
-            app.world_mut().insert_resource(PhysicsRes::new(Box::new(
-                engine_physics::prelude::NullPhysicsBackend::new(),
-            )));
-            app.world_mut()
-                .insert_resource(CollisionEventBuffer::default());
-            app.add_systems(
-                Phase::PreUpdate,
-                (physics_step_system, physics_sync_system).chain(),
-            );
-        }
-
-        #[cfg(not(feature = "audio"))]
+    #[cfg(feature = "audio")]
+    {
+        app.world_mut()
+            .insert_resource(AudioRes::new(Box::new(NullAudioBackend::new())));
+        app.world_mut().insert_resource(PlaySoundBuffer::default());
+        app.add_systems(Phase::PreUpdate, play_sound_system);
         app.add_systems(
             Phase::PostUpdate,
             (
                 hierarchy_maintenance_system,
                 transform_propagation_system,
                 visibility_system,
+                spatial_audio_system,
                 mouse_world_pos_system,
                 scroll_clear_system,
             )
                 .chain(),
         );
+    }
+}
 
-        #[cfg(feature = "audio")]
-        {
-            app.world_mut()
-                .insert_resource(AudioRes::new(Box::new(NullAudioBackend::new())));
-            app.world_mut().insert_resource(PlaySoundBuffer::default());
-            app.add_systems(Phase::PreUpdate, play_sound_system);
-            app.add_systems(
-                Phase::PostUpdate,
-                (
-                    hierarchy_maintenance_system,
-                    transform_propagation_system,
-                    visibility_system,
-                    spatial_audio_system,
-                    mouse_world_pos_system,
-                    scroll_clear_system,
-                )
-                    .chain(),
-            );
-        }
-
-        #[cfg(feature = "render")]
-        {
-            app.world_mut().insert_resource(ClearColor::default());
-            app.world_mut().insert_resource(ShaderRegistry::default());
-            app.add_systems(
-                Phase::Render,
-                (
-                    clear_system,
-                    upload_atlas_system,
-                    camera_prepare_system,
-                    shader_prepare_system,
-                    splash_render_system,
-                    sprite_render_system,
-                    shape_render_system,
-                    post_process_system,
-                )
-                    .chain(),
-            );
-        }
+fn register_render(app: &mut App) {
+    #[cfg(feature = "render")]
+    {
+        app.world_mut().insert_resource(ClearColor::default());
+        app.world_mut().insert_resource(ShaderRegistry::default());
+        app.add_systems(
+            Phase::Render,
+            (
+                clear_system,
+                upload_atlas_system,
+                camera_prepare_system,
+                shader_prepare_system,
+                splash_render_system,
+                sprite_render_system,
+                shape_render_system,
+                post_process_system,
+            )
+                .chain(),
+        );
     }
 }
 

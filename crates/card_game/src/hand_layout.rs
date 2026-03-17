@@ -67,6 +67,7 @@ pub fn fan_screen_position(angle: f32, viewport_width: f32, viewport_height: f32
     )
 }
 
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 pub fn hand_layout_system(
     hand: Res<Hand>,
     dt: Res<DeltaTime>,
@@ -103,24 +104,7 @@ pub fn hand_layout_system(
 
         if let Ok((_, mut transform, spring)) = cards.get_mut(card_entity) {
             if let Some(mut spring) = spring {
-                let (px, vx) = spring_step(
-                    transform.position.x,
-                    target_pos.x,
-                    spring.velocity.x,
-                    dt_secs,
-                );
-                let (py, vy) = spring_step(
-                    transform.position.y,
-                    target_pos.y,
-                    spring.velocity.y,
-                    dt_secs,
-                );
-                let (rot, av) =
-                    spring_step(transform.rotation, angle, spring.angular_velocity, dt_secs);
-                transform.position = Vec2::new(px, py);
-                transform.rotation = rot;
-                spring.velocity = Vec2::new(vx, vy);
-                spring.angular_velocity = av;
+                apply_spring_motion(&mut transform, &mut spring, target_pos, angle, dt_secs);
                 commands
                     .entity(card_entity)
                     .insert(ScaleSpring::new(target_scale));
@@ -131,6 +115,27 @@ pub fn hand_layout_system(
             }
         }
     }
+}
+
+fn apply_spring_motion(
+    transform: &mut Transform2D,
+    spring: &mut HandSpring,
+    target_pos: Vec2,
+    target_angle: f32,
+    dt: f32,
+) {
+    let (px, vx) = spring_step(transform.position.x, target_pos.x, spring.velocity.x, dt);
+    let (py, vy) = spring_step(transform.position.y, target_pos.y, spring.velocity.y, dt);
+    let (rot, av) = spring_step(
+        transform.rotation,
+        target_angle,
+        spring.angular_velocity,
+        dt,
+    );
+    transform.position = Vec2::new(px, py);
+    transform.rotation = rot;
+    spring.velocity = Vec2::new(vx, vy);
+    spring.angular_velocity = av;
 }
 
 #[cfg(test)]

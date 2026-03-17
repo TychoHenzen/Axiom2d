@@ -52,7 +52,7 @@ pub fn progress_bar_render_system(
             });
         }
 
-        let fill_width = fill_width(bar, node.size.x);
+        let fill_width = fill_width(*bar, node.size.x);
 
         if fill_width > 0.0 {
             renderer.draw_rect(Rect {
@@ -66,7 +66,7 @@ pub fn progress_bar_render_system(
     }
 }
 
-fn fill_width(bar: &ProgressBar, node_width: f32) -> f32 {
+fn fill_width(bar: ProgressBar, node_width: f32) -> f32 {
     if bar.max == 0.0 {
         0.0
     } else {

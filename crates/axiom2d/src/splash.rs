@@ -206,7 +206,7 @@ mod render {
         ]
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
     pub(super) fn build_shaded_side_faces(
         contour: &[PathCommand],
         vp: Vec2,

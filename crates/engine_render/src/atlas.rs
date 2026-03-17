@@ -119,15 +119,10 @@ impl AtlasBuilder {
         let w = (rect.max.x - rect.min.x) as u32;
         let h = (rect.max.y - rect.min.y) as u32;
         let uv = normalize_uv_rect(x, y, w, h, (self.width(), self.height()));
-        self.push_pending(data, [x, y, w, h], uv)
+        Ok(self.push_pending(data, [x, y, w, h], uv))
     }
 
-    fn push_pending(
-        &mut self,
-        data: &[u8],
-        pos: [u32; 4],
-        uv_rect: [f32; 4],
-    ) -> Result<TextureHandle, AtlasError> {
+    fn push_pending(&mut self, data: &[u8], pos: [u32; 4], uv_rect: [f32; 4]) -> TextureHandle {
         let id = self.next_id;
         self.next_id += 1;
         self.pending.push(PendingImage {
@@ -139,10 +134,10 @@ impl AtlasBuilder {
             texture_id: TextureId(id),
             uv_rect,
         });
-        Ok(TextureHandle {
+        TextureHandle {
             texture_id: TextureId(id),
             uv_rect,
-        })
+        }
     }
 
     pub fn build(self) -> TextureAtlas {

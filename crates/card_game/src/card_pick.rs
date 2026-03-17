@@ -28,6 +28,7 @@ pub(crate) fn local_space_hit(cursor_local: Vec2, half: Vec2) -> bool {
     cursor_local.x.abs() <= half.x && cursor_local.y.abs() <= half.y
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn card_pick_system(
     mouse: Res<MouseState>,
     mut drag_state: ResMut<DragState>,
@@ -51,15 +52,67 @@ pub fn card_pick_system(
     }
 
     let cursor = mouse.world_pos();
+    let max_sort = max_table_sort_order(&query);
+    let Some((entity, zone, local_grab_offset, collider)) = find_card_under_cursor(&query, cursor)
+    else {
+        return;
+    };
 
-    let max_sort = query
+    if let CardZone::Hand(_) = zone {
+        transition_hand_to_table(
+            entity,
+            &mut hand,
+            &mut physics,
+            &mut commands,
+            &query,
+            &collider,
+        );
+    }
+
+    if matches!(zone, CardZone::Table) {
+        physics.set_collision_group(entity, DRAGGED_COLLISION_GROUP, DRAGGED_COLLISION_FILTER);
+    }
+
+    drag_state.dragging = Some(DragInfo {
+        entity,
+        local_grab_offset,
+        origin_zone: zone,
+    });
+    if let Ok((_, _, _, _, _, mut sort)) = query.get_mut(entity) {
+        sort.0 = max_sort + 1;
+    }
+}
+
+fn max_table_sort_order(
+    query: &Query<(
+        Entity,
+        &Card,
+        &CardZone,
+        &GlobalTransform2D,
+        &Collider,
+        &mut SortOrder,
+    )>,
+) -> i32 {
+    query
         .iter()
         .filter(|(_, _, zone, _, _, _)| **zone == CardZone::Table)
         .map(|(_, _, _, _, _, sort)| sort.0)
         .max()
-        .unwrap_or(0);
+        .unwrap_or(0)
+}
 
-    let best = query
+fn find_card_under_cursor(
+    query: &Query<(
+        Entity,
+        &Card,
+        &CardZone,
+        &GlobalTransform2D,
+        &Collider,
+        &mut SortOrder,
+    )>,
+    cursor: Vec2,
+) -> Option<(Entity, CardZone, Vec2, Collider)> {
+    query
         .iter()
         .filter(|(_, _, _, transform, collider, _)| {
             let Some(half) = collider_half_extents(collider) else {
@@ -73,38 +126,38 @@ pub fn card_pick_system(
             let cursor_delta = cursor - transform.0.translation;
             let local_grab_offset = transform.0.matrix2.inverse().mul_vec2(cursor_delta);
             (entity, *zone, local_grab_offset, collider.clone())
-        });
+        })
+}
 
-    if let Some((entity, zone, local_grab_offset, collider)) = best {
-        if let CardZone::Hand(_) = zone {
-            hand.remove(entity);
-            let position = query
-                .get(entity)
-                .map(|(_, _, _, t, _, _)| t.0.translation)
-                .unwrap_or(Vec2::ZERO);
-            physics.add_body(entity, &RigidBody::Dynamic, position);
-            physics.add_collider(entity, &collider);
-            physics.set_damping(entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
-            physics.set_collision_group(entity, DRAGGED_COLLISION_GROUP, DRAGGED_COLLISION_FILTER);
-            commands.entity(entity).insert(RigidBody::Dynamic);
-            commands.entity(entity).insert(RenderLayer::World);
-            commands.entity(entity).remove::<HandSpring>();
-            commands.entity(entity).insert(ScaleSpring::new(1.0));
-        }
-
-        if matches!(zone, CardZone::Table) {
-            physics.set_collision_group(entity, DRAGGED_COLLISION_GROUP, DRAGGED_COLLISION_FILTER);
-        }
-
-        drag_state.dragging = Some(DragInfo {
-            entity,
-            local_grab_offset,
-            origin_zone: zone,
-        });
-        if let Ok((_, _, _, _, _, mut sort)) = query.get_mut(entity) {
-            sort.0 = max_sort + 1;
-        }
-    }
+#[allow(clippy::too_many_arguments)]
+fn transition_hand_to_table(
+    entity: Entity,
+    hand: &mut Hand,
+    physics: &mut PhysicsRes,
+    commands: &mut Commands,
+    query: &Query<(
+        Entity,
+        &Card,
+        &CardZone,
+        &GlobalTransform2D,
+        &Collider,
+        &mut SortOrder,
+    )>,
+    collider: &Collider,
+) {
+    hand.remove(entity);
+    let position = query
+        .get(entity)
+        .map(|(_, _, _, t, _, _)| t.0.translation)
+        .unwrap_or(Vec2::ZERO);
+    physics.add_body(entity, &RigidBody::Dynamic, position);
+    physics.add_collider(entity, collider);
+    physics.set_damping(entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
+    physics.set_collision_group(entity, DRAGGED_COLLISION_GROUP, DRAGGED_COLLISION_FILTER);
+    commands.entity(entity).insert(RigidBody::Dynamic);
+    commands.entity(entity).insert(RenderLayer::World);
+    commands.entity(entity).remove::<HandSpring>();
+    commands.entity(entity).insert(ScaleSpring::new(1.0));
 }
 
 #[cfg(test)]

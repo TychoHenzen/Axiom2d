@@ -91,11 +91,23 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
         physics.set_damping(root, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
     }
 
-    // Front face: border + name strip + art area + description strip
-    // Note: positive world-Y = screen bottom (Y-flipped camera projection)
-    let (w, h) = (card_size.x, card_size.y);
     let art_shader = world.get_resource::<CardArtShader>().map(|s| s.0);
-    let front_children = [
+    spawn_front_face_children(world, root, card_size, face_up, art_shader);
+    spawn_back_face_children(world, root, card_size, face_up);
+
+    root
+}
+
+#[allow(clippy::too_many_lines)]
+fn spawn_front_face_children(
+    world: &mut World,
+    root: Entity,
+    card_size: Vec2,
+    face_up: bool,
+    art_shader: Option<ShaderHandle>,
+) {
+    let (w, h) = (card_size.x, card_size.y);
+    let children = [
         FaceChildDef {
             side: CardFaceSide::Front,
             visible: face_up,
@@ -137,12 +149,14 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
             shader: None,
         },
     ];
-    for def in &front_children {
+    for def in &children {
         spawn_face_child(world, root, def);
     }
+}
 
-    // Back face: border + center pattern
-    let back_children = [
+fn spawn_back_face_children(world: &mut World, root: Entity, card_size: Vec2, face_up: bool) {
+    let (w, h) = (card_size.x, card_size.y);
+    let children = [
         FaceChildDef {
             side: CardFaceSide::Back,
             visible: !face_up,
@@ -164,13 +178,12 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
             shader: None,
         },
     ];
-    for def in &back_children {
+    for def in &children {
         spawn_face_child(world, root, def);
     }
-
-    root
 }
 
+#[allow(clippy::too_many_lines)]
 pub fn spawn_table_card(world: &mut World, card: Card, position: Vec2, card_size: Vec2) -> Entity {
     let half = card_size * 0.5;
     let texture = if card.face_up {

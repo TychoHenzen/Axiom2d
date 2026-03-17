@@ -23,6 +23,7 @@ fn rect_vertices(x: f32, y: f32, w: f32, h: f32) -> [[f32; 2]; 4] {
 
 const RECT_INDICES: [u32; 6] = [0, 1, 2, 0, 2, 3];
 
+#[allow(clippy::too_many_lines)]
 pub fn stash_render_system(
     grid: Res<StashGrid>,
     visible: Res<StashVisible>,

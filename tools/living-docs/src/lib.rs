@@ -35,6 +35,7 @@ pub struct ParsedTest {
 /// Recognises lines like `module::tests::test_name: test`.
 /// Doc-test lines are grouped under a `"doc_tests"` module.
 /// Returns `None` for non-test lines (summaries, warnings, blanks).
+#[allow(clippy::too_many_lines)]
 pub fn parse_test_entry(line: &str) -> Option<ParsedTest> {
     let trimmed = line.trim();
     if trimmed.is_empty() {
@@ -214,78 +215,81 @@ pub fn parse_test_bodies(source: &str) -> HashMap<String, String> {
             continue;
         }
 
-        let fn_line_idx = {
-            let mut found = None;
-            for (j, line) in lines.iter().enumerate().skip(i + 1) {
-                let next = line.trim();
-                if next.starts_with("fn ") {
-                    found = Some(j);
-                    break;
-                }
-                if next.is_empty()
-                    || next.starts_with("#[") && next != "#[test]"
-                    || next.starts_with("///")
-                {
-                    continue;
-                }
-                break;
-            }
-            found
-        };
-
-        let Some(fn_idx) = fn_line_idx else {
+        let Some(fn_idx) = find_fn_line_after_test(&lines, i) else {
             i += 1;
             continue;
         };
 
         let fn_line = lines[fn_idx].trim();
-        // strip_prefix always succeeds (fn_idx found via starts_with("fn ") check)
-        // split('(').next() always returns at least one element
-        let name = fn_line
-            .strip_prefix("fn ")
-            .expect("fn_idx found via starts_with check")
-            .split('(')
-            .next()
-            .expect("split always yields at least one element")
-            .trim()
-            .to_string();
-
+        let name = extract_fn_name(fn_line);
         let past_fn = fn_idx + 1;
-
-        let body_start_idx = if fn_line.ends_with('{') {
-            past_fn
-        } else {
-            lines[past_fn..]
-                .iter()
-                .enumerate()
-                .find_map(|(offset, line)| (line.trim() == "{").then_some(past_fn + offset + 1))
-                .unwrap_or(past_fn)
-        };
-
-        let mut depth: usize = 1;
-        let mut body_lines: Vec<&str> = Vec::new();
-
-        for line in lines.iter().skip(body_start_idx) {
-            for ch in line.chars() {
-                match ch {
-                    '{' => depth += 1,
-                    '}' => depth -= 1,
-                    _ => {}
-                }
-            }
-            if depth == 0 {
-                break;
-            }
-            body_lines.push(line);
-        }
-
-        let body = body_lines.join("\n") + "\n";
+        let body_start_idx = find_body_start(&lines, fn_line, past_fn);
+        let body = extract_brace_delimited_body(&lines, body_start_idx);
         result.insert(name, body);
 
         i = past_fn;
     }
 
     result
+}
+
+fn find_fn_line_after_test(lines: &[&str], test_attr_idx: usize) -> Option<usize> {
+    for (j, line) in lines.iter().enumerate().skip(test_attr_idx + 1) {
+        let next = line.trim();
+        if next.starts_with("fn ") {
+            return Some(j);
+        }
+        if next.is_empty() || next.starts_with("#[") && next != "#[test]" || next.starts_with("///")
+        {
+            continue;
+        }
+        break;
+    }
+    None
+}
+
+fn extract_fn_name(fn_line: &str) -> String {
+    fn_line
+        .strip_prefix("fn ")
+        .expect("fn_line found via starts_with check")
+        .split('(')
+        .next()
+        .expect("split always yields at least one element")
+        .trim()
+        .to_string()
+}
+
+fn find_body_start(lines: &[&str], fn_line: &str, past_fn: usize) -> usize {
+    if fn_line.ends_with('{') {
+        past_fn
+    } else {
+        lines[past_fn..]
+            .iter()
+            .enumerate()
+            .find_map(|(offset, line)| (line.trim() == "{").then_some(past_fn + offset + 1))
+            .unwrap_or(past_fn)
+    }
+}
+
+fn extract_brace_delimited_body(lines: &[&str], start: usize) -> String {
+    let mut depth: usize = 1;
+    let mut body_lines: Vec<&str> = Vec::new();
+
+    for line in lines.iter().skip(start) {
+        for ch in line.chars() {
+            match ch {
+                '{' => depth += 1,
+                '}' => depth -= 1,
+                _ => {}
+            }
+        }
+        if depth == 0 {
+            break;
+        }
+        body_lines.push(line);
+    }
+
+    body_lines.join("\n") + "\n"
 }
 
 /// Parse cargo test output for pass/fail results.
@@ -312,6 +316,7 @@ pub fn parse_test_results(output: &str) -> HashMap<String, bool> {
 }
 
 /// Convert parsed cargo output into `CrateDoc` structs.
+#[allow(clippy::too_many_lines)]
 pub fn convert_to_docs(
     parsed: &BTreeMap<String, Vec<ParsedTest>>,
     annotations: &AnnotationMap,
@@ -369,57 +374,68 @@ pub fn generate_markdown(docs: &[CrateDoc], total: usize, date: &str) -> String 
     sorted.sort_by_key(|d| &d.name);
 
     for doc in sorted {
-        let test_count: usize = doc.modules.values().map(Vec::len).sum();
-        let _ = writeln!(out, "<details>");
-        let _ = writeln!(
-            out,
-            "<summary><strong>{}</strong> ({test_count} tests)</summary>\n",
-            doc.name
-        );
-
-        for (module, tests) in &doc.modules {
-            let _ = writeln!(out, "<blockquote>");
-            let _ = writeln!(out, "<details>");
-            let _ = writeln!(
-                out,
-                "<summary><strong>{module}</strong> ({} tests)</summary>\n",
-                tests.len()
-            );
-            for test in tests {
-                let status = match test.passed {
-                    Some(true) => "\u{2705} ",
-                    Some(false) => "\u{274c} ",
-                    None => "",
-                };
-                let has_details =
-                    test.annotation.is_some() || test.source.is_some() || test.body.is_some();
-                if has_details {
-                    let _ = writeln!(out, "<blockquote>");
-                    let _ = writeln!(out, "<details>");
-                    let _ = writeln!(out, "<summary>{status}{}</summary>\n", test.description);
-                    if let Some(ref ann) = test.annotation {
-                        let _ = writeln!(out, "*{ann}*\n");
-                    }
-                    if let Some(ref loc) = test.source {
-                        let _ = writeln!(out, "<code>{}:{}</code>\n", loc.file, loc.line);
-                    }
-                    if let Some(ref body) = test.body {
-                        let _ = writeln!(out, "```rust\n{body}```\n");
-                    }
-                    let _ = writeln!(out, "</details>");
-                    let _ = writeln!(out, "</blockquote>");
-                } else {
-                    let _ = writeln!(out, "- {status}{}", test.description);
-                }
-            }
-            let _ = writeln!(out, "\n</details>");
-            let _ = writeln!(out, "</blockquote>\n");
-        }
-
-        let _ = writeln!(out, "</details>\n");
+        write_crate_section(&mut out, doc);
     }
 
     out
+}
+
+fn write_crate_section(out: &mut String, doc: &CrateDoc) {
+    let test_count: usize = doc.modules.values().map(Vec::len).sum();
+    let _ = writeln!(out, "<details>");
+    let _ = writeln!(
+        out,
+        "<summary><strong>{}</strong> ({test_count} tests)</summary>\n",
+        doc.name
+    );
+
+    for (module, tests) in &doc.modules {
+        write_module_section(out, module, tests);
+    }
+
+    let _ = writeln!(out, "</details>\n");
+}
+
+fn write_module_section(out: &mut String, module: &str, tests: &[TestDoc]) {
+    let _ = writeln!(out, "<blockquote>");
+    let _ = writeln!(out, "<details>");
+    let _ = writeln!(
+        out,
+        "<summary><strong>{module}</strong> ({} tests)</summary>\n",
+        tests.len()
+    );
+    for test in tests {
+        write_test_entry(out, test);
+    }
+    let _ = writeln!(out, "\n</details>");
+    let _ = writeln!(out, "</blockquote>\n");
+}
+
+fn write_test_entry(out: &mut String, test: &TestDoc) {
+    let status = match test.passed {
+        Some(true) => "\u{2705} ",
+        Some(false) => "\u{274c} ",
+        None => "",
+    };
+    let has_details = test.annotation.is_some() || test.source.is_some() || test.body.is_some();
+    if has_details {
+        let _ = writeln!(out, "<blockquote>");
+        let _ = writeln!(out, "<details>");
+        let _ = writeln!(out, "<summary>{status}{}</summary>\n", test.description);
+        if let Some(ref ann) = test.annotation {
+            let _ = writeln!(out, "*{ann}*\n");
+        }
+        if let Some(ref loc) = test.source {
+            let _ = writeln!(out, "<code>{}:{}</code>\n", loc.file, loc.line);
+        }
+        if let Some(ref body) = test.body {
+            let _ = writeln!(out, "```rust\n{body}```\n");
+        }
+        let _ = writeln!(out, "</details>");
+        let _ = writeln!(out, "</blockquote>");
+    } else {
+        let _ = writeln!(out, "- {status}{}", test.description);
+    }
 }
 
 /// Parse full cargo test output into a map of crate name → test entries.

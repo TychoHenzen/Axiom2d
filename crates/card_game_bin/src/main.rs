@@ -9,6 +9,7 @@ const TABLE_COLOR: Color = Color {
     a: 1.0,
 };
 
+#[allow(clippy::too_many_lines)]
 fn spawn_scene(world: &mut bevy_ecs::world::World) {
     // Table background
     world.spawn((
@@ -89,6 +90,13 @@ fn setup(app: &mut App) {
         ..Default::default()
     };
 
+    register_game_resources(app);
+    spawn_scene(app.world_mut());
+    register_preload_hook(app);
+    register_game_systems(app, config);
+}
+
+fn register_game_resources(app: &mut App) {
     let world = app.world_mut();
     world.insert_resource(PhysicsRes::new(Box::new(RapierBackend::new(Vec2::ZERO))));
     world.insert_resource(CollisionEventBuffer::default());
@@ -106,9 +114,9 @@ fn setup(app: &mut App) {
 
     let art_shader = register_card_art_shader(&mut world.resource_mut::<ShaderRegistry>());
     world.insert_resource(art_shader);
+}
 
-    spawn_scene(world);
-
+fn register_preload_hook(app: &mut App) {
     app.world_mut()
         .resource_mut::<PreloadHooks>()
         .add(|world: &mut bevy_ecs::world::World| {
@@ -120,7 +128,10 @@ fn setup(app: &mut App) {
             }
             world.insert_resource(physics);
         });
+}
 
+#[allow(clippy::too_many_lines)]
+fn register_game_systems(app: &mut App, config: WindowConfig) {
     app.set_window_config(config)
         .add_systems(
             Phase::PreUpdate,

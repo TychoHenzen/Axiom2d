@@ -23,19 +23,19 @@ pub fn tessellate(variant: &ShapeVariant) -> TessellatedMesh {
 
     match variant {
         ShapeVariant::Circle { radius } => {
-            fill_circle(&mut tess, &opts, &mut geo, *radius);
+            fill_circle(&mut tess, opts, &mut geo, *radius);
         }
         ShapeVariant::Polygon { points } => {
             if points.len() < 3 {
                 return empty_mesh();
             }
-            fill_polygon(&mut tess, &opts, &mut geo, points);
+            fill_polygon(&mut tess, opts, &mut geo, points);
         }
         ShapeVariant::Path { commands } => {
             if commands.is_empty() {
                 return empty_mesh();
             }
-            fill_path(&mut tess, &opts, &mut geo, commands);
+            fill_path(&mut tess, opts, &mut geo, commands);
         }
     }
 
@@ -47,14 +47,14 @@ pub fn tessellate(variant: &ShapeVariant) -> TessellatedMesh {
 
 fn fill_circle(
     tess: &mut FillTessellator,
-    opts: &FillOptions,
+    opts: FillOptions,
     geo: &mut VertexBuffers<[f32; 2], u32>,
     radius: f32,
 ) {
     tess.tessellate_circle(
         point(0.0, 0.0),
         radius,
-        opts,
+        &opts,
         &mut BuffersBuilder::new(geo, |v: FillVertex| v.position().to_array()),
     )
     .expect("circle tessellation failed");
@@ -62,7 +62,7 @@ fn fill_circle(
 
 fn fill_polygon(
     tess: &mut FillTessellator,
-    opts: &FillOptions,
+    opts: FillOptions,
     geo: &mut VertexBuffers<[f32; 2], u32>,
     points: &[Vec2],
 ) {
@@ -72,7 +72,7 @@ fn fill_polygon(
             points: &lp,
             closed: true,
         },
-        opts,
+        &opts,
         &mut BuffersBuilder::new(geo, |v: FillVertex| v.position().to_array()),
     )
     .expect("polygon tessellation failed");
@@ -80,14 +80,14 @@ fn fill_polygon(
 
 fn fill_path(
     tess: &mut FillTessellator,
-    opts: &FillOptions,
+    opts: FillOptions,
     geo: &mut VertexBuffers<[f32; 2], u32>,
     commands: &[PathCommand],
 ) {
     let path = build_lyon_path(commands);
     tess.tessellate_path(
         &path,
-        opts,
+        &opts,
         &mut BuffersBuilder::new(geo, |v: FillVertex| v.position().to_array()),
     )
     .expect("path tessellation failed");

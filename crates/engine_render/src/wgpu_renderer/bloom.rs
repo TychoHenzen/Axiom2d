@@ -78,6 +78,7 @@ struct BloomLayouts {
     dual_tex: wgpu::BindGroupLayout,
     params: wgpu::BindGroupLayout,
 }
+#[allow(clippy::struct_field_names)]
 struct BloomTextures {
     scene_view: wgpu::TextureView,
     ping_view: wgpu::TextureView,
@@ -173,6 +174,7 @@ fn create_bloom_layouts(device: &wgpu::Device) -> BloomLayouts {
     }
 }
 
+#[allow(clippy::similar_names)]
 fn create_bloom_textures(device: &wgpu::Device, cfg: &BloomConfig) -> BloomTextures {
     let half_w = (cfg.width / 2).max(1);
     let half_h = (cfg.height / 2).max(1);

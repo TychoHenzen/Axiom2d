@@ -20,6 +20,7 @@ fn is_hand_drop_zone(screen_y: f32, viewport_height: f32) -> bool {
     screen_y >= viewport_height - HAND_DROP_ZONE_HEIGHT
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn card_release_system(
     mouse: Res<MouseState>,
     mut drag_state: ResMut<DragState>,
