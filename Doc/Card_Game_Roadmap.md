@@ -218,17 +218,17 @@ These extend `engine_physics` with capabilities the card game requires.
 - [x] Stash visibility: togglable via Tab key press (StashVisible resource + stash_toggle_system)
 - [x] Tests: 6 render tests (hidden=no draw, count, empty slot color, occupied slot color, column spacing, row spacing) + 4 toggle tests (default hidden, open, close, no-op without keypress) + 3 accessor tests (width, height, page_count)
 
-### Step G2 — Stash Drag and Drop `[NOT STARTED]`
+### Step G2 — Stash Drag and Drop `[DONE]`
 **Crate:** card_game
 **Why:** Move cards in and out of the stash grid.
 
-- [ ] Extend card_pick_system: check stash slot hit-testing when stash is visible
-- [ ] On pick from stash: `StashGrid.take(page, col, row)`, set DragState with origin_zone = Stash { page, col, row }
-- [ ] Extend card_release_system drop targets:
+- [x] Extend card_pick_system: check stash slot hit-testing when stash is visible
+- [x] On pick from stash: `StashGrid.take(page, col, row)`, set DragState with origin_zone = Stash { page, col, row }
+- [x] Extend card_release_system drop targets:
   - Drop on stash slot: `StashGrid.place(page, col, row, entity)`, set CardZone::Stash
   - Return to origin stash slot if drop target invalid
-- [ ] Cross-zone drops: stash↔hand, stash↔table all supported
-- [ ] Tests: pick from stash removes from grid, drop on empty slot places, drop on occupied slot returns to origin, cross-zone drops work
+- [x] Cross-zone drops: stash↔hand, stash↔table all supported
+- [x] Tests: pick from stash removes from grid, drop on empty slot places, drop on occupied slot returns to origin, cross-zone drops work
 
 ### Step G3 — Stash Hover Preview `[NOT STARTED]`
 **Crate:** card_game

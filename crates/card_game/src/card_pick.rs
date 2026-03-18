@@ -12,6 +12,9 @@ use crate::drag_state::{DragInfo, DragState};
 use crate::hand::Hand;
 use crate::hand_layout::HandSpring;
 use crate::scale_spring::ScaleSpring;
+use crate::stash_grid::StashGrid;
+use crate::stash_render::{GRID_MARGIN, SLOT_SIZE, SLOT_STRIDE};
+use crate::stash_toggle::StashVisible;
 
 pub const CARD_COLLISION_GROUP: u32 = 0b0001;
 pub const CARD_COLLISION_FILTER: u32 = 0b0010;
@@ -33,11 +36,46 @@ pub fn card_pick_system(
         &Collider,
         &mut SortOrder,
     )>,
+    stash_visible: Res<StashVisible>,
+    mut grid: ResMut<StashGrid>,
+    transform_query: Query<(&GlobalTransform2D, &Collider)>,
 ) {
     if drag_state.dragging.is_some() {
         return;
     }
     if !mouse.just_pressed(MouseButton::Left) {
+        return;
+    }
+
+    if let Some(stash_pick) = take_stash_card(&mouse, &stash_visible, &mut grid) {
+        let Ok((transform, collider)) = transform_query.get(stash_pick.entity) else {
+            return;
+        };
+        let position = transform.0.translation;
+        let collider = collider.clone();
+        physics.add_body(stash_pick.entity, &RigidBody::Dynamic, position);
+        physics.add_collider(stash_pick.entity, &collider);
+        physics.set_damping(stash_pick.entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
+        physics.set_collision_group(
+            stash_pick.entity,
+            DRAGGED_COLLISION_GROUP,
+            DRAGGED_COLLISION_FILTER,
+        );
+        commands
+            .entity(stash_pick.entity)
+            .insert(RigidBody::Dynamic);
+        commands
+            .entity(stash_pick.entity)
+            .insert(RenderLayer::World);
+        drag_state.dragging = Some(DragInfo {
+            entity: stash_pick.entity,
+            local_grab_offset: Vec2::ZERO,
+            origin_zone: CardZone::Stash {
+                page: stash_pick.page,
+                col: stash_pick.col,
+                row: stash_pick.row,
+            },
+        });
         return;
     }
 
@@ -150,6 +188,53 @@ fn transition_hand_to_table(
     commands.entity(entity).insert(ScaleSpring::new(1.0));
 }
 
+struct StashPickResult {
+    entity: Entity,
+    page: u8,
+    col: u8,
+    row: u8,
+}
+
+fn take_stash_card(
+    mouse: &MouseState,
+    stash_visible: &StashVisible,
+    grid: &mut StashGrid,
+) -> Option<StashPickResult> {
+    if !stash_visible.0 {
+        return None;
+    }
+    let (col, row) = find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height())?;
+    let page = grid.current_page();
+    let entity = grid.take(page, col, row)?;
+    Some(StashPickResult {
+        entity,
+        page,
+        col,
+        row,
+    })
+}
+
+pub(crate) fn find_stash_slot_at(
+    screen_pos: Vec2,
+    grid_width: u8,
+    grid_height: u8,
+) -> Option<(u8, u8)> {
+    for col in 0..grid_width {
+        for row in 0..grid_height {
+            let x_start = GRID_MARGIN + f32::from(col) * SLOT_STRIDE;
+            let y_start = GRID_MARGIN + f32::from(row) * SLOT_STRIDE;
+            if screen_pos.x >= x_start
+                && screen_pos.x < x_start + SLOT_SIZE
+                && screen_pos.y >= y_start
+                && screen_pos.y < y_start + SLOT_SIZE
+            {
+                return Some((col, row));
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
@@ -183,8 +268,12 @@ mod tests {
     }
 
     fn insert_pick_resources(world: &mut World) {
+        use crate::stash_grid::StashGrid;
+        use crate::stash_toggle::StashVisible;
         world.insert_resource(Hand::new(10));
         world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::new())));
+        world.insert_resource(StashGrid::new(10, 10, 1));
+        world.insert_resource(StashVisible(false));
     }
 
     #[test]
@@ -579,8 +668,6 @@ mod tests {
         assert!(world.resource::<DragState>().dragging.is_none());
     }
 
-    // --- Hand pick tests ---
-
     type BodyLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
     type ColliderLog = Arc<Mutex<Vec<Entity>>>;
     type DampingLog = Arc<Mutex<Vec<(Entity, f32, f32)>>>;
@@ -675,6 +762,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash_toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -707,6 +796,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash_toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -738,6 +829,8 @@ mod tests {
         mouse.set_world_pos(Vec2::new(50.0, 200.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash_toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -773,6 +866,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash_toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -814,6 +909,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash_toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -846,6 +943,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash_toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -880,6 +979,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash_toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -918,6 +1019,199 @@ mod tests {
         assert!(
             world.get::<ScaleSpring>(card_entity).is_none(),
             "table cards should not get ScaleSpring"
+        );
+    }
+
+    #[test]
+    fn when_cursor_at_slot_center_then_returns_correct_col_row() {
+        // Arrange
+        // col=1, row=2 center: x = 20 + 1*54 + 25 = 99.0, y = 20 + 2*54 + 25 = 153.0
+        let screen_pos = Vec2::new(99.0, 153.0);
+
+        // Act
+        let result = super::find_stash_slot_at(screen_pos, 4, 5);
+
+        // Assert
+        assert_eq!(result, Some((1, 2)));
+    }
+
+    #[test]
+    fn when_cursor_inside_slot_but_not_at_center_then_returns_that_slot() {
+        // Arrange
+        // col=2, row=3 slot x: [20+108, 20+108+50] = [128, 178], y: [20+162, 20+162+50] = [182, 232]
+        let screen_pos = Vec2::new(130.0, 185.0);
+
+        // Act
+        let result = super::find_stash_slot_at(screen_pos, 5, 6);
+
+        // Assert
+        assert_eq!(result, Some((2, 3)));
+    }
+
+    #[test]
+    fn when_cursor_at_top_left_boundary_of_first_slot_then_returns_zero_zero() {
+        // Arrange
+        // slot (0,0) starts at (GRID_MARGIN, GRID_MARGIN) = (20.0, 20.0) — inclusive lower bound
+        let screen_pos = Vec2::new(20.0, 20.0);
+
+        // Act
+        let result = super::find_stash_slot_at(screen_pos, 3, 4);
+
+        // Assert
+        assert_eq!(result, Some((0, 0)));
+    }
+
+    #[test]
+    fn when_left_click_on_stash_card_then_drag_info_records_stash_origin_and_slot_vacated() {
+        // Arrange
+        use crate::stash_grid::StashGrid;
+        use crate::stash_toggle::StashVisible;
+
+        let mut world = World::new();
+        // col=2, row=3 center: x = 20 + 2*54 + 25 = 153, y = 20 + 3*54 + 25 = 207
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(20), TextureId(21)),
+                CardZone::Stash {
+                    page: 0,
+                    col: 2,
+                    row: 3,
+                },
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                GlobalTransform2D(Affine2::IDENTITY),
+                RenderLayer::UI,
+                SortOrder(0),
+            ))
+            .id();
+        let mut grid = StashGrid::new(4, 5, 1);
+        grid.place(0, 2, 3, card_entity).unwrap();
+        world.insert_resource(grid);
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(DragState::default());
+        world.insert_resource(Hand::new(10));
+        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::new())));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_screen_pos(Vec2::new(153.0, 207.0));
+        world.insert_resource(mouse);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let drag = world.resource::<DragState>().dragging.unwrap();
+        assert_eq!(drag.entity, card_entity);
+        assert_eq!(
+            drag.origin_zone,
+            CardZone::Stash {
+                page: 0,
+                col: 2,
+                row: 3
+            }
+        );
+        assert!(
+            world.resource::<StashGrid>().get(0, 2, 3).is_none(),
+            "stash slot should be empty after pick"
+        );
+    }
+
+    #[test]
+    fn when_left_click_on_stash_card_then_physics_body_added_and_render_layer_becomes_world() {
+        // Arrange
+        use crate::stash_grid::StashGrid;
+        use crate::stash_toggle::StashVisible;
+
+        let mut world = World::new();
+        // col=2, row=3 center: x = 153, y = 207
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(30), TextureId(31)),
+                CardZone::Stash {
+                    page: 0,
+                    col: 2,
+                    row: 3,
+                },
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                GlobalTransform2D(Affine2::IDENTITY),
+                RenderLayer::UI,
+                SortOrder(0),
+            ))
+            .id();
+        let mut grid = StashGrid::new(4, 5, 1);
+        grid.place(0, 2, 3, card_entity).unwrap();
+        world.insert_resource(grid);
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(DragState::default());
+        world.insert_resource(Hand::new(10));
+        let (spy, bodies, _, _) = make_spy_physics();
+        world.insert_resource(PhysicsRes::new(spy));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_screen_pos(Vec2::new(153.0, 207.0));
+        world.insert_resource(mouse);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert_eq!(
+            bodies.lock().unwrap().len(),
+            1,
+            "add_body called once for stash card"
+        );
+        assert_eq!(
+            *world.get::<RenderLayer>(card_entity).unwrap(),
+            RenderLayer::World
+        );
+        assert_eq!(
+            *world.get::<RigidBody>(card_entity).unwrap(),
+            RigidBody::Dynamic
+        );
+    }
+
+    #[test]
+    fn when_stash_hidden_and_slot_clicked_then_pick_not_triggered() {
+        // Arrange
+        use crate::stash_grid::StashGrid;
+        use crate::stash_toggle::StashVisible;
+
+        let mut world = World::new();
+        // col=0, row=0 center at (45, 45)
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Stash {
+                    page: 0,
+                    col: 0,
+                    row: 0,
+                },
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                // Place far from world cursor (default world_pos is ZERO) so
+                // the existing world-space hit test cannot pick this card
+                GlobalTransform2D(Affine2::from_translation(Vec2::new(500.0, 500.0))),
+                RenderLayer::UI,
+                SortOrder(0),
+            ))
+            .id();
+        let mut grid = StashGrid::new(4, 5, 1);
+        grid.place(0, 0, 0, card_entity).unwrap();
+        world.insert_resource(grid);
+        world.insert_resource(StashVisible(false));
+        world.insert_resource(DragState::default());
+        world.insert_resource(Hand::new(10));
+        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::new())));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_screen_pos(Vec2::new(45.0, 45.0));
+        world.insert_resource(mouse);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.resource::<DragState>().dragging.is_none(),
+            "stash pick should not trigger when stash is hidden"
         );
     }
 }
