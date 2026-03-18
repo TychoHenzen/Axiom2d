@@ -217,14 +217,12 @@ mod tests {
 
     #[test]
     fn when_position_at_exact_threshold_boundary_then_spring_not_removed() {
-        // Arrange — set up so |sc - target| ≈ CONVERGE_THRESHOLD exactly after spring_step.
-        // Use tiny dt so spring barely moves from initial position.
-        // Initial: scale = target + CONVERGE_THRESHOLD, velocity = 0, dt ≈ 0
-        // After step: sc ≈ target + CONVERGE_THRESHOLD, sv ≈ 0
+        // Arrange — set up so |sc - target| == CONVERGE_THRESHOLD exactly after spring_step.
+        // dt = 0 means spring_step returns (current, velocity) unchanged.
         // With <: CONVERGE_THRESHOLD < CONVERGE_THRESHOLD = false → NOT removed
         // With <=: CONVERGE_THRESHOLD <= CONVERGE_THRESHOLD = true → removed
         let mut world = World::new();
-        world.insert_resource(DeltaTime(Seconds(1e-10)));
+        world.insert_resource(DeltaTime(Seconds(0.0)));
         let entity = world
             .spawn((
                 Transform2D {
@@ -248,11 +246,12 @@ mod tests {
 
     #[test]
     fn when_velocity_at_exact_threshold_boundary_then_spring_not_removed() {
-        // Arrange — velocity ≈ CONVERGE_THRESHOLD after spring_step, position converged.
+        // Arrange — velocity == CONVERGE_THRESHOLD after spring_step, position converged.
+        // dt = 0 means spring_step returns (current, velocity) unchanged.
         // With <: CONVERGE_THRESHOLD < CONVERGE_THRESHOLD = false → NOT removed
         // With <=: CONVERGE_THRESHOLD <= CONVERGE_THRESHOLD = true → removed
         let mut world = World::new();
-        world.insert_resource(DeltaTime(Seconds(1e-10)));
+        world.insert_resource(DeltaTime(Seconds(0.0)));
         let entity = world
             .spawn((
                 Transform2D {

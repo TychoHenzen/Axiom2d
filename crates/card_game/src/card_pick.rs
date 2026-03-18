@@ -161,7 +161,7 @@ fn transition_hand_to_table(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use std::sync::{Arc, Mutex};
 

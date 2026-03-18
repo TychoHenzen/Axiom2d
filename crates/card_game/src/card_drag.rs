@@ -44,7 +44,7 @@ pub fn card_drag_system(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::too_many_arguments)]
 mod tests {
     use std::collections::HashMap;
     use std::sync::{Arc, Mutex};

@@ -276,10 +276,7 @@ mod render {
     pub(super) fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
         world.spawn((
             SplashEntity,
-            Transform2D {
-                position: Vec2::ZERO,
-                ..Default::default()
-            },
+            Transform2D::default(),
             Shape {
                 variant: ShapeVariant::Polygon {
                     points: vec![

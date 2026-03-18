@@ -139,7 +139,7 @@ fn apply_spring_motion(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use super::*;
     use bevy_ecs::prelude::{Entity, Schedule, World};

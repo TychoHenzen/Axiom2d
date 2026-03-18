@@ -55,13 +55,12 @@ struct ShapeGpuResources {
 impl HeadlessRenderer {
     /// Try to create a headless renderer, returning `None` if no GPU adapter is available.
     /// Useful for tests that should run when a GPU is present but skip gracefully in CI.
+    #[allow(clippy::field_reassign_with_default)] // avoids cargo-mutants "delete field" bug
     pub fn try_new(width: u32, height: u32) -> Option<Self> {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
-        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            force_fallback_adapter: true,
-            compatible_surface: None,
-            ..Default::default()
-        }))?;
+        let mut adapter_opts = wgpu::RequestAdapterOptions::default();
+        adapter_opts.force_fallback_adapter = true;
+        let adapter = pollster::block_on(instance.request_adapter(&adapter_opts))?;
         let (device, queue) =
             pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default(), None))
                 .ok()?;
@@ -224,10 +223,7 @@ impl HeadlessRenderer {
                     })],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 }),
-                primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::TriangleList,
-                    ..Default::default()
-                },
+                primitive: wgpu::PrimitiveState::default(),
                 depth_stencil: None,
                 multisample: wgpu::MultisampleState::default(),
                 multiview: None,
@@ -322,10 +318,7 @@ impl HeadlessRenderer {
                     })],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 }),
-                primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::TriangleList,
-                    ..Default::default()
-                },
+                primitive: wgpu::PrimitiveState::default(),
                 depth_stencil: None,
                 multisample: wgpu::MultisampleState::default(),
                 multiview: None,

@@ -54,7 +54,7 @@ pub fn card_flip_system(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use bevy_ecs::prelude::*;
     use engine_core::prelude::TextureId;
