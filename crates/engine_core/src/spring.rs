@@ -1,3 +1,4 @@
+#[allow(clippy::too_many_arguments)]
 pub fn spring_step(
     current: f32,
     target: f32,
