@@ -46,40 +46,40 @@ pub fn card_release_system(
     let (_, vh) = renderer.viewport_size();
     let vh = vh as f32;
 
-    if stash_visible.0 {
-        if let Some((col, row)) = find_stash_slot_at(screen_pos, grid.width(), grid.height()) {
-            let page = grid.current_page();
-            if grid.get(page, col, row).is_none() {
-                drop_on_stash(
-                    info.entity,
-                    page,
-                    col,
-                    row,
-                    &mut grid,
-                    &mut physics,
-                    &mut commands,
-                );
-            } else if let CardZone::Stash {
-                page: op,
-                col: oc,
-                row: orow,
-            } = info.origin_zone
-            {
-                drop_on_stash(
-                    info.entity,
-                    op,
-                    oc,
-                    orow,
-                    &mut grid,
-                    &mut physics,
-                    &mut commands,
-                );
-            } else {
-                drop_on_table(info.entity, &mut physics, &mut commands, &transform_query);
-            }
-            drag_state.dragging = None;
-            return;
+    if stash_visible.0
+        && let Some((col, row)) = find_stash_slot_at(screen_pos, grid.width(), grid.height())
+    {
+        let page = grid.current_page();
+        if grid.get(page, col, row).is_none() {
+            drop_on_stash(
+                info.entity,
+                page,
+                col,
+                row,
+                &mut grid,
+                &mut physics,
+                &mut commands,
+            );
+        } else if let CardZone::Stash {
+            page: op,
+            col: oc,
+            row: orow,
+        } = info.origin_zone
+        {
+            drop_on_stash(
+                info.entity,
+                op,
+                oc,
+                orow,
+                &mut grid,
+                &mut physics,
+                &mut commands,
+            );
+        } else {
+            drop_on_table(info.entity, &mut physics, &mut commands, &transform_query);
         }
+        drag_state.dragging = None;
+        return;
     }
 
     if vh > 0.0 && is_hand_drop_zone(screen_pos.y, vh) {
