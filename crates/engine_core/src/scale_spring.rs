@@ -1,0 +1,356 @@
+use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res};
+use serde::{Deserialize, Serialize};
+
+use crate::spring::spring_step;
+use crate::time::DeltaTime;
+use crate::transform::Transform2D;
+use crate::types::Seconds;
+
+const CONVERGE_THRESHOLD: f32 = 1e-4;
+const DEFAULT_STIFFNESS: f32 = 200.0;
+const DEFAULT_DAMPING: f32 = 20.0;
+
+#[derive(Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct ScaleSpring {
+    pub target: f32,
+    pub velocity: f32,
+    pub lock_x: bool,
+    pub stiffness: f32,
+    pub damping: f32,
+}
+
+impl ScaleSpring {
+    pub fn new(target: f32) -> Self {
+        Self {
+            target,
+            velocity: 0.0,
+            lock_x: false,
+            stiffness: DEFAULT_STIFFNESS,
+            damping: DEFAULT_DAMPING,
+        }
+    }
+}
+
+pub fn scale_spring_system(
+    dt: Res<DeltaTime>,
+    mut query: Query<(Entity, &mut Transform2D, &mut ScaleSpring)>,
+    mut commands: Commands,
+) {
+    let Seconds(dt_secs) = dt.0;
+
+    for (entity, mut transform, mut spring) in &mut query {
+        let (sc, sv) = spring_step(
+            transform.scale.y,
+            spring.target,
+            spring.velocity,
+            dt_secs,
+            spring.stiffness,
+            spring.damping,
+        );
+        transform.scale.y = sc;
+        if !spring.lock_x {
+            transform.scale.x = sc;
+        }
+        spring.velocity = sv;
+
+        if (sc - spring.target).abs() < CONVERGE_THRESHOLD && sv.abs() < CONVERGE_THRESHOLD {
+            transform.scale.y = spring.target;
+            if !spring.lock_x {
+                transform.scale.x = spring.target;
+            }
+            commands.entity(entity).remove::<ScaleSpring>();
+        }
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use bevy_ecs::prelude::{Schedule, World};
+    use glam::Vec2;
+
+    fn make_world() -> World {
+        let mut world = World::new();
+        world.insert_resource(DeltaTime(Seconds(0.016)));
+        world
+    }
+
+    fn run_system(world: &mut World) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems(scale_spring_system);
+        schedule.run(world);
+    }
+
+    fn run_n_frames(world: &mut World, n: usize) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems(scale_spring_system);
+        for _ in 0..n {
+            schedule.run(world);
+        }
+    }
+
+    #[test]
+    fn when_scale_spring_new_then_target_set_and_velocity_zero() {
+        // Act
+        let spring = ScaleSpring::new(2.5);
+
+        // Assert
+        assert_eq!(spring.target, 2.5);
+        assert_eq!(spring.velocity, 0.0);
+        assert!(!spring.lock_x);
+        assert_eq!(spring.stiffness, DEFAULT_STIFFNESS);
+        assert_eq!(spring.damping, DEFAULT_DAMPING);
+    }
+
+    #[test]
+    fn when_scale_spring_one_frame_then_moves_toward_target() {
+        // Arrange
+        let mut world = make_world();
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::splat(0.5),
+                },
+                ScaleSpring::new(1.0),
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert!(t.scale.x > 0.5, "expected scale.x > 0.5, got {}", t.scale.x);
+        assert!(t.scale.x < 1.0, "expected scale.x < 1.0, got {}", t.scale.x);
+    }
+
+    #[test]
+    fn when_scale_spring_many_frames_then_both_axes_converge() {
+        // Arrange
+        let mut world = make_world();
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::splat(0.5),
+                },
+                ScaleSpring::new(1.0),
+            ))
+            .id();
+
+        // Act
+        run_n_frames(&mut world, 300);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert!(
+            (t.scale.x - 1.0).abs() < 0.01,
+            "expected scale.x≈1.0, got {}",
+            t.scale.x
+        );
+        assert!(
+            (t.scale.y - 1.0).abs() < 0.01,
+            "expected scale.y≈1.0, got {}",
+            t.scale.y
+        );
+    }
+
+    #[test]
+    fn when_scale_spring_converged_then_component_removed() {
+        // Arrange
+        let mut world = make_world();
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::splat(0.5),
+                },
+                ScaleSpring::new(1.0),
+            ))
+            .id();
+
+        // Act
+        run_n_frames(&mut world, 300);
+
+        // Assert
+        assert!(
+            world.get::<ScaleSpring>(entity).is_none(),
+            "ScaleSpring should be removed after convergence"
+        );
+    }
+
+    #[test]
+    fn when_scale_spring_converged_then_scale_snapped_to_exact_target() {
+        // Arrange
+        let mut world = make_world();
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::splat(0.5),
+                },
+                ScaleSpring::new(1.0),
+            ))
+            .id();
+
+        // Act
+        run_n_frames(&mut world, 300);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert_eq!(t.scale, Vec2::ONE);
+    }
+
+    #[test]
+    fn when_lock_x_true_then_scale_y_springs_but_scale_x_unchanged() {
+        // Arrange
+        let mut world = make_world();
+        let mut spring = ScaleSpring::new(1.0);
+        spring.lock_x = true;
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::new(1.0, 0.5),
+                },
+                spring,
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert_eq!(
+            t.scale.x, 1.0,
+            "scale.x should be unchanged when lock_x=true"
+        );
+        assert!(
+            t.scale.y > 0.5,
+            "scale.y should move toward target, got {}",
+            t.scale.y
+        );
+    }
+
+    #[test]
+    fn when_position_converged_but_velocity_above_threshold_then_spring_not_removed() {
+        // Arrange
+        let mut world = make_world();
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::splat(1.00001),
+                },
+                ScaleSpring {
+                    target: 1.0,
+                    velocity: 0.001,
+                    lock_x: false,
+                    stiffness: DEFAULT_STIFFNESS,
+                    damping: DEFAULT_DAMPING,
+                },
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<ScaleSpring>(entity).is_some(),
+            "spring should not be removed when velocity is above threshold"
+        );
+    }
+
+    #[test]
+    fn when_position_at_exact_threshold_boundary_then_spring_not_removed() {
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(DeltaTime(Seconds(0.0)));
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::splat(1.0 + CONVERGE_THRESHOLD),
+                },
+                ScaleSpring::new(1.0),
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<ScaleSpring>(entity).is_some(),
+            "spring should not be removed when displacement equals threshold exactly"
+        );
+    }
+
+    #[test]
+    fn when_velocity_at_exact_threshold_boundary_then_spring_not_removed() {
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(DeltaTime(Seconds(0.0)));
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                ScaleSpring {
+                    target: 1.0,
+                    velocity: CONVERGE_THRESHOLD,
+                    lock_x: false,
+                    stiffness: DEFAULT_STIFFNESS,
+                    damping: DEFAULT_DAMPING,
+                },
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<ScaleSpring>(entity).is_some(),
+            "spring should not be removed when velocity equals threshold exactly"
+        );
+    }
+
+    #[test]
+    fn when_scale_at_target_with_zero_velocity_then_immediately_removed() {
+        // Arrange
+        let mut world = make_world();
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                ScaleSpring::new(1.0),
+            ))
+            .id();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<ScaleSpring>(entity).is_none(),
+            "ScaleSpring should be removed when already at target"
+        );
+    }
+}

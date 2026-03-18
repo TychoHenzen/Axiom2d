@@ -1,5 +1,6 @@
 pub mod collider;
 pub mod collision_event;
+pub mod hit_test;
 pub mod physics_backend;
 pub mod physics_res;
 pub mod physics_step_system;

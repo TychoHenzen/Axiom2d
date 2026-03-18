@@ -101,28 +101,6 @@ mod tests {
     }
 
     #[test]
-    fn when_rmb_held_and_mouse_moved_then_camera_moves_inversely() {
-        // Arrange
-        let mut world = World::new();
-        world.spawn(Camera2D::default());
-        let mut mouse = MouseState::default();
-        mouse.press(MouseButton::Right);
-        mouse.clear_frame_state();
-        mouse.set_screen_pos(Vec2::new(110.0, 220.0));
-        world.insert_resource(mouse);
-        world.insert_resource(CameraDragState {
-            anchor_screen_pos: Some(Vec2::new(100.0, 200.0)),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let camera = world.query::<&Camera2D>().single(&world).unwrap();
-        assert_eq!(camera.position, Vec2::new(-10.0, -20.0));
-    }
-
-    #[test]
     fn when_rmb_just_pressed_then_camera_position_unchanged() {
         // Arrange
         let mut world = World::new();
@@ -142,6 +120,28 @@ mod tests {
         // Assert
         let camera = world.query::<&Camera2D>().single(&world).unwrap();
         assert_eq!(camera.position, Vec2::new(50.0, 50.0));
+    }
+
+    #[test]
+    fn when_rmb_held_and_mouse_moved_then_camera_moves_inversely() {
+        // Arrange
+        let mut world = World::new();
+        world.spawn(Camera2D::default());
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Right);
+        mouse.clear_frame_state();
+        mouse.set_screen_pos(Vec2::new(110.0, 220.0));
+        world.insert_resource(mouse);
+        world.insert_resource(CameraDragState {
+            anchor_screen_pos: Some(Vec2::new(100.0, 200.0)),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let camera = world.query::<&Camera2D>().single(&world).unwrap();
+        assert_eq!(camera.position, Vec2::new(-10.0, -20.0));
     }
 
     #[test]
@@ -258,39 +258,6 @@ mod tests {
         run_system(&mut world);
     }
 
-    #[test]
-    fn when_card_drag_active_then_rmb_pan_still_works() {
-        // Arrange
-        use crate::card_zone::CardZone;
-        use crate::drag_state::{DragInfo, DragState};
-
-        let mut world = World::new();
-        world.spawn(Camera2D::default());
-        let entity = world.spawn_empty().id();
-        let mut mouse = MouseState::default();
-        mouse.press(MouseButton::Right);
-        mouse.clear_frame_state();
-        mouse.set_screen_pos(Vec2::new(110.0, 100.0));
-        world.insert_resource(mouse);
-        world.insert_resource(CameraDragState {
-            anchor_screen_pos: Some(Vec2::new(100.0, 100.0)),
-        });
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-            }),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let camera = world.query::<&Camera2D>().single(&world).unwrap();
-        assert_eq!(camera.position.x, -10.0);
-    }
-
     fn run_zoom_system(world: &mut World) {
         let mut schedule = Schedule::default();
         schedule.add_systems(camera_zoom_system);
@@ -352,12 +319,15 @@ mod tests {
     }
 
     #[test]
-    fn when_zoom_above_floor_and_scroll_down_then_zoom_can_decrease() {
+    fn when_scroll_by_two_then_zoom_equals_initial_plus_speed_times_delta() {
         // Arrange
         let mut world = World::new();
-        world.spawn(Camera2D::default());
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
         let mut mouse = MouseState::default();
-        mouse.add_scroll_delta(Vec2::new(0.0, -1.0));
+        mouse.add_scroll_delta(Vec2::new(0.0, 2.0));
         world.insert_resource(mouse);
 
         // Act
@@ -365,8 +335,7 @@ mod tests {
 
         // Assert
         let camera = world.query::<&Camera2D>().single(&world).unwrap();
-        assert!(camera.zoom > ZOOM_MIN);
-        assert!(camera.zoom < 1.0);
+        assert_eq!(camera.zoom, 1.2);
     }
 
     #[test]
@@ -397,25 +366,5 @@ mod tests {
 
         // Act + Assert (no panic)
         run_zoom_system(&mut world);
-    }
-
-    #[test]
-    fn when_scroll_by_two_then_zoom_equals_initial_plus_speed_times_delta() {
-        // Arrange
-        let mut world = World::new();
-        world.spawn(Camera2D {
-            position: Vec2::ZERO,
-            zoom: 1.0,
-        });
-        let mut mouse = MouseState::default();
-        mouse.add_scroll_delta(Vec2::new(0.0, 2.0));
-        world.insert_resource(mouse);
-
-        // Act
-        run_zoom_system(&mut world);
-
-        // Assert: 1.0 + 0.1 * 2.0 = 1.2  (not 1.0 + 0.1 + 2.0 = 3.1, not 1.0 + 0.1 / 2.0 = 1.05)
-        let camera = world.query::<&Camera2D>().single(&world).unwrap();
-        assert_eq!(camera.zoom, 1.2);
     }
 }

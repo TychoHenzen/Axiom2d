@@ -1,5 +1,6 @@
 use bevy_ecs::prelude::{Commands, Entity, Query, Res, ResMut};
 use engine_input::prelude::{MouseButton, MouseState};
+use engine_physics::hit_test::{collider_half_extents, local_space_hit};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
 use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
@@ -16,17 +17,6 @@ pub const CARD_COLLISION_GROUP: u32 = 0b0001;
 pub const CARD_COLLISION_FILTER: u32 = 0b0010;
 pub const DRAGGED_COLLISION_GROUP: u32 = 0;
 pub const DRAGGED_COLLISION_FILTER: u32 = 0;
-
-pub(crate) fn collider_half_extents(collider: &Collider) -> Option<Vec2> {
-    match collider {
-        Collider::Aabb(half) => Some(*half),
-        _ => None,
-    }
-}
-
-pub(crate) fn local_space_hit(cursor_local: Vec2, half: Vec2) -> bool {
-    cursor_local.x.abs() <= half.x && cursor_local.y.abs() <= half.y
-}
 
 #[allow(clippy::too_many_arguments)]
 pub fn card_pick_system(

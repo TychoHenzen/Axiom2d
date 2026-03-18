@@ -1,6 +1,3 @@
-pub use crate::camera_drag::{
-    CameraDragState, ZOOM_MIN, ZOOM_SPEED, camera_drag_system, camera_zoom_system,
-};
 pub use crate::card::Card;
 pub use crate::card_art_shader::{CardArtShader, UV_GRADIENT_WGSL, register_card_art_shader};
 pub use crate::card_damping::{
@@ -23,9 +20,8 @@ pub use crate::hand::{Hand, HandFull};
 pub use crate::hand_layout::{
     FAN_ARC_DEGREES, FAN_BOTTOM_OFFSET, FAN_CARD_SPACING_DEGREES, FAN_RADIUS, HandSpring,
     SPRING_DAMPING, SPRING_STIFFNESS, fan_angle, fan_screen_position, hand_layout_system,
-    spring_step,
 };
-pub use crate::scale_spring::{ScaleSpring, scale_spring_system};
+pub use crate::scale_spring::{ScaleSpring, scale_spring_system, sync_scale_spring_lock_x};
 pub use crate::sort_propagation::{LocalSortOrder, SORT_STRIDE, sort_propagation_system};
 pub use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH, spawn_table_card, spawn_visual_card};
 pub use crate::stash_grid::{SlotOccupied, StashGrid};

@@ -163,7 +163,10 @@ fn register_game_systems(app: &mut App, config: WindowConfig) {
                 hand_layout_system,
             ),
         )
-        .add_systems(Phase::PostUpdate, scale_spring_system)
+        .add_systems(
+            Phase::PostUpdate,
+            (sync_scale_spring_lock_x, scale_spring_system).chain(),
+        )
         .add_systems(
             Phase::Render,
             stash_render_system.after(shape_render_system),

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Axiom2d is an LLM-optimized 2D game engine written in Rust. The engine scaffolding is complete (all 12 crates implemented, 740+ tests). The full architectural vision is documented in `Doc/Axiom_Blueprint.md`. The engine implementation roadmap lives in `Doc/Implementation_Roadmap.md`. Known technical debt is tracked in `Doc/Technical_Debt_Audit.md`.
+Axiom2d is an LLM-optimized 2D game engine written in Rust. The engine scaffolding is complete (12 engine crates + `axiom2d` facade + `demo`, 1100+ tests). A card game is being built on top (`card_game` + `card_game_bin` crates). The full architectural vision is documented in `Doc/Axiom_Blueprint.md`. The engine implementation roadmap lives in `Doc/Implementation_Roadmap.md`. Known technical debt is tracked in `Doc/Technical_Debt_Audit.md`.
 
 ## Current Focus: Card Game
 
@@ -46,6 +46,7 @@ cargo.exe build              # Build the library
 cargo.exe test               # Run all tests
 cargo.exe test <test_name>   # Run a single test by name
 cargo.exe clippy             # Lint (pedantic, workspace-configured)
+cargo.exe fmt --all          # Format all crates
 ```
 
 Always use `cargo.exe` (not `cargo`) since the Rust toolchain is Windows-only. The same applies to `rustc.exe`, `rustfmt.exe`, etc.
@@ -72,14 +73,14 @@ Two GitHub Actions workflows in `.github/workflows/`:
 - **`ci.yml`** (every push/PR to master): autofix (clippy --fix + fmt, pushes fixes back) → build + test — fast gate for every commit.
 - **`quality.yml`** (daily at 06:00 UTC + manual `workflow_dispatch`): clippy, audit, docs, coverage, mutants — expensive checks run on a schedule to conserve Actions minutes.
 
-## Architecture (Planned)
+## Architecture
 
 The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM code generation. Key design principles:
 
 - **Archetypal ECS**: Entities with identical component sets stored together. Systems are plain functions with typed parameters (e.g., `Query<(&mut Position, &Velocity)>`). Uses `bevy_ecs` as a standalone crate, wrapped by `engine_ecs`.
 - **Code-defined assets**: All assets (sprites, audio, shaders, tilemaps) are expressed as Rust code or RON data — no binary asset files. Uses `lyon` for vector graphics, `fundsp` for audio synthesis, WGSL for shaders.
 - **Trait-abstracted hardware**: Every hardware-dependent subsystem (renderer, audio, input) hides behind a trait with null/mock implementations for testing. Canonical test pattern: `World` + `Schedule` without touching hardware.
-- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, `engine_input`, `engine_scene`, `engine_audio`, `engine_physics`, `engine_assets`, `engine_ui`, and `axiom2d` (facade + DefaultPlugins) are all implemented. Virtual manifest at root. `demo` binary crate for smoke testing.
+- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, `engine_input`, `engine_scene`, `engine_audio`, `engine_physics`, `engine_assets`, `engine_ui`, `axiom2d` (facade + DefaultPlugins), `card_game` (game logic library), `card_game_bin` (binary entry point), and `demo` (solar system smoke test). Virtual manifest at root.
 
 ### Scheduling Phases
 

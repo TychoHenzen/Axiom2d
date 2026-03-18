@@ -1,5 +1,6 @@
 use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res};
 use engine_core::prelude::{DeltaTime, Seconds, Transform2D};
+use engine_core::spring::spring_step;
 use engine_render::prelude::{Camera2D, RendererRes, screen_to_world};
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
@@ -36,14 +37,6 @@ impl HandSpring {
             angular_velocity: 0.0,
         }
     }
-}
-
-pub fn spring_step(current: f32, target: f32, velocity: f32, dt: f32) -> (f32, f32) {
-    let displacement = target - current;
-    let acceleration = displacement * SPRING_STIFFNESS - velocity * SPRING_DAMPING;
-    let new_velocity = velocity + acceleration * dt;
-    let new_position = current + new_velocity * dt;
-    (new_position, new_velocity)
 }
 
 pub fn fan_angle(index: usize, count: usize) -> f32 {
@@ -124,13 +117,29 @@ fn apply_spring_motion(
     target_angle: f32,
     dt: f32,
 ) {
-    let (px, vx) = spring_step(transform.position.x, target_pos.x, spring.velocity.x, dt);
-    let (py, vy) = spring_step(transform.position.y, target_pos.y, spring.velocity.y, dt);
+    let (px, vx) = spring_step(
+        transform.position.x,
+        target_pos.x,
+        spring.velocity.x,
+        dt,
+        SPRING_STIFFNESS,
+        SPRING_DAMPING,
+    );
+    let (py, vy) = spring_step(
+        transform.position.y,
+        target_pos.y,
+        spring.velocity.y,
+        dt,
+        SPRING_STIFFNESS,
+        SPRING_DAMPING,
+    );
     let (rot, av) = spring_step(
         transform.rotation,
         target_angle,
         spring.angular_velocity,
         dt,
+        SPRING_STIFFNESS,
+        SPRING_DAMPING,
     );
     transform.position = Vec2::new(px, py);
     transform.rotation = rot;
@@ -692,26 +701,6 @@ mod tests {
     }
 
     #[test]
-    fn when_spring_step_from_zero_toward_target_then_moves_toward_target() {
-        // Act
-        let (pos, vel) = spring_step(0.0, 100.0, 0.0, 0.016);
-
-        // Assert
-        assert!(pos > 0.0, "expected pos > 0, got {pos}");
-        assert!(vel > 0.0, "expected vel > 0, got {vel}");
-    }
-
-    #[test]
-    fn when_spring_step_at_target_with_zero_velocity_then_stays_at_target() {
-        // Act
-        let (pos, vel) = spring_step(50.0, 50.0, 0.0, 0.016);
-
-        // Assert
-        assert!((pos - 50.0).abs() < 1e-6, "expected pos≈50, got {pos}");
-        assert!(vel.abs() < 1e-6, "expected vel≈0, got {vel}");
-    }
-
-    #[test]
     fn when_spring_card_one_frame_then_moves_toward_target_but_does_not_arrive() {
         // Arrange
         let mut world = make_world(800, 600);
@@ -1053,22 +1042,6 @@ mod tests {
             "expected scale.x≈{} at zoom=4, got {}",
             FAN_SCALE / 4.0,
             t.scale.x
-        );
-    }
-
-    #[test]
-    fn when_spring_overshoots_target_then_velocity_reverses() {
-        // Arrange — particle past the target with forward velocity
-        let (pos, vel) = spring_step(150.0, 100.0, 50.0, 0.016);
-
-        // Assert — spring pulls back, velocity should decrease
-        assert!(
-            vel < 50.0,
-            "expected spring to slow velocity when past target, got {vel}"
-        );
-        assert!(
-            pos > 100.0,
-            "expected still past target after one step, got {pos}"
         );
     }
 }
