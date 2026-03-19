@@ -6,12 +6,12 @@ use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 
 use crate::card::Card;
-use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card_item_form::CardItemForm;
 use crate::card_zone::CardZone;
 use crate::drag_state::{DragInfo, DragState};
 use crate::hand::Hand;
 use crate::hand_layout::HandSpring;
+use crate::physics_helpers::activate_physics_body;
 use crate::stash_grid::{StashGrid, find_stash_slot_at};
 use crate::stash_toggle::StashVisible;
 use engine_core::scale_spring::ScaleSpring;
@@ -20,6 +20,60 @@ pub const CARD_COLLISION_GROUP: u32 = 0b0001;
 pub const CARD_COLLISION_FILTER: u32 = 0b0010;
 pub const DRAGGED_COLLISION_GROUP: u32 = 0;
 pub const DRAGGED_COLLISION_FILTER: u32 = 0;
+
+enum PickSource {
+    Stash {
+        entity: Entity,
+        page: u8,
+        col: u8,
+        row: u8,
+    },
+    Card {
+        entity: Entity,
+        zone: CardZone,
+        collider: Collider,
+        grab_offset: Vec2,
+    },
+}
+
+fn identify_pick_source(
+    mouse: &MouseState,
+    stash_visible: &StashVisible,
+    grid: &mut StashGrid,
+    query: &Query<(
+        Entity,
+        &Card,
+        &CardZone,
+        &GlobalTransform2D,
+        &Collider,
+        &mut SortOrder,
+    )>,
+) -> Option<PickSource> {
+    if stash_visible.0 {
+        let screen = mouse.screen_pos();
+        if let Some((col, row)) = find_stash_slot_at(screen, grid.width(), grid.height()) {
+            let page = grid.current_page();
+            if let Some(entity) = grid.take(page, col, row) {
+                return Some(PickSource::Stash {
+                    entity,
+                    page,
+                    col,
+                    row,
+                });
+            }
+        }
+    }
+
+    let cursor = mouse.world_pos();
+    find_card_under_cursor(query, cursor).map(|(entity, zone, grab_offset, collider)| {
+        PickSource::Card {
+            entity,
+            zone,
+            collider,
+            grab_offset,
+        }
+    })
+}
 
 #[allow(clippy::too_many_arguments)]
 pub fn card_pick_system(
@@ -46,38 +100,81 @@ pub fn card_pick_system(
         return;
     }
 
-    if let Some(stash_pick) = take_stash_card(&mouse, &stash_visible, &mut grid) {
-        commands.entity(stash_pick.entity).insert(CardZone::Table);
-        commands.entity(stash_pick.entity).remove::<CardItemForm>();
-        drag_state.dragging = Some(DragInfo {
-            entity: stash_pick.entity,
-            local_grab_offset: Vec2::ZERO,
-            origin_zone: CardZone::Stash {
-                page: stash_pick.page,
-                col: stash_pick.col,
-                row: stash_pick.row,
-            },
-            stash_cursor_follow: true,
-        });
-        return;
-    }
-
-    let cursor = mouse.world_pos();
-    let max_sort = max_table_sort_order(&query);
-    let Some((entity, zone, local_grab_offset, collider)) = find_card_under_cursor(&query, cursor)
-    else {
+    let Some(source) = identify_pick_source(&mouse, &stash_visible, &mut grid, &query) else {
         return;
     };
 
-    if let CardZone::Hand(_) = zone {
-        transition_hand_to_table(
+    match source {
+        PickSource::Stash {
             entity,
-            &mut hand,
-            &mut physics,
-            &mut commands,
-            &query,
-            &collider,
-        );
+            page,
+            col,
+            row,
+        } => {
+            pick_from_stash(entity, page, col, row, &mut drag_state, &mut commands);
+        }
+        PickSource::Card {
+            entity,
+            zone,
+            collider,
+            grab_offset,
+        } => {
+            pick_from_card(
+                entity,
+                zone,
+                collider,
+                grab_offset,
+                &mut drag_state,
+                &mut hand,
+                &mut physics,
+                &mut commands,
+                &mut query,
+            );
+        }
+    }
+}
+
+fn pick_from_stash(
+    entity: Entity,
+    page: u8,
+    col: u8,
+    row: u8,
+    drag_state: &mut DragState,
+    commands: &mut Commands,
+) {
+    commands.entity(entity).insert(CardZone::Table);
+    commands.entity(entity).remove::<CardItemForm>();
+    drag_state.dragging = Some(DragInfo {
+        entity,
+        local_grab_offset: Vec2::ZERO,
+        origin_zone: CardZone::Stash { page, col, row },
+        stash_cursor_follow: true,
+    });
+}
+
+#[allow(clippy::too_many_arguments)]
+fn pick_from_card(
+    entity: Entity,
+    zone: CardZone,
+    collider: Collider,
+    grab_offset: Vec2,
+    drag_state: &mut DragState,
+    hand: &mut Hand,
+    physics: &mut PhysicsRes,
+    commands: &mut Commands,
+    query: &mut Query<(
+        Entity,
+        &Card,
+        &CardZone,
+        &GlobalTransform2D,
+        &Collider,
+        &mut SortOrder,
+    )>,
+) {
+    let max_sort = max_table_sort_order(query);
+
+    if let CardZone::Hand(_) = zone {
+        transition_hand_to_table(entity, hand, physics, commands, query, &collider);
     }
 
     if matches!(zone, CardZone::Table) {
@@ -86,7 +183,7 @@ pub fn card_pick_system(
 
     drag_state.dragging = Some(DragInfo {
         entity,
-        local_grab_offset,
+        local_grab_offset: grab_offset,
         origin_zone: zone,
         stash_cursor_follow: false,
     });
@@ -162,40 +259,18 @@ fn transition_hand_to_table(
         .get(entity)
         .map(|(_, _, _, t, _, _)| t.0.translation)
         .unwrap_or(Vec2::ZERO);
-    physics.add_body(entity, &RigidBody::Dynamic, position);
-    physics.add_collider(entity, collider);
-    physics.set_damping(entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
-    physics.set_collision_group(entity, DRAGGED_COLLISION_GROUP, DRAGGED_COLLISION_FILTER);
+    activate_physics_body(
+        entity,
+        position,
+        collider,
+        physics,
+        DRAGGED_COLLISION_GROUP,
+        DRAGGED_COLLISION_FILTER,
+    );
     commands.entity(entity).insert(RigidBody::Dynamic);
     commands.entity(entity).insert(RenderLayer::World);
     commands.entity(entity).remove::<HandSpring>();
     commands.entity(entity).insert(ScaleSpring::new(1.0));
-}
-
-struct StashPickResult {
-    entity: Entity,
-    page: u8,
-    col: u8,
-    row: u8,
-}
-
-fn take_stash_card(
-    mouse: &MouseState,
-    stash_visible: &StashVisible,
-    grid: &mut StashGrid,
-) -> Option<StashPickResult> {
-    if !stash_visible.0 {
-        return None;
-    }
-    let (col, row) = find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height())?;
-    let page = grid.current_page();
-    let entity = grid.take(page, col, row)?;
-    Some(StashPickResult {
-        entity,
-        page,
-        col,
-        row,
-    })
 }
 
 #[cfg(test)]
@@ -204,11 +279,9 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::*;
-    use engine_core::prelude::{Seconds, TextureId};
+    use engine_core::prelude::TextureId;
     use engine_input::prelude::{MouseButton, MouseState};
-    use engine_physics::prelude::{
-        Collider, CollisionEvent, NullPhysicsBackend, PhysicsBackend, PhysicsRes, RigidBody,
-    };
+    use engine_physics::prelude::{Collider, NullPhysicsBackend, PhysicsBackend, PhysicsRes};
     use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
     use glam::{Affine2, Vec2};
 
@@ -218,6 +291,7 @@ mod tests {
     use crate::drag_state::DragState;
     use crate::hand::Hand;
     use crate::hand_layout::HandSpring;
+    use crate::test_helpers::{AddBodyLog, ColliderLog, DampingLog, SpyPhysicsBackend};
     use engine_core::scale_spring::ScaleSpring;
 
     fn run_system(world: &mut World) {
@@ -234,7 +308,7 @@ mod tests {
         use crate::stash_grid::StashGrid;
         use crate::stash_toggle::StashVisible;
         world.insert_resource(Hand::new(10));
-        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::new())));
+        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
         world.insert_resource(StashGrid::new(10, 10, 1));
         world.insert_resource(StashVisible(false));
     }
@@ -632,74 +706,19 @@ mod tests {
         assert!(world.resource::<DragState>().dragging.is_none());
     }
 
-    type BodyLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
-    type ColliderLog = Arc<Mutex<Vec<Entity>>>;
-    type DampingLog = Arc<Mutex<Vec<(Entity, f32, f32)>>>;
-
-    struct SpyPhysicsBackend {
-        bodies: BodyLog,
-        colliders: ColliderLog,
-        dampings: DampingLog,
-    }
-
-    impl SpyPhysicsBackend {
-        fn new(bodies: BodyLog, colliders: ColliderLog, dampings: DampingLog) -> Self {
-            Self {
-                bodies,
-                colliders,
-                dampings,
-            }
-        }
-    }
-
-    impl PhysicsBackend for SpyPhysicsBackend {
-        fn step(&mut self, _dt: Seconds) {}
-        fn add_body(&mut self, entity: Entity, _body_type: &RigidBody, position: Vec2) -> bool {
-            self.bodies.lock().unwrap().push((entity, position));
-            true
-        }
-        fn add_collider(&mut self, entity: Entity, _collider: &Collider) -> bool {
-            self.colliders.lock().unwrap().push(entity);
-            true
-        }
-        fn remove_body(&mut self, _: Entity) {}
-        fn body_position(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn body_rotation(&self, _: Entity) -> Option<f32> {
-            None
-        }
-        fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
-            Vec::new()
-        }
-        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
-        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
-        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
-        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
-            None
-        }
-        fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32) {
-            self.dampings
-                .lock()
-                .unwrap()
-                .push((entity, linear, angular));
-        }
-        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
-    }
-
     fn make_spy_physics() -> (
         Box<dyn PhysicsBackend + Send + Sync>,
-        BodyLog,
+        AddBodyLog,
         ColliderLog,
         DampingLog,
     ) {
-        let bodies: BodyLog = Arc::new(Mutex::new(Vec::new()));
+        let bodies: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
         let colliders: ColliderLog = Arc::new(Mutex::new(Vec::new()));
         let dampings: DampingLog = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyPhysicsBackend::new(bodies.clone(), colliders.clone(), dampings.clone());
+        let spy = SpyPhysicsBackend::new()
+            .with_add_body_log(bodies.clone())
+            .with_collider_log(colliders.clone())
+            .with_damping_log(dampings.clone());
         (Box::new(spy), bodies, colliders, dampings)
     }
 
@@ -1014,7 +1033,7 @@ mod tests {
         world.insert_resource(StashVisible(true));
         world.insert_resource(DragState::default());
         world.insert_resource(Hand::new(10));
-        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::new())));
+        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_screen_pos(Vec2::new(153.0, 294.0));
@@ -1120,7 +1139,7 @@ mod tests {
         world.insert_resource(StashVisible(false));
         world.insert_resource(DragState::default());
         world.insert_resource(Hand::new(10));
-        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::new())));
+        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_screen_pos(Vec2::new(45.0, 45.0));
@@ -1164,7 +1183,7 @@ mod tests {
         world.insert_resource(StashVisible(true));
         world.insert_resource(DragState::default());
         world.insert_resource(Hand::new(10));
-        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::new())));
+        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_screen_pos(Vec2::new(45.0, 57.5));

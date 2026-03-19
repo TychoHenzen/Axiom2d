@@ -3,13 +3,12 @@ use engine_input::prelude::MouseState;
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
 use engine_scene::prelude::{GlobalTransform2D, RenderLayer};
 
-use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card_item_form::CardItemForm;
 use crate::card_pick::{DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
 use crate::drag_state::DragState;
+use crate::physics_helpers::activate_physics_body;
 use crate::spawn_table_card::CARD_WIDTH;
-use crate::stash_grid::StashGrid;
-use crate::stash_grid::find_stash_slot_at;
+use crate::stash_grid::{StashGrid, cursor_over_stash};
 use crate::stash_render::SLOT_WIDTH;
 use crate::stash_toggle::StashVisible;
 use engine_core::scale_spring::ScaleSpring;
@@ -27,26 +26,26 @@ pub fn stash_boundary_system(
         return;
     };
 
-    let over_stash = stash_visible.0
-        && find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height()).is_some();
+    let over_stash = cursor_over_stash(&mouse, &stash_visible, &grid);
 
     if info.stash_cursor_follow && !over_stash {
         // Exit stash: add physics body, switch to spring drag
         if let Ok((transform, collider)) = transform_query.get(info.entity) {
-            let position = transform.0.translation;
-            physics.add_body(info.entity, &RigidBody::Dynamic, position);
-            physics.add_collider(info.entity, collider);
-            physics.set_damping(info.entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
-            physics.set_collision_group(
+            activate_physics_body(
                 info.entity,
+                transform.0.translation,
+                collider,
+                &mut physics,
                 DRAGGED_COLLISION_GROUP,
                 DRAGGED_COLLISION_FILTER,
             );
         }
-        commands.entity(info.entity).insert(RigidBody::Dynamic);
-        commands.entity(info.entity).insert(RenderLayer::World);
-        commands.entity(info.entity).remove::<CardItemForm>();
-        commands.entity(info.entity).insert(ScaleSpring::new(1.0));
+        commands
+            .entity(info.entity)
+            .insert(RigidBody::Dynamic)
+            .insert(RenderLayer::World)
+            .remove::<CardItemForm>()
+            .insert(ScaleSpring::new(1.0));
         drag_state.dragging = Some(crate::drag_state::DragInfo {
             stash_cursor_follow: false,
             ..info
@@ -54,11 +53,11 @@ pub fn stash_boundary_system(
     } else if !info.stash_cursor_follow && over_stash {
         // Enter stash: remove physics body, switch to cursor-follow
         physics.remove_body(info.entity);
-        commands.entity(info.entity).remove::<RigidBody>();
-        commands.entity(info.entity).insert(RenderLayer::UI);
-        commands.entity(info.entity).insert(CardItemForm);
         commands
             .entity(info.entity)
+            .remove::<RigidBody>()
+            .insert(RenderLayer::UI)
+            .insert(CardItemForm)
             .insert(ScaleSpring::new(SLOT_WIDTH / CARD_WIDTH));
         drag_state.dragging = Some(crate::drag_state::DragInfo {
             stash_cursor_follow: true,
@@ -74,9 +73,7 @@ mod tests {
 
     use bevy_ecs::prelude::*;
     use engine_input::prelude::MouseState;
-    use engine_physics::prelude::{
-        Collider, CollisionEvent, PhysicsBackend, PhysicsRes, RigidBody,
-    };
+    use engine_physics::prelude::{Collider, PhysicsBackend, PhysicsRes};
     use engine_scene::prelude::GlobalTransform2D;
     use glam::{Affine2, Vec2};
 
@@ -87,58 +84,8 @@ mod tests {
     use crate::stash_grid::StashGrid;
     use crate::stash_render::SLOT_WIDTH;
     use crate::stash_toggle::StashVisible;
+    use crate::test_helpers::{AddBodyLog, RemoveBodyLog, SpyPhysicsBackend};
     use engine_core::scale_spring::ScaleSpring;
-
-    type AddBodyLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
-    type RemoveBodyLog = Arc<Mutex<Vec<Entity>>>;
-
-    struct SpyPhysicsBackend {
-        add_body_log: AddBodyLog,
-        remove_body_log: RemoveBodyLog,
-    }
-
-    impl SpyPhysicsBackend {
-        fn new(add_body_log: AddBodyLog, remove_body_log: RemoveBodyLog) -> Self {
-            Self {
-                add_body_log,
-                remove_body_log,
-            }
-        }
-    }
-
-    impl PhysicsBackend for SpyPhysicsBackend {
-        fn step(&mut self, _: engine_core::prelude::Seconds) {}
-        fn add_body(&mut self, entity: Entity, _: &RigidBody, position: Vec2) -> bool {
-            self.add_body_log.lock().unwrap().push((entity, position));
-            true
-        }
-        fn add_collider(&mut self, _: Entity, _: &Collider) -> bool {
-            true
-        }
-        fn remove_body(&mut self, entity: Entity) {
-            self.remove_body_log.lock().unwrap().push(entity);
-        }
-        fn body_position(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn body_rotation(&self, _: Entity) -> Option<f32> {
-            None
-        }
-        fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
-            Vec::new()
-        }
-        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
-        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
-        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
-        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
-            None
-        }
-        fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
-        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
-    }
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -153,7 +100,9 @@ mod tests {
     ) {
         let add_log: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
         let remove_log: RemoveBodyLog = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyPhysicsBackend::new(add_log.clone(), remove_log.clone());
+        let spy = SpyPhysicsBackend::new()
+            .with_add_body_log(add_log.clone())
+            .with_remove_body_log(remove_log.clone());
         (Box::new(spy), add_log, remove_log)
     }
 

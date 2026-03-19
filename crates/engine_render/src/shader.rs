@@ -22,11 +22,6 @@ impl Default for ShaderRegistry {
 }
 
 impl ShaderRegistry {
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn register(&mut self, source: &str) -> ShaderHandle {
         let handle = ShaderHandle(self.next_id);
         self.next_id += 1;
@@ -87,7 +82,7 @@ mod tests {
     #[test]
     fn when_registering_shader_then_lookup_returns_same_source() {
         // Arrange
-        let mut registry = ShaderRegistry::new();
+        let mut registry = ShaderRegistry::default();
         let source = "@vertex fn vs_main() {}";
 
         // Act
@@ -101,7 +96,7 @@ mod tests {
     #[test]
     fn when_registering_multiple_shaders_then_handles_are_unique() {
         // Arrange
-        let mut registry = ShaderRegistry::new();
+        let mut registry = ShaderRegistry::default();
 
         // Act
         let h1 = registry.register("shader_a");
@@ -114,7 +109,7 @@ mod tests {
     #[test]
     fn when_looking_up_unregistered_handle_then_returns_none() {
         // Arrange
-        let registry = ShaderRegistry::new();
+        let registry = ShaderRegistry::default();
 
         // Act
         let result = registry.lookup(ShaderHandle(99));
@@ -140,7 +135,7 @@ mod tests {
         use bevy_ecs::prelude::{Res, Schedule, World};
 
         // Arrange
-        let mut registry = ShaderRegistry::new();
+        let mut registry = ShaderRegistry::default();
         let _handle = registry.register("@vertex fn vs_main() {}");
         let mut world = World::new();
         world.insert_resource(registry);
@@ -232,7 +227,7 @@ mod tests {
         // Arrange
         let mut world = World::new();
         let capture = insert_spy_with_compile_shader_capture(&mut world);
-        let mut registry = ShaderRegistry::new();
+        let mut registry = ShaderRegistry::default();
         let handle = registry.register("my_shader_source");
         world.insert_resource(registry);
         let mut schedule = Schedule::default();
@@ -256,7 +251,7 @@ mod tests {
         // Arrange
         let mut world = World::new();
         let capture = insert_spy_with_compile_shader_capture(&mut world);
-        let mut registry = ShaderRegistry::new();
+        let mut registry = ShaderRegistry::default();
         let h1 = registry.register("shader_a");
         let h2 = registry.register("shader_b");
         world.insert_resource(registry);
@@ -283,7 +278,7 @@ mod tests {
         // Arrange
         let mut world = World::new();
         let capture = insert_spy_with_compile_shader_capture(&mut world);
-        world.insert_resource(ShaderRegistry::new());
+        world.insert_resource(ShaderRegistry::default());
         let mut schedule = Schedule::default();
         schedule.add_systems(shader_prepare_system);
 
@@ -322,7 +317,7 @@ mod tests {
         // Arrange
         let mut world = World::new();
         let log = insert_spy(&mut world);
-        let mut registry = ShaderRegistry::new();
+        let mut registry = ShaderRegistry::default();
         registry.register("test_shader");
         world.insert_resource(registry);
         world.spawn((

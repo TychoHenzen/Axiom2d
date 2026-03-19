@@ -178,7 +178,7 @@ impl ApplicationHandler for App {
         // seconds spent on GPU initialization.
         self.world
             .insert_resource(engine_core::prelude::ClockRes::new(Box::new(
-                engine_core::time::SystemClock::new(),
+                engine_core::time::SystemClock::default(),
             )));
 
         // Render a few frames while the window is still hidden to ensure
@@ -594,7 +594,7 @@ mod tests {
 
         // Arrange
         let mut app = App::new();
-        let mut fake = FakeClock::new();
+        let mut fake = FakeClock::default();
         fake.advance(engine_core::types::Seconds(0.016));
         app.world_mut()
             .insert_resource(ClockRes::new(Box::new(fake)));

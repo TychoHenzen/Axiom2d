@@ -6,6 +6,7 @@ use engine_input::prelude::MouseButton;
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D};
 use serde::{Deserialize, Serialize};
 
+use crate::is_hidden;
 use crate::layout::anchor_offset;
 use crate::ui_event::{UiEvent, UiEventBuffer};
 use crate::widget::{Button, UiNode};
@@ -40,7 +41,7 @@ pub fn ui_interaction_system(
     let pos = mouse.world_pos();
     for (entity, node, transform, mut interaction, visibility, button) in &mut query {
         let disabled = button.is_some_and(|b| b.disabled);
-        let hidden = visibility.is_some_and(|v| !v.0);
+        let hidden = is_hidden(visibility);
         let prev = *interaction;
         if hidden || disabled || !hit_test(node, transform, pos) {
             *interaction = Interaction::None;

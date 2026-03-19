@@ -553,7 +553,7 @@ mod tests {
         app.add_plugin(SplashPlugin);
         app.world_mut()
             .insert_resource(engine_core::prelude::ClockRes::new(Box::new({
-                let mut clock = engine_core::time::FakeClock::new();
+                let mut clock = engine_core::time::FakeClock::default();
                 clock.advance(Seconds(0.1));
                 clock
             })));

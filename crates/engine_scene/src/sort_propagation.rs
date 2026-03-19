@@ -34,12 +34,7 @@ mod tests {
 
     use super::*;
     use crate::hierarchy::ChildOf;
-
-    fn run_system(world: &mut World) {
-        let mut schedule = Schedule::default();
-        schedule.add_systems(sort_propagation_system);
-        schedule.run(world);
-    }
+    use crate::test_helpers::run_sort_propagation_system as run_system;
 
     #[test]
     fn when_parent_sort_zero_then_child_gets_local_sort() {

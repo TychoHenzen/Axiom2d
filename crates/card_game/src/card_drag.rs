@@ -56,82 +56,17 @@ pub fn card_drag_system(
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::too_many_arguments)]
 mod tests {
-    use std::collections::HashMap;
     use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::*;
     use engine_input::prelude::{MouseButton, MouseState};
-    use engine_physics::prelude::{PhysicsBackend, PhysicsRes};
+    use engine_physics::prelude::PhysicsRes;
     use glam::Vec2;
 
     use super::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
     use crate::card_zone::CardZone;
     use crate::drag_state::{DragInfo, DragState};
-
-    type VelocityLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
-    type AngularVelocityLog = Arc<Mutex<Vec<(Entity, f32)>>>;
-
-    struct SpyPhysicsBackend {
-        positions: HashMap<Entity, Vec2>,
-        rotations: HashMap<Entity, f32>,
-        velocity_log: VelocityLog,
-        angular_velocity_log: AngularVelocityLog,
-    }
-
-    impl SpyPhysicsBackend {
-        fn new(velocity_log: VelocityLog, angular_velocity_log: AngularVelocityLog) -> Self {
-            Self {
-                positions: HashMap::new(),
-                rotations: HashMap::new(),
-                velocity_log,
-                angular_velocity_log,
-            }
-        }
-
-        fn with_body(mut self, entity: Entity, position: Vec2, rotation: f32) -> Self {
-            self.positions.insert(entity, position);
-            self.rotations.insert(entity, rotation);
-            self
-        }
-    }
-
-    impl PhysicsBackend for SpyPhysicsBackend {
-        fn step(&mut self, _dt: engine_core::prelude::Seconds) {}
-        fn add_body(&mut self, _: Entity, _: &engine_physics::prelude::RigidBody, _: Vec2) -> bool {
-            false
-        }
-        fn add_collider(&mut self, _: Entity, _: &engine_physics::prelude::Collider) -> bool {
-            false
-        }
-        fn remove_body(&mut self, _: Entity) {}
-        fn body_position(&self, entity: Entity) -> Option<Vec2> {
-            self.positions.get(&entity).copied()
-        }
-        fn body_rotation(&self, entity: Entity) -> Option<f32> {
-            self.rotations.get(&entity).copied()
-        }
-        fn drain_collision_events(&mut self) -> Vec<engine_physics::prelude::CollisionEvent> {
-            Vec::new()
-        }
-        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
-            Some(Vec2::ZERO)
-        }
-        fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2) {
-            self.velocity_log.lock().unwrap().push((entity, velocity));
-        }
-        fn set_angular_velocity(&mut self, entity: Entity, angular_velocity: f32) {
-            self.angular_velocity_log
-                .lock()
-                .unwrap()
-                .push((entity, angular_velocity));
-        }
-        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
-        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
-            None
-        }
-        fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
-        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
-    }
+    use crate::test_helpers::{AngularVelocityLog, SpyPhysicsBackend, VelocityLog};
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -150,7 +85,9 @@ mod tests {
         let mut world = World::new();
         let velocity_log: VelocityLog = Arc::new(Mutex::new(Vec::new()));
         let angular_velocity_log: AngularVelocityLog = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyPhysicsBackend::new(velocity_log.clone(), angular_velocity_log.clone())
+        let spy = SpyPhysicsBackend::new()
+            .with_velocity_log(velocity_log.clone())
+            .with_angular_velocity_log(angular_velocity_log.clone())
             .with_body(entity, body_pos, body_rot);
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
 
@@ -190,11 +127,10 @@ mod tests {
                 scale: Vec2::ONE,
             })
             .id();
-        let spy = SpyPhysicsBackend::new(vel_log.clone(), ang_log.clone()).with_body(
-            entity,
-            Vec2::ZERO,
-            0.0,
-        );
+        let spy = SpyPhysicsBackend::new()
+            .with_velocity_log(vel_log.clone())
+            .with_angular_velocity_log(ang_log.clone())
+            .with_body(entity, Vec2::ZERO, 0.0);
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
@@ -501,10 +437,10 @@ mod tests {
         // Arrange
         let mut world = World::new();
         let vel_log: VelocityLog = Arc::new(Mutex::new(Vec::new()));
-        let ang_log: AngularVelocityLog = Arc::new(Mutex::new(Vec::new()));
         let entity = spawn_entity();
-        let spy =
-            SpyPhysicsBackend::new(vel_log.clone(), ang_log).with_body(entity, Vec2::ZERO, 0.0);
+        let spy = SpyPhysicsBackend::new()
+            .with_velocity_log(vel_log.clone())
+            .with_body(entity, Vec2::ZERO, 0.0);
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);

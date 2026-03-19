@@ -1,13 +1,13 @@
 use bevy_ecs::component::Component;
 use bevy_ecs::prelude::{Query, Res, ResMut};
-use engine_core::prelude::Pixels;
-use engine_render::prelude::{Rect, RendererRes};
+use engine_render::prelude::RendererRes;
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D};
 use serde::{Deserialize, Serialize};
 
 use super::node::UiNode;
+use super::node_rect;
 use crate::interaction::Interaction;
-use crate::layout::anchor_offset;
+use crate::is_hidden;
 use crate::theme::UiTheme;
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -28,7 +28,7 @@ pub fn button_render_system(
     mut renderer: ResMut<RendererRes>,
 ) {
     for (button, node, transform, interaction, visibility) in &buttons {
-        if visibility.is_some_and(|v| !v.0) {
+        if is_hidden(visibility) {
             continue;
         }
 
@@ -42,16 +42,7 @@ pub fn button_render_system(
             }
         };
 
-        let offset = anchor_offset(node.anchor, node.size);
-        let top_left = transform.0.translation + offset;
-
-        renderer.draw_rect(Rect {
-            x: Pixels(top_left.x),
-            y: Pixels(top_left.y),
-            width: Pixels(node.size.x),
-            height: Pixels(node.size.y),
-            color,
-        });
+        renderer.draw_rect(node_rect(node, transform, color));
     }
 }
 
@@ -62,6 +53,7 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::{Schedule, World};
+    use engine_core::prelude::Pixels;
     use engine_render::testing::RectCallLog;
     use glam::{Affine2, Vec2};
 

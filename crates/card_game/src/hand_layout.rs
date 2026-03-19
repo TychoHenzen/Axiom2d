@@ -6,6 +6,7 @@ use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
 use crate::hand::Hand;
+use crate::viewport_camera::resolve_viewport_camera;
 use engine_core::scale_spring::ScaleSpring;
 
 pub const FAN_ARC_DEGREES: f32 = 45.0;
@@ -73,18 +74,9 @@ pub fn hand_layout_system(
         return;
     }
 
-    let (vw, vh) = renderer.viewport_size();
-    if vw == 0 || vh == 0 {
+    let Some((vw, vh, camera)) = resolve_viewport_camera(&renderer, &camera_query) else {
         return;
-    }
-    let vw = vw as f32;
-    let vh = vh as f32;
-
-    let camera = camera_query
-        .iter()
-        .next()
-        .copied()
-        .unwrap_or(Camera2D::default());
+    };
 
     let n = hand.len();
     let Seconds(dt_secs) = dt.0;

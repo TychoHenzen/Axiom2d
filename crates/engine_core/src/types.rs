@@ -53,9 +53,6 @@ impl Mul<f32> for Seconds {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TextureId(pub u32);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct EntityId(pub u64);
-
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used)]

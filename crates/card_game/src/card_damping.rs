@@ -36,17 +36,14 @@ pub fn card_damping_system(
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::collections::HashMap;
     use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::*;
-    use engine_core::prelude::{Seconds, TextureId};
-    use engine_physics::prelude::{
-        Collider, CollisionEvent, PhysicsBackend, PhysicsRes, RigidBody,
-    };
-    use glam::Vec2;
+    use engine_core::prelude::TextureId;
+    use engine_physics::prelude::PhysicsRes;
 
     use super::*;
+    use crate::test_helpers::{DampingLog, SpyPhysicsBackend};
 
     #[test]
     fn when_zero_angular_velocity_then_base_drag_returned() {
@@ -140,63 +137,6 @@ mod tests {
         }
     }
 
-    type DampingLog = Arc<Mutex<Vec<(Entity, f32, f32)>>>;
-
-    struct SpyPhysicsBackend {
-        angular_velocities: HashMap<Entity, f32>,
-        damping_log: DampingLog,
-    }
-
-    impl SpyPhysicsBackend {
-        fn new(damping_log: DampingLog) -> Self {
-            Self {
-                angular_velocities: HashMap::new(),
-                damping_log,
-            }
-        }
-
-        fn with_angular_velocity(mut self, entity: Entity, omega: f32) -> Self {
-            self.angular_velocities.insert(entity, omega);
-            self
-        }
-    }
-
-    impl PhysicsBackend for SpyPhysicsBackend {
-        fn step(&mut self, _dt: Seconds) {}
-        fn add_body(&mut self, _: Entity, _: &RigidBody, _: Vec2) -> bool {
-            false
-        }
-        fn add_collider(&mut self, _: Entity, _: &Collider) -> bool {
-            false
-        }
-        fn remove_body(&mut self, _: Entity) {}
-        fn body_position(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn body_rotation(&self, _: Entity) -> Option<f32> {
-            None
-        }
-        fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
-            Vec::new()
-        }
-        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
-        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
-        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
-        fn body_angular_velocity(&self, entity: Entity) -> Option<f32> {
-            self.angular_velocities.get(&entity).copied()
-        }
-        fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32) {
-            self.damping_log
-                .lock()
-                .unwrap()
-                .push((entity, linear, angular));
-        }
-        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
-    }
-
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
         schedule.add_systems(card_damping_system);
@@ -208,9 +148,9 @@ mod tests {
         // Arrange
         let damping_log: DampingLog = Arc::new(Mutex::new(Vec::new()));
         let mut world = World::new();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new(
-            damping_log.clone(),
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_damping_log(damping_log.clone()),
+        )));
         world.spawn_empty(); // entity with no Card component
 
         // Act
@@ -228,7 +168,9 @@ mod tests {
         let entity = world
             .spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table))
             .id();
-        let spy = SpyPhysicsBackend::new(damping_log.clone()).with_angular_velocity(entity, 0.0);
+        let spy = SpyPhysicsBackend::new()
+            .with_damping_log(damping_log.clone())
+            .with_angular_velocity(entity, 0.0);
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
 
         // Act
@@ -250,7 +192,9 @@ mod tests {
         let entity = world
             .spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table))
             .id();
-        let spy = SpyPhysicsBackend::new(damping_log.clone()).with_angular_velocity(entity, 20.0);
+        let spy = SpyPhysicsBackend::new()
+            .with_damping_log(damping_log.clone())
+            .with_angular_velocity(entity, 20.0);
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
 
         // Act
@@ -276,9 +220,9 @@ mod tests {
         let mut world = World::new();
         world.spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table));
         // Spy has no angular velocity entry → body_angular_velocity returns None
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new(
-            damping_log.clone(),
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_damping_log(damping_log.clone()),
+        )));
 
         // Act
         run_system(&mut world);
@@ -301,7 +245,8 @@ mod tests {
         let e3 = world
             .spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table))
             .id();
-        let spy = SpyPhysicsBackend::new(damping_log.clone())
+        let spy = SpyPhysicsBackend::new()
+            .with_damping_log(damping_log.clone())
             .with_angular_velocity(e1, 0.0)
             .with_angular_velocity(e2, 5.0)
             .with_angular_velocity(e3, 20.0);
@@ -331,8 +276,9 @@ mod tests {
             Card::face_down(TextureId(0), TextureId(0)),
             CardZone::Hand(0),
         ));
-        let spy =
-            SpyPhysicsBackend::new(damping_log.clone()).with_angular_velocity(table_entity, 0.0);
+        let spy = SpyPhysicsBackend::new()
+            .with_damping_log(damping_log.clone())
+            .with_angular_velocity(table_entity, 0.0);
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
 
         // Act

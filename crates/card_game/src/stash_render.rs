@@ -11,6 +11,7 @@ use glam::Vec2;
 use crate::stash_grid::StashGrid;
 use crate::stash_icon::StashIcon;
 use crate::stash_toggle::StashVisible;
+use crate::viewport_camera::resolve_viewport_camera;
 
 pub const SLOT_WIDTH: f32 = 50.0;
 pub const SLOT_HEIGHT: f32 = 75.0;
@@ -39,6 +40,18 @@ pub(crate) fn rect_vertices(x: f32, y: f32, w: f32, h: f32) -> [[f32; 2]; 4] {
 
 pub(crate) const RECT_INDICES: [u32; 6] = [0, 1, 2, 0, 2, 3];
 
+pub(crate) const UNIT_QUAD_VERTS: [[f32; 2]; 4] = [
+    [-SHADER_HALF_W, -SHADER_HALF_H],
+    [SHADER_HALF_W, -SHADER_HALF_H],
+    [SHADER_HALF_W, SHADER_HALF_H],
+    [-SHADER_HALF_W, SHADER_HALF_H],
+];
+
+pub(crate) fn reset_default_shader(renderer: &mut dyn engine_render::prelude::Renderer) {
+    renderer.set_shader(ShaderHandle(0));
+    renderer.set_blend_mode(BlendMode::Alpha);
+}
+
 pub(crate) fn scale_translate_model(sx: f32, sy: f32, tx: f32, ty: f32) -> [[f32; 4]; 4] {
     [
         [sx, 0.0, 0.0, 0.0],
@@ -64,22 +77,12 @@ pub fn stash_render_system(
         return;
     }
 
-    let (vw, vh) = renderer.viewport_size();
-    if vw == 0 || vh == 0 {
+    let Some((vw, vh, camera)) = resolve_viewport_camera(&renderer, &camera_query) else {
         return;
-    }
-    let vw = vw as f32;
-    let vh = vh as f32;
+    };
 
     // Reset shader and blend mode — shape_render_system may have left a custom shader active
-    renderer.set_shader(ShaderHandle(0));
-    renderer.set_blend_mode(BlendMode::Alpha);
-
-    let camera = camera_query
-        .iter()
-        .next()
-        .copied()
-        .unwrap_or(Camera2D::default());
+    reset_default_shader(&mut **renderer);
     let world_slot_w = SLOT_WIDTH / camera.zoom;
     let world_slot_h = SLOT_HEIGHT / camera.zoom;
 
@@ -101,12 +104,7 @@ pub fn stash_render_system(
 
     // Local verts match the shader's expected coordinate space (card art half-extents).
     // The model matrix scales from this fixed space to the actual world-space slot size.
-    let local_slot_verts = rect_vertices(
-        -SHADER_HALF_W,
-        -SHADER_HALF_H,
-        SHADER_HALF_W * 2.0,
-        SHADER_HALF_H * 2.0,
-    );
+    let local_slot_verts = UNIT_QUAD_VERTS;
 
     let icon_colors: HashMap<Entity, Color> = stash_icons
         .iter()

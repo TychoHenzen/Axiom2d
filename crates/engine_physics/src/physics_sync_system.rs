@@ -21,88 +21,14 @@ pub fn physics_sync_system(
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::collections::HashMap;
-
     use bevy_ecs::prelude::{Schedule, World};
     use glam::Vec2;
 
-    use crate::collider::Collider;
-    use crate::collision_event::CollisionEvent;
-    use crate::physics_backend::{NullPhysicsBackend, PhysicsBackend};
+    use crate::physics_backend::NullPhysicsBackend;
     use crate::physics_res::PhysicsRes;
-    use engine_core::prelude::Seconds;
+    use crate::test_helpers::SpyPhysicsBackend;
 
     use super::*;
-
-    struct SpyPhysicsBackend {
-        positions: HashMap<Entity, Vec2>,
-        rotations: HashMap<Entity, f32>,
-    }
-
-    impl SpyPhysicsBackend {
-        fn with_position(entity: Entity, pos: Vec2) -> Self {
-            Self {
-                positions: HashMap::from([(entity, pos)]),
-                rotations: HashMap::new(),
-            }
-        }
-
-        fn with_rotation(entity: Entity, rot: f32) -> Self {
-            Self {
-                positions: HashMap::new(),
-                rotations: HashMap::from([(entity, rot)]),
-            }
-        }
-
-        fn with_both(entity: Entity, pos: Vec2, rot: f32) -> Self {
-            Self {
-                positions: HashMap::from([(entity, pos)]),
-                rotations: HashMap::from([(entity, rot)]),
-            }
-        }
-
-        fn empty() -> Self {
-            Self {
-                positions: HashMap::new(),
-                rotations: HashMap::new(),
-            }
-        }
-    }
-
-    impl PhysicsBackend for SpyPhysicsBackend {
-        fn step(&mut self, _dt: Seconds) {}
-        fn add_body(&mut self, _entity: Entity, _body_type: &RigidBody, _position: Vec2) -> bool {
-            false
-        }
-        fn add_collider(&mut self, _entity: Entity, _collider: &Collider) -> bool {
-            false
-        }
-        fn remove_body(&mut self, _entity: Entity) {}
-        fn body_position(&self, entity: Entity) -> Option<Vec2> {
-            self.positions.get(&entity).copied()
-        }
-        fn body_rotation(&self, entity: Entity) -> Option<f32> {
-            self.rotations.get(&entity).copied()
-        }
-        fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
-            Vec::new()
-        }
-
-        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
-        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
-
-        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
-
-        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
-            None
-        }
-
-        fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
-        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
-    }
 
     fn run_sync(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -114,7 +40,7 @@ mod tests {
     fn when_no_entities_have_rigid_body_then_system_runs_without_panic() {
         // Arrange
         let mut world = World::new();
-        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::new())));
+        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
 
         // Act + Assert
         run_sync(&mut world);
@@ -128,10 +54,9 @@ mod tests {
         let entity = world
             .spawn((RigidBody::Dynamic, Transform2D::default()))
             .id();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::with_position(
-            entity,
-            Vec2::new(10.0, 20.0),
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_position(entity, Vec2::new(10.0, 20.0)),
+        )));
 
         // Act
         run_sync(&mut world);
@@ -149,10 +74,9 @@ mod tests {
         let entity = world
             .spawn((RigidBody::Dynamic, Transform2D::default()))
             .id();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::with_rotation(
-            entity,
-            std::f32::consts::FRAC_PI_4,
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_rotation(entity, std::f32::consts::FRAC_PI_4),
+        )));
 
         // Act
         run_sync(&mut world);
@@ -170,11 +94,13 @@ mod tests {
         let entity = world
             .spawn((RigidBody::Dynamic, Transform2D::default()))
             .id();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::with_both(
-            entity,
-            Vec2::new(5.0, -3.0),
-            std::f32::consts::FRAC_PI_2,
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_body(
+                entity,
+                Vec2::new(5.0, -3.0),
+                std::f32::consts::FRAC_PI_2,
+            ),
+        )));
 
         // Act
         run_sync(&mut world);
@@ -199,7 +125,7 @@ mod tests {
                 },
             ))
             .id();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::empty())));
+        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
 
         // Act
         run_sync(&mut world);
@@ -224,10 +150,9 @@ mod tests {
                 },
             ))
             .id();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::with_position(
-            entity,
-            Vec2::new(1.0, 2.0),
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_position(entity, Vec2::new(1.0, 2.0)),
+        )));
 
         // Act
         run_sync(&mut world);
@@ -251,9 +176,9 @@ mod tests {
                 },
             ))
             .id();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::with_rotation(
-            entity, 0.5,
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_rotation(entity, 0.5),
+        )));
 
         // Act
         run_sync(&mut world);
@@ -277,11 +202,9 @@ mod tests {
                 },
             ))
             .id();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::with_both(
-            entity,
-            Vec2::new(1.0, 1.0),
-            1.0,
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_body(entity, Vec2::new(1.0, 1.0), 1.0),
+        )));
 
         // Act
         run_sync(&mut world);
@@ -301,13 +224,11 @@ mod tests {
         let entity_b = world
             .spawn((RigidBody::Dynamic, Transform2D::default()))
             .id();
-        let mut positions = HashMap::new();
-        positions.insert(entity_a, Vec2::new(1.0, 0.0));
-        positions.insert(entity_b, Vec2::new(0.0, 2.0));
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend {
-            positions,
-            rotations: HashMap::new(),
-        })));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new()
+                .with_position(entity_a, Vec2::new(1.0, 0.0))
+                .with_position(entity_b, Vec2::new(0.0, 2.0)),
+        )));
 
         // Act
         run_sync(&mut world);
@@ -333,10 +254,9 @@ mod tests {
                 ..Transform2D::default()
             })
             .id();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::with_position(
-            physics_entity,
-            Vec2::new(1.0, 1.0),
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_position(physics_entity, Vec2::new(1.0, 1.0)),
+        )));
 
         // Act
         run_sync(&mut world);
@@ -353,10 +273,9 @@ mod tests {
         let entity = world
             .spawn((RigidBody::Static, Transform2D::default()))
             .id();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::with_position(
-            entity,
-            Vec2::new(3.0, 4.0),
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_position(entity, Vec2::new(3.0, 4.0)),
+        )));
 
         // Act
         run_sync(&mut world);
@@ -373,10 +292,9 @@ mod tests {
         let entity = world
             .spawn((RigidBody::Kinematic, Transform2D::default()))
             .id();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::with_position(
-            entity,
-            Vec2::new(6.0, 7.0),
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_position(entity, Vec2::new(6.0, 7.0)),
+        )));
 
         // Act
         run_sync(&mut world);

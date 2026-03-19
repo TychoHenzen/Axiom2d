@@ -16,9 +16,9 @@ pub fn play_sound_system(
     mixer: Option<Res<MixerState>>,
     mut audio: ResMut<AudioRes>,
 ) {
-    let commands: Vec<_> = buffer.drain().collect();
-
     let Some(library) = library else {
+        // Drain buffer even when no library to avoid unbounded growth.
+        buffer.drain().for_each(drop);
         return;
     };
 
@@ -28,7 +28,7 @@ pub fn play_sound_system(
         }
     }
 
-    for cmd in commands {
+    for cmd in buffer.drain() {
         if let Some(effect) = library.get(&cmd.name) {
             let sound = effect.synthesize(DEFAULT_SAMPLE_RATE, DEFAULT_DURATION);
             let sound = if let Some(gains) = cmd.spatial_gains {
@@ -115,10 +115,6 @@ mod tests {
     }
 
     impl AudioBackend for SpyAudioBackend {
-        fn play(&mut self, sound: &SoundData) -> PlaybackId {
-            self.play_on_track(sound, MixerTrack::Sfx)
-        }
-
         fn play_on_track(&mut self, _sound: &SoundData, track: MixerTrack) -> PlaybackId {
             self.next_id += 1;
             *self.play_count.lock().unwrap() += 1;

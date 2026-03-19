@@ -30,10 +30,6 @@ impl Default for FakeClock {
 }
 
 impl FakeClock {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn advance(&mut self, dt: Seconds) {
         self.pending = self.pending + dt;
     }
@@ -56,12 +52,6 @@ impl Default for SystemClock {
         Self {
             last_instant: std::time::Instant::now(),
         }
-    }
-}
-
-impl SystemClock {
-    pub fn new() -> Self {
-        Self::default()
     }
 }
 
@@ -138,7 +128,7 @@ mod tests {
     #[test]
     fn when_fake_clock_constructed_then_delta_is_zero() {
         // Act
-        let mut clock = FakeClock::new();
+        let mut clock = FakeClock::default();
 
         // Assert
         assert_eq!(clock.delta(), Seconds(0.0));
@@ -148,7 +138,7 @@ mod tests {
     #[test]
     fn when_fake_clock_advanced_then_delta_returns_advancement() {
         // Arrange
-        let mut clock = FakeClock::new();
+        let mut clock = FakeClock::default();
 
         // Act
         clock.advance(Seconds(0.016));
@@ -160,7 +150,7 @@ mod tests {
     #[test]
     fn when_fake_clock_delta_called_twice_then_second_call_returns_zero() {
         // Arrange
-        let mut clock = FakeClock::new();
+        let mut clock = FakeClock::default();
         clock.advance(Seconds(0.016));
         clock.delta();
 
@@ -174,7 +164,7 @@ mod tests {
     #[test]
     fn when_fake_clock_advanced_multiple_times_then_delta_accumulates() {
         // Arrange
-        let mut clock = FakeClock::new();
+        let mut clock = FakeClock::default();
 
         // Act
         clock.advance(Seconds(0.1));
@@ -189,7 +179,7 @@ mod tests {
     #[test]
     fn when_fake_clock_behind_dyn_time_then_delta_is_correct() {
         // Arrange
-        let mut clock = FakeClock::new();
+        let mut clock = FakeClock::default();
         clock.advance(Seconds(0.5));
         let dyn_clock: &mut dyn Time = &mut clock;
 
@@ -203,7 +193,7 @@ mod tests {
     #[test]
     fn when_clock_res_derefmut_then_reaches_inner_delta() {
         // Arrange
-        let mut fake = FakeClock::new();
+        let mut fake = FakeClock::default();
         fake.advance(Seconds(0.25));
         let mut clock_res = ClockRes::new(Box::new(fake));
 
@@ -274,7 +264,7 @@ mod tests {
     fn when_time_system_runs_then_delta_time_updated_from_clock() {
         // Arrange
         let mut world = bevy_ecs::world::World::new();
-        let mut fake = FakeClock::new();
+        let mut fake = FakeClock::default();
         fake.advance(Seconds(0.016));
         world.insert_resource(ClockRes::new(Box::new(fake)));
         world.insert_resource(DeltaTime::default());
@@ -320,7 +310,7 @@ mod tests {
     fn when_time_system_runs_twice_without_advance_then_second_delta_is_zero() {
         // Arrange
         let mut world = bevy_ecs::world::World::new();
-        let mut fake = FakeClock::new();
+        let mut fake = FakeClock::default();
         fake.advance(Seconds(0.016));
         world.insert_resource(ClockRes::new(Box::new(fake)));
         world.insert_resource(DeltaTime::default());

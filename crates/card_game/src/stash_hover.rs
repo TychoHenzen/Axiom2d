@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::{Entity, Query, Res, ResMut, Resource};
 use engine_input::prelude::{InputState, KeyCode, MouseState};
-use engine_render::prelude::{BlendMode, Camera2D, RendererRes, ShaderHandle, screen_to_world};
+use engine_render::prelude::{Camera2D, RendererRes, ShaderHandle, screen_to_world};
 use glam::Vec2;
 
 use crate::card_art_shader::CardArtShader;
@@ -9,10 +9,11 @@ use crate::drag_state::DragState;
 use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH};
 use crate::stash_grid::{StashGrid, find_stash_slot_at};
 use crate::stash_render::{
-    GRID_MARGIN, RECT_INDICES, SHADER_HALF_H, SHADER_HALF_W, SLOT_STRIDE_H, rect_vertices,
-    scale_translate_model,
+    GRID_MARGIN, RECT_INDICES, SHADER_HALF_H, SHADER_HALF_W, SLOT_STRIDE_H, UNIT_QUAD_VERTS,
+    rect_vertices, reset_default_shader, scale_translate_model,
 };
 use crate::stash_toggle::StashVisible;
+use crate::viewport_camera::resolve_viewport_camera;
 
 #[derive(Resource, Debug, Default)]
 pub struct StashHoverPreview {
@@ -52,14 +53,9 @@ pub fn stash_hover_preview_render_system(
         return;
     }
 
-    let (vw, vh) = renderer.viewport_size();
-    if vw == 0 || vh == 0 {
+    let Some((vw, vh, camera)) = resolve_viewport_camera(&renderer, &camera_query) else {
         return;
-    }
-    let vw = vw as f32;
-    let vh = vh as f32;
-
-    let camera = camera_query.iter().next().copied().unwrap_or_default();
+    };
 
     let grid_screen_h = f32::from(grid.height()) * SLOT_STRIDE_H;
     let preview_screen_h = grid_screen_h;
@@ -71,17 +67,11 @@ pub fn stash_hover_preview_render_system(
     );
     let preview_center = screen_to_world(preview_center_screen, &camera, vw, vh);
 
-    renderer.set_shader(ShaderHandle(0));
-    renderer.set_blend_mode(BlendMode::Alpha);
+    reset_default_shader(&mut **renderer);
 
     let art = art_shader.map(|s| s.0);
 
-    let local_verts = rect_vertices(
-        -SHADER_HALF_W,
-        -SHADER_HALF_H,
-        SHADER_HALF_W * 2.0,
-        SHADER_HALF_H * 2.0,
-    );
+    let local_verts = UNIT_QUAD_VERTS;
 
     for region in &FRONT_FACE_REGIONS {
         let (half_w_card, half_h_card, offset_y_card) =

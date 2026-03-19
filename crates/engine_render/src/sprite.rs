@@ -6,7 +6,7 @@ use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
 use crate::camera::Camera2D;
-use crate::culling::{aabb_intersects_view_rect, camera_view_rect};
+use crate::culling::{aabb_intersects_view_rect, compute_view_rect};
 use crate::material::{Material2d, apply_material};
 use crate::rect::Rect;
 use crate::renderer::RendererRes;
@@ -27,16 +27,6 @@ fn is_sprite_culled(sprite: &Sprite, pos: Vec2, view_rect: Option<(Vec2, Vec2)>)
     let entity_min = Vec2::new(pos.x, pos.y);
     let entity_max = Vec2::new(pos.x + sprite.width.0, pos.y + sprite.height.0);
     !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max)
-}
-
-fn compute_view_rect(
-    camera_query: &Query<&Camera2D>,
-    renderer: &RendererRes,
-) -> Option<(Vec2, Vec2)> {
-    camera_query.iter().next().map(|cam| {
-        let (vw, vh) = renderer.viewport_size();
-        camera_view_rect(cam, vw as f32, vh as f32)
-    })
 }
 
 #[allow(clippy::type_complexity)]

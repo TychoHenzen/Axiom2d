@@ -94,10 +94,6 @@ impl Default for CpalBackend {
 }
 
 impl AudioBackend for CpalBackend {
-    fn play(&mut self, sound: &SoundData) -> PlaybackId {
-        self.play_on_track(sound, MixerTrack::Sfx)
-    }
-
     fn play_on_track(&mut self, sound: &SoundData, track: MixerTrack) -> PlaybackId {
         let mut state = self.state.lock().expect("audio state lock poisoned");
         state.next_id += 1;
@@ -157,8 +153,8 @@ mod tests {
         let sound = minimal_sound();
 
         // Act
-        let id1 = backend.play(&sound);
-        let id2 = backend.play(&sound);
+        let id1 = backend.play_on_track(&sound, MixerTrack::Sfx);
+        let id2 = backend.play_on_track(&sound, MixerTrack::Sfx);
 
         // Assert
         assert_ne!(id1, id2);
@@ -180,7 +176,7 @@ mod tests {
         let sound = sound_with_samples(vec![0.5, 0.5]);
 
         // Act
-        let _id = backend.play(&sound);
+        let _id = backend.play_on_track(&sound, MixerTrack::Sfx);
 
         // Assert
         assert_eq!(backend.active_sound_count(), 1);
@@ -190,7 +186,7 @@ mod tests {
     fn when_stop_called_then_sound_removed_from_active_list() {
         // Arrange
         let mut backend = CpalBackend::new();
-        let id = backend.play(&sound_with_samples(vec![0.5]));
+        let id = backend.play_on_track(&sound_with_samples(vec![0.5]), MixerTrack::Sfx);
 
         // Act
         backend.stop(id);
@@ -203,8 +199,8 @@ mod tests {
     fn when_two_sounds_and_stop_one_then_other_remains() {
         // Arrange
         let mut backend = CpalBackend::new();
-        let id1 = backend.play(&sound_with_samples(vec![0.5]));
-        let _id2 = backend.play(&sound_with_samples(vec![0.3]));
+        let id1 = backend.play_on_track(&sound_with_samples(vec![0.5]), MixerTrack::Sfx);
+        let _id2 = backend.play_on_track(&sound_with_samples(vec![0.3]), MixerTrack::Sfx);
 
         // Act
         backend.stop(id1);

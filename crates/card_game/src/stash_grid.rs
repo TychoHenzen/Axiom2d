@@ -86,6 +86,14 @@ impl StashGrid {
     }
 }
 
+pub(crate) fn cursor_over_stash(
+    mouse: &engine_input::prelude::MouseState,
+    visible: &crate::stash_toggle::StashVisible,
+    grid: &StashGrid,
+) -> bool {
+    visible.0 && find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height()).is_some()
+}
+
 pub(crate) fn find_stash_slot_at(
     screen_pos: Vec2,
     grid_width: u8,

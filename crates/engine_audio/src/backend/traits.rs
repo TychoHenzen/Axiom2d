@@ -3,7 +3,6 @@ use crate::playback::PlaybackId;
 use crate::sound::SoundData;
 
 pub trait AudioBackend: Send + Sync {
-    fn play(&mut self, sound: &SoundData) -> PlaybackId;
     fn play_on_track(&mut self, sound: &SoundData, track: MixerTrack) -> PlaybackId;
     fn stop(&mut self, id: PlaybackId);
     fn set_volume(&mut self, volume: f32);
@@ -33,13 +32,9 @@ impl Default for NullAudioBackend {
 }
 
 impl AudioBackend for NullAudioBackend {
-    fn play(&mut self, _sound: &SoundData) -> PlaybackId {
+    fn play_on_track(&mut self, _sound: &SoundData, _track: MixerTrack) -> PlaybackId {
         self.next_id += 1;
         PlaybackId(self.next_id)
-    }
-
-    fn play_on_track(&mut self, sound: &SoundData, _track: MixerTrack) -> PlaybackId {
-        self.play(sound)
     }
 
     fn stop(&mut self, _id: PlaybackId) {}
@@ -56,27 +51,27 @@ mod tests {
     use crate::test_helpers::minimal_sound;
 
     #[test]
-    fn when_play_called_then_play_count_increments() {
+    fn when_play_on_track_with_sfx_then_play_count_increments() {
         // Arrange
         let mut backend = NullAudioBackend::new();
         let sound = minimal_sound();
 
         // Act
-        backend.play(&sound);
+        backend.play_on_track(&sound, MixerTrack::Sfx);
 
         // Assert
         assert_eq!(backend.play_count(), 1);
     }
 
     #[test]
-    fn when_play_called_twice_then_ids_differ() {
+    fn when_play_on_track_called_twice_with_sfx_then_ids_differ() {
         // Arrange
         let mut backend = NullAudioBackend::new();
         let sound = minimal_sound();
 
         // Act
-        let id1 = backend.play(&sound);
-        let id2 = backend.play(&sound);
+        let id1 = backend.play_on_track(&sound, MixerTrack::Sfx);
+        let id2 = backend.play_on_track(&sound, MixerTrack::Sfx);
 
         // Assert
         assert_ne!(id1, id2);
@@ -132,9 +127,9 @@ mod tests {
         let sound = minimal_sound();
 
         // Act
-        backend.play(&sound);
-        backend.play(&sound);
-        backend.play(&sound);
+        backend.play_on_track(&sound, MixerTrack::Sfx);
+        backend.play_on_track(&sound, MixerTrack::Sfx);
+        backend.play_on_track(&sound, MixerTrack::Sfx);
 
         // Assert
         assert_eq!(backend.play_count(), 3);

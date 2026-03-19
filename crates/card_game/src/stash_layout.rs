@@ -6,6 +6,7 @@ use glam::Vec2;
 use crate::card_zone::CardZone;
 use crate::stash_grid::StashGrid;
 use crate::stash_render::{GRID_MARGIN, SLOT_HEIGHT, SLOT_STRIDE_H, SLOT_STRIDE_W, SLOT_WIDTH};
+use crate::viewport_camera::resolve_viewport_camera;
 
 pub fn stash_layout_system(
     grid: Res<StashGrid>,
@@ -13,18 +14,9 @@ pub fn stash_layout_system(
     renderer: Res<RendererRes>,
     mut card_query: Query<(&CardZone, &mut Transform2D)>,
 ) {
-    let (vw, vh) = renderer.viewport_size();
-    if vw == 0 || vh == 0 {
+    let Some((vw, vh, camera)) = resolve_viewport_camera(&renderer, &camera_query) else {
         return;
-    }
-    let vw = vw as f32;
-    let vh = vh as f32;
-
-    let camera = camera_query
-        .iter()
-        .next()
-        .copied()
-        .unwrap_or(Camera2D::default());
+    };
 
     let page = grid.current_page();
     for (zone, mut transform) in &mut card_query {

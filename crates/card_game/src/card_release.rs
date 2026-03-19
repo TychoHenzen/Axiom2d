@@ -7,7 +7,6 @@ use engine_scene::prelude::RenderLayer;
 use glam::Vec2;
 
 use crate::card::Card;
-use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card_item_form::CardItemForm;
 use crate::card_pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
 use crate::card_zone::CardZone;
@@ -15,6 +14,7 @@ use crate::drag_state::DragState;
 use crate::flip_animation::FlipAnimation;
 use crate::hand::Hand;
 use crate::hand_layout::HandSpring;
+use crate::physics_helpers::activate_physics_body;
 use crate::stash_grid::StashGrid;
 use crate::stash_grid::find_stash_slot_at;
 use crate::stash_toggle::StashVisible;
@@ -23,6 +23,48 @@ pub const HAND_DROP_ZONE_HEIGHT: f32 = 120.0;
 
 fn is_hand_drop_zone(screen_y: f32, viewport_height: f32) -> bool {
     screen_y >= viewport_height - HAND_DROP_ZONE_HEIGHT
+}
+
+enum DropTarget {
+    Stash { page: u8, col: u8, row: u8 },
+    Hand,
+    Table,
+}
+
+fn resolve_drop_target(
+    screen_pos: Vec2,
+    viewport_height: f32,
+    stash_visible: bool,
+    grid: &StashGrid,
+    origin_zone: &CardZone,
+) -> DropTarget {
+    if stash_visible {
+        if let Some((col, row)) = find_stash_slot_at(screen_pos, grid.width(), grid.height()) {
+            let page = grid.current_page();
+            if grid.get(page, col, row).is_none() {
+                return DropTarget::Stash { page, col, row };
+            }
+            if let CardZone::Stash {
+                page: op,
+                col: oc,
+                row: orow,
+            } = *origin_zone
+            {
+                return DropTarget::Stash {
+                    page: op,
+                    col: oc,
+                    row: orow,
+                };
+            }
+            return DropTarget::Table;
+        }
+    }
+
+    if viewport_height > 0.0 && is_hand_drop_zone(screen_pos.y, viewport_height) {
+        DropTarget::Hand
+    } else {
+        DropTarget::Table
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -49,15 +91,14 @@ pub fn card_release_system(
     let (_, vh) = renderer.viewport_size();
     let vh = vh as f32;
 
-    if stash_visible.0
-        && let Some((col, row)) = find_stash_slot_at(screen_pos, grid.width(), grid.height())
-    {
-        let page = grid.current_page();
-        let current_pos = transform_query
-            .get(info.entity)
-            .ok()
-            .map(|(t, _)| t.position);
-        if grid.get(page, col, row).is_none() {
+    let target = resolve_drop_target(screen_pos, vh, stash_visible.0, &grid, &info.origin_zone);
+
+    match target {
+        DropTarget::Stash { page, col, row } => {
+            let current_pos = transform_query
+                .get(info.entity)
+                .ok()
+                .map(|(t, _)| t.position);
             drop_on_stash(
                 info.entity,
                 page,
@@ -68,34 +109,14 @@ pub fn card_release_system(
                 &mut physics,
                 &mut commands,
             );
-        } else if let CardZone::Stash {
-            page: op,
-            col: oc,
-            row: orow,
-        } = info.origin_zone
-        {
-            drop_on_stash(
-                info.entity,
-                op,
-                oc,
-                orow,
-                current_pos,
-                &mut grid,
-                &mut physics,
-                &mut commands,
-            );
-        } else {
+        }
+        DropTarget::Hand => {
+            let face_up = card_query.get(info.entity).is_ok_and(|c| c.face_up);
+            drop_on_hand(info.entity, face_up, &mut hand, &mut physics, &mut commands);
+        }
+        DropTarget::Table => {
             drop_on_table(info.entity, &mut physics, &mut commands, &transform_query);
         }
-        drag_state.dragging = None;
-        return;
-    }
-
-    if vh > 0.0 && is_hand_drop_zone(screen_pos.y, vh) {
-        let face_up = card_query.get(info.entity).is_ok_and(|c| c.face_up);
-        drop_on_hand(info.entity, face_up, &mut hand, &mut physics, &mut commands);
-    } else {
-        drop_on_table(info.entity, &mut physics, &mut commands, &transform_query);
     }
 
     drag_state.dragging = None;
@@ -109,17 +130,19 @@ fn drop_on_hand(
     commands: &mut Commands,
 ) {
     physics.remove_body(entity);
-    commands.entity(entity).remove::<RigidBody>();
-    if let Ok(index) = hand.add(entity) {
-        commands.entity(entity).insert(CardZone::Hand(index));
+    let zone = if let Ok(index) = hand.add(entity) {
+        CardZone::Hand(index)
     } else {
-        commands.entity(entity).insert(CardZone::Table);
-    }
-    commands.entity(entity).insert(RenderLayer::UI);
-    commands.entity(entity).remove::<CardItemForm>();
-    commands.entity(entity).insert(HandSpring::new());
+        CardZone::Table
+    };
+    let mut ec = commands.entity(entity);
+    ec.remove::<RigidBody>()
+        .insert(zone)
+        .insert(RenderLayer::UI)
+        .remove::<CardItemForm>()
+        .insert(HandSpring::new());
     if !face_up {
-        commands.entity(entity).insert(FlipAnimation::start(true));
+        ec.insert(FlipAnimation::start(true));
     }
 }
 
@@ -134,16 +157,15 @@ fn drop_on_stash(
     commands: &mut Commands,
 ) {
     physics.remove_body(entity);
-    commands.entity(entity).remove::<RigidBody>();
     grid.place(page, col, row, entity)
         .expect("slot should be empty: guarded by is_none check above");
-    commands
-        .entity(entity)
-        .insert(CardZone::Stash { page, col, row });
-    commands.entity(entity).insert(RenderLayer::UI);
-    commands.entity(entity).insert(CardItemForm);
+    let mut ec = commands.entity(entity);
+    ec.remove::<RigidBody>()
+        .insert(CardZone::Stash { page, col, row })
+        .insert(RenderLayer::UI)
+        .insert(CardItemForm);
     if let Some(pos) = current_pos {
-        commands.entity(entity).insert(Transform2D {
+        ec.insert(Transform2D {
             position: pos,
             rotation: 0.0,
             scale: Vec2::ONE,
@@ -158,16 +180,21 @@ fn drop_on_table(
     transform_query: &Query<(&Transform2D, &Collider)>,
 ) {
     if let Ok((transform, collider)) = transform_query.get(entity) {
-        let position = transform.position;
-        physics.add_body(entity, &RigidBody::Dynamic, position);
-        physics.add_collider(entity, collider);
-        physics.set_damping(entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
-        physics.set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER);
+        activate_physics_body(
+            entity,
+            transform.position,
+            collider,
+            physics,
+            CARD_COLLISION_GROUP,
+            CARD_COLLISION_FILTER,
+        );
     }
-    commands.entity(entity).insert(RigidBody::Dynamic);
-    commands.entity(entity).insert(CardZone::Table);
-    commands.entity(entity).insert(RenderLayer::World);
-    commands.entity(entity).remove::<CardItemForm>();
+    commands
+        .entity(entity)
+        .insert(RigidBody::Dynamic)
+        .insert(CardZone::Table)
+        .insert(RenderLayer::World)
+        .remove::<CardItemForm>();
 }
 
 #[cfg(test)]
@@ -176,11 +203,9 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::*;
-    use engine_core::prelude::{Seconds, TextureId, Transform2D};
+    use engine_core::prelude::{TextureId, Transform2D};
     use engine_input::prelude::{MouseButton, MouseState};
-    use engine_physics::prelude::{
-        Collider, CollisionEvent, PhysicsBackend, PhysicsRes, RigidBody,
-    };
+    use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
     use engine_render::prelude::RendererRes;
     use engine_render::testing::SpyRenderer;
     use engine_scene::prelude::RenderLayer;
@@ -193,62 +218,12 @@ mod tests {
     use crate::flip_animation::FlipAnimation;
     use crate::hand::Hand;
     use crate::hand_layout::HandSpring;
+    use crate::test_helpers::{AddBodyLog, RemoveBodyLog, SpyPhysicsBackend};
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
         schedule.add_systems(card_release_system);
         schedule.run(world);
-    }
-
-    type RemoveBodyLog = Arc<Mutex<Vec<Entity>>>;
-    type AddBodyLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
-
-    struct SpyPhysicsBackend {
-        remove_log: RemoveBodyLog,
-        add_log: AddBodyLog,
-    }
-
-    impl SpyPhysicsBackend {
-        fn new(remove_log: RemoveBodyLog, add_log: AddBodyLog) -> Self {
-            Self {
-                remove_log,
-                add_log,
-            }
-        }
-    }
-
-    impl PhysicsBackend for SpyPhysicsBackend {
-        fn step(&mut self, _dt: Seconds) {}
-        fn add_body(&mut self, entity: Entity, _body_type: &RigidBody, position: Vec2) -> bool {
-            self.add_log.lock().unwrap().push((entity, position));
-            true
-        }
-        fn add_collider(&mut self, _: Entity, _: &Collider) -> bool {
-            true
-        }
-        fn remove_body(&mut self, entity: Entity) {
-            self.remove_log.lock().unwrap().push(entity);
-        }
-        fn body_position(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn body_rotation(&self, _: Entity) -> Option<f32> {
-            None
-        }
-        fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
-            Vec::new()
-        }
-        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
-        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
-        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
-        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
-            None
-        }
-        fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
-        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
     }
 
     fn make_release_world(
@@ -260,10 +235,11 @@ mod tests {
         let remove_log: RemoveBodyLog = Arc::new(Mutex::new(Vec::new()));
         let add_log: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
         let mut world = World::new();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new(
-            remove_log.clone(),
-            add_log.clone(),
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new()
+                .with_remove_body_log(remove_log.clone())
+                .with_add_body_log(add_log.clone()),
+        )));
         world.insert_resource(Hand::new(10));
 
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -343,7 +319,7 @@ mod tests {
         world.insert_resource(mouse);
         world.insert_resource(Hand::new(10));
         world.insert_resource(PhysicsRes::new(Box::new(
-            engine_physics::prelude::NullPhysicsBackend::new(),
+            engine_physics::prelude::NullPhysicsBackend::default(),
         )));
         let log = Arc::new(Mutex::new(Vec::new()));
         let spy = SpyRenderer::new(log).with_viewport(800, 600);

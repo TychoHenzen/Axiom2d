@@ -1,7 +1,17 @@
 use engine_core::prelude::Color;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum OffsetY {
+    /// Flush to the top edge of the card.
+    TopFlush,
+    /// Flush to the bottom edge of the card.
+    BottomFlush,
+    /// Fractional offset relative to card center (e.g. -0.1 = 10% above center).
+    Fractional(f32),
+}
+
 pub(crate) struct FaceRegion {
-    pub offset_y_frac: f32,
+    pub offset_y: OffsetY,
     pub half_w_frac: f32,
     pub half_h_frac: f32,
     pub color: Color,
@@ -13,7 +23,7 @@ pub(crate) struct FaceRegion {
 pub(crate) const FRONT_FACE_REGIONS: [FaceRegion; 4] = [
     // Border (full card)
     FaceRegion {
-        offset_y_frac: 0.0,
+        offset_y: OffsetY::Fractional(0.0),
         half_w_frac: 0.5,
         half_h_frac: 0.5,
         color: Color::WHITE,
@@ -21,7 +31,7 @@ pub(crate) const FRONT_FACE_REGIONS: [FaceRegion; 4] = [
     },
     // Name strip
     FaceRegion {
-        offset_y_frac: -0.5,
+        offset_y: OffsetY::TopFlush,
         half_w_frac: 0.45,
         half_h_frac: 1.0 / 12.0,
         color: Color {
@@ -34,7 +44,7 @@ pub(crate) const FRONT_FACE_REGIONS: [FaceRegion; 4] = [
     },
     // Art area
     FaceRegion {
-        offset_y_frac: -0.1,
+        offset_y: OffsetY::Fractional(-0.1),
         half_w_frac: 0.45,
         half_h_frac: 0.25,
         color: Color {
@@ -47,7 +57,7 @@ pub(crate) const FRONT_FACE_REGIONS: [FaceRegion; 4] = [
     },
     // Description strip
     FaceRegion {
-        offset_y_frac: 0.5,
+        offset_y: OffsetY::BottomFlush,
         half_w_frac: 0.45,
         half_h_frac: 1.0 / 6.0,
         color: Color {
@@ -64,12 +74,10 @@ impl FaceRegion {
     pub fn resolve(&self, card_w: f32, card_h: f32) -> (f32, f32, f32) {
         let half_w = card_w * self.half_w_frac;
         let half_h = card_h * self.half_h_frac;
-        let offset_y = if (self.offset_y_frac + 0.5).abs() < 0.01 {
-            -(card_h * 0.5 - half_h)
-        } else if (self.offset_y_frac - 0.5).abs() < 0.01 {
-            card_h * 0.5 - half_h
-        } else {
-            card_h * self.offset_y_frac
+        let offset_y = match self.offset_y {
+            OffsetY::TopFlush => -(card_h * 0.5 - half_h),
+            OffsetY::BottomFlush => card_h * 0.5 - half_h,
+            OffsetY::Fractional(frac) => card_h * frac,
         };
         (half_w, half_h, offset_y)
     }

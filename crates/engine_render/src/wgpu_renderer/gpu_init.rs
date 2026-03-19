@@ -22,7 +22,6 @@ pub(super) struct GpuContext {
 pub(super) struct CameraResources {
     pub(super) uniform_buffer: wgpu::Buffer,
     pub(super) bind_group: wgpu::BindGroup,
-    pub(super) layout: wgpu::BindGroupLayout,
 }
 
 pub(super) struct ShapeResources {
@@ -130,7 +129,9 @@ fn camera_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     })
 }
 
-pub(super) fn create_camera_resources(device: &wgpu::Device) -> CameraResources {
+pub(super) fn create_camera_resources(
+    device: &wgpu::Device,
+) -> (CameraResources, wgpu::BindGroupLayout) {
     let layout = camera_bind_group_layout(device);
     let identity = glam::Mat4::IDENTITY.to_cols_array_2d();
     let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -146,11 +147,13 @@ pub(super) fn create_camera_resources(device: &wgpu::Device) -> CameraResources 
             resource: uniform_buffer.as_entire_binding(),
         }],
     });
-    CameraResources {
-        uniform_buffer,
-        bind_group,
+    (
+        CameraResources {
+            uniform_buffer,
+            bind_group,
+        },
         layout,
-    }
+    )
 }
 
 fn quad_vertex_layout() -> wgpu::VertexBufferLayout<'static> {
@@ -388,9 +391,9 @@ pub(super) struct RendererParts {
 pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -> RendererParts {
     let gpu = init_gpu(window, config);
     let tex_layout = create_texture_layout(&gpu.device);
-    let cam = create_camera_resources(&gpu.device);
+    let (cam, cam_layout) = create_camera_resources(&gpu.device);
     let shader = load_quad_shader(&gpu.device);
-    let pl = create_quad_pipeline_layout(&gpu.device, &tex_layout, &cam.layout);
+    let pl = create_quad_pipeline_layout(&gpu.device, &tex_layout, &cam_layout);
     let quad_pipelines = create_quad_pipeline_set(&gpu.device, &pl, &shader, gpu.format);
     let (quad_vertex_buffer, index_buffer) = create_static_buffers(&gpu.device);
     let tex_bg = create_texture_bind_group(
@@ -403,7 +406,7 @@ pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -
             data: &[255; 4],
         },
     );
-    let shape = create_shape_resources(&gpu.device, &cam.layout, gpu.format);
+    let shape = create_shape_resources(&gpu.device, &cam_layout, gpu.format);
     let fmt = gpu.format;
     RendererParts {
         gpu,

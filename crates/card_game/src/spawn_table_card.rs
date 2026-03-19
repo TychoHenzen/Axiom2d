@@ -400,7 +400,7 @@ mod tests {
     fn when_card_art_shader_registered_then_art_area_has_material2d() {
         // Arrange
         let mut world = World::new();
-        let mut registry = engine_render::prelude::ShaderRegistry::new();
+        let mut registry = engine_render::prelude::ShaderRegistry::default();
         let art_shader = crate::card_art_shader::register_card_art_shader(&mut registry);
         world.insert_resource(registry);
         world.insert_resource(art_shader);

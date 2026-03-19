@@ -6,6 +6,12 @@ pub mod theme;
 pub mod ui_event;
 pub mod widget;
 
+use engine_scene::prelude::EffectiveVisibility;
+
+pub(crate) fn is_hidden(visibility: Option<&EffectiveVisibility>) -> bool {
+    visibility.is_some_and(|v| !v.0)
+}
+
 #[cfg(test)]
 pub(crate) mod test_helpers {
     use std::sync::{Arc, Mutex};

@@ -18,7 +18,7 @@ mod tests {
     #[test]
     fn when_registering_card_art_shader_then_handle_is_retrievable() {
         // Arrange
-        let mut registry = ShaderRegistry::new();
+        let mut registry = ShaderRegistry::default();
 
         // Act
         let art_shader = register_card_art_shader(&mut registry);
@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn when_registering_card_art_shader_twice_then_handles_differ() {
         // Arrange
-        let mut registry = ShaderRegistry::new();
+        let mut registry = ShaderRegistry::default();
 
         // Act
         let first = register_card_art_shader(&mut registry);

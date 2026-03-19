@@ -45,11 +45,6 @@ pub struct NullPhysicsBackend {
 
 impl NullPhysicsBackend {
     #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    #[must_use]
     pub fn step_count(&self) -> u32 {
         self.step_count
     }
@@ -106,15 +101,13 @@ impl PhysicsBackend for NullPhysicsBackend {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
     use crate::test_helpers::spawn_entity;
 
     #[test]
     fn when_step_called_then_step_count_increments() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
 
         // Act
         backend.step(Seconds(0.016));
@@ -128,7 +121,7 @@ mod tests {
     #[test]
     fn when_add_body_then_returns_true_and_duplicate_returns_false() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
 
         // Act
@@ -143,7 +136,7 @@ mod tests {
     #[test]
     fn when_body_position_queried_for_unregistered_then_returns_none() {
         // Arrange
-        let backend = NullPhysicsBackend::new();
+        let backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
 
         // Act
@@ -158,7 +151,7 @@ mod tests {
     #[test]
     fn when_remove_body_then_entity_is_deregistered() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
 
@@ -173,7 +166,7 @@ mod tests {
     #[test]
     fn when_remove_body_for_unknown_entity_then_no_panic() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
 
         // Act
@@ -183,7 +176,7 @@ mod tests {
     #[test]
     fn when_null_backend_drain_collision_events_then_returns_empty() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
 
         // Act
         let events = backend.drain_collision_events();
@@ -195,7 +188,7 @@ mod tests {
     #[test]
     fn when_body_linear_velocity_on_null_backend_then_returns_none() {
         // Arrange
-        let backend = NullPhysicsBackend::new();
+        let backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
 
         // Act
@@ -208,7 +201,7 @@ mod tests {
     #[test]
     fn when_body_angular_velocity_on_null_backend_then_returns_none() {
         // Arrange
-        let backend = NullPhysicsBackend::new();
+        let backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
 
         // Act
@@ -221,7 +214,7 @@ mod tests {
     #[test]
     fn when_add_collider_without_body_then_returns_false() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
 
         // Act
@@ -234,7 +227,7 @@ mod tests {
     #[test]
     fn when_add_collider_then_returns_true() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
 
@@ -248,7 +241,7 @@ mod tests {
     #[test]
     fn when_add_force_at_point_on_registered_body_then_no_panic() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
 
@@ -259,7 +252,7 @@ mod tests {
     #[test]
     fn when_add_force_at_point_on_unknown_entity_then_no_panic() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
 
         // Act
@@ -269,7 +262,7 @@ mod tests {
     #[test]
     fn when_set_damping_on_registered_body_then_no_panic() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
 
@@ -280,7 +273,7 @@ mod tests {
     #[test]
     fn when_set_damping_on_unknown_entity_then_no_panic() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
 
         // Act
@@ -290,7 +283,7 @@ mod tests {
     #[test]
     fn when_set_collision_group_on_unknown_entity_then_no_panic() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
 
         // Act
@@ -300,7 +293,7 @@ mod tests {
     #[test]
     fn when_set_collision_group_on_registered_body_then_no_panic() {
         // Arrange
-        let mut backend = NullPhysicsBackend::new();
+        let mut backend = NullPhysicsBackend::default();
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
         backend.add_collider(entity, &Collider::Circle(1.0));
@@ -309,56 +302,7 @@ mod tests {
         backend.set_collision_group(entity, 1, 2);
     }
 
-    struct SpyPhysicsBackend {
-        positions: HashMap<Entity, Vec2>,
-        rotations: HashMap<Entity, f32>,
-    }
-
-    impl SpyPhysicsBackend {
-        fn new() -> Self {
-            Self {
-                positions: HashMap::new(),
-                rotations: HashMap::new(),
-            }
-        }
-
-        fn with_body(mut self, entity: Entity, position: Vec2, rotation: f32) -> Self {
-            self.positions.insert(entity, position);
-            self.rotations.insert(entity, rotation);
-            self
-        }
-    }
-
-    impl PhysicsBackend for SpyPhysicsBackend {
-        fn step(&mut self, _dt: Seconds) {}
-        fn add_body(&mut self, _: Entity, _: &RigidBody, _: Vec2) -> bool {
-            false
-        }
-        fn add_collider(&mut self, _: Entity, _: &Collider) -> bool {
-            false
-        }
-        fn remove_body(&mut self, _: Entity) {}
-        fn body_position(&self, entity: Entity) -> Option<Vec2> {
-            self.positions.get(&entity).copied()
-        }
-        fn body_rotation(&self, entity: Entity) -> Option<f32> {
-            self.rotations.get(&entity).copied()
-        }
-        fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
-            Vec::new()
-        }
-        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
-            Some(Vec2::ZERO)
-        }
-        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
-        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
-        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
-        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
-            None
-        }
-        fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
-        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
-    }
+    use crate::test_helpers::SpyPhysicsBackend;
 
     #[test]
     fn when_local_origin_then_returns_body_position() {

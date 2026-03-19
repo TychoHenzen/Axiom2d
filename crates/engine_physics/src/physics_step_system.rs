@@ -21,86 +21,20 @@ mod tests {
     use std::sync::Arc;
     use std::sync::atomic::{AtomicU32, Ordering};
 
-    use bevy_ecs::prelude::{Entity, Schedule, World};
+    use bevy_ecs::prelude::{Schedule, World};
     use engine_core::prelude::{DeltaTime, Seconds};
-    use glam::Vec2;
 
-    use crate::collider::Collider;
     use crate::collision_event::{CollisionEvent, CollisionKind};
-    use crate::physics_backend::PhysicsBackend;
     use crate::physics_res::PhysicsRes;
-    use crate::rigid_body::RigidBody;
-    use crate::test_helpers::spawn_entities;
+    use crate::test_helpers::{SpyPhysicsBackend, spawn_entities};
 
     use super::*;
 
-    struct SpyPhysicsBackend {
-        step_count: Arc<AtomicU32>,
-        events: Vec<CollisionEvent>,
-    }
-
-    impl SpyPhysicsBackend {
-        fn new(step_count: Arc<AtomicU32>) -> Self {
-            Self {
-                step_count,
-                events: Vec::new(),
-            }
-        }
-
-        fn with_events(mut self, events: Vec<CollisionEvent>) -> Self {
-            self.events = events;
-            self
-        }
-    }
-
-    impl PhysicsBackend for SpyPhysicsBackend {
-        fn step(&mut self, _dt: Seconds) {
-            self.step_count.fetch_add(1, Ordering::Relaxed);
-        }
-
-        fn add_body(&mut self, _: Entity, _: &RigidBody, _: Vec2) -> bool {
-            false
-        }
-
-        fn add_collider(&mut self, _: Entity, _: &Collider) -> bool {
-            false
-        }
-
-        fn remove_body(&mut self, _: Entity) {}
-
-        fn body_position(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-
-        fn body_rotation(&self, _: Entity) -> Option<f32> {
-            None
-        }
-
-        fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
-            std::mem::take(&mut self.events)
-        }
-
-        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
-        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
-
-        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
-
-        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
-            None
-        }
-
-        fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
-        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
-    }
-
     fn setup_world(step_count: Arc<AtomicU32>) -> World {
         let mut world = World::new();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new(
-            Arc::clone(&step_count),
-        ))));
+        world.insert_resource(PhysicsRes::new(Box::new(
+            SpyPhysicsBackend::new().with_step_count(Arc::clone(&step_count)),
+        )));
         world.insert_resource(CollisionEventBuffer::default());
         world.insert_resource(DeltaTime(Seconds(0.016)));
         world
@@ -166,7 +100,9 @@ mod tests {
         };
         let mut world = World::new();
         world.insert_resource(PhysicsRes::new(Box::new(
-            SpyPhysicsBackend::new(Arc::clone(&step_count)).with_events(vec![event]),
+            SpyPhysicsBackend::new()
+                .with_step_count(Arc::clone(&step_count))
+                .with_events(vec![event]),
         )));
         world.insert_resource(CollisionEventBuffer::default());
         world.insert_resource(DeltaTime(Seconds(0.016)));

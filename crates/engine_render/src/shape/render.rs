@@ -5,7 +5,7 @@ use glam::Vec2;
 use super::components::{Shape, ShapeVariant, Stroke};
 use super::tessellate::{shape_aabb, tessellate, tessellate_stroke};
 use crate::camera::Camera2D;
-use crate::culling::{aabb_intersects_view_rect, camera_view_rect};
+use crate::culling::{aabb_intersects_view_rect, compute_view_rect};
 use crate::material::{Material2d, apply_material};
 use crate::renderer::RendererRes;
 
@@ -29,16 +29,6 @@ fn is_shape_culled(pos: Vec2, variant: &ShapeVariant, view_rect: Option<(Vec2, V
     let entity_min = Vec2::new(pos.x - r, pos.y - r);
     let entity_max = Vec2::new(pos.x + r, pos.y + r);
     !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max)
-}
-
-fn compute_view_rect(
-    camera_query: &Query<&Camera2D>,
-    renderer: &RendererRes,
-) -> Option<(Vec2, Vec2)> {
-    camera_query.iter().next().map(|cam| {
-        let (vw, vh) = renderer.viewport_size();
-        camera_view_rect(cam, vw as f32, vh as f32)
-    })
 }
 
 #[allow(clippy::type_complexity)]

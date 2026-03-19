@@ -6,6 +6,7 @@ use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D};
 use serde::{Deserialize, Serialize};
 
 use super::node::UiNode;
+use crate::is_hidden;
 use crate::layout::anchor_offset;
 use crate::theme::UiTheme;
 
@@ -35,26 +36,17 @@ pub fn progress_bar_render_system(
     mut renderer: ResMut<RendererRes>,
 ) {
     for (bar, node, transform, visibility) in &bars {
-        if visibility.is_some_and(|v| !v.0) {
+        if is_hidden(visibility) {
             continue;
         }
 
-        let offset = anchor_offset(node.anchor, node.size);
-        let top_left = transform.0.translation + offset;
-
-        if let Some(bg) = node.background {
-            renderer.draw_rect(Rect {
-                x: Pixels(top_left.x),
-                y: Pixels(top_left.y),
-                width: Pixels(node.size.x),
-                height: Pixels(node.size.y),
-                color: bg,
-            });
-        }
+        // Background is handled by `ui_render_system`.
 
         let fill_width = fill_width(*bar, node.size.x);
 
         if fill_width > 0.0 {
+            let offset = anchor_offset(node.anchor, node.size);
+            let top_left = transform.0.translation + offset;
             renderer.draw_rect(Rect {
                 x: Pixels(top_left.x),
                 y: Pixels(top_left.y),
@@ -113,7 +105,7 @@ mod tests {
     }
 
     #[test]
-    fn when_progress_bar_at_zero_then_only_background_drawn() {
+    fn when_progress_bar_at_zero_then_no_fill_drawn() {
         // Arrange
         let (mut world, mut schedule, log, _) = setup_world_with_spy();
         world.spawn((
@@ -133,9 +125,9 @@ mod tests {
         // Act
         schedule.run(&mut world);
 
-        // Assert
+        // Assert — background is handled by ui_render_system, not here
         let calls = log.lock().unwrap();
-        assert_eq!(calls.iter().filter(|c| *c == "draw_rect").count(), 1);
+        assert_eq!(calls.iter().filter(|c| *c == "draw_rect").count(), 0);
     }
 
     #[test]
@@ -161,8 +153,8 @@ mod tests {
 
         // Assert
         let rects = rects.lock().unwrap();
-        assert_eq!(rects.len(), 2);
-        assert_eq!(rects[1].width, Pixels(100.0));
+        assert_eq!(rects.len(), 1);
+        assert_eq!(rects[0].width, Pixels(100.0));
     }
 
     #[test]
@@ -188,8 +180,8 @@ mod tests {
 
         // Assert
         let rects = rects.lock().unwrap();
-        assert_eq!(rects.len(), 2);
-        assert_eq!(rects[1].width, Pixels(200.0));
+        assert_eq!(rects.len(), 1);
+        assert_eq!(rects[0].width, Pixels(200.0));
     }
 
     #[test]
@@ -215,8 +207,8 @@ mod tests {
 
         // Assert
         let rects = rects.lock().unwrap();
-        assert_eq!(rects.len(), 2);
-        assert_eq!(rects[1].width, Pixels(200.0));
+        assert_eq!(rects.len(), 1);
+        assert_eq!(rects[0].width, Pixels(200.0));
     }
 
     #[test]
@@ -242,12 +234,10 @@ mod tests {
 
         // Assert — Center anchor offset = (-100, -10), so top_left = (200, 90)
         let rects = rects.lock().unwrap();
-        assert_eq!(rects.len(), 2);
+        assert_eq!(rects.len(), 1);
         assert_eq!(rects[0].x, Pixels(200.0));
         assert_eq!(rects[0].y, Pixels(90.0));
-        assert_eq!(rects[1].x, Pixels(200.0));
-        assert_eq!(rects[1].y, Pixels(90.0));
-        assert_eq!(rects[1].width, Pixels(100.0));
+        assert_eq!(rects[0].width, Pixels(100.0));
     }
 
     #[test]

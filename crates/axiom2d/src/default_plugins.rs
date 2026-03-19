@@ -46,7 +46,7 @@ fn register_core_resources(app: &mut App) {
     app.world_mut().insert_resource(MouseState::default());
     app.world_mut().insert_resource(MouseEventBuffer::default());
     app.world_mut()
-        .insert_resource(ClockRes::new(Box::new(SystemClock::new())));
+        .insert_resource(ClockRes::new(Box::new(SystemClock::default())));
 }
 
 fn register_core_systems(app: &mut App) {
@@ -57,9 +57,11 @@ fn register_core_systems(app: &mut App) {
 fn register_physics(app: &mut App) {
     #[cfg(feature = "physics")]
     {
-        app.world_mut().insert_resource(PhysicsRes::new(Box::new(
-            engine_physics::prelude::NullPhysicsBackend::new(),
-        )));
+        if app.world().get_resource::<PhysicsRes>().is_none() {
+            app.world_mut().insert_resource(PhysicsRes::new(Box::new(
+                engine_physics::prelude::NullPhysicsBackend::default(),
+            )));
+        }
         app.world_mut()
             .insert_resource(CollisionEventBuffer::default());
         app.add_systems(
@@ -69,8 +71,15 @@ fn register_physics(app: &mut App) {
     }
 }
 
-#[allow(clippy::too_many_lines)]
 fn register_post_update_systems(app: &mut App) {
+    #[cfg(feature = "audio")]
+    {
+        app.world_mut()
+            .insert_resource(AudioRes::new(Box::new(NullAudioBackend::new())));
+        app.world_mut().insert_resource(PlaySoundBuffer::default());
+        app.add_systems(Phase::PreUpdate, play_sound_system);
+    }
+
     #[cfg(not(feature = "audio"))]
     app.add_systems(
         Phase::PostUpdate,
@@ -85,24 +94,18 @@ fn register_post_update_systems(app: &mut App) {
     );
 
     #[cfg(feature = "audio")]
-    {
-        app.world_mut()
-            .insert_resource(AudioRes::new(Box::new(NullAudioBackend::new())));
-        app.world_mut().insert_resource(PlaySoundBuffer::default());
-        app.add_systems(Phase::PreUpdate, play_sound_system);
-        app.add_systems(
-            Phase::PostUpdate,
-            (
-                hierarchy_maintenance_system,
-                transform_propagation_system,
-                visibility_system,
-                spatial_audio_system,
-                mouse_world_pos_system,
-                scroll_clear_system,
-            )
-                .chain(),
-        );
-    }
+    app.add_systems(
+        Phase::PostUpdate,
+        (
+            hierarchy_maintenance_system,
+            transform_propagation_system,
+            visibility_system,
+            spatial_audio_system,
+            mouse_world_pos_system,
+            scroll_clear_system,
+        )
+            .chain(),
+    );
 }
 
 fn register_render(app: &mut App) {
@@ -139,7 +142,7 @@ mod tests {
         let mut app = App::new();
         app.add_plugin(DefaultPlugins);
         app.world_mut()
-            .insert_resource(ClockRes::new(Box::new(FakeClock::new())));
+            .insert_resource(ClockRes::new(Box::new(FakeClock::default())));
         #[cfg(feature = "render")]
         app.world_mut()
             .insert_resource(engine_render::prelude::RendererRes::new(Box::new(
@@ -171,7 +174,7 @@ mod tests {
     fn when_frame_advanced_with_fake_clock_then_delta_time_is_updated() {
         // Arrange
         let mut app = app_with_default_plugins();
-        let mut fake = FakeClock::new();
+        let mut fake = FakeClock::default();
         fake.advance(engine_core::prelude::Seconds(0.016));
         app.world_mut()
             .insert_resource(ClockRes::new(Box::new(fake)));
