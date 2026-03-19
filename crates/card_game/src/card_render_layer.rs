@@ -21,10 +21,10 @@ pub fn card_render_layer_system(
 ) {
     for (layer, children) in &cards {
         for &child in &children.0 {
-            if let Ok(mut child_layer) = faces.get_mut(child) {
-                if *child_layer != *layer {
-                    *child_layer = *layer;
-                }
+            if let Ok(mut child_layer) = faces.get_mut(child)
+                && *child_layer != *layer
+            {
+                *child_layer = *layer;
             }
         }
     }
