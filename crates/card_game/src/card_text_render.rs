@@ -17,48 +17,41 @@ pub fn card_text_render_system(
         if let Some(EffectiveVisibility(false)) = effective_vis {
             continue;
         }
-        match text.max_width {
-            Some(max_width) => {
-                let lines = wrap_text(&text.content, text.font_size, max_width);
-                let line_height = text.font_size * LINE_HEIGHT_FACTOR;
-                let total_height = (lines.len() as f32 - 1.0) * line_height;
-                let start_y = -total_height * 0.5;
-                for (i, line) in lines.iter().enumerate() {
-                    let line_width = measure_text(line, text.font_size);
-                    let y_offset = start_y + i as f32 * line_height;
-                    let offset = glam::Affine2::from_translation(glam::Vec2::new(
-                        -line_width * 0.5,
-                        y_offset,
-                    ));
-                    let line_transform = global_transform.0 * offset;
-                    let model = affine2_to_mat4(&line_transform);
-                    render_text_transformed(
-                        &mut **renderer,
-                        &mut cache,
-                        line,
-                        &model,
-                        text.font_size,
-                        text.color,
-                    );
-                }
-            }
-            None => {
-                let text_width = measure_text(&text.content, text.font_size);
-                let center_offset = glam::Affine2::from_translation(glam::Vec2::new(
-                    -text_width * 0.5,
-                    0.0,
-                ));
-                let centered_transform = global_transform.0 * center_offset;
-                let model = affine2_to_mat4(&centered_transform);
+        if let Some(max_width) = text.max_width {
+            let lines = wrap_text(&text.content, text.font_size, max_width);
+            let line_height = text.font_size * LINE_HEIGHT_FACTOR;
+            let total_height = (lines.len() as f32 - 1.0) * line_height;
+            let start_y = -total_height * 0.5;
+            for (i, line) in lines.iter().enumerate() {
+                let line_width = measure_text(line, text.font_size);
+                let y_offset = start_y + i as f32 * line_height;
+                let offset =
+                    glam::Affine2::from_translation(glam::Vec2::new(-line_width * 0.5, y_offset));
+                let line_transform = global_transform.0 * offset;
+                let model = affine2_to_mat4(&line_transform);
                 render_text_transformed(
                     &mut **renderer,
                     &mut cache,
-                    &text.content,
+                    line,
                     &model,
                     text.font_size,
                     text.color,
                 );
             }
+        } else {
+            let text_width = measure_text(&text.content, text.font_size);
+            let center_offset =
+                glam::Affine2::from_translation(glam::Vec2::new(-text_width * 0.5, 0.0));
+            let centered_transform = global_transform.0 * center_offset;
+            let model = affine2_to_mat4(&centered_transform);
+            render_text_transformed(
+                &mut **renderer,
+                &mut cache,
+                &text.content,
+                &model,
+                text.font_size,
+                text.color,
+            );
         }
     }
 }
@@ -209,10 +202,10 @@ mod tests {
         let calls = shape_calls.lock().unwrap();
         assert!(!calls.is_empty());
         let y_positions: Vec<f32> = calls.iter().map(|c| c.3[3][1]).collect();
-        let min_y = y_positions.iter().cloned().fold(f32::INFINITY, f32::min);
+        let min_y = y_positions.iter().copied().fold(f32::INFINITY, f32::min);
         let max_y = y_positions
             .iter()
-            .cloned()
+            .copied()
             .fold(f32::NEG_INFINITY, f32::max);
         assert!(
             (max_y - min_y).abs() > 1.0,

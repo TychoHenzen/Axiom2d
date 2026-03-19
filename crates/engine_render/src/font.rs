@@ -52,7 +52,7 @@ pub fn outline_glyph(
     glyph_id: GlyphId,
     font_size: f32,
 ) -> Vec<PathCommand> {
-    let scale = font_size / face.units_per_em() as f32;
+    let scale = font_size / f32::from(face.units_per_em());
     let mut builder = OutlineBuilder {
         commands: Vec::new(),
         scale,
@@ -61,16 +61,9 @@ pub fn outline_glyph(
     builder.commands
 }
 
+#[derive(Default)]
 pub struct GlyphCache {
     entries: HashMap<(GlyphId, u16), TessellatedMesh>,
-}
-
-impl Default for GlyphCache {
-    fn default() -> Self {
-        Self {
-            entries: HashMap::new(),
-        }
-    }
 }
 
 impl GlyphCache {
@@ -102,7 +95,7 @@ pub struct LayoutGlyph {
 }
 
 pub fn layout_text(face: &ttf_parser::Face, text: &str, font_size: f32) -> Vec<LayoutGlyph> {
-    let scale = font_size / face.units_per_em() as f32;
+    let scale = font_size / f32::from(face.units_per_em());
     let mut x = 0.0_f32;
     let mut glyphs = Vec::new();
     for ch in text.chars() {
@@ -114,7 +107,7 @@ pub fn layout_text(face: &ttf_parser::Face, text: &str, font_size: f32) -> Vec<L
             x_offset: x,
         });
         if let Some(advance) = face.glyph_hor_advance(glyph_id) {
-            x += advance as f32 * scale;
+            x += f32::from(advance) * scale;
         }
     }
     glyphs
@@ -126,13 +119,13 @@ pub fn measure_text(text: &str, font_size: f32) -> f32 {
 }
 
 fn measure_text_with_face(face: &ttf_parser::Face, text: &str, font_size: f32) -> f32 {
-    let scale = font_size / face.units_per_em() as f32;
+    let scale = font_size / f32::from(face.units_per_em());
     let mut width = 0.0_f32;
     for ch in text.chars() {
-        if let Some(glyph_id) = face.glyph_index(ch) {
-            if let Some(advance) = face.glyph_hor_advance(glyph_id) {
-                width += advance as f32 * scale;
-            }
+        if let Some(glyph_id) = face.glyph_index(ch)
+            && let Some(advance) = face.glyph_hor_advance(glyph_id)
+        {
+            width += f32::from(advance) * scale;
         }
     }
     width
@@ -412,9 +405,9 @@ mod tests {
     fn when_laying_out_two_chars_then_second_offset_equals_first_advance() {
         // Arrange
         let face = ttf_parser::Face::parse(FONT_BYTES, 0).unwrap();
-        let scale = 32.0 / face.units_per_em() as f32;
+        let scale = 32.0 / f32::from(face.units_per_em());
         let a_id = face.glyph_index('A').unwrap();
-        let expected_advance = face.glyph_hor_advance(a_id).unwrap() as f32 * scale;
+        let expected_advance = f32::from(face.glyph_hor_advance(a_id).unwrap()) * scale;
 
         // Act
         let glyphs = layout_text(&face, "AB", 32.0);
@@ -625,7 +618,10 @@ mod tests {
         let lines = wrap_text("Deal 3 damage", font_size, max_width);
 
         // Assert
-        assert!(lines.len() >= 2, "should wrap into multiple lines, got {lines:?}");
+        assert!(
+            lines.len() >= 2,
+            "should wrap into multiple lines, got {lines:?}"
+        );
     }
 
     #[test]
