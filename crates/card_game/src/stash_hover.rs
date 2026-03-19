@@ -29,7 +29,7 @@ pub fn stash_hover_preview_system(
 
     let hovered = stash_visible
         .0
-        .then(|| ())
+        .then_some(())
         .filter(|()| ctrl_held)
         .filter(|()| drag_state.dragging.is_none())
         .and_then(|()| find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height()))
