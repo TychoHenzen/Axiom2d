@@ -3,6 +3,7 @@ pub mod bloom;
 pub mod camera;
 pub mod clear;
 pub(crate) mod culling;
+pub mod font;
 pub mod image_data;
 pub mod material;
 pub mod prelude;

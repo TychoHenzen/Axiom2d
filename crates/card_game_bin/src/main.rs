@@ -1,6 +1,11 @@
 use axiom2d::prelude::*;
+use bevy_ecs::prelude::Res;
 use card_game::prelude::*;
 use glam::Vec2;
+
+fn splash_done(splash: Option<Res<SplashScreen>>) -> bool {
+    splash.is_none_or(|s| s.done)
+}
 
 const TABLE_COLOR: Color = Color {
     r: 0.15,
@@ -47,19 +52,73 @@ fn spawn_scene(world: &mut bevy_ecs::world::World) {
         Vec2::new(120.0, 10.0),
     ];
 
+    let card_defs = [
+        CardDefinition {
+            card_type: CardType::Spell,
+            rarity: Rarity::Rare,
+            name: "Fireball".to_owned(),
+            stats: None,
+            abilities: CardAbilities {
+                keywords: vec![],
+                text: "Deal 3 damage".to_owned(),
+            },
+            art: art_descriptor_default(CardType::Spell),
+        },
+        CardDefinition {
+            card_type: CardType::Artifact,
+            rarity: Rarity::Common,
+            name: "Shield".to_owned(),
+            stats: None,
+            abilities: CardAbilities {
+                keywords: vec![],
+                text: "Block 2 damage".to_owned(),
+            },
+            art: art_descriptor_default(CardType::Artifact),
+        },
+        CardDefinition {
+            card_type: CardType::Creature,
+            rarity: Rarity::Legendary,
+            name: "Heal".to_owned(),
+            stats: Some(CardStats {
+                cost: 3,
+                attack: 2,
+                health: 4,
+            }),
+            abilities: CardAbilities {
+                keywords: vec![Keyword::Lifesteal],
+                text: "Restore 4 HP".to_owned(),
+            },
+            art: art_descriptor_default(CardType::Creature),
+        },
+        CardDefinition {
+            card_type: CardType::Spell,
+            rarity: Rarity::Uncommon,
+            name: "Lightning".to_owned(),
+            stats: None,
+            abilities: CardAbilities {
+                keywords: vec![],
+                text: "Deal 5 damage".to_owned(),
+            },
+            art: art_descriptor_default(CardType::Spell),
+        },
+        CardDefinition {
+            card_type: CardType::Spell,
+            rarity: Rarity::Common,
+            name: "Draw".to_owned(),
+            stats: None,
+            abilities: CardAbilities {
+                keywords: vec![],
+                text: "Draw 2 cards".to_owned(),
+            },
+            art: art_descriptor_default(CardType::Spell),
+        },
+    ];
+
     let card_size = Vec2::new(CARD_WIDTH, CARD_HEIGHT);
     let mut card_entities = Vec::new();
     for (i, &pos) in card_positions.iter().enumerate() {
-        let card = if i == 2 {
-            Card {
-                face_texture: TextureId(0),
-                back_texture: TextureId(0),
-                face_up: true,
-            }
-        } else {
-            Card::face_down(TextureId(0), TextureId(0))
-        };
-        let entity = spawn_visual_card(world, card, pos, card_size);
+        let face_up = i == 2;
+        let entity = spawn_visual_card(world, &card_defs[i], pos, card_size, face_up);
         card_entities.push(entity);
     }
 
@@ -180,6 +239,12 @@ fn register_game_systems(app: &mut App, config: WindowConfig) {
         .add_systems(
             Phase::Render,
             (stash_tab_render_system, stash_hover_preview_render_system).after(stash_render_system),
+        )
+        .add_systems(
+            Phase::Render,
+            card_text_render_system
+                .after(shape_render_system)
+                .run_if(splash_done),
         );
 }
 

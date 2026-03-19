@@ -19,6 +19,7 @@ pub type ShaderCapture = Arc<Mutex<Vec<ShaderHandle>>>;
 pub type UniformCapture = Arc<Mutex<Vec<Vec<u8>>>>;
 pub type TextureBindCapture = Arc<Mutex<Vec<(TextureId, u32)>>>;
 pub type CompileShaderCapture = Arc<Mutex<Vec<(ShaderHandle, String)>>>;
+pub type TextCallLog = Arc<Mutex<Vec<(String, f32, f32, f32, Color)>>>;
 
 pub struct SpyRenderer {
     log: Arc<Mutex<Vec<String>>>,
@@ -32,6 +33,7 @@ pub struct SpyRenderer {
     uniform_calls: Option<UniformCapture>,
     texture_bind_calls: Option<TextureBindCapture>,
     compile_shader_calls: Option<CompileShaderCapture>,
+    text_calls: Option<TextCallLog>,
     viewport: (u32, u32),
 }
 
@@ -49,6 +51,7 @@ impl SpyRenderer {
             uniform_calls: None,
             texture_bind_calls: None,
             compile_shader_calls: None,
+            text_calls: None,
             viewport: (0, 0),
         }
     }
@@ -103,6 +106,11 @@ impl SpyRenderer {
         compile_shader_calls: CompileShaderCapture,
     ) -> Self {
         self.compile_shader_calls = Some(compile_shader_calls);
+        self
+    }
+
+    pub fn with_text_capture(mut self, text_calls: TextCallLog) -> Self {
+        self.text_calls = Some(text_calls);
         self
     }
 
@@ -203,6 +211,19 @@ impl Renderer for SpyRenderer {
                 .lock()
                 .expect("compile_shader capture poisoned")
                 .push((handle, source.to_owned()));
+        }
+    }
+
+    fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color) {
+        self.log_call("draw_text");
+        if let Some(capture) = &self.text_calls {
+            capture.lock().expect("text capture poisoned").push((
+                text.to_owned(),
+                x,
+                y,
+                font_size,
+                color,
+            ));
         }
     }
 
@@ -309,6 +330,24 @@ pub fn insert_spy_with_compile_shader_capture(world: &mut World) -> CompileShade
     capture
 }
 
+pub fn insert_spy_with_text_capture(world: &mut World) -> TextCallLog {
+    insert_spy_capturing(world, SpyRenderer::with_text_capture)
+}
+
+pub fn insert_spy_with_text_and_viewport(
+    world: &mut World,
+    width: u32,
+    height: u32,
+) -> TextCallLog {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let calls: TextCallLog = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log)
+        .with_text_capture(calls.clone())
+        .with_viewport(width, height);
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+    calls
+}
+
 pub fn insert_spy_with_blend_and_sprite_capture(
     world: &mut World,
 ) -> (BlendCapture, SpriteCallLog) {
@@ -347,6 +386,7 @@ mod tests {
         spy.set_shader(crate::shader::ShaderHandle(0));
         spy.set_material_uniforms(&[1]);
         spy.bind_material_texture(engine_core::types::TextureId(0), 0);
+        spy.draw_text("Test", 0.0, 0.0, 12.0, Color::WHITE);
         spy.compile_shader(crate::shader::ShaderHandle(1), "source");
         spy.upload_atlas(&crate::atlas::TextureAtlas {
             data: vec![255; 4],
@@ -369,6 +409,7 @@ mod tests {
         "set_shader",
         "set_material_uniforms",
         "bind_material_texture",
+        "draw_text",
         "compile_shader",
         "upload_atlas",
         "apply_post_process",
@@ -488,6 +529,45 @@ mod tests {
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0].0, crate::shader::ShaderHandle(7));
         assert_eq!(calls[0].1, "fn vs_shape() {}");
+    }
+
+    #[test]
+    fn when_draw_text_called_with_capture_then_arguments_match() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let text_calls: TextCallLog = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log).with_text_capture(text_calls.clone());
+        let color = Color::WHITE;
+
+        // Act
+        spy.draw_text("Hello", 10.0, 20.0, 12.0, color);
+
+        // Assert
+        let calls = text_calls.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].0, "Hello");
+        assert_eq!(calls[0].1, 10.0);
+        assert_eq!(calls[0].2, 20.0);
+        assert_eq!(calls[0].3, 12.0);
+        assert_eq!(calls[0].4, color);
+    }
+
+    #[test]
+    fn when_draw_text_called_twice_then_both_captured_in_order() {
+        // Arrange
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let text_calls: TextCallLog = Arc::new(Mutex::new(Vec::new()));
+        let mut spy = SpyRenderer::new(log).with_text_capture(text_calls.clone());
+
+        // Act
+        spy.draw_text("Name", 0.0, 0.0, 10.0, Color::WHITE);
+        spy.draw_text("Description", 0.0, 30.0, 8.0, Color::BLACK);
+
+        // Assert
+        let calls = text_calls.lock().unwrap();
+        assert_eq!(calls.len(), 2);
+        assert_eq!(calls[0].0, "Name");
+        assert_eq!(calls[1].0, "Description");
     }
 
     #[test]

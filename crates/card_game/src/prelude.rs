@@ -4,6 +4,11 @@ pub use crate::card_damping::{
     BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG, MIN_DRAG_FACTOR, SPIN_DRAG_DECAY_RATE,
     card_damping_system, compute_card_damping,
 };
+pub use crate::card_definition::{
+    ArtDescriptor, ArtShape, CardAbilities, CardDefinition, CardLayout, CardStats, CardType,
+    Gradient, Keyword, ParticleType, Rarity, art_descriptor_default, card_type_layout,
+    description_from_abilities, rarity_border_color,
+};
 pub use crate::card_drag::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
 pub use crate::card_face_side::CardFaceSide;
 pub use crate::card_flip::card_flip_system;
@@ -11,12 +16,14 @@ pub use crate::card_geometry::{
     TABLE_CARD_HEIGHT as CARD_HEIGHT, TABLE_CARD_SIZE, TABLE_CARD_WIDTH as CARD_WIDTH,
 };
 pub use crate::card_item_form::{CardItemForm, card_item_form_visibility_system};
+pub use crate::card_label::CardLabel;
 pub use crate::card_pick::{
     CARD_COLLISION_FILTER, CARD_COLLISION_GROUP, DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP,
     card_pick_system,
 };
 pub use crate::card_release::{HAND_DROP_ZONE_HEIGHT, card_release_system};
 pub use crate::card_render_layer::card_render_layer_system;
+pub use crate::card_text_render::card_text_render_system;
 pub use crate::card_zone::CardZone;
 pub use crate::drag_state::{DragInfo, DragState};
 pub use crate::flip_animation::{FLIP_DURATION, FlipAnimation, flip_animation_system};

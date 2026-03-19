@@ -48,6 +48,7 @@ pub struct WgpuRenderer {
     pub(super) post_process_pending: bool,
     pub(super) bloom_threshold: f32,
     pub(super) bloom_intensity: f32,
+    pub(super) glyph_cache: crate::font::GlyphCache,
 }
 
 impl WgpuRenderer {
@@ -85,6 +86,7 @@ impl WgpuRenderer {
             post_process_pending: false,
             bloom_threshold: 0.8,
             bloom_intensity: 0.3,
+            glyph_cache: crate::font::GlyphCache::new(),
         }
     }
 

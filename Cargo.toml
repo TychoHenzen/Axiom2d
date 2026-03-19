@@ -27,6 +27,7 @@ image-compare = "0.4"
 insta = { version = "1", features = ["ron"] }
 ron = "0.9"
 serde = { version = "1", features = ["derive"] }
+ttf-parser = "0.25"
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
@@ -46,3 +47,11 @@ cast_sign_loss = "allow"
 cast_possible_wrap = "allow"
 # Correctness lints worth promoting
 unwrap_used = "warn"
+
+[profile.release]
+opt-level = "z"       # optimize for size instead of speed
+lto = "thin"          # cross-crate dead code elimination (fast builds)
+# lto = true          # full LTO — slower builds, smaller binary
+codegen-units = 1     # better optimization, slower compile
+panic = "abort"       # drops unwind tables
+strip = true          # strips symbols and debug info

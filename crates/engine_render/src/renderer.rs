@@ -25,6 +25,7 @@ pub trait Renderer {
         color: Color,
         model: [[f32; 4]; 4],
     );
+    fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color);
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]);
     fn set_blend_mode(&mut self, mode: BlendMode);
     fn set_shader(&mut self, shader: ShaderHandle);
@@ -75,6 +76,7 @@ impl Renderer for NullRenderer {
         _model: [[f32; 4]; 4],
     ) {
     }
+    fn draw_text(&mut self, _text: &str, _x: f32, _y: f32, _font_size: f32, _color: Color) {}
     fn set_view_projection(&mut self, _matrix: [[f32; 4]; 4]) {}
     fn set_blend_mode(&mut self, _mode: BlendMode) {}
     fn set_shader(&mut self, _shader: ShaderHandle) {}
@@ -134,6 +136,7 @@ mod tests {
         renderer.bind_material_texture(engine_core::types::TextureId(0), 2);
         renderer.upload_atlas(&crate::test_helpers::minimal_atlas());
         renderer.compile_shader(crate::shader::ShaderHandle(1), "@vertex fn vs_shape() {}");
+        renderer.draw_text("Test", 10.0, 20.0, 12.0, Color::WHITE);
         renderer.apply_post_process();
         renderer.resize(800, 600);
         renderer.present();

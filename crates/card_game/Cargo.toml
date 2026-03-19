@@ -13,6 +13,7 @@ engine_input = { path = "../engine_input" }
 engine_render = { path = "../engine_render" }
 engine_physics = { path = "../engine_physics" }
 engine_scene = { path = "../engine_scene" }
+engine_ui = { path = "../engine_ui" }
 glam = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
@@ -20,4 +21,5 @@ thiserror = { workspace = true }
 [dev-dependencies]
 engine_render = { path = "../engine_render", features = ["testing"] }
 naga = { workspace = true }
+proptest = { workspace = true }
 ron = { workspace = true }

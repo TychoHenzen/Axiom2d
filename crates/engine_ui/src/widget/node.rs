@@ -93,6 +93,7 @@ mod tests {
             content: "Hello UI".into(),
             font_size: 24.0,
             color: Color::new(0.2, 0.8, 0.4, 1.0),
+            max_width: None,
         };
 
         // Act

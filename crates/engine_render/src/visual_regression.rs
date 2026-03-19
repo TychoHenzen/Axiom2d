@@ -43,6 +43,7 @@ pub struct HeadlessRenderer {
     shape_blend_modes: Vec<BlendMode>,
     shape_index_offsets: Vec<u32>,
     shape_models: Vec<[[f32; 4]; 4]>,
+    glyph_cache: crate::font::GlyphCache,
 }
 
 struct ShapeGpuResources {
@@ -350,6 +351,7 @@ impl HeadlessRenderer {
             shape_blend_modes: Vec::new(),
             shape_index_offsets: Vec::new(),
             shape_models: Vec::new(),
+            glyph_cache: crate::font::GlyphCache::new(),
         }
     }
 
@@ -619,6 +621,12 @@ impl Renderer for HeadlessRenderer {
             .push(self.shape_batch.index_count() as u32);
         self.shape_models.push(model);
         self.shape_batch.push(vertices, indices, color);
+    }
+
+    fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color) {
+        let mut cache = std::mem::take(&mut self.glyph_cache);
+        crate::font::render_text_glyphs(self, &mut cache, text, x, y, font_size, color);
+        self.glyph_cache = cache;
     }
 
     fn set_blend_mode(&mut self, mode: BlendMode) {
@@ -1089,6 +1097,52 @@ mod tests {
             pixels[idx],
             pixels[idx + 1],
             pixels[idx + 2]
+        );
+    }
+
+    #[test]
+    fn when_draw_text_on_headless_then_non_background_pixels_exist() {
+        // Arrange
+        let Some(mut renderer) = HeadlessRenderer::try_new(128, 128) else {
+            return;
+        };
+        renderer.clear(engine_core::color::Color::new(0.0, 0.0, 0.0, 1.0));
+        setup_centered_camera(&mut renderer, 128.0);
+
+        // Act
+        renderer.draw_text("A", 40.0, 40.0, 48.0, engine_core::color::Color::WHITE);
+        let pixels = renderer.render_to_buffer();
+
+        // Assert
+        let has_non_black = pixels
+            .chunks_exact(4)
+            .any(|px| px[0] > 0 || px[1] > 0 || px[2] > 0);
+        assert!(has_non_black, "draw_text must produce visible pixels");
+    }
+
+    #[test]
+    fn when_draw_text_twice_with_same_input_then_buffers_identical() {
+        // Arrange
+        let Some(mut renderer) = HeadlessRenderer::try_new(128, 128) else {
+            return;
+        };
+
+        // Act — first render
+        renderer.clear(engine_core::color::Color::new(0.0, 0.0, 0.0, 1.0));
+        setup_centered_camera(&mut renderer, 128.0);
+        renderer.draw_text("Hi", 20.0, 20.0, 32.0, engine_core::color::Color::WHITE);
+        let pixels1 = renderer.render_to_buffer();
+
+        // Act — second render
+        renderer.clear(engine_core::color::Color::new(0.0, 0.0, 0.0, 1.0));
+        setup_centered_camera(&mut renderer, 128.0);
+        renderer.draw_text("Hi", 20.0, 20.0, 32.0, engine_core::color::Color::WHITE);
+        let pixels2 = renderer.render_to_buffer();
+
+        // Assert
+        assert_eq!(
+            pixels1, pixels2,
+            "identical draw_text calls must produce identical pixels"
         );
     }
 }

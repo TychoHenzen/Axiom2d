@@ -326,6 +326,12 @@ impl Renderer for WgpuRenderer {
         self.shape_batch.push(vertices, indices, color);
     }
 
+    fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color) {
+        let mut cache = std::mem::take(&mut self.glyph_cache);
+        crate::font::render_text_glyphs(self, &mut cache, text, x, y, font_size, color);
+        self.glyph_cache = cache;
+    }
+
     fn set_blend_mode(&mut self, mode: crate::material::BlendMode) {
         self.current_blend_mode = mode;
     }

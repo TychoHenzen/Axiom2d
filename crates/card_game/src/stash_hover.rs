@@ -1,14 +1,19 @@
-use bevy_ecs::prelude::{Entity, Query, Res, ResMut, Resource};
+use bevy_ecs::prelude::{Entity, Local, Query, Res, ResMut, Resource};
+use engine_core::prelude::Color;
 use engine_input::prelude::{InputState, KeyCode, MouseState};
+use engine_render::font::{GlyphCache, measure_text, render_text_transformed};
 use engine_render::prelude::{Camera2D, RendererRes, ShaderHandle, screen_to_world};
-use glam::Vec2;
+use engine_render::shape::affine2_to_mat4;
+use glam::{Affine2, Vec2};
 
 use crate::card_art_shader::CardArtShader;
+use crate::card_definition::{CardDefinition, rarity_border_color};
 use crate::card_face_layout::FRONT_FACE_REGIONS;
 use crate::card_geometry::{
     ART_QUAD, QUAD_INDICES, TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH, UNIT_QUAD, art_quad_model,
     unit_quad_model,
 };
+use crate::card_label::CardLabel;
 use crate::drag_state::DragState;
 use crate::stash_grid::{StashGrid, find_stash_slot_at};
 use crate::stash_render::{GRID_MARGIN, SLOT_STRIDE_H, reset_default_shader};
@@ -47,11 +52,14 @@ pub fn stash_hover_preview_render_system(
     grid: Res<StashGrid>,
     art_shader: Option<Res<CardArtShader>>,
     camera_query: Query<&Camera2D>,
+    label_query: Query<&CardLabel>,
+    def_query: Query<&CardDefinition>,
     mut renderer: ResMut<RendererRes>,
+    mut glyph_cache: Local<GlyphCache>,
 ) {
-    if hover_preview.hovered_entity.is_none() {
+    let Some(hovered_entity) = hover_preview.hovered_entity else {
         return;
-    }
+    };
 
     let Some((vw, vh, camera)) = resolve_viewport_camera(&renderer, &camera_query) else {
         return;
@@ -70,8 +78,12 @@ pub fn stash_hover_preview_render_system(
     reset_default_shader(&mut **renderer);
 
     let art = art_shader.map(|s| s.0);
+    let border_color = def_query
+        .get(hovered_entity)
+        .map(|d| rarity_border_color(d.rarity))
+        .unwrap_or(Color::WHITE);
 
-    for region in &FRONT_FACE_REGIONS {
+    for (i, region) in FRONT_FACE_REGIONS.iter().enumerate() {
         let (half_w_card, half_h_card, offset_y_card) =
             region.resolve(preview_screen_w, preview_screen_h);
         let width = half_w_card * 2.0 / camera.zoom;
@@ -80,6 +92,7 @@ pub fn stash_hover_preview_render_system(
 
         let center_x = preview_center.x;
         let center_y = preview_center.y + offset_y;
+        let color = if i == 0 { border_color } else { region.color };
 
         if region.use_art_shader {
             if let Some(shader) = art {
@@ -88,7 +101,7 @@ pub fn stash_hover_preview_render_system(
             renderer.draw_shape(
                 &ART_QUAD,
                 &QUAD_INDICES,
-                region.color,
+                color,
                 art_quad_model(width, height, center_x, center_y),
             );
             renderer.set_shader(ShaderHandle(0));
@@ -96,11 +109,74 @@ pub fn stash_hover_preview_render_system(
             renderer.draw_shape(
                 &UNIT_QUAD,
                 &QUAD_INDICES,
-                region.color,
+                color,
                 unit_quad_model(width, height, center_x, center_y),
             );
         }
     }
+
+    if let Ok(label) = label_query.get(hovered_entity) {
+        render_preview_text(
+            &mut **renderer,
+            &mut glyph_cache,
+            label,
+            preview_center,
+            preview_screen_w,
+            preview_screen_h,
+            &camera,
+        );
+    }
+}
+
+const PREVIEW_TEXT_COLOR: Color = Color {
+    r: 0.1,
+    g: 0.1,
+    b: 0.1,
+    a: 1.0,
+};
+
+fn render_preview_text(
+    renderer: &mut dyn engine_render::prelude::Renderer,
+    cache: &mut GlyphCache,
+    label: &CardLabel,
+    preview_center: Vec2,
+    preview_w: f32,
+    preview_h: f32,
+    camera: &Camera2D,
+) {
+    let (_, _, name_offset_y) = FRONT_FACE_REGIONS[1].resolve(preview_w, preview_h);
+    let name_font_size = preview_h / (12.0 * camera.zoom);
+    let name_y = preview_center.y + name_offset_y / camera.zoom;
+
+    let name_width = measure_text(&label.name, name_font_size);
+    let name_transform =
+        Affine2::from_translation(Vec2::new(preview_center.x - name_width * 0.5, name_y));
+    let name_model = affine2_to_mat4(&name_transform);
+    render_text_transformed(
+        renderer,
+        cache,
+        &label.name,
+        &name_model,
+        name_font_size,
+        PREVIEW_TEXT_COLOR,
+    );
+
+    let (_, _, desc_offset_y) = FRONT_FACE_REGIONS[3].resolve(preview_w, preview_h);
+    let desc_font_size = preview_h / (16.0 * camera.zoom);
+    let desc_y = preview_center.y + desc_offset_y / camera.zoom;
+
+    let desc_width = measure_text(&label.description, desc_font_size);
+    let desc_transform =
+        Affine2::from_translation(Vec2::new(preview_center.x - desc_width * 0.5, desc_y));
+    let desc_model = affine2_to_mat4(&desc_transform);
+    render_text_transformed(
+        renderer,
+        cache,
+        &label.description,
+        &desc_model,
+        desc_font_size,
+        PREVIEW_TEXT_COLOR,
+    );
 }
 
 #[cfg(test)]
@@ -417,5 +493,34 @@ mod tests {
         // Assert
         let calls = shape_log.lock().unwrap();
         assert!(calls.is_empty());
+    }
+
+    #[test]
+    fn when_hovered_entity_has_card_label_then_text_shapes_drawn() {
+        // Arrange
+        let grid = StashGrid::new(10, 10, 1);
+        let (mut world, shape_log) = make_world_with_spy(grid);
+        let card = world
+            .spawn(crate::card_label::CardLabel {
+                name: "Test".to_owned(),
+                description: "Desc".to_owned(),
+            })
+            .id();
+        world
+            .resource_mut::<StashGrid>()
+            .place(0, 0, 0, card)
+            .unwrap();
+        world.resource_mut::<StashHoverPreview>().hovered_entity = Some(card);
+
+        // Act
+        run_render_system(&mut world);
+
+        // Assert — 4 face shapes + text glyph shapes
+        let calls = shape_log.lock().unwrap();
+        assert!(
+            calls.len() > 4,
+            "expected more than 4 shapes (4 face + text glyphs), got {}",
+            calls.len()
+        );
     }
 }
