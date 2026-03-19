@@ -5,13 +5,13 @@ use glam::Vec2;
 
 use crate::card_art_shader::CardArtShader;
 use crate::card_face_layout::FRONT_FACE_REGIONS;
-use crate::drag_state::DragState;
-use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH};
-use crate::stash_grid::{StashGrid, find_stash_slot_at};
-use crate::stash_render::{
-    GRID_MARGIN, RECT_INDICES, SHADER_HALF_H, SHADER_HALF_W, SLOT_STRIDE_H, UNIT_QUAD_VERTS,
-    rect_vertices, reset_default_shader, scale_translate_model,
+use crate::card_geometry::{
+    ART_QUAD, QUAD_INDICES, TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH, UNIT_QUAD, art_quad_model,
+    unit_quad_model,
 };
+use crate::drag_state::DragState;
+use crate::stash_grid::{StashGrid, find_stash_slot_at};
+use crate::stash_render::{GRID_MARGIN, SLOT_STRIDE_H, reset_default_shader};
 use crate::stash_toggle::StashVisible;
 use crate::viewport_camera::resolve_viewport_camera;
 
@@ -59,7 +59,7 @@ pub fn stash_hover_preview_render_system(
 
     let grid_screen_h = f32::from(grid.height()) * SLOT_STRIDE_H;
     let preview_screen_h = grid_screen_h;
-    let preview_screen_w = preview_screen_h * (CARD_WIDTH / CARD_HEIGHT);
+    let preview_screen_w = preview_screen_h * (TABLE_CARD_WIDTH / TABLE_CARD_HEIGHT);
 
     let preview_center_screen = Vec2::new(
         vw - GRID_MARGIN - preview_screen_w * 0.5,
@@ -71,13 +71,11 @@ pub fn stash_hover_preview_render_system(
 
     let art = art_shader.map(|s| s.0);
 
-    let local_verts = UNIT_QUAD_VERTS;
-
     for region in &FRONT_FACE_REGIONS {
         let (half_w_card, half_h_card, offset_y_card) =
             region.resolve(preview_screen_w, preview_screen_h);
-        let half_w = half_w_card / camera.zoom;
-        let half_h = half_h_card / camera.zoom;
+        let width = half_w_card * 2.0 / camera.zoom;
+        let height = half_h_card * 2.0 / camera.zoom;
         let offset_y = offset_y_card / camera.zoom;
 
         let center_x = preview_center.x;
@@ -87,22 +85,19 @@ pub fn stash_hover_preview_render_system(
             if let Some(shader) = art {
                 renderer.set_shader(shader);
             }
-            let sx = half_w / SHADER_HALF_W;
-            let sy = half_h / SHADER_HALF_H;
             renderer.draw_shape(
-                &local_verts,
-                &RECT_INDICES,
+                &ART_QUAD,
+                &QUAD_INDICES,
                 region.color,
-                scale_translate_model(sx, sy, center_x, center_y),
+                art_quad_model(width, height, center_x, center_y),
             );
             renderer.set_shader(ShaderHandle(0));
         } else {
-            let verts = rect_vertices(-half_w, -half_h, half_w * 2.0, half_h * 2.0);
             renderer.draw_shape(
-                &verts,
-                &RECT_INDICES,
+                &UNIT_QUAD,
+                &QUAD_INDICES,
                 region.color,
-                scale_translate_model(1.0, 1.0, center_x, center_y),
+                unit_quad_model(width, height, center_x, center_y),
             );
         }
     }

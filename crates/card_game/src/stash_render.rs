@@ -8,6 +8,9 @@ use engine_render::prelude::{
 use engine_scene::prelude::ChildOf;
 use glam::Vec2;
 
+use crate::card_geometry::{
+    ART_QUAD, QUAD_INDICES, UNIT_QUAD, art_quad_model, rect_vertices, unit_quad_model,
+};
 use crate::stash_grid::StashGrid;
 use crate::stash_icon::StashIcon;
 use crate::stash_toggle::StashVisible;
@@ -25,8 +28,6 @@ pub const SLOT_COLOR: Color = Color {
     a: 1.0,
 };
 pub const GRID_MARGIN: f32 = 20.0;
-pub(crate) const SHADER_HALF_W: f32 = 27.0;
-pub(crate) const SHADER_HALF_H: f32 = 22.5;
 pub const BACKGROUND_COLOR: Color = Color {
     r: 0.15,
     g: 0.15,
@@ -34,31 +35,9 @@ pub const BACKGROUND_COLOR: Color = Color {
     a: 1.0,
 };
 
-pub(crate) fn rect_vertices(x: f32, y: f32, w: f32, h: f32) -> [[f32; 2]; 4] {
-    [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]
-}
-
-pub(crate) const RECT_INDICES: [u32; 6] = [0, 1, 2, 0, 2, 3];
-
-pub(crate) const UNIT_QUAD_VERTS: [[f32; 2]; 4] = [
-    [-SHADER_HALF_W, -SHADER_HALF_H],
-    [SHADER_HALF_W, -SHADER_HALF_H],
-    [SHADER_HALF_W, SHADER_HALF_H],
-    [-SHADER_HALF_W, SHADER_HALF_H],
-];
-
 pub(crate) fn reset_default_shader(renderer: &mut dyn engine_render::prelude::Renderer) {
     renderer.set_shader(ShaderHandle(0));
     renderer.set_blend_mode(BlendMode::Alpha);
-}
-
-pub(crate) fn scale_translate_model(sx: f32, sy: f32, tx: f32, ty: f32) -> [[f32; 4]; 4] {
-    [
-        [sx, 0.0, 0.0, 0.0],
-        [0.0, sy, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0],
-        [tx, ty, 0.0, 1.0],
-    ]
 }
 
 #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
@@ -97,14 +76,10 @@ pub fn stash_render_system(
     );
     renderer.draw_shape(
         &bg_verts,
-        &RECT_INDICES,
+        &QUAD_INDICES,
         BACKGROUND_COLOR,
         engine_render::prelude::IDENTITY_MODEL,
     );
-
-    // Local verts match the shader's expected coordinate space (card art half-extents).
-    // The model matrix scales from this fixed space to the actual world-space slot size.
-    let local_slot_verts = UNIT_QUAD_VERTS;
 
     let icon_colors: HashMap<Entity, Color> = stash_icons
         .iter()
@@ -112,8 +87,6 @@ pub fn stash_render_system(
         .collect();
 
     let page = grid.current_page();
-    let scale_x = world_slot_w / (SHADER_HALF_W * 2.0);
-    let scale_y = world_slot_h / (SHADER_HALF_H * 2.0);
 
     for col in 0..grid.width() {
         for row in 0..grid.height() {
@@ -130,13 +103,16 @@ pub fn stash_render_system(
                 let color = icon_colors.get(&entity).copied().unwrap_or(SLOT_COLOR);
                 if let Some(art) = renderer_art_shader {
                     renderer.set_shader(art);
+                    let model = art_quad_model(world_slot_w, world_slot_h, center.x, center.y);
+                    renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, color, model);
+                } else {
+                    let model = unit_quad_model(world_slot_w, world_slot_h, center.x, center.y);
+                    renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, color, model);
                 }
-                let model = scale_translate_model(scale_x, scale_y, center.x, center.y);
-                renderer.draw_shape(&local_slot_verts, &RECT_INDICES, color, model);
                 renderer.set_shader(ShaderHandle(0));
             } else {
-                let model = scale_translate_model(scale_x, scale_y, center.x, center.y);
-                renderer.draw_shape(&local_slot_verts, &RECT_INDICES, SLOT_COLOR, model);
+                let model = unit_quad_model(world_slot_w, world_slot_h, center.x, center.y);
+                renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, SLOT_COLOR, model);
             }
         }
     }
@@ -153,12 +129,17 @@ pub fn stash_render_system(
 
         if over_stash_area {
             let color = icon_colors.get(&info.entity).copied().unwrap_or(SLOT_COLOR);
+            let cursor_world = mouse.world_pos();
             if let Some(art) = renderer_art_shader {
                 renderer.set_shader(art);
+                let model =
+                    art_quad_model(world_slot_w, world_slot_h, cursor_world.x, cursor_world.y);
+                renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, color, model);
+            } else {
+                let model =
+                    unit_quad_model(world_slot_w, world_slot_h, cursor_world.x, cursor_world.y);
+                renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, color, model);
             }
-            let cursor_world = mouse.world_pos();
-            let model = scale_translate_model(scale_x, scale_y, cursor_world.x, cursor_world.y);
-            renderer.draw_shape(&local_slot_verts, &RECT_INDICES, color, model);
             renderer.set_shader(ShaderHandle(0));
         }
     }
@@ -350,24 +331,6 @@ mod tests {
     }
 
     #[test]
-    fn when_rect_vertices_then_corners_at_expected_positions() {
-        // Arrange
-        let x = 10.0;
-        let y = 20.0;
-        let w = 30.0;
-        let h = 40.0;
-
-        // Act
-        let verts = rect_vertices(x, y, w, h);
-
-        // Assert
-        assert_eq!(verts[0], [10.0, 20.0]);
-        assert_eq!(verts[1], [40.0, 20.0]); // x + w
-        assert_eq!(verts[2], [40.0, 60.0]); // x + w, y + h
-        assert_eq!(verts[3], [10.0, 60.0]); // x, y + h
-    }
-
-    #[test]
     fn when_viewport_width_zero_then_no_shapes_drawn() {
         // Arrange — viewport (0, 768) should trigger early return via || guard
         let mut world = World::new();
@@ -421,38 +384,6 @@ mod tests {
         assert!(shape_calls.lock().unwrap().is_empty());
     }
 
-    #[test]
-    fn when_scale_translate_model_then_matrix_matches_expected_layout() {
-        // Arrange
-        let expected: [[f32; 4]; 4] = [
-            [50.0, 0.0, 0.0, 0.0],  // col 0: scale x
-            [0.0, 75.0, 0.0, 0.0],  // col 1: scale y
-            [0.0, 0.0, 1.0, 0.0],   // col 2: z identity
-            [10.0, 20.0, 0.0, 1.0], // col 3: translation
-        ];
-
-        // Act
-        let m = scale_translate_model(50.0, 75.0, 10.0, 20.0);
-
-        // Assert
-        assert_eq!(m, expected);
-    }
-
-    #[test]
-    fn when_scale_translate_model_with_unit_scale_then_is_pure_translation() {
-        // Act
-        let m = scale_translate_model(1.0, 1.0, 5.0, -3.0);
-
-        // Assert — identity scale + translation
-        let expected: [[f32; 4]; 4] = [
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [5.0, -3.0, 0.0, 1.0],
-        ];
-        assert_eq!(m, expected);
-    }
-
     fn slot_vertex_span(zoom: f32) -> (f32, f32) {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(1, 1, 1));
@@ -481,19 +412,17 @@ mod tests {
     }
 
     #[test]
-    fn when_stash_rendered_at_any_zoom_then_slot_vertices_are_fixed() {
-        // Assert — at all zoom levels, local vertices span the shader's expected range
-        let expected_w = SHADER_HALF_W * 2.0;
-        let expected_h = SHADER_HALF_H * 2.0;
+    fn when_stash_rendered_at_any_zoom_then_slot_vertices_are_unit_quad() {
+        // Assert — at all zoom levels, local vertices span 1.0 (normalized unit quad)
         for zoom in [1.0, 2.0, 0.5] {
             let (w, h) = slot_vertex_span(zoom);
             assert!(
-                (w - expected_w).abs() < 1e-4,
-                "zoom={zoom}: vertex width={w}, expected {expected_w}"
+                (w - 1.0).abs() < 1e-4,
+                "zoom={zoom}: vertex width={w}, expected 1.0"
             );
             assert!(
-                (h - expected_h).abs() < 1e-4,
-                "zoom={zoom}: vertex height={h}, expected {expected_h}"
+                (h - 1.0).abs() < 1e-4,
+                "zoom={zoom}: vertex height={h}, expected 1.0"
             );
         }
     }
@@ -522,11 +451,11 @@ mod tests {
         // Act
         run_system(&mut world);
 
-        // Assert — calls[0]=background, calls[1]=slot; model matrix m[0][0]=sx, m[1][1]=sy
+        // Assert — model scale is directly world_slot_size (unit quad normalized)
         let calls = shape_calls.lock().unwrap();
         let model = &calls[1].3;
-        let expected_sx = (SLOT_WIDTH / zoom) / (SHADER_HALF_W * 2.0);
-        let expected_sy = (SLOT_HEIGHT / zoom) / (SHADER_HALF_H * 2.0);
+        let expected_sx = SLOT_WIDTH / zoom;
+        let expected_sy = SLOT_HEIGHT / zoom;
         assert!(
             (model[0][0] - expected_sx).abs() < 1e-4,
             "scale x: got {}, expected {expected_sx}",
@@ -610,21 +539,19 @@ mod tests {
         // Act
         run_system(&mut world);
 
-        // Assert — last draw call is the drag preview; its vertices should be unit quad
+        // Assert — last draw call is the drag preview; vertices should be normalized unit quad
         let calls = shape_calls.lock().unwrap();
         let last = calls.last().expect("should have draw calls");
         let verts = &last.0;
         let w = verts[1][0] - verts[0][0];
         let h = verts[3][1] - verts[0][1];
-        let expected_w = SHADER_HALF_W * 2.0;
-        let expected_h = SHADER_HALF_H * 2.0;
         assert!(
-            (w - expected_w).abs() < 1e-4,
-            "drag preview vertex width={w}, expected {expected_w}"
+            (w - 1.0).abs() < 1e-4,
+            "drag preview vertex width={w}, expected 1.0"
         );
         assert!(
-            (h - expected_h).abs() < 1e-4,
-            "drag preview vertex height={h}, expected {expected_h}"
+            (h - 1.0).abs() < 1e-4,
+            "drag preview vertex height={h}, expected 1.0"
         );
     }
 }

@@ -30,6 +30,8 @@ fn vs_shape(
 
 @fragment
 fn fs_shape(in: VertexOutput) -> @location(0) vec4<f32> {
+    // local_pos is in the shader's fixed coordinate space (±ART_HALF_W, ±ART_HALF_H).
+    // All callers must pass vertices in this range (use ART_QUAD from card_geometry).
     let half_size = vec2<f32>(27.0, 22.5);
     let uv = in.local_pos / (half_size * 2.0) + vec2<f32>(0.5, 0.5);
     return vec4<f32>(uv.x, uv.y, 0.4, 1.0);

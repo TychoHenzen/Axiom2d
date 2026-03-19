@@ -165,6 +165,7 @@ fn register_game_systems(app: &mut App, config: WindowConfig) {
                 card_item_form_visibility_system,
                 stash_layout_system,
                 sort_propagation_system,
+                card_render_layer_system,
                 hand_layout_system,
             ),
         )

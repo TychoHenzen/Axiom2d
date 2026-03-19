@@ -4,11 +4,9 @@ use engine_input::prelude::MouseState;
 use engine_render::prelude::{Camera2D, RendererRes, screen_to_world};
 use glam::Vec2;
 
+use crate::card_geometry::{QUAD_INDICES, rect_vertices};
 use crate::stash_grid::StashGrid;
-use crate::stash_render::{
-    BACKGROUND_COLOR, GRID_MARGIN, RECT_INDICES, SLOT_GAP, SLOT_STRIDE_H, SLOT_STRIDE_W,
-    rect_vertices,
-};
+use crate::stash_render::{BACKGROUND_COLOR, GRID_MARGIN, SLOT_GAP, SLOT_STRIDE_H, SLOT_STRIDE_W};
 use crate::stash_toggle::StashVisible;
 use crate::viewport_camera::resolve_viewport_camera;
 
@@ -102,7 +100,7 @@ pub fn stash_tab_render_system(
         let verts = rect_vertices(origin.x, origin.y, tab_w, tab_h);
         renderer.draw_shape(
             &verts,
-            &RECT_INDICES,
+            &QUAD_INDICES,
             color,
             engine_render::prelude::IDENTITY_MODEL,
         );

@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::{Entity, World};
 use engine_core::prelude::{Color, Transform2D};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
-use engine_render::prelude::{Material2d, ShaderHandle, Shape, ShapeVariant};
+use engine_render::prelude::{Material2d, ShaderHandle, Shape};
 use engine_scene::prelude::{ChildOf, RenderLayer, SortOrder, Visible};
 use glam::Vec2;
 
@@ -10,24 +10,11 @@ use crate::card_art_shader::CardArtShader;
 use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card_face_layout::FRONT_FACE_REGIONS;
 use crate::card_face_side::CardFaceSide;
+use crate::card_geometry::rect_polygon;
 use crate::card_zone::CardZone;
 use crate::stash_icon::StashIcon;
 use crate::stash_render::{SLOT_HEIGHT, SLOT_WIDTH};
 use engine_scene::sort_propagation::LocalSortOrder;
-
-pub const CARD_WIDTH: f32 = 60.0;
-pub const CARD_HEIGHT: f32 = 90.0;
-
-fn rect_polygon(half_w: f32, half_h: f32) -> ShapeVariant {
-    ShapeVariant::Polygon {
-        points: vec![
-            Vec2::new(-half_w, -half_h),
-            Vec2::new(half_w, -half_h),
-            Vec2::new(half_w, half_h),
-            Vec2::new(-half_w, half_h),
-        ],
-    }
-}
 
 struct FaceChildDef {
     side: CardFaceSide,
@@ -199,6 +186,7 @@ mod tests {
 
     use super::*;
     use crate::card_face_side::CardFaceSide;
+    use crate::card_geometry::{TABLE_CARD_HEIGHT as CARD_HEIGHT, TABLE_CARD_WIDTH as CARD_WIDTH};
 
     fn children_visible_for_side(world: &mut World, root: Entity, side: CardFaceSide) -> Vec<bool> {
         let mut q = world.query::<(&ChildOf, &CardFaceSide, &Visible)>();
