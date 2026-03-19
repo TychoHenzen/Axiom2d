@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn when_dragging_and_stash_hidden_and_entity_has_card_item_form_then_entity_loses_card_item_form()
-    {
+     {
         // Arrange
         let mut world = World::new();
         let card = world.spawn(CardItemForm).id();

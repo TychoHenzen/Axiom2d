@@ -48,12 +48,8 @@ pub fn card_pick_system(
     }
 
     if let Some(stash_pick) = take_stash_card(&mouse, &stash_visible, &mut grid) {
-        commands
-            .entity(stash_pick.entity)
-            .insert(CardZone::Table);
-        commands
-            .entity(stash_pick.entity)
-            .remove::<CardItemForm>();
+        commands.entity(stash_pick.entity).insert(CardZone::Table);
+        commands.entity(stash_pick.entity).remove::<CardItemForm>();
         drag_state.dragging = Some(DragInfo {
             entity: stash_pick.entity,
             local_grab_offset: Vec2::ZERO,

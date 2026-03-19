@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use bevy_ecs::prelude::{Entity, Query, Res, ResMut, With};
 use engine_core::color::Color;
-use engine_render::prelude::{BlendMode, Camera2D, RendererRes, Shape, ShaderHandle, screen_to_world};
+use engine_render::prelude::{
+    BlendMode, Camera2D, RendererRes, ShaderHandle, Shape, screen_to_world,
+};
 use engine_scene::prelude::ChildOf;
 use glam::Vec2;
 
@@ -152,10 +154,7 @@ pub fn stash_render_system(
             && screen.y < bg_y_max;
 
         if over_stash_area {
-            let color = icon_colors
-                .get(&info.entity)
-                .copied()
-                .unwrap_or(SLOT_COLOR);
+            let color = icon_colors.get(&info.entity).copied().unwrap_or(SLOT_COLOR);
             if let Some(art) = renderer_art_shader {
                 renderer.set_shader(art);
             }
@@ -424,14 +423,13 @@ mod tests {
         assert!(shape_calls.lock().unwrap().is_empty());
     }
 
-
     #[test]
     fn when_scale_translate_model_then_matrix_matches_expected_layout() {
         // Arrange
         let expected: [[f32; 4]; 4] = [
-            [50.0, 0.0, 0.0, 0.0], // col 0: scale x
-            [0.0, 75.0, 0.0, 0.0], // col 1: scale y
-            [0.0, 0.0, 1.0, 0.0],  // col 2: z identity
+            [50.0, 0.0, 0.0, 0.0],  // col 0: scale x
+            [0.0, 75.0, 0.0, 0.0],  // col 1: scale y
+            [0.0, 0.0, 1.0, 0.0],   // col 2: z identity
             [10.0, 20.0, 0.0, 1.0], // col 3: translation
         ];
 
@@ -554,7 +552,10 @@ mod tests {
         // Assert — slot center in screen space is (GRID_MARGIN + SLOT_WIDTH/2, GRID_MARGIN + SLOT_HEIGHT/2)
         // At zoom=1 camera at origin, screen_to_world maps that to world coords
         let expected = screen_to_world(
-            Vec2::new(GRID_MARGIN + SLOT_WIDTH * 0.5, GRID_MARGIN + SLOT_HEIGHT * 0.5),
+            Vec2::new(
+                GRID_MARGIN + SLOT_WIDTH * 0.5,
+                GRID_MARGIN + SLOT_HEIGHT * 0.5,
+            ),
             &Camera2D::default(),
             1024.0,
             768.0,

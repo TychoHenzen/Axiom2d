@@ -58,10 +58,10 @@ mod tests {
     // ---------------------------------------------------------------------------
 
     /// Spawns a minimal card hierarchy without physics:
-    ///   root (Card + optional CardItemForm)
-    ///   ├── 4 × Front children (CardFaceSide::Front + Visible)
-    ///   ├── 2 × Back  children (CardFaceSide::Back  + Visible)
-    ///   └── 1 × StashIcon child (StashIcon + Visible)
+    ///   root (Card + optional `CardItemForm`)
+    ///   ├── 4 × Front children (`CardFaceSide::Front` + Visible)
+    ///   ├── 2 × Back  children (`CardFaceSide::Back`  + Visible)
+    ///   └── 1 × `StashIcon` child (`StashIcon` + Visible)
     ///
     /// Returns `(root, front_entities, back_entities, stash_icon_entity)`.
     fn make_card_with_children(
