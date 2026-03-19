@@ -105,6 +105,7 @@ fn register_game_resources(app: &mut App) {
     world.insert_resource(StashVisible::default());
     world.insert_resource(StashGrid::new(10, 10, 1));
     world.insert_resource(Hand::new(10));
+    world.insert_resource(StashHoverPreview::default());
     world.insert_resource(ClearColor(Color {
         r: 0.1,
         g: 0.1,
@@ -157,6 +158,7 @@ fn register_game_systems(app: &mut App, config: WindowConfig) {
         )
         .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system))
         .add_systems(Phase::Update, stash_toggle_system)
+        .add_systems(Phase::Update, stash_hover_preview_system)
         .add_systems(
             Phase::PostUpdate,
             (
@@ -173,6 +175,10 @@ fn register_game_systems(app: &mut App, config: WindowConfig) {
         .add_systems(
             Phase::Render,
             stash_render_system.after(shape_render_system),
+        )
+        .add_systems(
+            Phase::Render,
+            stash_hover_preview_render_system.after(stash_render_system),
         );
 }
 

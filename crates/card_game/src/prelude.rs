@@ -28,6 +28,9 @@ pub use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH, spawn_table_card, spa
 pub use crate::stash_boundary::stash_boundary_system;
 pub use crate::stash_drag_hover::stash_drag_hover_system;
 pub use crate::stash_grid::{SlotOccupied, StashGrid};
+pub use crate::stash_hover::{
+    StashHoverPreview, stash_hover_preview_render_system, stash_hover_preview_system,
+};
 pub use crate::stash_icon::StashIcon;
 pub use crate::stash_layout::stash_layout_system;
 pub use crate::stash_render::{

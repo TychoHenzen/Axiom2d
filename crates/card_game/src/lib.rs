@@ -20,6 +20,7 @@ pub mod spawn_table_card;
 pub mod stash_boundary;
 pub mod stash_drag_hover;
 pub mod stash_grid;
+pub mod stash_hover;
 pub mod stash_icon;
 pub mod stash_layout;
 pub mod stash_render;

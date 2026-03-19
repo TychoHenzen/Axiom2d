@@ -236,14 +236,17 @@ These extend `engine_physics` with capabilities the card game requires.
 - [x] `stash_layout_system` (Phase::PostUpdate) — positions CardZone::Stash cards at world coordinates for their slot (screen_to_world conversion)
 - [x] Tests: 26 tests total across stash_drag_hover (5), card_item_form (5), stash_layout (7), card_release (4 new), spawn hierarchy (1 stash icon), stash_render (1 background)
 
-### Step G3 — Stash Hover Preview `[NOT STARTED]`
+### Step G3 — Stash Hover Preview `[DONE]`
 **Crate:** card_game
-**Why:** Hovering over a stash icon shows a larger card face preview near the cursor.
+**Why:** Ctrl+hovering over a stash icon shows a full-size card face preview anchored to the right side of the screen.
 
-- [ ] Spawn a preview entity: Sprite (face texture), Visible(false), RenderLayer::UI, high SortOrder
-- [ ] `stash_hover_system` in Phase::Update: on hover over occupied stash slot, set preview sprite to that card's face texture, position near cursor (offset so it doesn't overlap the slot), set Visible(true)
-- [ ] On hover exit: set Visible(false)
-- [ ] Tests: hover on occupied slot shows preview, hover on empty slot does nothing, hover exit hides preview, preview follows cursor position
+- [x] `StashHoverPreview` resource holding `Option<Entity>` for hovered card tracking
+- [x] `stash_hover_preview_system` (Phase::Update): Ctrl+hover over occupied stash slot → sets hovered_entity
+- [x] `stash_hover_preview_render_system` (Phase::Render): draws 4 card face shapes directly via `renderer.draw_shape()`, camera-zoom-independent, mirrored right side of screen, shader-space UVs for art area
+- [x] Trigger conditions: StashVisible(true) AND (ControlLeft OR ControlRight) pressed AND cursor over occupied slot AND no active drag
+- [x] On condition exit: hovered_entity cleared, no shapes drawn
+- [x] Guards: zero viewport early return
+- [x] Tests: 11 tests (8 trigger conditions, 3 render system)
 
 ### Step G4 — Stash Pages `[NOT STARTED]`
 **Crate:** card_game
