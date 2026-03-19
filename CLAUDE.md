@@ -23,9 +23,10 @@ We are now building the first real game on the engine — a card game with physi
 ### After completing a step
 
 1. Update `Doc/Card_Game_Roadmap.md`: mark `[DONE]`, check all boxes.
-2. Update the memory file if new public types/traits/systems were added.
-3. Run `cargo.exe fmt --all`.
-4. If new workspace dependencies were added, mention them in the Development Environment section.
+2. **Wire new systems into `card_game_bin/src/main.rs`**. Every new ECS system must be registered in the `setup()` function with the correct `Phase` and ordering constraints (`.after()`, `.chain()`). A system that only exists in the library crate with tests but is never added to a schedule in the binary **does not exist in the game**. Always verify with `cargo.exe build -p card_game_bin`.
+3. Update the memory file if new public types/traits/systems were added.
+4. Run `cargo.exe fmt --all`.
+5. If new workspace dependencies were added, mention them in the Development Environment section.
 
 ### Before committing
 

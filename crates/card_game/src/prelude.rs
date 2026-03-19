@@ -31,6 +31,10 @@ pub use crate::stash_hover::{
 };
 pub use crate::stash_icon::StashIcon;
 pub use crate::stash_layout::stash_layout_system;
+pub use crate::stash_pages::{
+    TAB_ACTIVE, TAB_GAP, TAB_HEIGHT, TAB_INACTIVE, TAB_MARGIN_TOP, TAB_WIDTH,
+    stash_tab_click_system, stash_tab_render_system, tab_left_x, tab_row_top_y,
+};
 pub use crate::stash_render::{
     BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_STRIDE_H, SLOT_STRIDE_W,
     SLOT_WIDTH, stash_render_system,

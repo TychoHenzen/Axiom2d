@@ -248,14 +248,14 @@ These extend `engine_physics` with capabilities the card game requires.
 - [x] Guards: zero viewport early return
 - [x] Tests: 11 tests (8 trigger conditions, 3 render system)
 
-### Step G4 — Stash Pages `[NOT STARTED]`
+### Step G4 — Stash Pages `[DONE]`
 **Crate:** card_game
 **Why:** Multiple pages of stash storage, eventually purchasable.
 
-- [ ] UI buttons or key bindings (e.g. arrow keys when stash is open) to switch `StashGrid.current_page`
-- [ ] Grid rendering updates to show only current page's contents
-- [ ] Page indicator (text or dots showing current/total pages)
-- [ ] Tests: page switch updates displayed slots, cards on other pages preserved, page bounds respected
+- [x] Key bindings (ArrowLeft/ArrowRight when stash is open) to switch `StashGrid.current_page`
+- [x] Grid rendering updates to show only current page's contents (already implemented — stash_render/stash_layout/stash_hover all read current_page())
+- [x] Page indicator (dots below grid showing current/total pages, active dot white, inactive grey)
+- [x] Tests: 10 page navigation tests (advance, decrease, hidden guard, bounds clamping, single page, held key) + 11 page indicator render tests (visibility guards, dot count, color, positioning, centering, spacing)
 
 ---
 

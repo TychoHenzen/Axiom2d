@@ -23,6 +23,7 @@ pub mod stash_grid;
 pub mod stash_hover;
 pub mod stash_icon;
 pub mod stash_layout;
+pub mod stash_pages;
 pub mod stash_render;
 pub mod stash_toggle;
 pub(crate) mod viewport_camera;
