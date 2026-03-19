@@ -6,7 +6,7 @@ use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
 use crate::hand::Hand;
-use crate::scale_spring::ScaleSpring;
+use engine_core::scale_spring::ScaleSpring;
 
 pub const FAN_ARC_DEGREES: f32 = 45.0;
 pub const FAN_CARD_SPACING_DEGREES: f32 = 8.0;
@@ -901,15 +901,25 @@ mod tests {
 
     fn run_both_systems(world: &mut World) {
         let mut schedule = Schedule::default();
-        schedule
-            .add_systems((hand_layout_system, crate::scale_spring::scale_spring_system).chain());
+        schedule.add_systems(
+            (
+                hand_layout_system,
+                engine_core::scale_spring::scale_spring_system,
+            )
+                .chain(),
+        );
         schedule.run(world);
     }
 
     fn run_both_n_frames(world: &mut World, n: usize) {
         let mut schedule = Schedule::default();
-        schedule
-            .add_systems((hand_layout_system, crate::scale_spring::scale_spring_system).chain());
+        schedule.add_systems(
+            (
+                hand_layout_system,
+                engine_core::scale_spring::scale_spring_system,
+            )
+                .chain(),
+        );
         for _ in 0..n {
             schedule.run(world);
         }

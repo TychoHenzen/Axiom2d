@@ -24,8 +24,8 @@ pub const SLOT_COLOR: Color = Color {
     a: 1.0,
 };
 pub const GRID_MARGIN: f32 = 20.0;
-const SHADER_HALF_W: f32 = 27.0;
-const SHADER_HALF_H: f32 = 22.5;
+pub(crate) const SHADER_HALF_W: f32 = 27.0;
+pub(crate) const SHADER_HALF_H: f32 = 22.5;
 pub const BACKGROUND_COLOR: Color = Color {
     r: 0.15,
     g: 0.15,
@@ -33,13 +33,13 @@ pub const BACKGROUND_COLOR: Color = Color {
     a: 1.0,
 };
 
-fn rect_vertices(x: f32, y: f32, w: f32, h: f32) -> [[f32; 2]; 4] {
+pub(crate) fn rect_vertices(x: f32, y: f32, w: f32, h: f32) -> [[f32; 2]; 4] {
     [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]
 }
 
-const RECT_INDICES: [u32; 6] = [0, 1, 2, 0, 2, 3];
+pub(crate) const RECT_INDICES: [u32; 6] = [0, 1, 2, 0, 2, 3];
 
-fn scale_translate_model(sx: f32, sy: f32, tx: f32, ty: f32) -> [[f32; 4]; 4] {
+pub(crate) fn scale_translate_model(sx: f32, sy: f32, tx: f32, ty: f32) -> [[f32; 4]; 4] {
     [
         [sx, 0.0, 0.0, 0.0],
         [0.0, sy, 0.0, 0.0],

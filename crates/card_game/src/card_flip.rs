@@ -265,7 +265,7 @@ mod tests {
     #[test]
     fn when_flip_then_visibility_sync_does_not_change_before_animation_completes() {
         use crate::card_face_side::CardFaceSide;
-        use crate::card_face_visibility::card_face_visibility_sync_system;
+        use crate::card_item_form::card_item_form_visibility_system;
         use engine_scene::prelude::{ChildOf, Children, Visible};
 
         // Arrange — card face-down: front hidden, back visible
@@ -293,7 +293,7 @@ mod tests {
 
         // Act — flip system runs, then visibility sync runs
         let mut schedule = Schedule::default();
-        schedule.add_systems((card_flip_system, card_face_visibility_sync_system).chain());
+        schedule.add_systems((card_flip_system, card_item_form_visibility_system).chain());
         schedule.run(&mut world);
 
         // Assert — face_up unchanged, so visibility stays as-is

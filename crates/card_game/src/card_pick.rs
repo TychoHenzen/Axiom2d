@@ -12,10 +12,9 @@ use crate::card_zone::CardZone;
 use crate::drag_state::{DragInfo, DragState};
 use crate::hand::Hand;
 use crate::hand_layout::HandSpring;
-use crate::scale_spring::ScaleSpring;
-use crate::stash_grid::StashGrid;
-use crate::stash_render::{GRID_MARGIN, SLOT_STRIDE_H, SLOT_STRIDE_W};
+use crate::stash_grid::{StashGrid, find_stash_slot_at};
 use crate::stash_toggle::StashVisible;
+use engine_core::scale_spring::ScaleSpring;
 
 pub const CARD_COLLISION_GROUP: u32 = 0b0001;
 pub const CARD_COLLISION_FILTER: u32 = 0b0010;
@@ -199,24 +198,6 @@ fn take_stash_card(
     })
 }
 
-pub(crate) fn find_stash_slot_at(
-    screen_pos: Vec2,
-    grid_width: u8,
-    grid_height: u8,
-) -> Option<(u8, u8)> {
-    let rel_x = screen_pos.x - GRID_MARGIN;
-    let rel_y = screen_pos.y - GRID_MARGIN;
-    if rel_x < 0.0 || rel_y < 0.0 {
-        return None;
-    }
-    let col = (rel_x / SLOT_STRIDE_W) as u8;
-    let row = (rel_y / SLOT_STRIDE_H) as u8;
-    if col >= grid_width || row >= grid_height {
-        return None;
-    }
-    Some((col, row))
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
@@ -237,7 +218,7 @@ mod tests {
     use crate::drag_state::DragState;
     use crate::hand::Hand;
     use crate::hand_layout::HandSpring;
-    use crate::scale_spring::ScaleSpring;
+    use engine_core::scale_spring::ScaleSpring;
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -1003,73 +984,6 @@ mod tests {
             world.get::<ScaleSpring>(card_entity).is_none(),
             "table cards should not get ScaleSpring"
         );
-    }
-
-    #[test]
-    fn when_cursor_at_slot_center_then_returns_correct_col_row() {
-        // Arrange
-        // col=1, row=2 center: x = 20 + 1*54 + 25 = 99.0, y = 20 + 2*79 + 37 = 195.0
-        let screen_pos = Vec2::new(99.0, 195.0);
-
-        // Act
-        let result = super::find_stash_slot_at(screen_pos, 4, 5);
-
-        // Assert
-        assert_eq!(result, Some((1, 2)));
-    }
-
-    #[test]
-    fn when_cursor_inside_slot_but_not_at_center_then_returns_that_slot() {
-        // Arrange
-        // col=2, row=3 slot x: [20+108, 178] = [128, 178], y: [20+237, 20+237+75] = [257, 332]
-        let screen_pos = Vec2::new(130.0, 260.0);
-
-        // Act
-        let result = super::find_stash_slot_at(screen_pos, 5, 6);
-
-        // Assert
-        assert_eq!(result, Some((2, 3)));
-    }
-
-    #[test]
-    fn when_cursor_at_top_left_boundary_of_first_slot_then_returns_zero_zero() {
-        // Arrange
-        // slot (0,0) starts at (GRID_MARGIN, GRID_MARGIN) = (20.0, 20.0) — inclusive lower bound
-        let screen_pos = Vec2::new(20.0, 20.0);
-
-        // Act
-        let result = super::find_stash_slot_at(screen_pos, 3, 4);
-
-        // Assert
-        assert_eq!(result, Some((0, 0)));
-    }
-
-    #[test]
-    fn when_cursor_in_lower_half_of_tall_slot_then_slot_is_hit() {
-        // Arrange
-        // slot (1,2): x in [20+54, 20+54+50) = [74, 124), y in [20+158, 20+158+75) = [178, 253)
-        // y=238 is at offset 60 inside the slot — within new 75-height but beyond old 50-height
-        let screen_pos = Vec2::new(80.0, 238.0);
-
-        // Act
-        let result = super::find_stash_slot_at(screen_pos, 4, 5);
-
-        // Assert
-        assert_eq!(result, Some((1, 2)));
-    }
-
-    #[test]
-    fn when_cursor_in_gap_between_slots_then_snaps_to_adjacent_slot() {
-        // Arrange
-        // slot (1,2) y range is [178, 253), gap is [253, 257) before slot (1,3)
-        // y=253.0 is in the gap — should snap to slot (1,2) rather than returning None
-        let screen_pos = Vec2::new(80.0, 253.0);
-
-        // Act
-        let result = super::find_stash_slot_at(screen_pos, 4, 5);
-
-        // Assert
-        assert_eq!(result, Some((1, 2)));
     }
 
     #[test]

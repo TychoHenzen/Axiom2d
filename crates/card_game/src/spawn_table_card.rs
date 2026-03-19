@@ -1,18 +1,19 @@
 use bevy_ecs::prelude::{Entity, World};
-use engine_core::prelude::{Color, Pixels, Transform2D};
+use engine_core::prelude::{Color, Transform2D};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
-use engine_render::prelude::{Material2d, ShaderHandle, Shape, ShapeVariant, Sprite};
+use engine_render::prelude::{Material2d, ShaderHandle, Shape, ShapeVariant};
 use engine_scene::prelude::{ChildOf, RenderLayer, SortOrder, Visible};
 use glam::Vec2;
 
 use crate::card::Card;
 use crate::card_art_shader::CardArtShader;
 use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
+use crate::card_face_layout::FRONT_FACE_REGIONS;
 use crate::card_face_side::CardFaceSide;
 use crate::card_zone::CardZone;
-use crate::sort_propagation::LocalSortOrder;
 use crate::stash_icon::StashIcon;
 use crate::stash_render::{SLOT_HEIGHT, SLOT_WIDTH};
+use engine_scene::sort_propagation::LocalSortOrder;
 
 pub const CARD_WIDTH: f32 = 60.0;
 pub const CARD_HEIGHT: f32 = 90.0;
@@ -126,7 +127,6 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
     root
 }
 
-#[allow(clippy::too_many_lines)]
 fn spawn_front_face_children(
     world: &mut World,
     root: Entity,
@@ -135,50 +135,27 @@ fn spawn_front_face_children(
     art_shader: Option<ShaderHandle>,
 ) {
     let (w, h) = (card_size.x, card_size.y);
-    let children = [
-        FaceChildDef {
-            side: CardFaceSide::Front,
-            visible: face_up,
-            offset: Vec2::ZERO,
-            half_w: w * 0.5,
-            half_h: h * 0.5,
-            color: Color::WHITE,
-            sort: 1,
-            shader: None,
-        },
-        FaceChildDef {
-            side: CardFaceSide::Front,
-            visible: face_up,
-            offset: Vec2::new(0.0, -(h * 0.5 - 7.5)),
-            half_w: w * 0.45,
-            half_h: 7.5,
-            color: Color::from_u8(220, 220, 220, 255),
-            sort: 2,
-            shader: None,
-        },
-        FaceChildDef {
-            side: CardFaceSide::Front,
-            visible: face_up,
-            offset: Vec2::new(0.0, -(h * 0.1)),
-            half_w: w * 0.45,
-            half_h: 22.5,
-            color: Color::from_u8(180, 200, 230, 255),
-            sort: 3,
-            shader: art_shader,
-        },
-        FaceChildDef {
-            side: CardFaceSide::Front,
-            visible: face_up,
-            offset: Vec2::new(0.0, h * 0.5 - 15.0),
-            half_w: w * 0.45,
-            half_h: 15.0,
-            color: Color::from_u8(240, 240, 200, 255),
-            sort: 4,
-            shader: None,
-        },
-    ];
-    for def in &children {
-        spawn_face_child(world, root, def);
+    for (i, region) in FRONT_FACE_REGIONS.iter().enumerate() {
+        let (half_w, half_h, offset_y) = region.resolve(w, h);
+        let shader = if region.use_art_shader {
+            art_shader
+        } else {
+            None
+        };
+        spawn_face_child(
+            world,
+            root,
+            &FaceChildDef {
+                side: CardFaceSide::Front,
+                visible: face_up,
+                offset: Vec2::new(0.0, offset_y),
+                half_w,
+                half_h,
+                color: region.color,
+                sort: (i + 1) as i32,
+                shader,
+            },
+        );
     }
 }
 
@@ -211,215 +188,17 @@ fn spawn_back_face_children(world: &mut World, root: Entity, card_size: Vec2, fa
     }
 }
 
-#[allow(clippy::too_many_lines)]
-pub fn spawn_table_card(world: &mut World, card: Card, position: Vec2, card_size: Vec2) -> Entity {
-    let half = card_size * 0.5;
-    let texture = if card.face_up {
-        card.face_texture
-    } else {
-        card.back_texture
-    };
-
-    let entity = world
-        .spawn((
-            card,
-            CardZone::Table,
-            Sprite {
-                texture,
-                uv_rect: [0.0, 0.0, 1.0, 1.0],
-                color: Color::WHITE,
-                width: Pixels(card_size.x),
-                height: Pixels(card_size.y),
-            },
-            Transform2D {
-                position,
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            RigidBody::Dynamic,
-            Collider::Aabb(half),
-            RenderLayer::World,
-            SortOrder(0),
-        ))
-        .id();
-
-    if let Some(mut physics) = world.get_resource_mut::<PhysicsRes>() {
-        physics.add_body(entity, &RigidBody::Dynamic, position);
-        physics.add_collider(entity, &Collider::Aabb(half));
-        physics.set_damping(entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
-    }
-
-    entity
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::sync::{Arc, Mutex};
-
     use bevy_ecs::prelude::*;
-    use engine_core::prelude::{Seconds, TextureId};
-    use engine_physics::prelude::{
-        Collider, CollisionEvent, PhysicsBackend, PhysicsRes, RigidBody,
-    };
+    use engine_core::prelude::TextureId;
     use engine_render::prelude::ShapeVariant;
     use engine_scene::prelude::{ChildOf, Visible};
     use glam::Vec2;
 
     use super::*;
     use crate::card_face_side::CardFaceSide;
-
-    type BodyLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
-    type ColliderLog = Arc<Mutex<Vec<Entity>>>;
-    type DampingLog = Arc<Mutex<Vec<(Entity, f32, f32)>>>;
-
-    struct SpyPhysicsBackend {
-        bodies: BodyLog,
-        colliders: ColliderLog,
-        dampings: DampingLog,
-    }
-
-    impl SpyPhysicsBackend {
-        fn new(bodies: BodyLog, colliders: ColliderLog, dampings: DampingLog) -> Self {
-            Self {
-                bodies,
-                colliders,
-                dampings,
-            }
-        }
-    }
-
-    impl PhysicsBackend for SpyPhysicsBackend {
-        fn step(&mut self, _dt: Seconds) {}
-        fn add_body(&mut self, entity: Entity, _body_type: &RigidBody, position: Vec2) -> bool {
-            self.bodies.lock().unwrap().push((entity, position));
-            true
-        }
-        fn add_collider(&mut self, entity: Entity, _collider: &Collider) -> bool {
-            self.colliders.lock().unwrap().push(entity);
-            true
-        }
-        fn remove_body(&mut self, _: Entity) {}
-        fn body_position(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn body_rotation(&self, _: Entity) -> Option<f32> {
-            None
-        }
-        fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
-            Vec::new()
-        }
-        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
-            None
-        }
-        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
-        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
-        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
-        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
-            None
-        }
-        fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32) {
-            self.dampings
-                .lock()
-                .unwrap()
-                .push((entity, linear, angular));
-        }
-        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
-    }
-
-    fn make_spy_world() -> (World, BodyLog, ColliderLog, DampingLog) {
-        let bodies: BodyLog = Arc::new(Mutex::new(Vec::new()));
-        let colliders: ColliderLog = Arc::new(Mutex::new(Vec::new()));
-        let dampings: DampingLog = Arc::new(Mutex::new(Vec::new()));
-        let mut world = World::new();
-        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new(
-            bodies.clone(),
-            colliders.clone(),
-            dampings.clone(),
-        ))));
-        (world, bodies, colliders, dampings)
-    }
-
-    #[test]
-    fn when_spawning_table_card_then_physics_body_registered() {
-        // Arrange
-        let (mut world, bodies, _, _) = make_spy_world();
-        let card = Card::face_down(TextureId(1), TextureId(2));
-        let pos = Vec2::new(100.0, 50.0);
-
-        // Act
-        let entity = spawn_table_card(&mut world, card, pos, Vec2::new(CARD_WIDTH, CARD_HEIGHT));
-
-        // Assert
-        let calls = bodies.lock().unwrap();
-        assert_eq!(calls.len(), 1);
-        assert_eq!(calls[0].0, entity);
-        assert_eq!(calls[0].1, pos);
-    }
-
-    #[test]
-    fn when_spawning_table_card_then_physics_collider_registered() {
-        // Arrange
-        let (mut world, _, colliders, _) = make_spy_world();
-        let card = Card::face_down(TextureId(1), TextureId(2));
-
-        // Act
-        let entity = spawn_table_card(
-            &mut world,
-            card,
-            Vec2::ZERO,
-            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
-        );
-
-        // Assert
-        let calls = colliders.lock().unwrap();
-        assert_eq!(calls.len(), 1);
-        assert_eq!(calls[0], entity);
-    }
-
-    #[test]
-    fn when_spawning_table_card_then_initial_damping_set() {
-        // Arrange
-        let (mut world, _, _, dampings) = make_spy_world();
-        let card = Card::face_down(TextureId(1), TextureId(2));
-
-        // Act
-        let entity = spawn_table_card(
-            &mut world,
-            card,
-            Vec2::ZERO,
-            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
-        );
-
-        // Assert
-        let calls = dampings.lock().unwrap();
-        assert_eq!(calls.len(), 1);
-        assert_eq!(calls[0].0, entity);
-        assert!((calls[0].1 - BASE_LINEAR_DRAG).abs() < 1e-4);
-        assert!((calls[0].2 - BASE_ANGULAR_DRAG).abs() < 1e-4);
-    }
-
-    #[test]
-    fn when_spawning_table_card_then_collider_is_half_card_size() {
-        // Arrange
-        let (mut world, _, _, _) = make_spy_world();
-        let card = Card::face_down(TextureId(1), TextureId(2));
-        let card_size = Vec2::new(80.0, 120.0);
-
-        // Act
-        let entity = spawn_table_card(&mut world, card, Vec2::ZERO, card_size);
-
-        // Assert
-        let collider = world.get::<Collider>(entity).unwrap();
-        let Collider::Aabb(half) = collider else {
-            panic!("expected Collider::Aabb");
-        };
-        let expected = card_size * 0.5;
-        assert!(
-            (half.x - expected.x).abs() < 1e-6 && (half.y - expected.y).abs() < 1e-6,
-            "expected half={expected}, got {half}"
-        );
-    }
 
     fn children_visible_for_side(world: &mut World, root: Entity, side: CardFaceSide) -> Vec<bool> {
         let mut q = world.query::<(&ChildOf, &CardFaceSide, &Visible)>();
@@ -705,7 +484,8 @@ mod tests {
     #[test]
     fn when_spawn_visual_card_then_front_name_strip_position_and_size_correct() {
         // Arrange — card_size=(100, 200), w=100, h=200
-        // Name strip (Front sort=2): offset=(0, -(h*0.5 - 7.5))=(0, -92.5), half_w=w*0.45=45
+        // Name strip (Front sort=2): half_h_frac=1/12 → half_h=200/12≈16.667
+        // offset_y = -(h*0.5 - half_h) = -(100 - 16.667) ≈ -83.333
         let mut world = World::new();
         let card = Card::face_down(TextureId(1), TextureId(2));
         let card_size = Vec2::new(100.0, 200.0);
@@ -716,7 +496,12 @@ mod tests {
         // Assert
         let (t, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Front, 2)
             .expect("front sort=2 child");
-        assert!((t.position.y - (-92.5)).abs() < 1e-4, "y={}", t.position.y);
+        let expected_y = -(200.0 * 0.5 - 200.0 / 12.0);
+        assert!(
+            (t.position.y - expected_y).abs() < 1e-2,
+            "y={}, expected {expected_y}",
+            t.position.y
+        );
         let (hw, _) = polygon_half_extents(&shape);
         assert!((hw - 45.0).abs() < 1e-4, "half_w={hw}");
     }
@@ -741,7 +526,8 @@ mod tests {
 
     #[test]
     fn when_spawn_visual_card_then_front_description_strip_position_and_size_correct() {
-        // Arrange — desc strip (Front sort=4): offset=(0, h*0.5 - 15)=(0, 85), half_w=w*0.45=45
+        // Arrange — desc strip (Front sort=4): half_h_frac=1/6 → half_h=200/6≈33.333
+        // offset_y = h*0.5 - half_h = 100 - 33.333 ≈ 66.667
         let mut world = World::new();
         let card = Card::face_down(TextureId(1), TextureId(2));
         let card_size = Vec2::new(100.0, 200.0);
@@ -752,7 +538,12 @@ mod tests {
         // Assert
         let (t, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Front, 4)
             .expect("front sort=4 child");
-        assert!((t.position.y - 85.0).abs() < 1e-4, "y={}", t.position.y);
+        let expected_y = 200.0 * 0.5 - 200.0 / 6.0;
+        assert!(
+            (t.position.y - expected_y).abs() < 1e-2,
+            "y={}, expected {expected_y}",
+            t.position.y
+        );
         let (hw, _) = polygon_half_extents(&shape);
         assert!((hw - 45.0).abs() < 1e-4, "half_w={hw}");
     }

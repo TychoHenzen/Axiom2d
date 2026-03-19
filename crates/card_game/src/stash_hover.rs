@@ -1,15 +1,17 @@
 use bevy_ecs::prelude::{Entity, Query, Res, ResMut, Resource};
-use engine_core::prelude::Color;
 use engine_input::prelude::{InputState, KeyCode, MouseState};
 use engine_render::prelude::{BlendMode, Camera2D, RendererRes, ShaderHandle, screen_to_world};
 use glam::Vec2;
 
 use crate::card_art_shader::CardArtShader;
-use crate::card_pick::find_stash_slot_at;
+use crate::card_face_layout::FRONT_FACE_REGIONS;
 use crate::drag_state::DragState;
 use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH};
-use crate::stash_grid::StashGrid;
-use crate::stash_render::{GRID_MARGIN, SLOT_STRIDE_H};
+use crate::stash_grid::{StashGrid, find_stash_slot_at};
+use crate::stash_render::{
+    GRID_MARGIN, RECT_INDICES, SHADER_HALF_H, SHADER_HALF_W, SLOT_STRIDE_H, rect_vertices,
+    scale_translate_model,
+};
 use crate::stash_toggle::StashVisible;
 
 #[derive(Resource, Debug, Default)]
@@ -37,79 +39,6 @@ pub fn stash_hover_preview_system(
 
     hover_preview.hovered_entity = hovered;
 }
-
-fn rect_vertices(x: f32, y: f32, w: f32, h: f32) -> [[f32; 2]; 4] {
-    [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]
-}
-
-const RECT_INDICES: [u32; 6] = [0, 1, 2, 0, 2, 3];
-
-fn scale_translate_model(sx: f32, sy: f32, tx: f32, ty: f32) -> [[f32; 4]; 4] {
-    [
-        [sx, 0.0, 0.0, 0.0],
-        [0.0, sy, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0],
-        [tx, ty, 0.0, 1.0],
-    ]
-}
-
-struct CardFaceDef {
-    offset_y_frac: f32,
-    half_w_frac: f32,
-    half_h_abs: f32,
-    color: Color,
-    use_art_shader: bool,
-}
-
-const CARD_FACE_DEFS: [CardFaceDef; 4] = [
-    // Border (full card)
-    CardFaceDef {
-        offset_y_frac: 0.0,
-        half_w_frac: 0.5,
-        half_h_abs: 0.5, // special: fraction of h, not absolute
-        color: Color::WHITE,
-        use_art_shader: false,
-    },
-    // Name strip
-    CardFaceDef {
-        offset_y_frac: -0.5, // relative to top, adjusted by half_h
-        half_w_frac: 0.45,
-        half_h_abs: 7.5,
-        color: Color {
-            r: 0.863,
-            g: 0.863,
-            b: 0.863,
-            a: 1.0,
-        },
-        use_art_shader: false,
-    },
-    // Art area
-    CardFaceDef {
-        offset_y_frac: -0.1,
-        half_w_frac: 0.45,
-        half_h_abs: 22.5,
-        color: Color {
-            r: 0.706,
-            g: 0.784,
-            b: 0.902,
-            a: 1.0,
-        },
-        use_art_shader: true,
-    },
-    // Description strip
-    CardFaceDef {
-        offset_y_frac: 0.5, // relative to bottom, adjusted by half_h
-        half_w_frac: 0.45,
-        half_h_abs: 15.0,
-        color: Color {
-            r: 0.941,
-            g: 0.941,
-            b: 0.784,
-            a: 1.0,
-        },
-        use_art_shader: false,
-    },
-];
 
 #[allow(clippy::too_many_arguments)]
 pub fn stash_hover_preview_render_system(
@@ -142,20 +71,10 @@ pub fn stash_hover_preview_render_system(
     );
     let preview_center = screen_to_world(preview_center_screen, &camera, vw, vh);
 
-    let world_w = preview_screen_w / camera.zoom;
-    let world_h = preview_screen_h / camera.zoom;
-
-    // Scale factor for child element heights (original card is 90px tall)
-    let h_scale = preview_screen_h / CARD_HEIGHT;
-
     renderer.set_shader(ShaderHandle(0));
     renderer.set_blend_mode(BlendMode::Alpha);
 
     let art = art_shader.map(|s| s.0);
-
-    // Shader-space half-extents (must match stash_render's local_slot_verts)
-    const SHADER_HALF_W: f32 = 27.0;
-    const SHADER_HALF_H: f32 = 22.5;
 
     let local_verts = rect_vertices(
         -SHADER_HALF_W,
@@ -164,26 +83,17 @@ pub fn stash_hover_preview_render_system(
         SHADER_HALF_H * 2.0,
     );
 
-    for def in &CARD_FACE_DEFS {
-        let half_w = world_w * def.half_w_frac;
-        let half_h = if def.offset_y_frac.abs() < 0.01 && (def.half_h_abs - 0.5).abs() < 0.01 {
-            world_h * 0.5
-        } else {
-            def.half_h_abs * h_scale / camera.zoom
-        };
-
-        let offset_y = if (def.offset_y_frac + 0.5).abs() < 0.01 {
-            -(world_h * 0.5 - half_h)
-        } else if (def.offset_y_frac - 0.5).abs() < 0.01 {
-            world_h * 0.5 - half_h
-        } else {
-            world_h * def.offset_y_frac
-        };
+    for region in &FRONT_FACE_REGIONS {
+        let (half_w_card, half_h_card, offset_y_card) =
+            region.resolve(preview_screen_w, preview_screen_h);
+        let half_w = half_w_card / camera.zoom;
+        let half_h = half_h_card / camera.zoom;
+        let offset_y = offset_y_card / camera.zoom;
 
         let center_x = preview_center.x;
         let center_y = preview_center.y + offset_y;
 
-        if def.use_art_shader {
+        if region.use_art_shader {
             if let Some(shader) = art {
                 renderer.set_shader(shader);
             }
@@ -192,7 +102,7 @@ pub fn stash_hover_preview_render_system(
             renderer.draw_shape(
                 &local_verts,
                 &RECT_INDICES,
-                def.color,
+                region.color,
                 scale_translate_model(sx, sy, center_x, center_y),
             );
             renderer.set_shader(ShaderHandle(0));
@@ -201,7 +111,7 @@ pub fn stash_hover_preview_render_system(
             renderer.draw_shape(
                 &verts,
                 &RECT_INDICES,
-                def.color,
+                region.color,
                 scale_translate_model(1.0, 1.0, center_x, center_y),
             );
         }

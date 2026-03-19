@@ -369,7 +369,7 @@ mod tests {
     #[test]
     fn when_animation_completes_then_visibility_sync_reflects_final_state() {
         use crate::card_face_side::CardFaceSide;
-        use crate::card_face_visibility::card_face_visibility_sync_system;
+        use crate::card_item_form::card_item_form_visibility_system;
         use engine_scene::prelude::{ChildOf, Children, Visible};
 
         // Arrange
@@ -402,7 +402,7 @@ mod tests {
 
         // Act
         let mut schedule = Schedule::default();
-        schedule.add_systems((flip_animation_system, card_face_visibility_sync_system).chain());
+        schedule.add_systems((flip_animation_system, card_item_form_visibility_system).chain());
         schedule.run(&mut world);
 
         // Assert

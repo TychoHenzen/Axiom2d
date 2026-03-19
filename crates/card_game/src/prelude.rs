@@ -6,7 +6,6 @@ pub use crate::card_damping::{
 };
 pub use crate::card_drag::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
 pub use crate::card_face_side::CardFaceSide;
-pub use crate::card_face_visibility::card_face_visibility_sync_system;
 pub use crate::card_flip::card_flip_system;
 pub use crate::card_item_form::{CardItemForm, card_item_form_visibility_system};
 pub use crate::card_pick::{
@@ -22,9 +21,8 @@ pub use crate::hand_layout::{
     FAN_ARC_DEGREES, FAN_BOTTOM_OFFSET, FAN_CARD_SPACING_DEGREES, FAN_RADIUS, HandSpring,
     SPRING_DAMPING, SPRING_STIFFNESS, fan_angle, fan_screen_position, hand_layout_system,
 };
-pub use crate::scale_spring::{ScaleSpring, scale_spring_system, sync_scale_spring_lock_x};
-pub use crate::sort_propagation::{LocalSortOrder, SORT_STRIDE, sort_propagation_system};
-pub use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH, spawn_table_card, spawn_visual_card};
+pub use crate::scale_spring::sync_scale_spring_lock_x;
+pub use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH, spawn_visual_card};
 pub use crate::stash_boundary::stash_boundary_system;
 pub use crate::stash_drag_hover::stash_drag_hover_system;
 pub use crate::stash_grid::{SlotOccupied, StashGrid};
@@ -38,3 +36,5 @@ pub use crate::stash_render::{
     SLOT_WIDTH, stash_render_system,
 };
 pub use crate::stash_toggle::{StashVisible, stash_toggle_system};
+pub use engine_core::scale_spring::{ScaleSpring, scale_spring_system};
+pub use engine_scene::sort_propagation::{LocalSortOrder, SORT_STRIDE, sort_propagation_system};

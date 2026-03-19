@@ -1,5 +1,8 @@
 use bevy_ecs::prelude::{Entity, Resource};
+use glam::Vec2;
 use std::collections::HashMap;
+
+use crate::stash_render::{GRID_MARGIN, SLOT_STRIDE_H, SLOT_STRIDE_W};
 
 #[derive(Debug, thiserror::Error)]
 #[error("slot is already occupied")]
@@ -81,6 +84,24 @@ impl StashGrid {
         }
         None
     }
+}
+
+pub(crate) fn find_stash_slot_at(
+    screen_pos: Vec2,
+    grid_width: u8,
+    grid_height: u8,
+) -> Option<(u8, u8)> {
+    let rel_x = screen_pos.x - GRID_MARGIN;
+    let rel_y = screen_pos.y - GRID_MARGIN;
+    if rel_x < 0.0 || rel_y < 0.0 {
+        return None;
+    }
+    let col = (rel_x / SLOT_STRIDE_W) as u8;
+    let row = (rel_y / SLOT_STRIDE_H) as u8;
+    if col >= grid_width || row >= grid_height {
+        return None;
+    }
+    Some((col, row))
 }
 
 #[cfg(test)]
@@ -376,5 +397,66 @@ mod tests {
         // Assert
         assert_eq!(grid.get(0, 5, 5), Some(&entity_a));
         assert_eq!(grid.get(1, 5, 5), Some(&entity_b));
+    }
+
+    #[test]
+    fn when_cursor_at_slot_center_then_returns_correct_col_row() {
+        // Arrange
+        // col=1, row=2 center: x = 20 + 1*54 + 25 = 99.0, y = 20 + 2*79 + 37 = 195.0
+        let screen_pos = Vec2::new(99.0, 195.0);
+
+        // Act
+        let result = find_stash_slot_at(screen_pos, 4, 5);
+
+        // Assert
+        assert_eq!(result, Some((1, 2)));
+    }
+
+    #[test]
+    fn when_cursor_inside_slot_but_not_at_center_then_returns_that_slot() {
+        // Arrange
+        let screen_pos = Vec2::new(130.0, 260.0);
+
+        // Act
+        let result = find_stash_slot_at(screen_pos, 5, 6);
+
+        // Assert
+        assert_eq!(result, Some((2, 3)));
+    }
+
+    #[test]
+    fn when_cursor_at_top_left_boundary_of_first_slot_then_returns_zero_zero() {
+        // Arrange
+        let screen_pos = Vec2::new(20.0, 20.0);
+
+        // Act
+        let result = find_stash_slot_at(screen_pos, 3, 4);
+
+        // Assert
+        assert_eq!(result, Some((0, 0)));
+    }
+
+    #[test]
+    fn when_cursor_in_lower_half_of_tall_slot_then_slot_is_hit() {
+        // Arrange
+        let screen_pos = Vec2::new(80.0, 238.0);
+
+        // Act
+        let result = find_stash_slot_at(screen_pos, 4, 5);
+
+        // Assert
+        assert_eq!(result, Some((1, 2)));
+    }
+
+    #[test]
+    fn when_cursor_in_gap_between_slots_then_snaps_to_adjacent_slot() {
+        // Arrange
+        let screen_pos = Vec2::new(80.0, 253.0);
+
+        // Act
+        let result = find_stash_slot_at(screen_pos, 4, 5);
+
+        // Assert
+        assert_eq!(result, Some((1, 2)));
     }
 }
