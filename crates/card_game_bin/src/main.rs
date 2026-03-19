@@ -147,6 +147,8 @@ fn register_game_systems(app: &mut App, config: WindowConfig) {
             (
                 card_pick_system,
                 card_drag_system,
+                stash_boundary_system,
+                stash_drag_hover_system,
                 card_release_system,
                 card_flip_system,
                 flip_animation_system,
@@ -158,7 +160,8 @@ fn register_game_systems(app: &mut App, config: WindowConfig) {
         .add_systems(
             Phase::PostUpdate,
             (
-                card_face_visibility_sync_system,
+                card_item_form_visibility_system,
+                stash_layout_system,
                 sort_propagation_system,
                 hand_layout_system,
             ),

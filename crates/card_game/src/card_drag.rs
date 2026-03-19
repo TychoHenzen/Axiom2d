@@ -1,4 +1,5 @@
-use bevy_ecs::prelude::{Res, ResMut};
+use bevy_ecs::prelude::{Query, Res, ResMut};
+use engine_core::prelude::Transform2D;
 use engine_input::prelude::{MouseButton, MouseState};
 use engine_physics::prelude::PhysicsRes;
 use glam::Vec2;
@@ -12,11 +13,20 @@ pub fn card_drag_system(
     mouse: Res<MouseState>,
     drag_state: Res<DragState>,
     mut physics: ResMut<PhysicsRes>,
+    mut transforms: Query<&mut Transform2D>,
 ) {
     let Some(info) = &drag_state.dragging else {
         return;
     };
     if !mouse.pressed(MouseButton::Left) {
+        return;
+    }
+
+    if info.stash_cursor_follow {
+        if let Ok(mut transform) = transforms.get_mut(info.entity) {
+            transform.position = mouse.world_pos();
+            transform.rotation = 0.0;
+        }
         return;
     }
 
@@ -156,13 +166,58 @@ mod tests {
                 entity,
                 local_grab_offset,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
         (world, velocity_log, angular_velocity_log)
     }
 
+    use engine_core::prelude::Transform2D;
+
     use crate::test_helpers::spawn_entity;
+
+    #[test]
+    fn when_stash_cursor_follow_then_position_set_to_world_pos_and_no_physics_velocity() {
+        // Arrange
+        let vel_log: VelocityLog = Arc::new(Mutex::new(Vec::new()));
+        let ang_log: AngularVelocityLog = Arc::new(Mutex::new(Vec::new()));
+        let mut world = World::new();
+        let entity = world
+            .spawn(Transform2D {
+                position: Vec2::ZERO,
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            })
+            .id();
+        let spy = SpyPhysicsBackend::new(vel_log.clone(), ang_log.clone()).with_body(
+            entity,
+            Vec2::ZERO,
+            0.0,
+        );
+        world.insert_resource(PhysicsRes::new(Box::new(spy)));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::new(120.0, 80.0));
+        world.insert_resource(mouse);
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Table,
+                stash_cursor_follow: true,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let pos = world.entity(entity).get::<Transform2D>().unwrap().position;
+        assert_eq!(pos, Vec2::new(120.0, 80.0));
+        assert!(vel_log.lock().unwrap().is_empty());
+        assert!(ang_log.lock().unwrap().is_empty());
+    }
 
     #[test]
     fn when_dragging_at_center_then_velocity_points_toward_cursor() {

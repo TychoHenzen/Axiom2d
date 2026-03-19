@@ -7,13 +7,14 @@ use glam::Vec2;
 
 use crate::card::Card;
 use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
+use crate::card_item_form::CardItemForm;
 use crate::card_zone::CardZone;
 use crate::drag_state::{DragInfo, DragState};
 use crate::hand::Hand;
 use crate::hand_layout::HandSpring;
 use crate::scale_spring::ScaleSpring;
 use crate::stash_grid::StashGrid;
-use crate::stash_render::{GRID_MARGIN, SLOT_SIZE, SLOT_STRIDE};
+use crate::stash_render::{GRID_MARGIN, SLOT_STRIDE_H, SLOT_STRIDE_W};
 use crate::stash_toggle::StashVisible;
 
 pub const CARD_COLLISION_GROUP: u32 = 0b0001;
@@ -38,7 +39,6 @@ pub fn card_pick_system(
     )>,
     stash_visible: Res<StashVisible>,
     mut grid: ResMut<StashGrid>,
-    transform_query: Query<(&GlobalTransform2D, &Collider)>,
 ) {
     if drag_state.dragging.is_some() {
         return;
@@ -48,25 +48,12 @@ pub fn card_pick_system(
     }
 
     if let Some(stash_pick) = take_stash_card(&mouse, &stash_visible, &mut grid) {
-        let Ok((transform, collider)) = transform_query.get(stash_pick.entity) else {
-            return;
-        };
-        let position = transform.0.translation;
-        let collider = collider.clone();
-        physics.add_body(stash_pick.entity, &RigidBody::Dynamic, position);
-        physics.add_collider(stash_pick.entity, &collider);
-        physics.set_damping(stash_pick.entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
-        physics.set_collision_group(
-            stash_pick.entity,
-            DRAGGED_COLLISION_GROUP,
-            DRAGGED_COLLISION_FILTER,
-        );
         commands
             .entity(stash_pick.entity)
-            .insert(RigidBody::Dynamic);
+            .insert(CardZone::Table);
         commands
             .entity(stash_pick.entity)
-            .insert(RenderLayer::World);
+            .remove::<CardItemForm>();
         drag_state.dragging = Some(DragInfo {
             entity: stash_pick.entity,
             local_grab_offset: Vec2::ZERO,
@@ -75,6 +62,7 @@ pub fn card_pick_system(
                 col: stash_pick.col,
                 row: stash_pick.row,
             },
+            stash_cursor_follow: true,
         });
         return;
     }
@@ -105,6 +93,7 @@ pub fn card_pick_system(
         entity,
         local_grab_offset,
         origin_zone: zone,
+        stash_cursor_follow: false,
     });
     if let Ok((_, _, _, _, _, mut sort)) = query.get_mut(entity) {
         sort.0 = max_sort + 1;
@@ -219,20 +208,17 @@ pub(crate) fn find_stash_slot_at(
     grid_width: u8,
     grid_height: u8,
 ) -> Option<(u8, u8)> {
-    for col in 0..grid_width {
-        for row in 0..grid_height {
-            let x_start = GRID_MARGIN + f32::from(col) * SLOT_STRIDE;
-            let y_start = GRID_MARGIN + f32::from(row) * SLOT_STRIDE;
-            if screen_pos.x >= x_start
-                && screen_pos.x < x_start + SLOT_SIZE
-                && screen_pos.y >= y_start
-                && screen_pos.y < y_start + SLOT_SIZE
-            {
-                return Some((col, row));
-            }
-        }
+    let rel_x = screen_pos.x - GRID_MARGIN;
+    let rel_y = screen_pos.y - GRID_MARGIN;
+    if rel_x < 0.0 || rel_y < 0.0 {
+        return None;
     }
-    None
+    let col = (rel_x / SLOT_STRIDE_W) as u8;
+    let row = (rel_y / SLOT_STRIDE_H) as u8;
+    if col >= grid_width || row >= grid_height {
+        return None;
+    }
+    Some((col, row))
 }
 
 #[cfg(test)]
@@ -494,6 +480,7 @@ mod tests {
                 entity: card_a,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
         insert_pick_resources(&mut world);
@@ -1025,8 +1012,8 @@ mod tests {
     #[test]
     fn when_cursor_at_slot_center_then_returns_correct_col_row() {
         // Arrange
-        // col=1, row=2 center: x = 20 + 1*54 + 25 = 99.0, y = 20 + 2*54 + 25 = 153.0
-        let screen_pos = Vec2::new(99.0, 153.0);
+        // col=1, row=2 center: x = 20 + 1*54 + 25 = 99.0, y = 20 + 2*79 + 37 = 195.0
+        let screen_pos = Vec2::new(99.0, 195.0);
 
         // Act
         let result = super::find_stash_slot_at(screen_pos, 4, 5);
@@ -1038,8 +1025,8 @@ mod tests {
     #[test]
     fn when_cursor_inside_slot_but_not_at_center_then_returns_that_slot() {
         // Arrange
-        // col=2, row=3 slot x: [20+108, 20+108+50] = [128, 178], y: [20+162, 20+162+50] = [182, 232]
-        let screen_pos = Vec2::new(130.0, 185.0);
+        // col=2, row=3 slot x: [20+108, 178] = [128, 178], y: [20+237, 20+237+75] = [257, 332]
+        let screen_pos = Vec2::new(130.0, 260.0);
 
         // Act
         let result = super::find_stash_slot_at(screen_pos, 5, 6);
@@ -1062,13 +1049,41 @@ mod tests {
     }
 
     #[test]
+    fn when_cursor_in_lower_half_of_tall_slot_then_slot_is_hit() {
+        // Arrange
+        // slot (1,2): x in [20+54, 20+54+50) = [74, 124), y in [20+158, 20+158+75) = [178, 253)
+        // y=238 is at offset 60 inside the slot — within new 75-height but beyond old 50-height
+        let screen_pos = Vec2::new(80.0, 238.0);
+
+        // Act
+        let result = super::find_stash_slot_at(screen_pos, 4, 5);
+
+        // Assert
+        assert_eq!(result, Some((1, 2)));
+    }
+
+    #[test]
+    fn when_cursor_in_gap_between_slots_then_snaps_to_adjacent_slot() {
+        // Arrange
+        // slot (1,2) y range is [178, 253), gap is [253, 257) before slot (1,3)
+        // y=253.0 is in the gap — should snap to slot (1,2) rather than returning None
+        let screen_pos = Vec2::new(80.0, 253.0);
+
+        // Act
+        let result = super::find_stash_slot_at(screen_pos, 4, 5);
+
+        // Assert
+        assert_eq!(result, Some((1, 2)));
+    }
+
+    #[test]
     fn when_left_click_on_stash_card_then_drag_info_records_stash_origin_and_slot_vacated() {
         // Arrange
         use crate::stash_grid::StashGrid;
         use crate::stash_toggle::StashVisible;
 
         let mut world = World::new();
-        // col=2, row=3 center: x = 20 + 2*54 + 25 = 153, y = 20 + 3*54 + 25 = 207
+        // col=2, row=3 center: x = 20 + 2*54 + 25 = 153, y = 20 + 3*79 + 37 = 294
         let card_entity = world
             .spawn((
                 Card::face_down(TextureId(20), TextureId(21)),
@@ -1092,7 +1107,7 @@ mod tests {
         world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::new())));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
-        mouse.set_screen_pos(Vec2::new(153.0, 207.0));
+        mouse.set_screen_pos(Vec2::new(153.0, 294.0));
         world.insert_resource(mouse);
 
         // Act
@@ -1116,13 +1131,13 @@ mod tests {
     }
 
     #[test]
-    fn when_left_click_on_stash_card_then_physics_body_added_and_render_layer_becomes_world() {
+    fn when_left_click_on_stash_card_then_no_physics_body_added_and_render_layer_stays_ui() {
         // Arrange
         use crate::stash_grid::StashGrid;
         use crate::stash_toggle::StashVisible;
 
         let mut world = World::new();
-        // col=2, row=3 center: x = 153, y = 207
+        // col=2, row=3 center: x = 153, y = 20 + 3*79 + 37 = 294
         let card_entity = world
             .spawn((
                 Card::face_down(TextureId(30), TextureId(31)),
@@ -1147,25 +1162,21 @@ mod tests {
         world.insert_resource(PhysicsRes::new(spy));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
-        mouse.set_screen_pos(Vec2::new(153.0, 207.0));
+        mouse.set_screen_pos(Vec2::new(153.0, 294.0));
         world.insert_resource(mouse);
 
         // Act
         run_system(&mut world);
 
-        // Assert
-        assert_eq!(
-            bodies.lock().unwrap().len(),
-            1,
-            "add_body called once for stash card"
+        // Assert — stash picks must NOT create physics bodies (cursor-follow mode)
+        assert!(
+            bodies.lock().unwrap().is_empty(),
+            "add_body should NOT be called for stash card (cursor-follow mode)"
         );
         assert_eq!(
             *world.get::<RenderLayer>(card_entity).unwrap(),
-            RenderLayer::World
-        );
-        assert_eq!(
-            *world.get::<RigidBody>(card_entity).unwrap(),
-            RigidBody::Dynamic
+            RenderLayer::UI,
+            "RenderLayer should stay UI for stash card"
         );
     }
 
@@ -1212,6 +1223,80 @@ mod tests {
         assert!(
             world.resource::<DragState>().dragging.is_none(),
             "stash pick should not trigger when stash is hidden"
+        );
+    }
+
+    #[test]
+    fn when_left_click_on_stash_card_then_drag_info_stash_cursor_follow_is_true() {
+        // Arrange
+        use crate::stash_grid::StashGrid;
+        use crate::stash_toggle::StashVisible;
+
+        let mut world = World::new();
+        // slot (col=0, row=0) center: x=45.0, y=57.5
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(40), TextureId(41)),
+                CardZone::Stash {
+                    page: 0,
+                    col: 0,
+                    row: 0,
+                },
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                GlobalTransform2D(Affine2::IDENTITY),
+                RenderLayer::UI,
+                SortOrder(0),
+            ))
+            .id();
+        let mut grid = StashGrid::new(10, 10, 1);
+        grid.place(0, 0, 0, card_entity).unwrap();
+        world.insert_resource(grid);
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(DragState::default());
+        world.insert_resource(Hand::new(10));
+        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::new())));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_screen_pos(Vec2::new(45.0, 57.5));
+        world.insert_resource(mouse);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let drag = world.resource::<DragState>().dragging.unwrap();
+        assert!(
+            drag.stash_cursor_follow,
+            "picking from a stash slot must set stash_cursor_follow=true"
+        );
+    }
+
+    #[test]
+    fn when_left_click_on_table_card_then_drag_info_stash_cursor_follow_is_false() {
+        // Arrange
+        let mut world = World::new();
+        world.spawn((
+            Card::face_down(TextureId(42), TextureId(43)),
+            CardZone::Table,
+            default_collider(),
+            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+            SortOrder(0),
+        ));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::ZERO);
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let drag = world.resource::<DragState>().dragging.unwrap();
+        assert!(
+            !drag.stash_cursor_follow,
+            "picking a table card must leave stash_cursor_follow=false"
         );
     }
 }

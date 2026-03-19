@@ -11,6 +11,8 @@ use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card_face_side::CardFaceSide;
 use crate::card_zone::CardZone;
 use crate::sort_propagation::LocalSortOrder;
+use crate::stash_icon::StashIcon;
+use crate::stash_render::{SLOT_HEIGHT, SLOT_WIDTH};
 
 pub const CARD_WIDTH: f32 = 60.0;
 pub const CARD_HEIGHT: f32 = 90.0;
@@ -94,6 +96,32 @@ pub fn spawn_visual_card(world: &mut World, card: Card, position: Vec2, card_siz
     let art_shader = world.get_resource::<CardArtShader>().map(|s| s.0);
     spawn_front_face_children(world, root, card_size, face_up, art_shader);
     spawn_back_face_children(world, root, card_size, face_up);
+
+    let icon = world
+        .spawn((
+            ChildOf(root),
+            StashIcon,
+            Shape {
+                variant: rect_polygon(SLOT_WIDTH * 0.5, SLOT_HEIGHT * 0.5),
+                color: Color::from_u8(180, 200, 230, 255),
+            },
+            Visible(false),
+            Transform2D {
+                position: Vec2::ZERO,
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            RenderLayer::UI,
+            LocalSortOrder(1),
+            SortOrder(0),
+        ))
+        .id();
+    if let Some(shader) = art_shader {
+        world.entity_mut(icon).insert(Material2d {
+            shader,
+            ..Material2d::default()
+        });
+    }
 
     root
 }
@@ -781,6 +809,87 @@ mod tests {
         let (hw, hh) = polygon_half_extents(&shape);
         assert!((hw - 50.0).abs() < 1e-4, "half_w={hw}");
         assert!((hh - 100.0).abs() < 1e-4, "half_h={hh}");
+    }
+
+    fn find_stash_icon_child(world: &mut World, root: Entity) -> Option<Entity> {
+        let mut q = world.query::<(Entity, &ChildOf, &crate::stash_icon::StashIcon)>();
+        q.iter(world)
+            .find(|(_, parent, _)| parent.0 == root)
+            .map(|(e, _, _)| e)
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_exactly_one_stash_icon_child_exists() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            card,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+        );
+
+        // Assert
+        let mut q = world.query::<(Entity, &ChildOf, &crate::stash_icon::StashIcon)>();
+        let count = q.iter(&world).filter(|(_, p, _)| p.0 == root).count();
+        assert_eq!(count, 1, "expected exactly one StashIcon child");
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_stash_icon_half_extents_match_slot_dimensions() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+        let card_size = Vec2::new(CARD_WIDTH, CARD_HEIGHT);
+
+        // Act
+        let root = spawn_visual_card(&mut world, card, Vec2::ZERO, card_size);
+
+        // Assert — icon must match slot size (50×75), not card size (60×90)
+        let icon = find_stash_icon_child(&mut world, root).expect("StashIcon child must exist");
+        let shape = world
+            .get::<engine_render::prelude::Shape>(icon)
+            .expect("StashIcon must have Shape");
+        let ShapeVariant::Polygon { ref points } = shape.variant else {
+            panic!("expected Polygon variant");
+        };
+        let max_x = points.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
+        let max_y = points.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
+        let expected_half_w = crate::stash_render::SLOT_WIDTH * 0.5;
+        let expected_half_h = crate::stash_render::SLOT_HEIGHT * 0.5;
+        assert!(
+            (max_x - expected_half_w).abs() < 1e-4,
+            "half_w={max_x} expected {expected_half_w} (SLOT_WIDTH/2, not CARD_WIDTH/2)"
+        );
+        assert!(
+            (max_y - expected_half_h).abs() < 1e-4,
+            "half_h={max_y} expected {expected_half_h} (SLOT_HEIGHT/2, not CARD_HEIGHT/2)"
+        );
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_stash_icon_child_is_hidden() {
+        // Arrange
+        let mut world = World::new();
+        let card = Card::face_down(TextureId(1), TextureId(2));
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            card,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+        );
+
+        // Assert
+        let icon = find_stash_icon_child(&mut world, root).expect("StashIcon child must exist");
+        let visible = world
+            .get::<Visible>(icon)
+            .expect("StashIcon must have Visible");
+        assert!(!visible.0, "StashIcon must be Visible(false) by default");
     }
 
     #[test]

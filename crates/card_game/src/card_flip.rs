@@ -212,6 +212,7 @@ mod tests {
                 entity: dummy,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 

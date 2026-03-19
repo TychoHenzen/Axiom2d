@@ -30,8 +30,6 @@ fn vs_shape(
 
 @fragment
 fn fs_shape(in: VertexOutput) -> @location(0) vec4<f32> {
-    // Art rect half-extents: half_w = CARD_WIDTH * 0.45, half_h = 22.5
-    // local_pos ranges from (-half_w, -half_h) to (half_w, half_h)
     let half_size = vec2<f32>(27.0, 22.5);
     let uv = in.local_pos / (half_size * 2.0) + vec2<f32>(0.5, 0.5);
     return vec4<f32>(uv.x, uv.y, 0.4, 1.0);

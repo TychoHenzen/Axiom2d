@@ -216,19 +216,25 @@ These extend `engine_physics` with capabilities the card game requires.
 - [x] Occupied slots render with the card's Shape color
 - [x] Empty slots render with SLOT_COLOR constant (dark grey)
 - [x] Stash visibility: togglable via Tab key press (StashVisible resource + stash_toggle_system)
-- [x] Tests: 6 render tests (hidden=no draw, count, empty slot color, occupied slot color, column spacing, row spacing) + 4 toggle tests (default hidden, open, close, no-op without keypress) + 3 accessor tests (width, height, page_count)
+- [x] Background rect (BACKGROUND_COLOR dark rect) drawn behind all slots
+- [x] Tests: 6 render tests (hidden=no draw, count, empty slot color, occupied slot color, column spacing, row spacing) + 4 toggle tests (default hidden, open, close, no-op without keypress) + 3 accessor tests (width, height, page_count) + 1 background rect test
 
 ### Step G2 — Stash Drag and Drop `[DONE]`
 **Crate:** card_game
-**Why:** Move cards in and out of the stash grid.
+**Why:** Move cards in and out of the stash grid. Cards transition to ARPG-style item form (showing card art icon) while over the stash, and return to full card form when dragged off.
 
 - [x] Extend card_pick_system: check stash slot hit-testing when stash is visible
 - [x] On pick from stash: `StashGrid.take(page, col, row)`, set DragState with origin_zone = Stash { page, col, row }
 - [x] Extend card_release_system drop targets:
-  - Drop on stash slot: `StashGrid.place(page, col, row, entity)`, set CardZone::Stash
+  - Drop on stash slot: `StashGrid.place(page, col, row, entity)`, set CardZone::Stash, insert CardItemForm
   - Return to origin stash slot if drop target invalid
-- [x] Cross-zone drops: stash↔hand, stash↔table all supported
-- [x] Tests: pick from stash removes from grid, drop on empty slot places, drop on occupied slot returns to origin, cross-zone drops work
+- [x] Cross-zone drops: stash↔hand, stash↔table all supported; CardItemForm removed on hand/table drop
+- [x] `StashIcon` marker component — child entity of card root with Sprite showing card art (Visible(false) by default)
+- [x] `CardItemForm` marker component — when present on a card root: hides all CardFaceSide children, shows StashIcon child
+- [x] `card_item_form_visibility_system` (Phase::PostUpdate) — syncs Visible on all card children based on CardItemForm + Card.face_up
+- [x] `stash_drag_hover_system` (Phase::Update, after card_drag_system) — inserts/removes CardItemForm live during drag based on cursor over stash area + StashVisible
+- [x] `stash_layout_system` (Phase::PostUpdate) — positions CardZone::Stash cards at world coordinates for their slot (screen_to_world conversion)
+- [x] Tests: 26 tests total across stash_drag_hover (5), card_item_form (5), stash_layout (7), card_release (4 new), spawn hierarchy (1 stash icon), stash_render (1 background)
 
 ### Step G3 — Stash Hover Preview `[NOT STARTED]`
 **Crate:** card_game

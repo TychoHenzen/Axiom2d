@@ -1,14 +1,20 @@
-use bevy_ecs::prelude::{Query, Res, ResMut};
+use std::collections::HashMap;
+
+use bevy_ecs::prelude::{Entity, Query, Res, ResMut, With};
 use engine_core::color::Color;
-use engine_render::prelude::{Camera2D, RendererRes, Shape, screen_to_world};
+use engine_render::prelude::{BlendMode, Camera2D, RendererRes, Shape, ShaderHandle, screen_to_world};
+use engine_scene::prelude::ChildOf;
 use glam::Vec2;
 
 use crate::stash_grid::StashGrid;
+use crate::stash_icon::StashIcon;
 use crate::stash_toggle::StashVisible;
 
-pub const SLOT_SIZE: f32 = 50.0;
+pub const SLOT_WIDTH: f32 = 50.0;
+pub const SLOT_HEIGHT: f32 = 75.0;
 pub const SLOT_GAP: f32 = 4.0;
-pub const SLOT_STRIDE: f32 = SLOT_SIZE + SLOT_GAP;
+pub const SLOT_STRIDE_W: f32 = SLOT_WIDTH + SLOT_GAP;
+pub const SLOT_STRIDE_H: f32 = SLOT_HEIGHT + SLOT_GAP;
 pub const SLOT_COLOR: Color = Color {
     r: 0.25,
     g: 0.25,
@@ -16,6 +22,14 @@ pub const SLOT_COLOR: Color = Color {
     a: 1.0,
 };
 pub const GRID_MARGIN: f32 = 20.0;
+const SHADER_HALF_W: f32 = 27.0;
+const SHADER_HALF_H: f32 = 22.5;
+pub const BACKGROUND_COLOR: Color = Color {
+    r: 0.15,
+    g: 0.15,
+    b: 0.15,
+    a: 1.0,
+};
 
 fn rect_vertices(x: f32, y: f32, w: f32, h: f32) -> [[f32; 2]; 4] {
     [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]
@@ -23,14 +37,27 @@ fn rect_vertices(x: f32, y: f32, w: f32, h: f32) -> [[f32; 2]; 4] {
 
 const RECT_INDICES: [u32; 6] = [0, 1, 2, 0, 2, 3];
 
-#[allow(clippy::too_many_lines)]
+fn scale_translate_model(sx: f32, sy: f32, tx: f32, ty: f32) -> [[f32; 4]; 4] {
+    [
+        [sx, 0.0, 0.0, 0.0],
+        [0.0, sy, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [tx, ty, 0.0, 1.0],
+    ]
+}
+
+#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 pub fn stash_render_system(
     grid: Res<StashGrid>,
     visible: Res<StashVisible>,
-    card_shapes: Query<&Shape>,
+    drag_state: Res<crate::drag_state::DragState>,
+    mouse: Res<engine_input::prelude::MouseState>,
+    art_shader: Option<Res<crate::card_art_shader::CardArtShader>>,
+    stash_icons: Query<(&ChildOf, &Shape), With<StashIcon>>,
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
 ) {
+    let renderer_art_shader = art_shader.map(|s| s.0);
     if !visible.0 {
         return;
     }
@@ -42,32 +69,100 @@ pub fn stash_render_system(
     let vw = vw as f32;
     let vh = vh as f32;
 
+    // Reset shader and blend mode — shape_render_system may have left a custom shader active
+    renderer.set_shader(ShaderHandle(0));
+    renderer.set_blend_mode(BlendMode::Alpha);
+
     let camera = camera_query
         .iter()
         .next()
         .copied()
         .unwrap_or(Camera2D::default());
-    let world_slot_size = SLOT_SIZE / camera.zoom;
+    let world_slot_w = SLOT_WIDTH / camera.zoom;
+    let world_slot_h = SLOT_HEIGHT / camera.zoom;
+
+    let bg_screen_w = f32::from(grid.width()) * SLOT_STRIDE_W - SLOT_GAP;
+    let bg_screen_h = f32::from(grid.height()) * SLOT_STRIDE_H - SLOT_GAP;
+    let bg_origin = screen_to_world(Vec2::new(GRID_MARGIN, GRID_MARGIN), &camera, vw, vh);
+    let bg_verts = rect_vertices(
+        bg_origin.x,
+        bg_origin.y,
+        bg_screen_w / camera.zoom,
+        bg_screen_h / camera.zoom,
+    );
+    renderer.draw_shape(
+        &bg_verts,
+        &RECT_INDICES,
+        BACKGROUND_COLOR,
+        engine_render::prelude::IDENTITY_MODEL,
+    );
+
+    // Local verts match the shader's expected coordinate space (card art half-extents).
+    // The model matrix scales from this fixed space to the actual world-space slot size.
+    let local_slot_verts = rect_vertices(
+        -SHADER_HALF_W,
+        -SHADER_HALF_H,
+        SHADER_HALF_W * 2.0,
+        SHADER_HALF_H * 2.0,
+    );
+
+    let icon_colors: HashMap<Entity, Color> = stash_icons
+        .iter()
+        .map(|(parent, shape)| (parent.0, shape.color))
+        .collect();
 
     let page = grid.current_page();
+    let scale_x = world_slot_w / (SHADER_HALF_W * 2.0);
+    let scale_y = world_slot_h / (SHADER_HALF_H * 2.0);
+
     for col in 0..grid.width() {
         for row in 0..grid.height() {
-            let screen_x = GRID_MARGIN + f32::from(col) * SLOT_STRIDE;
-            let screen_y = GRID_MARGIN + f32::from(row) * SLOT_STRIDE;
-            let wp = screen_to_world(Vec2::new(screen_x, screen_y), &camera, vw, vh);
-
-            let color = grid
-                .get(page, col, row)
-                .and_then(|&entity| card_shapes.get(entity).ok())
-                .map_or(SLOT_COLOR, |shape| shape.color);
-
-            let verts = rect_vertices(wp.x, wp.y, world_slot_size, world_slot_size);
-            renderer.draw_shape(
-                &verts,
-                &RECT_INDICES,
-                color,
-                engine_render::prelude::IDENTITY_MODEL,
+            let screen_x = GRID_MARGIN + f32::from(col) * SLOT_STRIDE_W;
+            let screen_y = GRID_MARGIN + f32::from(row) * SLOT_STRIDE_H;
+            let center = screen_to_world(
+                Vec2::new(screen_x + SLOT_WIDTH * 0.5, screen_y + SLOT_HEIGHT * 0.5),
+                &camera,
+                vw,
+                vh,
             );
+
+            if let Some(&entity) = grid.get(page, col, row) {
+                let color = icon_colors.get(&entity).copied().unwrap_or(SLOT_COLOR);
+                if let Some(art) = renderer_art_shader {
+                    renderer.set_shader(art);
+                }
+                let model = scale_translate_model(scale_x, scale_y, center.x, center.y);
+                renderer.draw_shape(&local_slot_verts, &RECT_INDICES, color, model);
+                renderer.set_shader(ShaderHandle(0));
+            } else {
+                let model = scale_translate_model(scale_x, scale_y, center.x, center.y);
+                renderer.draw_shape(&local_slot_verts, &RECT_INDICES, SLOT_COLOR, model);
+            }
+        }
+    }
+
+    // Draw the dragged card's icon on top of the stash grid at the cursor position
+    if let Some(info) = drag_state.dragging {
+        let screen = mouse.screen_pos();
+        let bg_x_max = GRID_MARGIN + f32::from(grid.width()) * SLOT_STRIDE_W - SLOT_GAP;
+        let bg_y_max = GRID_MARGIN + f32::from(grid.height()) * SLOT_STRIDE_H - SLOT_GAP;
+        let over_stash_area = screen.x >= GRID_MARGIN
+            && screen.x < bg_x_max
+            && screen.y >= GRID_MARGIN
+            && screen.y < bg_y_max;
+
+        if over_stash_area {
+            let color = icon_colors
+                .get(&info.entity)
+                .copied()
+                .unwrap_or(SLOT_COLOR);
+            if let Some(art) = renderer_art_shader {
+                renderer.set_shader(art);
+            }
+            let cursor_world = mouse.world_pos();
+            let model = scale_translate_model(scale_x, scale_y, cursor_world.x, cursor_world.y);
+            renderer.draw_shape(&local_slot_verts, &RECT_INDICES, color, model);
+            renderer.set_shader(ShaderHandle(0));
         }
     }
 }
@@ -84,6 +179,8 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(grid);
         world.insert_resource(StashVisible(visible));
+        world.insert_resource(crate::drag_state::DragState::default());
+        world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
         let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
@@ -126,8 +223,8 @@ mod tests {
         // Act
         run_system(&mut world);
 
-        // Assert
-        assert_eq!(shape_calls.lock().unwrap().len(), 12);
+        // Assert — 1 background + 4*3 slots = 13
+        assert_eq!(shape_calls.lock().unwrap().len(), 13);
     }
 
     #[test]
@@ -138,9 +235,9 @@ mod tests {
         // Act
         run_system(&mut world);
 
-        // Assert
+        // Assert — calls[0] is background, calls[1] is the first (only) slot
         let calls = shape_calls.lock().unwrap();
-        assert_eq!(calls[0].2, SLOT_COLOR);
+        assert_eq!(calls[1].2, SLOT_COLOR);
     }
 
     #[test]
@@ -154,23 +251,26 @@ mod tests {
             b: 0.0,
             a: 1.0,
         };
-        let entity = world
-            .spawn(Shape {
+        let root = world.spawn_empty().id();
+        world.spawn((
+            ChildOf(root),
+            StashIcon,
+            Shape {
                 variant: engine_render::prelude::ShapeVariant::Circle { radius: 1.0 },
                 color: card_color,
-            })
-            .id();
+            },
+        ));
 
         let mut grid = StashGrid::new(1, 1, 1);
-        grid.place(0, 0, 0, entity).unwrap();
+        grid.place(0, 0, 0, root).unwrap();
         world.insert_resource(grid);
 
         // Act
         run_system(&mut world);
 
-        // Assert
+        // Assert — calls[0] is background, calls[1] is the only slot
         let calls = shape_calls.lock().unwrap();
-        assert_eq!(calls[0].2, card_color);
+        assert_eq!(calls[1].2, card_color);
     }
 
     #[test]
@@ -181,14 +281,15 @@ mod tests {
         // Act
         run_system(&mut world);
 
-        // Assert
+        // Assert — calls[0] is background; calls[1] and calls[2] are the two column slots
+        // Stride is measured via model matrix translation (tx = model[3][0])
         let calls = shape_calls.lock().unwrap();
-        let x0 = calls[0].0[0][0];
-        let x1 = calls[1].0[0][0];
-        let dx = x1 - x0;
+        let tx0 = calls[1].3[3][0];
+        let tx1 = calls[2].3[3][0];
+        let dx = tx1 - tx0;
         assert!(
-            (dx - SLOT_STRIDE).abs() < 0.01,
-            "expected stride {SLOT_STRIDE}, got {dx}"
+            (dx - SLOT_STRIDE_W).abs() < 0.01,
+            "expected stride {SLOT_STRIDE_W}, got {dx}"
         );
     }
 
@@ -200,24 +301,54 @@ mod tests {
         // Act
         run_system(&mut world);
 
-        // Assert
+        // Assert — calls[0] is background; calls[1] and calls[2] are the two row slots
+        // Stride is measured via model matrix translation (ty = model[3][1])
         let calls = shape_calls.lock().unwrap();
-        let y0 = calls[0].0[0][1];
-        let y1 = calls[1].0[0][1];
-        let dy = y1 - y0;
+        let ty0 = calls[1].3[3][1];
+        let ty1 = calls[2].3[3][1];
+        let dy = ty1 - ty0;
         assert!(
-            (dy - SLOT_STRIDE).abs() < 0.01,
-            "expected stride {SLOT_STRIDE}, got {dy}"
+            (dy - SLOT_STRIDE_H).abs() < 0.01,
+            "expected stride {SLOT_STRIDE_H}, got {dy}"
         );
     }
 
     #[test]
-    fn when_slot_stride_then_equals_slot_size_plus_gap() {
-        // Assert — SLOT_STRIDE must be the sum, not difference or product
+    fn when_visible_then_first_shape_covers_full_grid_area() {
+        // Arrange — 2x2 grid so grid bounds are deterministic
+        let (mut world, shape_calls) = make_world_with_spy(StashGrid::new(2, 2, 1), true);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — calls[0] is the background; its width must span the entire slot grid
+        let calls = shape_calls.lock().unwrap();
         assert!(
-            (SLOT_STRIDE - (SLOT_SIZE + SLOT_GAP)).abs() < 1e-6,
-            "SLOT_STRIDE={SLOT_STRIDE}, expected {}",
-            SLOT_SIZE + SLOT_GAP
+            !calls.is_empty(),
+            "expected at least one draw call for the background"
+        );
+        let bg_verts = &calls[0].0;
+        // vertex layout: [0]=top-left, [1]=top-right
+        let bg_width_world = bg_verts[1][0] - bg_verts[0][0];
+        let grid_span_screen = 2.0 * SLOT_STRIDE_W - SLOT_GAP;
+        assert!(
+            bg_width_world >= grid_span_screen,
+            "background width {bg_width_world} should cover grid span {grid_span_screen}"
+        );
+    }
+
+    #[test]
+    fn when_slot_strides_then_equal_slot_dimension_plus_gap() {
+        // Assert — SLOT_STRIDE_W and SLOT_STRIDE_H must be sums, not differences or products
+        assert!(
+            (SLOT_STRIDE_W - (SLOT_WIDTH + SLOT_GAP)).abs() < 1e-6,
+            "SLOT_STRIDE_W={SLOT_STRIDE_W}, expected {}",
+            SLOT_WIDTH + SLOT_GAP
+        );
+        assert!(
+            (SLOT_STRIDE_H - (SLOT_HEIGHT + SLOT_GAP)).abs() < 1e-6,
+            "SLOT_STRIDE_H={SLOT_STRIDE_H}, expected {}",
+            SLOT_HEIGHT + SLOT_GAP
         );
     }
 
@@ -245,6 +376,8 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(2, 2, 1));
         world.insert_resource(StashVisible(true));
+        world.insert_resource(crate::drag_state::DragState::default());
+        world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
         let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
@@ -270,6 +403,8 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(2, 2, 1));
         world.insert_resource(StashVisible(true));
+        world.insert_resource(crate::drag_state::DragState::default());
+        world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
         let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
@@ -289,12 +424,45 @@ mod tests {
         assert!(shape_calls.lock().unwrap().is_empty());
     }
 
+
     #[test]
-    fn when_camera_zoom_two_then_slot_size_halved() {
-        // Arrange — zoom=2 → world_slot_size = SLOT_SIZE / 2 = 25
+    fn when_scale_translate_model_then_matrix_matches_expected_layout() {
+        // Arrange
+        let expected: [[f32; 4]; 4] = [
+            [50.0, 0.0, 0.0, 0.0], // col 0: scale x
+            [0.0, 75.0, 0.0, 0.0], // col 1: scale y
+            [0.0, 0.0, 1.0, 0.0],  // col 2: z identity
+            [10.0, 20.0, 0.0, 1.0], // col 3: translation
+        ];
+
+        // Act
+        let m = scale_translate_model(50.0, 75.0, 10.0, 20.0);
+
+        // Assert
+        assert_eq!(m, expected);
+    }
+
+    #[test]
+    fn when_scale_translate_model_with_unit_scale_then_is_pure_translation() {
+        // Act
+        let m = scale_translate_model(1.0, 1.0, 5.0, -3.0);
+
+        // Assert — identity scale + translation
+        let expected: [[f32; 4]; 4] = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [5.0, -3.0, 0.0, 1.0],
+        ];
+        assert_eq!(m, expected);
+    }
+
+    fn slot_vertex_span(zoom: f32) -> (f32, f32) {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(1, 1, 1));
         world.insert_resource(StashVisible(true));
+        world.insert_resource(crate::drag_state::DragState::default());
+        world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
         let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
@@ -304,21 +472,160 @@ mod tests {
         world.insert_resource(RendererRes::new(Box::new(spy)));
         world.spawn(Camera2D {
             position: Vec2::ZERO,
-            zoom: 2.0,
+            zoom,
+        });
+
+        run_system(&mut world);
+
+        let calls = shape_calls.lock().unwrap();
+        let verts = &calls[1].0; // calls[0] = background, calls[1] = slot
+        let width = verts[1][0] - verts[0][0];
+        let height = verts[3][1] - verts[0][1];
+        (width, height)
+    }
+
+    #[test]
+    fn when_stash_rendered_at_any_zoom_then_slot_vertices_are_fixed() {
+        // Assert — at all zoom levels, local vertices span the shader's expected range
+        let expected_w = SHADER_HALF_W * 2.0;
+        let expected_h = SHADER_HALF_H * 2.0;
+        for zoom in [1.0, 2.0, 0.5] {
+            let (w, h) = slot_vertex_span(zoom);
+            assert!(
+                (w - expected_w).abs() < 1e-4,
+                "zoom={zoom}: vertex width={w}, expected {expected_w}"
+            );
+            assert!(
+                (h - expected_h).abs() < 1e-4,
+                "zoom={zoom}: vertex height={h}, expected {expected_h}"
+            );
+        }
+    }
+
+    #[test]
+    fn when_stash_rendered_then_model_matrix_scale_equals_slot_size_over_zoom() {
+        // Arrange
+        let zoom = 2.0_f32;
+        let mut world = World::new();
+        world.insert_resource(StashGrid::new(1, 1, 1));
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(crate::drag_state::DragState::default());
+        world.insert_resource(engine_input::prelude::MouseState::default());
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_shape_capture(shape_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom,
         });
 
         // Act
         run_system(&mut world);
 
-        // Assert — the drawn quad width should be SLOT_SIZE / zoom = 25
+        // Assert — calls[0]=background, calls[1]=slot; model matrix m[0][0]=sx, m[1][1]=sy
         let calls = shape_calls.lock().unwrap();
-        assert_eq!(calls.len(), 1);
-        let verts = &calls[0].0;
-        let quad_width = verts[1][0] - verts[0][0];
-        let expected = SLOT_SIZE / 2.0;
+        let model = &calls[1].3;
+        let expected_sx = (SLOT_WIDTH / zoom) / (SHADER_HALF_W * 2.0);
+        let expected_sy = (SLOT_HEIGHT / zoom) / (SHADER_HALF_H * 2.0);
         assert!(
-            (quad_width - expected).abs() < 0.1,
-            "quad_width={quad_width}, expected {expected}"
+            (model[0][0] - expected_sx).abs() < 1e-4,
+            "scale x: got {}, expected {expected_sx}",
+            model[0][0]
+        );
+        assert!(
+            (model[1][1] - expected_sy).abs() < 1e-4,
+            "scale y: got {}, expected {expected_sy}",
+            model[1][1]
+        );
+    }
+
+    #[test]
+    fn when_stash_rendered_then_model_translation_matches_slot_center() {
+        // Arrange
+        let (mut world, shape_calls) = make_world_with_spy(StashGrid::new(1, 1, 1), true);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — slot center in screen space is (GRID_MARGIN + SLOT_WIDTH/2, GRID_MARGIN + SLOT_HEIGHT/2)
+        // At zoom=1 camera at origin, screen_to_world maps that to world coords
+        let expected = screen_to_world(
+            Vec2::new(GRID_MARGIN + SLOT_WIDTH * 0.5, GRID_MARGIN + SLOT_HEIGHT * 0.5),
+            &Camera2D::default(),
+            1024.0,
+            768.0,
+        );
+        let calls = shape_calls.lock().unwrap();
+        let model = &calls[1].3;
+        assert!(
+            (model[3][0] - expected.x).abs() < 0.01,
+            "tx: got {}, expected {}",
+            model[3][0],
+            expected.x
+        );
+        assert!(
+            (model[3][1] - expected.y).abs() < 0.01,
+            "ty: got {}, expected {}",
+            model[3][1],
+            expected.y
+        );
+    }
+
+    #[test]
+    fn when_dragged_card_over_stash_then_drag_preview_uses_unit_quad() {
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(StashGrid::new(2, 2, 1));
+        world.insert_resource(StashVisible(true));
+
+        let entity = world.spawn_empty().id();
+        let drag_info = crate::drag_state::DragInfo {
+            entity,
+            local_grab_offset: Vec2::ZERO,
+            origin_zone: crate::card_zone::CardZone::Table,
+            stash_cursor_follow: false,
+        };
+        world.insert_resource(crate::drag_state::DragState {
+            dragging: Some(drag_info),
+        });
+
+        let mut mouse = engine_input::prelude::MouseState::default();
+        mouse.set_screen_pos(Vec2::new(GRID_MARGIN + 10.0, GRID_MARGIN + 10.0));
+        world.insert_resource(mouse);
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_shape_capture(shape_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — last draw call is the drag preview; its vertices should be unit quad
+        let calls = shape_calls.lock().unwrap();
+        let last = calls.last().expect("should have draw calls");
+        let verts = &last.0;
+        let w = verts[1][0] - verts[0][0];
+        let h = verts[3][1] - verts[0][1];
+        let expected_w = SHADER_HALF_W * 2.0;
+        let expected_h = SHADER_HALF_H * 2.0;
+        assert!(
+            (w - expected_w).abs() < 1e-4,
+            "drag preview vertex width={w}, expected {expected_w}"
+        );
+        assert!(
+            (h - expected_h).abs() < 1e-4,
+            "drag preview vertex height={h}, expected {expected_h}"
         );
     }
 }

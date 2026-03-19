@@ -8,6 +8,7 @@ pub use crate::card_drag::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
 pub use crate::card_face_side::CardFaceSide;
 pub use crate::card_face_visibility::card_face_visibility_sync_system;
 pub use crate::card_flip::card_flip_system;
+pub use crate::card_item_form::{CardItemForm, card_item_form_visibility_system};
 pub use crate::card_pick::{
     CARD_COLLISION_FILTER, CARD_COLLISION_GROUP, DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP,
     card_pick_system,
@@ -24,8 +25,13 @@ pub use crate::hand_layout::{
 pub use crate::scale_spring::{ScaleSpring, scale_spring_system, sync_scale_spring_lock_x};
 pub use crate::sort_propagation::{LocalSortOrder, SORT_STRIDE, sort_propagation_system};
 pub use crate::spawn_table_card::{CARD_HEIGHT, CARD_WIDTH, spawn_table_card, spawn_visual_card};
+pub use crate::stash_boundary::stash_boundary_system;
+pub use crate::stash_drag_hover::stash_drag_hover_system;
 pub use crate::stash_grid::{SlotOccupied, StashGrid};
+pub use crate::stash_icon::StashIcon;
+pub use crate::stash_layout::stash_layout_system;
 pub use crate::stash_render::{
-    GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_SIZE, SLOT_STRIDE, stash_render_system,
+    BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_STRIDE_H, SLOT_STRIDE_W,
+    SLOT_WIDTH, stash_render_system,
 };
 pub use crate::stash_toggle::{StashVisible, stash_toggle_system};

@@ -4,9 +4,11 @@ use engine_input::prelude::{MouseButton, MouseState};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
 use engine_render::prelude::RendererRes;
 use engine_scene::prelude::RenderLayer;
+use glam::Vec2;
 
 use crate::card::Card;
 use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
+use crate::card_item_form::CardItemForm;
 use crate::card_pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP, find_stash_slot_at};
 use crate::card_zone::CardZone;
 use crate::drag_state::DragState;
@@ -50,12 +52,17 @@ pub fn card_release_system(
         && let Some((col, row)) = find_stash_slot_at(screen_pos, grid.width(), grid.height())
     {
         let page = grid.current_page();
+        let current_pos = transform_query
+            .get(info.entity)
+            .ok()
+            .map(|(t, _)| t.position);
         if grid.get(page, col, row).is_none() {
             drop_on_stash(
                 info.entity,
                 page,
                 col,
                 row,
+                current_pos,
                 &mut grid,
                 &mut physics,
                 &mut commands,
@@ -71,6 +78,7 @@ pub fn card_release_system(
                 op,
                 oc,
                 orow,
+                current_pos,
                 &mut grid,
                 &mut physics,
                 &mut commands,
@@ -107,6 +115,7 @@ fn drop_on_hand(
         commands.entity(entity).insert(CardZone::Table);
     }
     commands.entity(entity).insert(RenderLayer::UI);
+    commands.entity(entity).remove::<CardItemForm>();
     commands.entity(entity).insert(HandSpring::new());
     if !face_up {
         commands.entity(entity).insert(FlipAnimation::start(true));
@@ -118,6 +127,7 @@ fn drop_on_stash(
     page: u8,
     col: u8,
     row: u8,
+    current_pos: Option<Vec2>,
     grid: &mut StashGrid,
     physics: &mut PhysicsRes,
     commands: &mut Commands,
@@ -130,6 +140,14 @@ fn drop_on_stash(
         .entity(entity)
         .insert(CardZone::Stash { page, col, row });
     commands.entity(entity).insert(RenderLayer::UI);
+    commands.entity(entity).insert(CardItemForm);
+    if let Some(pos) = current_pos {
+        commands.entity(entity).insert(Transform2D {
+            position: pos,
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        });
+    }
 }
 
 fn drop_on_table(
@@ -148,6 +166,7 @@ fn drop_on_table(
     commands.entity(entity).insert(RigidBody::Dynamic);
     commands.entity(entity).insert(CardZone::Table);
     commands.entity(entity).insert(RenderLayer::World);
+    commands.entity(entity).remove::<CardItemForm>();
 }
 
 #[cfg(test)]
@@ -281,6 +300,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -314,6 +334,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
         let mut mouse = MouseState::default();
@@ -357,6 +378,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -391,6 +413,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -425,6 +448,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -459,6 +483,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -493,6 +518,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -528,6 +554,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Hand(0),
+                stash_cursor_follow: false,
             }),
         });
 
@@ -562,6 +589,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Hand(0),
+                stash_cursor_follow: false,
             }),
         });
 
@@ -598,6 +626,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -635,6 +664,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -668,6 +698,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -702,6 +733,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -741,6 +773,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -774,6 +807,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -819,6 +853,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -865,6 +900,7 @@ mod tests {
                     col: 0,
                     row: 0,
                 },
+                stash_cursor_follow: false,
             }),
         });
 
@@ -920,6 +956,7 @@ mod tests {
                     col: 0,
                     row: 0,
                 },
+                stash_cursor_follow: false,
             }),
         });
 
@@ -980,6 +1017,7 @@ mod tests {
                     col: 1,
                     row: 0,
                 },
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1034,6 +1072,7 @@ mod tests {
                     col: 0,
                     row: 0,
                 },
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1078,6 +1117,7 @@ mod tests {
                     col: 0,
                     row: 0,
                 },
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1123,6 +1163,7 @@ mod tests {
                     col: 0,
                     row: 0,
                 },
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1164,6 +1205,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1208,6 +1250,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1245,6 +1288,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Hand(0),
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1296,6 +1340,7 @@ mod tests {
                     col: 0,
                     row: 0,
                 },
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1344,6 +1389,7 @@ mod tests {
                     col: 0,
                     row: 0,
                 },
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1389,6 +1435,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1441,6 +1488,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Hand(0),
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1486,6 +1534,7 @@ mod tests {
                 entity,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
             }),
         });
 
@@ -1500,5 +1549,270 @@ mod tests {
             "card should be in stash slot"
         );
         assert!(!world.resource::<Hand>().cards().contains(&entity));
+    }
+
+    #[test]
+    fn when_table_card_dropped_on_stash_slot_then_card_item_form_inserted() {
+        use crate::card_item_form::CardItemForm;
+
+        // Arrange
+        // slot (0,0,0) center: x=45.0, y=45.0
+        let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
+        let entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                RigidBody::Dynamic,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<CardItemForm>(entity).is_some(),
+            "CardItemForm should be inserted when card is dropped on stash slot"
+        );
+    }
+
+    #[test]
+    fn when_stash_card_dropped_on_table_area_then_card_item_form_removed() {
+        use crate::card_item_form::CardItemForm;
+
+        // Arrange
+        // x=600 is past the stash grid; y=200 is above the hand zone (≥ 600-120=480)
+        let (mut world, _, _) = make_release_world(600, 600.0, 200.0, true);
+        let entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Stash {
+                    page: 0,
+                    col: 0,
+                    row: 0,
+                },
+                CardItemForm,
+                RigidBody::Dynamic,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Stash {
+                    page: 0,
+                    col: 0,
+                    row: 0,
+                },
+                stash_cursor_follow: false,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<CardItemForm>(entity).is_none(),
+            "CardItemForm should be removed when card is dropped on table area"
+        );
+    }
+
+    #[test]
+    fn when_stash_card_dropped_on_hand_zone_then_card_item_form_removed() {
+        use crate::card_item_form::CardItemForm;
+
+        // Arrange
+        // x=600 is past the stash grid; y=550 ≥ 600-120=480, so is_hand_drop_zone fires
+        let (mut world, _, _) = make_release_world(600, 600.0, 550.0, true);
+        let entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Stash {
+                    page: 0,
+                    col: 0,
+                    row: 0,
+                },
+                CardItemForm,
+                RigidBody::Dynamic,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Stash {
+                    page: 0,
+                    col: 0,
+                    row: 0,
+                },
+                stash_cursor_follow: false,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<CardItemForm>(entity).is_none(),
+            "CardItemForm should be removed when card is dropped on hand zone"
+        );
+    }
+
+    #[test]
+    fn when_table_card_dropped_on_stash_slot_then_only_dragged_entity_gains_card_item_form() {
+        use crate::card_item_form::CardItemForm;
+
+        // Arrange
+        // slot (0,0,0) center: x=45.0, y=45.0
+        let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
+        let bystander = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                Transform2D {
+                    position: Vec2::new(200.0, 200.0),
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+            ))
+            .id();
+        let dragged = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                RigidBody::Dynamic,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity: dragged,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert!(
+            world.get::<CardItemForm>(dragged).is_some(),
+            "dragged entity should gain CardItemForm"
+        );
+        assert!(
+            world.get::<CardItemForm>(bystander).is_none(),
+            "bystander entity must not gain CardItemForm"
+        );
+    }
+
+    #[test]
+    fn when_card_dropped_on_stash_then_scale_reset_to_one() {
+        // Arrange
+        // slot (0,0,0) center: x=45.0, y=57.5
+        let (mut world, _, _) = make_release_world(600, 45.0, 57.5, true);
+        let entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                RigidBody::Dynamic,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::splat(0.833),
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let transform = world.get::<Transform2D>(entity).unwrap();
+        assert_eq!(transform.scale, Vec2::ONE);
+    }
+
+    #[test]
+    fn when_card_dropped_on_stash_then_rotation_reset_to_zero() {
+        // Arrange
+        // slot (0,0,0) center: x=45.0, y=57.5
+        let (mut world, _, _) = make_release_world(600, 45.0, 57.5, true);
+        let entity = world
+            .spawn((
+                Card::face_down(TextureId(1), TextureId(2)),
+                CardZone::Table,
+                RigidBody::Dynamic,
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.8,
+                    scale: Vec2::ONE,
+                },
+                RenderLayer::World,
+            ))
+            .id();
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Table,
+                stash_cursor_follow: false,
+            }),
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let transform = world.get::<Transform2D>(entity).unwrap();
+        assert_eq!(transform.rotation, 0.0);
     }
 }
