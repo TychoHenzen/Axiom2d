@@ -38,26 +38,26 @@ fn resolve_drop_target(
     grid: &StashGrid,
     origin_zone: &CardZone,
 ) -> DropTarget {
-    if stash_visible {
-        if let Some((col, row)) = find_stash_slot_at(screen_pos, grid.width(), grid.height()) {
-            let page = grid.current_page();
-            if grid.get(page, col, row).is_none() {
-                return DropTarget::Stash { page, col, row };
-            }
-            if let CardZone::Stash {
+    if stash_visible
+        && let Some((col, row)) = find_stash_slot_at(screen_pos, grid.width(), grid.height())
+    {
+        let page = grid.current_page();
+        if grid.get(page, col, row).is_none() {
+            return DropTarget::Stash { page, col, row };
+        }
+        if let CardZone::Stash {
+            page: op,
+            col: oc,
+            row: orow,
+        } = *origin_zone
+        {
+            return DropTarget::Stash {
                 page: op,
                 col: oc,
                 row: orow,
-            } = *origin_zone
-            {
-                return DropTarget::Stash {
-                    page: op,
-                    col: oc,
-                    row: orow,
-                };
-            }
-            return DropTarget::Table;
+            };
         }
+        return DropTarget::Table;
     }
 
     if viewport_height > 0.0 && is_hand_drop_zone(screen_pos.y, viewport_height) {

@@ -33,7 +33,7 @@ pub(crate) mod test_helpers {
         (0..count).map(|_| world.spawn(()).id()).collect()
     }
 
-    /// Configurable spy for `PhysicsBackend` used across all engine_physics tests.
+    /// Configurable spy for `PhysicsBackend` used across all `engine_physics` tests.
     ///
     /// Tracks calls via `Arc<Mutex<..>>` / `Arc<AtomicU32>` fields and returns
     /// pre-configured data for position/rotation/events queries.

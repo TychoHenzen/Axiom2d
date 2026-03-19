@@ -18,7 +18,7 @@ pub(crate) type VelocityLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
 pub(crate) type AngularVelocityLog = Arc<Mutex<Vec<(Entity, f32)>>>;
 pub(crate) type CollisionGroupLog = Arc<Mutex<Vec<(Entity, u32, u32)>>>;
 
-/// Configurable spy for `PhysicsBackend` used across all card_game tests.
+/// Configurable spy for `PhysicsBackend` used across all `card_game` tests.
 ///
 /// Pre-configure return data via builder methods (`with_body`, `with_angular_velocity`).
 /// Capture calls via `Arc<Mutex<Vec<_>>>` fields passed in via builder methods.
