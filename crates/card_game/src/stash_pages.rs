@@ -96,8 +96,7 @@ pub fn stash_tab_render_system(
         } else {
             TAB_INACTIVE
         };
-        let origin =
-            screen_to_world(Vec2::new(left_x, top_y), &camera, vw, vh);
+        let origin = screen_to_world(Vec2::new(left_x, top_y), &camera, vw, vh);
         let tab_w = TAB_WIDTH / camera.zoom;
         let tab_h = TAB_HEIGHT / camera.zoom;
         let verts = rect_vertices(origin.x, origin.y, tab_w, tab_h);
@@ -200,7 +199,11 @@ mod tests {
         let mut world = make_click_world(3, true);
         let left0 = tab_left_x(GRID_W, 3, 0);
         let top = tab_row_top_y(GRID_H);
-        click_at(&mut world, left0 + TAB_WIDTH + TAB_GAP / 2.0, top + TAB_HEIGHT / 2.0);
+        click_at(
+            &mut world,
+            left0 + TAB_WIDTH + TAB_GAP / 2.0,
+            top + TAB_HEIGHT / 2.0,
+        );
 
         // Act
         run_click_system(&mut world);
@@ -331,8 +334,7 @@ mod tests {
     #[test]
     fn when_viewport_zero_then_no_tab_shapes_drawn() {
         // Arrange
-        let (mut world, shape_calls) =
-            make_render_world(StashGrid::new(5, 5, 3), true, (0, 768));
+        let (mut world, shape_calls) = make_render_world(StashGrid::new(5, 5, 3), true, (0, 768));
 
         // Act
         run_render_system(&mut world);

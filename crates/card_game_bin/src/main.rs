@@ -178,11 +178,7 @@ fn register_game_systems(app: &mut App, config: WindowConfig) {
         )
         .add_systems(
             Phase::Render,
-            (
-                stash_tab_render_system,
-                stash_hover_preview_render_system,
-            )
-                .after(stash_render_system),
+            (stash_tab_render_system, stash_hover_preview_render_system).after(stash_render_system),
         );
 }
 
