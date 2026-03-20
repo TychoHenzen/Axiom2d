@@ -6,8 +6,8 @@ use glam::Vec2;
 
 use crate::card::drag_state::DragState;
 
-pub const DRAG_GAIN: f32 = 20.0;
-pub const MAX_ANGULAR_VELOCITY: f32 = 15.0;
+pub(crate) const DRAG_GAIN: f32 = 20.0;
+pub(crate) const MAX_ANGULAR_VELOCITY: f32 = 15.0;
 
 pub fn card_drag_system(
     mouse: Res<MouseState>,

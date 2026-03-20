@@ -19,7 +19,7 @@ use crate::stash::grid::StashGrid;
 use crate::stash::grid::find_stash_slot_at;
 use crate::stash::toggle::StashVisible;
 
-pub const HAND_DROP_ZONE_HEIGHT: f32 = 120.0;
+const HAND_DROP_ZONE_HEIGHT: f32 = 120.0;
 
 fn is_hand_drop_zone(screen_y: f32, viewport_height: f32) -> bool {
     screen_y >= viewport_height - HAND_DROP_ZONE_HEIGHT

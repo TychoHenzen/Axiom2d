@@ -1,8 +1,15 @@
 use bevy_ecs::prelude::{Entity, Resource};
 
-#[derive(Debug, thiserror::Error)]
-#[error("hand is full")]
+#[derive(Debug)]
 pub struct HandFull;
+
+impl std::fmt::Display for HandFull {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("hand is full")
+    }
+}
+
+impl std::error::Error for HandFull {}
 
 #[derive(Resource)]
 pub struct Hand {

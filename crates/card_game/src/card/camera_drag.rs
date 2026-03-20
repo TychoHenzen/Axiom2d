@@ -8,8 +8,8 @@ pub struct CameraDragState {
     pub anchor_screen_pos: Option<Vec2>,
 }
 
-pub const ZOOM_SPEED: f32 = 0.1;
-pub const ZOOM_MIN: f32 = 0.1;
+const ZOOM_SPEED: f32 = 0.1;
+const ZOOM_MIN: f32 = 0.1;
 
 pub fn camera_drag_system(
     mouse: Res<MouseState>,

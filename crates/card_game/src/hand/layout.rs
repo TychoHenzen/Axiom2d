@@ -9,15 +9,15 @@ use crate::hand::cards::Hand;
 use engine_core::scale_spring::ScaleSpring;
 use engine_render::prelude::resolve_viewport_camera;
 
-pub const FAN_ARC_DEGREES: f32 = 45.0;
-pub const FAN_CARD_SPACING_DEGREES: f32 = 8.0;
-pub const FAN_RADIUS: f32 = 400.0;
-pub const FAN_BOTTOM_OFFSET: f32 = 80.0;
+const FAN_ARC_DEGREES: f32 = 45.0;
+const FAN_CARD_SPACING_DEGREES: f32 = 8.0;
+const FAN_RADIUS: f32 = 400.0;
+const FAN_BOTTOM_OFFSET: f32 = 80.0;
 
-pub const FAN_SCALE: f32 = 3.0;
+const FAN_SCALE: f32 = 3.0;
 
-pub const SPRING_STIFFNESS: f32 = 200.0;
-pub const SPRING_DAMPING: f32 = 20.0;
+const SPRING_STIFFNESS: f32 = 200.0;
+const SPRING_DAMPING: f32 = 20.0;
 
 #[derive(Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HandSpring {
@@ -40,7 +40,7 @@ impl HandSpring {
     }
 }
 
-pub fn fan_angle(index: usize, count: usize) -> f32 {
+fn fan_angle(index: usize, count: usize) -> f32 {
     if count <= 1 {
         return 0.0;
     }
@@ -51,7 +51,7 @@ pub fn fan_angle(index: usize, count: usize) -> f32 {
     -half_spread + step * index as f32
 }
 
-pub fn fan_screen_position(angle: f32, viewport_width: f32, viewport_height: f32) -> Vec2 {
+fn fan_screen_position(angle: f32, viewport_width: f32, viewport_height: f32) -> Vec2 {
     let radius = FAN_RADIUS * FAN_SCALE;
     let pivot_x = viewport_width / 2.0;
     let pivot_y = viewport_height - FAN_BOTTOM_OFFSET + radius;

@@ -12,25 +12,25 @@ use crate::stash::toggle::StashVisible;
 use engine_render::prelude::resolve_viewport_camera;
 use engine_render::prelude::{QUAD_INDICES, rect_vertices};
 
-pub const TAB_WIDTH: f32 = 30.0;
-pub const TAB_HEIGHT: f32 = 16.0;
-pub const TAB_GAP: f32 = 4.0;
-pub const TAB_ACTIVE: Color = Color {
+const TAB_WIDTH: f32 = 30.0;
+const TAB_HEIGHT: f32 = 16.0;
+const TAB_GAP: f32 = 4.0;
+const TAB_ACTIVE: Color = Color {
     r: 0.35,
     g: 0.35,
     b: 0.35,
     a: 1.0,
 };
-pub const TAB_INACTIVE: Color = BACKGROUND_COLOR;
+const TAB_INACTIVE: Color = BACKGROUND_COLOR;
 
 /// Returns the screen-space Y position of the top edge of the tab row.
-pub fn tab_row_top_y(grid_height: u8) -> f32 {
+fn tab_row_top_y(grid_height: u8) -> f32 {
     GRID_MARGIN + f32::from(grid_height) * SLOT_STRIDE_H - SLOT_GAP
 }
 
 /// Returns the screen-space X position of the left edge of tab `i` in a row of `page_count` tabs,
 /// centered under a grid of width `grid_width`.
-pub fn tab_left_x(grid_width: u8, page_count: u8, tab_index: u8) -> f32 {
+fn tab_left_x(grid_width: u8, page_count: u8, tab_index: u8) -> f32 {
     let tab_stride = TAB_WIDTH + TAB_GAP;
     let total_width = f32::from(page_count) * tab_stride - TAB_GAP;
     let grid_screen_w = f32::from(grid_width) * SLOT_STRIDE_W - SLOT_GAP;

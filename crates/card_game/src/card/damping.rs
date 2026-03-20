@@ -6,11 +6,11 @@ use crate::card::zone::CardZone;
 
 pub const BASE_LINEAR_DRAG: f32 = 8.0;
 pub const BASE_ANGULAR_DRAG: f32 = 5.0;
-pub const SPIN_DRAG_DECAY_RATE: f32 = 0.15;
-pub const MIN_DRAG_FACTOR: f32 = 0.25;
+pub(crate) const SPIN_DRAG_DECAY_RATE: f32 = 0.15;
+pub(crate) const MIN_DRAG_FACTOR: f32 = 0.25;
 
 #[must_use]
-pub fn compute_card_damping(angular_velocity: f32) -> (f32, f32) {
+pub(crate) fn compute_card_damping(angular_velocity: f32) -> (f32, f32) {
     let factor = (-SPIN_DRAG_DECAY_RATE * angular_velocity.abs())
         .exp()
         .max(MIN_DRAG_FACTOR);

@@ -4,9 +4,16 @@ use std::collections::HashMap;
 
 use crate::stash::constants::{GRID_MARGIN, SLOT_STRIDE_H, SLOT_STRIDE_W};
 
-#[derive(Debug, thiserror::Error)]
-#[error("slot is already occupied")]
+#[derive(Debug)]
 pub struct SlotOccupied;
+
+impl std::fmt::Display for SlotOccupied {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("slot is already occupied")
+    }
+}
+
+impl std::error::Error for SlotOccupied {}
 
 #[derive(Resource, Debug, Clone, PartialEq)]
 pub struct StashGrid {
