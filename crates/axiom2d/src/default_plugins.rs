@@ -137,8 +137,7 @@ fn register_render(app: &mut App) {
 mod tests {
     use super::*;
     use engine_core::time::FakeClock;
-    use engine_input::prelude::KeyCode;
-    use winit::event::ElementState;
+    use engine_input::prelude::{ButtonState, KeyCode, MouseButton};
 
     fn app_with_default_plugins() -> App {
         let mut app = App::new();
@@ -159,7 +158,7 @@ mod tests {
         let mut app = app_with_default_plugins();
         app.world_mut()
             .resource_mut::<InputEventBuffer>()
-            .push(KeyCode::Space, ElementState::Pressed);
+            .push(KeyCode::Space, ButtonState::Pressed);
 
         // Act
         app.handle_redraw();
@@ -448,7 +447,7 @@ mod tests {
         let mut app = app_with_default_plugins();
         app.world_mut()
             .resource_mut::<engine_input::prelude::MouseEventBuffer>()
-            .push(winit::event::MouseButton::Left, ElementState::Pressed);
+            .push(MouseButton::Left, ButtonState::Pressed);
 
         // Act
         app.handle_redraw();
@@ -457,7 +456,7 @@ mod tests {
         assert!(
             app.world()
                 .resource::<engine_input::prelude::MouseState>()
-                .just_pressed(winit::event::MouseButton::Left)
+                .just_pressed(MouseButton::Left)
         );
     }
 
@@ -467,7 +466,7 @@ mod tests {
         let mut app = app_with_default_plugins();
         app.world_mut()
             .resource_mut::<engine_input::prelude::MouseEventBuffer>()
-            .push(winit::event::MouseButton::Left, ElementState::Pressed);
+            .push(MouseButton::Left, ButtonState::Pressed);
         app.handle_redraw();
 
         // Act
@@ -475,8 +474,8 @@ mod tests {
 
         // Assert
         let mouse = app.world().resource::<engine_input::prelude::MouseState>();
-        assert!(!mouse.just_pressed(winit::event::MouseButton::Left));
-        assert!(mouse.pressed(winit::event::MouseButton::Left));
+        assert!(!mouse.just_pressed(MouseButton::Left));
+        assert!(mouse.pressed(MouseButton::Left));
     }
 
     #[cfg(feature = "render")]
@@ -538,7 +537,7 @@ mod tests {
         let mut app = app_with_default_plugins();
         app.world_mut()
             .resource_mut::<InputEventBuffer>()
-            .push(KeyCode::Space, ElementState::Pressed);
+            .push(KeyCode::Space, ButtonState::Pressed);
         app.handle_redraw(); // first frame — just_pressed should be true
 
         // Act

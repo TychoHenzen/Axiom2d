@@ -1,10 +1,14 @@
 use std::sync::Arc;
 
 use winit::application::ApplicationHandler;
-use winit::event::{ElementState, WindowEvent};
+use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::PhysicalKey;
 use winit::window::{Window, WindowId};
+
+use engine_input::button_state::ButtonState;
+use engine_input::key_code::KeyCode;
+use engine_input::mouse_button::MouseButton;
 
 use engine_core::types::Pixels;
 use engine_ecs::prelude::{
@@ -87,11 +91,15 @@ impl App {
         self.world.insert_resource(RendererRes::new(renderer));
     }
 
-    pub(crate) fn handle_key_event(&mut self, physical_key: PhysicalKey, state: ElementState) {
-        if let PhysicalKey::Code(key_code) = physical_key
+    pub(crate) fn handle_key_event(
+        &mut self,
+        physical_key: PhysicalKey,
+        state: winit::event::ElementState,
+    ) {
+        if let PhysicalKey::Code(winit_key) = physical_key
             && let Some(mut buffer) = self.world.get_resource_mut::<InputEventBuffer>()
         {
-            buffer.push(key_code, state);
+            buffer.push(KeyCode::from(winit_key), ButtonState::from(state));
         }
     }
 
@@ -104,10 +112,10 @@ impl App {
     pub(crate) fn handle_mouse_button(
         &mut self,
         button: winit::event::MouseButton,
-        state: ElementState,
+        state: winit::event::ElementState,
     ) {
         if let Some(mut buffer) = self.world.get_resource_mut::<MouseEventBuffer>() {
-            buffer.push(button, state);
+            buffer.push(MouseButton::from(button), ButtonState::from(state));
         }
     }
 
@@ -240,9 +248,7 @@ mod tests {
     use engine_render::testing::SpyRenderer;
 
     use crate::window_size::WindowSize;
-    use engine_input::prelude::InputEventBuffer;
-    use winit::event::ElementState;
-    use winit::keyboard::{KeyCode, PhysicalKey};
+    use engine_input::prelude::{ButtonState, InputEventBuffer, KeyCode};
 
     #[derive(Resource)]
     struct Counter(u32);
@@ -618,13 +624,16 @@ mod tests {
         app.world_mut().insert_resource(InputEventBuffer::default());
 
         // Act
-        app.handle_key_event(PhysicalKey::Code(KeyCode::ArrowLeft), ElementState::Pressed);
+        app.handle_key_event(
+            winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::ArrowLeft),
+            winit::event::ElementState::Pressed,
+        );
 
         // Assert
         let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
         let events: Vec<_> = buffer.drain().collect();
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0], (KeyCode::ArrowLeft, ElementState::Pressed));
+        assert_eq!(events[0], (KeyCode::ArrowLeft, ButtonState::Pressed));
     }
 
     #[test]
@@ -635,15 +644,15 @@ mod tests {
 
         // Act
         app.handle_key_event(
-            PhysicalKey::Code(KeyCode::ArrowLeft),
-            ElementState::Released,
+            winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::ArrowLeft),
+            winit::event::ElementState::Released,
         );
 
         // Assert
         let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
         let events: Vec<_> = buffer.drain().collect();
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0], (KeyCode::ArrowLeft, ElementState::Released));
+        assert_eq!(events[0], (KeyCode::ArrowLeft, ButtonState::Released));
     }
 
     #[test]
@@ -656,8 +665,8 @@ mod tests {
 
         // Act
         app.handle_key_event(
-            PhysicalKey::Unidentified(NativeKeyCode::Unidentified),
-            ElementState::Pressed,
+            winit::keyboard::PhysicalKey::Unidentified(NativeKeyCode::Unidentified),
+            winit::event::ElementState::Pressed,
         );
 
         // Assert
@@ -697,7 +706,10 @@ mod tests {
             .insert_resource(engine_input::prelude::MouseEventBuffer::default());
 
         // Act
-        app.handle_mouse_button(winit::event::MouseButton::Right, ElementState::Pressed);
+        app.handle_mouse_button(
+            winit::event::MouseButton::Right,
+            winit::event::ElementState::Pressed,
+        );
 
         // Assert
         let mut buffer = app
@@ -707,7 +719,10 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_eq!(
             events[0],
-            (winit::event::MouseButton::Right, ElementState::Pressed)
+            (
+                engine_input::prelude::MouseButton::Right,
+                ButtonState::Pressed
+            )
         );
     }
 
@@ -717,7 +732,10 @@ mod tests {
         let mut app = App::new();
 
         // Act
-        app.handle_mouse_button(winit::event::MouseButton::Left, ElementState::Pressed);
+        app.handle_mouse_button(
+            winit::event::MouseButton::Left,
+            winit::event::ElementState::Pressed,
+        );
     }
 
     #[test]

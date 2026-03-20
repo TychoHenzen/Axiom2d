@@ -90,7 +90,9 @@ fn setup(app: &mut App) {
         .add(|world: &mut World| {
             const WARM_UP_STEPS: u32 = 10;
             const WARM_UP_DT: f32 = 1.0 / 60.0;
-            let mut physics = world.remove_resource::<PhysicsRes>().expect("PhysicsRes");
+            let mut physics = world
+                .remove_resource::<PhysicsRes>()
+                .expect("PhysicsRes was inserted in setup() before PreloadHooks registration");
             for _ in 0..WARM_UP_STEPS {
                 physics.step(axiom2d::prelude::Seconds(WARM_UP_DT));
             }

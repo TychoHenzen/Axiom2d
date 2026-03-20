@@ -29,4 +29,3 @@ engine_ui = { path = "../engine_ui" }
 [dev-dependencies]
 engine_render = { path = "../engine_render", features = ["testing"] }
 glam.workspace = true
-winit.workspace = true

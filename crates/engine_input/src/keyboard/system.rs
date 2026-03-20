@@ -1,15 +1,16 @@
 use bevy_ecs::prelude::ResMut;
-use winit::event::ElementState;
+
+use crate::button_state::ButtonState;
 
 use super::buffer::InputEventBuffer;
 use super::state::InputState;
 
 pub fn input_system(mut buffer: ResMut<InputEventBuffer>, mut state: ResMut<InputState>) {
     state.clear_frame_state();
-    for (key, element_state) in buffer.drain() {
-        match element_state {
-            ElementState::Pressed => state.press(key),
-            ElementState::Released => state.release(key),
+    for (key, button_state) in buffer.drain() {
+        match button_state {
+            ButtonState::Pressed => state.press(key),
+            ButtonState::Released => state.release(key),
         }
     }
 }
@@ -18,9 +19,9 @@ pub fn input_system(mut buffer: ResMut<InputEventBuffer>, mut state: ResMut<Inpu
 mod tests {
     use bevy_ecs::prelude::Schedule;
     use bevy_ecs::world::World;
-    use winit::event::ElementState;
-    use winit::keyboard::KeyCode;
 
+    use crate::button_state::ButtonState;
+    use crate::key_code::KeyCode;
     use crate::keyboard::InputEventBuffer;
     use crate::keyboard::InputState;
 
@@ -45,7 +46,7 @@ mod tests {
         let mut world = setup_world();
         world
             .resource_mut::<InputEventBuffer>()
-            .push(KeyCode::ArrowRight, ElementState::Pressed);
+            .push(KeyCode::ArrowRight, ButtonState::Pressed);
 
         // Act
         run_input_system(&mut world);
@@ -60,7 +61,7 @@ mod tests {
         let mut world = setup_world();
         world
             .resource_mut::<InputEventBuffer>()
-            .push(KeyCode::ArrowRight, ElementState::Pressed);
+            .push(KeyCode::ArrowRight, ButtonState::Pressed);
 
         // Act
         run_input_system(&mut world);
@@ -81,7 +82,7 @@ mod tests {
         world.resource_mut::<InputState>().clear_frame_state();
         world
             .resource_mut::<InputEventBuffer>()
-            .push(KeyCode::Space, ElementState::Released);
+            .push(KeyCode::Space, ButtonState::Released);
 
         // Act
         run_input_system(&mut world);
@@ -98,7 +99,7 @@ mod tests {
         world.resource_mut::<InputState>().clear_frame_state();
         world
             .resource_mut::<InputEventBuffer>()
-            .push(KeyCode::Space, ElementState::Released);
+            .push(KeyCode::Space, ButtonState::Released);
 
         // Act
         run_input_system(&mut world);
@@ -113,7 +114,7 @@ mod tests {
         let mut world = setup_world();
         world
             .resource_mut::<InputEventBuffer>()
-            .push(KeyCode::ArrowRight, ElementState::Pressed);
+            .push(KeyCode::ArrowRight, ButtonState::Pressed);
 
         // Act
         run_input_system(&mut world);
@@ -128,7 +129,7 @@ mod tests {
         let mut world = setup_world();
         world
             .resource_mut::<InputEventBuffer>()
-            .push(KeyCode::ArrowDown, ElementState::Pressed);
+            .push(KeyCode::ArrowDown, ButtonState::Pressed);
         run_input_system(&mut world);
 
         // Act
@@ -148,7 +149,7 @@ mod tests {
         world.resource_mut::<InputState>().clear_frame_state();
         world
             .resource_mut::<InputEventBuffer>()
-            .push(KeyCode::Space, ElementState::Released);
+            .push(KeyCode::Space, ButtonState::Released);
         run_input_system(&mut world);
 
         // Act

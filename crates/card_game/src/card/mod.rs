@@ -9,6 +9,7 @@ pub mod face_layout;
 pub mod face_side;
 pub mod flip;
 pub mod flip_animation;
+pub mod game_state_param;
 pub mod geometry;
 pub mod item_form;
 pub mod label;

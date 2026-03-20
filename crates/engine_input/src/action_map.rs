@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::Resource;
-use winit::event::MouseButton;
-use winit::keyboard::KeyCode;
+
+use crate::key_code::KeyCode;
+use crate::mouse_button::MouseButton;
 
 #[derive(Resource, Debug, Clone, Default)]
 pub struct ActionMap {

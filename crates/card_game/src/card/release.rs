@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::{Commands, Entity, Query, Res, ResMut};
+use bevy_ecs::prelude::{Commands, Entity, Query, Res};
 use engine_core::prelude::Transform2D;
 use engine_input::prelude::{MouseButton, MouseState};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
@@ -7,8 +7,8 @@ use engine_scene::prelude::RenderLayer;
 use glam::Vec2;
 
 use crate::card::component::Card;
-use crate::card::drag_state::DragState;
 use crate::card::flip_animation::FlipAnimation;
+use crate::card::game_state_param::CardGameState;
 use crate::card::item_form::CardItemForm;
 use crate::card::physics_helpers::activate_physics_body;
 use crate::card::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
@@ -17,7 +17,6 @@ use crate::hand::cards::Hand;
 use crate::hand::layout::HandSpring;
 use crate::stash::grid::StashGrid;
 use crate::stash::grid::find_stash_slot_at;
-use crate::stash::toggle::StashVisible;
 
 const HAND_DROP_ZONE_HEIGHT: f32 = 120.0;
 
@@ -67,20 +66,15 @@ fn resolve_drop_target(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn card_release_system(
     mouse: Res<MouseState>,
-    mut drag_state: ResMut<DragState>,
-    mut hand: ResMut<Hand>,
-    mut physics: ResMut<PhysicsRes>,
+    mut state: CardGameState,
     renderer: Res<RendererRes>,
-    stash_visible: Res<StashVisible>,
-    mut grid: ResMut<StashGrid>,
     mut commands: Commands,
     transform_query: Query<(&Transform2D, &Collider)>,
     card_query: Query<&Card>,
 ) {
-    let Some(info) = drag_state.dragging else {
+    let Some(info) = state.drag_state.dragging else {
         return;
     };
     if !mouse.just_released(MouseButton::Left) {
@@ -91,7 +85,13 @@ pub fn card_release_system(
     let (_, vh) = renderer.viewport_size();
     let vh = vh as f32;
 
-    let target = resolve_drop_target(screen_pos, vh, stash_visible.0, &grid, &info.origin_zone);
+    let target = resolve_drop_target(
+        screen_pos,
+        vh,
+        state.stash_visible.0,
+        &state.grid,
+        &info.origin_zone,
+    );
 
     match target {
         DropTarget::Stash { page, col, row } => {
@@ -105,21 +105,32 @@ pub fn card_release_system(
                 col,
                 row,
                 current_pos,
-                &mut grid,
-                &mut physics,
+                &mut state.grid,
+                &mut state.physics,
                 &mut commands,
             );
         }
         DropTarget::Hand => {
             let face_up = card_query.get(info.entity).is_ok_and(|c| c.face_up);
-            drop_on_hand(info.entity, face_up, &mut hand, &mut physics, &mut commands);
+            drop_on_hand(
+                info.entity,
+                face_up,
+                &mut state.hand,
+                &mut state.physics,
+                &mut commands,
+            );
         }
         DropTarget::Table => {
-            drop_on_table(info.entity, &mut physics, &mut commands, &transform_query);
+            drop_on_table(
+                info.entity,
+                &mut state.physics,
+                &mut commands,
+                &transform_query,
+            );
         }
     }
 
-    drag_state.dragging = None;
+    state.drag_state.dragging = None;
 }
 
 fn drop_on_hand(

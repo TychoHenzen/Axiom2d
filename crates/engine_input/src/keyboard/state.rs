@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
 use bevy_ecs::prelude::Resource;
-use winit::keyboard::KeyCode;
 
 use crate::action_map::ActionMap;
+use crate::key_code::KeyCode;
 
 #[derive(Resource, Debug, Clone, PartialEq, Default)]
 pub struct InputState {

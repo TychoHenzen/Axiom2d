@@ -68,7 +68,7 @@ pub(crate) fn build_shaded_side_faces(
     bright: Color,
 ) -> Vec<(Vec<PathCommand>, Color, f32)> {
     let PathCommand::MoveTo(start) = contour[0] else {
-        panic!("contour must start with MoveTo")
+        return Vec::new();
     };
 
     let middle = &contour[1..contour.len() - 1];
@@ -1355,5 +1355,23 @@ mod tests {
             unique_xs.len() >= 3,
             "side faces must have multiple distinct x positions (one per letter), got {unique_xs:?}"
         );
+    }
+
+    #[test]
+    fn when_contour_starts_with_lineto_then_returns_empty_faces() {
+        // Arrange
+        let contour = vec![
+            PathCommand::LineTo(Vec2::new(10.0, 20.0)),
+            PathCommand::LineTo(Vec2::new(30.0, 40.0)),
+            PathCommand::Close,
+        ];
+        let vp = Vec2::new(400.0, -300.0);
+
+        // Act
+        let result =
+            build_shaded_side_faces(&contour, vp, 0.06, 3, Vec2::Y, Color::BLACK, Color::WHITE);
+
+        // Assert
+        assert!(result.is_empty());
     }
 }

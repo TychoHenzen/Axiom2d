@@ -1,15 +1,16 @@
 use bevy_ecs::prelude::ResMut;
-use winit::event::ElementState;
+
+use crate::button_state::ButtonState;
 
 use super::buffer::MouseEventBuffer;
 use super::state::MouseState;
 
 pub fn mouse_input_system(mut buffer: ResMut<MouseEventBuffer>, mut state: ResMut<MouseState>) {
     state.clear_frame_state();
-    for (button, element_state) in buffer.drain() {
-        match element_state {
-            ElementState::Pressed => state.press(button),
-            ElementState::Released => state.release(button),
+    for (button, button_state) in buffer.drain() {
+        match button_state {
+            ButtonState::Pressed => state.press(button),
+            ButtonState::Released => state.release(button),
         }
     }
 }
@@ -23,8 +24,9 @@ pub fn scroll_clear_system(mut state: ResMut<MouseState>) {
 mod tests {
     use bevy_ecs::prelude::Schedule;
     use bevy_ecs::world::World;
-    use winit::event::ElementState;
-    use winit::event::MouseButton;
+
+    use crate::button_state::ButtonState;
+    use crate::mouse_button::MouseButton;
 
     use crate::mouse::MouseEventBuffer;
     use crate::mouse::MouseState;
@@ -50,7 +52,7 @@ mod tests {
         let mut world = setup_world();
         world
             .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Left, ElementState::Pressed);
+            .push(MouseButton::Left, ButtonState::Pressed);
 
         // Act
         run_mouse_system(&mut world);
@@ -65,7 +67,7 @@ mod tests {
         let mut world = setup_world();
         world
             .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Right, ElementState::Pressed);
+            .push(MouseButton::Right, ButtonState::Pressed);
 
         // Act
         run_mouse_system(&mut world);
@@ -86,7 +88,7 @@ mod tests {
         world.resource_mut::<MouseState>().clear_frame_state();
         world
             .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Left, ElementState::Released);
+            .push(MouseButton::Left, ButtonState::Released);
 
         // Act
         run_mouse_system(&mut world);
@@ -103,7 +105,7 @@ mod tests {
         let mut world = setup_world();
         world
             .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Left, ElementState::Pressed);
+            .push(MouseButton::Left, ButtonState::Pressed);
 
         // Act
         run_mouse_system(&mut world);
@@ -138,7 +140,7 @@ mod tests {
         let mut world = setup_world();
         world
             .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Left, ElementState::Pressed);
+            .push(MouseButton::Left, ButtonState::Pressed);
         run_mouse_system(&mut world);
 
         // Act

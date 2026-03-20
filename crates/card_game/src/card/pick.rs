@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::{Commands, Entity, Query, Res, ResMut};
+use bevy_ecs::prelude::{Commands, Entity, Query, Res};
 use engine_input::prelude::{MouseButton, MouseState};
 use engine_physics::hit_test::{collider_half_extents, local_space_hit};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
@@ -7,6 +7,7 @@ use glam::Vec2;
 
 use crate::card::component::Card;
 use crate::card::drag_state::{DragInfo, DragState};
+use crate::card::game_state_param::CardGameState;
 use crate::card::item_form::CardItemForm;
 use crate::card::physics_helpers::activate_physics_body;
 use crate::card::zone::CardZone;
@@ -75,12 +76,9 @@ fn identify_pick_source(
     })
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn card_pick_system(
     mouse: Res<MouseState>,
-    mut drag_state: ResMut<DragState>,
-    mut hand: ResMut<Hand>,
-    mut physics: ResMut<PhysicsRes>,
+    mut state: CardGameState,
     mut commands: Commands,
     mut query: Query<(
         Entity,
@@ -90,17 +88,16 @@ pub fn card_pick_system(
         &Collider,
         &mut SortOrder,
     )>,
-    stash_visible: Res<StashVisible>,
-    mut grid: ResMut<StashGrid>,
 ) {
-    if drag_state.dragging.is_some() {
+    if state.drag_state.dragging.is_some() {
         return;
     }
     if !mouse.just_pressed(MouseButton::Left) {
         return;
     }
 
-    let Some(source) = identify_pick_source(&mouse, &stash_visible, &mut grid, &query) else {
+    let Some(source) = identify_pick_source(&mouse, &state.stash_visible, &mut state.grid, &query)
+    else {
         return;
     };
 
@@ -111,7 +108,7 @@ pub fn card_pick_system(
             col,
             row,
         } => {
-            pick_from_stash(entity, page, col, row, &mut drag_state, &mut commands);
+            pick_from_stash(entity, page, col, row, &mut state.drag_state, &mut commands);
         }
         PickSource::Card {
             entity,
@@ -124,9 +121,9 @@ pub fn card_pick_system(
                 zone,
                 collider,
                 grab_offset,
-                &mut drag_state,
-                &mut hand,
-                &mut physics,
+                &mut state.drag_state,
+                &mut state.hand,
+                &mut state.physics,
                 &mut commands,
                 &mut query,
             );

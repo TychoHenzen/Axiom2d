@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use bevy_ecs::prelude::Resource;
 use glam::Vec2;
 
-pub use winit::event::MouseButton;
+use crate::mouse_button::MouseButton;
 
 #[derive(Resource, Debug, Clone, PartialEq, Default)]
 pub struct MouseState {
