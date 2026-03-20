@@ -10,7 +10,7 @@ use crate::stash::constants::{
 };
 use crate::stash::grid::StashGrid;
 use crate::stash::toggle::StashVisible;
-use crate::viewport_camera::resolve_viewport_camera;
+use engine_render::prelude::resolve_viewport_camera;
 
 pub const TAB_WIDTH: f32 = 30.0;
 pub const TAB_HEIGHT: f32 = 16.0;

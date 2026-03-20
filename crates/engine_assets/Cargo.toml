@@ -8,16 +8,9 @@ workspace = true
 
 [dependencies]
 bevy_ecs = { workspace = true }
-engine_audio = { path = "../engine_audio" }
-engine_core = { path = "../engine_core" }
-engine_physics = { path = "../engine_physics" }
-engine_render = { path = "../engine_render" }
-engine_scene = { path = "../engine_scene" }
 ron = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-glam = { workspace = true }
-insta = { workspace = true }
 proptest = { workspace = true }

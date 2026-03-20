@@ -4,7 +4,7 @@ use engine_input::prelude::{MouseButton, MouseState};
 use engine_physics::prelude::PhysicsRes;
 use glam::Vec2;
 
-use crate::drag_state::DragState;
+use crate::card::drag_state::DragState;
 
 pub const DRAG_GAIN: f32 = 20.0;
 pub const MAX_ANGULAR_VELOCITY: f32 = 15.0;
@@ -64,8 +64,8 @@ mod tests {
     use glam::Vec2;
 
     use super::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
+    use crate::card::drag_state::{DragInfo, DragState};
     use crate::card::zone::CardZone;
-    use crate::drag_state::{DragInfo, DragState};
     use crate::test_helpers::{AngularVelocityLog, SpyPhysicsBackend, VelocityLog};
 
     fn run_system(world: &mut World) {

@@ -98,12 +98,6 @@ impl SpyPhysicsBackend {
         self.angular_velocity_log = log;
         self
     }
-
-    #[allow(dead_code)]
-    pub fn with_collision_group_log(mut self, log: CollisionGroupLog) -> Self {
-        self.collision_group_log = log;
-        self
-    }
 }
 
 #[allow(clippy::unwrap_used)]

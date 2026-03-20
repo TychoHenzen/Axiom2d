@@ -926,13 +926,6 @@ name = "engine_assets"
 version = "0.1.0"
 dependencies = [
  "bevy_ecs",
- "engine_audio",
- "engine_core",
- "engine_physics",
- "engine_render",
- "engine_scene",
- "glam 0.29.3",
- "insta",
  "proptest",
  "ron 0.9.0",
  "serde",

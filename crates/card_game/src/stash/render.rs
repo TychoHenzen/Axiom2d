@@ -18,7 +18,7 @@ use crate::stash::constants::{
 use crate::stash::grid::StashGrid;
 use crate::stash::icon::StashIcon;
 use crate::stash::toggle::StashVisible;
-use crate::viewport_camera::resolve_viewport_camera;
+use engine_render::prelude::resolve_viewport_camera;
 
 pub(crate) fn reset_default_shader(renderer: &mut dyn engine_render::prelude::Renderer) {
     renderer.set_shader(ShaderHandle(0));
@@ -29,7 +29,7 @@ pub(crate) fn reset_default_shader(renderer: &mut dyn engine_render::prelude::Re
 pub fn stash_render_system(
     grid: Res<StashGrid>,
     visible: Res<StashVisible>,
-    drag_state: Res<crate::drag_state::DragState>,
+    drag_state: Res<crate::card::drag_state::DragState>,
     mouse: Res<engine_input::prelude::MouseState>,
     art_shader: Option<Res<crate::card::art_shader::CardArtShader>>,
     stash_icons: Query<(&ChildOf, &Shape), With<StashIcon>>,
@@ -142,7 +142,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(grid);
         world.insert_resource(StashVisible(visible));
-        world.insert_resource(crate::drag_state::DragState::default());
+        world.insert_resource(crate::card::drag_state::DragState::default());
         world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -321,7 +321,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(2, 2, 1));
         world.insert_resource(StashVisible(true));
-        world.insert_resource(crate::drag_state::DragState::default());
+        world.insert_resource(crate::card::drag_state::DragState::default());
         world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -348,7 +348,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(2, 2, 1));
         world.insert_resource(StashVisible(true));
-        world.insert_resource(crate::drag_state::DragState::default());
+        world.insert_resource(crate::card::drag_state::DragState::default());
         world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -373,7 +373,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(1, 1, 1));
         world.insert_resource(StashVisible(true));
-        world.insert_resource(crate::drag_state::DragState::default());
+        world.insert_resource(crate::card::drag_state::DragState::default());
         world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -419,7 +419,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(1, 1, 1));
         world.insert_resource(StashVisible(true));
-        world.insert_resource(crate::drag_state::DragState::default());
+        world.insert_resource(crate::card::drag_state::DragState::default());
         world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -496,13 +496,13 @@ mod tests {
         world.insert_resource(StashVisible(true));
 
         let entity = world.spawn_empty().id();
-        let drag_info = crate::drag_state::DragInfo {
+        let drag_info = crate::card::drag_state::DragInfo {
             entity,
             local_grab_offset: Vec2::ZERO,
             origin_zone: crate::card::zone::CardZone::Table,
             stash_cursor_follow: false,
         };
-        world.insert_resource(crate::drag_state::DragState {
+        world.insert_resource(crate::card::drag_state::DragState {
             dragging: Some(drag_info),
         });
 

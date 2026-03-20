@@ -6,8 +6,8 @@ use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
 use crate::hand::cards::Hand;
-use crate::viewport_camera::resolve_viewport_camera;
 use engine_core::scale_spring::ScaleSpring;
+use engine_render::prelude::resolve_viewport_camera;
 
 pub const FAN_ARC_DEGREES: f32 = 45.0;
 pub const FAN_CARD_SPACING_DEGREES: f32 = 8.0;

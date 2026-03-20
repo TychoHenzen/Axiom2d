@@ -6,7 +6,7 @@ use glam::Vec2;
 use crate::card::zone::CardZone;
 use crate::stash::constants::{GRID_MARGIN, SLOT_HEIGHT, SLOT_STRIDE_H, SLOT_STRIDE_W, SLOT_WIDTH};
 use crate::stash::grid::StashGrid;
-use crate::viewport_camera::resolve_viewport_camera;
+use engine_render::prelude::resolve_viewport_camera;
 
 pub fn stash_layout_system(
     grid: Res<StashGrid>,

@@ -6,12 +6,12 @@ use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 
 use crate::card::component::Card;
+use crate::card::drag_state::{DragInfo, DragState};
 use crate::card::item_form::CardItemForm;
+use crate::card::physics_helpers::activate_physics_body;
 use crate::card::zone::CardZone;
-use crate::drag_state::{DragInfo, DragState};
 use crate::hand::cards::Hand;
 use crate::hand::layout::HandSpring;
-use crate::physics_helpers::activate_physics_body;
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::toggle::StashVisible;
 use engine_core::scale_spring::ScaleSpring;
@@ -287,8 +287,8 @@ mod tests {
 
     use super::card_pick_system;
     use crate::card::component::Card;
+    use crate::card::drag_state::DragState;
     use crate::card::zone::CardZone;
-    use crate::drag_state::DragState;
     use crate::hand::cards::Hand;
     use crate::hand::layout::HandSpring;
     use crate::test_helpers::{AddBodyLog, ColliderLog, DampingLog, SpyPhysicsBackend};
@@ -527,7 +527,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState {
-            dragging: Some(crate::drag_state::DragInfo {
+            dragging: Some(crate::card::drag_state::DragInfo {
                 entity: card_a,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,

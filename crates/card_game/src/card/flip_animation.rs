@@ -1,5 +1,6 @@
-use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res};
+use bevy_ecs::prelude::{Commands, Component, Entity, Has, Query, Res};
 use engine_core::prelude::{DeltaTime, Seconds, Transform2D};
+use engine_core::scale_spring::ScaleSpring;
 
 use crate::card::component::Card;
 
@@ -45,6 +46,12 @@ pub fn flip_animation_system(
             card.face_up = anim.target_face_up;
             transform.scale.x = base_scale * ((anim.progress - 0.5) * 2.0);
         }
+    }
+}
+
+pub fn sync_scale_spring_lock_x(mut query: Query<(&mut ScaleSpring, Has<FlipAnimation>)>) {
+    for (mut spring, has_flip) in &mut query {
+        spring.lock_x = has_flip;
     }
 }
 

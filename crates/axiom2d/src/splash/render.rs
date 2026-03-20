@@ -9,11 +9,11 @@ use engine_render::prelude::{
 use engine_scene::prelude::{RenderLayer, SortOrder, Visible};
 use glam::Vec2;
 
+use super::letters::{letter_a, letter_i, letter_m, letter_o, letter_x};
 use super::types::{
     ACCENT_COLOR, LOGO_COLOR, SPLASH_ACCENT_ORDER, SPLASH_BG_ORDER, SPLASH_LETTER_ORDER,
     SPLASH_SIDE_BASE, SplashEntity, SplashScreen,
 };
-use crate::splash_letters::{letter_a, letter_i, letter_m, letter_o, letter_x};
 
 const BG_COLOR: Color = Color {
     r: 0.05,

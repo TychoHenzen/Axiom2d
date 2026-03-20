@@ -1,4 +1,5 @@
 mod animation;
+mod letters;
 #[cfg(feature = "render")]
 pub(crate) mod render;
 mod types;
