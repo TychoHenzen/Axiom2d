@@ -261,18 +261,19 @@ These extend `engine_physics` with capabilities the card game requires.
 
 ## Phase H: Integration and Polish
 
-### Step H1 — Game Plugin and Setup `[NOT STARTED]`
+### Step H1 — Game Plugin and Setup `[DONE]`
 **Crate:** card_game
 **Why:** Wire everything together into a playable game.
 
-- [ ] `CardGamePlugin` implementing Plugin trait: registers all systems in correct phases, inserts resources (DragState, Hand, StashGrid, PhysicsRes with gravity=ZERO)
-- [ ] System ordering within phases:
-  - Phase::PreUpdate: physics_step_system, physics_sync_system (chained)
-  - Phase::Update: card_pick_system, card_drag_system, card_release_system, card_flip_system, flip_animation_system (chained)
-  - Phase::PostUpdate: hand_layout_system (after hierarchy systems)
-  - Phase::Render: ui_render_system, stash render systems (after sprite_render_system)
-- [ ] Setup function: spawn initial deck of cards on table, spawn hand area, spawn stash grid
-- [ ] Tests: plugin registers expected system count, all resources inserted
+- [x] `CardGamePlugin` implementing Plugin trait: registers all systems in correct phases, inserts resources (DragState, CameraDragState, StashVisible, Hand, StashGrid, StashHoverPreview, ClearColor, CardArtShader)
+- [x] System ordering within phases:
+  - Phase::PreUpdate: card_damping_system.after(physics_sync_system)
+  - Phase::Update: (card_pick, card_drag, stash_boundary, card_release, card_flip, flip_animation).chain() + camera systems + stash toggle/tab + hover preview
+  - Phase::PostUpdate: (card_item_form_visibility, stash_layout, sort_propagation, card_render_layer, hand_layout) + (sync_scale_spring_lock_x, scale_spring).chain()
+  - Phase::Render: stash_render.after(shape_render), (stash_tab_render, stash_hover_preview_render).after(stash_render), text_render.after(shape_render)
+- [x] Setup function: spawn_scene deferred via PostSplashSetup hook in card_game_bin (spawns table, camera, deck, physics warm-up)
+- [x] Tests: 5 plugin tests (stash grid dimensions, hand capacity, clear color override, card art shader registry, physics res boundary)
+- [x] PhysicsRes(RapierBackend) stays in binary (inserted before DefaultPlugins, not in plugin)
 
 ### Step H2 — Drag Visual Feedback `[NOT STARTED]`
 **Crate:** card_game

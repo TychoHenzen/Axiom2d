@@ -8,6 +8,7 @@ workspace = true
 
 [dependencies]
 bevy_ecs = { workspace = true }
+engine_app = { path = "../engine_app" }
 engine_core = { path = "../engine_core" }
 engine_input = { path = "../engine_input" }
 engine_render = { path = "../engine_render" }

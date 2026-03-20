@@ -67,48 +67,24 @@ fn spawn_scene(world: &mut World) {
 }
 
 fn setup(app: &mut App) {
-    app.add_plugin(DefaultPlugins);
+    // PhysicsRes must be inserted before DefaultPlugins (which checks for it)
+    app.world_mut()
+        .insert_resource(PhysicsRes::new(Box::new(RapierBackend::new(Vec2::ZERO))));
 
-    let config = WindowConfig {
+    app.add_plugin(DefaultPlugins);
+    app.add_plugin(CardGamePlugin);
+
+    app.set_window_config(WindowConfig {
         title: "Card Game",
         width: 1024,
         height: 768,
         ..Default::default()
-    };
+    });
 
-    register_game_resources(app);
-    register_scene_setup_hook(app);
-    register_preload_hook(app);
-    register_game_systems(app, config);
-}
-
-fn register_game_resources(app: &mut App) {
-    let world = app.world_mut();
-    world.insert_resource(PhysicsRes::new(Box::new(RapierBackend::new(Vec2::ZERO))));
-    world.insert_resource(DragState::default());
-    world.insert_resource(CameraDragState::default());
-    world.insert_resource(StashVisible::default());
-    world.insert_resource(StashGrid::new(10, 10, 3));
-    world.insert_resource(Hand::new(10));
-    world.insert_resource(StashHoverPreview::default());
-    world.insert_resource(ClearColor(Color {
-        r: 0.1,
-        g: 0.1,
-        b: 0.1,
-        a: 1.0,
-    }));
-
-    let art_shader = register_card_art_shader(&mut world.resource_mut::<ShaderRegistry>());
-    world.insert_resource(art_shader);
-}
-
-fn register_scene_setup_hook(app: &mut App) {
     app.world_mut()
         .resource_mut::<PostSplashSetup>()
         .add(spawn_scene);
-}
 
-fn register_preload_hook(app: &mut App) {
     app.world_mut()
         .resource_mut::<PreloadHooks>()
         .add(|world: &mut World| {
@@ -120,56 +96,6 @@ fn register_preload_hook(app: &mut App) {
             }
             world.insert_resource(physics);
         });
-}
-
-#[allow(clippy::too_many_lines)]
-fn register_game_systems(app: &mut App, config: WindowConfig) {
-    app.set_window_config(config)
-        .add_systems(
-            Phase::PreUpdate,
-            card_damping_system.after(physics_sync_system),
-        )
-        .add_systems(
-            Phase::Update,
-            (
-                card_pick_system,
-                card_drag_system,
-                stash_boundary_system,
-                card_release_system,
-                card_flip_system,
-                flip_animation_system,
-            )
-                .chain(),
-        )
-        .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system))
-        .add_systems(Phase::Update, (stash_toggle_system, stash_tab_click_system))
-        .add_systems(Phase::Update, stash_hover_preview_system)
-        .add_systems(
-            Phase::PostUpdate,
-            (
-                card_item_form_visibility_system,
-                stash_layout_system,
-                sort_propagation_system,
-                card_render_layer_system,
-                hand_layout_system,
-            ),
-        )
-        .add_systems(
-            Phase::PostUpdate,
-            (sync_scale_spring_lock_x, scale_spring_system).chain(),
-        )
-        .add_systems(
-            Phase::Render,
-            stash_render_system.after(shape_render_system),
-        )
-        .add_systems(
-            Phase::Render,
-            (stash_tab_render_system, stash_hover_preview_render_system).after(stash_render_system),
-        )
-        .add_systems(
-            Phase::Render,
-            card_text_render_system.after(shape_render_system),
-        );
 }
 
 fn main() {

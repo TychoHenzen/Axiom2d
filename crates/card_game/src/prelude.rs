@@ -28,6 +28,8 @@ pub use crate::stash::pages::{stash_tab_click_system, stash_tab_render_system};
 pub use crate::stash::render::stash_render_system;
 pub use crate::stash::toggle::{StashVisible, stash_toggle_system};
 
+pub use crate::plugin::CardGamePlugin;
+
 // Engine re-exports used by the binary crate
 pub use engine_core::scale_spring::{ScaleSpring, scale_spring_system};
 pub use engine_scene::sort_propagation::sort_propagation_system;
