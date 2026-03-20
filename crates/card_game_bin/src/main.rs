@@ -2,7 +2,6 @@ mod card_data;
 
 use axiom2d::prelude::*;
 use card_game::prelude::*;
-use glam::Vec2;
 
 const TABLE_COLOR: Color = Color {
     r: 0.15,
@@ -11,8 +10,7 @@ const TABLE_COLOR: Color = Color {
     a: 1.0,
 };
 
-fn spawn_scene(world: &mut bevy_ecs::world::World) {
-    // Table background
+fn spawn_scene(world: &mut World) {
     world.spawn((
         Transform2D {
             position: Vec2::ZERO,
@@ -38,7 +36,7 @@ fn spawn_scene(world: &mut bevy_ecs::world::World) {
         zoom: 1.0,
     });
 
-    let card_size = Vec2::new(CARD_WIDTH, CARD_HEIGHT);
+    let card_size = Vec2::new(TABLE_CARD_WIDTH, TABLE_CARD_HEIGHT);
     let deck = card_data::starter_deck();
     let mut card_entities = Vec::new();
     for card in &deck {
@@ -87,7 +85,6 @@ fn setup(app: &mut App) {
 fn register_game_resources(app: &mut App) {
     let world = app.world_mut();
     world.insert_resource(PhysicsRes::new(Box::new(RapierBackend::new(Vec2::ZERO))));
-    world.insert_resource(CollisionEventBuffer::default());
     world.insert_resource(DragState::default());
     world.insert_resource(CameraDragState::default());
     world.insert_resource(StashVisible::default());
@@ -114,7 +111,7 @@ fn register_scene_setup_hook(app: &mut App) {
 fn register_preload_hook(app: &mut App) {
     app.world_mut()
         .resource_mut::<PreloadHooks>()
-        .add(|world: &mut bevy_ecs::world::World| {
+        .add(|world: &mut World| {
             const WARM_UP_STEPS: u32 = 10;
             const WARM_UP_DT: f32 = 1.0 / 60.0;
             let mut physics = world.remove_resource::<PhysicsRes>().expect("PhysicsRes");
@@ -130,12 +127,7 @@ fn register_game_systems(app: &mut App, config: WindowConfig) {
     app.set_window_config(config)
         .add_systems(
             Phase::PreUpdate,
-            (
-                physics_step_system,
-                physics_sync_system,
-                card_damping_system,
-            )
-                .chain(),
+            card_damping_system.after(physics_sync_system),
         )
         .add_systems(
             Phase::Update,
@@ -143,7 +135,6 @@ fn register_game_systems(app: &mut App, config: WindowConfig) {
                 card_pick_system,
                 card_drag_system,
                 stash_boundary_system,
-                stash_drag_hover_system,
                 card_release_system,
                 card_flip_system,
                 flip_animation_system,

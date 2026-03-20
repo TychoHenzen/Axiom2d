@@ -9,7 +9,7 @@ use crate::card::item_form::CardItemForm;
 use crate::card::physics_helpers::activate_physics_body;
 use crate::card::pick::{DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
 use crate::stash::constants::SLOT_WIDTH;
-use crate::stash::grid::{StashGrid, cursor_over_stash};
+use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::toggle::StashVisible;
 use engine_core::scale_spring::ScaleSpring;
 
@@ -26,7 +26,8 @@ pub fn stash_boundary_system(
         return;
     };
 
-    let over_stash = cursor_over_stash(&mouse, &stash_visible, &grid);
+    let over_stash = stash_visible.0
+        && find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height()).is_some();
 
     if info.stash_cursor_follow && !over_stash {
         // Exit stash: add physics body, switch to spring drag
@@ -127,10 +128,6 @@ mod tests {
         mouse
     }
 
-    // -----------------------------------------------------------------------
-    // No drag → no-op
-    // -----------------------------------------------------------------------
-
     #[test]
     fn when_no_drag_then_no_physics_calls() {
         // Arrange
@@ -149,10 +146,6 @@ mod tests {
         assert!(add_log.lock().unwrap().is_empty());
         assert!(remove_log.lock().unwrap().is_empty());
     }
-
-    // -----------------------------------------------------------------------
-    // Cursor in stash + follow=true → no-op (steady state)
-    // -----------------------------------------------------------------------
 
     #[test]
     fn when_stash_follow_and_cursor_in_stash_then_no_physics_calls() {
@@ -186,10 +179,6 @@ mod tests {
             "stash_cursor_follow should remain true"
         );
     }
-
-    // -----------------------------------------------------------------------
-    // Exit stash: follow=true + cursor outside → add physics, follow=false
-    // -----------------------------------------------------------------------
 
     #[test]
     fn when_stash_follow_and_cursor_exits_stash_then_physics_body_added() {
@@ -276,10 +265,6 @@ mod tests {
         );
     }
 
-    // -----------------------------------------------------------------------
-    // Enter stash: follow=false + cursor inside → remove physics, follow=true
-    // -----------------------------------------------------------------------
-
     #[test]
     fn when_physics_drag_and_cursor_enters_stash_then_physics_body_removed() {
         // Arrange
@@ -365,10 +350,6 @@ mod tests {
             spring.target
         );
     }
-
-    // -----------------------------------------------------------------------
-    // Stash hidden + follow=true → treated as exit
-    // -----------------------------------------------------------------------
 
     #[test]
     fn when_stash_hidden_and_follow_true_then_physics_body_added() {

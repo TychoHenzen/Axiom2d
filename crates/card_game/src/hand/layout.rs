@@ -891,18 +891,6 @@ mod tests {
         );
     }
 
-    fn run_both_systems(world: &mut World) {
-        let mut schedule = Schedule::default();
-        schedule.add_systems(
-            (
-                hand_layout_system,
-                engine_core::scale_spring::scale_spring_system,
-            )
-                .chain(),
-        );
-        schedule.run(world);
-    }
-
     fn run_both_n_frames(world: &mut World, n: usize) {
         let mut schedule = Schedule::default();
         schedule.add_systems(
@@ -929,7 +917,7 @@ mod tests {
         let target = FAN_SCALE / 2.0;
 
         // Act
-        run_both_systems(&mut world);
+        run_both_n_frames(&mut world, 1);
 
         // Assert — starts at 1.0, target is FAN_SCALE/2; should move toward target but not arrive
         let t = world.get::<Transform2D>(entity).unwrap();
@@ -1008,7 +996,7 @@ mod tests {
         world.resource_mut::<Hand>().add(entity).unwrap();
 
         // Act
-        run_both_systems(&mut world);
+        run_both_n_frames(&mut world, 1);
 
         // Assert
         let t = world.get::<Transform2D>(entity).unwrap();

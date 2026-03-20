@@ -530,9 +530,7 @@ name = "card_game_bin"
 version = "0.1.0"
 dependencies = [
  "axiom2d",
- "bevy_ecs",
  "card_game",
- "engine_physics",
  "glam 0.29.3",
 ]
 

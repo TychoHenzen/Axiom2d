@@ -13,7 +13,9 @@ use glam::{Affine2, Vec2};
 
 use crate::card::drag_state::DragState;
 use crate::card::face_side::CardFaceSide;
-use crate::card::geometry::{ART_QUAD, QUAD_INDICES, TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
+use engine_render::prelude::QUAD_INDICES;
+
+use crate::card::geometry::{ART_QUAD, TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
 use crate::stash::constants::{GRID_MARGIN, SLOT_STRIDE_H};
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::render::reset_default_shader;
@@ -70,8 +72,7 @@ pub fn stash_hover_preview_render_system(
         return;
     };
 
-    let grid_screen_h = f32::from(grid.height()) * SLOT_STRIDE_H;
-    let preview_screen_h = grid_screen_h;
+    let preview_screen_h = f32::from(grid.height()) * SLOT_STRIDE_H;
     let preview_screen_w = preview_screen_h * (TABLE_CARD_WIDTH / TABLE_CARD_HEIGHT);
 
     let preview_center_screen = Vec2::new(

@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::{Entity, World};
 use engine_core::prelude::{Color, TextureId, Transform2D};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
-use engine_render::prelude::{Material2d, ShaderHandle, Shape};
+use engine_render::prelude::{Material2d, ShaderHandle, Shape, rect_polygon};
 use engine_scene::prelude::{ChildOf, RenderLayer, SortOrder, Visible};
 use glam::Vec2;
 
@@ -11,7 +11,6 @@ use crate::card::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card::definition::{CardDefinition, description_from_abilities, rarity_border_color};
 use crate::card::face_layout::FRONT_FACE_REGIONS;
 use crate::card::face_side::CardFaceSide;
-use crate::card::geometry::rect_polygon;
 use crate::card::label::CardLabel;
 use crate::card::zone::CardZone;
 use crate::stash::constants::{SLOT_HEIGHT, SLOT_WIDTH};

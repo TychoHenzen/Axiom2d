@@ -25,14 +25,6 @@ pub enum CardType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ParticleType {
-    Sparks,
-    Smoke,
-    Embers,
-    Frost,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CardStats {
     pub cost: u32,
     pub attack: u32,
@@ -45,17 +37,9 @@ pub struct Gradient {
     pub bottom: Color,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum ArtShape {
-    Circle { radius: f32 },
-    Rectangle { width: f32, height: f32 },
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArtDescriptor {
     pub background: Gradient,
-    pub shapes: Vec<ArtShape>,
-    pub effect: Option<ParticleType>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -101,24 +85,6 @@ pub fn description_from_abilities(abilities: &CardAbilities) -> String {
     }
 }
 
-#[allow(clippy::struct_excessive_bools)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CardLayout {
-    pub has_name_region: bool,
-    pub has_art_region: bool,
-    pub has_stats_bar: bool,
-    pub has_description_region: bool,
-}
-
-pub fn card_type_layout(card_type: CardType) -> CardLayout {
-    CardLayout {
-        has_name_region: true,
-        has_art_region: true,
-        has_stats_bar: matches!(card_type, CardType::Creature),
-        has_description_region: true,
-    }
-}
-
 pub fn rarity_border_color(rarity: Rarity) -> Color {
     match rarity {
         Rarity::Common => Color::new(0.6, 0.6, 0.6, 1.0),
@@ -143,11 +109,7 @@ pub fn art_descriptor_default(card_type: CardType) -> ArtDescriptor {
             bottom: Color::new(0.3, 0.25, 0.2, 1.0),
         },
     };
-    ArtDescriptor {
-        background,
-        shapes: vec![],
-        effect: None,
-    }
+    ArtDescriptor { background }
 }
 
 #[cfg(test)]
@@ -206,26 +168,6 @@ mod tests {
     }
 
     #[test]
-    fn when_particle_type_serialized_to_ron_then_each_variant_roundtrips() {
-        // Arrange
-        let particle_types = [
-            ParticleType::Sparks,
-            ParticleType::Smoke,
-            ParticleType::Embers,
-            ParticleType::Frost,
-        ];
-
-        for particle_type in particle_types {
-            // Act
-            let ron = ron::to_string(&particle_type).unwrap();
-            let back: ParticleType = ron::from_str(&ron).unwrap();
-
-            // Assert
-            assert_eq!(particle_type, back);
-        }
-    }
-
-    #[test]
     fn when_card_stats_serialized_to_ron_then_cost_attack_health_roundtrip() {
         // Arrange
         let stats = CardStats {
@@ -259,35 +201,13 @@ mod tests {
     }
 
     #[test]
-    fn when_art_descriptor_with_no_effect_serialized_to_ron_then_roundtrips() {
+    fn when_art_descriptor_serialized_to_ron_then_roundtrips() {
         // Arrange
         let art = ArtDescriptor {
             background: Gradient {
                 top: Color::WHITE,
                 bottom: Color::BLACK,
             },
-            shapes: vec![],
-            effect: None,
-        };
-
-        // Act
-        let ron = ron::to_string(&art).unwrap();
-        let back: ArtDescriptor = ron::from_str(&ron).unwrap();
-
-        // Assert
-        assert_eq!(art, back);
-    }
-
-    #[test]
-    fn when_art_descriptor_with_particle_effect_serialized_to_ron_then_effect_roundtrips() {
-        // Arrange
-        let art = ArtDescriptor {
-            background: Gradient {
-                top: Color::RED,
-                bottom: Color::GREEN,
-            },
-            shapes: vec![],
-            effect: Some(ParticleType::Sparks),
         };
 
         // Act
@@ -351,8 +271,6 @@ mod tests {
                     top: Color::RED,
                     bottom: Color::BLACK,
                 },
-                shapes: vec![],
-                effect: Some(ParticleType::Embers),
             },
         };
 
@@ -381,8 +299,6 @@ mod tests {
                     top: Color::BLUE,
                     bottom: Color::WHITE,
                 },
-                shapes: vec![],
-                effect: None,
             },
         };
 
@@ -501,48 +417,6 @@ mod tests {
     }
 
     #[test]
-    fn when_card_type_layout_called_for_creature_then_layout_includes_stats_bar() {
-        // Act
-        let layout = card_type_layout(CardType::Creature);
-
-        // Assert
-        assert!(layout.has_stats_bar);
-    }
-
-    #[test]
-    fn when_card_type_layout_called_for_spell_then_layout_does_not_include_stats_bar() {
-        // Act
-        let layout = card_type_layout(CardType::Spell);
-
-        // Assert
-        assert!(!layout.has_stats_bar);
-    }
-
-    #[test]
-    fn when_card_type_layout_called_for_artifact_then_layout_does_not_include_stats_bar() {
-        // Act
-        let layout = card_type_layout(CardType::Artifact);
-
-        // Assert
-        assert!(!layout.has_stats_bar);
-    }
-
-    #[test]
-    fn when_card_type_layout_called_then_all_types_include_art_region_and_name_region() {
-        // Arrange
-        let types = [CardType::Creature, CardType::Spell, CardType::Artifact];
-
-        for card_type in types {
-            // Act
-            let layout = card_type_layout(card_type);
-
-            // Assert
-            assert!(layout.has_art_region, "{card_type:?} missing art region");
-            assert!(layout.has_name_region, "{card_type:?} missing name region");
-        }
-    }
-
-    #[test]
     fn when_art_descriptor_default_called_for_creature_then_gradient_is_not_flat() {
         // Act
         let art = art_descriptor_default(CardType::Creature);
@@ -638,7 +512,6 @@ mod tests {
             r2 in 0.0_f32..=1.0,
             g2 in 0.0_f32..=1.0,
             b2 in 0.0_f32..=1.0,
-            particle_idx in 0_u8..5,
         ) {
             // Arrange
             let card_type = match card_type_idx {
@@ -657,13 +530,6 @@ mod tests {
                 .filter(|i| keyword_bits & (1 << i) != 0)
                 .map(|i| all_keywords[i])
                 .collect();
-            let effect = match particle_idx {
-                0 => None,
-                1 => Some(ParticleType::Sparks),
-                2 => Some(ParticleType::Smoke),
-                3 => Some(ParticleType::Embers),
-                _ => Some(ParticleType::Frost),
-            };
             let def = CardDefinition {
                 card_type,
                 rarity,
@@ -682,8 +548,6 @@ mod tests {
                         top: Color::new(r1, g1, b1, 1.0),
                         bottom: Color::new(r2, g2, b2, 1.0),
                     },
-                    shapes: vec![],
-                    effect,
                 },
             };
 

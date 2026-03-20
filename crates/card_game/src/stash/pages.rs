@@ -4,19 +4,17 @@ use engine_input::prelude::MouseState;
 use engine_render::prelude::{Camera2D, RendererRes, screen_to_world};
 use glam::Vec2;
 
-use crate::card::geometry::{QUAD_INDICES, rect_vertices};
 use crate::stash::constants::{
     BACKGROUND_COLOR, GRID_MARGIN, SLOT_GAP, SLOT_STRIDE_H, SLOT_STRIDE_W,
 };
 use crate::stash::grid::StashGrid;
 use crate::stash::toggle::StashVisible;
 use engine_render::prelude::resolve_viewport_camera;
+use engine_render::prelude::{QUAD_INDICES, rect_vertices};
 
 pub const TAB_WIDTH: f32 = 30.0;
 pub const TAB_HEIGHT: f32 = 16.0;
 pub const TAB_GAP: f32 = 4.0;
-pub const TAB_MARGIN_TOP: f32 = 0.0;
-
 pub const TAB_ACTIVE: Color = Color {
     r: 0.35,
     g: 0.35,
@@ -27,7 +25,7 @@ pub const TAB_INACTIVE: Color = BACKGROUND_COLOR;
 
 /// Returns the screen-space Y position of the top edge of the tab row.
 pub fn tab_row_top_y(grid_height: u8) -> f32 {
-    GRID_MARGIN + f32::from(grid_height) * SLOT_STRIDE_H - SLOT_GAP + TAB_MARGIN_TOP
+    GRID_MARGIN + f32::from(grid_height) * SLOT_STRIDE_H - SLOT_GAP
 }
 
 /// Returns the screen-space X position of the left edge of tab `i` in a row of `page_count` tabs,
@@ -117,8 +115,6 @@ mod tests {
     use engine_input::prelude::MouseButton;
     use engine_render::testing::{ShapeCallLog, SpyRenderer};
     use std::sync::{Arc, Mutex};
-
-    // --- Tab click tests ---
 
     fn make_click_world(page_count: u8, visible: bool) -> World {
         let mut world = World::new();
@@ -285,8 +281,6 @@ mod tests {
         // Assert
         assert_eq!(world.resource::<StashGrid>().current_page(), 0);
     }
-
-    // --- Tab render tests ---
 
     fn make_render_world(
         grid: StashGrid,

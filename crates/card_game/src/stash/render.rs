@@ -3,14 +3,13 @@ use std::collections::HashMap;
 use bevy_ecs::prelude::{Entity, Query, Res, ResMut, With};
 use engine_core::color::Color;
 use engine_render::prelude::{
-    BlendMode, Camera2D, RendererRes, ShaderHandle, Shape, screen_to_world,
+    BlendMode, Camera2D, QUAD_INDICES, RendererRes, ShaderHandle, Shape, UNIT_QUAD, rect_vertices,
+    screen_to_world, unit_quad_model,
 };
 use engine_scene::prelude::ChildOf;
 use glam::Vec2;
 
-use crate::card::geometry::{
-    ART_QUAD, QUAD_INDICES, UNIT_QUAD, art_quad_model, rect_vertices, unit_quad_model,
-};
+use crate::card::geometry::{ART_QUAD, art_quad_model};
 use crate::stash::constants::{
     BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_STRIDE_H, SLOT_STRIDE_W,
     SLOT_WIDTH,

@@ -17,7 +17,6 @@ pub mod pick;
 pub mod release;
 pub mod render_layer;
 pub mod spawn_table_card;
-pub mod text_render;
 pub mod zone;
 
 pub use component::Card;
