@@ -4,7 +4,8 @@ pub use crate::atlas::{
 };
 pub use crate::bloom::{BloomSettings, compute_gaussian_weights, post_process_system};
 pub use crate::camera::{
-    Camera2D, CameraUniform, camera_prepare_system, screen_to_world, world_to_screen,
+    Camera2D, CameraUniform, camera_prepare_system, resolve_viewport_camera, screen_to_world,
+    world_to_screen,
 };
 pub use crate::clear::{ClearColor, clear_system};
 pub use crate::create_renderer;
@@ -16,9 +17,10 @@ pub use crate::rect::Rect;
 pub use crate::renderer::{IDENTITY_MODEL, NullRenderer, Renderer, RendererRes};
 pub use crate::shader::{ShaderHandle, ShaderRegistry, preprocess, shader_prepare_system};
 pub use crate::shape::{
-    PathCommand, Shape, ShapeVariant, Stroke, TessellatedMesh, affine2_to_mat4, resolve_commands,
-    reverse_path, sample_cubic, sample_quadratic, shape_render_system, split_contours, tessellate,
-    tessellate_stroke,
+    PathCommand, QUAD_INDICES, Shape, ShapeVariant, Stroke, TessellatedMesh, UNIT_QUAD,
+    affine2_to_mat4, rect_polygon, rect_vertices, resolve_commands, reverse_path, sample_cubic,
+    sample_quadratic, shape_render_system, split_contours, tessellate, tessellate_stroke,
+    unit_quad_model,
 };
 pub use crate::sprite::{Sprite, sprite_render_system};
 pub use crate::window::WindowConfig;

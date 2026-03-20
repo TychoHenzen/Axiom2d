@@ -1,6 +1,6 @@
-use crate::splash::SplashPlugin;
 #[cfg(feature = "render")]
 use crate::splash::splash_render_system;
+use crate::splash::{SkipSplash, SplashPlugin};
 use engine_app::mouse_world_pos_system::mouse_world_pos_system;
 use engine_app::prelude::{App, Phase, Plugin};
 #[cfg(feature = "audio")]
@@ -26,12 +26,16 @@ use engine_render::prelude::{
 use engine_scene::prelude::{
     hierarchy_maintenance_system, transform_propagation_system, visibility_system,
 };
+#[cfg(feature = "render")]
+use engine_ui::prelude::text_render_system;
 
 pub struct DefaultPlugins;
 
 impl Plugin for DefaultPlugins {
     fn build(&self, app: &mut App) {
-        app.add_plugin(SplashPlugin);
+        if app.world().get_resource::<SkipSplash>().is_none() {
+            app.add_plugin(SplashPlugin);
+        }
         register_core_resources(app);
         register_core_systems(app);
         register_physics(app);
@@ -123,6 +127,7 @@ fn register_render(app: &mut App) {
                 splash_render_system,
                 sprite_render_system,
                 shape_render_system,
+                text_render_system,
                 post_process_system,
             )
                 .chain(),
@@ -549,5 +554,23 @@ mod tests {
                 .just_pressed(KeyCode::Space)
         );
         assert!(app.world().resource::<InputState>().pressed(KeyCode::Space));
+    }
+
+    #[test]
+    fn when_skip_splash_inserted_then_splash_screen_not_present() {
+        // Arrange
+        let mut app = App::new();
+        app.world_mut().insert_resource(SkipSplash);
+
+        // Act
+        app.add_plugin(DefaultPlugins);
+
+        // Assert
+        assert!(
+            app.world()
+                .get_resource::<crate::splash::SplashScreen>()
+                .is_none(),
+            "SplashScreen should not be inserted when SkipSplash is present"
+        );
     }
 }

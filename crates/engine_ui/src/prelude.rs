@@ -4,6 +4,7 @@ pub use crate::layout::{
     ui_layout_system,
 };
 pub use crate::render::ui_render_system;
+pub use crate::text_render::text_render_system;
 pub use crate::theme::UiTheme;
 pub use crate::ui_event::{UiEvent, UiEventBuffer};
 pub use crate::widget::{

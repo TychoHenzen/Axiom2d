@@ -215,6 +215,7 @@ dependencies = [
  "engine_physics",
  "engine_render",
  "engine_scene",
+ "engine_ui",
  "glam 0.29.3",
  "winit",
 ]

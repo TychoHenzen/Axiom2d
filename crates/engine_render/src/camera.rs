@@ -83,6 +83,23 @@ pub fn camera_prepare_system(query: Query<&Camera2D>, mut renderer: ResMut<Rende
     renderer.set_view_projection(uniform.view_proj);
 }
 
+/// Resolves the viewport size and first camera, returning `None` if the viewport is zero.
+pub fn resolve_viewport_camera(
+    renderer: &RendererRes,
+    camera_query: &Query<&Camera2D>,
+) -> Option<(f32, f32, Camera2D)> {
+    let (vw, vh) = renderer.viewport_size();
+    if vw == 0 || vh == 0 {
+        return None;
+    }
+    let camera = camera_query
+        .iter()
+        .next()
+        .copied()
+        .unwrap_or(Camera2D::default());
+    Some((vw as f32, vh as f32, camera))
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {

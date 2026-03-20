@@ -10,8 +10,9 @@ pub use engine_physics::prelude::*;
 #[cfg(feature = "render")]
 pub use engine_render::prelude::*;
 pub use engine_scene::prelude::*;
+pub use engine_ui::prelude::*;
 
 pub use crate::default_plugins::DefaultPlugins;
 #[cfg(feature = "render")]
 pub use crate::splash::splash_render_system;
-pub use crate::splash::{PreloadHooks, SplashEntity, SplashPlugin, SplashScreen};
+pub use crate::splash::{PreloadHooks, SkipSplash, SplashEntity, SplashPlugin, SplashScreen};

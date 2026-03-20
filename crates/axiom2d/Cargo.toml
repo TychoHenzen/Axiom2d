@@ -24,6 +24,7 @@ engine_audio = { path = "../engine_audio", optional = true }
 engine_physics = { path = "../engine_physics", optional = true }
 engine_render = { path = "../engine_render", optional = true }
 engine_scene = { path = "../engine_scene" }
+engine_ui = { path = "../engine_ui" }
 
 [dev-dependencies]
 engine_render = { path = "../engine_render", features = ["testing"] }

@@ -66,3 +66,8 @@ impl Default for PreloadHooks {
         Self::new()
     }
 }
+
+/// Marker resource to skip the splash screen.
+/// Insert this before calling `app.add_plugin(DefaultPlugins)`.
+#[derive(Resource)]
+pub struct SkipSplash;
