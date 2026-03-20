@@ -1,36 +1,12 @@
 pub mod card;
-pub mod card_art_shader;
-pub mod card_damping;
-pub mod card_definition;
-pub mod card_drag;
-pub mod card_face_layout;
-pub mod card_face_side;
-pub mod card_flip;
-pub mod card_geometry;
-pub mod card_item_form;
-pub mod card_label;
-pub mod card_pick;
-pub mod card_release;
-pub mod card_render_layer;
-pub mod card_text_render;
-pub mod card_zone;
 pub mod drag_state;
 pub mod flip_animation;
 pub mod hand;
-pub mod hand_layout;
 pub(crate) mod physics_helpers;
 pub mod prelude;
 pub mod scale_spring;
 pub mod spawn_table_card;
-pub mod stash_boundary;
-pub mod stash_drag_hover;
-pub mod stash_grid;
-pub mod stash_hover;
-pub mod stash_icon;
-pub mod stash_layout;
-pub mod stash_pages;
-pub mod stash_render;
-pub mod stash_toggle;
+pub mod stash;
 pub(crate) mod viewport_camera;
 
 #[cfg(test)]

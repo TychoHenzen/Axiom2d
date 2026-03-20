@@ -64,7 +64,7 @@ mod tests {
     use glam::Vec2;
 
     use super::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
-    use crate::card_zone::CardZone;
+    use crate::card::zone::CardZone;
     use crate::drag_state::{DragInfo, DragState};
     use crate::test_helpers::{AngularVelocityLog, SpyPhysicsBackend, VelocityLog};
 

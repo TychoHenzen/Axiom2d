@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::Resource;
 use engine_render::prelude::{ShaderHandle, ShaderRegistry};
 
-pub const UV_GRADIENT_WGSL: &str = include_str!("shaders/uv_gradient.wgsl");
+pub const UV_GRADIENT_WGSL: &str = include_str!("../shaders/uv_gradient.wgsl");
 
 #[derive(Resource, Debug, Clone, Copy)]
 pub struct CardArtShader(pub ShaderHandle);

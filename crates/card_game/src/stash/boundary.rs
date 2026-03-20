@@ -3,14 +3,14 @@ use engine_input::prelude::MouseState;
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
 use engine_scene::prelude::{GlobalTransform2D, RenderLayer};
 
-use crate::card_geometry::TABLE_CARD_WIDTH as CARD_WIDTH;
-use crate::card_item_form::CardItemForm;
-use crate::card_pick::{DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
+use crate::card::geometry::TABLE_CARD_WIDTH as CARD_WIDTH;
+use crate::card::item_form::CardItemForm;
+use crate::card::pick::{DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
 use crate::drag_state::DragState;
 use crate::physics_helpers::activate_physics_body;
-use crate::stash_grid::{StashGrid, cursor_over_stash};
-use crate::stash_render::SLOT_WIDTH;
-use crate::stash_toggle::StashVisible;
+use crate::stash::constants::SLOT_WIDTH;
+use crate::stash::grid::{StashGrid, cursor_over_stash};
+use crate::stash::toggle::StashVisible;
 use engine_core::scale_spring::ScaleSpring;
 
 pub fn stash_boundary_system(
@@ -78,12 +78,12 @@ mod tests {
     use glam::{Affine2, Vec2};
 
     use super::stash_boundary_system;
-    use crate::card_geometry::TABLE_CARD_WIDTH as CARD_WIDTH;
-    use crate::card_zone::CardZone;
+    use crate::card::geometry::TABLE_CARD_WIDTH as CARD_WIDTH;
+    use crate::card::zone::CardZone;
     use crate::drag_state::{DragInfo, DragState};
-    use crate::stash_grid::StashGrid;
-    use crate::stash_render::SLOT_WIDTH;
-    use crate::stash_toggle::StashVisible;
+    use crate::stash::constants::SLOT_WIDTH;
+    use crate::stash::grid::StashGrid;
+    use crate::stash::toggle::StashVisible;
     use crate::test_helpers::{AddBodyLog, RemoveBodyLog, SpyPhysicsBackend};
     use engine_core::scale_spring::ScaleSpring;
 

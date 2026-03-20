@@ -1,3 +1,9 @@
+#[cfg(test)]
+pub(crate) mod helpers;
+pub mod visual_regression;
+
+pub use visual_regression::*;
+
 use std::sync::{Arc, Mutex};
 
 use bevy_ecs::world::World;

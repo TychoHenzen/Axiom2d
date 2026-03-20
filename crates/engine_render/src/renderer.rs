@@ -134,7 +134,7 @@ mod tests {
         renderer.set_shader(crate::shader::ShaderHandle(0));
         renderer.set_material_uniforms(&[1, 2, 3]);
         renderer.bind_material_texture(engine_core::types::TextureId(0), 2);
-        renderer.upload_atlas(&crate::test_helpers::minimal_atlas());
+        renderer.upload_atlas(&crate::testing::helpers::minimal_atlas());
         renderer.compile_shader(crate::shader::ShaderHandle(1), "@vertex fn vs_shape() {}");
         renderer.draw_text("Test", 10.0, 20.0, 12.0, Color::WHITE);
         renderer.apply_post_process();

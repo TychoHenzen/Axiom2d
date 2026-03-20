@@ -4,10 +4,12 @@ use engine_input::prelude::MouseState;
 use engine_render::prelude::{Camera2D, RendererRes, screen_to_world};
 use glam::Vec2;
 
-use crate::card_geometry::{QUAD_INDICES, rect_vertices};
-use crate::stash_grid::StashGrid;
-use crate::stash_render::{BACKGROUND_COLOR, GRID_MARGIN, SLOT_GAP, SLOT_STRIDE_H, SLOT_STRIDE_W};
-use crate::stash_toggle::StashVisible;
+use crate::card::geometry::{QUAD_INDICES, rect_vertices};
+use crate::stash::constants::{
+    BACKGROUND_COLOR, GRID_MARGIN, SLOT_GAP, SLOT_STRIDE_H, SLOT_STRIDE_W,
+};
+use crate::stash::grid::StashGrid;
+use crate::stash::toggle::StashVisible;
 use crate::viewport_camera::resolve_viewport_camera;
 
 pub const TAB_WIDTH: f32 = 30.0;

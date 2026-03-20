@@ -5,17 +5,17 @@ use engine_render::prelude::{Material2d, ShaderHandle, Shape};
 use engine_scene::prelude::{ChildOf, RenderLayer, SortOrder, Visible};
 use glam::Vec2;
 
-use crate::card::Card;
-use crate::card_art_shader::CardArtShader;
-use crate::card_damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
-use crate::card_definition::{CardDefinition, description_from_abilities, rarity_border_color};
-use crate::card_face_layout::FRONT_FACE_REGIONS;
-use crate::card_face_side::CardFaceSide;
-use crate::card_geometry::rect_polygon;
-use crate::card_label::CardLabel;
-use crate::card_zone::CardZone;
-use crate::stash_icon::StashIcon;
-use crate::stash_render::{SLOT_HEIGHT, SLOT_WIDTH};
+use crate::card::art_shader::CardArtShader;
+use crate::card::component::Card;
+use crate::card::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
+use crate::card::definition::{CardDefinition, description_from_abilities, rarity_border_color};
+use crate::card::face_layout::FRONT_FACE_REGIONS;
+use crate::card::face_side::CardFaceSide;
+use crate::card::geometry::rect_polygon;
+use crate::card::label::CardLabel;
+use crate::card::zone::CardZone;
+use crate::stash::constants::{SLOT_HEIGHT, SLOT_WIDTH};
+use crate::stash::icon::StashIcon;
 use engine_scene::sort_propagation::LocalSortOrder;
 use engine_ui::prelude::Text;
 
@@ -272,12 +272,12 @@ mod tests {
     use glam::Vec2;
 
     use super::*;
-    use crate::card_definition::{
+    use crate::card::definition::{
         CardAbilities, CardDefinition, CardType, Keyword, Rarity, art_descriptor_default,
         rarity_border_color,
     };
-    use crate::card_face_side::CardFaceSide;
-    use crate::card_geometry::{TABLE_CARD_HEIGHT as CARD_HEIGHT, TABLE_CARD_WIDTH as CARD_WIDTH};
+    use crate::card::face_side::CardFaceSide;
+    use crate::card::geometry::{TABLE_CARD_HEIGHT as CARD_HEIGHT, TABLE_CARD_WIDTH as CARD_WIDTH};
 
     fn make_test_def() -> CardDefinition {
         CardDefinition {
@@ -382,7 +382,7 @@ mod tests {
     }
 
     fn find_stash_icon_child(world: &mut World, root: Entity) -> Option<Entity> {
-        let mut q = world.query::<(Entity, &ChildOf, &crate::stash_icon::StashIcon)>();
+        let mut q = world.query::<(Entity, &ChildOf, &crate::stash::icon::StashIcon)>();
         q.iter(world)
             .find(|(_, parent, _)| parent.0 == root)
             .map(|(e, _, _)| e)
@@ -637,7 +637,7 @@ mod tests {
         // Arrange
         let mut world = World::new();
         let mut registry = engine_render::prelude::ShaderRegistry::default();
-        let art_shader = crate::card_art_shader::register_card_art_shader(&mut registry);
+        let art_shader = crate::card::art_shader::register_card_art_shader(&mut registry);
         world.insert_resource(registry);
         world.insert_resource(art_shader);
         let def = make_test_def();
@@ -807,7 +807,7 @@ mod tests {
         let root = spawn_def(&mut world, &def);
 
         // Assert
-        let mut q = world.query::<(Entity, &ChildOf, &crate::stash_icon::StashIcon)>();
+        let mut q = world.query::<(Entity, &ChildOf, &crate::stash::icon::StashIcon)>();
         let count = q.iter(&world).filter(|(_, p, _)| p.0 == root).count();
         assert_eq!(count, 1, "expected exactly one StashIcon child");
     }
@@ -832,8 +832,8 @@ mod tests {
         };
         let max_x = points.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
         let max_y = points.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
-        let expected_half_w = crate::stash_render::SLOT_WIDTH * 0.5;
-        let expected_half_h = crate::stash_render::SLOT_HEIGHT * 0.5;
+        let expected_half_w = crate::stash::constants::SLOT_WIDTH * 0.5;
+        let expected_half_h = crate::stash::constants::SLOT_HEIGHT * 0.5;
         assert!(
             (max_x - expected_half_w).abs() < 1e-4,
             "half_w={max_x} expected {expected_half_w}"

@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res};
 use engine_core::prelude::{DeltaTime, Seconds, Transform2D};
 
-use crate::card::Card;
+use crate::card::component::Card;
 
 pub const FLIP_DURATION: Seconds = Seconds(0.3);
 
@@ -56,7 +56,7 @@ mod tests {
     use glam::Vec2;
 
     use super::{FlipAnimation, flip_animation_system};
-    use crate::card::Card;
+    use crate::card::component::Card;
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -368,8 +368,8 @@ mod tests {
 
     #[test]
     fn when_animation_completes_then_visibility_sync_reflects_final_state() {
-        use crate::card_face_side::CardFaceSide;
-        use crate::card_item_form::card_item_form_visibility_system;
+        use crate::card::face_side::CardFaceSide;
+        use crate::card::item_form::card_item_form_visibility_system;
         use engine_scene::prelude::{ChildOf, Children, Visible};
 
         // Arrange

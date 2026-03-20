@@ -10,6 +10,13 @@ pub(crate) fn spawn_entity() -> Entity {
     World::new().spawn_empty().id()
 }
 
+pub(crate) fn make_test_card() -> crate::card::component::Card {
+    crate::card::component::Card::face_down(
+        engine_core::prelude::TextureId(1),
+        engine_core::prelude::TextureId(2),
+    )
+}
+
 pub(crate) type AddBodyLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
 pub(crate) type ColliderLog = Arc<Mutex<Vec<Entity>>>;
 pub(crate) type RemoveBodyLog = Arc<Mutex<Vec<Entity>>>;

@@ -2,7 +2,7 @@ use bevy_ecs::prelude::{Entity, Resource};
 use glam::Vec2;
 use std::collections::HashMap;
 
-use crate::stash_render::{GRID_MARGIN, SLOT_STRIDE_H, SLOT_STRIDE_W};
+use crate::stash::constants::{GRID_MARGIN, SLOT_STRIDE_H, SLOT_STRIDE_W};
 
 #[derive(Debug, thiserror::Error)]
 #[error("slot is already occupied")]
@@ -88,7 +88,7 @@ impl StashGrid {
 
 pub(crate) fn cursor_over_stash(
     mouse: &engine_input::prelude::MouseState,
-    visible: &crate::stash_toggle::StashVisible,
+    visible: &super::toggle::StashVisible,
     grid: &StashGrid,
 ) -> bool {
     visible.0 && find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height()).is_some()

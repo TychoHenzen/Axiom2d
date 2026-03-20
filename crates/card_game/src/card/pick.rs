@@ -5,15 +5,15 @@ use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
 use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 
-use crate::card::Card;
-use crate::card_item_form::CardItemForm;
-use crate::card_zone::CardZone;
+use crate::card::component::Card;
+use crate::card::item_form::CardItemForm;
+use crate::card::zone::CardZone;
 use crate::drag_state::{DragInfo, DragState};
-use crate::hand::Hand;
-use crate::hand_layout::HandSpring;
+use crate::hand::cards::Hand;
+use crate::hand::layout::HandSpring;
 use crate::physics_helpers::activate_physics_body;
-use crate::stash_grid::{StashGrid, find_stash_slot_at};
-use crate::stash_toggle::StashVisible;
+use crate::stash::grid::{StashGrid, find_stash_slot_at};
+use crate::stash::toggle::StashVisible;
 use engine_core::scale_spring::ScaleSpring;
 
 pub const CARD_COLLISION_GROUP: u32 = 0b0001;
@@ -286,11 +286,11 @@ mod tests {
     use glam::{Affine2, Vec2};
 
     use super::card_pick_system;
-    use crate::card::Card;
-    use crate::card_zone::CardZone;
+    use crate::card::component::Card;
+    use crate::card::zone::CardZone;
     use crate::drag_state::DragState;
-    use crate::hand::Hand;
-    use crate::hand_layout::HandSpring;
+    use crate::hand::cards::Hand;
+    use crate::hand::layout::HandSpring;
     use crate::test_helpers::{AddBodyLog, ColliderLog, DampingLog, SpyPhysicsBackend};
     use engine_core::scale_spring::ScaleSpring;
 
@@ -305,8 +305,8 @@ mod tests {
     }
 
     fn insert_pick_resources(world: &mut World) {
-        use crate::stash_grid::StashGrid;
-        use crate::stash_toggle::StashVisible;
+        use crate::stash::grid::StashGrid;
+        use crate::stash::toggle::StashVisible;
         world.insert_resource(Hand::new(10));
         world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
         world.insert_resource(StashGrid::new(10, 10, 1));
@@ -319,7 +319,7 @@ mod tests {
         let mut world = World::new();
         let card_entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -397,7 +397,7 @@ mod tests {
         // Arrange
         let mut world = World::new();
         world.spawn((
-            Card::face_down(TextureId(1), TextureId(2)),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -441,7 +441,7 @@ mod tests {
         let mut world = World::new();
         let _card_a = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -478,7 +478,7 @@ mod tests {
         let mut world = World::new();
         let card_a = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -516,7 +516,7 @@ mod tests {
         let mut world = World::new();
         let card_a = world.spawn_empty().id();
         world.spawn((
-            Card::face_down(TextureId(1), TextureId(2)),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -552,7 +552,7 @@ mod tests {
         let transform =
             Affine2::from_scale_angle_translation(Vec2::ONE, angle, Vec2::new(100.0, 50.0));
         world.spawn((
-            Card::face_down(TextureId(1), TextureId(2)),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(transform),
@@ -593,7 +593,7 @@ mod tests {
         // Arrange
         let mut world = World::new();
         world.spawn((
-            Card::face_down(TextureId(1), TextureId(2)),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::new(100.0, 50.0))),
@@ -626,7 +626,7 @@ mod tests {
         // Arrange
         let mut world = World::new();
         world.spawn((
-            Card::face_down(TextureId(1), TextureId(2)),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -652,7 +652,7 @@ mod tests {
         let mut world = World::new();
         let angle = std::f32::consts::FRAC_PI_4;
         world.spawn((
-            Card::face_down(TextureId(1), TextureId(2)),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_scale_angle_translation(
@@ -682,7 +682,7 @@ mod tests {
         let mut world = World::new();
         let angle = std::f32::consts::FRAC_PI_4;
         world.spawn((
-            Card::face_down(TextureId(1), TextureId(2)),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_scale_angle_translation(
@@ -728,7 +728,7 @@ mod tests {
         let mut world = World::new();
         let card_entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -745,8 +745,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
-        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
-        world.insert_resource(crate::stash_toggle::StashVisible(false));
+        world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash::toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -762,7 +762,7 @@ mod tests {
         let mut world = World::new();
         let card_entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -779,8 +779,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
-        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
-        world.insert_resource(crate::stash_toggle::StashVisible(false));
+        world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash::toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -795,7 +795,7 @@ mod tests {
         let mut world = World::new();
         let card_entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::new(50.0, 200.0))),
@@ -812,8 +812,8 @@ mod tests {
         mouse.set_world_pos(Vec2::new(50.0, 200.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
-        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
-        world.insert_resource(crate::stash_toggle::StashVisible(false));
+        world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash::toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -831,7 +831,7 @@ mod tests {
         let mut world = World::new();
         let card_entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -849,8 +849,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
-        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
-        world.insert_resource(crate::stash_toggle::StashVisible(false));
+        world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash::toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -866,7 +866,7 @@ mod tests {
         let mut world = World::new();
         let _table_card = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -892,8 +892,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
-        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
-        world.insert_resource(crate::stash_toggle::StashVisible(false));
+        world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash::toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -909,7 +909,7 @@ mod tests {
         let mut world = World::new();
         let card_entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -926,8 +926,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
-        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
-        world.insert_resource(crate::stash_toggle::StashVisible(false));
+        world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash::toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -944,7 +944,7 @@ mod tests {
         let mut world = World::new();
         let card_entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -962,8 +962,8 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
-        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
-        world.insert_resource(crate::stash_toggle::StashVisible(false));
+        world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash::toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -981,7 +981,7 @@ mod tests {
         let mut world = World::new();
         let card_entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -1008,8 +1008,8 @@ mod tests {
     #[test]
     fn when_left_click_on_stash_card_then_drag_info_records_stash_origin_and_slot_vacated() {
         // Arrange
-        use crate::stash_grid::StashGrid;
-        use crate::stash_toggle::StashVisible;
+        use crate::stash::grid::StashGrid;
+        use crate::stash::toggle::StashVisible;
 
         let mut world = World::new();
         // col=2, row=3 center: x = 20 + 2*54 + 25 = 153, y = 20 + 3*79 + 37 = 294
@@ -1062,8 +1062,8 @@ mod tests {
     #[test]
     fn when_left_click_on_stash_card_then_no_physics_body_added_and_render_layer_stays_ui() {
         // Arrange
-        use crate::stash_grid::StashGrid;
-        use crate::stash_toggle::StashVisible;
+        use crate::stash::grid::StashGrid;
+        use crate::stash::toggle::StashVisible;
 
         let mut world = World::new();
         // col=2, row=3 center: x = 153, y = 20 + 3*79 + 37 = 294
@@ -1112,14 +1112,14 @@ mod tests {
     #[test]
     fn when_stash_hidden_and_slot_clicked_then_pick_not_triggered() {
         // Arrange
-        use crate::stash_grid::StashGrid;
-        use crate::stash_toggle::StashVisible;
+        use crate::stash::grid::StashGrid;
+        use crate::stash::toggle::StashVisible;
 
         let mut world = World::new();
         // col=0, row=0 center at (45, 45)
         let card_entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Stash {
                     page: 0,
                     col: 0,
@@ -1158,8 +1158,8 @@ mod tests {
     #[test]
     fn when_left_click_on_stash_card_then_drag_info_stash_cursor_follow_is_true() {
         // Arrange
-        use crate::stash_grid::StashGrid;
-        use crate::stash_toggle::StashVisible;
+        use crate::stash::grid::StashGrid;
+        use crate::stash::toggle::StashVisible;
 
         let mut world = World::new();
         // slot (col=0, row=0) center: x=45.0, y=57.5

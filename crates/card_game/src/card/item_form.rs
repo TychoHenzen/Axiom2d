@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use bevy_ecs::prelude::{Component, Entity, Query};
 use engine_scene::prelude::{ChildOf, Visible};
 
-use crate::card::Card;
-use crate::card_face_side::CardFaceSide;
-use crate::stash_icon::StashIcon;
+use crate::card::component::Card;
+use crate::card::face_side::CardFaceSide;
+use crate::stash::icon::StashIcon;
 
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct CardItemForm;
@@ -49,9 +49,9 @@ mod tests {
     use engine_scene::prelude::{ChildOf, Visible};
 
     use super::{CardItemForm, card_item_form_visibility_system};
-    use crate::card::Card;
-    use crate::card_face_side::CardFaceSide;
-    use crate::stash_icon::StashIcon;
+    use crate::card::component::Card;
+    use crate::card::face_side::CardFaceSide;
+    use crate::stash::icon::StashIcon;
 
     // ---------------------------------------------------------------------------
     // Shared setup

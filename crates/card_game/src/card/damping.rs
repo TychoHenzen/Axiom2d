@@ -1,8 +1,8 @@
 use bevy_ecs::prelude::{Entity, Query, ResMut, With};
 use engine_physics::prelude::PhysicsRes;
 
-use crate::card::Card;
-use crate::card_zone::CardZone;
+use crate::card::component::Card;
+use crate::card::zone::CardZone;
 
 pub const BASE_LINEAR_DRAG: f32 = 8.0;
 pub const BASE_ANGULAR_DRAG: f32 = 5.0;

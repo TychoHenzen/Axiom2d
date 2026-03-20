@@ -6,18 +6,18 @@ use engine_render::prelude::RendererRes;
 use engine_scene::prelude::RenderLayer;
 use glam::Vec2;
 
-use crate::card::Card;
-use crate::card_item_form::CardItemForm;
-use crate::card_pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
-use crate::card_zone::CardZone;
+use crate::card::component::Card;
+use crate::card::item_form::CardItemForm;
+use crate::card::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
+use crate::card::zone::CardZone;
 use crate::drag_state::DragState;
 use crate::flip_animation::FlipAnimation;
-use crate::hand::Hand;
-use crate::hand_layout::HandSpring;
+use crate::hand::cards::Hand;
+use crate::hand::layout::HandSpring;
 use crate::physics_helpers::activate_physics_body;
-use crate::stash_grid::StashGrid;
-use crate::stash_grid::find_stash_slot_at;
-use crate::stash_toggle::StashVisible;
+use crate::stash::grid::StashGrid;
+use crate::stash::grid::find_stash_slot_at;
+use crate::stash::toggle::StashVisible;
 
 pub const HAND_DROP_ZONE_HEIGHT: f32 = 120.0;
 
@@ -203,7 +203,7 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::*;
-    use engine_core::prelude::{TextureId, Transform2D};
+    use engine_core::prelude::Transform2D;
     use engine_input::prelude::{MouseButton, MouseState};
     use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
     use engine_render::prelude::RendererRes;
@@ -212,12 +212,11 @@ mod tests {
     use glam::Vec2;
 
     use super::card_release_system;
-    use crate::card::Card;
-    use crate::card_zone::CardZone;
+    use crate::card::zone::CardZone;
     use crate::drag_state::{DragInfo, DragState};
     use crate::flip_animation::FlipAnimation;
-    use crate::hand::Hand;
-    use crate::hand_layout::HandSpring;
+    use crate::hand::cards::Hand;
+    use crate::hand::layout::HandSpring;
     use crate::test_helpers::{AddBodyLog, RemoveBodyLog, SpyPhysicsBackend};
 
     fn run_system(world: &mut World) {
@@ -252,8 +251,8 @@ mod tests {
         mouse.set_screen_pos(Vec2::new(screen_x, screen_y));
         world.insert_resource(mouse);
 
-        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
-        world.insert_resource(crate::stash_toggle::StashVisible(stash_visible));
+        world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash::toggle::StashVisible(stash_visible));
 
         (world, remove_log, add_log)
     }
@@ -324,8 +323,8 @@ mod tests {
         let log = Arc::new(Mutex::new(Vec::new()));
         let spy = SpyRenderer::new(log).with_viewport(800, 600);
         world.insert_resource(RendererRes::new(Box::new(spy)));
-        world.insert_resource(crate::stash_grid::StashGrid::new(10, 10, 1));
-        world.insert_resource(crate::stash_toggle::StashVisible(false));
+        world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(crate::stash::toggle::StashVisible(false));
 
         // Act
         run_system(&mut world);
@@ -340,7 +339,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 400.0, 100.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 Transform2D {
                     position: Vec2::ZERO,
@@ -373,7 +372,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -408,7 +407,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -443,7 +442,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -478,7 +477,7 @@ mod tests {
         let (mut world, remove_log, _) = make_release_world(600, 400.0, 550.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -514,7 +513,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 400.0, 100.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Hand(0),
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -549,7 +548,7 @@ mod tests {
         let (mut world, _, add_log) = make_release_world(600, 400.0, 100.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Hand(0),
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -586,7 +585,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -620,7 +619,7 @@ mod tests {
     fn when_face_up_card_released_into_hand_then_no_flip_animation() {
         // Arrange
         let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
-        let mut card = Card::face_down(TextureId(1), TextureId(2));
+        let mut card = crate::test_helpers::make_test_card();
         card.face_up = true;
         let entity = world
             .spawn((
@@ -659,7 +658,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 400.0, 100.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
                 Transform2D {
@@ -693,7 +692,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -733,7 +732,7 @@ mod tests {
         world.insert_resource(hand);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -768,7 +767,7 @@ mod tests {
         let (mut world, _, add_log) = make_release_world(0, 400.0, 100.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
                 Transform2D {
@@ -813,7 +812,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -847,12 +846,12 @@ mod tests {
     #[test]
     fn when_released_over_empty_stash_slot_then_card_placed_in_grid_and_zone_updated() {
         // Arrange
-        use crate::stash_grid::StashGrid;
+        use crate::stash::grid::StashGrid;
         // slot (0,1,0) center: x = 20 + 1*54 + 25 = 99.0, y = 20 + 0*54 + 25 = 45.0
         let (mut world, _, _) = make_release_world(600, 99.0, 45.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Stash {
                     page: 0,
                     col: 0,
@@ -908,7 +907,7 @@ mod tests {
         let (mut world, remove_log, _) = make_release_world(600, 45.0, 45.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Stash {
                     page: 0,
                     col: 0,
@@ -952,8 +951,8 @@ mod tests {
     #[test]
     fn when_released_over_occupied_stash_slot_then_card_returned_to_origin() {
         // Arrange
-        use crate::stash_grid::StashGrid;
-        use crate::stash_toggle::StashVisible;
+        use crate::stash::grid::StashGrid;
+        use crate::stash::toggle::StashVisible;
         // slot (0,0,0) center at (45, 45) — occupied by another entity
         // origin slot (0,1,0) is where the dragged card came from
         let (mut world, _, _) = make_release_world(600, 400.0, 45.0, false);
@@ -965,7 +964,7 @@ mod tests {
         let blocker = world.spawn_empty().id();
         let dragged_entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Stash {
                     page: 0,
                     col: 1,
@@ -1024,7 +1023,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 600.0, 200.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Stash {
                     page: 0,
                     col: 0,
@@ -1069,7 +1068,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 600.0, 550.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Stash {
                     page: 0,
                     col: 0,
@@ -1115,7 +1114,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 600.0, 550.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Stash {
                     page: 0,
                     col: 0,
@@ -1151,7 +1150,7 @@ mod tests {
         let zone = world.get::<CardZone>(entity).unwrap();
         assert_eq!(*zone, CardZone::Hand(0));
         // The stash grid should not have been repopulated with the card
-        let grid = world.resource::<crate::stash_grid::StashGrid>();
+        let grid = world.resource::<crate::stash::grid::StashGrid>();
         assert!(
             grid.get(0, 0, 0).is_none(),
             "stash slot should not be repopulated after drop-on-hand"
@@ -1165,7 +1164,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -1199,7 +1198,7 @@ mod tests {
                 row: 0
             }
         );
-        let grid = world.resource::<crate::stash_grid::StashGrid>();
+        let grid = world.resource::<crate::stash::grid::StashGrid>();
         assert_eq!(grid.get(0, 0, 0), Some(&entity));
     }
 
@@ -1210,7 +1209,7 @@ mod tests {
         let (mut world, remove_log, _) = make_release_world(600, 45.0, 45.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -1248,7 +1247,7 @@ mod tests {
         // Simulate card_pick_system having added a physics body: entity has RigidBody::Dynamic
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Hand(0),
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -1278,7 +1277,7 @@ mod tests {
             !hand.cards().contains(&entity),
             "hand-origin card dropped on stash must not be in Hand resource"
         );
-        let grid = world.resource::<crate::stash_grid::StashGrid>();
+        let grid = world.resource::<crate::stash::grid::StashGrid>();
         assert_eq!(
             grid.get(0, 0, 0),
             Some(&entity),
@@ -1292,7 +1291,7 @@ mod tests {
         let (mut world, _, add_log) = make_release_world(600, 600.0, 200.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Stash {
                     page: 0,
                     col: 0,
@@ -1341,7 +1340,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 600.0, 550.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Stash {
                     page: 0,
                     col: 0,
@@ -1381,7 +1380,7 @@ mod tests {
         );
         let zone = world.get::<CardZone>(entity).unwrap();
         assert_eq!(*zone, CardZone::Hand(0));
-        let grid = world.resource::<crate::stash_grid::StashGrid>();
+        let grid = world.resource::<crate::stash::grid::StashGrid>();
         assert!(
             grid.get(0, 0, 0).is_none(),
             "stash grid should not be repopulated"
@@ -1395,7 +1394,7 @@ mod tests {
         let (mut world, remove_log, _) = make_release_world(600, 45.0, 45.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -1420,7 +1419,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let grid = world.resource::<crate::stash_grid::StashGrid>();
+        let grid = world.resource::<crate::stash::grid::StashGrid>();
         assert_eq!(
             grid.get(0, 0, 0),
             Some(&entity),
@@ -1448,7 +1447,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Hand(0),
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -1473,7 +1472,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let grid = world.resource::<crate::stash_grid::StashGrid>();
+        let grid = world.resource::<crate::stash::grid::StashGrid>();
         assert_eq!(
             grid.get(0, 0, 0),
             Some(&entity),
@@ -1494,7 +1493,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -1519,7 +1518,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let grid = world.resource::<crate::stash_grid::StashGrid>();
+        let grid = world.resource::<crate::stash::grid::StashGrid>();
         assert_eq!(
             grid.get(0, 0, 0),
             Some(&entity),
@@ -1530,14 +1529,14 @@ mod tests {
 
     #[test]
     fn when_table_card_dropped_on_stash_slot_then_card_item_form_inserted() {
-        use crate::card_item_form::CardItemForm;
+        use crate::card::item_form::CardItemForm;
 
         // Arrange
         // slot (0,0,0) center: x=45.0, y=45.0
         let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -1570,14 +1569,14 @@ mod tests {
 
     #[test]
     fn when_stash_card_dropped_on_table_area_then_card_item_form_removed() {
-        use crate::card_item_form::CardItemForm;
+        use crate::card::item_form::CardItemForm;
 
         // Arrange
         // x=600 is past the stash grid; y=200 is above the hand zone (≥ 600-120=480)
         let (mut world, _, _) = make_release_world(600, 600.0, 200.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Stash {
                     page: 0,
                     col: 0,
@@ -1619,14 +1618,14 @@ mod tests {
 
     #[test]
     fn when_stash_card_dropped_on_hand_zone_then_card_item_form_removed() {
-        use crate::card_item_form::CardItemForm;
+        use crate::card::item_form::CardItemForm;
 
         // Arrange
         // x=600 is past the stash grid; y=550 ≥ 600-120=480, so is_hand_drop_zone fires
         let (mut world, _, _) = make_release_world(600, 600.0, 550.0, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Stash {
                     page: 0,
                     col: 0,
@@ -1668,14 +1667,14 @@ mod tests {
 
     #[test]
     fn when_table_card_dropped_on_stash_slot_then_only_dragged_entity_gains_card_item_form() {
-        use crate::card_item_form::CardItemForm;
+        use crate::card::item_form::CardItemForm;
 
         // Arrange
         // slot (0,0,0) center: x=45.0, y=45.0
         let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
         let bystander = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 Transform2D {
                     position: Vec2::new(200.0, 200.0),
@@ -1686,7 +1685,7 @@ mod tests {
             .id();
         let dragged = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -1728,7 +1727,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 45.0, 57.5, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
@@ -1764,7 +1763,7 @@ mod tests {
         let (mut world, _, _) = make_release_world(600, 45.0, 57.5, true);
         let entity = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 RigidBody::Dynamic,
                 Collider::Aabb(Vec2::new(30.0, 45.0)),

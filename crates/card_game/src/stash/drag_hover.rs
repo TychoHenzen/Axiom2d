@@ -1,10 +1,10 @@
 use bevy_ecs::prelude::{Commands, Res};
 use engine_input::prelude::MouseState;
 
-use crate::card_item_form::CardItemForm;
+use crate::card::item_form::CardItemForm;
 use crate::drag_state::DragState;
-use crate::stash_grid::{StashGrid, cursor_over_stash};
-use crate::stash_toggle::StashVisible;
+use crate::stash::grid::{StashGrid, cursor_over_stash};
+use crate::stash::toggle::StashVisible;
 
 pub fn stash_drag_hover_system(
     drag_state: Res<DragState>,
@@ -34,11 +34,11 @@ mod tests {
     use glam::Vec2;
 
     use super::stash_drag_hover_system;
-    use crate::card_item_form::CardItemForm;
-    use crate::card_zone::CardZone;
+    use crate::card::item_form::CardItemForm;
+    use crate::card::zone::CardZone;
     use crate::drag_state::{DragInfo, DragState};
-    use crate::stash_grid::StashGrid;
-    use crate::stash_toggle::StashVisible;
+    use crate::stash::grid::StashGrid;
+    use crate::stash::toggle::StashVisible;
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();

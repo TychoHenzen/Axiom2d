@@ -1,8 +1,8 @@
 use bevy_ecs::prelude::Query;
 use engine_scene::prelude::{Children, RenderLayer};
 
-use crate::card::Card;
-use crate::card_face_side::CardFaceSide;
+use crate::card::component::Card;
+use crate::card::face_side::CardFaceSide;
 
 /// Propagates the parent card's `RenderLayer` to all card-face children.
 ///
@@ -34,12 +34,10 @@ pub fn card_render_layer_system(
 #[allow(clippy::unwrap_used)]
 mod tests {
     use bevy_ecs::prelude::*;
-    use engine_core::prelude::TextureId;
     use engine_scene::prelude::{ChildOf, RenderLayer};
 
     use super::*;
-    use crate::card::Card;
-    use crate::card_face_side::CardFaceSide;
+    use crate::card::face_side::CardFaceSide;
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -54,7 +52,7 @@ mod tests {
     }
 
     fn spawn_card_with_face(world: &mut World, parent_layer: RenderLayer) -> (Entity, Entity) {
-        let card = Card::face_down(TextureId(1), TextureId(2));
+        let card = crate::test_helpers::make_test_card();
         let root = world
             .spawn((card, parent_layer, engine_scene::prelude::SortOrder(0)))
             .id();
@@ -115,7 +113,7 @@ mod tests {
     fn when_child_has_no_card_face_side_then_not_affected() {
         // Arrange — non-face child (e.g., StashIcon) keeps its own layer
         let mut world = World::new();
-        let card = Card::face_down(TextureId(1), TextureId(2));
+        let card = crate::test_helpers::make_test_card();
         let root = world
             .spawn((
                 card,

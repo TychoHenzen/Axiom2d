@@ -556,7 +556,7 @@ mod tests {
         assert_eq!(&atlas.data[off..off + 4], [255, 255, 255, 255]);
     }
 
-    use crate::test_helpers::minimal_atlas;
+    use crate::testing::helpers::minimal_atlas;
 
     fn insert_spy(
         world: &mut bevy_ecs::world::World,

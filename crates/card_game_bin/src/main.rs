@@ -1,3 +1,5 @@
+mod card_data;
+
 use axiom2d::prelude::*;
 use bevy_ecs::prelude::Res;
 use card_game::prelude::*;
@@ -14,7 +16,6 @@ const TABLE_COLOR: Color = Color {
     a: 1.0,
 };
 
-#[allow(clippy::too_many_lines)]
 fn spawn_scene(world: &mut bevy_ecs::world::World) {
     // Table background
     world.spawn((
@@ -37,92 +38,25 @@ fn spawn_scene(world: &mut bevy_ecs::world::World) {
         SortOrder(0),
     ));
 
-    // Camera centered at origin
     world.spawn(Camera2D {
         position: Vec2::ZERO,
         zoom: 1.0,
     });
 
-    // Spawn cards in a fan layout
-    let card_positions = [
-        Vec2::new(-120.0, 0.0),
-        Vec2::new(-60.0, 30.0),
-        Vec2::new(0.0, 0.0),
-        Vec2::new(60.0, -20.0),
-        Vec2::new(120.0, 10.0),
-    ];
-
-    let card_defs = [
-        CardDefinition {
-            card_type: CardType::Spell,
-            rarity: Rarity::Rare,
-            name: "Fireball".to_owned(),
-            stats: None,
-            abilities: CardAbilities {
-                keywords: vec![],
-                text: "Deal 3 damage".to_owned(),
-            },
-            art: art_descriptor_default(CardType::Spell),
-        },
-        CardDefinition {
-            card_type: CardType::Artifact,
-            rarity: Rarity::Common,
-            name: "Shield".to_owned(),
-            stats: None,
-            abilities: CardAbilities {
-                keywords: vec![],
-                text: "Block 2 damage".to_owned(),
-            },
-            art: art_descriptor_default(CardType::Artifact),
-        },
-        CardDefinition {
-            card_type: CardType::Creature,
-            rarity: Rarity::Legendary,
-            name: "Heal".to_owned(),
-            stats: Some(CardStats {
-                cost: 3,
-                attack: 2,
-                health: 4,
-            }),
-            abilities: CardAbilities {
-                keywords: vec![Keyword::Lifesteal],
-                text: "Restore 4 HP".to_owned(),
-            },
-            art: art_descriptor_default(CardType::Creature),
-        },
-        CardDefinition {
-            card_type: CardType::Spell,
-            rarity: Rarity::Uncommon,
-            name: "Lightning".to_owned(),
-            stats: None,
-            abilities: CardAbilities {
-                keywords: vec![],
-                text: "Deal 5 damage".to_owned(),
-            },
-            art: art_descriptor_default(CardType::Spell),
-        },
-        CardDefinition {
-            card_type: CardType::Spell,
-            rarity: Rarity::Common,
-            name: "Draw".to_owned(),
-            stats: None,
-            abilities: CardAbilities {
-                keywords: vec![],
-                text: "Draw 2 cards".to_owned(),
-            },
-            art: art_descriptor_default(CardType::Spell),
-        },
-    ];
-
     let card_size = Vec2::new(CARD_WIDTH, CARD_HEIGHT);
+    let deck = card_data::starter_deck();
     let mut card_entities = Vec::new();
-    for (i, &pos) in card_positions.iter().enumerate() {
-        let face_up = i == 2;
-        let entity = spawn_visual_card(world, &card_defs[i], pos, card_size, face_up);
+    for card in &deck {
+        let entity = spawn_visual_card(
+            world,
+            &card.definition,
+            card.position,
+            card_size,
+            card.face_up,
+        );
         card_entities.push(entity);
     }
 
-    // Set collision groups and give initial impulses
     let mut physics = world.resource_mut::<PhysicsRes>();
     for &entity in &card_entities {
         physics.set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER);

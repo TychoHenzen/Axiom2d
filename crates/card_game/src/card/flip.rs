@@ -4,8 +4,8 @@ use engine_physics::hit_test::{collider_half_extents, local_space_hit};
 use engine_physics::prelude::Collider;
 use engine_scene::prelude::{GlobalTransform2D, SortOrder};
 
-use crate::card::Card;
-use crate::card_zone::CardZone;
+use crate::card::component::Card;
+use crate::card::zone::CardZone;
 use crate::drag_state::DragState;
 use crate::flip_animation::FlipAnimation;
 
@@ -64,8 +64,8 @@ mod tests {
     use glam::{Affine2, Vec2};
 
     use super::card_flip_system;
-    use crate::card::Card;
-    use crate::card_zone::CardZone;
+    use crate::card::component::Card;
+    use crate::card::zone::CardZone;
     use crate::drag_state::{DragInfo, DragState};
     use crate::flip_animation::{FLIP_DURATION, FlipAnimation};
 
@@ -183,7 +183,7 @@ mod tests {
         let mut world = World::new();
         let card = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -264,15 +264,15 @@ mod tests {
 
     #[test]
     fn when_flip_then_visibility_sync_does_not_change_before_animation_completes() {
-        use crate::card_face_side::CardFaceSide;
-        use crate::card_item_form::card_item_form_visibility_system;
+        use crate::card::face_side::CardFaceSide;
+        use crate::card::item_form::card_item_form_visibility_system;
         use engine_scene::prelude::{ChildOf, Children, Visible};
 
         // Arrange — card face-down: front hidden, back visible
         let mut world = World::new();
         let root = world
             .spawn((
-                Card::face_down(TextureId(1), TextureId(2)),
+                crate::test_helpers::make_test_card(),
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),

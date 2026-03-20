@@ -8,32 +8,17 @@ use engine_render::prelude::{
 use engine_scene::prelude::ChildOf;
 use glam::Vec2;
 
-use crate::card_geometry::{
+use crate::card::geometry::{
     ART_QUAD, QUAD_INDICES, UNIT_QUAD, art_quad_model, rect_vertices, unit_quad_model,
 };
-use crate::stash_grid::StashGrid;
-use crate::stash_icon::StashIcon;
-use crate::stash_toggle::StashVisible;
+use crate::stash::constants::{
+    BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_STRIDE_H, SLOT_STRIDE_W,
+    SLOT_WIDTH,
+};
+use crate::stash::grid::StashGrid;
+use crate::stash::icon::StashIcon;
+use crate::stash::toggle::StashVisible;
 use crate::viewport_camera::resolve_viewport_camera;
-
-pub const SLOT_WIDTH: f32 = 50.0;
-pub const SLOT_HEIGHT: f32 = 75.0;
-pub const SLOT_GAP: f32 = 4.0;
-pub const SLOT_STRIDE_W: f32 = SLOT_WIDTH + SLOT_GAP;
-pub const SLOT_STRIDE_H: f32 = SLOT_HEIGHT + SLOT_GAP;
-pub const SLOT_COLOR: Color = Color {
-    r: 0.25,
-    g: 0.25,
-    b: 0.25,
-    a: 1.0,
-};
-pub const GRID_MARGIN: f32 = 20.0;
-pub const BACKGROUND_COLOR: Color = Color {
-    r: 0.15,
-    g: 0.15,
-    b: 0.15,
-    a: 1.0,
-};
 
 pub(crate) fn reset_default_shader(renderer: &mut dyn engine_render::prelude::Renderer) {
     renderer.set_shader(ShaderHandle(0));
@@ -46,7 +31,7 @@ pub fn stash_render_system(
     visible: Res<StashVisible>,
     drag_state: Res<crate::drag_state::DragState>,
     mouse: Res<engine_input::prelude::MouseState>,
-    art_shader: Option<Res<crate::card_art_shader::CardArtShader>>,
+    art_shader: Option<Res<crate::card::art_shader::CardArtShader>>,
     stash_icons: Query<(&ChildOf, &Shape), With<StashIcon>>,
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
@@ -514,7 +499,7 @@ mod tests {
         let drag_info = crate::drag_state::DragInfo {
             entity,
             local_grab_offset: Vec2::ZERO,
-            origin_zone: crate::card_zone::CardZone::Table,
+            origin_zone: crate::card::zone::CardZone::Table,
             stash_cursor_follow: false,
         };
         world.insert_resource(crate::drag_state::DragState {

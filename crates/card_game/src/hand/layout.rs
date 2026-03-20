@@ -5,7 +5,7 @@ use engine_render::prelude::{Camera2D, RendererRes, screen_to_world};
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
-use crate::hand::Hand;
+use crate::hand::cards::Hand;
 use crate::viewport_camera::resolve_viewport_camera;
 use engine_core::scale_spring::ScaleSpring;
 

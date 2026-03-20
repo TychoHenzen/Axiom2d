@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::{Entity, Resource};
 use glam::Vec2;
 
-use crate::card_zone::CardZone;
+use crate::card::zone::CardZone;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DragInfo {
