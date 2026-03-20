@@ -275,14 +275,14 @@ These extend `engine_physics` with capabilities the card game requires.
 - [x] Tests: 5 plugin tests (stash grid dimensions, hand capacity, clear color override, card art shader registry, physics res boundary)
 - [x] PhysicsRes(RapierBackend) stays in binary (inserted before DefaultPlugins, not in plugin)
 
-### Step H2 — Drag Visual Feedback `[NOT STARTED]`
+### Step H2 — Drag Visual Feedback `[DONE]`
 **Crate:** card_game
 **Why:** Visual cues during drag for better UX.
 
-- [ ] Dragged card: elevated SortOrder, slight scale-up (e.g. 1.05x), optional shadow/offset
-- [ ] Valid drop target highlighting: hand area glow, stash slot border color change
-- [ ] Invalid drop feedback: card snaps back to origin on invalid drop
-- [ ] Tests: dragged card SortOrder higher than table cards, scale restored on drop, snap-back on invalid target
+- [x] Dragged card: ScaleSpring(1.05) on pick from all zones (table, hand, stash), ScaleSpring(1.0) on table release, stash boundary exit uses 1.05 during drag
+- [x] Valid drop target highlighting: stash slot under cursor drawn with SLOT_HIGHLIGHT_COLOR during drag, hand drop zone translucent glow rect via hand_drop_zone_render_system
+- [x] Invalid drop feedback: origin_position stored in DragInfo on pick, card snaps back to origin on occupied stash drop (TableSnapBack) and full hand fallback
+- [x] Tests: 14 new tests across pick (3 scale spring targets + 1 origin_position), boundary (1 exit scale), release (4 snap-back + 1 scale spring), stash render (2 highlight), drop_zone_glow (3 hand glow)
 
 ---
 

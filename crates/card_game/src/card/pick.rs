@@ -21,6 +21,7 @@ pub const CARD_COLLISION_GROUP: u32 = 0b0001;
 pub const CARD_COLLISION_FILTER: u32 = 0b0010;
 pub(crate) const DRAGGED_COLLISION_GROUP: u32 = 0;
 pub(crate) const DRAGGED_COLLISION_FILTER: u32 = 0;
+pub(crate) const DRAG_SCALE: f32 = 1.05;
 
 enum PickSource {
     Stash {
@@ -139,11 +140,13 @@ fn pick_from_stash(
 ) {
     commands.entity(entity).insert(CardZone::Table);
     commands.entity(entity).remove::<CardItemForm>();
+    commands.entity(entity).insert(ScaleSpring::new(DRAG_SCALE));
     drag_state.dragging = Some(DragInfo {
         entity,
         local_grab_offset: Vec2::ZERO,
         origin_zone: CardZone::Stash { page, col, row },
         stash_cursor_follow: true,
+        origin_position: Vec2::ZERO,
     });
 }
 
@@ -184,15 +187,21 @@ fn pick_from_card(
         );
     }
 
+    let origin_position = query
+        .get(entity)
+        .map(|(_, _, _, t, _, _)| t.0.translation)
+        .unwrap_or(Vec2::ZERO);
     state.drag_state.dragging = Some(DragInfo {
         entity,
         local_grab_offset: grab_offset,
         origin_zone: zone,
         stash_cursor_follow: false,
+        origin_position,
     });
     if let Ok((_, _, _, _, _, mut sort)) = query.get_mut(entity) {
         sort.0 = max_sort + 1;
     }
+    commands.entity(entity).insert(ScaleSpring::new(DRAG_SCALE));
 }
 
 fn max_table_sort_order(
@@ -287,7 +296,7 @@ mod tests {
     use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
     use glam::{Affine2, Vec2};
 
-    use super::card_pick_system;
+    use super::{DRAG_SCALE, card_pick_system};
     use crate::card::component::Card;
     use crate::card::drag_state::DragState;
     use crate::card::zone::CardZone;
@@ -534,6 +543,7 @@ mod tests {
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,
                 stash_cursor_follow: false,
+                origin_position: Vec2::ZERO,
             }),
         });
         insert_pick_resources(&mut world);
@@ -937,7 +947,7 @@ mod tests {
         // Assert
         let spring = world.get::<ScaleSpring>(card_entity);
         assert!(spring.is_some(), "ScaleSpring should be inserted");
-        assert_eq!(spring.unwrap().target, 1.0);
+        assert_eq!(spring.unwrap().target, DRAG_SCALE);
     }
 
     #[test]
@@ -978,7 +988,7 @@ mod tests {
     }
 
     #[test]
-    fn when_pick_from_table_then_no_scale_spring() {
+    fn when_pick_from_table_then_scale_spring_target_is_drag_elevation() {
         // Arrange
         let mut world = World::new();
         let card_entity = world
@@ -1001,10 +1011,10 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        assert!(
-            world.get::<ScaleSpring>(card_entity).is_none(),
-            "table cards should not get ScaleSpring"
-        );
+        let spring = world
+            .get::<ScaleSpring>(card_entity)
+            .expect("table card should get ScaleSpring on pick");
+        assert_eq!(spring.target, DRAG_SCALE);
     }
 
     #[test]
@@ -1203,6 +1213,49 @@ mod tests {
     }
 
     #[test]
+    fn when_pick_from_stash_then_scale_spring_target_is_drag_elevation() {
+        // Arrange
+        use crate::stash::grid::StashGrid;
+        use crate::stash::toggle::StashVisible;
+
+        let mut world = World::new();
+        let card_entity = world
+            .spawn((
+                Card::face_down(TextureId(50), TextureId(51)),
+                CardZone::Stash {
+                    page: 0,
+                    col: 0,
+                    row: 0,
+                },
+                Collider::Aabb(Vec2::new(30.0, 45.0)),
+                GlobalTransform2D(Affine2::IDENTITY),
+                RenderLayer::UI,
+                SortOrder(0),
+            ))
+            .id();
+        let mut grid = StashGrid::new(10, 10, 1);
+        grid.place(0, 0, 0, card_entity).unwrap();
+        world.insert_resource(grid);
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(DragState::default());
+        world.insert_resource(Hand::new(10));
+        world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_screen_pos(Vec2::new(45.0, 57.5));
+        world.insert_resource(mouse);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let spring = world
+            .get::<ScaleSpring>(card_entity)
+            .expect("stash card should get ScaleSpring on pick");
+        assert_eq!(spring.target, DRAG_SCALE);
+    }
+
+    #[test]
     fn when_left_click_on_table_card_then_drag_info_stash_cursor_follow_is_false() {
         // Arrange
         let mut world = World::new();
@@ -1229,5 +1282,31 @@ mod tests {
             !drag.stash_cursor_follow,
             "picking a table card must leave stash_cursor_follow=false"
         );
+    }
+
+    #[test]
+    fn when_table_card_picked_then_origin_position_stored_from_transform() {
+        // Arrange
+        let mut world = World::new();
+        world.spawn((
+            crate::test_helpers::make_test_card(),
+            CardZone::Table,
+            default_collider(),
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(100.0, 200.0))),
+            SortOrder(0),
+        ));
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::new(100.0, 200.0));
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+        insert_pick_resources(&mut world);
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let drag = world.resource::<DragState>().dragging.unwrap();
+        assert_eq!(drag.origin_position, Vec2::new(100.0, 200.0));
     }
 }

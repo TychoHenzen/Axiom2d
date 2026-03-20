@@ -7,7 +7,7 @@ use crate::card::drag_state::DragState;
 use crate::card::geometry::TABLE_CARD_WIDTH as CARD_WIDTH;
 use crate::card::item_form::CardItemForm;
 use crate::card::physics_helpers::activate_physics_body;
-use crate::card::pick::{DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
+use crate::card::pick::{DRAG_SCALE, DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
 use crate::stash::constants::SLOT_WIDTH;
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::toggle::StashVisible;
@@ -46,7 +46,7 @@ pub fn stash_boundary_system(
             .insert(RigidBody::Dynamic)
             .insert(RenderLayer::World)
             .remove::<CardItemForm>()
-            .insert(ScaleSpring::new(1.0));
+            .insert(ScaleSpring::new(DRAG_SCALE));
         drag_state.dragging = Some(crate::card::drag_state::DragInfo {
             stash_cursor_follow: false,
             ..info
@@ -81,6 +81,7 @@ mod tests {
     use super::stash_boundary_system;
     use crate::card::drag_state::{DragInfo, DragState};
     use crate::card::geometry::TABLE_CARD_WIDTH as CARD_WIDTH;
+    use crate::card::pick::DRAG_SCALE;
     use crate::card::zone::CardZone;
     use crate::stash::constants::SLOT_WIDTH;
     use crate::stash::grid::StashGrid;
@@ -118,6 +119,7 @@ mod tests {
                     row: 0,
                 },
                 stash_cursor_follow,
+                origin_position: Vec2::ZERO,
             }),
         }
     }
@@ -235,7 +237,7 @@ mod tests {
     }
 
     #[test]
-    fn when_stash_follow_and_cursor_exits_stash_then_scale_spring_targets_one() {
+    fn when_stash_follow_and_cursor_exits_stash_then_scale_spring_targets_drag_elevation() {
         // Arrange
         let mut world = World::new();
         let entity = world
@@ -259,8 +261,8 @@ mod tests {
             .get::<ScaleSpring>(entity)
             .expect("ScaleSpring should be inserted");
         assert!(
-            (spring.target - 1.0).abs() < 1e-4,
-            "ScaleSpring target should be 1.0, got {}",
+            (spring.target - DRAG_SCALE).abs() < 1e-4,
+            "ScaleSpring target should be {DRAG_SCALE} (drag elevation), got {}",
             spring.target
         );
     }

@@ -9,6 +9,7 @@ pub struct DragInfo {
     pub local_grab_offset: Vec2,
     pub origin_zone: CardZone,
     pub stash_cursor_follow: bool,
+    pub origin_position: Vec2,
 }
 
 #[derive(Resource, Debug, Clone, PartialEq, Default)]

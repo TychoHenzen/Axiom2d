@@ -5,6 +5,7 @@ pub mod damping;
 pub mod definition;
 pub mod drag;
 pub mod drag_state;
+pub mod drop_zone_glow;
 pub mod face_layout;
 pub mod face_side;
 pub mod flip;

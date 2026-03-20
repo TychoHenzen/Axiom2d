@@ -12,10 +12,10 @@ use glam::Vec2;
 
 use crate::card::geometry::{ART_QUAD, art_quad_model};
 use crate::stash::constants::{
-    BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_STRIDE_H, SLOT_STRIDE_W,
-    SLOT_WIDTH,
+    BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_HIGHLIGHT_COLOR,
+    SLOT_STRIDE_H, SLOT_STRIDE_W, SLOT_WIDTH,
 };
-use crate::stash::grid::StashGrid;
+use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::icon::StashIcon;
 use crate::stash::toggle::StashVisible;
 use engine_render::prelude::resolve_viewport_camera;
@@ -49,7 +49,6 @@ pub fn stash_render_system(
         return;
     };
 
-    // Reset shader and blend mode — shape_render_system may have left a custom shader active
     reset_default_shader(&mut **renderer);
     let world_slot_w = SLOT_WIDTH / camera.zoom;
     let world_slot_h = SLOT_HEIGHT / camera.zoom;
@@ -77,6 +76,16 @@ pub fn stash_render_system(
 
     let page = params.grid.current_page();
 
+    let highlight_slot = if params.drag_state.dragging.is_some() {
+        find_stash_slot_at(
+            params.mouse.screen_pos(),
+            params.grid.width(),
+            params.grid.height(),
+        )
+    } else {
+        None
+    };
+
     for col in 0..params.grid.width() {
         for row in 0..params.grid.height() {
             let screen_x = GRID_MARGIN + f32::from(col) * SLOT_STRIDE_W;
@@ -100,8 +109,13 @@ pub fn stash_render_system(
                 }
                 renderer.set_shader(ShaderHandle(0));
             } else {
+                let slot_color = if highlight_slot == Some((col, row)) {
+                    SLOT_HIGHLIGHT_COLOR
+                } else {
+                    SLOT_COLOR
+                };
                 let model = unit_quad_model(world_slot_w, world_slot_h, center.x, center.y);
-                renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, SLOT_COLOR, model);
+                renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, slot_color, model);
             }
         }
     }
@@ -493,6 +507,89 @@ mod tests {
     }
 
     #[test]
+    fn when_dragging_over_empty_slot_then_slot_drawn_with_highlight_color() {
+        use crate::stash::constants::SLOT_HIGHLIGHT_COLOR;
+
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(StashGrid::new(2, 2, 1));
+        world.insert_resource(StashVisible(true));
+
+        let entity = world.spawn_empty().id();
+        let drag_info = crate::card::drag_state::DragInfo {
+            entity,
+            local_grab_offset: Vec2::ZERO,
+            origin_zone: crate::card::zone::CardZone::Table,
+            stash_cursor_follow: false,
+            origin_position: Vec2::ZERO,
+        };
+        world.insert_resource(crate::card::drag_state::DragState {
+            dragging: Some(drag_info),
+        });
+
+        // Position mouse over slot (0,0) center: (GRID_MARGIN + SLOT_WIDTH/2, GRID_MARGIN + SLOT_HEIGHT/2)
+        let mut mouse = engine_input::prelude::MouseState::default();
+        mouse.set_screen_pos(Vec2::new(
+            GRID_MARGIN + SLOT_WIDTH * 0.5,
+            GRID_MARGIN + SLOT_HEIGHT * 0.5,
+        ));
+        world.insert_resource(mouse);
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_shape_capture(shape_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — calls[0] = background, calls[1] = slot (0,0) which should be highlighted
+        let calls = shape_calls.lock().unwrap();
+        assert_eq!(calls[1].2, SLOT_HIGHLIGHT_COLOR);
+    }
+
+    #[test]
+    fn when_no_drag_and_cursor_over_slot_then_slot_drawn_with_normal_color() {
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(StashGrid::new(2, 2, 1));
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(crate::card::drag_state::DragState::default());
+
+        // Position mouse over slot (0,0) even though no drag is active
+        let mut mouse = engine_input::prelude::MouseState::default();
+        mouse.set_screen_pos(Vec2::new(
+            GRID_MARGIN + SLOT_WIDTH * 0.5,
+            GRID_MARGIN + SLOT_HEIGHT * 0.5,
+        ));
+        world.insert_resource(mouse);
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_shape_capture(shape_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — slot (0,0) should use normal SLOT_COLOR, not highlight
+        let calls = shape_calls.lock().unwrap();
+        assert_eq!(calls[1].2, SLOT_COLOR);
+    }
+
+    #[test]
     fn when_dragged_card_over_stash_then_drag_preview_uses_unit_quad() {
         // Arrange
         let mut world = World::new();
@@ -505,6 +602,7 @@ mod tests {
             local_grab_offset: Vec2::ZERO,
             origin_zone: crate::card::zone::CardZone::Table,
             stash_cursor_follow: false,
+            origin_position: Vec2::ZERO,
         };
         world.insert_resource(crate::card::drag_state::DragState {
             dragging: Some(drag_info),

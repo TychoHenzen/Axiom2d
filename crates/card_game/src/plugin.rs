@@ -3,6 +3,7 @@ use crate::card::camera_drag::{CameraDragState, camera_drag_system, camera_zoom_
 use crate::card::damping::card_damping_system;
 use crate::card::drag::card_drag_system;
 use crate::card::drag_state::DragState;
+use crate::card::drop_zone_glow::hand_drop_zone_render_system;
 use crate::card::flip::card_flip_system;
 use crate::card::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
 use crate::card::item_form::card_item_form_visibility_system;
@@ -96,7 +97,11 @@ fn register_systems(app: &mut App) {
         Phase::Render,
         (stash_tab_render_system, stash_hover_preview_render_system).after(stash_render_system),
     )
-    .add_systems(Phase::Render, text_render_system.after(shape_render_system));
+    .add_systems(Phase::Render, text_render_system.after(shape_render_system))
+    .add_systems(
+        Phase::Render,
+        hand_drop_zone_render_system.after(shape_render_system),
+    );
 }
 
 #[cfg(test)]
