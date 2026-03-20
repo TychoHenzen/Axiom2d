@@ -35,11 +35,15 @@ fn request_adapter_and_device(
     instance: &wgpu::Instance,
     surface: &wgpu::Surface<'_>,
 ) -> (wgpu::Adapter, wgpu::Device, wgpu::Queue) {
+    // INVARIANT: Adapter request fails only when no GPU supports the
+    // required surface format. The renderer cannot function without a GPU.
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         compatible_surface: Some(surface),
         ..Default::default()
     }))
     .expect("no compatible GPU adapter found");
+    // INVARIANT: Device creation fails only on hardware/driver errors.
+    // Without a device, no rendering is possible.
     let (device, queue) =
         pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default(), None))
             .expect("failed to create GPU device");
@@ -48,6 +52,8 @@ fn request_adapter_and_device(
 
 pub(super) fn init_gpu(window: Arc<Window>, config: &WindowConfig) -> GpuContext {
     let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+    // INVARIANT: Surface creation fails only on incompatible window handles.
+    // The window was just created by winit, so this is unreachable.
     let surface = instance
         .create_surface(window.clone())
         .expect("failed to create surface");

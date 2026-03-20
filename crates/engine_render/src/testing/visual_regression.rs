@@ -1060,7 +1060,8 @@ mod tests {
     }
 
     fn draw_circle_at_center(renderer: &mut HeadlessRenderer, center: f32, radius: f32) {
-        let mesh = crate::shape::tessellate(&crate::shape::ShapeVariant::Circle { radius });
+        let mesh =
+            crate::shape::tessellate(&crate::shape::ShapeVariant::Circle { radius }).unwrap();
         let model: [[f32; 4]; 4] = [
             [1.0, 0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],

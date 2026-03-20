@@ -47,7 +47,6 @@ pub fn stash_hover_preview_system(
     hover_preview.hovered_entity = hovered;
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn stash_hover_preview_render_system(
     hover_preview: Res<StashHoverPreview>,
     grid: Res<StashGrid>,
@@ -115,8 +114,7 @@ pub fn stash_hover_preview_render_system(
                 }
                 renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, shape.color, model);
                 renderer.set_shader(ShaderHandle(0));
-            } else {
-                let mesh = tessellate(&shape.variant);
+            } else if let Ok(mesh) = tessellate(&shape.variant) {
                 renderer.draw_shape(&mesh.vertices, &mesh.indices, shape.color, model);
             }
         }

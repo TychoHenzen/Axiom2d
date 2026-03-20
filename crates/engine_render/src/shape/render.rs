@@ -31,17 +31,18 @@ fn is_shape_culled(pos: Vec2, variant: &ShapeVariant, view_rect: Option<(Vec2, V
     !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max)
 }
 
-#[allow(clippy::type_complexity)]
+type ShapeQuery<'w> = (
+    &'w Shape,
+    &'w GlobalTransform2D,
+    Option<&'w RenderLayer>,
+    Option<&'w SortOrder>,
+    Option<&'w EffectiveVisibility>,
+    Option<&'w Material2d>,
+    Option<&'w Stroke>,
+);
+
 pub fn shape_render_system(
-    query: Query<(
-        &Shape,
-        &GlobalTransform2D,
-        Option<&RenderLayer>,
-        Option<&SortOrder>,
-        Option<&EffectiveVisibility>,
-        Option<&Material2d>,
-        Option<&Stroke>,
-    )>,
+    query: Query<ShapeQuery>,
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
 ) {
@@ -61,10 +62,13 @@ pub fn shape_render_system(
         }
         apply_material(&mut **renderer, mat, &mut last_shader, &mut last_blend_mode);
         let model = affine2_to_mat4(&transform.0);
-        let mesh = tessellate(&shape.variant);
+        let Ok(mesh) = tessellate(&shape.variant) else {
+            continue;
+        };
         renderer.draw_shape(&mesh.vertices, &mesh.indices, shape.color, model);
-        if let Some(stroke) = stroke {
-            let sm = tessellate_stroke(&shape.variant, stroke.width);
+        if let Some(stroke) = stroke
+            && let Ok(sm) = tessellate_stroke(&shape.variant, stroke.width)
+        {
             renderer.draw_shape(&sm.vertices, &sm.indices, stroke.color, model);
         }
     }

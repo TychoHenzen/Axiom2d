@@ -149,7 +149,11 @@ impl App {
     }
 
     pub fn run(&mut self) {
+        // INVARIANT: EventLoop::new() only fails if the OS windowing system is
+        // unavailable (e.g. no display server). No recovery is possible.
         let event_loop = EventLoop::new().expect("failed to create event loop");
+        // INVARIANT: run_app() only fails on OS-level event loop errors.
+        // The game cannot continue without an event loop.
         event_loop
             .run_app(self)
             .expect("event loop exited with error");
@@ -172,6 +176,8 @@ impl ApplicationHandler for App {
             ))
             .with_resizable(self.window_config.resizable)
             .with_visible(false);
+        // INVARIANT: create_window() only fails if the OS cannot allocate a
+        // window (out of resources, no display). No recovery is possible.
         let window = Arc::new(
             event_loop
                 .create_window(attrs)

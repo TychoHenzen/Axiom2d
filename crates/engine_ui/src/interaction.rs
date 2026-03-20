@@ -24,17 +24,18 @@ pub struct FocusState {
     pub focused: Option<Entity>,
 }
 
-#[allow(clippy::type_complexity)]
+type InteractionQuery<'w> = (
+    Entity,
+    &'w UiNode,
+    &'w GlobalTransform2D,
+    &'w mut Interaction,
+    Option<&'w EffectiveVisibility>,
+    Option<&'w Button>,
+);
+
 pub fn ui_interaction_system(
     mouse: Res<MouseState>,
-    mut query: Query<(
-        Entity,
-        &UiNode,
-        &GlobalTransform2D,
-        &mut Interaction,
-        Option<&EffectiveVisibility>,
-        Option<&Button>,
-    )>,
+    mut query: Query<InteractionQuery>,
     mut events: ResMut<UiEventBuffer>,
     mut focus: ResMut<FocusState>,
 ) {

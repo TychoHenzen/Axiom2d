@@ -1,4 +1,5 @@
 use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res};
+use bevy_ecs::system::SystemParam;
 use engine_core::prelude::{DeltaTime, Seconds, Transform2D};
 use engine_core::spring::spring_step;
 use engine_render::prelude::{Camera2D, RendererRes, screen_to_world};
@@ -8,6 +9,13 @@ use serde::{Deserialize, Serialize};
 use crate::hand::cards::Hand;
 use engine_core::scale_spring::ScaleSpring;
 use engine_render::prelude::resolve_viewport_camera;
+
+#[derive(SystemParam)]
+pub struct HandLayoutParams<'w> {
+    hand: Res<'w, Hand>,
+    dt: Res<'w, DeltaTime>,
+    renderer: Res<'w, RendererRes>,
+}
 
 const FAN_ARC_DEGREES: f32 = 45.0;
 const FAN_CARD_SPACING_DEGREES: f32 = 8.0;
@@ -61,28 +69,25 @@ fn fan_screen_position(angle: f32, viewport_width: f32, viewport_height: f32) ->
     )
 }
 
-#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 pub fn hand_layout_system(
-    hand: Res<Hand>,
-    dt: Res<DeltaTime>,
+    params: HandLayoutParams,
     camera_query: Query<&Camera2D>,
-    renderer: Res<RendererRes>,
     mut cards: Query<(Entity, &mut Transform2D, Option<&mut HandSpring>)>,
     mut commands: Commands,
 ) {
-    if hand.is_empty() {
+    if params.hand.is_empty() {
         return;
     }
 
-    let Some((vw, vh, camera)) = resolve_viewport_camera(&renderer, &camera_query) else {
+    let Some((vw, vh, camera)) = resolve_viewport_camera(&params.renderer, &camera_query) else {
         return;
     };
 
-    let n = hand.len();
-    let Seconds(dt_secs) = dt.0;
+    let n = params.hand.len();
+    let Seconds(dt_secs) = params.dt.0;
     let target_scale = FAN_SCALE / camera.zoom;
 
-    for (i, &card_entity) in hand.cards().iter().enumerate() {
+    for (i, &card_entity) in params.hand.cards().iter().enumerate() {
         let angle = fan_angle(i, n);
         let screen_pos = fan_screen_position(angle, vw, vh);
         let target_pos = screen_to_world(screen_pos, &camera, vw, vh);

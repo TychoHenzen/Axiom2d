@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::{Entity, Query, Res, ResMut, With};
+use bevy_ecs::system::SystemParam;
 use engine_core::color::Color;
 use engine_render::prelude::{
     BlendMode, Camera2D, QUAD_INDICES, RendererRes, ShaderHandle, Shape, UNIT_QUAD, rect_vertices,
@@ -19,24 +20,28 @@ use crate::stash::icon::StashIcon;
 use crate::stash::toggle::StashVisible;
 use engine_render::prelude::resolve_viewport_camera;
 
+#[derive(SystemParam)]
+pub struct StashRenderParams<'w> {
+    grid: Res<'w, StashGrid>,
+    visible: Res<'w, StashVisible>,
+    drag_state: Res<'w, crate::card::drag_state::DragState>,
+    mouse: Res<'w, engine_input::prelude::MouseState>,
+    art_shader: Option<Res<'w, crate::card::art_shader::CardArtShader>>,
+}
+
 pub(crate) fn reset_default_shader(renderer: &mut dyn engine_render::prelude::Renderer) {
     renderer.set_shader(ShaderHandle(0));
     renderer.set_blend_mode(BlendMode::Alpha);
 }
 
-#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 pub fn stash_render_system(
-    grid: Res<StashGrid>,
-    visible: Res<StashVisible>,
-    drag_state: Res<crate::card::drag_state::DragState>,
-    mouse: Res<engine_input::prelude::MouseState>,
-    art_shader: Option<Res<crate::card::art_shader::CardArtShader>>,
+    params: StashRenderParams,
     stash_icons: Query<(&ChildOf, &Shape), With<StashIcon>>,
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
 ) {
-    let renderer_art_shader = art_shader.map(|s| s.0);
-    if !visible.0 {
+    let renderer_art_shader = params.art_shader.map(|s| s.0);
+    if !params.visible.0 {
         return;
     }
 
@@ -49,8 +54,8 @@ pub fn stash_render_system(
     let world_slot_w = SLOT_WIDTH / camera.zoom;
     let world_slot_h = SLOT_HEIGHT / camera.zoom;
 
-    let bg_screen_w = f32::from(grid.width()) * SLOT_STRIDE_W - SLOT_GAP;
-    let bg_screen_h = f32::from(grid.height()) * SLOT_STRIDE_H - SLOT_GAP;
+    let bg_screen_w = f32::from(params.grid.width()) * SLOT_STRIDE_W - SLOT_GAP;
+    let bg_screen_h = f32::from(params.grid.height()) * SLOT_STRIDE_H - SLOT_GAP;
     let bg_origin = screen_to_world(Vec2::new(GRID_MARGIN, GRID_MARGIN), &camera, vw, vh);
     let bg_verts = rect_vertices(
         bg_origin.x,
@@ -70,10 +75,10 @@ pub fn stash_render_system(
         .map(|(parent, shape)| (parent.0, shape.color))
         .collect();
 
-    let page = grid.current_page();
+    let page = params.grid.current_page();
 
-    for col in 0..grid.width() {
-        for row in 0..grid.height() {
+    for col in 0..params.grid.width() {
+        for row in 0..params.grid.height() {
             let screen_x = GRID_MARGIN + f32::from(col) * SLOT_STRIDE_W;
             let screen_y = GRID_MARGIN + f32::from(row) * SLOT_STRIDE_H;
             let center = screen_to_world(
@@ -83,7 +88,7 @@ pub fn stash_render_system(
                 vh,
             );
 
-            if let Some(&entity) = grid.get(page, col, row) {
+            if let Some(&entity) = params.grid.get(page, col, row) {
                 let color = icon_colors.get(&entity).copied().unwrap_or(SLOT_COLOR);
                 if let Some(art) = renderer_art_shader {
                     renderer.set_shader(art);
@@ -102,10 +107,10 @@ pub fn stash_render_system(
     }
 
     // Draw the dragged card's icon on top of the stash grid at the cursor position
-    if let Some(info) = drag_state.dragging {
-        let screen = mouse.screen_pos();
-        let bg_x_max = GRID_MARGIN + f32::from(grid.width()) * SLOT_STRIDE_W - SLOT_GAP;
-        let bg_y_max = GRID_MARGIN + f32::from(grid.height()) * SLOT_STRIDE_H - SLOT_GAP;
+    if let Some(info) = params.drag_state.dragging {
+        let screen = params.mouse.screen_pos();
+        let bg_x_max = GRID_MARGIN + f32::from(params.grid.width()) * SLOT_STRIDE_W - SLOT_GAP;
+        let bg_y_max = GRID_MARGIN + f32::from(params.grid.height()) * SLOT_STRIDE_H - SLOT_GAP;
         let over_stash_area = screen.x >= GRID_MARGIN
             && screen.x < bg_x_max
             && screen.y >= GRID_MARGIN
@@ -113,7 +118,7 @@ pub fn stash_render_system(
 
         if over_stash_area {
             let color = icon_colors.get(&info.entity).copied().unwrap_or(SLOT_COLOR);
-            let cursor_world = mouse.world_pos();
+            let cursor_world = params.mouse.world_pos();
             if let Some(art) = renderer_art_shader {
                 renderer.set_shader(art);
                 let model =

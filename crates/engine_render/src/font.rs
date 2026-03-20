@@ -114,6 +114,8 @@ pub fn layout_text(face: &ttf_parser::Face, text: &str, font_size: f32) -> Vec<L
 }
 
 pub fn measure_text(text: &str, font_size: f32) -> f32 {
+    // INVARIANT: FONT_BYTES is a compile-time embedded TTF file.
+    // Parsing cannot fail unless the binary is corrupted.
     let face = ttf_parser::Face::parse(FONT_BYTES, 0).expect("embedded font is valid");
     measure_text_with_face(&face, text, font_size)
 }
@@ -135,6 +137,7 @@ fn measure_text_with_face(face: &ttf_parser::Face, text: &str, font_size: f32) -
 /// Wraps at word boundaries (spaces). Words that exceed `max_width` on their own
 /// are placed on a line by themselves (no mid-word breaking).
 pub fn wrap_text(text: &str, font_size: f32, max_width: f32) -> Vec<String> {
+    // INVARIANT: FONT_BYTES is a compile-time embedded TTF file.
     let face = ttf_parser::Face::parse(FONT_BYTES, 0).expect("embedded font is valid");
     let words: Vec<&str> = text.split(' ').collect();
     let mut lines = Vec::new();
@@ -197,6 +200,7 @@ pub fn render_text_transformed(
     font_size: f32,
     color: engine_core::color::Color,
 ) {
+    // INVARIANT: FONT_BYTES is a compile-time embedded TTF file.
     let face = ttf_parser::Face::parse(FONT_BYTES, 0).expect("embedded font is valid");
     let glyphs = layout_text(&face, text, font_size);
     for glyph in &glyphs {
@@ -225,6 +229,10 @@ pub fn tessellate_glyph(commands: &[PathCommand]) -> TessellatedMesh {
     }
     tessellate(&ShapeVariant::Path {
         commands: commands.to_vec(),
+    })
+    .unwrap_or_else(|_| TessellatedMesh {
+        vertices: Vec::new(),
+        indices: Vec::new(),
     })
 }
 

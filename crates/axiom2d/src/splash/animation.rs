@@ -15,9 +15,9 @@ pub fn preload_system(world: &mut World) {
         return;
     }
 
-    let mut hooks = world
-        .remove_resource::<PreloadHooks>()
-        .expect("PreloadHooks missing");
+    let Some(mut hooks) = world.remove_resource::<PreloadHooks>() else {
+        return;
+    };
     for hook in &mut hooks.hooks {
         hook(world);
     }
@@ -57,9 +57,9 @@ pub fn post_splash_setup_system(world: &mut World) {
         return;
     }
 
-    let mut setup = world
-        .remove_resource::<PostSplashSetup>()
-        .expect("PostSplashSetup missing");
+    let Some(mut setup) = world.remove_resource::<PostSplashSetup>() else {
+        return;
+    };
     for hook in &mut setup.hooks {
         hook(world);
     }

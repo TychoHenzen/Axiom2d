@@ -69,6 +69,8 @@ pub fn reverse_path(commands: &[PathCommand]) -> Vec<PathCommand> {
     };
 
     let endpoints = collect_endpoints(start, &commands[1..]);
+    // INVARIANT: collect_endpoints always pushes `start` as the first element,
+    // so the vec is never empty.
     let last_endpoint = *endpoints.last().expect("path has no segments");
     let mut result = vec![PathCommand::MoveTo(last_endpoint)];
 

@@ -53,7 +53,9 @@ impl CpalBackend {
                 .build_output_stream(
                     &config,
                     move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                        let mut state = state.lock().expect("audio state lock poisoned");
+                        let mut state = state
+                            .lock()
+                            .unwrap_or_else(std::sync::PoisonError::into_inner);
                         mix_into(data, &mut state);
                     },
                     |err| eprintln!("audio stream error: {err}"),
@@ -95,7 +97,10 @@ impl Default for CpalBackend {
 
 impl AudioBackend for CpalBackend {
     fn play_on_track(&mut self, sound: &SoundData, track: MixerTrack) -> PlaybackId {
-        let mut state = self.state.lock().expect("audio state lock poisoned");
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         state.next_id += 1;
         let id = PlaybackId(state.next_id);
         state.active_sounds.push(ActiveSound {
@@ -108,17 +113,26 @@ impl AudioBackend for CpalBackend {
     }
 
     fn stop(&mut self, id: PlaybackId) {
-        let mut state = self.state.lock().expect("audio state lock poisoned");
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         state.active_sounds.retain(|s| s.id != id);
     }
 
     fn set_volume(&mut self, volume: f32) {
-        let mut state = self.state.lock().expect("audio state lock poisoned");
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         state.volume = volume;
     }
 
     fn set_track_volume(&mut self, track: MixerTrack, volume: f32) {
-        let mut state = self.state.lock().expect("audio state lock poisoned");
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         state.track_volumes[track.index()] = volume;
     }
 }

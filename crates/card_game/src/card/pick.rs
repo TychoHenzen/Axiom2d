@@ -121,9 +121,7 @@ pub fn card_pick_system(
                 zone,
                 collider,
                 grab_offset,
-                &mut state.drag_state,
-                &mut state.hand,
-                &mut state.physics,
+                &mut state,
                 &mut commands,
                 &mut query,
             );
@@ -149,15 +147,12 @@ fn pick_from_stash(
     });
 }
 
-#[allow(clippy::too_many_arguments)]
 fn pick_from_card(
     entity: Entity,
     zone: CardZone,
     collider: Collider,
     grab_offset: Vec2,
-    drag_state: &mut DragState,
-    hand: &mut Hand,
-    physics: &mut PhysicsRes,
+    state: &mut CardGameState,
     commands: &mut Commands,
     query: &mut Query<(
         Entity,
@@ -171,14 +166,25 @@ fn pick_from_card(
     let max_sort = max_table_sort_order(query);
 
     if let CardZone::Hand(_) = zone {
-        transition_hand_to_table(entity, hand, physics, commands, query, &collider);
+        transition_hand_to_table(
+            entity,
+            &mut state.hand,
+            &mut state.physics,
+            commands,
+            query,
+            &collider,
+        );
     }
 
     if matches!(zone, CardZone::Table) {
-        physics.set_collision_group(entity, DRAGGED_COLLISION_GROUP, DRAGGED_COLLISION_FILTER);
+        state.physics.set_collision_group(
+            entity,
+            DRAGGED_COLLISION_GROUP,
+            DRAGGED_COLLISION_FILTER,
+        );
     }
 
-    drag_state.dragging = Some(DragInfo {
+    state.drag_state.dragging = Some(DragInfo {
         entity,
         local_grab_offset: grab_offset,
         origin_zone: zone,
@@ -235,7 +241,6 @@ fn find_card_under_cursor(
         })
 }
 
-#[allow(clippy::too_many_arguments)]
 fn transition_hand_to_table(
     entity: Entity,
     hand: &mut Hand,

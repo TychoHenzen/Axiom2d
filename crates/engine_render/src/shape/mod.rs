@@ -10,4 +10,4 @@ pub use path::{
     PathCommand, resolve_commands, reverse_path, sample_cubic, sample_quadratic, split_contours,
 };
 pub use render::{affine2_to_mat4, shape_render_system};
-pub use tessellate::{tessellate, tessellate_stroke};
+pub use tessellate::{TessellateError, tessellate, tessellate_stroke};

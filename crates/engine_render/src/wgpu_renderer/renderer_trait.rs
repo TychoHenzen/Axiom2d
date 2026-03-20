@@ -167,10 +167,9 @@ impl WgpuRenderer {
 
     #[allow(clippy::cast_possible_truncation)]
     fn write_bloom_uniforms(&self) {
-        let pp = self
-            .post_process
-            .as_ref()
-            .expect("post_process resources not initialized");
+        let Some(pp) = self.post_process.as_ref() else {
+            return;
+        };
         let uniforms = bloom_uniforms(self.bloom_threshold, self.bloom_intensity, &self.config);
         let buffers = [
             &pp.brightness_params.0,
@@ -188,10 +187,9 @@ impl WgpuRenderer {
         encoder: &mut wgpu::CommandEncoder,
         swapchain_view: &wgpu::TextureView,
     ) {
-        let pp = self
-            .post_process
-            .as_ref()
-            .expect("post_process resources not initialized");
+        let Some(pp) = self.post_process.as_ref() else {
+            return;
+        };
         let bufs = FullscreenBuffers {
             vertex: &pp.fs_vertex_buffer,
             index: &self.index_buffer,
@@ -394,10 +392,21 @@ impl Renderer for WgpuRenderer {
     }
 
     fn present(&mut self) {
-        let frame = self
-            .surface
-            .get_current_texture()
-            .expect("failed to get current texture");
+        let frame = match self.surface.get_current_texture() {
+            Ok(frame) => frame,
+            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                self.surface.configure(&self.device, &self.config);
+                return;
+            }
+            Err(wgpu::SurfaceError::Timeout) => return,
+            Err(wgpu::SurfaceError::OutOfMemory) => {
+                panic!("GPU out of memory");
+            }
+            Err(e) => {
+                eprintln!("surface error: {e}");
+                return;
+            }
+        };
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());

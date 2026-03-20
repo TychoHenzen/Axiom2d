@@ -9,6 +9,13 @@ use lyon::tessellation::{
 use super::components::{ShapeVariant, TessellatedMesh};
 use super::path::{PathCommand, resolve_commands};
 
+#[derive(Debug)]
+pub enum TessellateError {
+    Circle(lyon::tessellation::TessellationError),
+    Polygon(lyon::tessellation::TessellationError),
+    Path(lyon::tessellation::TessellationError),
+}
+
 fn empty_mesh() -> TessellatedMesh {
     TessellatedMesh {
         vertices: Vec::new(),
@@ -16,33 +23,33 @@ fn empty_mesh() -> TessellatedMesh {
     }
 }
 
-pub fn tessellate(variant: &ShapeVariant) -> TessellatedMesh {
+pub fn tessellate(variant: &ShapeVariant) -> Result<TessellatedMesh, TessellateError> {
     let mut geo: VertexBuffers<[f32; 2], u32> = VertexBuffers::new();
     let mut tess = FillTessellator::new();
     let opts = FillOptions::default();
 
     match variant {
         ShapeVariant::Circle { radius } => {
-            fill_circle(&mut tess, opts, &mut geo, *radius);
+            fill_circle(&mut tess, opts, &mut geo, *radius)?;
         }
         ShapeVariant::Polygon { points } => {
             if points.len() < 3 {
-                return empty_mesh();
+                return Ok(empty_mesh());
             }
-            fill_polygon(&mut tess, opts, &mut geo, points);
+            fill_polygon(&mut tess, opts, &mut geo, points)?;
         }
         ShapeVariant::Path { commands } => {
             if commands.is_empty() {
-                return empty_mesh();
+                return Ok(empty_mesh());
             }
-            fill_path(&mut tess, opts, &mut geo, commands);
+            fill_path(&mut tess, opts, &mut geo, commands)?;
         }
     }
 
-    TessellatedMesh {
+    Ok(TessellatedMesh {
         vertices: geo.vertices,
         indices: geo.indices,
-    }
+    })
 }
 
 fn fill_circle(
@@ -50,14 +57,14 @@ fn fill_circle(
     opts: FillOptions,
     geo: &mut VertexBuffers<[f32; 2], u32>,
     radius: f32,
-) {
+) -> Result<(), TessellateError> {
     tess.tessellate_circle(
         point(0.0, 0.0),
         radius,
         &opts,
         &mut BuffersBuilder::new(geo, |v: FillVertex| v.position().to_array()),
     )
-    .expect("circle tessellation failed");
+    .map_err(TessellateError::Circle)
 }
 
 fn fill_polygon(
@@ -65,7 +72,7 @@ fn fill_polygon(
     opts: FillOptions,
     geo: &mut VertexBuffers<[f32; 2], u32>,
     points: &[Vec2],
-) {
+) -> Result<(), TessellateError> {
     let lp: Vec<lyon::math::Point> = points.iter().map(|p| point(p.x, p.y)).collect();
     tess.tessellate_polygon(
         lyon::path::Polygon {
@@ -75,7 +82,7 @@ fn fill_polygon(
         &opts,
         &mut BuffersBuilder::new(geo, |v: FillVertex| v.position().to_array()),
     )
-    .expect("polygon tessellation failed");
+    .map_err(TessellateError::Polygon)
 }
 
 fn fill_path(
@@ -83,14 +90,14 @@ fn fill_path(
     opts: FillOptions,
     geo: &mut VertexBuffers<[f32; 2], u32>,
     commands: &[PathCommand],
-) {
+) -> Result<(), TessellateError> {
     let path = build_lyon_path(commands);
     tess.tessellate_path(
         &path,
         &opts,
         &mut BuffersBuilder::new(geo, |v: FillVertex| v.position().to_array()),
     )
-    .expect("path tessellation failed");
+    .map_err(TessellateError::Path)
 }
 
 fn build_lyon_path(commands: &[PathCommand]) -> LyonPath {
@@ -157,33 +164,36 @@ fn apply_cubic(builder: &mut LyonBuilder, c1: Vec2, c2: Vec2, to: Vec2, needs_be
     nb
 }
 
-pub fn tessellate_stroke(variant: &ShapeVariant, line_width: f32) -> TessellatedMesh {
+pub fn tessellate_stroke(
+    variant: &ShapeVariant,
+    line_width: f32,
+) -> Result<TessellatedMesh, TessellateError> {
     let mut geo: VertexBuffers<[f32; 2], u32> = VertexBuffers::new();
     let mut tess = StrokeTessellator::new();
     let opts = StrokeOptions::default().with_line_width(line_width);
 
     match variant {
         ShapeVariant::Circle { radius } => {
-            stroke_circle(&mut tess, &opts, &mut geo, *radius);
+            stroke_circle(&mut tess, &opts, &mut geo, *radius)?;
         }
         ShapeVariant::Polygon { points } => {
             if points.len() < 3 {
-                return empty_mesh();
+                return Ok(empty_mesh());
             }
-            stroke_polygon(&mut tess, &opts, &mut geo, points);
+            stroke_polygon(&mut tess, &opts, &mut geo, points)?;
         }
         ShapeVariant::Path { commands } => {
             if commands.is_empty() {
-                return empty_mesh();
+                return Ok(empty_mesh());
             }
-            stroke_path(&mut tess, &opts, &mut geo, commands);
+            stroke_path(&mut tess, &opts, &mut geo, commands)?;
         }
     }
 
-    TessellatedMesh {
+    Ok(TessellatedMesh {
         vertices: geo.vertices,
         indices: geo.indices,
-    }
+    })
 }
 
 fn stroke_circle(
@@ -191,14 +201,14 @@ fn stroke_circle(
     opts: &StrokeOptions,
     geo: &mut VertexBuffers<[f32; 2], u32>,
     radius: f32,
-) {
+) -> Result<(), TessellateError> {
     tess.tessellate_circle(
         point(0.0, 0.0),
         radius,
         opts,
         &mut BuffersBuilder::new(geo, |v: StrokeVertex| v.position().to_array()),
     )
-    .expect("circle stroke tessellation failed");
+    .map_err(TessellateError::Circle)
 }
 
 fn stroke_polygon(
@@ -206,14 +216,14 @@ fn stroke_polygon(
     opts: &StrokeOptions,
     geo: &mut VertexBuffers<[f32; 2], u32>,
     points: &[Vec2],
-) {
+) -> Result<(), TessellateError> {
     let path = polygon_to_lyon_path(points);
     tess.tessellate_path(
         &path,
         opts,
         &mut BuffersBuilder::new(geo, |v: StrokeVertex| v.position().to_array()),
     )
-    .expect("polygon stroke tessellation failed");
+    .map_err(TessellateError::Path)
 }
 
 fn polygon_to_lyon_path(points: &[Vec2]) -> LyonPath {
@@ -232,14 +242,14 @@ fn stroke_path(
     opts: &StrokeOptions,
     geo: &mut VertexBuffers<[f32; 2], u32>,
     commands: &[PathCommand],
-) {
+) -> Result<(), TessellateError> {
     let path = build_lyon_path(commands);
     tess.tessellate_path(
         &path,
         opts,
         &mut BuffersBuilder::new(geo, |v: StrokeVertex| v.position().to_array()),
     )
-    .expect("path stroke tessellation failed");
+    .map_err(TessellateError::Path)
 }
 
 pub(crate) fn shape_aabb(variant: &ShapeVariant) -> (Vec2, Vec2) {
@@ -289,7 +299,7 @@ mod tests {
         let variant = ShapeVariant::Circle { radius: 50.0 };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert!(!mesh.vertices.is_empty());
@@ -302,7 +312,7 @@ mod tests {
         let variant = ShapeVariant::Circle { radius: 50.0 };
 
         // Act
-        let mesh = tessellate_stroke(&variant, 4.0);
+        let mesh = tessellate_stroke(&variant, 4.0).unwrap();
 
         // Assert
         assert!(!mesh.vertices.is_empty());
@@ -315,7 +325,7 @@ mod tests {
         let variant = ShapeVariant::Circle { radius: 50.0 };
 
         // Act
-        let mesh = tessellate_stroke(&variant, 4.0);
+        let mesh = tessellate_stroke(&variant, 4.0).unwrap();
 
         // Assert
         assert!(!mesh.indices.is_empty());
@@ -328,7 +338,7 @@ mod tests {
         let variant = ShapeVariant::Circle { radius: 50.0 };
 
         // Act
-        let mesh = tessellate_stroke(&variant, 4.0);
+        let mesh = tessellate_stroke(&variant, 4.0).unwrap();
 
         // Assert
         let vertex_count = mesh.vertices.len() as u32;
@@ -353,7 +363,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate_stroke(&variant, 4.0);
+        let mesh = tessellate_stroke(&variant, 4.0).unwrap();
 
         // Assert
         assert!(!mesh.vertices.is_empty());
@@ -378,7 +388,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate_stroke(&variant, 4.0);
+        let mesh = tessellate_stroke(&variant, 4.0).unwrap();
 
         // Assert
         assert!(!mesh.vertices.is_empty());
@@ -398,7 +408,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate_stroke(&variant, 4.0);
+        let mesh = tessellate_stroke(&variant, 4.0).unwrap();
 
         // Assert
         assert!(mesh.vertices.is_empty());
@@ -413,7 +423,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate_stroke(&variant, 4.0);
+        let mesh = tessellate_stroke(&variant, 4.0).unwrap();
 
         // Assert
         assert!(mesh.vertices.is_empty());
@@ -426,8 +436,8 @@ mod tests {
         let variant = ShapeVariant::Circle { radius: 50.0 };
 
         // Act
-        let narrow = tessellate_stroke(&variant, 2.0);
-        let wide = tessellate_stroke(&variant, 20.0);
+        let narrow = tessellate_stroke(&variant, 2.0).unwrap();
+        let wide = tessellate_stroke(&variant, 20.0).unwrap();
 
         // Assert
         assert!(wide.vertices.len() >= narrow.vertices.len());
@@ -448,7 +458,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert — all vertices should be in the [50,150] range, NOT near origin
         assert!(!mesh.vertices.is_empty());
@@ -472,7 +482,7 @@ mod tests {
         let variant = ShapeVariant::Circle { radius: 50.0 };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert_eq!(mesh.indices.len() % 3, 0);
@@ -484,7 +494,7 @@ mod tests {
         let variant = ShapeVariant::Circle { radius: 50.0 };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         let vertex_count = mesh.vertices.len() as u32;
@@ -502,7 +512,7 @@ mod tests {
         let variant = ShapeVariant::Circle { radius: 0.0 };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert_eq!(mesh.indices.len() % 3, 0);
@@ -515,8 +525,8 @@ mod tests {
         let large = ShapeVariant::Circle { radius: 100.0 };
 
         // Act
-        let small_mesh = tessellate(&small);
-        let large_mesh = tessellate(&large);
+        let small_mesh = tessellate(&small).unwrap();
+        let large_mesh = tessellate(&large).unwrap();
 
         // Assert
         assert!(large_mesh.vertices.len() >= small_mesh.vertices.len());
@@ -534,7 +544,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert_eq!(mesh.vertices.len(), 3);
@@ -554,7 +564,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert!(!mesh.vertices.is_empty());
@@ -606,7 +616,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert!(mesh.vertices.is_empty());
@@ -621,7 +631,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert!(mesh.vertices.is_empty());
@@ -640,7 +650,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert — implicit begin at (0,0) forms a valid triangle
         assert!(!mesh.vertices.is_empty());
@@ -660,7 +670,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert!(!mesh.vertices.is_empty());
@@ -680,7 +690,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert_eq!(mesh.indices.len() % 3, 0);
@@ -699,7 +709,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         for &idx in &mesh.indices {
@@ -723,7 +733,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert!(!mesh.vertices.is_empty());
@@ -745,7 +755,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert!(mesh.vertices.len() > 2);
@@ -769,7 +779,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert
         assert!(!mesh.vertices.is_empty());
@@ -885,7 +895,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert — closed triangle should produce vertices and indices
         assert!(!mesh.vertices.is_empty(), "should produce vertices");
@@ -905,7 +915,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate(&variant);
+        let mesh = tessellate(&variant).unwrap();
 
         // Assert — open path should still be tessellatable
         assert!(!mesh.vertices.is_empty());
@@ -919,7 +929,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate_stroke(&variant, 2.0);
+        let mesh = tessellate_stroke(&variant, 2.0).unwrap();
 
         // Assert
         assert!(mesh.vertices.is_empty());
@@ -934,7 +944,7 @@ mod tests {
         };
 
         // Act
-        let mesh = tessellate_stroke(&variant, 2.0);
+        let mesh = tessellate_stroke(&variant, 2.0).unwrap();
 
         // Assert
         assert!(!mesh.vertices.is_empty());
@@ -965,8 +975,8 @@ mod tests {
         };
 
         // Act
-        let closed_mesh = tessellate_stroke(&closed, 1.0);
-        let open_mesh = tessellate_stroke(&open, 1.0);
+        let closed_mesh = tessellate_stroke(&closed, 1.0).unwrap();
+        let open_mesh = tessellate_stroke(&open, 1.0).unwrap();
 
         // Assert — closing the path adds a third stroke segment
         assert!(
