@@ -26,8 +26,6 @@ use engine_render::prelude::{
 use engine_scene::prelude::{
     hierarchy_maintenance_system, transform_propagation_system, visibility_system,
 };
-#[cfg(feature = "render")]
-use engine_ui::prelude::text_render_system;
 
 pub struct DefaultPlugins;
 
@@ -127,7 +125,6 @@ fn register_render(app: &mut App) {
                 splash_render_system,
                 sprite_render_system,
                 shape_render_system,
-                text_render_system,
                 post_process_system,
             )
                 .chain(),

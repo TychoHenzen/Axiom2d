@@ -67,6 +67,33 @@ impl Default for PreloadHooks {
     }
 }
 
+pub(crate) type PostSplashHook = Box<dyn FnMut(&mut World) + Send + Sync>;
+
+#[derive(Resource)]
+pub struct PostSplashSetup {
+    pub(crate) hooks: Vec<PostSplashHook>,
+    pub(crate) executed: bool,
+}
+
+impl PostSplashSetup {
+    pub fn new() -> Self {
+        Self {
+            hooks: Vec::new(),
+            executed: false,
+        }
+    }
+
+    pub fn add(&mut self, hook: impl FnMut(&mut World) + Send + Sync + 'static) {
+        self.hooks.push(Box::new(hook));
+    }
+}
+
+impl Default for PostSplashSetup {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Marker resource to skip the splash screen.
 /// Insert this before calling `app.add_plugin(DefaultPlugins)`.
 #[derive(Resource)]

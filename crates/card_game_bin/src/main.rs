@@ -1,13 +1,8 @@
 mod card_data;
 
 use axiom2d::prelude::*;
-use bevy_ecs::prelude::Res;
 use card_game::prelude::*;
 use glam::Vec2;
-
-fn splash_done(splash: Option<Res<SplashScreen>>) -> bool {
-    splash.is_none_or(|s| s.done)
-}
 
 const TABLE_COLOR: Color = Color {
     r: 0.15,
@@ -84,7 +79,7 @@ fn setup(app: &mut App) {
     };
 
     register_game_resources(app);
-    spawn_scene(app.world_mut());
+    register_scene_setup_hook(app);
     register_preload_hook(app);
     register_game_systems(app, config);
 }
@@ -108,6 +103,12 @@ fn register_game_resources(app: &mut App) {
 
     let art_shader = register_card_art_shader(&mut world.resource_mut::<ShaderRegistry>());
     world.insert_resource(art_shader);
+}
+
+fn register_scene_setup_hook(app: &mut App) {
+    app.world_mut()
+        .resource_mut::<PostSplashSetup>()
+        .add(spawn_scene);
 }
 
 fn register_preload_hook(app: &mut App) {
@@ -176,9 +177,7 @@ fn register_game_systems(app: &mut App, config: WindowConfig) {
         )
         .add_systems(
             Phase::Render,
-            card_text_render_system
-                .after(shape_render_system)
-                .run_if(splash_done),
+            card_text_render_system.after(shape_render_system),
         );
 }
 

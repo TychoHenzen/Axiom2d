@@ -3,7 +3,7 @@ use engine_app::prelude::{App, Phase, Plugin};
 use engine_core::prelude::DeltaTime;
 use engine_scene::prelude::Visible;
 
-use super::types::{PreloadHooks, SPLASH_DURATION, SplashEntity, SplashScreen};
+use super::types::{PostSplashSetup, PreloadHooks, SPLASH_DURATION, SplashEntity, SplashScreen};
 
 pub fn preload_system(world: &mut World) {
     let splash_done = world.resource::<SplashScreen>().done;
@@ -33,13 +33,39 @@ impl Plugin for SplashPlugin {
         app.world_mut()
             .insert_resource(SplashScreen::new(SPLASH_DURATION));
         app.world_mut().insert_resource(PreloadHooks::new());
+        app.world_mut().insert_resource(PostSplashSetup::new());
 
         #[cfg(feature = "render")]
         super::render::spawn_splash_entities(app.world_mut());
 
         app.add_systems(Phase::PreUpdate, preload_system);
+        app.add_systems(Phase::PreUpdate, post_splash_setup_system);
         app.add_systems(Phase::Update, splash_tick_system);
     }
+}
+
+pub fn post_splash_setup_system(world: &mut World) {
+    let splash_done = world.get_resource::<SplashScreen>().is_none_or(|s| s.done);
+    if !splash_done {
+        return;
+    }
+
+    let already_executed = world
+        .get_resource::<PostSplashSetup>()
+        .is_none_or(|h| h.executed);
+    if already_executed {
+        return;
+    }
+
+    let mut setup = world
+        .remove_resource::<PostSplashSetup>()
+        .expect("PostSplashSetup missing");
+    for hook in &mut setup.hooks {
+        hook(world);
+    }
+    setup.executed = true;
+    setup.hooks.clear();
+    world.insert_resource(setup);
 }
 
 pub fn splash_tick_system(
@@ -283,5 +309,255 @@ mod tests {
 
         // Assert
         assert!(world.get::<Visible>(game_entity).unwrap().0);
+    }
+
+    #[test]
+    fn when_splash_done_then_post_splash_hooks_run() {
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(SplashScreen {
+            elapsed: 3.0,
+            duration: 2.0,
+            done: true,
+        });
+        let mut setup = PostSplashSetup::new();
+        setup.add(|w: &mut World| {
+            w.insert_resource(DeltaTime(Seconds(99.0)));
+        });
+        world.insert_resource(setup);
+        world.insert_resource(DeltaTime(Seconds(0.0)));
+
+        let mut schedule = Schedule::default();
+        schedule.add_systems(post_splash_setup_system);
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        assert!((world.resource::<DeltaTime>().0.0 - 99.0).abs() < f32::EPSILON);
+        assert!(world.resource::<PostSplashSetup>().executed);
+    }
+
+    #[test]
+    fn when_post_splash_hooks_already_executed_then_not_run_again() {
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(SplashScreen {
+            elapsed: 3.0,
+            duration: 2.0,
+            done: true,
+        });
+        let call_count = std::sync::Arc::new(std::sync::Mutex::new(0u32));
+        let counter = std::sync::Arc::clone(&call_count);
+        let mut setup = PostSplashSetup::new();
+        setup.add(move |_: &mut World| {
+            *counter.lock().unwrap() += 1;
+        });
+        setup.executed = true;
+        world.insert_resource(setup);
+
+        let mut schedule = Schedule::default();
+        schedule.add_systems(post_splash_setup_system);
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        assert_eq!(*call_count.lock().unwrap(), 0);
+    }
+
+    #[test]
+    fn when_no_splash_screen_resource_then_post_splash_hooks_run_immediately() {
+        // Arrange
+        let mut world = World::new();
+        let mut setup = PostSplashSetup::new();
+        setup.add(|w: &mut World| {
+            w.insert_resource(DeltaTime(Seconds(42.0)));
+        });
+        world.insert_resource(setup);
+        world.insert_resource(DeltaTime(Seconds(0.0)));
+
+        let mut schedule = Schedule::default();
+        schedule.add_systems(post_splash_setup_system);
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        assert!((world.resource::<DeltaTime>().0.0 - 42.0).abs() < f32::EPSILON);
+        assert!(world.resource::<PostSplashSetup>().executed);
+    }
+
+    #[test]
+    fn when_post_splash_hook_runs_then_can_spawn_entities() {
+        // Arrange
+        #[derive(bevy_ecs::prelude::Component)]
+        struct Marker;
+
+        let mut world = World::new();
+        world.insert_resource(SplashScreen {
+            elapsed: 3.0,
+            duration: 2.0,
+            done: true,
+        });
+        let mut setup = PostSplashSetup::new();
+        setup.add(|w: &mut World| {
+            w.spawn(Marker);
+        });
+        world.insert_resource(setup);
+
+        let mut schedule = Schedule::default();
+        schedule.add_systems(post_splash_setup_system);
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        let count = world.query::<&Marker>().iter(&world).count();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn when_multiple_post_splash_hooks_then_run_in_order() {
+        // Arrange
+        let order = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let mut world = World::new();
+        world.insert_resource(SplashScreen {
+            elapsed: 3.0,
+            duration: 2.0,
+            done: true,
+        });
+        let mut setup = PostSplashSetup::new();
+        for i in 0..3 {
+            let order = std::sync::Arc::clone(&order);
+            setup.add(move |_: &mut World| {
+                order.lock().unwrap().push(i);
+            });
+        }
+        world.insert_resource(setup);
+
+        let mut schedule = Schedule::default();
+        schedule.add_systems(post_splash_setup_system);
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        assert_eq!(*order.lock().unwrap(), vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn when_splash_plugin_built_then_post_splash_setup_is_present() {
+        // Arrange
+        let mut app = App::new();
+
+        // Act
+        app.add_plugin(SplashPlugin);
+
+        // Assert
+        assert!(app.world().get_resource::<PostSplashSetup>().is_some());
+    }
+
+    #[test]
+    fn when_splash_done_and_post_splash_hook_registered_then_hook_runs_on_redraw() {
+        // Arrange
+        let mut app = App::new();
+        app.add_plugin(crate::default_plugins::DefaultPlugins);
+        app.world_mut()
+            .insert_resource(engine_core::prelude::ClockRes::new(Box::new({
+                let mut clock = engine_core::time::FakeClock::default();
+                clock.advance(Seconds(0.1));
+                clock
+            })));
+        app.world_mut()
+            .insert_resource(engine_render::prelude::RendererRes::new(Box::new(
+                engine_render::prelude::NullRenderer,
+            )));
+        app.world_mut().resource_mut::<SplashScreen>().done = true;
+
+        let call_count = std::sync::Arc::new(std::sync::Mutex::new(0u32));
+        let counter = std::sync::Arc::clone(&call_count);
+        app.world_mut()
+            .resource_mut::<PostSplashSetup>()
+            .add(move |_: &mut World| {
+                *counter.lock().unwrap() += 1;
+            });
+
+        // Act
+        app.handle_redraw();
+
+        // Assert
+        assert_eq!(*call_count.lock().unwrap(), 1);
+    }
+
+    #[test]
+    fn when_preload_and_post_splash_coexist_then_preload_runs_during_and_post_splash_runs_after() {
+        // Arrange
+        let preload_count = std::sync::Arc::new(std::sync::Mutex::new(0u32));
+        let post_count = std::sync::Arc::new(std::sync::Mutex::new(0u32));
+
+        let mut world = World::new();
+        world.insert_resource(SplashScreen {
+            elapsed: 0.5,
+            duration: 2.0,
+            done: false,
+        });
+
+        let pc = std::sync::Arc::clone(&preload_count);
+        let mut hooks = PreloadHooks::new();
+        hooks.add(move |_: &mut World| {
+            *pc.lock().unwrap() += 1;
+        });
+        world.insert_resource(hooks);
+
+        let psc = std::sync::Arc::clone(&post_count);
+        let mut setup = PostSplashSetup::new();
+        setup.add(move |_: &mut World| {
+            *psc.lock().unwrap() += 1;
+        });
+        world.insert_resource(setup);
+
+        let mut schedule = Schedule::default();
+        schedule.add_systems((preload_system, post_splash_setup_system));
+
+        // Act — run while splash not done
+        schedule.run(&mut world);
+
+        // Assert — preload ran, post-splash did not
+        assert_eq!(*preload_count.lock().unwrap(), 1);
+        assert_eq!(*post_count.lock().unwrap(), 0);
+
+        // Act — mark splash done and run again
+        world.resource_mut::<SplashScreen>().done = true;
+        schedule.run(&mut world);
+
+        // Assert — post-splash ran now
+        assert_eq!(*post_count.lock().unwrap(), 1);
+    }
+
+    #[test]
+    fn when_splash_not_done_then_post_splash_hooks_do_not_run() {
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(SplashScreen {
+            elapsed: 0.5,
+            duration: 2.0,
+            done: false,
+        });
+        let mut setup = PostSplashSetup::new();
+        setup.add(|w: &mut World| {
+            w.insert_resource(DeltaTime(Seconds(99.0)));
+        });
+        world.insert_resource(setup);
+        world.insert_resource(DeltaTime(Seconds(0.0)));
+
+        let mut schedule = Schedule::default();
+        schedule.add_systems(post_splash_setup_system);
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        assert!((world.resource::<DeltaTime>().0.0).abs() < f32::EPSILON);
     }
 }

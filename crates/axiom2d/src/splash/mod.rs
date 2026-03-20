@@ -4,7 +4,7 @@ mod letters;
 pub(crate) mod render;
 mod types;
 
-pub use animation::{SplashPlugin, preload_system, splash_tick_system};
+pub use animation::{SplashPlugin, post_splash_setup_system, preload_system, splash_tick_system};
 #[cfg(feature = "render")]
 pub use render::splash_render_system;
-pub use types::{PreloadHooks, SkipSplash, SplashEntity, SplashScreen};
+pub use types::{PostSplashSetup, PreloadHooks, SkipSplash, SplashEntity, SplashScreen};

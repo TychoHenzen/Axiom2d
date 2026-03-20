@@ -1,25 +1,23 @@
 use bevy_ecs::prelude::{Entity, Local, Query, Res, ResMut, Resource};
-use engine_core::prelude::Color;
 use engine_input::prelude::{InputState, KeyCode, MouseState};
-use engine_render::font::{GlyphCache, measure_text, render_text_transformed};
-use engine_render::prelude::{Camera2D, RendererRes, ShaderHandle, screen_to_world};
+use engine_render::font::{GlyphCache, measure_text, render_text_transformed, wrap_text};
+use engine_render::prelude::{
+    Camera2D, Material2d, RendererRes, ShaderHandle, Shape, resolve_viewport_camera,
+    screen_to_world, tessellate,
+};
 use engine_render::shape::affine2_to_mat4;
+use engine_scene::prelude::ChildOf;
+use engine_scene::sort_propagation::LocalSortOrder;
+use engine_ui::prelude::Text;
 use glam::{Affine2, Vec2};
 
-use crate::card::art_shader::CardArtShader;
-use crate::card::definition::{CardDefinition, rarity_border_color};
 use crate::card::drag_state::DragState;
-use crate::card::face_layout::FRONT_FACE_REGIONS;
-use crate::card::geometry::{
-    ART_QUAD, QUAD_INDICES, TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH, UNIT_QUAD, art_quad_model,
-    unit_quad_model,
-};
-use crate::card::label::CardLabel;
+use crate::card::face_side::CardFaceSide;
+use crate::card::geometry::{ART_QUAD, QUAD_INDICES, TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
 use crate::stash::constants::{GRID_MARGIN, SLOT_STRIDE_H};
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::render::reset_default_shader;
 use crate::stash::toggle::StashVisible;
-use engine_render::prelude::resolve_viewport_camera;
 
 #[derive(Resource, Debug, Default)]
 pub struct StashHoverPreview {
@@ -51,10 +49,16 @@ pub fn stash_hover_preview_system(
 pub fn stash_hover_preview_render_system(
     hover_preview: Res<StashHoverPreview>,
     grid: Res<StashGrid>,
-    art_shader: Option<Res<CardArtShader>>,
     camera_query: Query<&Camera2D>,
-    label_query: Query<&CardLabel>,
-    def_query: Query<&CardDefinition>,
+    children_query: Query<(
+        &ChildOf,
+        &CardFaceSide,
+        &LocalSortOrder,
+        &engine_core::prelude::Transform2D,
+        Option<&Shape>,
+        Option<&Text>,
+        Option<&Material2d>,
+    )>,
     mut renderer: ResMut<RendererRes>,
     mut glyph_cache: Local<GlyphCache>,
 ) {
@@ -76,108 +80,92 @@ pub fn stash_hover_preview_render_system(
     );
     let preview_center = screen_to_world(preview_center_screen, &camera, vw, vh);
 
+    let scale_x = (preview_screen_w / camera.zoom) / TABLE_CARD_WIDTH;
+    let scale_y = (preview_screen_h / camera.zoom) / TABLE_CARD_HEIGHT;
+
     reset_default_shader(&mut **renderer);
 
-    let art = art_shader.map(|s| s.0);
-    let border_color = def_query
-        .get(hovered_entity)
-        .map(|d| rarity_border_color(d.rarity))
-        .unwrap_or(Color::WHITE);
+    let mut front_children: Vec<_> = children_query
+        .iter()
+        .filter(|(parent, side, _, _, _, _, _)| {
+            parent.0 == hovered_entity && **side == CardFaceSide::Front
+        })
+        .collect();
+    front_children.sort_by_key(|(_, _, sort, _, _, _, _)| sort.0);
 
-    for (i, region) in FRONT_FACE_REGIONS.iter().enumerate() {
-        let (half_w_card, half_h_card, offset_y_card) =
-            region.resolve(preview_screen_w, preview_screen_h);
-        let width = half_w_card * 2.0 / camera.zoom;
-        let height = half_h_card * 2.0 / camera.zoom;
-        let offset_y = offset_y_card / camera.zoom;
+    for (_, _, _, child_transform, shape, text, material) in &front_children {
+        let child_x = child_transform.position.x * scale_x;
+        let child_y = child_transform.position.y * scale_y;
+        let cx = preview_center.x + child_x;
+        let cy = preview_center.y + child_y;
 
-        let center_x = preview_center.x;
-        let center_y = preview_center.y + offset_y;
-        let color = if i == 0 { border_color } else { region.color };
+        if let Some(shape) = shape {
+            let has_art_shader = material.is_some_and(|m| m.shader != ShaderHandle(0));
+            let model = [
+                [scale_x, 0.0, 0.0, 0.0],
+                [0.0, scale_y, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [cx, cy, 0.0, 1.0],
+            ];
 
-        if region.use_art_shader {
-            if let Some(shader) = art {
-                renderer.set_shader(shader);
+            if has_art_shader {
+                if let Some(m) = material {
+                    renderer.set_shader(m.shader);
+                }
+                renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, shape.color, model);
+                renderer.set_shader(ShaderHandle(0));
+            } else {
+                let mesh = tessellate(&shape.variant);
+                renderer.draw_shape(&mesh.vertices, &mesh.indices, shape.color, model);
             }
-            renderer.draw_shape(
-                &ART_QUAD,
-                &QUAD_INDICES,
-                color,
-                art_quad_model(width, height, center_x, center_y),
-            );
-            renderer.set_shader(ShaderHandle(0));
-        } else {
-            renderer.draw_shape(
-                &UNIT_QUAD,
-                &QUAD_INDICES,
-                color,
-                unit_quad_model(width, height, center_x, center_y),
-            );
         }
-    }
 
-    if let Ok(label) = label_query.get(hovered_entity) {
-        render_preview_text(
-            &mut **renderer,
-            &mut glyph_cache,
-            label,
-            preview_center,
-            preview_screen_w,
-            preview_screen_h,
-            &camera,
-        );
+        if let Some(text) = text {
+            let base = Affine2::from_scale_angle_translation(
+                Vec2::new(scale_x, scale_y),
+                0.0,
+                Vec2::new(cx, cy),
+            );
+            render_preview_text_component(&mut **renderer, &mut glyph_cache, text, &base);
+        }
     }
 }
 
-const PREVIEW_TEXT_COLOR: Color = Color {
-    r: 0.1,
-    g: 0.1,
-    b: 0.1,
-    a: 1.0,
-};
+const LINE_HEIGHT_FACTOR: f32 = 1.3;
 
-fn render_preview_text(
+fn render_preview_text_component(
     renderer: &mut dyn engine_render::prelude::Renderer,
     cache: &mut GlyphCache,
-    label: &CardLabel,
-    preview_center: Vec2,
-    preview_w: f32,
-    preview_h: f32,
-    camera: &Camera2D,
+    text: &Text,
+    base_transform: &Affine2,
 ) {
-    let (_, _, name_offset_y) = FRONT_FACE_REGIONS[1].resolve(preview_w, preview_h);
-    let name_font_size = preview_h / (12.0 * camera.zoom);
-    let name_y = preview_center.y + name_offset_y / camera.zoom;
-
-    let name_width = measure_text(&label.name, name_font_size);
-    let name_transform =
-        Affine2::from_translation(Vec2::new(preview_center.x - name_width * 0.5, name_y));
-    let name_model = affine2_to_mat4(&name_transform);
-    render_text_transformed(
-        renderer,
-        cache,
-        &label.name,
-        &name_model,
-        name_font_size,
-        PREVIEW_TEXT_COLOR,
-    );
-
-    let (_, _, desc_offset_y) = FRONT_FACE_REGIONS[3].resolve(preview_w, preview_h);
-    let desc_font_size = preview_h / (16.0 * camera.zoom);
-    let desc_y = preview_center.y + desc_offset_y / camera.zoom;
-
-    let desc_width = measure_text(&label.description, desc_font_size);
-    let desc_transform =
-        Affine2::from_translation(Vec2::new(preview_center.x - desc_width * 0.5, desc_y));
-    let desc_model = affine2_to_mat4(&desc_transform);
-    render_text_transformed(
-        renderer,
-        cache,
-        &label.description,
-        &desc_model,
-        desc_font_size,
-        PREVIEW_TEXT_COLOR,
-    );
+    if let Some(max_width) = text.max_width {
+        let lines = wrap_text(&text.content, text.font_size, max_width);
+        let line_height = text.font_size * LINE_HEIGHT_FACTOR;
+        let total_height = (lines.len() as f32 - 1.0) * line_height;
+        let start_y = -total_height * 0.5;
+        for (i, line) in lines.iter().enumerate() {
+            let line_width = measure_text(line, text.font_size);
+            let y_offset = start_y + i as f32 * line_height;
+            let offset = Affine2::from_translation(Vec2::new(-line_width * 0.5, y_offset));
+            let line_transform = *base_transform * offset;
+            let model = affine2_to_mat4(&line_transform);
+            render_text_transformed(renderer, cache, line, &model, text.font_size, text.color);
+        }
+    } else {
+        let text_width = measure_text(&text.content, text.font_size);
+        let center_offset = Affine2::from_translation(Vec2::new(-text_width * 0.5, 0.0));
+        let centered = *base_transform * center_offset;
+        let model = affine2_to_mat4(&centered);
+        render_text_transformed(
+            renderer,
+            cache,
+            &text.content,
+            &model,
+            text.font_size,
+            text.color,
+        );
+    }
 }
 
 #[cfg(test)]
@@ -430,11 +418,39 @@ mod tests {
 
     // -- Render system tests ----------------------------------------------
 
+    use crate::card::definition::{
+        CardAbilities, CardDefinition, CardType, Rarity, art_descriptor_default,
+    };
+    use crate::card::spawn_table_card::spawn_visual_card;
+
+    fn make_test_def() -> CardDefinition {
+        CardDefinition {
+            card_type: CardType::Spell,
+            rarity: Rarity::Common,
+            name: "Fireball".to_owned(),
+            stats: None,
+            abilities: CardAbilities {
+                keywords: vec![],
+                text: "Deal 3 damage".to_owned(),
+            },
+            art: art_descriptor_default(CardType::Spell),
+        }
+    }
+
+    fn spawn_card_in_world(world: &mut World) -> Entity {
+        spawn_visual_card(
+            world,
+            &make_test_def(),
+            Vec2::ZERO,
+            Vec2::new(60.0, 90.0),
+            true,
+        )
+    }
+
     #[test]
     fn when_hovered_entity_none_then_no_shapes_drawn() {
         // Arrange
         let grid = StashGrid::new(10, 10, 1);
-        // Don't place any card — hovered_entity stays None
         let (mut world, shape_log) = make_world_with_spy(grid);
 
         // Act
@@ -449,11 +465,11 @@ mod tests {
     }
 
     #[test]
-    fn when_hovered_entity_set_then_four_shapes_drawn() {
+    fn when_hovered_entity_set_then_front_face_shapes_drawn() {
         // Arrange
         let grid = StashGrid::new(10, 10, 1);
         let (mut world, shape_log) = make_world_with_spy(grid);
-        let card = world.spawn_empty().id();
+        let card = spawn_card_in_world(&mut world);
         world
             .resource_mut::<StashGrid>()
             .place(0, 0, 0, card)
@@ -463,12 +479,11 @@ mod tests {
         // Act
         run_render_system(&mut world);
 
-        // Assert — 4 face shapes (border, name strip, art area, desc strip)
+        // Assert — 4 front face shapes + text glyph shapes
         let calls = shape_log.lock().unwrap();
-        assert_eq!(
-            calls.len(),
-            4,
-            "expected 4 card face shapes, got {}",
+        assert!(
+            calls.len() >= 4,
+            "expected at least 4 card face shapes, got {}",
             calls.len()
         );
     }
@@ -486,7 +501,7 @@ mod tests {
         world.spawn(Camera2D::default());
         world.insert_resource(StashGrid::new(10, 10, 1));
         world.insert_resource(DragState::default());
-        let card = world.spawn_empty().id();
+        let card = spawn_card_in_world(&mut world);
         world.insert_resource(StashHoverPreview {
             hovered_entity: Some(card),
         });
@@ -500,16 +515,11 @@ mod tests {
     }
 
     #[test]
-    fn when_hovered_entity_has_card_label_then_text_shapes_drawn() {
+    fn when_hovered_entity_has_text_children_then_text_shapes_drawn() {
         // Arrange
         let grid = StashGrid::new(10, 10, 1);
         let (mut world, shape_log) = make_world_with_spy(grid);
-        let card = world
-            .spawn(crate::card::label::CardLabel {
-                name: "Test".to_owned(),
-                description: "Desc".to_owned(),
-            })
-            .id();
+        let card = spawn_card_in_world(&mut world);
         world
             .resource_mut::<StashGrid>()
             .place(0, 0, 0, card)
@@ -519,7 +529,7 @@ mod tests {
         // Act
         run_render_system(&mut world);
 
-        // Assert — 4 face shapes + text glyph shapes
+        // Assert — 4 face shapes + text glyph shapes (name + description)
         let calls = shape_log.lock().unwrap();
         assert!(
             calls.len() > 4,
