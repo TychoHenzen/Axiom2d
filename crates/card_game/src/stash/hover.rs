@@ -419,14 +419,13 @@ mod tests {
     // -- Render system tests ----------------------------------------------
 
     use crate::card::definition::{
-        CardAbilities, CardDefinition, CardType, Rarity, art_descriptor_default,
+        CardAbilities, CardDefinition, CardType, art_descriptor_default,
     };
     use crate::card::spawn_table_card::spawn_visual_card;
 
     fn make_test_def() -> CardDefinition {
         CardDefinition {
             card_type: CardType::Spell,
-            rarity: Rarity::Common,
             name: "Fireball".to_owned(),
             stats: None,
             abilities: CardAbilities {
@@ -438,12 +437,14 @@ mod tests {
     }
 
     fn spawn_card_in_world(world: &mut World) -> Entity {
+        use crate::card::signature::CardSignature;
         spawn_visual_card(
             world,
             &make_test_def(),
             Vec2::ZERO,
             Vec2::new(60.0, 90.0),
             true,
+            CardSignature::default(),
         )
     }
 

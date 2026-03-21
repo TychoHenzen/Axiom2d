@@ -2,6 +2,8 @@ mod card_data;
 
 use axiom2d::prelude::*;
 use card_game::prelude::*;
+use rand::SeedableRng;
+use rand_chacha::ChaCha8Rng;
 
 const TABLE_COLOR: Color = Color {
     r: 0.15,
@@ -37,7 +39,8 @@ fn spawn_scene(world: &mut World) {
     });
 
     let card_size = Vec2::new(TABLE_CARD_WIDTH, TABLE_CARD_HEIGHT);
-    let deck = card_data::starter_deck();
+    let mut rng = ChaCha8Rng::seed_from_u64(0);
+    let deck = card_data::starter_deck(&mut rng);
     let mut card_entities = Vec::new();
     for card in &deck {
         let entity = spawn_visual_card(
@@ -46,6 +49,7 @@ fn spawn_scene(world: &mut World) {
             card.position,
             card_size,
             card.face_up,
+            card.signature,
         );
         card_entities.push(entity);
     }

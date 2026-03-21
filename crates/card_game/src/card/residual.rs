@@ -1,3 +1,4 @@
+use bevy_ecs::prelude::Component;
 use serde::{Deserialize, Serialize};
 
 use super::base_type::BaseCardType;
@@ -36,7 +37,7 @@ impl ResidualModifier {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Component, Debug, Clone, PartialEq)]
 pub struct ResidualStats {
     pub power: f32,
     pub cost: f32,

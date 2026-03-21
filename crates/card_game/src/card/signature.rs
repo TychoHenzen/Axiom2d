@@ -1,6 +1,15 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Rarity {
+    Common,
+    Uncommon,
+    Rare,
+    Epic,
+    Legendary,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Element {
     Solidum,
     Febris,
@@ -49,6 +58,12 @@ impl Element {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct CardSignature {
     axes: [f32; 8],
+}
+
+impl Default for CardSignature {
+    fn default() -> Self {
+        Self { axes: [0.0; 8] }
+    }
 }
 
 impl CardSignature {
@@ -119,6 +134,18 @@ impl CardSignature {
 
     pub fn axes(&self) -> [f32; 8] {
         self.axes
+    }
+
+    pub fn rarity(&self) -> Rarity {
+        let raw_score: f32 = self.axes.iter().map(|v| v.abs()).sum();
+        let normalized = raw_score.ln_1p() / 8.0_f32.ln_1p();
+        match normalized {
+            n if n >= 0.85 => Rarity::Legendary,
+            n if n >= 0.70 => Rarity::Epic,
+            n if n >= 0.50 => Rarity::Rare,
+            n if n >= 0.30 => Rarity::Uncommon,
+            _ => Rarity::Common,
+        }
     }
 }
 
@@ -456,5 +483,65 @@ mod tests {
 
         // Assert
         assert_eq!(sig.axes(), input);
+    }
+
+    // ===== rarity =====
+
+    #[test]
+    fn when_all_axes_zero_then_rarity_is_common() {
+        // Arrange
+        let sig = CardSignature::new([0.0; 8]);
+
+        // Act / Assert
+        assert_eq!(sig.rarity(), Rarity::Common);
+    }
+
+    #[test]
+    fn when_all_axes_at_max_then_rarity_is_legendary() {
+        // Arrange
+        let sig = CardSignature::new([1.0; 8]);
+
+        // Act / Assert
+        assert_eq!(sig.rarity(), Rarity::Legendary);
+    }
+
+    #[test]
+    fn when_all_axes_at_negative_max_then_rarity_is_legendary() {
+        // Arrange
+        let sig = CardSignature::new([-1.0; 8]);
+
+        // Act / Assert
+        assert_eq!(sig.rarity(), Rarity::Legendary);
+    }
+
+    #[test]
+    fn when_rarity_called_twice_then_result_is_identical() {
+        // Arrange
+        let sig = CardSignature::new([0.3, -0.7, 0.5, -0.1, 0.9, -0.2, 0.4, -0.8]);
+
+        // Act / Assert
+        assert_eq!(sig.rarity(), sig.rarity());
+    }
+
+    #[test]
+    fn when_more_extreme_signature_then_rarity_is_equal_or_higher() {
+        // Arrange
+        let low = CardSignature::new([0.1; 8]);
+        let mid = CardSignature::new([0.5; 8]);
+        let high = CardSignature::new([0.9; 8]);
+
+        // Assert
+        assert!((low.rarity() as u8) <= (mid.rarity() as u8));
+        assert!((mid.rarity() as u8) <= (high.rarity() as u8));
+    }
+
+    #[test]
+    fn when_moderate_extremity_then_rarity_is_between_common_and_legendary() {
+        // Arrange
+        let sig = CardSignature::new([0.4, -0.3, 0.2, -0.5, 0.1, -0.2, 0.3, -0.4]);
+
+        // Act / Assert
+        assert_ne!(sig.rarity(), Rarity::Legendary);
+        assert_ne!(sig.rarity(), Rarity::Common);
     }
 }

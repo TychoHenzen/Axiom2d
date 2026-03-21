@@ -13,10 +13,11 @@ mod tests {
     use glam::Vec2;
 
     use crate::card::definition::{
-        CardAbilities, CardDefinition, CardType, Rarity, art_descriptor_default,
+        CardAbilities, CardDefinition, CardType, art_descriptor_default,
     };
     use crate::card::drag_state::DragState;
     use crate::card::item_form::CardItemForm;
+    use crate::card::signature::CardSignature;
     use crate::card::spawn_table_card::spawn_visual_card;
     use crate::card::zone::CardZone;
     use crate::hand::cards::Hand;
@@ -67,7 +68,6 @@ mod tests {
         CardDefinition {
             name: "Test Card".to_owned(),
             card_type: CardType::Creature,
-            rarity: Rarity::Common,
             abilities: CardAbilities {
                 keywords: vec![],
                 text: String::new(),
@@ -123,7 +123,14 @@ mod tests {
 
         // Spawn card at world origin. With Camera2D at (0,0) zoom 1.0
         // and 800x600 viewport, screen center (400,300) maps to world (0,0).
-        let entity = spawn_visual_card(app.world_mut(), &def, Vec2::ZERO, card_size, false);
+        let entity = spawn_visual_card(
+            app.world_mut(),
+            &def,
+            Vec2::ZERO,
+            card_size,
+            false,
+            CardSignature::default(),
+        );
 
         // Frame 0: establish GlobalTransform2D and camera matrix.
         tick(&mut app);
@@ -172,6 +179,7 @@ mod tests {
             Vec2::ZERO,
             Vec2::new(60.0, 90.0),
             false,
+            CardSignature::default(),
         );
         tick(&mut app);
 
@@ -216,6 +224,7 @@ mod tests {
             Vec2::ZERO,
             Vec2::new(60.0, 90.0),
             false,
+            CardSignature::default(),
         );
 
         // Open stash before first frame.
@@ -275,6 +284,7 @@ mod tests {
             Vec2::ZERO,
             Vec2::new(60.0, 90.0),
             false,
+            CardSignature::default(),
         );
         app.world_mut().resource_mut::<StashVisible>().0 = true;
         tick(&mut app);
@@ -340,6 +350,7 @@ mod tests {
             Vec2::ZERO,
             Vec2::new(60.0, 90.0),
             false,
+            CardSignature::default(),
         );
         tick(&mut app);
 

@@ -1,5 +1,5 @@
 use crate::card::art_shader::register_card_art_shader;
-use crate::card::base_type::BaseCardTypeRegistry;
+use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
 use crate::card::camera_drag::{CameraDragState, camera_drag_system, camera_zoom_system};
 use crate::card::damping::card_damping_system;
 use crate::card::drag::card_drag_system;
@@ -50,7 +50,9 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(Hand::new(10));
         world.insert_resource(StashGrid::new(10, 10, 3));
         world.insert_resource(StashHoverPreview::default());
-        world.insert_resource(BaseCardTypeRegistry::new());
+        let mut registry = BaseCardTypeRegistry::new();
+        populate_default_types(&mut registry);
+        world.insert_resource(registry);
 
         world.insert_resource(ShapeRenderDisabled);
 
@@ -149,6 +151,20 @@ mod tests {
 
         // Assert
         assert!(app.world().get_resource::<PhysicsRes>().is_none());
+    }
+
+    #[test]
+    fn when_plugin_built_then_registry_has_default_base_types() {
+        // Arrange
+        let mut app = App::new();
+        app.world_mut().insert_resource(ShaderRegistry::default());
+
+        // Act
+        app.add_plugin(CardGamePlugin);
+
+        // Assert
+        let registry = app.world().get_resource::<BaseCardTypeRegistry>().unwrap();
+        assert!(!registry.is_empty());
     }
 
     #[test]

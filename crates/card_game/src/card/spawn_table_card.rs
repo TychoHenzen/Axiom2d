@@ -6,12 +6,15 @@ use engine_scene::prelude::{ChildOf, RenderLayer, SortOrder, Visible};
 use glam::Vec2;
 
 use crate::card::art_shader::CardArtShader;
+use crate::card::base_type::BaseCardTypeRegistry;
 use crate::card::component::Card;
 use crate::card::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card::definition::{CardDefinition, description_from_abilities, rarity_border_color};
 use crate::card::face_layout::FRONT_FACE_REGIONS;
 use crate::card::face_side::CardFaceSide;
 use crate::card::label::CardLabel;
+use crate::card::residual::ResidualStats;
+use crate::card::signature::CardSignature;
 use crate::card::zone::CardZone;
 use crate::stash::constants::{SLOT_HEIGHT, SLOT_WIDTH};
 use crate::stash::icon::StashIcon;
@@ -63,20 +66,22 @@ pub fn spawn_visual_card(
     position: Vec2,
     card_size: Vec2,
     face_up: bool,
+    signature: CardSignature,
 ) -> Entity {
     let half = card_size * 0.5;
 
+    let rarity = signature.rarity();
     let card = Card {
         face_texture: TextureId(0),
         back_texture: TextureId(0),
         face_up,
-        signature: None,
+        signature,
     };
     let label = CardLabel {
         name: def.name.clone(),
         description: description_from_abilities(&def.abilities),
     };
-    let border_color = rarity_border_color(def.rarity);
+    let border_color = rarity_border_color(rarity);
 
     let root = world
         .spawn((
@@ -102,6 +107,13 @@ pub fn spawn_visual_card(
         physics
             .set_damping(root, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG)
             .expect("freshly spawned card should have physics body");
+    }
+
+    if let Some(registry) = world.get_resource::<BaseCardTypeRegistry>() {
+        if let Some(base_type) = registry.best_match(&card.signature) {
+            let stats = ResidualStats::from_card(&card.signature, base_type);
+            world.entity_mut(root).insert(stats);
+        }
     }
 
     let art_shader = world.get_resource::<CardArtShader>().map(|s| s.0);
@@ -279,11 +291,11 @@ mod tests {
     };
     use crate::card::face_side::CardFaceSide;
     use crate::card::geometry::{TABLE_CARD_HEIGHT as CARD_HEIGHT, TABLE_CARD_WIDTH as CARD_WIDTH};
+    use crate::card::signature::CardSignature;
 
     fn make_test_def() -> CardDefinition {
         CardDefinition {
             card_type: CardType::Spell,
-            rarity: Rarity::Common,
             name: "Fireball".to_owned(),
             stats: None,
             abilities: CardAbilities {
@@ -294,13 +306,6 @@ mod tests {
         }
     }
 
-    fn make_test_def_with_rarity(rarity: Rarity) -> CardDefinition {
-        CardDefinition {
-            rarity,
-            ..make_test_def()
-        }
-    }
-
     fn spawn_def(world: &mut World, def: &CardDefinition) -> Entity {
         spawn_visual_card(
             world,
@@ -308,6 +313,7 @@ mod tests {
             Vec2::ZERO,
             Vec2::new(CARD_WIDTH, CARD_HEIGHT),
             false,
+            CardSignature::default(),
         )
     }
 
@@ -318,6 +324,7 @@ mod tests {
             Vec2::ZERO,
             Vec2::new(CARD_WIDTH, CARD_HEIGHT),
             true,
+            CardSignature::default(),
         )
     }
 
@@ -440,10 +447,10 @@ mod tests {
     }
 
     #[test]
-    fn when_spawn_common_rarity_then_border_color_matches_rarity() {
-        // Arrange
+    fn when_spawn_with_default_signature_then_border_color_matches_common_rarity() {
+        // Arrange — default signature (all zeros) → determine_rarity → Common
         let mut world = World::new();
-        let def = make_test_def_with_rarity(Rarity::Common);
+        let def = make_test_def();
 
         // Act
         let root = spawn_def(&mut world, &def);
@@ -455,13 +462,21 @@ mod tests {
     }
 
     #[test]
-    fn when_spawn_legendary_rarity_then_border_color_is_golden_not_white() {
-        // Arrange
+    fn when_spawn_with_legendary_signature_then_border_color_is_golden_not_white() {
+        // Arrange — all-ones signature → Legendary rarity
         let mut world = World::new();
-        let def = make_test_def_with_rarity(Rarity::Legendary);
+        let def = make_test_def();
+        let signature = CardSignature::new([1.0; 8]);
 
         // Act
-        let root = spawn_def(&mut world, &def);
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            false,
+            signature,
+        );
 
         // Assert
         let border =
@@ -571,7 +586,14 @@ mod tests {
         let card_size = Vec2::new(100.0, 200.0);
 
         // Act
-        let root = spawn_visual_card(&mut world, &def, Vec2::ZERO, card_size, false);
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            card_size,
+            false,
+            CardSignature::default(),
+        );
 
         // Assert
         let collider = world.get::<Collider>(root).unwrap();
@@ -729,5 +751,148 @@ mod tests {
         let texts = text_children_for_side(&mut world, root, CardFaceSide::Front);
         assert_eq!(texts.len(), 2);
         assert!(texts.iter().all(|(_, _, vis)| !vis.0));
+    }
+
+    #[test]
+    fn when_spawn_visual_card_with_signature_then_card_stores_it() {
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+        let signature = CardSignature::new([0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            false,
+            signature,
+        );
+
+        // Assert
+        let card = world.get::<Card>(root).expect("root should have Card");
+        assert_eq!(card.signature, signature);
+    }
+
+    #[test]
+    fn when_spawn_with_matching_base_type_then_entity_has_residual_stats() {
+        use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
+        use crate::card::residual::ResidualStats;
+
+        // Arrange — signature near the Weapon archetype [0.8, 0.3, ...]
+        let mut world = World::new();
+        let mut registry = BaseCardTypeRegistry::new();
+        populate_default_types(&mut registry);
+        world.insert_resource(registry);
+        let def = make_test_def();
+        let signature = CardSignature::new([0.7, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            false,
+            signature,
+        );
+
+        // Assert
+        assert!(
+            world.get::<ResidualStats>(root).is_some(),
+            "card matching a base type should have ResidualStats component"
+        );
+    }
+
+    #[test]
+    fn when_spawn_with_no_matching_base_type_then_no_residual_stats() {
+        use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
+        use crate::card::residual::ResidualStats;
+
+        // Arrange — empty registry guarantees no match
+        let mut world = World::new();
+        world.insert_resource(BaseCardTypeRegistry::new());
+        let def = make_test_def();
+        let signature = CardSignature::new([0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            false,
+            signature,
+        );
+
+        // Assert
+        assert!(
+            world.get::<ResidualStats>(root).is_none(),
+            "card not matching any base type should not have ResidualStats"
+        );
+    }
+
+    #[test]
+    fn when_spawn_with_matching_base_type_then_residual_stats_values_match_computation() {
+        use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
+        use crate::card::residual::ResidualStats;
+
+        // Arrange — signature near Weapon archetype
+        let mut world = World::new();
+        let mut registry = BaseCardTypeRegistry::new();
+        populate_default_types(&mut registry);
+        let signature = CardSignature::new([0.7, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        let expected = {
+            let base = registry
+                .best_match(&signature)
+                .expect("should match Weapon");
+            ResidualStats::from_card(&signature, base)
+        };
+        world.insert_resource(registry);
+        let def = make_test_def();
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            false,
+            signature,
+        );
+
+        // Assert
+        let stats = world
+            .get::<ResidualStats>(root)
+            .expect("should have ResidualStats");
+        assert_eq!(*stats, expected);
+    }
+
+    #[test]
+    fn when_signature_provided_then_border_color_matches_signature_rarity() {
+        // Arrange — all-ones signature → Legendary rarity
+        let mut world = World::new();
+        let def = make_test_def();
+        let signature = CardSignature::new([1.0; 8]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            false,
+            signature,
+        );
+
+        // Assert
+        let border =
+            border_shape_for_side(&mut world, root, CardFaceSide::Front).expect("front border");
+        assert_eq!(
+            border.color,
+            rarity_border_color(signature.rarity()),
+            "border color should match signature-derived rarity"
+        );
     }
 }

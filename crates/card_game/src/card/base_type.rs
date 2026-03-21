@@ -1,8 +1,8 @@
 use bevy_ecs::prelude::Resource;
 use serde::{Deserialize, Serialize};
 
-use super::residual::ResidualModifier;
-use super::signature::CardSignature;
+use super::residual::{ModifierType, ResidualModifier};
+use super::signature::{CardSignature, Element};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CardCategory {
@@ -36,14 +36,24 @@ pub struct BaseCardTypeRegistry {
     types: Vec<BaseCardType>,
 }
 
+impl Default for BaseCardTypeRegistry {
+    fn default() -> Self {
+        Self { types: Vec::new() }
+    }
+}
+
 impl BaseCardTypeRegistry {
     #[must_use]
     pub fn new() -> Self {
-        Self { types: Vec::new() }
+        Self::default()
     }
 
     pub fn register(&mut self, base_type: BaseCardType) {
         self.types.push(base_type);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.types.is_empty()
     }
 
     #[must_use]
@@ -57,6 +67,109 @@ impl BaseCardTypeRegistry {
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .map(|(bt, _)| bt)
     }
+}
+
+pub fn populate_default_types(registry: &mut BaseCardTypeRegistry) {
+    registry.register(BaseCardType {
+        name: "Weapon".to_string(),
+        base_signature: CardSignature::new([0.8, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        match_radius: 1.5,
+        category: CardCategory::Equipment,
+        modifiers: vec![
+            ResidualModifier {
+                source_element: Element::Solidum,
+                modifier_type: ModifierType::Power,
+                intensity: 2.0,
+                use_positive: true,
+            },
+            ResidualModifier {
+                source_element: Element::Febris,
+                modifier_type: ModifierType::Speed,
+                intensity: 1.0,
+                use_positive: true,
+            },
+        ],
+    });
+    registry.register(BaseCardType {
+        name: "Spell".to_string(),
+        base_signature: CardSignature::new([0.0, 0.8, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0]),
+        match_radius: 1.5,
+        category: CardCategory::Skill,
+        modifiers: vec![
+            ResidualModifier {
+                source_element: Element::Febris,
+                modifier_type: ModifierType::Power,
+                intensity: 1.5,
+                use_positive: true,
+            },
+            ResidualModifier {
+                source_element: Element::Lumines,
+                modifier_type: ModifierType::Range,
+                intensity: 1.0,
+                use_positive: true,
+            },
+        ],
+    });
+    registry.register(BaseCardType {
+        name: "Shield".to_string(),
+        base_signature: CardSignature::new([0.8, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        match_radius: 1.5,
+        category: CardCategory::Equipment,
+        modifiers: vec![
+            ResidualModifier {
+                source_element: Element::Solidum,
+                modifier_type: ModifierType::Defense,
+                intensity: 2.0,
+                use_positive: true,
+            },
+            ResidualModifier {
+                source_element: Element::Ordinem,
+                modifier_type: ModifierType::Duration,
+                intensity: 1.0,
+                use_positive: true,
+            },
+        ],
+    });
+    registry.register(BaseCardType {
+        name: "Healer".to_string(),
+        base_signature: CardSignature::new([0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.8, 0.0]),
+        match_radius: 1.5,
+        category: CardCategory::Skill,
+        modifiers: vec![
+            ResidualModifier {
+                source_element: Element::Subsidium,
+                modifier_type: ModifierType::Healing,
+                intensity: 2.0,
+                use_positive: true,
+            },
+            ResidualModifier {
+                source_element: Element::Lumines,
+                modifier_type: ModifierType::Duration,
+                intensity: 1.0,
+                use_positive: true,
+            },
+        ],
+    });
+    registry.register(BaseCardType {
+        name: "Scout".to_string(),
+        base_signature: CardSignature::new([0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.8]),
+        match_radius: 2.0,
+        category: CardCategory::Playstyle,
+        modifiers: vec![
+            ResidualModifier {
+                source_element: Element::Spatium,
+                modifier_type: ModifierType::Speed,
+                intensity: 1.5,
+                use_positive: true,
+            },
+            ResidualModifier {
+                source_element: Element::Inertiae,
+                modifier_type: ModifierType::Range,
+                intensity: 1.0,
+                use_positive: true,
+            },
+        ],
+    });
 }
 
 #[cfg(test)]
@@ -342,6 +455,28 @@ mod tests {
 
         // Assert
         assert_eq!(result.expect("should match").name, "Near");
+    }
+
+    #[test]
+    fn when_registry_populated_with_defaults_then_five_archetypes_findable() {
+        // Arrange
+        let mut registry = BaseCardTypeRegistry::new();
+
+        // Act
+        populate_default_types(&mut registry);
+
+        // Assert — each archetype's exact base signature should match itself
+        let weapon_sig = CardSignature::new([0.8, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        let spell_sig = CardSignature::new([0.0, 0.8, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0]);
+        let shield_sig = CardSignature::new([0.8, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        let healer_sig = CardSignature::new([0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.8, 0.0]);
+        let scout_sig = CardSignature::new([0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.8]);
+
+        assert_eq!(registry.best_match(&weapon_sig).unwrap().name, "Weapon");
+        assert_eq!(registry.best_match(&spell_sig).unwrap().name, "Spell");
+        assert_eq!(registry.best_match(&shield_sig).unwrap().name, "Shield");
+        assert_eq!(registry.best_match(&healer_sig).unwrap().name, "Healer");
+        assert_eq!(registry.best_match(&scout_sig).unwrap().name, "Scout");
     }
 
     #[test]

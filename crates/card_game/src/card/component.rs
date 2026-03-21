@@ -9,7 +9,7 @@ pub struct Card {
     pub face_texture: TextureId,
     pub back_texture: TextureId,
     pub face_up: bool,
-    pub signature: Option<CardSignature>,
+    pub signature: CardSignature,
 }
 
 impl Card {
@@ -18,7 +18,7 @@ impl Card {
             face_texture,
             back_texture,
             face_up: false,
-            signature: None,
+            signature: CardSignature::default(),
         }
     }
 }
@@ -29,7 +29,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn when_card_face_down_then_signature_is_none() {
+    fn when_card_face_down_then_signature_is_all_zeros() {
         // Arrange
         let face = TextureId(1);
         let back = TextureId(2);
@@ -38,7 +38,7 @@ mod tests {
         let card = Card::face_down(face, back);
 
         // Assert
-        assert!(card.signature.is_none());
+        assert_eq!(card.signature, CardSignature::default());
     }
 
     #[test]
