@@ -109,11 +109,11 @@ pub fn spawn_visual_card(
             .expect("freshly spawned card should have physics body");
     }
 
-    if let Some(registry) = world.get_resource::<BaseCardTypeRegistry>() {
-        if let Some(base_type) = registry.best_match(&card.signature) {
-            let stats = ResidualStats::from_card(&card.signature, base_type);
-            world.entity_mut(root).insert(stats);
-        }
+    if let Some(registry) = world.get_resource::<BaseCardTypeRegistry>()
+        && let Some(base_type) = registry.best_match(&card.signature)
+    {
+        let stats = ResidualStats::from_card(&card.signature, base_type);
+        world.entity_mut(root).insert(stats);
     }
 
     let art_shader = world.get_resource::<CardArtShader>().map(|s| s.0);
@@ -807,7 +807,7 @@ mod tests {
 
     #[test]
     fn when_spawn_with_no_matching_base_type_then_no_residual_stats() {
-        use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
+        use crate::card::base_type::BaseCardTypeRegistry;
         use crate::card::residual::ResidualStats;
 
         // Arrange — empty registry guarantees no match

@@ -31,15 +31,9 @@ impl BaseCardType {
     }
 }
 
-#[derive(Resource, Debug, Clone)]
+#[derive(Resource, Debug, Clone, Default)]
 pub struct BaseCardTypeRegistry {
     types: Vec<BaseCardType>,
-}
-
-impl Default for BaseCardTypeRegistry {
-    fn default() -> Self {
-        Self { types: Vec::new() }
-    }
 }
 
 impl BaseCardTypeRegistry {
