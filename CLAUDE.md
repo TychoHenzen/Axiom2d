@@ -4,29 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Axiom2d is an LLM-optimized 2D game engine written in Rust. The engine scaffolding is complete (12 engine crates + `axiom2d` facade + `demo`, 1100+ tests). A card game is being built on top (`card_game` + `card_game_bin` crates). The full architectural vision is documented in `Doc/Axiom_Blueprint.md`. The engine implementation roadmap lives in `Doc/Implementation_Roadmap.md`. Known technical debt is tracked in `Doc/Technical_Debt_Audit.md`.
+Axiom2d is an LLM-optimized 2D game engine written in Rust. The engine is complete (10 engine crates + `axiom2d` facade + `demo`, 1230+ tests). A physics-based card game has been built on top (`card_game` + `card_game_bin` crates, 330+ tests). The full architectural vision is documented in `Doc/Axiom_Blueprint.md`. Completed implementation milestones are in `Doc/Completed_Milestones.md`. Known technical debt is tracked in `Doc/Technical_Debt_Audit.md`. Design principles are codified in `Doc/architecture_bible.md`.
 
 ## Current Focus: Card Game
 
-We are now building the first real game on the engine — a card game with physics-based card manipulation. The implementation plan lives in `Doc/Card_Game_Roadmap.md`.
+The card game's core implementation (Phases A–H2) is **complete** — physics drag-and-drop, flip animation, hand inventory, stash grid with pages/hover preview, camera drag, visual feedback, and the `CardGamePlugin` are all done.
 
-**Before starting work**, read `Doc/Card_Game_Roadmap.md` to understand what's been done, what's next, and the dependency order between phases.
+**Next steps** are tracked in `Doc/CardCleaner_Ideas_Roadmap.md` — feature ideas mined from a reference project (card identity system, base card types, residual energy stats, emergent rarity, etc.). Engine-level technical debt is tracked in `Doc/Technical_Debt_Audit.md`.
 
-### Working on a step
+### Working on new features
 
-1. Pick the next `[NOT STARTED]` step that has all dependencies satisfied (check the dependency graph at the bottom of the roadmap).
-2. Mark the step `[IN PROGRESS]` in `Doc/Card_Game_Roadmap.md` before writing code.
-3. Implement with tests (follow the Testing Strategy below). Each checkbox in the step is a deliverable — check it off as you complete it.
-4. Run `cargo.exe test` and `cargo.exe build` to verify everything passes.
-5. Mark the step `[DONE]` when all checkboxes are checked and tests pass.
-
-### After completing a step
-
-1. Update `Doc/Card_Game_Roadmap.md`: mark `[DONE]`, check all boxes.
-2. **Wire new systems into `card_game_bin/src/main.rs`**. Every new ECS system must be registered in the `setup()` function with the correct `Phase` and ordering constraints (`.after()`, `.chain()`). A system that only exists in the library crate with tests but is never added to a schedule in the binary **does not exist in the game**. Always verify with `cargo.exe build -p card_game_bin`.
-3. Update the memory file if new public types/traits/systems were added.
-4. Run `cargo.exe fmt --all`.
-5. If new workspace dependencies were added, mention them in the Development Environment section.
+1. **Wire new systems into `card_game_bin/src/main.rs`**. Every new ECS system must be registered in the `setup()` function with the correct `Phase` and ordering constraints (`.after()`, `.chain()`). A system that only exists in the library crate with tests but is never added to a schedule in the binary **does not exist in the game**. Always verify with `cargo.exe build -p card_game_bin`.
+2. Update the memory file if new public types/traits/systems were added.
+3. Run `cargo.exe fmt --all`.
+4. If new workspace dependencies were added, mention them in the Development Environment section.
 
 ### Before committing
 
@@ -34,7 +25,7 @@ Run `cargo.exe clean` before committing. Incremental compilation artifacts bloat
 
 ### Engine changes
 
-Card game work may require engine extensions (Phase A in the roadmap). When modifying engine crates (e.g. `engine_physics`), also update `Doc/Implementation_Roadmap.md` if relevant and keep the engine's test suite passing.
+When modifying engine crates (e.g. `engine_physics`), keep the engine's test suite passing.
 
 ## Development Environment
 
@@ -52,7 +43,7 @@ cargo.exe fmt --all          # Format all crates
 
 Always use `cargo.exe` (not `cargo`) since the Rust toolchain is Windows-only. The same applies to `rustc.exe`, `rustfmt.exe`, etc.
 
-The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors), `winit` (windowing), `wgpu` (GPU rendering), `pollster` (async blocking), `bytemuck` (safe type casting for GPU buffers), `bevy_ecs` (standalone ECS), `guillotiere` (2D texture atlas rect packing), `image` (PNG decoding for embedded assets), `lyon` (2D vector path tessellation), `fundsp` (audio DSP graph synthesis), `rapier2d` (2D physics engine), `proptest` (property-based testing, dev-dep across 7 crates), `insta` (snapshot testing with RON feature, dev-dep across 3 crates), `image-compare` (SSIM visual regression comparison, optional dep in engine_render behind `testing` feature + dev-dep), `ttf-parser` (TTF font outline parsing for vector text rendering).
+The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors), `winit` (windowing), `wgpu` (GPU rendering), `pollster` (async blocking), `bytemuck` (safe type casting for GPU buffers), `bevy_ecs` (standalone ECS), `guillotiere` (2D texture atlas rect packing), `image` (PNG decoding for embedded assets), `lyon` (2D vector path tessellation), `fundsp` (audio DSP graph synthesis), `rapier2d` (2D physics engine), `proptest` (property-based testing, dev-dep across 7 crates), `insta` (snapshot testing with RON feature, dev-dep across 3 crates), `image-compare` (SSIM visual regression comparison, optional dep in engine_render behind `testing` feature + dev-dep), `ttf-parser` (TTF font outline parsing for vector text rendering), `rand` + `rand_chacha` (seeded RNG for card signature generation).
 
 ### WSL/Windows Gotchas
 
@@ -90,6 +81,8 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 ### Render Pipeline
 
 `Clear → Atlas Upload → Camera Prepare → Splash Camera → Sprite Pass → Shape Pass → Post-Process → Present`
+
+**Do NOT create separate render passes for different draw types** (e.g., a separate text pass). Draw types that need to participate in the same `(RenderLayer, SortOrder)` ordering must be interleaved in a single sorted pass. The card game uses `unified_render_system` (in `engine_ui`) which draws shapes and text together in sort order, preventing text from rendering on top of shapes that should occlude it. Vector text rendering uses `ttf-parser` + lyon tessellation through the existing shape pipeline — no separate GPU pipeline needed.
 
 ## API Design Conventions
 

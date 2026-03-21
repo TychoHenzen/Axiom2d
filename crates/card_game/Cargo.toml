@@ -16,6 +16,8 @@ engine_physics = { path = "../engine_physics" }
 engine_scene = { path = "../engine_scene" }
 engine_ui = { path = "../engine_ui" }
 glam = { workspace = true }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
 serde = { workspace = true }
 
 [dev-dependencies]

@@ -70,6 +70,7 @@ pub fn spawn_visual_card(
         face_texture: TextureId(0),
         back_texture: TextureId(0),
         face_up,
+        signature: None,
     };
     let label = CardLabel {
         name: def.name.clone(),

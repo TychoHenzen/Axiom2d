@@ -73,6 +73,7 @@ mod tests {
                 face_texture: TextureId(1),
                 back_texture: TextureId(2),
                 face_up,
+                signature: None,
             })
             .id();
 
