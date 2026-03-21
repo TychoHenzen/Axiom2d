@@ -1050,7 +1050,7 @@ mod tests {
             Vec2::ZERO,
             Vec2::new(CARD_WIDTH, CARD_HEIGHT),
             true,
-            sig.clone(),
+            sig,
         );
         let root_b = spawn_visual_card(
             &mut world_b,
@@ -1125,7 +1125,7 @@ mod tests {
         // Assert — all gems: Front face, not visible (face_down), World layer, sort 7–14
         let gems = gem_circle_children(&mut world, root);
         let mut sorts: Vec<i32> = gems.iter().map(|(_, sort, _, _, _)| sort.0).collect();
-        sorts.sort();
+        sorts.sort_unstable();
         assert_eq!(sorts, vec![7, 8, 9, 10, 11, 12, 13, 14]);
         for (_, _, vis, side, layer) in &gems {
             assert_eq!(*side, CardFaceSide::Front);
@@ -1288,7 +1288,7 @@ mod tests {
             Vec2::ZERO,
             Vec2::new(CARD_WIDTH, CARD_HEIGHT),
             true,
-            sig.clone(),
+            sig,
         );
         let root_b = spawn_visual_card(
             &mut world_b,
