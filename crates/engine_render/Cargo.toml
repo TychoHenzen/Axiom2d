@@ -16,6 +16,7 @@ engine_scene = { path = "../engine_scene" }
 glam = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }
 bytemuck = { workspace = true }
 guillotiere = { workspace = true }
 image = { workspace = true }

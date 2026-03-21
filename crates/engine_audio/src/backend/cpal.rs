@@ -43,30 +43,49 @@ impl CpalBackend {
 
     fn open_stream(state: Arc<Mutex<SharedState>>) -> Option<cpal::Stream> {
         let host = cpal::default_host();
-        let device = host.default_output_device()?;
+        let device = match host.default_output_device() {
+            Some(d) => d,
+            None => {
+                tracing::warn!("no audio output device found — audio will be silent");
+                return None;
+            }
+        };
         let config = device.default_output_config().ok()?;
         let sample_format = config.sample_format();
+        let sample_rate = config.sample_rate().0;
         let config: cpal::StreamConfig = config.into();
 
         let stream = match sample_format {
-            cpal::SampleFormat::F32 => device
-                .build_output_stream(
-                    &config,
-                    move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                        let mut state = state
-                            .lock()
-                            .unwrap_or_else(std::sync::PoisonError::into_inner);
-                        mix_into(data, &mut state);
-                    },
-                    |err| eprintln!("audio stream error: {err}"),
-                    None,
-                )
-                .ok()?,
+            cpal::SampleFormat::F32 => match device.build_output_stream(
+                &config,
+                move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                    let mut state = state
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
+                    mix_into(data, &mut state);
+                },
+                |err| tracing::error!("audio stream error: {err}"),
+                None,
+            ) {
+                Ok(s) => s,
+                Err(err) => {
+                    tracing::warn!("failed to build audio stream: {err}");
+                    return None;
+                }
+            },
             _ => return None,
         };
 
-        stream.play().ok()?;
-        Some(stream)
+        match stream.play() {
+            Ok(()) => {
+                tracing::info!(sample_rate, "audio stream opened");
+                Some(stream)
+            }
+            Err(err) => {
+                tracing::warn!("failed to start audio stream: {err}");
+                None
+            }
+        }
     }
 
     #[cfg(test)]

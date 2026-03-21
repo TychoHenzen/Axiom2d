@@ -10,3 +10,4 @@ workspace = true
 axiom2d = { path = "../axiom2d" }
 card_game = { path = "../card_game" }
 glam = { workspace = true }
+tracing-subscriber = { workspace = true }

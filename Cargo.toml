@@ -27,6 +27,8 @@ image-compare = "0.4"
 insta = { version = "1", features = ["ron"] }
 ron = "0.9"
 serde = { version = "1", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 ttf-parser = "0.25"
 
 [workspace.lints.clippy]

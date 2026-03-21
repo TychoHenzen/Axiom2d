@@ -412,7 +412,7 @@ impl Renderer for WgpuRenderer {
                 panic!("GPU out of memory");
             }
             Err(e) => {
-                eprintln!("surface error: {e}");
+                tracing::error!("surface error: {e}");
                 return;
             }
         };

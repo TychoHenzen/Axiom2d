@@ -115,10 +115,10 @@ impl PhysicsBackend for RapierBackend {
     }
 
     fn remove_body(&mut self, entity: Entity) -> Result<(), PhysicsError> {
-        let handle = self
-            .entity_to_handle
-            .remove(&entity)
-            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        let Some(handle) = self.entity_to_handle.remove(&entity) else {
+            tracing::warn!(?entity, "remove_body: entity not found in physics world");
+            return Err(PhysicsError::EntityNotFound(entity));
+        };
         self.bodies.remove(
             handle,
             &mut self.island_manager,
@@ -151,10 +151,10 @@ impl PhysicsBackend for RapierBackend {
     }
 
     fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2) -> Result<(), PhysicsError> {
-        let &handle = self
-            .entity_to_handle
-            .get(&entity)
-            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        let &handle = self.entity_to_handle.get(&entity).ok_or_else(|| {
+            tracing::warn!(?entity, "set_linear_velocity: entity not found");
+            PhysicsError::EntityNotFound(entity)
+        })?;
         let body = self
             .bodies
             .get_mut(handle)
@@ -168,10 +168,10 @@ impl PhysicsBackend for RapierBackend {
         entity: Entity,
         angular_velocity: f32,
     ) -> Result<(), PhysicsError> {
-        let &handle = self
-            .entity_to_handle
-            .get(&entity)
-            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        let &handle = self.entity_to_handle.get(&entity).ok_or_else(|| {
+            tracing::warn!(?entity, "set_angular_velocity: entity not found");
+            PhysicsError::EntityNotFound(entity)
+        })?;
         let body = self
             .bodies
             .get_mut(handle)
@@ -192,10 +192,10 @@ impl PhysicsBackend for RapierBackend {
         force: Vec2,
         world_point: Vec2,
     ) -> Result<(), PhysicsError> {
-        let &handle = self
-            .entity_to_handle
-            .get(&entity)
-            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        let &handle = self.entity_to_handle.get(&entity).ok_or_else(|| {
+            tracing::warn!(?entity, "add_force_at_point: entity not found");
+            PhysicsError::EntityNotFound(entity)
+        })?;
         let body = self
             .bodies
             .get_mut(handle)
@@ -214,10 +214,10 @@ impl PhysicsBackend for RapierBackend {
         linear: f32,
         angular: f32,
     ) -> Result<(), PhysicsError> {
-        let &handle = self
-            .entity_to_handle
-            .get(&entity)
-            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        let &handle = self.entity_to_handle.get(&entity).ok_or_else(|| {
+            tracing::warn!(?entity, "set_damping: entity not found");
+            PhysicsError::EntityNotFound(entity)
+        })?;
         let body = self
             .bodies
             .get_mut(handle)
@@ -233,10 +233,10 @@ impl PhysicsBackend for RapierBackend {
         membership: u32,
         filter: u32,
     ) -> Result<(), PhysicsError> {
-        let &handle = self
-            .entity_to_handle
-            .get(&entity)
-            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        let &handle = self.entity_to_handle.get(&entity).ok_or_else(|| {
+            tracing::warn!(?entity, "set_collision_group: entity not found");
+            PhysicsError::EntityNotFound(entity)
+        })?;
         let groups = InteractionGroups::new(
             Group::from_bits_truncate(membership),
             Group::from_bits_truncate(filter),
