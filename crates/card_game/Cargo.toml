@@ -26,3 +26,4 @@ engine_render = { path = "../engine_render", features = ["testing"] }
 naga = { workspace = true }
 proptest = { workspace = true }
 ron = { workspace = true }
+serde_json = { workspace = true }

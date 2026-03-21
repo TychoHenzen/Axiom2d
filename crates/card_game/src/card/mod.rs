@@ -12,6 +12,7 @@ pub mod face_side;
 pub mod flip;
 pub mod flip_animation;
 pub mod game_state_param;
+pub mod gem_sockets;
 pub mod geometry;
 pub mod item_form;
 pub mod label;
@@ -22,6 +23,7 @@ pub mod render_layer;
 pub mod residual;
 pub mod signature;
 pub mod spawn_table_card;
+pub mod visual_params;
 pub mod zone;
 pub mod zone_config;
 

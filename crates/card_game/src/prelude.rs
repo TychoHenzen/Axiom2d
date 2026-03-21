@@ -12,6 +12,9 @@ pub use crate::card::drag::card_drag_system;
 pub use crate::card::drag_state::DragState;
 pub use crate::card::flip::card_flip_system;
 pub use crate::card::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
+pub use crate::card::gem_sockets::{
+    MAX_GEM_RADIUS, MIN_GEM_RADIUS, aspect_color, gem_border_positions, gem_radius,
+};
 pub use crate::card::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
 pub use crate::card::item_form::card_item_form_visibility_system;
 pub use crate::card::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP, card_pick_system};
@@ -20,6 +23,7 @@ pub use crate::card::render_layer::card_render_layer_system;
 pub use crate::card::residual::{ModifierType, ResidualModifier, ResidualStats};
 pub use crate::card::signature::{Aspect, CardSignature, Element};
 pub use crate::card::spawn_table_card::spawn_visual_card;
+pub use crate::card::visual_params::{CardVisualParams, PATTERN_COUNT, generate_card_visuals};
 pub use crate::hand::Hand;
 pub use crate::hand::layout::hand_layout_system;
 pub use crate::stash::boundary::stash_boundary_system;

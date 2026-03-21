@@ -12,9 +12,12 @@ use crate::card::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card::definition::{CardDefinition, description_from_abilities, rarity_border_color};
 use crate::card::face_layout::FRONT_FACE_REGIONS;
 use crate::card::face_side::CardFaceSide;
+use crate::card::gem_sockets::{aspect_color, gem_border_positions, gem_radius};
 use crate::card::label::CardLabel;
 use crate::card::residual::ResidualStats;
 use crate::card::signature::CardSignature;
+use crate::card::signature::Element;
+use crate::card::visual_params::generate_card_visuals;
 use crate::card::zone::CardZone;
 use crate::stash::constants::{SLOT_HEIGHT, SLOT_WIDTH};
 use crate::stash::icon::StashIcon;
@@ -116,10 +119,20 @@ pub fn spawn_visual_card(
         world.entity_mut(root).insert(stats);
     }
 
+    let visual_params = generate_card_visuals(&card.signature);
     let art_shader = world.get_resource::<CardArtShader>().map(|s| s.0);
-    spawn_front_face_children(world, root, card_size, face_up, art_shader, border_color);
+    spawn_front_face_children(
+        world,
+        root,
+        card_size,
+        face_up,
+        art_shader,
+        border_color,
+        visual_params.art_color,
+    );
     spawn_back_face_children(world, root, card_size, face_up);
     spawn_text_children(world, root, card_size, face_up, &label);
+    spawn_gem_children(world, root, card_size, face_up, &card.signature);
 
     let icon = world
         .spawn((
@@ -157,6 +170,7 @@ fn spawn_front_face_children(
     face_up: bool,
     art_shader: Option<ShaderHandle>,
     border_color: Color,
+    art_color: Color,
 ) {
     let (w, h) = (card_size.x, card_size.y);
     for (i, region) in FRONT_FACE_REGIONS.iter().enumerate() {
@@ -166,7 +180,11 @@ fn spawn_front_face_children(
         } else {
             None
         };
-        let color = if i == 0 { border_color } else { region.color };
+        let color = match i {
+            0 => border_color,
+            2 => art_color,
+            _ => region.color,
+        };
         spawn_face_child(
             world,
             root,
@@ -274,6 +292,55 @@ fn spawn_back_face_children(world: &mut World, root: Entity, card_size: Vec2, fa
     ];
     for def in &children {
         spawn_face_child(world, root, def);
+    }
+}
+
+const GEM_BASE_SORT: i32 = 7;
+
+fn spawn_gem_children(
+    world: &mut World,
+    root: Entity,
+    card_size: Vec2,
+    face_up: bool,
+    signature: &CardSignature,
+) {
+    use engine_render::prelude::ShapeVariant;
+
+    let positions = gem_border_positions(card_size);
+    let elements = [
+        Element::Solidum,
+        Element::Febris,
+        Element::Ordinem,
+        Element::Lumines,
+        Element::Varias,
+        Element::Inertiae,
+        Element::Subsidium,
+        Element::Spatium,
+    ];
+
+    for (i, element) in elements.iter().enumerate() {
+        let intensity = signature.intensity(*element);
+        let aspect = signature.dominant_aspect(*element);
+        let color = aspect_color(aspect);
+        let radius = gem_radius(intensity);
+
+        world.spawn((
+            ChildOf(root),
+            CardFaceSide::Front,
+            Visible(face_up),
+            Shape {
+                variant: ShapeVariant::Circle { radius },
+                color,
+            },
+            Transform2D {
+                position: positions[i],
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            RenderLayer::World,
+            LocalSortOrder(GEM_BASE_SORT + i as i32),
+            SortOrder(0),
+        ));
     }
 }
 
@@ -894,5 +961,355 @@ mod tests {
             rarity_border_color(signature.rarity()),
             "border color should match signature-derived rarity"
         );
+    }
+
+    fn art_area_shape(world: &mut World, root: Entity) -> Option<engine_render::prelude::Shape> {
+        let mut q = world.query::<(
+            &ChildOf,
+            &CardFaceSide,
+            &engine_render::prelude::Shape,
+            &LocalSortOrder,
+        )>();
+        q.iter(world)
+            .find(|(parent, side, _, sort)| {
+                parent.0 == root && **side == CardFaceSide::Front && sort.0 == 3
+            })
+            .map(|(_, _, shape, _)| shape.clone())
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_art_area_color_matches_generated_visuals() {
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+        let signature = CardSignature::new([0.3, -0.7, 0.1, 0.9, -0.5, 0.2, -0.8, 0.6]);
+        let expected = crate::card::visual_params::generate_card_visuals(&signature);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            signature,
+        );
+
+        // Assert
+        let art = art_area_shape(&mut world, root).expect("front art area child");
+        assert_eq!(art.color, expected.art_color);
+    }
+
+    #[test]
+    fn when_spawn_two_cards_with_different_signatures_then_art_area_colors_differ() {
+        // Arrange
+        let def = make_test_def();
+        let sig_a = CardSignature::new([0.0; 8]);
+        let sig_b = CardSignature::new([1.0; 8]);
+
+        let mut world_a = World::new();
+        let mut world_b = World::new();
+
+        // Act
+        let root_a = spawn_visual_card(
+            &mut world_a,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            sig_a,
+        );
+        let root_b = spawn_visual_card(
+            &mut world_b,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            sig_b,
+        );
+
+        // Assert
+        let art_a = art_area_shape(&mut world_a, root_a).expect("art area A");
+        let art_b = art_area_shape(&mut world_b, root_b).expect("art area B");
+        assert_ne!(art_a.color, art_b.color);
+    }
+
+    #[test]
+    fn when_spawn_two_cards_with_identical_signatures_then_art_area_colors_are_identical() {
+        // Arrange
+        let def = make_test_def();
+        let sig = CardSignature::new([0.4, -0.6, 0.2, 0.8, -0.3, 0.1, -0.7, 0.5]);
+
+        let mut world_a = World::new();
+        let mut world_b = World::new();
+
+        // Act
+        let root_a = spawn_visual_card(
+            &mut world_a,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            sig.clone(),
+        );
+        let root_b = spawn_visual_card(
+            &mut world_b,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            sig,
+        );
+
+        // Assert
+        let art_a = art_area_shape(&mut world_a, root_a).expect("art area A");
+        let art_b = art_area_shape(&mut world_b, root_b).expect("art area B");
+        assert_eq!(art_a.color, art_b.color);
+    }
+
+    // --- Gem socket integration tests ---
+
+    fn gem_circle_children(
+        world: &mut World,
+        root: Entity,
+    ) -> Vec<(
+        engine_render::prelude::Shape,
+        LocalSortOrder,
+        Visible,
+        CardFaceSide,
+        RenderLayer,
+    )> {
+        let mut q = world.query::<(
+            &ChildOf,
+            &engine_render::prelude::Shape,
+            &LocalSortOrder,
+            &Visible,
+            &CardFaceSide,
+            &RenderLayer,
+        )>();
+        q.iter(world)
+            .filter(|(parent, shape, _, _, _, _)| {
+                parent.0 == root
+                    && matches!(
+                        shape.variant,
+                        engine_render::prelude::ShapeVariant::Circle { .. }
+                    )
+            })
+            .map(|(_, shape, sort, vis, side, layer)| (shape.clone(), *sort, *vis, *side, *layer))
+            .collect()
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_exactly_8_gem_circle_children_exist() {
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+
+        // Act
+        let root = spawn_def(&mut world, &def);
+
+        // Assert
+        let gems = gem_circle_children(&mut world, root);
+        assert_eq!(gems.len(), 8, "expected 8 gem circles, got {}", gems.len());
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_gems_have_correct_components() {
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+
+        // Act
+        let root = spawn_def(&mut world, &def);
+
+        // Assert — all gems: Front face, not visible (face_down), World layer, sort 7–14
+        let gems = gem_circle_children(&mut world, root);
+        let mut sorts: Vec<i32> = gems.iter().map(|(_, sort, _, _, _)| sort.0).collect();
+        sorts.sort();
+        assert_eq!(sorts, vec![7, 8, 9, 10, 11, 12, 13, 14]);
+        for (_, _, vis, side, layer) in &gems {
+            assert_eq!(*side, CardFaceSide::Front);
+            assert!(!vis.0, "face-down card gems should not be visible");
+            assert_eq!(*layer, RenderLayer::World);
+        }
+    }
+
+    #[test]
+    fn when_spawn_visual_card_face_up_then_gems_are_visible() {
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+
+        // Act
+        let root = spawn_def_face_up(&mut world, &def);
+
+        // Assert
+        let gems = gem_circle_children(&mut world, root);
+        assert_eq!(gems.len(), 8);
+        for (_, _, vis, _, _) in &gems {
+            assert!(vis.0, "face-up card gems should be visible");
+        }
+    }
+
+    #[test]
+    fn when_spawn_with_high_intensity_element_then_gem_radius_is_larger() {
+        // Arrange — Solidum=1.0 vs Solidum=0.0, gem for Solidum is sort 7
+        let def = make_test_def();
+        let mut high_axes = [0.0_f32; 8];
+        high_axes[0] = 1.0;
+        let sig_high = CardSignature::new(high_axes);
+        let sig_low = CardSignature::default();
+
+        let mut world_high = World::new();
+        let mut world_low = World::new();
+
+        // Act
+        let root_high = spawn_visual_card(
+            &mut world_high,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            sig_high,
+        );
+        let root_low = spawn_visual_card(
+            &mut world_low,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            sig_low,
+        );
+
+        // Assert — find gem at sort 7 (Solidum, index 0)
+        let gems_high = gem_circle_children(&mut world_high, root_high);
+        let gems_low = gem_circle_children(&mut world_low, root_low);
+        let gem_high = gems_high
+            .iter()
+            .find(|(_, s, _, _, _)| s.0 == 7)
+            .expect("sort 7 gem");
+        let gem_low = gems_low
+            .iter()
+            .find(|(_, s, _, _, _)| s.0 == 7)
+            .expect("sort 7 gem");
+
+        let radius_high = match gem_high.0.variant {
+            engine_render::prelude::ShapeVariant::Circle { radius } => radius,
+            _ => panic!("expected circle"),
+        };
+        let radius_low = match gem_low.0.variant {
+            engine_render::prelude::ShapeVariant::Circle { radius } => radius,
+            _ => panic!("expected circle"),
+        };
+        assert!(
+            radius_high > radius_low,
+            "high-intensity radius {radius_high} should exceed low-intensity {radius_low}"
+        );
+    }
+
+    #[test]
+    fn when_spawn_with_positive_febris_then_gem_has_warm_color() {
+        // Arrange — Febris=+0.8, gem for Febris is sort 8
+        let def = make_test_def();
+        let mut axes = [0.0_f32; 8];
+        axes[1] = 0.8;
+        let sig = CardSignature::new(axes);
+        let mut world = World::new();
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            sig,
+        );
+
+        // Assert — Febris positive = Heat aspect → warm (r > b)
+        let gems = gem_circle_children(&mut world, root);
+        let gem = gems
+            .iter()
+            .find(|(_, s, _, _, _)| s.0 == 8)
+            .expect("sort 8 gem (Febris)");
+        assert!(
+            gem.0.color.r > gem.0.color.b,
+            "positive Febris gem should be warm: r={} > b={}",
+            gem.0.color.r,
+            gem.0.color.b
+        );
+    }
+
+    #[test]
+    fn when_spawn_with_negative_febris_then_gem_has_cool_color() {
+        // Arrange — Febris=-0.8
+        let def = make_test_def();
+        let mut axes = [0.0_f32; 8];
+        axes[1] = -0.8;
+        let sig = CardSignature::new(axes);
+        let mut world = World::new();
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            sig,
+        );
+
+        // Assert — Febris negative = Cold aspect → cool (b > r)
+        let gems = gem_circle_children(&mut world, root);
+        let gem = gems
+            .iter()
+            .find(|(_, s, _, _, _)| s.0 == 8)
+            .expect("sort 8 gem (Febris)");
+        assert!(
+            gem.0.color.b > gem.0.color.r,
+            "negative Febris gem should be cool: b={} > r={}",
+            gem.0.color.b,
+            gem.0.color.r
+        );
+    }
+
+    #[test]
+    fn when_spawn_same_signature_twice_then_gem_colors_are_identical() {
+        // Arrange
+        let def = make_test_def();
+        let sig = CardSignature::new([0.4, -0.6, 0.2, 0.8, -0.3, 0.1, -0.7, 0.5]);
+        let mut world_a = World::new();
+        let mut world_b = World::new();
+
+        // Act
+        let root_a = spawn_visual_card(
+            &mut world_a,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            sig.clone(),
+        );
+        let root_b = spawn_visual_card(
+            &mut world_b,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            sig,
+        );
+
+        // Assert — sort gems by LocalSortOrder and compare colors pairwise
+        let mut gems_a = gem_circle_children(&mut world_a, root_a);
+        let mut gems_b = gem_circle_children(&mut world_b, root_b);
+        gems_a.sort_by_key(|(_, s, _, _, _)| s.0);
+        gems_b.sort_by_key(|(_, s, _, _, _)| s.0);
+        for (a, b) in gems_a.iter().zip(gems_b.iter()) {
+            assert_eq!(
+                a.0.color, b.0.color,
+                "gem at sort {} should have identical color",
+                a.1.0
+            );
+        }
     }
 }
