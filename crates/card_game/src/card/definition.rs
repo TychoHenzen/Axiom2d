@@ -14,6 +14,7 @@ pub enum Rarity {
     Common,
     Uncommon,
     Rare,
+    Epic,
     Legendary,
 }
 
@@ -85,11 +86,31 @@ pub fn description_from_abilities(abilities: &CardAbilities) -> String {
     }
 }
 
+use super::signature::CardSignature;
+
+/// Computes rarity from how extreme a card's signature is.
+///
+/// Each element axis contributes its absolute value to an extremity score.
+/// The raw score (0.0 to 8.0) is log-scaled and bucketed into 5 tiers.
+pub fn determine_rarity(signature: &CardSignature) -> Rarity {
+    let raw_score: f32 = signature.axes().iter().map(|v| v.abs()).sum();
+    // log1p(x) maps 0..8 → 0..~2.2; divide by log1p(8) to normalize to 0..1
+    let normalized = raw_score.ln_1p() / 8.0_f32.ln_1p();
+    match normalized {
+        n if n >= 0.85 => Rarity::Legendary,
+        n if n >= 0.70 => Rarity::Epic,
+        n if n >= 0.50 => Rarity::Rare,
+        n if n >= 0.30 => Rarity::Uncommon,
+        _ => Rarity::Common,
+    }
+}
+
 pub fn rarity_border_color(rarity: Rarity) -> Color {
     match rarity {
         Rarity::Common => Color::new(0.6, 0.6, 0.6, 1.0),
         Rarity::Uncommon => Color::new(0.2, 0.8, 0.2, 1.0),
         Rarity::Rare => Color::new(0.2, 0.4, 1.0, 1.0),
+        Rarity::Epic => Color::new(0.6, 0.2, 0.9, 1.0),
         Rarity::Legendary => Color::new(1.0, 0.65, 0.0, 1.0),
     }
 }
@@ -192,12 +213,13 @@ mod tests {
     }
 
     #[test]
-    fn when_rarity_border_color_called_then_all_four_rarities_return_different_colors() {
+    fn when_rarity_border_color_called_then_all_five_rarities_return_different_colors() {
         // Arrange
         let colors: Vec<Color> = [
             Rarity::Common,
             Rarity::Uncommon,
             Rarity::Rare,
+            Rarity::Epic,
             Rarity::Legendary,
         ]
         .iter()
@@ -299,5 +321,92 @@ mod tests {
 
         // Assert
         assert!(def.stats.is_some());
+    }
+
+    // ===== determine_rarity =====
+
+    #[test]
+    fn when_all_axes_zero_then_rarity_is_common() {
+        // Arrange
+        let sig = CardSignature::new([0.0; 8]);
+
+        // Act
+        let rarity = determine_rarity(&sig);
+
+        // Assert
+        assert_eq!(rarity, Rarity::Common);
+    }
+
+    #[test]
+    fn when_all_axes_at_max_then_rarity_is_legendary() {
+        // Arrange
+        let sig = CardSignature::new([1.0; 8]);
+
+        // Act
+        let rarity = determine_rarity(&sig);
+
+        // Assert
+        assert_eq!(rarity, Rarity::Legendary);
+    }
+
+    #[test]
+    fn when_all_axes_at_negative_max_then_rarity_is_legendary() {
+        // Arrange — extremity uses absolute values, so -1.0 is just as extreme as 1.0
+        let sig = CardSignature::new([-1.0; 8]);
+
+        // Act
+        let rarity = determine_rarity(&sig);
+
+        // Assert
+        assert_eq!(rarity, Rarity::Legendary);
+    }
+
+    #[test]
+    fn when_determine_rarity_called_twice_with_same_signature_then_result_is_identical() {
+        // Arrange
+        let sig = CardSignature::new([0.3, -0.7, 0.5, -0.1, 0.9, -0.2, 0.4, -0.8]);
+
+        // Act
+        let r1 = determine_rarity(&sig);
+        let r2 = determine_rarity(&sig);
+
+        // Assert
+        assert_eq!(r1, r2, "rarity must be deterministic");
+    }
+
+    #[test]
+    fn when_more_extreme_signature_then_rarity_is_equal_or_higher() {
+        // Arrange — signatures with increasing extremity
+        let low = CardSignature::new([0.1; 8]);
+        let mid = CardSignature::new([0.5; 8]);
+        let high = CardSignature::new([0.9; 8]);
+
+        // Act
+        let r_low = determine_rarity(&low);
+        let r_mid = determine_rarity(&mid);
+        let r_high = determine_rarity(&high);
+
+        // Assert — higher extremity should never produce a lower rarity
+        assert!(
+            (r_low as u8) <= (r_mid as u8),
+            "low={r_low:?} should be <= mid={r_mid:?}"
+        );
+        assert!(
+            (r_mid as u8) <= (r_high as u8),
+            "mid={r_mid:?} should be <= high={r_high:?}"
+        );
+    }
+
+    #[test]
+    fn when_moderate_extremity_then_rarity_is_between_common_and_legendary() {
+        // Arrange — moderate values should land somewhere in the middle tiers
+        let sig = CardSignature::new([0.4, -0.3, 0.2, -0.5, 0.1, -0.2, 0.3, -0.4]);
+
+        // Act
+        let rarity = determine_rarity(&sig);
+
+        // Assert — not the extremes
+        assert_ne!(rarity, Rarity::Legendary);
+        assert_ne!(rarity, Rarity::Common);
     }
 }

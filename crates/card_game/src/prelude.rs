@@ -6,6 +6,7 @@ pub use crate::card::component::Card;
 pub use crate::card::damping::card_damping_system;
 pub use crate::card::definition::{
     CardAbilities, CardDefinition, CardStats, CardType, Keyword, Rarity, art_descriptor_default,
+    determine_rarity,
 };
 pub use crate::card::drag::card_drag_system;
 pub use crate::card::drag_state::DragState;
@@ -16,6 +17,7 @@ pub use crate::card::item_form::card_item_form_visibility_system;
 pub use crate::card::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP, card_pick_system};
 pub use crate::card::release::card_release_system;
 pub use crate::card::render_layer::card_render_layer_system;
+pub use crate::card::residual::{ModifierType, ResidualModifier, ResidualStats};
 pub use crate::card::signature::{Aspect, CardSignature, Element};
 pub use crate::card::spawn_table_card::spawn_visual_card;
 pub use crate::hand::Hand;

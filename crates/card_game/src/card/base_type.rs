@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::Resource;
 use serde::{Deserialize, Serialize};
 
+use super::residual::ResidualModifier;
 use super::signature::CardSignature;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,6 +17,7 @@ pub struct BaseCardType {
     pub base_signature: CardSignature,
     pub match_radius: f32,
     pub category: CardCategory,
+    pub modifiers: Vec<ResidualModifier>,
 }
 
 impl BaseCardType {
@@ -71,6 +73,7 @@ mod tests {
             base_signature: base_sig,
             match_radius: 1.0,
             category: CardCategory::Skill,
+            modifiers: vec![],
         };
         let card_sig = base_sig; // identical — distance == 0.0
 
@@ -89,6 +92,7 @@ mod tests {
             base_signature: CardSignature::new([0.0; 8]),
             match_radius: 2.0,
             category: CardCategory::Equipment,
+            modifiers: vec![],
         };
         let card_sig = CardSignature::new([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]); // distance = 0.5
 
@@ -107,6 +111,7 @@ mod tests {
             base_signature: CardSignature::new([0.0; 8]),
             match_radius: 1.0,
             category: CardCategory::Skill,
+            modifiers: vec![],
         };
         let card_sig = CardSignature::new([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]); // distance = 1.0
 
@@ -125,6 +130,7 @@ mod tests {
             base_signature: CardSignature::new([0.0; 8]),
             match_radius: 1.0,
             category: CardCategory::Playstyle,
+            modifiers: vec![],
         };
         // distance = sqrt(0.72^2 + 0.72^2) ≈ 1.018 > 1.0
         let card_sig = CardSignature::new([0.72, 0.72, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
@@ -145,6 +151,7 @@ mod tests {
             base_signature: base_sig,
             match_radius: 1.0,
             category: CardCategory::Skill,
+            modifiers: vec![],
         };
 
         // Act
@@ -162,6 +169,7 @@ mod tests {
             base_signature: CardSignature::new([0.0; 8]),
             match_radius: 2.0,
             category: CardCategory::Equipment,
+            modifiers: vec![],
         };
         let card_sig = CardSignature::new([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]); // distance = 1.0
 
@@ -180,6 +188,7 @@ mod tests {
             base_signature: CardSignature::new([0.0; 8]),
             match_radius: 1.0,
             category: CardCategory::Skill,
+            modifiers: vec![],
         };
         let card_sig = CardSignature::new([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]); // distance = 1.0
 
@@ -198,6 +207,7 @@ mod tests {
             base_signature: CardSignature::new([0.0; 8]),
             match_radius: 1.0,
             category: CardCategory::Playstyle,
+            modifiers: vec![],
         };
         let card_sig = CardSignature::new([0.72, 0.72, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]); // distance ≈ 1.018
 
@@ -219,6 +229,7 @@ mod tests {
             base_signature: CardSignature::new(axes),
             match_radius: radius,
             category,
+            modifiers: vec![],
         }
     }
 

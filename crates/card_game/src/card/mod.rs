@@ -19,6 +19,7 @@ pub(crate) mod physics_helpers;
 pub mod pick;
 pub mod release;
 pub mod render_layer;
+pub mod residual;
 pub mod signature;
 pub mod spawn_table_card;
 pub mod zone;
