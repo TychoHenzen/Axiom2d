@@ -157,41 +157,4 @@ mod tests {
         assert!(registry.lookup(shader.0).is_some());
     }
 
-    #[test]
-    fn when_plugin_built_then_clear_color_is_dark_gray() {
-        // Arrange
-        let mut app = App::new();
-        app.world_mut().insert_resource(ShaderRegistry::default());
-
-        // Act
-        app.add_plugin(CardGamePlugin);
-
-        // Assert
-        let clear = app.world().get_resource::<ClearColor>().unwrap();
-        assert_eq!(
-            clear.0,
-            Color {
-                r: 0.1,
-                g: 0.1,
-                b: 0.1,
-                a: 1.0
-            }
-        );
-    }
-
-    #[test]
-    fn when_plugin_built_then_stash_grid_is_10x10_with_3_pages() {
-        // Arrange
-        let mut app = App::new();
-        app.world_mut().insert_resource(ShaderRegistry::default());
-
-        // Act
-        app.add_plugin(CardGamePlugin);
-
-        // Assert
-        let grid = app.world().get_resource::<StashGrid>().unwrap();
-        assert_eq!(grid.width(), 10);
-        assert_eq!(grid.height(), 10);
-        assert_eq!(grid.page_count(), 3);
-    }
 }

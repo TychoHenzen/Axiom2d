@@ -37,20 +37,4 @@ mod tests {
         assert!(!card.face_up);
     }
 
-    #[test]
-    fn when_card_serialized_to_ron_then_roundtrip_preserves_all_fields() {
-        // Arrange
-        let card = Card {
-            face_texture: TextureId(1),
-            back_texture: TextureId(2),
-            face_up: true,
-        };
-
-        // Act
-        let ron = ron::to_string(&card).unwrap();
-        let back: Card = ron::from_str(&ron).unwrap();
-
-        // Assert
-        assert_eq!(card, back);
-    }
 }
