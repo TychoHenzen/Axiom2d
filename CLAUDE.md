@@ -123,5 +123,17 @@ Only test **behavior you wrote**, not language or framework guarantees. The foll
 - **Component spawn tests**: Don't test that `world.spawn(C)` makes `C` queryable. Same reasoning as Resource insertion.
 - **Trivial default tests**: Don't test that `Default` returns the value written in `impl Default`. If the default matters for correctness, test it through the system that depends on it.
 - **Boxing/trait-object tests**: Don't test that `Box::new(X) as Box<dyn Trait>` compiles. Compilation is the test.
+- **Serde roundtrip tests on derived impls**: Don't test that `Serialize`/`Deserialize` roundtrips work on types that only use `#[derive(Serialize, Deserialize)]`. Serde's derive macros are not broken. Only test serialization when there is a custom `Serialize`/`Deserialize` impl or when the serialized format is part of a public contract (e.g., save files, network protocol).
+- **PartialEq tests on derived impls**: Don't test that `PartialEq` correctly distinguishes enum variants or struct fields when using `#[derive(PartialEq)]`. Rust's derive macros are not broken.
+- **Constructor-echo tests**: Don't test that `Foo::new(10, 10, 3)` produces `width=10, height=10, pages=3`. If the constructor stores its arguments, that's a language guarantee. Only test constructors that compute or validate.
 
 **Do test**: Custom logic (arithmetic operators, conversion functions like `from_u8`), system behavior (clear_system, time_system, input_system), non-trivial algorithms (FixedTimestep.tick accumulator math), and design constraints (no-clamping on Rect values).
+
+### Required test categories
+
+Every roadmap step or feature PR must include at least one **behavioral test** — a test that exercises the outcome a player would observe, not the internal method calls made to achieve it. Good behavioral tests:
+- Assert on game state (card is in hand, card has no physics body) not on spy logs (remove_body was called)
+- Don't care about implementation order — they survive refactors
+- For system chains, test through the real schedule when the interaction between systems is the thing that matters
+
+Spy-based tests (SpyRenderer, SpyPhysicsBackend captures) are acceptable for verifying rendering output and physics API usage, but the primary assertion should always be on the resulting game state.
