@@ -5,4 +5,6 @@ pub mod prelude;
 pub mod stash;
 
 #[cfg(test)]
+mod integration_tests;
+#[cfg(test)]
 pub(crate) mod test_helpers;

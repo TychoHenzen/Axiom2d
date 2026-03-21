@@ -19,6 +19,7 @@ glam = { workspace = true }
 serde = { workspace = true }
 
 [dev-dependencies]
+axiom2d = { path = "../axiom2d" }
 engine_render = { path = "../engine_render", features = ["testing"] }
 naga = { workspace = true }
 proptest = { workspace = true }

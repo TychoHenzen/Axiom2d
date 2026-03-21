@@ -509,6 +509,7 @@ dependencies = [
 name = "card_game"
 version = "0.1.0"
 dependencies = [
+ "axiom2d",
  "bevy_ecs",
  "engine_app",
  "engine_core",

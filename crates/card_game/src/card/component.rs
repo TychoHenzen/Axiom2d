@@ -36,5 +36,4 @@ mod tests {
         // Assert
         assert!(!card.face_up);
     }
-
 }

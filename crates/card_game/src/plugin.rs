@@ -156,5 +156,4 @@ mod tests {
         let registry = app.world().get_resource::<ShaderRegistry>().unwrap();
         assert!(registry.lookup(shader.0).is_some());
     }
-
 }

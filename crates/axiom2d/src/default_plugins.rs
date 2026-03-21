@@ -33,6 +33,15 @@ impl Plugin for DefaultPlugins {
     fn build(&self, app: &mut App) {
         if app.world().get_resource::<SkipSplash>().is_none() {
             app.add_plugin(SplashPlugin);
+        } else {
+            // splash_render_system requires Res<SplashScreen>. When splash is
+            // skipped, insert a done screen so the system early-returns.
+            use crate::splash::SplashScreen;
+            app.world_mut().insert_resource(SplashScreen {
+                elapsed: 0.0,
+                duration: 0.0,
+                done: true,
+            });
         }
         register_core_resources(app);
         register_core_systems(app);
@@ -553,7 +562,7 @@ mod tests {
     }
 
     #[test]
-    fn when_skip_splash_inserted_then_splash_screen_not_present() {
+    fn when_skip_splash_inserted_then_splash_screen_is_done() {
         // Arrange
         let mut app = App::new();
         app.world_mut().insert_resource(SkipSplash);
@@ -561,12 +570,12 @@ mod tests {
         // Act
         app.add_plugin(DefaultPlugins);
 
-        // Assert
-        assert!(
-            app.world()
-                .get_resource::<crate::splash::SplashScreen>()
-                .is_none(),
-            "SplashScreen should not be inserted when SkipSplash is present"
-        );
+        // Assert — a sentinel SplashScreen with done=true is inserted so
+        // splash_render_system (always in the Render chain) early-returns.
+        let splash = app
+            .world()
+            .get_resource::<crate::splash::SplashScreen>()
+            .expect("sentinel SplashScreen should be present when SkipSplash is used");
+        assert!(splash.done, "sentinel SplashScreen should have done=true");
     }
 }

@@ -300,5 +300,4 @@ mod tests {
         // Assert
         assert!(def.stats.is_some());
     }
-
 }
