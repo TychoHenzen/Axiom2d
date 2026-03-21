@@ -32,6 +32,9 @@ callgrind.out.*
 mutants.out/
 mutants.out.old/
 
+# Worktrees
+.worktrees/
+
 # Serena
 .serena/
 .gitnexus
