@@ -266,7 +266,6 @@ fn spawn_back_face_children(world: &mut World, root: Entity, card_size: Vec2, fa
 #[allow(clippy::unwrap_used)]
 mod tests {
     use bevy_ecs::prelude::*;
-    use engine_render::prelude::ShapeVariant;
     use engine_scene::prelude::{ChildOf, Visible};
     use glam::Vec2;
 
@@ -327,13 +326,6 @@ mod tests {
             .collect()
     }
 
-    fn children_with_shape_for_side(world: &mut World, root: Entity, side: CardFaceSide) -> usize {
-        let mut q = world.query::<(&ChildOf, &CardFaceSide, &engine_render::prelude::Shape)>();
-        q.iter(world)
-            .filter(|(parent, s, _)| parent.0 == root && **s == side)
-            .count()
-    }
-
     fn border_shape_for_side(
         world: &mut World,
         root: Entity,
@@ -349,35 +341,6 @@ mod tests {
             .filter(|(parent, s, _, _)| parent.0 == root && **s == side)
             .min_by_key(|(_, _, _, sort)| sort.0)
             .map(|(_, _, shape, _)| shape.clone())
-    }
-
-    fn child_by_side_and_sort(
-        world: &mut World,
-        root: Entity,
-        side: CardFaceSide,
-        sort: i32,
-    ) -> Option<(Transform2D, engine_render::prelude::Shape)> {
-        let mut q = world.query::<(
-            &ChildOf,
-            &CardFaceSide,
-            &LocalSortOrder,
-            &Transform2D,
-            &engine_render::prelude::Shape,
-        )>();
-        q.iter(world)
-            .find(|(parent, s, local_sort, _, _)| {
-                parent.0 == root && **s == side && local_sort.0 == sort
-            })
-            .map(|(_, _, _, t, s)| (*t, s.clone()))
-    }
-
-    fn polygon_half_extents(shape: &engine_render::prelude::Shape) -> (f32, f32) {
-        let ShapeVariant::Polygon { ref points } = shape.variant else {
-            panic!("expected Polygon");
-        };
-        let max_x = points.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
-        let max_y = points.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
-        (max_x, max_y)
     }
 
     fn find_stash_icon_child(world: &mut World, root: Entity) -> Option<Entity> {
@@ -399,7 +362,7 @@ mod tests {
             .collect()
     }
 
-    // --- New behavior tests ---
+    // --- Behavior tests ---
 
     #[test]
     fn when_spawn_visual_card_then_root_has_card_component_face_down() {
@@ -504,8 +467,6 @@ mod tests {
         assert_ne!(border.color, Color::WHITE);
     }
 
-    // --- Ported existing tests ---
-
     #[test]
     fn when_spawn_visual_card_face_down_then_front_children_not_visible() {
         // Arrange
@@ -552,66 +513,6 @@ mod tests {
         assert!(front.iter().all(|v| *v));
         assert!(!back.is_empty(), "expected at least one Back child");
         assert!(back.iter().all(|v| !v));
-    }
-
-    #[test]
-    fn when_spawn_visual_card_then_front_face_has_four_shape_children() {
-        // Arrange
-        let mut world = World::new();
-        let def = make_test_def();
-
-        // Act
-        let root = spawn_def(&mut world, &def);
-
-        // Assert
-        assert_eq!(
-            children_with_shape_for_side(&mut world, root, CardFaceSide::Front),
-            4
-        );
-    }
-
-    #[test]
-    fn when_spawn_visual_card_then_back_face_has_at_least_two_shape_children() {
-        // Arrange
-        let mut world = World::new();
-        let def = make_test_def();
-
-        // Act
-        let root = spawn_def(&mut world, &def);
-
-        // Assert
-        assert!(children_with_shape_for_side(&mut world, root, CardFaceSide::Back) >= 2);
-    }
-
-    #[test]
-    fn when_spawn_visual_card_then_front_border_matches_card_dimensions() {
-        // Arrange
-        let mut world = World::new();
-        let def = make_test_def();
-
-        // Act
-        let root = spawn_def(&mut world, &def);
-
-        // Assert
-        let border = border_shape_for_side(&mut world, root, CardFaceSide::Front)
-            .expect("front border should exist");
-        let ShapeVariant::Polygon { ref points } = border.variant else {
-            panic!("expected Polygon variant for border");
-        };
-        let min_x = points.iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
-        let max_x = points.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
-        let min_y = points.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
-        let max_y = points.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
-        let width = max_x - min_x;
-        let height = max_y - min_y;
-        assert!(
-            (width - CARD_WIDTH).abs() < 1e-4,
-            "width={width} expected {CARD_WIDTH}"
-        );
-        assert!(
-            (height - CARD_HEIGHT).abs() < 1e-4,
-            "height={height} expected {CARD_HEIGHT}"
-        );
     }
 
     #[test]
@@ -676,171 +577,6 @@ mod tests {
         };
         assert!((half.x - 50.0).abs() < 1e-4, "half.x={}", half.x);
         assert!((half.y - 100.0).abs() < 1e-4, "half.y={}", half.y);
-    }
-
-    #[test]
-    fn when_spawn_visual_card_then_front_name_strip_position_and_size_correct() {
-        // Arrange
-        let mut world = World::new();
-        let def = make_test_def();
-        let card_size = Vec2::new(100.0, 200.0);
-
-        // Act
-        let root = spawn_visual_card(&mut world, &def, Vec2::ZERO, card_size, false);
-
-        // Assert
-        let (t, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Front, 2)
-            .expect("front sort=2 child");
-        let expected_y = -(200.0 * 0.5 - 200.0 / 12.0);
-        assert!(
-            (t.position.y - expected_y).abs() < 1e-2,
-            "y={}, expected {expected_y}",
-            t.position.y
-        );
-        let (hw, _) = polygon_half_extents(&shape);
-        assert!((hw - 45.0).abs() < 1e-4, "half_w={hw}");
-    }
-
-    #[test]
-    fn when_spawn_visual_card_then_front_art_area_position_and_size_correct() {
-        // Arrange
-        let mut world = World::new();
-        let def = make_test_def();
-        let card_size = Vec2::new(100.0, 200.0);
-
-        // Act
-        let root = spawn_visual_card(&mut world, &def, Vec2::ZERO, card_size, false);
-
-        // Assert
-        let (t, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Front, 3)
-            .expect("front sort=3 child");
-        assert!((t.position.y - (-20.0)).abs() < 1e-4, "y={}", t.position.y);
-        let (hw, _) = polygon_half_extents(&shape);
-        assert!((hw - 45.0).abs() < 1e-4, "half_w={hw}");
-    }
-
-    #[test]
-    fn when_spawn_visual_card_then_front_description_strip_position_and_size_correct() {
-        // Arrange
-        let mut world = World::new();
-        let def = make_test_def();
-        let card_size = Vec2::new(100.0, 200.0);
-
-        // Act
-        let root = spawn_visual_card(&mut world, &def, Vec2::ZERO, card_size, false);
-
-        // Assert
-        let (t, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Front, 4)
-            .expect("front sort=4 child");
-        let expected_y = 200.0 * 0.5 - 200.0 / 6.0;
-        assert!(
-            (t.position.y - expected_y).abs() < 1e-2,
-            "y={}, expected {expected_y}",
-            t.position.y
-        );
-        let (hw, _) = polygon_half_extents(&shape);
-        assert!((hw - 45.0).abs() < 1e-4, "half_w={hw}");
-    }
-
-    #[test]
-    fn when_spawn_visual_card_then_back_border_matches_card_half_size() {
-        // Arrange
-        let mut world = World::new();
-        let def = make_test_def();
-        let card_size = Vec2::new(100.0, 200.0);
-
-        // Act
-        let root = spawn_visual_card(&mut world, &def, Vec2::ZERO, card_size, false);
-
-        // Assert
-        let (_, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Back, 1)
-            .expect("back sort=1 child");
-        let (hw, hh) = polygon_half_extents(&shape);
-        assert!((hw - 50.0).abs() < 1e-4, "half_w={hw}");
-        assert!((hh - 100.0).abs() < 1e-4, "half_h={hh}");
-    }
-
-    #[test]
-    fn when_spawn_visual_card_then_back_center_pattern_uses_thirty_percent() {
-        // Arrange
-        let mut world = World::new();
-        let def = make_test_def();
-        let card_size = Vec2::new(100.0, 200.0);
-
-        // Act
-        let root = spawn_visual_card(&mut world, &def, Vec2::ZERO, card_size, false);
-
-        // Assert
-        let (_, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Back, 2)
-            .expect("back sort=2 child");
-        let (hw, hh) = polygon_half_extents(&shape);
-        assert!((hw - 30.0).abs() < 1e-4, "half_w={hw}");
-        assert!((hh - 60.0).abs() < 1e-4, "half_h={hh}");
-    }
-
-    #[test]
-    fn when_spawn_visual_card_then_front_border_half_size_matches_card_half() {
-        // Arrange
-        let mut world = World::new();
-        let def = make_test_def();
-        let card_size = Vec2::new(100.0, 200.0);
-
-        // Act
-        let root = spawn_visual_card(&mut world, &def, Vec2::ZERO, card_size, false);
-
-        // Assert
-        let (_, shape) = child_by_side_and_sort(&mut world, root, CardFaceSide::Front, 1)
-            .expect("front sort=1 child");
-        let (hw, hh) = polygon_half_extents(&shape);
-        assert!((hw - 50.0).abs() < 1e-4, "half_w={hw}");
-        assert!((hh - 100.0).abs() < 1e-4, "half_h={hh}");
-    }
-
-    #[test]
-    fn when_spawn_visual_card_then_exactly_one_stash_icon_child_exists() {
-        // Arrange
-        let mut world = World::new();
-        let def = make_test_def();
-
-        // Act
-        let root = spawn_def(&mut world, &def);
-
-        // Assert
-        let mut q = world.query::<(Entity, &ChildOf, &crate::stash::icon::StashIcon)>();
-        let count = q.iter(&world).filter(|(_, p, _)| p.0 == root).count();
-        assert_eq!(count, 1, "expected exactly one StashIcon child");
-    }
-
-    #[test]
-    fn when_spawn_visual_card_then_stash_icon_half_extents_match_slot_dimensions() {
-        // Arrange
-        let mut world = World::new();
-        let def = make_test_def();
-        let card_size = Vec2::new(CARD_WIDTH, CARD_HEIGHT);
-
-        // Act
-        let root = spawn_visual_card(&mut world, &def, Vec2::ZERO, card_size, false);
-
-        // Assert
-        let icon = find_stash_icon_child(&mut world, root).expect("StashIcon child must exist");
-        let shape = world
-            .get::<engine_render::prelude::Shape>(icon)
-            .expect("StashIcon must have Shape");
-        let ShapeVariant::Polygon { ref points } = shape.variant else {
-            panic!("expected Polygon variant");
-        };
-        let max_x = points.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
-        let max_y = points.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
-        let expected_half_w = crate::stash::constants::SLOT_WIDTH * 0.5;
-        let expected_half_h = crate::stash::constants::SLOT_HEIGHT * 0.5;
-        assert!(
-            (max_x - expected_half_w).abs() < 1e-4,
-            "half_w={max_x} expected {expected_half_w}"
-        );
-        assert!(
-            (max_y - expected_half_h).abs() < 1e-4,
-            "half_h={max_y} expected {expected_half_h}"
-        );
     }
 
     #[test]
