@@ -7,6 +7,16 @@ use crate::rect::Rect;
 use crate::shader::ShaderHandle;
 use engine_core::types::TextureId;
 
+#[derive(Debug, thiserror::Error)]
+pub enum RenderError {
+    #[error("atlas upload failed: {0}")]
+    AtlasUpload(String),
+    #[error("shader compilation failed: {0}")]
+    ShaderCompilation(String),
+    #[error("surface error: {0}")]
+    Surface(String),
+}
+
 pub const IDENTITY_MODEL: [[f32; 4]; 4] = [
     [1.0, 0.0, 0.0, 0.0],
     [0.0, 1.0, 0.0, 0.0],
@@ -31,8 +41,8 @@ pub trait Renderer {
     fn set_shader(&mut self, shader: ShaderHandle);
     fn set_material_uniforms(&mut self, data: &[u8]);
     fn bind_material_texture(&mut self, texture: TextureId, binding: u32);
-    fn compile_shader(&mut self, handle: ShaderHandle, source: &str);
-    fn upload_atlas(&mut self, atlas: &TextureAtlas);
+    fn compile_shader(&mut self, handle: ShaderHandle, source: &str) -> Result<(), RenderError>;
+    fn upload_atlas(&mut self, atlas: &TextureAtlas) -> Result<(), RenderError>;
     fn viewport_size(&self) -> (u32, u32);
     fn apply_post_process(&mut self);
     fn present(&mut self);
@@ -82,8 +92,12 @@ impl Renderer for NullRenderer {
     fn set_shader(&mut self, _shader: ShaderHandle) {}
     fn set_material_uniforms(&mut self, _data: &[u8]) {}
     fn bind_material_texture(&mut self, _texture: TextureId, _binding: u32) {}
-    fn compile_shader(&mut self, _handle: ShaderHandle, _source: &str) {}
-    fn upload_atlas(&mut self, _atlas: &TextureAtlas) {}
+    fn compile_shader(&mut self, _handle: ShaderHandle, _source: &str) -> Result<(), RenderError> {
+        Ok(())
+    }
+    fn upload_atlas(&mut self, _atlas: &TextureAtlas) -> Result<(), RenderError> {
+        Ok(())
+    }
     fn viewport_size(&self) -> (u32, u32) {
         (0, 0)
     }
@@ -134,8 +148,12 @@ mod tests {
         renderer.set_shader(crate::shader::ShaderHandle(0));
         renderer.set_material_uniforms(&[1, 2, 3]);
         renderer.bind_material_texture(engine_core::types::TextureId(0), 2);
-        renderer.upload_atlas(&crate::testing::helpers::minimal_atlas());
-        renderer.compile_shader(crate::shader::ShaderHandle(1), "@vertex fn vs_shape() {}");
+        renderer
+            .upload_atlas(&crate::testing::helpers::minimal_atlas())
+            .unwrap();
+        renderer
+            .compile_shader(crate::shader::ShaderHandle(1), "@vertex fn vs_shape() {}")
+            .unwrap();
         renderer.draw_text("Test", 10.0, 20.0, 12.0, Color::WHITE);
         renderer.apply_post_process();
         renderer.resize(800, 600);

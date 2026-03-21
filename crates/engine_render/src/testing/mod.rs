@@ -210,7 +210,11 @@ impl Renderer for SpyRenderer {
         }
     }
 
-    fn compile_shader(&mut self, handle: ShaderHandle, source: &str) {
+    fn compile_shader(
+        &mut self,
+        handle: ShaderHandle,
+        source: &str,
+    ) -> Result<(), crate::renderer::RenderError> {
         self.log_call("compile_shader");
         if let Some(capture) = &self.compile_shader_calls {
             capture
@@ -218,6 +222,7 @@ impl Renderer for SpyRenderer {
                 .expect("compile_shader capture poisoned")
                 .push((handle, source.to_owned()));
         }
+        Ok(())
     }
 
     fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color) {
@@ -233,8 +238,12 @@ impl Renderer for SpyRenderer {
         }
     }
 
-    fn upload_atlas(&mut self, _atlas: &crate::atlas::TextureAtlas) {
+    fn upload_atlas(
+        &mut self,
+        _atlas: &crate::atlas::TextureAtlas,
+    ) -> Result<(), crate::renderer::RenderError> {
         self.log_call("upload_atlas");
+        Ok(())
     }
 
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]) {
@@ -393,13 +402,15 @@ mod tests {
         spy.set_material_uniforms(&[1]);
         spy.bind_material_texture(engine_core::types::TextureId(0), 0);
         spy.draw_text("Test", 0.0, 0.0, 12.0, Color::WHITE);
-        spy.compile_shader(crate::shader::ShaderHandle(1), "source");
+        spy.compile_shader(crate::shader::ShaderHandle(1), "source")
+            .unwrap();
         spy.upload_atlas(&crate::atlas::TextureAtlas {
             data: vec![255; 4],
             width: 1,
             height: 1,
             lookups: std::collections::HashMap::default(),
-        });
+        })
+        .unwrap();
         spy.apply_post_process();
         spy.resize(800, 600);
         spy.present();
@@ -528,7 +539,8 @@ mod tests {
         let mut spy = SpyRenderer::new(log).with_compile_shader_capture(capture.clone());
 
         // Act
-        spy.compile_shader(crate::shader::ShaderHandle(7), "fn vs_shape() {}");
+        spy.compile_shader(crate::shader::ShaderHandle(7), "fn vs_shape() {}")
+            .unwrap();
 
         // Assert
         let calls = capture.lock().unwrap();

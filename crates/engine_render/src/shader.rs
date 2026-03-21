@@ -70,7 +70,9 @@ pub fn shader_prepare_system(
 ) {
     let Some(registry) = registry else { return };
     for (handle, source) in registry.iter() {
-        renderer.compile_shader(handle, source);
+        renderer
+            .compile_shader(handle, source)
+            .expect("shader compilation should succeed");
     }
 }
 

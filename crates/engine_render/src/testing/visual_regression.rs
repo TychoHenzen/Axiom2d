@@ -639,9 +639,15 @@ impl Renderer for HeadlessRenderer {
 
     fn bind_material_texture(&mut self, _texture: TextureId, _binding: u32) {}
 
-    fn compile_shader(&mut self, _handle: ShaderHandle, _source: &str) {}
+    fn compile_shader(
+        &mut self,
+        _handle: ShaderHandle,
+        _source: &str,
+    ) -> Result<(), crate::renderer::RenderError> {
+        Ok(())
+    }
 
-    fn upload_atlas(&mut self, atlas: &TextureAtlas) {
+    fn upload_atlas(&mut self, atlas: &TextureAtlas) -> Result<(), crate::renderer::RenderError> {
         self.texture_bind_group = create_texture_bind_group(
             &self.device,
             &self.queue,
@@ -652,6 +658,7 @@ impl Renderer for HeadlessRenderer {
                 data: &atlas.data,
             },
         );
+        Ok(())
     }
 
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]) {

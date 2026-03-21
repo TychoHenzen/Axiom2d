@@ -50,7 +50,9 @@ pub fn upload_atlas_system(
         return;
     }
     let Some(atlas) = atlas else { return };
-    renderer.upload_atlas(&atlas);
+    renderer
+        .upload_atlas(&atlas)
+        .expect("atlas upload should succeed");
     commands.insert_resource(AtlasUploaded);
 }
 
