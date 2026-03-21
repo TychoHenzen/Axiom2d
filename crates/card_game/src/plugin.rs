@@ -1,4 +1,5 @@
 use crate::card::art_shader::register_card_art_shader;
+use crate::card::base_type::BaseCardTypeRegistry;
 use crate::card::camera_drag::{CameraDragState, camera_drag_system, camera_zoom_system};
 use crate::card::damping::card_damping_system;
 use crate::card::drag::card_drag_system;
@@ -49,6 +50,7 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(Hand::new(10));
         world.insert_resource(StashGrid::new(10, 10, 3));
         world.insert_resource(StashHoverPreview::default());
+        world.insert_resource(BaseCardTypeRegistry::new());
 
         world.insert_resource(ShapeRenderDisabled);
 

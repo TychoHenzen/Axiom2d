@@ -1,5 +1,6 @@
 // Types needed by the binary crate
 pub use crate::card::art_shader::{CardArtShader, register_card_art_shader};
+pub use crate::card::base_type::{BaseCardType, BaseCardTypeRegistry, CardCategory};
 pub use crate::card::camera_drag::{CameraDragState, camera_drag_system, camera_zoom_system};
 pub use crate::card::component::Card;
 pub use crate::card::damping::card_damping_system;
