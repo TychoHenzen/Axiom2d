@@ -53,9 +53,7 @@ pub fn stash_boundary_system(
         });
     } else if !info.stash_cursor_follow && over_stash {
         // Enter stash: remove physics body, switch to cursor-follow
-        physics
-            .remove_body(info.entity)
-            .expect("entity should have physics body during drag release");
+        let _ = physics.remove_body(info.entity); // ok to fail: hand cards have no physics body
         commands
             .entity(info.entity)
             .remove::<RigidBody>()
