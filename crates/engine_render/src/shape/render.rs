@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::{Query, ResMut};
+use bevy_ecs::prelude::{Query, Res, ResMut, Resource};
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 
@@ -8,6 +8,11 @@ use crate::camera::Camera2D;
 use crate::culling::{aabb_intersects_view_rect, compute_view_rect};
 use crate::material::{Material2d, apply_material};
 use crate::renderer::RendererRes;
+
+/// Insert this resource to disable `shape_render_system`, allowing a unified
+/// render system to take over shape drawing alongside other draw calls.
+#[derive(Resource)]
+pub struct ShapeRenderDisabled;
 
 pub fn affine2_to_mat4(affine: &glam::Affine2) -> [[f32; 4]; 4] {
     let m = affine.matrix2;
@@ -42,10 +47,14 @@ type ShapeQuery<'w> = (
 );
 
 pub fn shape_render_system(
+    disabled: Option<Res<ShapeRenderDisabled>>,
     query: Query<ShapeQuery>,
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
 ) {
+    if disabled.is_some() {
+        return;
+    }
     let view_rect = compute_view_rect(&camera_query, &renderer);
     let mut shapes: Vec<_> = query.iter().filter(|t| t.4.is_none_or(|v| v.0)).collect();
     shapes.sort_by_key(|t| {

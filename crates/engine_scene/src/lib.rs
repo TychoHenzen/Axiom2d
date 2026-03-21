@@ -36,7 +36,7 @@ pub(crate) mod test_helpers {
         run_system(world, crate::visibility::visibility_system);
     }
 
-    pub(crate) fn run_sort_propagation_system(world: &mut World) {
-        run_system(world, crate::sort_propagation::sort_propagation_system);
+    pub(crate) fn run_hierarchy_sort_system(world: &mut World) {
+        run_system(world, crate::sort_propagation::hierarchy_sort_system);
     }
 }

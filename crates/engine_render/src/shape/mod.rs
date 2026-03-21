@@ -9,5 +9,5 @@ pub use geometry::{QUAD_INDICES, UNIT_QUAD, rect_polygon, rect_vertices, unit_qu
 pub use path::{
     PathCommand, resolve_commands, reverse_path, sample_cubic, sample_quadratic, split_contours,
 };
-pub use render::{affine2_to_mat4, shape_render_system};
-pub use tessellate::{TessellateError, tessellate, tessellate_stroke};
+pub use render::{ShapeRenderDisabled, affine2_to_mat4, shape_render_system};
+pub use tessellate::{TessellateError, shape_aabb, tessellate, tessellate_stroke};

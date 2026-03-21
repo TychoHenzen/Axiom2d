@@ -4,7 +4,7 @@ use glam::Vec2;
 use crate::camera::Camera2D;
 use crate::renderer::RendererRes;
 
-pub(crate) fn camera_view_rect(
+pub fn camera_view_rect(
     camera: &Camera2D,
     viewport_width: f32,
     viewport_height: f32,
@@ -16,7 +16,7 @@ pub(crate) fn camera_view_rect(
     (min, max)
 }
 
-pub(crate) fn compute_view_rect(
+pub fn compute_view_rect(
     camera_query: &Query<&Camera2D>,
     renderer: &RendererRes,
 ) -> Option<(Vec2, Vec2)> {
@@ -26,7 +26,7 @@ pub(crate) fn compute_view_rect(
     })
 }
 
-pub(crate) fn aabb_intersects_view_rect(
+pub fn aabb_intersects_view_rect(
     entity_min: Vec2,
     entity_max: Vec2,
     view_min: Vec2,

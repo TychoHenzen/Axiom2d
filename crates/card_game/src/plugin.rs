@@ -26,9 +26,11 @@ use engine_app::prelude::{App, Phase, Plugin};
 use engine_core::prelude::Color;
 use engine_core::scale_spring::scale_spring_system;
 use engine_physics::prelude::physics_sync_system;
-use engine_render::prelude::{ClearColor, ShaderRegistry, shape_render_system};
-use engine_scene::sort_propagation::sort_propagation_system;
-use engine_ui::text_render::text_render_system;
+use engine_render::prelude::{
+    ClearColor, ShaderRegistry, ShapeRenderDisabled, shape_render_system,
+};
+use engine_scene::sort_propagation::hierarchy_sort_system;
+use engine_ui::unified_render::unified_render_system;
 
 pub struct CardGamePlugin;
 
@@ -47,6 +49,8 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(Hand::new(10));
         world.insert_resource(StashGrid::new(10, 10, 3));
         world.insert_resource(StashHoverPreview::default());
+
+        world.insert_resource(ShapeRenderDisabled);
 
         let art_shader = register_card_art_shader(&mut world.resource_mut::<ShaderRegistry>());
         world.insert_resource(art_shader);
@@ -80,7 +84,7 @@ fn register_systems(app: &mut App) {
         (
             card_item_form_visibility_system,
             stash_layout_system,
-            sort_propagation_system,
+            hierarchy_sort_system,
             card_render_layer_system,
             hand_layout_system,
         ),
@@ -97,7 +101,10 @@ fn register_systems(app: &mut App) {
         Phase::Render,
         (stash_tab_render_system, stash_hover_preview_render_system).after(stash_render_system),
     )
-    .add_systems(Phase::Render, text_render_system.after(shape_render_system))
+    .add_systems(
+        Phase::Render,
+        unified_render_system.after(shape_render_system),
+    )
     .add_systems(
         Phase::Render,
         hand_drop_zone_render_system.after(shape_render_system),

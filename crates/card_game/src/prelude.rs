@@ -32,5 +32,5 @@ pub use crate::plugin::CardGamePlugin;
 
 // Engine re-exports used by the binary crate
 pub use engine_core::scale_spring::{ScaleSpring, scale_spring_system};
-pub use engine_scene::sort_propagation::sort_propagation_system;
-pub use engine_ui::text_render::text_render_system as card_text_render_system;
+pub use engine_scene::sort_propagation::hierarchy_sort_system;
+pub use engine_ui::unified_render::unified_render_system;

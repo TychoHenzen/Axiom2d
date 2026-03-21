@@ -252,7 +252,7 @@ fn stroke_path(
     .map_err(TessellateError::Path)
 }
 
-pub(crate) fn shape_aabb(variant: &ShapeVariant) -> (Vec2, Vec2) {
+pub fn shape_aabb(variant: &ShapeVariant) -> (Vec2, Vec2) {
     match variant {
         ShapeVariant::Circle { radius } => {
             let r = *radius;
