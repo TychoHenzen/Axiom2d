@@ -260,9 +260,11 @@ mod tests {
     use super::card_release_system;
     use crate::card::drag_state::{DragInfo, DragState};
     use crate::card::flip_animation::FlipAnimation;
+    use crate::card::item_form::CardItemForm;
     use crate::card::zone::CardZone;
     use crate::hand::cards::Hand;
     use crate::hand::layout::HandSpring;
+    use crate::stash::grid::StashGrid;
     use crate::test_helpers::{AddBodyLog, RemoveBodyLog, SpyPhysicsBackend};
 
     fn run_system(world: &mut World) {
@@ -271,61 +273,214 @@ mod tests {
         schedule.run(world);
     }
 
-    fn make_release_world(
+    // ── Builder ──────────────────────────────────────────────────────
+
+    struct ReleaseTestBuilder {
         viewport_h: u32,
-        screen_x: f32,
-        screen_y: f32,
+        screen_pos: Vec2,
         stash_visible: bool,
-    ) -> (World, RemoveBodyLog, AddBodyLog) {
-        let remove_log: RemoveBodyLog = Arc::new(Mutex::new(Vec::new()));
-        let add_log: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
-        let mut world = World::new();
-        world.insert_resource(PhysicsRes::new(Box::new(
-            SpyPhysicsBackend::new()
-                .with_remove_body_log(remove_log.clone())
-                .with_add_body_log(add_log.clone()),
-        )));
-        world.insert_resource(Hand::new(10));
-
-        let log = Arc::new(Mutex::new(Vec::new()));
-        let spy = SpyRenderer::new(log).with_viewport(800, viewport_h);
-        world.insert_resource(RendererRes::new(Box::new(spy)));
-
-        let mut mouse = MouseState::default();
-        mouse.press(MouseButton::Left);
-        mouse.release(MouseButton::Left);
-        mouse.set_screen_pos(Vec2::new(screen_x, screen_y));
-        world.insert_resource(mouse);
-
-        world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
-        world.insert_resource(crate::stash::toggle::StashVisible(stash_visible));
-
-        (world, remove_log, add_log)
+        origin_zone: CardZone,
+        card_zone: CardZone,
+        card_position: Vec2,
+        card_rotation: f32,
+        card_scale: Vec2,
+        origin_position: Vec2,
+        face_up: bool,
+        has_rigid_body: bool,
+        has_render_layer: bool,
+        has_item_form: bool,
+        hand_capacity: usize,
+        pre_fill_hand: usize,
     }
+
+    impl ReleaseTestBuilder {
+        fn card_on_table() -> Self {
+            Self {
+                viewport_h: 600,
+                screen_pos: Vec2::new(400.0, 100.0),
+                stash_visible: false,
+                origin_zone: CardZone::Table,
+                card_zone: CardZone::Table,
+                card_position: Vec2::ZERO,
+                card_rotation: 0.0,
+                card_scale: Vec2::ONE,
+                origin_position: Vec2::ZERO,
+                face_up: false,
+                has_rigid_body: true,
+                has_render_layer: true,
+                has_item_form: false,
+                hand_capacity: 10,
+                pre_fill_hand: 0,
+            }
+        }
+
+        fn card_in_hand(index: usize) -> Self {
+            Self {
+                viewport_h: 600,
+                screen_pos: Vec2::new(400.0, 100.0),
+                stash_visible: false,
+                origin_zone: CardZone::Hand(index),
+                card_zone: CardZone::Hand(index),
+                card_position: Vec2::ZERO,
+                card_rotation: 0.0,
+                card_scale: Vec2::ONE,
+                origin_position: Vec2::ZERO,
+                face_up: false,
+                has_rigid_body: true,
+                has_render_layer: true,
+                has_item_form: false,
+                hand_capacity: 10,
+                pre_fill_hand: 0,
+            }
+        }
+
+        fn card_in_stash(page: u8, col: u8, row: u8) -> Self {
+            Self {
+                viewport_h: 600,
+                screen_pos: Vec2::new(600.0, 200.0),
+                stash_visible: true,
+                origin_zone: CardZone::Stash { page, col, row },
+                card_zone: CardZone::Stash { page, col, row },
+                card_position: Vec2::ZERO,
+                card_rotation: 0.0,
+                card_scale: Vec2::ONE,
+                origin_position: Vec2::ZERO,
+                face_up: false,
+                has_rigid_body: true,
+                has_render_layer: true,
+                has_item_form: false,
+                hand_capacity: 10,
+                pre_fill_hand: 0,
+            }
+        }
+
+        fn screen_pos(mut self, x: f32, y: f32) -> Self {
+            self.screen_pos = Vec2::new(x, y);
+            self
+        }
+
+        fn viewport_height(mut self, h: u32) -> Self {
+            self.viewport_h = h;
+            self
+        }
+
+        fn stash_visible(mut self) -> Self {
+            self.stash_visible = true;
+            self
+        }
+
+        fn face_up(mut self) -> Self {
+            self.face_up = true;
+            self
+        }
+
+        fn card_position(mut self, pos: Vec2) -> Self {
+            self.card_position = pos;
+            self
+        }
+
+        fn card_rotation(mut self, r: f32) -> Self {
+            self.card_rotation = r;
+            self
+        }
+
+        fn card_scale(mut self, s: Vec2) -> Self {
+            self.card_scale = s;
+            self
+        }
+
+        fn origin_position(mut self, pos: Vec2) -> Self {
+            self.origin_position = pos;
+            self
+        }
+
+        fn with_item_form(mut self) -> Self {
+            self.has_item_form = true;
+            self
+        }
+
+        fn hand_capacity(mut self, cap: usize) -> Self {
+            self.hand_capacity = cap;
+            self
+        }
+
+        fn pre_fill_hand(mut self, n: usize) -> Self {
+            self.pre_fill_hand = n;
+            self
+        }
+
+        fn build(self) -> (World, Entity, RemoveBodyLog, AddBodyLog) {
+            let remove_log: RemoveBodyLog = Arc::new(Mutex::new(Vec::new()));
+            let add_log: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
+            let mut world = World::new();
+            world.insert_resource(PhysicsRes::new(Box::new(
+                SpyPhysicsBackend::new()
+                    .with_remove_body_log(remove_log.clone())
+                    .with_add_body_log(add_log.clone()),
+            )));
+
+            let mut hand = Hand::new(self.hand_capacity);
+            for _ in 0..self.pre_fill_hand {
+                let filler = world.spawn_empty().id();
+                hand.add(filler).unwrap();
+            }
+            world.insert_resource(hand);
+
+            let log = Arc::new(Mutex::new(Vec::new()));
+            let spy = SpyRenderer::new(log).with_viewport(800, self.viewport_h);
+            world.insert_resource(RendererRes::new(Box::new(spy)));
+
+            let mut mouse = MouseState::default();
+            mouse.press(MouseButton::Left);
+            mouse.release(MouseButton::Left);
+            mouse.set_screen_pos(self.screen_pos);
+            world.insert_resource(mouse);
+
+            world.insert_resource(StashGrid::new(10, 10, 1));
+            world.insert_resource(crate::stash::toggle::StashVisible(self.stash_visible));
+
+            let mut card = crate::test_helpers::make_test_card();
+            card.face_up = self.face_up;
+
+            let transform = Transform2D {
+                position: self.card_position,
+                rotation: self.card_rotation,
+                scale: self.card_scale,
+            };
+            let collider = Collider::Aabb(Vec2::new(30.0, 45.0));
+
+            let mut entity_commands = world.spawn((card, self.card_zone, transform, collider));
+            if self.has_rigid_body {
+                entity_commands.insert(RigidBody::Dynamic);
+            }
+            if self.has_render_layer {
+                entity_commands.insert(RenderLayer::World);
+            }
+            if self.has_item_form {
+                entity_commands.insert(CardItemForm);
+            }
+            let entity = entity_commands.id();
+
+            world.insert_resource(DragState {
+                dragging: Some(DragInfo {
+                    entity,
+                    local_grab_offset: Vec2::ZERO,
+                    origin_zone: self.origin_zone,
+                    stash_cursor_follow: false,
+                    origin_position: self.origin_position,
+                }),
+            });
+
+            (world, entity, remove_log, add_log)
+        }
+    }
+
+    // ── Tests ────────────────────────────────────────────────────────
 
     #[test]
     fn when_mouse_released_while_dragging_then_drag_state_cleared() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 100.0, false);
-        let entity = world
-            .spawn((
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, _, _, _) = ReleaseTestBuilder::card_on_table().build();
 
         // Act
         run_system(&mut world);
@@ -337,7 +492,7 @@ mod tests {
     #[test]
     fn when_mouse_released_while_not_dragging_then_no_panic_and_stays_none() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 100.0, false);
+        let (mut world, _, _, _) = ReleaseTestBuilder::card_on_table().build();
         world.insert_resource(DragState::default());
 
         // Act
@@ -349,7 +504,7 @@ mod tests {
 
     #[test]
     fn when_mouse_not_released_then_drag_state_not_cleared() {
-        // Arrange
+        // Arrange — mouse is pressed but NOT released, so system should skip
         let mut world = World::new();
         let entity = world.spawn_empty().id();
         world.insert_resource(DragState {
@@ -371,7 +526,7 @@ mod tests {
         let log = Arc::new(Mutex::new(Vec::new()));
         let spy = SpyRenderer::new(log).with_viewport(800, 600);
         world.insert_resource(RendererRes::new(Box::new(spy)));
-        world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
+        world.insert_resource(StashGrid::new(10, 10, 1));
         world.insert_resource(crate::stash::toggle::StashVisible(false));
 
         // Act
@@ -384,245 +539,53 @@ mod tests {
     #[test]
     fn when_card_released_on_table_then_zone_unchanged() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 100.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table().build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let zone = world.get::<CardZone>(entity).unwrap();
-        assert_eq!(*zone, CardZone::Table);
+        assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Table);
     }
 
     #[test]
-    fn when_release_in_hand_area_from_table_then_card_added_to_hand() {
+    fn when_card_released_into_hand_from_table_then_full_zone_transition() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, remove_log, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(400.0, 550.0)
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let hand = world.resource::<Hand>();
-        assert_eq!(hand.cards(), &[entity]);
-    }
-
-    #[test]
-    fn when_release_in_hand_area_from_table_then_zone_becomes_hand() {
-        // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let zone = world.get::<CardZone>(entity).unwrap();
-        assert_eq!(*zone, CardZone::Hand(0));
-    }
-
-    #[test]
-    fn when_release_in_hand_area_from_table_then_render_layer_becomes_ui() {
-        // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let layer = world.get::<RenderLayer>(entity).unwrap();
-        assert_eq!(*layer, RenderLayer::UI);
-    }
-
-    #[test]
-    fn when_release_in_hand_area_from_table_then_physics_body_removed() {
-        // Arrange
-        let (mut world, remove_log, _) = make_release_world(600, 400.0, 550.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let calls = remove_log.lock().unwrap();
-        assert_eq!(calls.len(), 1);
-        assert_eq!(calls[0], entity);
+        assert_eq!(world.resource::<Hand>().cards(), &[entity]);
+        assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Hand(0));
+        assert_eq!(*world.get::<RenderLayer>(entity).unwrap(), RenderLayer::UI);
+        assert_eq!(remove_log.lock().unwrap().len(), 1);
+        assert_eq!(remove_log.lock().unwrap()[0], entity);
     }
 
     #[test]
     fn when_release_on_table_from_hand_then_zone_becomes_table() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 100.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Hand(0),
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::new(50.0, 50.0),
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Hand(0),
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_hand(0)
+            .card_position(Vec2::new(50.0, 50.0))
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let zone = world.get::<CardZone>(entity).unwrap();
-        assert_eq!(*zone, CardZone::Table);
+        assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Table);
     }
 
     #[test]
     fn when_release_on_table_from_hand_then_physics_body_added() {
         // Arrange
-        let (mut world, _, add_log) = make_release_world(600, 400.0, 100.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Hand(0),
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::new(50.0, 50.0),
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Hand(0),
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, _, add_log) = ReleaseTestBuilder::card_in_hand(0)
+            .card_position(Vec2::new(50.0, 50.0))
+            .build();
 
         // Act
         run_system(&mut world);
@@ -637,30 +600,9 @@ mod tests {
     #[test]
     fn when_face_down_card_released_into_hand_then_flip_animation_inserted() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(400.0, 550.0)
+            .build();
 
         // Act
         run_system(&mut world);
@@ -674,194 +616,92 @@ mod tests {
     #[test]
     fn when_face_up_card_released_into_hand_then_no_flip_animation() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
-        let mut card = crate::test_helpers::make_test_card();
-        card.face_up = true;
-        let entity = world
-            .spawn((
-                card,
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(400.0, 550.0)
+            .face_up()
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let flip = world.get::<FlipAnimation>(entity);
-        assert!(flip.is_none(), "expected no FlipAnimation for face-up card");
+        assert!(
+            world.get::<FlipAnimation>(entity).is_none(),
+            "expected no FlipAnimation for face-up card"
+        );
     }
 
     #[test]
     fn when_face_down_card_released_on_table_then_no_flip_animation() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 100.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table().build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let flip = world.get::<FlipAnimation>(entity);
-        assert!(flip.is_none(), "expected no FlipAnimation for table drop");
+        assert!(
+            world.get::<FlipAnimation>(entity).is_none(),
+            "expected no FlipAnimation for table drop"
+        );
     }
 
     #[test]
     fn when_face_down_card_released_into_hand_then_also_added_to_hand() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(400.0, 550.0)
+            .build();
 
         // Act
         run_system(&mut world);
 
-        let hand = world.resource::<Hand>();
-        assert!(hand.cards().contains(&entity), "expected card in hand");
-        let flip = world.get::<FlipAnimation>(entity);
-        assert!(flip.is_some(), "expected FlipAnimation also present");
+        // Assert
+        assert!(
+            world.resource::<Hand>().cards().contains(&entity),
+            "expected card in hand"
+        );
+        assert!(
+            world.get::<FlipAnimation>(entity).is_some(),
+            "expected FlipAnimation also present"
+        );
     }
 
     #[test]
     fn when_hand_full_and_release_in_hand_area_then_card_stays_on_table() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
-        let existing = world.spawn_empty().id();
-        let mut hand = Hand::new(1);
-        hand.add(existing).unwrap();
-        world.insert_resource(hand);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(400.0, 550.0)
+            .hand_capacity(1)
+            .pre_fill_hand(1)
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let zone = world.get::<CardZone>(entity).unwrap();
-        assert_eq!(*zone, CardZone::Table);
+        assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Table);
     }
 
     #[test]
     fn when_viewport_height_zero_then_card_dropped_on_table_not_hand() {
         // Arrange
-        let (mut world, _, add_log) = make_release_world(0, 400.0, 100.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::new(50.0, 50.0),
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, _, add_log) = ReleaseTestBuilder::card_on_table()
+            .viewport_height(0)
+            .card_position(Vec2::new(50.0, 50.0))
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let zone = world.get::<CardZone>(entity).unwrap();
-        assert_eq!(*zone, CardZone::Table);
-        let hand = world.resource::<Hand>();
+        assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Table);
         assert!(
-            hand.cards().is_empty(),
+            world.resource::<Hand>().cards().is_empty(),
             "card should not be added to hand when viewport height is 0"
         );
-        let calls = add_log.lock().unwrap();
         assert_eq!(
-            calls.len(),
+            add_log.lock().unwrap().len(),
             1,
             "physics body should be re-added for table drop"
         );
@@ -870,30 +710,9 @@ mod tests {
     #[test]
     fn when_release_to_hand_then_handspring_inserted() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(400.0, 550.0)
+            .build();
 
         // Act
         run_system(&mut world);
@@ -906,42 +725,12 @@ mod tests {
     }
 
     #[test]
-    fn when_released_over_empty_stash_slot_then_card_placed_in_grid_and_zone_updated() {
+    fn when_stash_card_released_over_empty_stash_slot_then_full_stash_transition() {
         // Arrange
-        use crate::stash::grid::StashGrid;
         // slot (0,1,0) center: x = 20 + 1*54 + 25 = 99.0, y = 20 + 0*54 + 25 = 45.0
-        let (mut world, _, _) = make_release_world(600, 99.0, 45.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, remove_log, _) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
+            .screen_pos(99.0, 45.0)
+            .build();
 
         // Act
         run_system(&mut world);
@@ -960,107 +749,26 @@ mod tests {
                 row: 0
             }
         );
-        assert!(world.resource::<DragState>().dragging.is_none());
-    }
-
-    #[test]
-    fn when_released_over_empty_stash_slot_then_physics_removed_and_render_layer_becomes_ui() {
-        // Arrange
-        // slot (0,0,0) center: x = 45.0, y = 45.0
-        let (mut world, remove_log, _) = make_release_world(600, 45.0, 45.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
+        assert_eq!(*world.get::<RenderLayer>(entity).unwrap(), RenderLayer::UI);
         assert_eq!(
             remove_log.lock().unwrap().len(),
             1,
             "remove_body called once"
         );
-        assert_eq!(*world.get::<RenderLayer>(entity).unwrap(), RenderLayer::UI);
+        assert!(world.resource::<DragState>().dragging.is_none());
     }
 
     #[test]
     fn when_released_over_occupied_stash_slot_then_card_returned_to_origin() {
-        // Arrange
-        use crate::stash::grid::StashGrid;
-        use crate::stash::toggle::StashVisible;
-        // slot (0,0,0) center at (45, 45) — occupied by another entity
-        // origin slot (0,1,0) is where the dragged card came from
-        let (mut world, _, _) = make_release_world(600, 400.0, 45.0, false);
-        let mut mouse = MouseState::default();
-        mouse.press(MouseButton::Left);
-        mouse.release(MouseButton::Left);
-        mouse.set_screen_pos(Vec2::new(45.0, 45.0));
-        world.insert_resource(mouse);
+        // Arrange — slot (0,0,0) occupied by blocker, origin slot (0,1,0)
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_stash(0, 1, 0)
+            .screen_pos(45.0, 45.0)
+            .build();
+        // Override: place blocker in slot (0,0,0) so drop fails
         let blocker = world.spawn_empty().id();
-        let dragged_entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Stash {
-                    page: 0,
-                    col: 1,
-                    row: 0,
-                },
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
         let mut grid = StashGrid::new(10, 10, 1);
         grid.place(0, 0, 0, blocker).unwrap();
         world.insert_resource(grid);
-        world.insert_resource(StashVisible(true));
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity: dragged_entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Stash {
-                    page: 0,
-                    col: 1,
-                    row: 0,
-                },
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
 
         // Act
         run_system(&mut world);
@@ -1068,11 +776,11 @@ mod tests {
         // Assert
         assert_eq!(
             world.resource::<StashGrid>().get(0, 1, 0),
-            Some(&dragged_entity),
+            Some(&entity),
             "card should be returned to origin slot (0,1,0)"
         );
         assert_eq!(
-            *world.get::<CardZone>(dragged_entity).unwrap(),
+            *world.get::<CardZone>(entity).unwrap(),
             CardZone::Stash {
                 page: 0,
                 col: 1,
@@ -1082,426 +790,66 @@ mod tests {
     }
 
     #[test]
-    fn when_stash_card_released_outside_stash_and_hand_zone_then_zone_becomes_table() {
-        // Arrange
-        // x=600 is past the stash grid (grid ends ~560); y=200 is above the hand zone (≥480)
-        let (mut world, _, _) = make_release_world(600, 600.0, 200.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+    fn when_stash_card_released_outside_zones_then_drops_on_table() {
+        // Arrange — x=600 past stash grid; y=200 above hand zone
+        let (mut world, entity, _, add_log) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
+            .screen_pos(600.0, 200.0)
+            .card_position(Vec2::new(10.0, 20.0))
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let zone = world.get::<CardZone>(entity).unwrap();
-        assert_eq!(*zone, CardZone::Table);
-    }
-
-    #[test]
-    fn when_stash_card_released_in_hand_zone_then_card_added_to_hand() {
-        // Arrange
-        // x=600 is past the stash grid so find_stash_slot_at returns None;
-        // y=550 ≥ 600-120=480, so is_hand_drop_zone fires
-        let (mut world, _, _) = make_release_world(600, 600.0, 550.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let hand = world.resource::<Hand>();
-        assert!(
-            hand.cards().contains(&entity),
-            "stash-origin card should be in Hand"
-        );
-    }
-
-    #[test]
-    fn when_stash_card_released_in_hand_zone_then_zone_becomes_hand_and_stash_slot_stays_empty() {
-        // Arrange
-        let (mut world, _, _) = make_release_world(600, 600.0, 550.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let zone = world.get::<CardZone>(entity).unwrap();
-        assert_eq!(*zone, CardZone::Hand(0));
-        // The stash grid should not have been repopulated with the card
-        let grid = world.resource::<crate::stash::grid::StashGrid>();
-        assert!(
-            grid.get(0, 0, 0).is_none(),
-            "stash slot should not be repopulated after drop-on-hand"
-        );
-    }
-
-    #[test]
-    fn when_table_card_released_over_empty_stash_slot_then_zone_becomes_stash() {
-        // Arrange
-        // slot (0,0,0) center: x=45.0, y=45.0
-        let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let zone = world.get::<CardZone>(entity).unwrap();
+        assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Table);
         assert_eq!(
-            *zone,
-            CardZone::Stash {
-                page: 0,
-                col: 0,
-                row: 0
-            }
-        );
-        let grid = world.resource::<crate::stash::grid::StashGrid>();
-        assert_eq!(grid.get(0, 0, 0), Some(&entity));
-    }
-
-    #[test]
-    fn when_table_card_released_over_empty_stash_slot_then_physics_body_removed() {
-        // Arrange
-        // slot (0,0,0) center: x=45.0, y=45.0
-        let (mut world, remove_log, _) = make_release_world(600, 45.0, 45.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let calls = remove_log.lock().unwrap();
-        assert_eq!(calls.len(), 1, "remove_body should be called exactly once");
-        assert_eq!(calls[0], entity);
-    }
-
-    #[test]
-    fn when_hand_card_released_over_empty_stash_slot_then_not_in_hand_resource() {
-        // Arrange
-        // slot (0,0,0) center: x=45.0, y=45.0
-        let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
-        // Simulate card_pick_system having added a physics body: entity has RigidBody::Dynamic
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Hand(0),
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Hand(0),
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let hand = world.resource::<Hand>();
-        assert!(
-            !hand.cards().contains(&entity),
-            "hand-origin card dropped on stash must not be in Hand resource"
-        );
-        let grid = world.resource::<crate::stash::grid::StashGrid>();
-        assert_eq!(
-            grid.get(0, 0, 0),
-            Some(&entity),
-            "card should be in stash grid at slot (0,0,0)"
-        );
-    }
-
-    #[test]
-    fn when_stash_card_released_outside_stash_and_hand_zone_then_drops_on_table() {
-        // Arrange
-        let (mut world, _, add_log) = make_release_world(600, 600.0, 200.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::new(10.0, 20.0),
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
-
-        // Act
-        run_system(&mut world);
-
-        // Assert
-        let zone = world.get::<CardZone>(entity).unwrap();
-        assert_eq!(*zone, CardZone::Table);
-        let calls = add_log.lock().unwrap();
-        assert_eq!(
-            calls.len(),
+            add_log.lock().unwrap().len(),
             1,
             "physics body should be re-added for table drop"
         );
     }
 
     #[test]
-    fn when_stash_card_released_in_hand_zone_then_drops_on_hand() {
-        // Arrange
-        let (mut world, _, _) = make_release_world(600, 600.0, 550.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+    fn when_stash_card_released_in_hand_zone_then_full_hand_transition() {
+        // Arrange — x=600 past stash grid; y=550 in hand zone
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
+            .screen_pos(600.0, 550.0)
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let hand = world.resource::<Hand>();
         assert!(
-            hand.cards().contains(&entity),
+            world.resource::<Hand>().cards().contains(&entity),
             "stash-origin card should be in Hand"
         );
-        let zone = world.get::<CardZone>(entity).unwrap();
-        assert_eq!(*zone, CardZone::Hand(0));
-        let grid = world.resource::<crate::stash::grid::StashGrid>();
+        assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Hand(0));
         assert!(
-            grid.get(0, 0, 0).is_none(),
-            "stash grid should not be repopulated"
+            world.resource::<StashGrid>().get(0, 0, 0).is_none(),
+            "stash slot should not be repopulated after drop-on-hand"
         );
     }
 
     #[test]
-    fn when_table_card_released_over_empty_stash_slot_then_placed_in_stash_and_physics_removed() {
-        // Arrange
-        // slot (0,0,0) center: x=45.0, y=45.0
-        let (mut world, remove_log, _) = make_release_world(600, 45.0, 45.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+    fn when_table_card_released_over_empty_stash_slot_then_full_stash_transition() {
+        // Arrange — slot (0,0,0) center: x=45.0, y=45.0
+        let (mut world, entity, remove_log, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(45.0, 45.0)
+            .stash_visible()
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let grid = world.resource::<crate::stash::grid::StashGrid>();
         assert_eq!(
-            grid.get(0, 0, 0),
+            world.resource::<StashGrid>().get(0, 0, 0),
             Some(&entity),
             "card should occupy slot (0,0,0)"
         );
-        let zone = world.get::<CardZone>(entity).unwrap();
         assert_eq!(
-            *zone,
+            *world.get::<CardZone>(entity).unwrap(),
             CardZone::Stash {
                 page: 0,
                 col: 0,
@@ -1514,89 +862,42 @@ mod tests {
     }
 
     #[test]
-    fn when_hand_card_released_over_empty_stash_slot_then_placed_in_stash_not_in_hand() {
-        // Arrange
-        // slot (0,0,0) center: x=45.0, y=45.0
-        // card_pick_system adds RigidBody::Dynamic before DragState is set
-        let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Hand(0),
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Hand(0),
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+    fn when_hand_card_released_over_empty_stash_slot_then_not_in_hand_resource() {
+        // Arrange — slot (0,0,0) center: x=45.0, y=45.0
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_hand(0)
+            .screen_pos(45.0, 45.0)
+            .stash_visible()
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let grid = world.resource::<crate::stash::grid::StashGrid>();
-        assert_eq!(
-            grid.get(0, 0, 0),
-            Some(&entity),
-            "card should be in stash grid"
-        );
-        let hand = world.resource::<Hand>();
         assert!(
-            !hand.cards().contains(&entity),
-            "hand resource should not contain the card after stash drop"
+            !world.resource::<Hand>().cards().contains(&entity),
+            "hand-origin card dropped on stash must not be in Hand resource"
+        );
+        assert_eq!(
+            world.resource::<StashGrid>().get(0, 0, 0),
+            Some(&entity),
+            "card should be in stash grid at slot (0,0,0)"
         );
     }
 
     #[test]
     fn when_released_at_stash_slot_then_stash_drop_takes_priority_over_hand_zone() {
-        // Arrange
-        // slot (0,0,0) center is at screen (45, 45) — above the hand zone, but
-        // this test documents that stash check runs BEFORE is_hand_drop_zone
-        let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        // Arrange — slot (0,0,0) center at screen (45, 45); stash check runs BEFORE hand zone
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(45.0, 45.0)
+            .stash_visible()
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let grid = world.resource::<crate::stash::grid::StashGrid>();
         assert_eq!(
-            grid.get(0, 0, 0),
+            world.resource::<StashGrid>().get(0, 0, 0),
             Some(&entity),
             "card should be in stash slot"
         );
@@ -1605,34 +906,11 @@ mod tests {
 
     #[test]
     fn when_table_card_dropped_on_stash_slot_then_card_item_form_inserted() {
-        use crate::card::item_form::CardItemForm;
-
-        // Arrange
-        // slot (0,0,0) center: x=45.0, y=45.0
-        let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        // Arrange — slot (0,0,0) center: x=45.0, y=45.0
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(45.0, 45.0)
+            .stash_visible()
+            .build();
 
         // Act
         run_system(&mut world);
@@ -1646,43 +924,11 @@ mod tests {
 
     #[test]
     fn when_stash_card_dropped_on_table_area_then_card_item_form_removed() {
-        use crate::card::item_form::CardItemForm;
-
-        // Arrange
-        // x=600 is past the stash grid; y=200 is above the hand zone (≥ 600-120=480)
-        let (mut world, _, _) = make_release_world(600, 600.0, 200.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                CardItemForm,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        // Arrange — x=600 past stash grid; y=200 above hand zone
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
+            .screen_pos(600.0, 200.0)
+            .with_item_form()
+            .build();
 
         // Act
         run_system(&mut world);
@@ -1696,43 +942,11 @@ mod tests {
 
     #[test]
     fn when_stash_card_dropped_on_hand_zone_then_card_item_form_removed() {
-        use crate::card::item_form::CardItemForm;
-
-        // Arrange
-        // x=600 is past the stash grid; y=550 ≥ 600-120=480, so is_hand_drop_zone fires
-        let (mut world, _, _) = make_release_world(600, 600.0, 550.0, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                CardItemForm,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Stash {
-                    page: 0,
-                    col: 0,
-                    row: 0,
-                },
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        // Arrange — x=600 past stash grid; y=550 in hand zone
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
+            .screen_pos(600.0, 550.0)
+            .with_item_form()
+            .build();
 
         // Act
         run_system(&mut world);
@@ -1746,11 +960,11 @@ mod tests {
 
     #[test]
     fn when_table_card_dropped_on_stash_slot_then_only_dragged_entity_gains_card_item_form() {
-        use crate::card::item_form::CardItemForm;
-
-        // Arrange
-        // slot (0,0,0) center: x=45.0, y=45.0
-        let (mut world, _, _) = make_release_world(600, 45.0, 45.0, true);
+        // Arrange — slot (0,0,0) center: x=45.0, y=45.0
+        let (mut world, dragged, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(45.0, 45.0)
+            .stash_visible()
+            .build();
         let bystander = world
             .spawn((
                 crate::test_helpers::make_test_card(),
@@ -1762,29 +976,6 @@ mod tests {
                 },
             ))
             .id();
-        let dragged = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity: dragged,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
 
         // Act
         run_system(&mut world);
@@ -1802,39 +993,18 @@ mod tests {
 
     #[test]
     fn when_card_dropped_on_stash_then_scale_reset_to_one() {
-        // Arrange
-        // slot (0,0,0) center: x=45.0, y=57.5
-        let (mut world, _, _) = make_release_world(600, 45.0, 57.5, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::splat(0.833),
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        // Arrange — slot (0,0,0) center: x=45.0, y=57.5
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(45.0, 57.5)
+            .stash_visible()
+            .card_scale(Vec2::splat(0.833))
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let transform = world.get::<Transform2D>(entity).unwrap();
-        assert_eq!(transform.scale, Vec2::ONE);
+        assert_eq!(world.get::<Transform2D>(entity).unwrap().scale, Vec2::ONE);
     }
 
     #[test]
@@ -1842,28 +1012,7 @@ mod tests {
         use engine_core::scale_spring::ScaleSpring;
 
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 100.0, false);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table().build();
 
         // Act
         run_system(&mut world);
@@ -1877,87 +1026,41 @@ mod tests {
 
     #[test]
     fn when_card_dropped_on_stash_then_rotation_reset_to_zero() {
-        // Arrange
-        // slot (0,0,0) center: x=45.0, y=57.5
-        let (mut world, _, _) = make_release_world(600, 45.0, 57.5, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::ZERO,
-                    rotation: 0.8,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::ZERO,
-            }),
-        });
+        // Arrange — slot (0,0,0) center: x=45.0, y=57.5
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(45.0, 57.5)
+            .stash_visible()
+            .card_rotation(0.8)
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let transform = world.get::<Transform2D>(entity).unwrap();
-        assert_eq!(transform.rotation, 0.0);
+        assert_eq!(world.get::<Transform2D>(entity).unwrap().rotation, 0.0);
     }
 
     #[test]
     fn when_table_card_dropped_on_occupied_stash_then_position_restored_to_origin() {
-        use crate::stash::grid::StashGrid;
-        use crate::stash::toggle::StashVisible;
-
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 45.0, false);
-        let mut mouse = MouseState::default();
-        mouse.press(MouseButton::Left);
-        mouse.release(MouseButton::Left);
-        mouse.set_screen_pos(Vec2::new(45.0, 45.0));
-        world.insert_resource(mouse);
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(45.0, 45.0)
+            .stash_visible()
+            .card_position(Vec2::new(300.0, 400.0))
+            .origin_position(Vec2::new(50.0, 75.0))
+            .build();
+        // Override: place blocker in slot (0,0,0) so drop fails => snap back
         let blocker = world.spawn_empty().id();
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::new(300.0, 400.0),
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-            ))
-            .id();
         let mut grid = StashGrid::new(10, 10, 1);
         grid.place(0, 0, 0, blocker).expect("blocker placed");
         world.insert_resource(grid);
-        world.insert_resource(StashVisible(true));
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::new(50.0, 75.0),
-            }),
-        });
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let transform = world.get::<Transform2D>(entity).unwrap();
         assert_eq!(
-            transform.position,
+            world.get::<Transform2D>(entity).unwrap().position,
             Vec2::new(50.0, 75.0),
             "card should snap back to origin_position"
         );
@@ -1966,47 +1069,27 @@ mod tests {
     #[test]
     fn when_table_card_dropped_on_empty_stash_then_position_not_forced_to_origin() {
         // Arrange — slot (0,0,0) is empty, drop should succeed
-        let (mut world, _, _) = make_release_world(600, 45.0, 57.5, true);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::new(300.0, 400.0),
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::new(50.0, 75.0),
-            }),
-        });
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(45.0, 57.5)
+            .stash_visible()
+            .card_position(Vec2::new(300.0, 400.0))
+            .origin_position(Vec2::new(50.0, 75.0))
+            .build();
 
         // Act
         run_system(&mut world);
 
-        // Assert — position should NOT be 50.0/75.0 (the origin), stash layout manages position
-        let zone = world.get::<CardZone>(entity).unwrap();
+        // Assert
         assert_eq!(
-            *zone,
+            *world.get::<CardZone>(entity).unwrap(),
             CardZone::Stash {
                 page: 0,
                 col: 0,
                 row: 0
             }
         );
-        let transform = world.get::<Transform2D>(entity).unwrap();
         assert_ne!(
-            transform.position,
+            world.get::<Transform2D>(entity).unwrap().position,
             Vec2::new(50.0, 75.0),
             "valid drop should not snap back to origin"
         );
@@ -2015,46 +1098,46 @@ mod tests {
     #[test]
     fn when_table_card_dropped_on_full_hand_then_position_restored_to_origin() {
         // Arrange
-        let (mut world, _, _) = make_release_world(600, 400.0, 550.0, false);
-        let existing = world.spawn_empty().id();
-        let mut hand = Hand::new(1);
-        hand.add(existing).unwrap();
-        world.insert_resource(hand);
-        let entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                RigidBody::Dynamic,
-                Collider::Aabb(Vec2::new(30.0, 45.0)),
-                Transform2D {
-                    position: Vec2::new(300.0, 400.0),
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                RenderLayer::World,
-            ))
-            .id();
-        world.insert_resource(DragState {
-            dragging: Some(DragInfo {
-                entity,
-                local_grab_offset: Vec2::ZERO,
-                origin_zone: CardZone::Table,
-                stash_cursor_follow: false,
-                origin_position: Vec2::new(30.0, 40.0),
-            }),
-        });
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+            .screen_pos(400.0, 550.0)
+            .hand_capacity(1)
+            .pre_fill_hand(1)
+            .card_position(Vec2::new(300.0, 400.0))
+            .origin_position(Vec2::new(30.0, 40.0))
+            .build();
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let zone = world.get::<CardZone>(entity).unwrap();
-        assert_eq!(*zone, CardZone::Table);
-        let transform = world.get::<Transform2D>(entity).unwrap();
+        assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Table);
         assert_eq!(
-            transform.position,
+            world.get::<Transform2D>(entity).unwrap().position,
             Vec2::new(30.0, 40.0),
             "card should snap back to origin_position when hand is full"
+        );
+    }
+
+    #[test]
+    fn when_hand_card_released_over_empty_stash_slot_then_placed_in_stash_not_in_hand() {
+        // Arrange — slot (0,0,0) center: x=45.0, y=45.0
+        let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_hand(0)
+            .screen_pos(45.0, 45.0)
+            .stash_visible()
+            .build();
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        assert_eq!(
+            world.resource::<StashGrid>().get(0, 0, 0),
+            Some(&entity),
+            "card should be in stash grid"
+        );
+        assert!(
+            !world.resource::<Hand>().cards().contains(&entity),
+            "hand resource should not contain the card after stash drop"
         );
     }
 }
