@@ -83,7 +83,7 @@ mod tests {
 
     /// Queue a left-mouse-press event at the given screen position.
     ///
-    /// Events go through `MouseEventBuffer` so that `mouse_input_system` (Phase::Input)
+    /// Events go through `MouseEventBuffer` so that `mouse_input_system` (`Phase::Input`)
     /// sets `just_pressed` properly — direct `MouseState` mutation would be cleared
     /// before the Update systems see it.
     fn simulate_mouse_press(app: &mut App, screen_pos: Vec2) {
@@ -111,9 +111,9 @@ mod tests {
     /// and verify the full zone transition: Table → Hand.
     ///
     /// Schedule dependency chain exercised:
-    ///   Frame 0: transform_propagation_system → camera_prepare_system (establish transforms)
-    ///   Frame 1: mouse_input_system → mouse_world_pos_system → card_pick_system (pick)
-    ///   Frame 2: mouse_input_system → card_release_system (release into hand zone)
+    ///   Frame 0: `transform_propagation_system` → `camera_prepare_system` (establish transforms)
+    ///   Frame 1: `mouse_input_system` → `mouse_world_pos_system` → `card_pick_system` (pick)
+    ///   Frame 2: `mouse_input_system` → `card_release_system` (release into hand zone)
     #[test]
     fn when_card_picked_from_table_and_released_into_hand_then_card_in_hand() {
         // Arrange
@@ -160,7 +160,7 @@ mod tests {
     }
 
     /// Pick a table card and release it back on the table area (top half of screen).
-    /// The card should stay in CardZone::Table with physics intact.
+    /// The card should stay in `CardZone::Table` with physics intact.
     #[test]
     fn when_card_picked_from_table_and_released_on_table_then_card_stays_on_table() {
         // Arrange
@@ -200,9 +200,9 @@ mod tests {
     }
 
     /// Pick a table card and release it over an open stash slot.
-    /// The card should transition to CardZone::Stash and gain CardItemForm.
+    /// The card should transition to `CardZone::Stash` and gain `CardItemForm`.
     ///
-    /// Stash slot (0,0) screen position: margin=20, stride_w=54, stride_h=79.
+    /// Stash slot (0,0) screen position: margin=20, `stride_w=54`, `stride_h=79`.
     /// Top-left of slot (0,0) is at screen (20, 20). Any point inside the stride
     /// range maps to slot (0,0).
     #[test]
@@ -326,7 +326,7 @@ mod tests {
         );
     }
 
-    /// Verify that DragState is None after every release, even across multiple
+    /// Verify that `DragState` is None after every release, even across multiple
     /// pick-release cycles. This is a lightweight sanity check that the release
     /// system always clears state.
     #[test]

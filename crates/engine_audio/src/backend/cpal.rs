@@ -43,12 +43,11 @@ impl CpalBackend {
 
     fn open_stream(state: Arc<Mutex<SharedState>>) -> Option<cpal::Stream> {
         let host = cpal::default_host();
-        let device = match host.default_output_device() {
-            Some(d) => d,
-            None => {
-                tracing::warn!("no audio output device found — audio will be silent");
-                return None;
-            }
+        let device = if let Some(d) = host.default_output_device() {
+            d
+        } else {
+            tracing::warn!("no audio output device found — audio will be silent");
+            return None;
         };
         let config = device.default_output_config().ok()?;
         let sample_format = config.sample_format();
