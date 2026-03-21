@@ -29,7 +29,9 @@ pub fn card_damping_system(
             continue;
         };
         let (linear, angular) = compute_card_damping(omega);
-        physics.set_damping(entity, linear, angular);
+        physics
+            .set_damping(entity, linear, angular)
+            .expect("damped entity should have physics body");
     }
 }
 

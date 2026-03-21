@@ -21,7 +21,7 @@ pub(crate) mod test_helpers {
 
     use crate::collider::Collider;
     use crate::collision_event::CollisionEvent;
-    use crate::physics_backend::PhysicsBackend;
+    use crate::physics_backend::{PhysicsBackend, PhysicsError};
     use crate::rigid_body::RigidBody;
 
     pub(crate) fn spawn_entity() -> Entity {
@@ -91,7 +91,9 @@ pub(crate) mod test_helpers {
         fn add_collider(&mut self, _: Entity, _: &Collider) -> bool {
             false
         }
-        fn remove_body(&mut self, _: Entity) {}
+        fn remove_body(&mut self, _: Entity) -> Result<(), PhysicsError> {
+            Ok(())
+        }
         fn body_position(&self, entity: Entity) -> Option<Vec2> {
             self.positions.get(&entity).copied()
         }
@@ -104,13 +106,23 @@ pub(crate) mod test_helpers {
         fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
             Some(Vec2::ZERO)
         }
-        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) {}
-        fn set_angular_velocity(&mut self, _: Entity, _: f32) {}
-        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
+        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) -> Result<(), PhysicsError> {
+            Ok(())
+        }
+        fn set_angular_velocity(&mut self, _: Entity, _: f32) -> Result<(), PhysicsError> {
+            Ok(())
+        }
+        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) -> Result<(), PhysicsError> {
+            Ok(())
+        }
         fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
             None
         }
-        fn set_damping(&mut self, _: Entity, _: f32, _: f32) {}
-        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) {}
+        fn set_damping(&mut self, _: Entity, _: f32, _: f32) -> Result<(), PhysicsError> {
+            Ok(())
+        }
+        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) -> Result<(), PhysicsError> {
+            Ok(())
+        }
     }
 }

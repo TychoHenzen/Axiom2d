@@ -52,18 +52,24 @@ fn spawn_scene(world: &mut World) {
 
     let mut physics = world.resource_mut::<PhysicsRes>();
     for &entity in &card_entities {
-        physics.set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER);
+        physics
+            .set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER)
+            .expect("card entity should have physics body");
     }
-    physics.add_force_at_point(
-        card_entities[0],
-        Vec2::new(5000.0, 2000.0),
-        Vec2::new(-120.0, 0.0),
-    );
-    physics.add_force_at_point(
-        card_entities[3],
-        Vec2::new(-3000.0, 4000.0),
-        Vec2::new(60.0, -20.0),
-    );
+    physics
+        .add_force_at_point(
+            card_entities[0],
+            Vec2::new(5000.0, 2000.0),
+            Vec2::new(-120.0, 0.0),
+        )
+        .expect("card entity should have physics body");
+    physics
+        .add_force_at_point(
+            card_entities[3],
+            Vec2::new(-3000.0, 4000.0),
+            Vec2::new(60.0, -20.0),
+        )
+        .expect("card entity should have physics body");
 }
 
 fn setup(app: &mut App) {

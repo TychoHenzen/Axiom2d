@@ -42,14 +42,20 @@ pub fn card_drag_system(
     let arm_len_sq = arm.length_squared();
 
     if arm_len_sq < 1e-4 {
-        physics.set_linear_velocity(info.entity, desired);
+        physics
+            .set_linear_velocity(info.entity, desired)
+            .expect("dragged entity should have physics body");
     } else {
         let raw_omega = arm.perp_dot(desired) / arm_len_sq;
         let omega = raw_omega.clamp(-MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY);
         let perp_arm = Vec2::new(-arm.y, arm.x);
         let v_center = desired - omega * perp_arm;
-        physics.set_linear_velocity(info.entity, v_center);
-        physics.set_angular_velocity(info.entity, omega);
+        physics
+            .set_linear_velocity(info.entity, v_center)
+            .expect("dragged entity should have physics body");
+        physics
+            .set_angular_velocity(info.entity, omega)
+            .expect("dragged entity should have physics body");
     }
 }
 

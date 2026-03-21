@@ -153,7 +153,9 @@ fn drop_on_hand(
     physics: &mut PhysicsRes,
     commands: &mut Commands,
 ) {
-    physics.remove_body(entity);
+    physics
+        .remove_body(entity)
+        .expect("entity should have physics body during drag release");
     let zone = if let Ok(index) = hand.add(entity) {
         CardZone::Hand(index)
     } else {
@@ -185,7 +187,9 @@ fn drop_on_stash(
     physics: &mut PhysicsRes,
     commands: &mut Commands,
 ) {
-    physics.remove_body(entity);
+    physics
+        .remove_body(entity)
+        .expect("entity should have physics body during drag release");
     grid.place(page, col, row, entity)
         .expect("slot should be empty: guarded by is_none check above");
     let mut ec = commands.entity(entity);

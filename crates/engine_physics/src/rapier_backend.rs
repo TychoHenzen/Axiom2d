@@ -8,7 +8,7 @@ use rapier2d::prelude::*;
 
 use crate::collider::Collider;
 use crate::collision_event::{CollisionEvent, CollisionKind};
-use crate::physics_backend::PhysicsBackend;
+use crate::physics_backend::{PhysicsBackend, PhysicsError};
 use crate::rigid_body::RigidBody;
 
 pub struct RapierBackend {
@@ -114,17 +114,20 @@ impl PhysicsBackend for RapierBackend {
         true
     }
 
-    fn remove_body(&mut self, entity: Entity) {
-        if let Some(handle) = self.entity_to_handle.remove(&entity) {
-            self.bodies.remove(
-                handle,
-                &mut self.island_manager,
-                &mut self.colliders,
-                &mut self.impulse_joints,
-                &mut self.multibody_joints,
-                true,
-            );
-        }
+    fn remove_body(&mut self, entity: Entity) -> Result<(), PhysicsError> {
+        let handle = self
+            .entity_to_handle
+            .remove(&entity)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        self.bodies.remove(
+            handle,
+            &mut self.island_manager,
+            &mut self.colliders,
+            &mut self.impulse_joints,
+            &mut self.multibody_joints,
+            true,
+        );
+        Ok(())
     }
 
     fn body_position(&self, entity: Entity) -> Option<Vec2> {
@@ -147,24 +150,34 @@ impl PhysicsBackend for RapierBackend {
         Some(Vec2::new(vel.x, vel.y))
     }
 
-    fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2) {
-        let Some(&handle) = self.entity_to_handle.get(&entity) else {
-            return;
-        };
-        let Some(body) = self.bodies.get_mut(handle) else {
-            return;
-        };
+    fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2) -> Result<(), PhysicsError> {
+        let &handle = self
+            .entity_to_handle
+            .get(&entity)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        let body = self
+            .bodies
+            .get_mut(handle)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
         body.set_linvel(vector![velocity.x, velocity.y], true);
+        Ok(())
     }
 
-    fn set_angular_velocity(&mut self, entity: Entity, angular_velocity: f32) {
-        let Some(&handle) = self.entity_to_handle.get(&entity) else {
-            return;
-        };
-        let Some(body) = self.bodies.get_mut(handle) else {
-            return;
-        };
+    fn set_angular_velocity(
+        &mut self,
+        entity: Entity,
+        angular_velocity: f32,
+    ) -> Result<(), PhysicsError> {
+        let &handle = self
+            .entity_to_handle
+            .get(&entity)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        let body = self
+            .bodies
+            .get_mut(handle)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
         body.set_angvel(angular_velocity, true);
+        Ok(())
     }
 
     fn body_angular_velocity(&self, entity: Entity) -> Option<f32> {
@@ -173,47 +186,71 @@ impl PhysicsBackend for RapierBackend {
         Some(body.angvel())
     }
 
-    fn add_force_at_point(&mut self, entity: Entity, force: Vec2, world_point: Vec2) {
-        let Some(&handle) = self.entity_to_handle.get(&entity) else {
-            return;
-        };
-        let Some(body) = self.bodies.get_mut(handle) else {
-            return;
-        };
+    fn add_force_at_point(
+        &mut self,
+        entity: Entity,
+        force: Vec2,
+        world_point: Vec2,
+    ) -> Result<(), PhysicsError> {
+        let &handle = self
+            .entity_to_handle
+            .get(&entity)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        let body = self
+            .bodies
+            .get_mut(handle)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
         body.add_force_at_point(
             vector![force.x, force.y],
             point![world_point.x, world_point.y],
             true,
         );
+        Ok(())
     }
 
-    fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32) {
-        let Some(&handle) = self.entity_to_handle.get(&entity) else {
-            return;
-        };
-        let Some(body) = self.bodies.get_mut(handle) else {
-            return;
-        };
+    fn set_damping(
+        &mut self,
+        entity: Entity,
+        linear: f32,
+        angular: f32,
+    ) -> Result<(), PhysicsError> {
+        let &handle = self
+            .entity_to_handle
+            .get(&entity)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        let body = self
+            .bodies
+            .get_mut(handle)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
         body.set_linear_damping(linear);
         body.set_angular_damping(angular);
+        Ok(())
     }
 
-    fn set_collision_group(&mut self, entity: Entity, membership: u32, filter: u32) {
-        let Some(&handle) = self.entity_to_handle.get(&entity) else {
-            return;
-        };
+    fn set_collision_group(
+        &mut self,
+        entity: Entity,
+        membership: u32,
+        filter: u32,
+    ) -> Result<(), PhysicsError> {
+        let &handle = self
+            .entity_to_handle
+            .get(&entity)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
         let groups = InteractionGroups::new(
             Group::from_bits_truncate(membership),
             Group::from_bits_truncate(filter),
         );
-        let Some(body) = self.bodies.get(handle) else {
-            return;
-        };
+        let body = self
+            .bodies
+            .get(handle)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
         for &collider_handle in body.colliders() {
             if let Some(collider) = self.colliders.get_mut(collider_handle) {
                 collider.set_collision_groups(groups);
             }
         }
+        Ok(())
     }
 
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
@@ -395,7 +432,7 @@ mod tests {
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::new(1.0, 2.0));
 
         // Act
-        backend.remove_body(entity);
+        backend.remove_body(entity).unwrap();
 
         // Assert
         assert!(backend.body_position(entity).is_none());
@@ -471,7 +508,7 @@ mod tests {
         backend.add_body(entities[1], &RigidBody::Dynamic, Vec2::ZERO);
         backend.add_collider(entities[1], &Collider::Circle(1.0));
         backend.step(Seconds(0.016));
-        backend.remove_body(entities[0]);
+        backend.remove_body(entities[0]).unwrap();
 
         // Act
         backend.step(Seconds(0.016));
@@ -479,37 +516,46 @@ mod tests {
     }
 
     #[test]
-    fn when_remove_body_for_unknown_entity_on_rapier_then_no_panic() {
+    fn when_remove_body_for_unknown_entity_on_rapier_then_returns_err() {
         // Arrange
         let mut backend = RapierBackend::new(Vec2::ZERO);
         let entity = spawn_entity();
 
         // Act
-        backend.remove_body(entity);
+        let result = backend.remove_body(entity);
+
+        // Assert
+        assert!(result.is_err());
     }
 
     #[test]
-    fn when_add_force_at_point_for_unknown_entity_then_no_panic() {
+    fn when_add_force_at_point_for_unknown_entity_then_returns_err() {
         // Arrange
         let mut backend = RapierBackend::new(Vec2::ZERO);
         let entity = spawn_entity();
 
         // Act
-        backend.add_force_at_point(entity, Vec2::new(100.0, 0.0), Vec2::ZERO);
+        let result = backend.add_force_at_point(entity, Vec2::new(100.0, 0.0), Vec2::ZERO);
+
+        // Assert
+        assert!(result.is_err());
     }
 
     #[test]
-    fn when_set_damping_on_unknown_entity_then_no_panic() {
+    fn when_set_damping_on_unknown_entity_then_returns_err() {
         // Arrange
         let mut backend = RapierBackend::new(Vec2::ZERO);
         let entity = spawn_entity();
 
         // Act
-        backend.set_damping(entity, 5.0, 3.0);
+        let result = backend.set_damping(entity, 5.0, 3.0);
+
+        // Assert
+        assert!(result.is_err());
     }
 
     fn apply_impulse(backend: &mut RapierBackend, entity: Entity, force: Vec2, point: Vec2) {
-        backend.add_force_at_point(entity, force, point);
+        backend.add_force_at_point(entity, force, point).unwrap();
         backend.step(Seconds(0.016));
         let handle = backend.entity_to_handle[&entity];
         let body = backend.bodies.get_mut(handle).unwrap();
@@ -522,7 +568,7 @@ mod tests {
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
         backend.add_collider(entity, &Collider::Circle(0.5));
-        backend.set_damping(entity, linear, angular);
+        backend.set_damping(entity, linear, angular).unwrap();
         (backend, entity)
     }
 
@@ -631,14 +677,14 @@ mod tests {
         let entity_r = spawn_entity();
         reference.add_body(entity_r, &RigidBody::Dynamic, Vec2::ZERO);
         reference.add_collider(entity_r, &Collider::Circle(0.5));
-        reference.set_damping(entity_r, 0.0, 0.0);
+        reference.set_damping(entity_r, 0.0, 0.0).unwrap();
 
         let mut reset = RapierBackend::new(Vec2::ZERO);
         let entity_s = spawn_entity();
         reset.add_body(entity_s, &RigidBody::Dynamic, Vec2::ZERO);
         reset.add_collider(entity_s, &Collider::Circle(0.5));
-        reset.set_damping(entity_s, 20.0, 20.0);
-        reset.set_damping(entity_s, 0.0, 0.0);
+        reset.set_damping(entity_s, 20.0, 20.0).unwrap();
+        reset.set_damping(entity_s, 0.0, 0.0).unwrap();
 
         // Act — one step with force, reset forces, then coast
         apply_impulse(&mut reference, entity_r, Vec2::new(5000.0, 0.0), Vec2::ZERO);
@@ -667,7 +713,9 @@ mod tests {
         backend.add_collider(entity, &Collider::Circle(0.5));
 
         // Act
-        backend.add_force_at_point(entity, Vec2::ZERO, Vec2::ZERO);
+        backend
+            .add_force_at_point(entity, Vec2::ZERO, Vec2::ZERO)
+            .unwrap();
         backend.step(Seconds(0.016));
 
         // Assert
@@ -686,7 +734,9 @@ mod tests {
 
         // Act
         for _ in 0..5 {
-            backend.add_force_at_point(entity, Vec2::new(1000.0, 0.0), Vec2::ZERO);
+            backend
+                .add_force_at_point(entity, Vec2::new(1000.0, 0.0), Vec2::ZERO)
+                .unwrap();
             backend.step(Seconds(0.016));
         }
 
@@ -712,7 +762,9 @@ mod tests {
 
         // Act
         for _ in 0..5 {
-            backend.add_force_at_point(entity, Vec2::new(1000.0, 0.0), Vec2::new(0.0, 1.0));
+            backend
+                .add_force_at_point(entity, Vec2::new(1000.0, 0.0), Vec2::new(0.0, 1.0))
+                .unwrap();
             backend.step(Seconds(0.016));
         }
 
@@ -730,8 +782,10 @@ mod tests {
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
         backend.add_collider(entity, &Collider::Circle(0.5));
-        backend.set_damping(entity, 0.0, 0.0);
-        backend.set_linear_velocity(entity, Vec2::new(5.0, -3.0));
+        backend.set_damping(entity, 0.0, 0.0).unwrap();
+        backend
+            .set_linear_velocity(entity, Vec2::new(5.0, -3.0))
+            .unwrap();
 
         // Act
         let vel = backend.body_linear_velocity(entity);
@@ -766,10 +820,12 @@ mod tests {
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
         backend.add_collider(entity, &Collider::Circle(0.5));
-        backend.set_damping(entity, 0.0, 0.0);
+        backend.set_damping(entity, 0.0, 0.0).unwrap();
 
         // Act
-        backend.set_linear_velocity(entity, Vec2::new(100.0, 0.0));
+        backend
+            .set_linear_velocity(entity, Vec2::new(100.0, 0.0))
+            .unwrap();
         backend.step(Seconds(0.1));
 
         // Assert
@@ -784,10 +840,10 @@ mod tests {
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
         backend.add_collider(entity, &Collider::Circle(0.5));
-        backend.set_damping(entity, 0.0, 0.0);
+        backend.set_damping(entity, 0.0, 0.0).unwrap();
 
         // Act
-        backend.set_angular_velocity(entity, 10.0);
+        backend.set_angular_velocity(entity, 10.0).unwrap();
         backend.step(Seconds(0.1));
 
         // Assert
@@ -859,8 +915,8 @@ mod tests {
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
         backend.add_collider(entity, &Collider::Circle(0.5));
-        backend.set_damping(entity, 0.0, 0.0);
-        backend.set_angular_velocity(entity, 5.0);
+        backend.set_damping(entity, 0.0, 0.0).unwrap();
+        backend.set_angular_velocity(entity, 5.0).unwrap();
 
         // Act
         let angvel = backend.body_angular_velocity(entity);
@@ -877,8 +933,8 @@ mod tests {
         let entity = spawn_entity();
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
         backend.add_collider(entity, &Collider::Circle(0.5));
-        backend.set_damping(entity, 0.0, 0.0);
-        backend.set_angular_velocity(entity, -3.0);
+        backend.set_damping(entity, 0.0, 0.0).unwrap();
+        backend.set_angular_velocity(entity, -3.0).unwrap();
 
         // Act
         let angvel = backend.body_angular_velocity(entity);
@@ -892,13 +948,16 @@ mod tests {
     }
 
     #[test]
-    fn when_set_collision_group_on_unknown_entity_then_no_panic() {
+    fn when_set_collision_group_on_unknown_entity_then_returns_err() {
         // Arrange
         let mut backend = RapierBackend::new(Vec2::ZERO);
         let entity = spawn_entity();
 
         // Act
-        backend.set_collision_group(entity, 1, 2);
+        let result = backend.set_collision_group(entity, 1, 2);
+
+        // Assert
+        assert!(result.is_err());
     }
 
     #[test]
@@ -911,8 +970,12 @@ mod tests {
         backend.add_body(entities[1], &RigidBody::Dynamic, Vec2::ZERO);
         backend.add_collider(entities[1], &Collider::Circle(1.0));
         // Both cards: member of group 1, filter allows only group 2
-        backend.set_collision_group(entities[0], 0b0001, 0b0010);
-        backend.set_collision_group(entities[1], 0b0001, 0b0010);
+        backend
+            .set_collision_group(entities[0], 0b0001, 0b0010)
+            .unwrap();
+        backend
+            .set_collision_group(entities[1], 0b0001, 0b0010)
+            .unwrap();
 
         // Act
         backend.step(Seconds(0.016));
@@ -937,9 +1000,9 @@ mod tests {
         backend.add_body(wall, &RigidBody::Dynamic, Vec2::ZERO);
         backend.add_collider(wall, &Collider::Circle(1.0));
         // Card: member of group 1, collides with group 2
-        backend.set_collision_group(card, 0b0001, 0b0010);
+        backend.set_collision_group(card, 0b0001, 0b0010).unwrap();
         // Wall: member of group 2, collides with group 1
-        backend.set_collision_group(wall, 0b0010, 0b0001);
+        backend.set_collision_group(wall, 0b0010, 0b0001).unwrap();
 
         // Act
         backend.step(Seconds(0.016));
@@ -969,8 +1032,12 @@ mod tests {
         backend.add_collider(entities[1], &Collider::Circle(1.0));
 
         // Retroactively set exclusive groups
-        backend.set_collision_group(entities[0], 0b0001, 0b0010);
-        backend.set_collision_group(entities[1], 0b0001, 0b0010);
+        backend
+            .set_collision_group(entities[0], 0b0001, 0b0010)
+            .unwrap();
+        backend
+            .set_collision_group(entities[1], 0b0001, 0b0010)
+            .unwrap();
 
         // Act
         backend.step(Seconds(0.016));

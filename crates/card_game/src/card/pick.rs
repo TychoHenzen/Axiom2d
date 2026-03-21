@@ -180,11 +180,10 @@ fn pick_from_card(
     }
 
     if matches!(zone, CardZone::Table) {
-        state.physics.set_collision_group(
-            entity,
-            DRAGGED_COLLISION_GROUP,
-            DRAGGED_COLLISION_FILTER,
-        );
+        state
+            .physics
+            .set_collision_group(entity, DRAGGED_COLLISION_GROUP, DRAGGED_COLLISION_FILTER)
+            .expect("picked entity should have physics body");
     }
 
     let origin_position = query

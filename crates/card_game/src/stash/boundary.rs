@@ -53,7 +53,9 @@ pub fn stash_boundary_system(
         });
     } else if !info.stash_cursor_follow && over_stash {
         // Enter stash: remove physics body, switch to cursor-follow
-        physics.remove_body(info.entity);
+        physics
+            .remove_body(info.entity)
+            .expect("entity should have physics body during drag release");
         commands
             .entity(info.entity)
             .remove::<RigidBody>()

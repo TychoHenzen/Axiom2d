@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use bevy_ecs::prelude::{Entity, World};
 use engine_core::prelude::Seconds;
-use engine_physics::prelude::{Collider, CollisionEvent, PhysicsBackend, RigidBody};
+use engine_physics::prelude::{Collider, CollisionEvent, PhysicsBackend, PhysicsError, RigidBody};
 use glam::Vec2;
 
 pub(crate) fn spawn_entity() -> Entity {
@@ -111,8 +111,9 @@ impl PhysicsBackend for SpyPhysicsBackend {
         self.collider_log.lock().unwrap().push(entity);
         true
     }
-    fn remove_body(&mut self, entity: Entity) {
+    fn remove_body(&mut self, entity: Entity) -> Result<(), PhysicsError> {
         self.remove_body_log.lock().unwrap().push(entity);
+        Ok(())
     }
     fn body_position(&self, entity: Entity) -> Option<Vec2> {
         self.positions.get(&entity).copied()
@@ -126,29 +127,49 @@ impl PhysicsBackend for SpyPhysicsBackend {
     fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
         Some(Vec2::ZERO)
     }
-    fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2) {
+    fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2) -> Result<(), PhysicsError> {
         self.velocity_log.lock().unwrap().push((entity, velocity));
+        Ok(())
     }
-    fn set_angular_velocity(&mut self, entity: Entity, angular_velocity: f32) {
+    fn set_angular_velocity(
+        &mut self,
+        entity: Entity,
+        angular_velocity: f32,
+    ) -> Result<(), PhysicsError> {
         self.angular_velocity_log
             .lock()
             .unwrap()
             .push((entity, angular_velocity));
+        Ok(())
     }
-    fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) {}
+    fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) -> Result<(), PhysicsError> {
+        Ok(())
+    }
     fn body_angular_velocity(&self, entity: Entity) -> Option<f32> {
         self.angular_velocities.get(&entity).copied()
     }
-    fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32) {
+    fn set_damping(
+        &mut self,
+        entity: Entity,
+        linear: f32,
+        angular: f32,
+    ) -> Result<(), PhysicsError> {
         self.damping_log
             .lock()
             .unwrap()
             .push((entity, linear, angular));
+        Ok(())
     }
-    fn set_collision_group(&mut self, entity: Entity, membership: u32, filter: u32) {
+    fn set_collision_group(
+        &mut self,
+        entity: Entity,
+        membership: u32,
+        filter: u32,
+    ) -> Result<(), PhysicsError> {
         self.collision_group_log
             .lock()
             .unwrap()
             .push((entity, membership, filter));
+        Ok(())
     }
 }

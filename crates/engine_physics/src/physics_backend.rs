@@ -8,21 +8,48 @@ use crate::collider::Collider;
 use crate::collision_event::CollisionEvent;
 use crate::rigid_body::RigidBody;
 
+#[derive(Debug, thiserror::Error)]
+pub enum PhysicsError {
+    #[error("entity {0:?} not found in physics world")]
+    EntityNotFound(Entity),
+    #[error("physics operation failed: {0}")]
+    OperationFailed(String),
+}
+
 pub trait PhysicsBackend: Send + Sync {
     fn step(&mut self, dt: Seconds);
     fn add_body(&mut self, entity: Entity, body_type: &RigidBody, position: Vec2) -> bool;
     fn add_collider(&mut self, entity: Entity, collider: &Collider) -> bool;
-    fn remove_body(&mut self, entity: Entity);
+    fn remove_body(&mut self, entity: Entity) -> Result<(), PhysicsError>;
     fn body_position(&self, entity: Entity) -> Option<Vec2>;
     fn body_rotation(&self, entity: Entity) -> Option<f32>;
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent>;
     fn body_linear_velocity(&self, entity: Entity) -> Option<Vec2>;
-    fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2);
-    fn set_angular_velocity(&mut self, entity: Entity, angular_velocity: f32);
-    fn add_force_at_point(&mut self, entity: Entity, force: Vec2, world_point: Vec2);
+    fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2) -> Result<(), PhysicsError>;
+    fn set_angular_velocity(
+        &mut self,
+        entity: Entity,
+        angular_velocity: f32,
+    ) -> Result<(), PhysicsError>;
+    fn add_force_at_point(
+        &mut self,
+        entity: Entity,
+        force: Vec2,
+        world_point: Vec2,
+    ) -> Result<(), PhysicsError>;
     fn body_angular_velocity(&self, entity: Entity) -> Option<f32>;
-    fn set_damping(&mut self, entity: Entity, linear: f32, angular: f32);
-    fn set_collision_group(&mut self, entity: Entity, membership: u32, filter: u32);
+    fn set_damping(
+        &mut self,
+        entity: Entity,
+        linear: f32,
+        angular: f32,
+    ) -> Result<(), PhysicsError>;
+    fn set_collision_group(
+        &mut self,
+        entity: Entity,
+        membership: u32,
+        filter: u32,
+    ) -> Result<(), PhysicsError>;
 
     fn body_point_to_world(&self, entity: Entity, local_point: Vec2) -> Option<Vec2> {
         let pos = self.body_position(entity)?;
@@ -63,8 +90,9 @@ impl PhysicsBackend for NullPhysicsBackend {
         self.registered.contains(&entity)
     }
 
-    fn remove_body(&mut self, entity: Entity) {
+    fn remove_body(&mut self, entity: Entity) -> Result<(), PhysicsError> {
         self.registered.remove(&entity);
+        Ok(())
     }
 
     fn body_position(&self, _entity: Entity) -> Option<Vec2> {
@@ -83,19 +111,52 @@ impl PhysicsBackend for NullPhysicsBackend {
         None
     }
 
-    fn set_linear_velocity(&mut self, _entity: Entity, _velocity: Vec2) {}
+    fn set_linear_velocity(
+        &mut self,
+        _entity: Entity,
+        _velocity: Vec2,
+    ) -> Result<(), PhysicsError> {
+        Ok(())
+    }
 
-    fn set_angular_velocity(&mut self, _entity: Entity, _angular_velocity: f32) {}
+    fn set_angular_velocity(
+        &mut self,
+        _entity: Entity,
+        _angular_velocity: f32,
+    ) -> Result<(), PhysicsError> {
+        Ok(())
+    }
 
-    fn add_force_at_point(&mut self, _entity: Entity, _force: Vec2, _world_point: Vec2) {}
+    fn add_force_at_point(
+        &mut self,
+        _entity: Entity,
+        _force: Vec2,
+        _world_point: Vec2,
+    ) -> Result<(), PhysicsError> {
+        Ok(())
+    }
 
     fn body_angular_velocity(&self, _entity: Entity) -> Option<f32> {
         None
     }
 
-    fn set_damping(&mut self, _entity: Entity, _linear: f32, _angular: f32) {}
+    fn set_damping(
+        &mut self,
+        _entity: Entity,
+        _linear: f32,
+        _angular: f32,
+    ) -> Result<(), PhysicsError> {
+        Ok(())
+    }
 
-    fn set_collision_group(&mut self, _entity: Entity, _membership: u32, _filter: u32) {}
+    fn set_collision_group(
+        &mut self,
+        _entity: Entity,
+        _membership: u32,
+        _filter: u32,
+    ) -> Result<(), PhysicsError> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -156,7 +217,7 @@ mod tests {
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
 
         // Act
-        backend.remove_body(entity);
+        backend.remove_body(entity).unwrap();
         let re_add = backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
 
         // Assert
@@ -170,7 +231,7 @@ mod tests {
         let entity = spawn_entity();
 
         // Act
-        backend.remove_body(entity);
+        backend.remove_body(entity).unwrap();
     }
 
     #[test]
@@ -246,7 +307,9 @@ mod tests {
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
 
         // Act
-        backend.add_force_at_point(entity, Vec2::new(10.0, 0.0), Vec2::ZERO);
+        backend
+            .add_force_at_point(entity, Vec2::new(10.0, 0.0), Vec2::ZERO)
+            .unwrap();
     }
 
     #[test]
@@ -256,7 +319,9 @@ mod tests {
         let entity = spawn_entity();
 
         // Act
-        backend.add_force_at_point(entity, Vec2::new(0.0, -9.8), Vec2::ZERO);
+        backend
+            .add_force_at_point(entity, Vec2::new(0.0, -9.8), Vec2::ZERO)
+            .unwrap();
     }
 
     #[test]
@@ -267,7 +332,7 @@ mod tests {
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
 
         // Act
-        backend.set_damping(entity, 0.5, 0.1);
+        backend.set_damping(entity, 0.5, 0.1).unwrap();
     }
 
     #[test]
@@ -277,7 +342,7 @@ mod tests {
         let entity = spawn_entity();
 
         // Act
-        backend.set_damping(entity, 1.0, 0.0);
+        backend.set_damping(entity, 1.0, 0.0).unwrap();
     }
 
     #[test]
@@ -287,7 +352,7 @@ mod tests {
         let entity = spawn_entity();
 
         // Act
-        backend.set_collision_group(entity, 1, 2);
+        backend.set_collision_group(entity, 1, 2).unwrap();
     }
 
     #[test]
@@ -299,7 +364,7 @@ mod tests {
         backend.add_collider(entity, &Collider::Circle(1.0));
 
         // Act
-        backend.set_collision_group(entity, 1, 2);
+        backend.set_collision_group(entity, 1, 2).unwrap();
     }
 
     use crate::test_helpers::SpyPhysicsBackend;

@@ -16,6 +16,10 @@ pub(crate) fn activate_physics_body(
 ) {
     physics.add_body(entity, &RigidBody::Dynamic, position);
     physics.add_collider(entity, collider);
-    physics.set_damping(entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
-    physics.set_collision_group(entity, membership, filter);
+    physics
+        .set_damping(entity, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG)
+        .expect("activate_physics_body: entity should have been just added");
+    physics
+        .set_collision_group(entity, membership, filter)
+        .expect("activate_physics_body: entity should have been just added");
 }

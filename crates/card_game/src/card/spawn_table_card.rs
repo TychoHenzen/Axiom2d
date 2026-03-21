@@ -98,7 +98,9 @@ pub fn spawn_visual_card(
     if let Some(mut physics) = world.get_resource_mut::<PhysicsRes>() {
         physics.add_body(root, &RigidBody::Dynamic, position);
         physics.add_collider(root, &Collider::Aabb(half));
-        physics.set_damping(root, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG);
+        physics
+            .set_damping(root, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG)
+            .expect("freshly spawned card should have physics body");
     }
 
     let art_shader = world.get_resource::<CardArtShader>().map(|s| s.0);
