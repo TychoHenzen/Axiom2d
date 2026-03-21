@@ -53,4 +53,10 @@ opt-level = "z"       # optimize for size instead of speed
 lto = true            # full LTO — slower builds, smaller binary
 codegen-units = 1     # better optimization, slower compile
 panic = "abort"       # drops unwind tables
-strip = true          # strips symbols and debug info
+strip = "debuginfo"   # keeps symbol names for stack traces, strips DWARF
+
+[profile.release-debuggable]
+inherits = "release"
+strip = false         # full symbols
+panic = "unwind"      # backtraces work
+opt-level = 2         # speed over size, better debuggability
