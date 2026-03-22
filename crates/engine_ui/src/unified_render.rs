@@ -170,10 +170,16 @@ pub fn unified_render_system(
                 if mesh.is_empty() {
                     continue;
                 }
+                apply_material(
+                    &mut **renderer,
+                    None,
+                    &mut last_shader,
+                    &mut last_blend_mode,
+                );
                 let model = affine2_to_mat4(&transform.0);
                 renderer.draw_colored_mesh(&mesh.vertices, &mesh.indices, model);
                 if let Some(overlays) = overlays {
-                    for entry in &overlays.0 {
+                    for entry in overlays.0.iter().filter(|e| e.visible) {
                         apply_material(
                             &mut **renderer,
                             Some(&entry.material),

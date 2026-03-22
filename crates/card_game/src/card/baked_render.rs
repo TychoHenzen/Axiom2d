@@ -1,19 +1,25 @@
 use bevy_ecs::prelude::{Changed, Or, Query};
-use engine_render::shape::ColorMesh;
+use engine_render::shape::{ColorMesh, MeshOverlays};
 
 use super::baked_mesh::BakedCardMesh;
 use super::component::Card;
 
 /// Syncs `BakedCardMesh` → `ColorMesh` based on `card.face_up`.
+/// Also hides/shows `MeshOverlays` (art shader) — overlays only render face-up.
 /// Runs when `Card` or `BakedCardMesh` changes so the unified render system
 /// always has the correct face mesh to draw.
 pub fn baked_card_sync_system(
     mut query: Query<
-        (&BakedCardMesh, &Card, &mut ColorMesh),
+        (
+            &BakedCardMesh,
+            &Card,
+            &mut ColorMesh,
+            Option<&mut MeshOverlays>,
+        ),
         Or<(Changed<Card>, Changed<BakedCardMesh>)>,
     >,
 ) {
-    for (baked, card, mut mesh) in &mut query {
+    for (baked, card, mut mesh, overlays) in &mut query {
         let face = if card.face_up {
             &baked.front
         } else {
@@ -21,6 +27,11 @@ pub fn baked_card_sync_system(
         };
         if mesh.0 != *face {
             mesh.0.clone_from(face);
+        }
+        if let Some(mut overlays) = overlays {
+            for entry in &mut overlays.0 {
+                entry.visible = card.face_up;
+            }
         }
     }
 }

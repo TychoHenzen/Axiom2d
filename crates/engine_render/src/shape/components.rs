@@ -79,6 +79,7 @@ pub struct OverlayEntry {
     pub indices: [u32; 6],
     pub color: Color,
     pub material: crate::material::Material2d,
+    pub visible: bool,
 }
 
 /// Overlay quads drawn immediately after the entity's `ColorMesh`.

@@ -90,7 +90,7 @@ pub fn spawn_visual_card(
     } else {
         baked.back.clone()
     };
-    let mesh_overlays = build_mesh_overlays(world, card_size, &card.signature);
+    let mesh_overlays = build_mesh_overlays(world, card_size, &card.signature, face_up);
     world
         .entity_mut(root)
         .insert((baked, mesh_overlays, ColorMesh(initial_mesh)));
@@ -102,6 +102,7 @@ fn build_mesh_overlays(
     world: &World,
     card_size: Vec2,
     signature: &CardSignature,
+    face_up: bool,
 ) -> engine_render::shape::MeshOverlays {
     use crate::card::face_layout::FRONT_FACE_REGIONS;
     use engine_render::shape::{MeshOverlays, OverlayEntry};
@@ -125,6 +126,7 @@ fn build_mesh_overlays(
                 shader: art_shader,
                 ..engine_render::material::Material2d::default()
             },
+            visible: face_up,
         });
     }
 
