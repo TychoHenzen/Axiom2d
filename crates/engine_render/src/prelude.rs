@@ -19,8 +19,8 @@ pub use crate::shader::{ShaderHandle, ShaderRegistry, preprocess, shader_prepare
 pub use crate::shape::{
     PathCommand, QUAD_INDICES, Shape, ShapeRenderDisabled, ShapeVariant, Stroke, TessellatedMesh,
     UNIT_QUAD, affine2_to_mat4, rect_polygon, rect_vertices, resolve_commands, reverse_path,
-    sample_cubic, sample_quadratic, shape_render_system, split_contours, tessellate,
-    tessellate_stroke, unit_quad_model,
+    rounded_rect_path, sample_cubic, sample_quadratic, shape_render_system, split_contours,
+    tessellate, tessellate_stroke, unit_quad_model,
 };
 pub use crate::sprite::{Sprite, sprite_render_system};
 pub use crate::window::WindowConfig;

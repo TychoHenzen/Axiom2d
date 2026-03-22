@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::{Entity, World};
 use engine_core::prelude::{Color, TextureId, Transform2D};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
-use engine_render::prelude::{Material2d, ShaderHandle, Shape, rect_polygon};
+use engine_render::prelude::{Material2d, ShaderHandle, Shape, rect_polygon, rounded_rect_path};
 use engine_scene::prelude::{ChildOf, RenderLayer, SortOrder, Visible};
 use glam::Vec2;
 
@@ -12,7 +12,7 @@ use crate::card::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card::definition::{CardDefinition, description_from_abilities, rarity_border_color};
 use crate::card::face_layout::FRONT_FACE_REGIONS;
 use crate::card::face_side::CardFaceSide;
-use crate::card::gem_sockets::{aspect_color, gem_border_positions, gem_radius};
+use crate::card::gem_sockets::{aspect_color, gem_desc_positions, gem_radius};
 use crate::card::label::CardLabel;
 use crate::card::residual::ResidualStats;
 use crate::card::signature::CardSignature;
@@ -24,6 +24,8 @@ use crate::stash::icon::StashIcon;
 use engine_scene::sort_propagation::LocalSortOrder;
 use engine_ui::prelude::Text;
 
+const CARD_CORNER_RADIUS: f32 = 5.0;
+
 struct FaceChildDef {
     side: CardFaceSide,
     visible: bool,
@@ -33,16 +35,22 @@ struct FaceChildDef {
     color: Color,
     sort: i32,
     shader: Option<ShaderHandle>,
+    rounded: bool,
 }
 
 fn spawn_face_child(world: &mut World, root: Entity, def: &FaceChildDef) {
+    let variant = if def.rounded {
+        rounded_rect_path(def.half_w, def.half_h, CARD_CORNER_RADIUS)
+    } else {
+        rect_polygon(def.half_w, def.half_h)
+    };
     let entity = world
         .spawn((
             ChildOf(root),
             def.side,
             Visible(def.visible),
             Shape {
-                variant: rect_polygon(def.half_w, def.half_h),
+                variant,
                 color: def.color,
             },
             Transform2D {
@@ -197,6 +205,7 @@ fn spawn_front_face_children(
                 color,
                 sort: (i + 1) as i32,
                 shader,
+                rounded: i == 0,
             },
         );
     }
@@ -243,7 +252,7 @@ fn spawn_text_children(
     ));
 
     let (desc_half_w, _, desc_offset_y) = FRONT_FACE_REGIONS[3].resolve(card_size.x, h);
-    let desc_font_size = h / 16.0;
+    let desc_font_size = h / 20.0;
     let desc_max_width = desc_half_w * 2.0 * 0.9;
     world.spawn((
         ChildOf(root),
@@ -278,6 +287,7 @@ fn spawn_back_face_children(world: &mut World, root: Entity, card_size: Vec2, fa
             color: Color::from_u8(30, 60, 120, 255),
             sort: 1,
             shader: None,
+            rounded: true,
         },
         FaceChildDef {
             side: CardFaceSide::Back,
@@ -288,6 +298,7 @@ fn spawn_back_face_children(world: &mut World, root: Entity, card_size: Vec2, fa
             color: Color::from_u8(60, 100, 180, 255),
             sort: 2,
             shader: None,
+            rounded: false,
         },
     ];
     for def in &children {
@@ -306,7 +317,7 @@ fn spawn_gem_children(
 ) {
     use engine_render::prelude::ShapeVariant;
 
-    let positions = gem_border_positions(card_size);
+    let positions = gem_desc_positions(card_size);
     let elements = [
         Element::Solidum,
         Element::Febris,
@@ -1270,6 +1281,166 @@ mod tests {
             "negative Febris gem should be cool: b={} > r={}",
             gem.0.color.b,
             gem.0.color.r
+        );
+    }
+
+    fn shape_child_at_sort(
+        world: &mut World,
+        root: Entity,
+        side: CardFaceSide,
+        sort: i32,
+    ) -> Option<engine_render::prelude::Shape> {
+        let mut q = world.query::<(
+            &ChildOf,
+            &CardFaceSide,
+            &engine_render::prelude::Shape,
+            &LocalSortOrder,
+        )>();
+        q.iter(world)
+            .find(|(parent, s, _, ls)| parent.0 == root && **s == side && ls.0 == sort)
+            .map(|(_, _, shape, _)| shape.clone())
+    }
+
+    // --- Rounded corners integration tests ---
+
+    #[test]
+    fn when_spawn_visual_card_then_border_uses_path_variant() {
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+
+        // Act
+        let root = spawn_def(&mut world, &def);
+
+        // Assert — front border is sort 1
+        let border = shape_child_at_sort(&mut world, root, CardFaceSide::Front, 1)
+            .expect("front border child");
+        assert!(
+            matches!(
+                border.variant,
+                engine_render::prelude::ShapeVariant::Path { .. }
+            ),
+            "front border should use Path (rounded), got {:?}",
+            std::mem::discriminant(&border.variant)
+        );
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_back_border_uses_path_variant() {
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+
+        // Act
+        let root = spawn_def(&mut world, &def);
+
+        // Assert — back border is sort 1
+        let border = shape_child_at_sort(&mut world, root, CardFaceSide::Back, 1)
+            .expect("back border child");
+        assert!(
+            matches!(
+                border.variant,
+                engine_render::prelude::ShapeVariant::Path { .. }
+            ),
+            "back border should use Path (rounded)"
+        );
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_inner_regions_stay_polygon() {
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+
+        // Act
+        let root = spawn_def(&mut world, &def);
+
+        // Assert — front sorts 2 (name strip), 3 (art area), 4 (desc strip) should be Polygon
+        for sort in [2, 3, 4] {
+            let shape = shape_child_at_sort(&mut world, root, CardFaceSide::Front, sort)
+                .unwrap_or_else(|| panic!("front child at sort {sort}"));
+            assert!(
+                matches!(
+                    shape.variant,
+                    engine_render::prelude::ShapeVariant::Polygon { .. }
+                ),
+                "front sort {sort} should stay Polygon"
+            );
+        }
+        // Back sort 2 (inner panel) should be Polygon
+        let inner =
+            shape_child_at_sort(&mut world, root, CardFaceSide::Back, 2).expect("back inner panel");
+        assert!(
+            matches!(
+                inner.variant,
+                engine_render::prelude::ShapeVariant::Polygon { .. }
+            ),
+            "back inner panel should stay Polygon"
+        );
+    }
+
+    // --- Gem repositioning integration tests ---
+
+    #[test]
+    fn when_spawn_visual_card_then_gems_within_card_bounds() {
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+        let card_size = Vec2::new(CARD_WIDTH, CARD_HEIGHT);
+
+        // Act
+        let root = spawn_def(&mut world, &def);
+
+        // Assert
+        let mut q = world.query::<(&ChildOf, &engine_render::prelude::Shape, &Transform2D)>();
+        let gem_positions: Vec<Vec2> = q
+            .iter(&world)
+            .filter(|(parent, shape, _)| {
+                parent.0 == root
+                    && matches!(
+                        shape.variant,
+                        engine_render::prelude::ShapeVariant::Circle { .. }
+                    )
+            })
+            .map(|(_, _, t)| t.position)
+            .collect();
+        assert_eq!(gem_positions.len(), 8);
+        let half_w = card_size.x * 0.5;
+        let half_h = card_size.y * 0.5;
+        for (i, pos) in gem_positions.iter().enumerate() {
+            assert!(
+                pos.x.abs() <= half_w && pos.y.abs() <= half_h,
+                "gem {i} at ({}, {}) is outside card bounds",
+                pos.x,
+                pos.y
+            );
+        }
+    }
+
+    #[test]
+    fn when_spawn_visual_card_then_desc_text_fits_within_desc_strip() {
+        use crate::card::face_layout::FRONT_FACE_REGIONS;
+
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+        let card_size = Vec2::new(CARD_WIDTH, CARD_HEIGHT);
+        let (desc_half_w, _, _) = FRONT_FACE_REGIONS[3].resolve(card_size.x, card_size.y);
+        let desc_full_width = desc_half_w * 2.0;
+
+        // Act
+        let root = spawn_def_face_up(&mut world, &def);
+
+        // Assert
+        let texts = text_children_for_side(&mut world, root, CardFaceSide::Front);
+        let desc_text = texts
+            .iter()
+            .find(|(t, _, _)| t.content == "Deal 3 damage")
+            .expect("desc text");
+        let max_width = desc_text.0.max_width.expect("desc should have max_width");
+        assert!(
+            max_width <= desc_full_width,
+            "desc max_width {max_width} should fit within desc strip width {desc_full_width}"
         );
     }
 

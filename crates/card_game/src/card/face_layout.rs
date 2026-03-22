@@ -2,10 +2,6 @@ use engine_core::prelude::Color;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum OffsetY {
-    /// Flush to the top edge of the card.
-    TopFlush,
-    /// Flush to the bottom edge of the card.
-    BottomFlush,
     /// Fractional offset relative to card center (e.g. -0.1 = 10% above center).
     Fractional(f32),
 }
@@ -18,8 +14,8 @@ pub(crate) struct FaceRegion {
     pub use_art_shader: bool,
 }
 
-// half_h values as fractions of card height:
-// 7.5 / 90.0 = 1/12, 22.5 / 90.0 = 1/4, 15.0 / 90.0 = 1/6
+// Inner region width: 0.40 → half_w = 24 on a 60-wide card (6-unit border margin per side).
+// Vertical: name/desc use Fractional offsets for ~4-unit top/bottom border margins.
 pub(crate) const FRONT_FACE_REGIONS: [FaceRegion; 4] = [
     // Border (full card)
     FaceRegion {
@@ -29,10 +25,10 @@ pub(crate) const FRONT_FACE_REGIONS: [FaceRegion; 4] = [
         color: Color::WHITE,
         use_art_shader: false,
     },
-    // Name strip
+    // Name strip (inset from top edge by ~4 units on a 90-tall card)
     FaceRegion {
-        offset_y: OffsetY::TopFlush,
-        half_w_frac: 0.45,
+        offset_y: OffsetY::Fractional(-0.38),
+        half_w_frac: 0.40,
         half_h_frac: 1.0 / 12.0,
         color: Color {
             r: 0.863,
@@ -45,7 +41,7 @@ pub(crate) const FRONT_FACE_REGIONS: [FaceRegion; 4] = [
     // Art area
     FaceRegion {
         offset_y: OffsetY::Fractional(-0.1),
-        half_w_frac: 0.45,
+        half_w_frac: 0.40,
         half_h_frac: 0.25,
         color: Color {
             r: 0.706,
@@ -55,10 +51,10 @@ pub(crate) const FRONT_FACE_REGIONS: [FaceRegion; 4] = [
         },
         use_art_shader: true,
     },
-    // Description strip
+    // Description strip (inset from bottom edge by ~5 units on a 90-tall card)
     FaceRegion {
-        offset_y: OffsetY::BottomFlush,
-        half_w_frac: 0.45,
+        offset_y: OffsetY::Fractional(0.28),
+        half_w_frac: 0.40,
         half_h_frac: 1.0 / 6.0,
         color: Color {
             r: 0.941,
@@ -75,8 +71,6 @@ impl FaceRegion {
         let half_w = card_w * self.half_w_frac;
         let half_h = card_h * self.half_h_frac;
         let offset_y = match self.offset_y {
-            OffsetY::TopFlush => -(card_h * 0.5 - half_h),
-            OffsetY::BottomFlush => card_h * 0.5 - half_h,
             OffsetY::Fractional(frac) => card_h * frac,
         };
         (half_w, half_h, offset_y)

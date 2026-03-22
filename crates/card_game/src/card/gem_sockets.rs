@@ -54,6 +54,34 @@ pub fn gem_border_positions(card_size: Vec2) -> [Vec2; 8] {
     ]
 }
 
+/// Returns the 8 gem socket positions flanking the description strip.
+/// Layout: 4 gems in a vertical column on each side, in the border margin
+/// between the description strip outer edge and the card edge.
+/// Positions are relative to card center (child-space offsets).
+pub fn gem_desc_positions(card_size: Vec2) -> [Vec2; 8] {
+    use crate::card::face_layout::FRONT_FACE_REGIONS;
+
+    let card_half_w = card_size.x * 0.5;
+    let (desc_half_w, desc_half_h, desc_offset_y) =
+        FRONT_FACE_REGIONS[3].resolve(card_size.x, card_size.y);
+
+    // Gem columns sit in the margin between desc strip edge and card edge,
+    // centered so they don't exceed card bounds.
+    let outer_limit = card_half_w - MAX_GEM_RADIUS;
+    let col_x = (desc_half_w + outer_limit) * 0.5;
+
+    let gem_count_per_col = 4;
+    let step = (desc_half_h * 2.0) / (gem_count_per_col as f32 + 1.0);
+
+    let mut positions = [Vec2::ZERO; 8];
+    for i in 0..gem_count_per_col {
+        let y = desc_offset_y - desc_half_h + step * (i as f32 + 1.0);
+        positions[i] = Vec2::new(-col_x, y);
+        positions[i + gem_count_per_col] = Vec2::new(col_x, y);
+    }
+    positions
+}
+
 pub const MIN_GEM_RADIUS: f32 = 1.0;
 pub const MAX_GEM_RADIUS: f32 = 3.5;
 
@@ -148,6 +176,136 @@ mod tests {
                 "gem {i} at ({}, {}) is outside card bounds",
                 pos.x,
                 pos.y
+            );
+        }
+    }
+
+    // --- gem_desc_positions tests ---
+
+    #[test]
+    fn when_gem_desc_positions_called_then_returns_eight_positions() {
+        // Arrange
+        let card_size = Vec2::new(60.0, 90.0);
+
+        // Act
+        let positions = gem_desc_positions(card_size);
+
+        // Assert
+        assert_eq!(positions.len(), 8);
+    }
+
+    #[test]
+    fn when_gem_desc_positions_called_then_four_left_four_right_of_center() {
+        // Arrange
+        let card_size = Vec2::new(60.0, 90.0);
+
+        // Act
+        let positions = gem_desc_positions(card_size);
+
+        // Assert
+        let left_count = positions.iter().filter(|p| p.x < 0.0).count();
+        let right_count = positions.iter().filter(|p| p.x > 0.0).count();
+        assert_eq!(left_count, 4, "should have 4 gems on the left");
+        assert_eq!(right_count, 4, "should have 4 gems on the right");
+    }
+
+    #[test]
+    fn when_gem_desc_positions_called_then_all_within_card_bounds() {
+        // Arrange
+        let card_size = Vec2::new(60.0, 90.0);
+        let half_w = card_size.x * 0.5;
+        let half_h = card_size.y * 0.5;
+
+        // Act
+        let positions = gem_desc_positions(card_size);
+
+        // Assert
+        for (i, pos) in positions.iter().enumerate() {
+            assert!(
+                pos.x.abs() <= half_w && pos.y.abs() <= half_h,
+                "gem {i} at ({}, {}) is outside card bounds",
+                pos.x,
+                pos.y
+            );
+        }
+    }
+
+    #[test]
+    fn when_gem_desc_positions_called_then_columns_are_symmetric() {
+        // Arrange
+        let card_size = Vec2::new(60.0, 90.0);
+
+        // Act
+        let positions = gem_desc_positions(card_size);
+        let mut left: Vec<Vec2> = positions.iter().filter(|p| p.x < 0.0).copied().collect();
+        let mut right: Vec<Vec2> = positions.iter().filter(|p| p.x > 0.0).copied().collect();
+        left.sort_by(|a, b| a.y.partial_cmp(&b.y).unwrap());
+        right.sort_by(|a, b| a.y.partial_cmp(&b.y).unwrap());
+
+        // Assert — each left/right pair should have same y and mirrored x
+        for (l, r) in left.iter().zip(right.iter()) {
+            assert!(
+                (l.y - r.y).abs() < 1e-4,
+                "y mismatch: left={}, right={}",
+                l.y,
+                r.y
+            );
+            assert!(
+                (l.x + r.x).abs() < 1e-4,
+                "x not mirrored: left={}, right={}",
+                l.x,
+                r.x
+            );
+        }
+    }
+
+    #[test]
+    fn when_gem_desc_positions_called_then_y_positions_span_desc_strip() {
+        use crate::card::face_layout::FRONT_FACE_REGIONS;
+
+        // Arrange
+        let card_size = Vec2::new(60.0, 90.0);
+        let (_, desc_half_h, desc_offset_y) =
+            FRONT_FACE_REGIONS[3].resolve(card_size.x, card_size.y);
+        let desc_top = desc_offset_y - desc_half_h;
+        let desc_bottom = desc_offset_y + desc_half_h;
+
+        // Act
+        let positions = gem_desc_positions(card_size);
+
+        // Assert
+        for (i, pos) in positions.iter().enumerate() {
+            assert!(
+                pos.y >= desc_top - 1e-4 && pos.y <= desc_bottom + 1e-4,
+                "gem {i} y={} outside desc strip [{}, {}]",
+                pos.y,
+                desc_top,
+                desc_bottom
+            );
+        }
+    }
+
+    #[test]
+    fn when_gem_desc_positions_called_then_four_distinct_y_values() {
+        // Arrange
+        let card_size = Vec2::new(60.0, 90.0);
+
+        // Act
+        let positions = gem_desc_positions(card_size);
+        let mut left_ys: Vec<f32> = positions
+            .iter()
+            .filter(|p| p.x < 0.0)
+            .map(|p| p.y)
+            .collect();
+        left_ys.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+        // Assert — all 4 y-values should be distinct
+        for window in left_ys.windows(2) {
+            assert!(
+                (window[1] - window[0]).abs() > 1.0,
+                "y-values too close: {} and {}",
+                window[0],
+                window[1]
             );
         }
     }

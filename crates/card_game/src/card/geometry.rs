@@ -7,7 +7,7 @@ pub const TABLE_CARD_SIZE: Vec2 = Vec2::new(TABLE_CARD_WIDTH, TABLE_CARD_HEIGHT)
 /// Half-extents of the art shader's fixed coordinate space.
 /// Vertices passed to `draw_shape` with the art shader MUST be in
 /// `[-ART_HALF_W, ART_HALF_W] × [-ART_HALF_H, ART_HALF_H]`.
-pub(crate) const ART_HALF_W: f32 = 27.0;
+pub(crate) const ART_HALF_W: f32 = 24.0;
 pub(crate) const ART_HALF_H: f32 = 22.5;
 
 /// Quad vertices matching the art shader's expected coordinate space.

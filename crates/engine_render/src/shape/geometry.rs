@@ -1,4 +1,5 @@
 use super::ShapeVariant;
+use super::path::PathCommand;
 use glam::Vec2;
 
 /// Normalized unit quad with vertices in [-0.5, 0.5].
@@ -29,6 +30,47 @@ pub fn rect_polygon(half_w: f32, half_h: f32) -> ShapeVariant {
             Vec2::new(half_w, -half_h),
             Vec2::new(half_w, half_h),
             Vec2::new(-half_w, half_h),
+        ],
+    }
+}
+
+/// Create a rounded rectangle path centered at origin with given half-extents and corner radius.
+///
+/// Traces the outline clockwise starting from the bottom-left arc end point.
+/// Each corner uses a single `QuadraticTo` with the sharp corner as control point.
+pub fn rounded_rect_path(half_w: f32, half_h: f32, radius: f32) -> ShapeVariant {
+    let r = radius;
+    let (l, ri, b, t) = (-half_w, half_w, -half_h, half_h);
+
+    ShapeVariant::Path {
+        commands: vec![
+            // Start at bottom-left arc end (moving right along bottom edge)
+            PathCommand::MoveTo(Vec2::new(l + r, b)),
+            // Bottom edge → bottom-right corner arc
+            PathCommand::LineTo(Vec2::new(ri - r, b)),
+            PathCommand::QuadraticTo {
+                control: Vec2::new(ri, b),
+                to: Vec2::new(ri, b + r),
+            },
+            // Right edge → top-right corner arc
+            PathCommand::LineTo(Vec2::new(ri, t - r)),
+            PathCommand::QuadraticTo {
+                control: Vec2::new(ri, t),
+                to: Vec2::new(ri - r, t),
+            },
+            // Top edge → top-left corner arc
+            PathCommand::LineTo(Vec2::new(l + r, t)),
+            PathCommand::QuadraticTo {
+                control: Vec2::new(l, t),
+                to: Vec2::new(l, t - r),
+            },
+            // Left edge → bottom-left corner arc
+            PathCommand::LineTo(Vec2::new(l, b + r)),
+            PathCommand::QuadraticTo {
+                control: Vec2::new(l, b),
+                to: Vec2::new(l + r, b),
+            },
+            PathCommand::Close,
         ],
     }
 }
@@ -84,5 +126,208 @@ mod tests {
         assert_eq!(verts[1], [40.0, 20.0]);
         assert_eq!(verts[2], [40.0, 60.0]);
         assert_eq!(verts[3], [10.0, 60.0]);
+    }
+
+    #[test]
+    fn when_rounded_rect_path_called_then_returns_path_variant() {
+        // Arrange
+        let half_w = 30.0_f32;
+        let half_h = 45.0_f32;
+        let radius = 5.0_f32;
+
+        // Act
+        let variant = rounded_rect_path(half_w, half_h, radius);
+
+        // Assert
+        assert!(
+            matches!(variant, ShapeVariant::Path { .. }),
+            "expected ShapeVariant::Path, got {variant:?}"
+        );
+    }
+
+    #[test]
+    fn when_rounded_rect_path_called_then_starts_with_moveto_ends_with_close() {
+        // Arrange / Act
+        let ShapeVariant::Path { ref commands } = rounded_rect_path(30.0, 45.0, 5.0) else {
+            panic!("expected Path");
+        };
+
+        // Assert
+        assert!(
+            matches!(commands.first(), Some(PathCommand::MoveTo(_))),
+            "path must start with MoveTo"
+        );
+        assert!(
+            matches!(commands.last(), Some(PathCommand::Close)),
+            "path must end with Close"
+        );
+    }
+
+    #[test]
+    fn when_rounded_rect_path_called_then_contains_four_quadratic_curves() {
+        // Arrange / Act
+        let ShapeVariant::Path { ref commands } = rounded_rect_path(30.0, 45.0, 5.0) else {
+            panic!("expected Path");
+        };
+
+        // Assert
+        let quad_count = commands
+            .iter()
+            .filter(|c| matches!(c, PathCommand::QuadraticTo { .. }))
+            .count();
+        assert_eq!(quad_count, 4, "one QuadraticTo per corner");
+    }
+
+    #[test]
+    fn when_rounded_rect_path_called_then_no_sampled_point_exceeds_half_extents() {
+        use super::super::path::sample_quadratic;
+
+        // Arrange
+        let half_w = 30.0_f32;
+        let half_h = 45.0_f32;
+        let ShapeVariant::Path { ref commands } = rounded_rect_path(half_w, half_h, 5.0) else {
+            panic!("expected Path");
+        };
+
+        // Act — sample all quadratic curves
+        let mut prev = Vec2::ZERO;
+        for cmd in commands {
+            match *cmd {
+                PathCommand::MoveTo(p) | PathCommand::LineTo(p) => {
+                    assert!(
+                        p.x.abs() <= half_w + 1e-4 && p.y.abs() <= half_h + 1e-4,
+                        "point ({}, {}) exceeds bounds",
+                        p.x,
+                        p.y
+                    );
+                    prev = p;
+                }
+                PathCommand::QuadraticTo { control, to } => {
+                    for pt in sample_quadratic(prev, control, to, 20) {
+                        assert!(
+                            pt.x.abs() <= half_w + 1e-4 && pt.y.abs() <= half_h + 1e-4,
+                            "sampled point ({}, {}) exceeds bounds",
+                            pt.x,
+                            pt.y
+                        );
+                    }
+                    prev = to;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    #[test]
+    fn when_rounded_rect_path_called_then_control_points_at_sharp_corners() {
+        // Arrange
+        let half_w = 30.0_f32;
+        let half_h = 45.0_f32;
+        let ShapeVariant::Path { ref commands } = rounded_rect_path(half_w, half_h, 5.0) else {
+            panic!("expected Path");
+        };
+
+        // Act
+        let controls: Vec<Vec2> = commands
+            .iter()
+            .filter_map(|c| match c {
+                PathCommand::QuadraticTo { control, .. } => Some(*control),
+                _ => None,
+            })
+            .collect();
+
+        // Assert — each control point should be at one of the 4 sharp corners
+        let corners = [
+            Vec2::new(half_w, -half_h),
+            Vec2::new(half_w, half_h),
+            Vec2::new(-half_w, half_h),
+            Vec2::new(-half_w, -half_h),
+        ];
+        for ctrl in &controls {
+            assert!(
+                corners
+                    .iter()
+                    .any(|c| (ctrl.x - c.x).abs() < 1e-4 && (ctrl.y - c.y).abs() < 1e-4),
+                "control point ({}, {}) is not at any corner",
+                ctrl.x,
+                ctrl.y
+            );
+        }
+    }
+
+    #[test]
+    fn when_rounded_rect_path_called_then_arc_endpoints_offset_by_radius() {
+        // Arrange
+        let half_w = 30.0_f32;
+        let half_h = 45.0_f32;
+        let radius = 5.0_f32;
+        let ShapeVariant::Path { ref commands } = rounded_rect_path(half_w, half_h, radius) else {
+            panic!("expected Path");
+        };
+
+        // Act — collect (control, to) pairs from QuadraticTo commands
+        // and the preceding LineTo endpoint as the arc start
+        let mut prev = Vec2::ZERO;
+        for cmd in commands {
+            match *cmd {
+                PathCommand::MoveTo(p) | PathCommand::LineTo(p) => prev = p,
+                PathCommand::QuadraticTo { control, to } => {
+                    // Arc start (prev) should be radius away from the control point along one axis
+                    let d_start = (prev - control).abs();
+                    let d_end = (to - control).abs();
+                    assert!(
+                        (d_start.x.min(d_start.y) < 1e-4
+                            && (d_start.x.max(d_start.y) - radius).abs() < 1e-4),
+                        "arc start ({}, {}) not radius={radius} from control ({}, {})",
+                        prev.x,
+                        prev.y,
+                        control.x,
+                        control.y
+                    );
+                    assert!(
+                        (d_end.x.min(d_end.y) < 1e-4
+                            && (d_end.x.max(d_end.y) - radius).abs() < 1e-4),
+                        "arc end ({}, {}) not radius={radius} from control ({}, {})",
+                        to.x,
+                        to.y,
+                        control.x,
+                        control.y
+                    );
+                    prev = to;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    #[test]
+    fn when_rounded_rect_path_with_zero_radius_then_points_at_corners() {
+        // Arrange / Act
+        let ShapeVariant::Path { ref commands } = rounded_rect_path(30.0, 45.0, 0.0) else {
+            panic!("expected Path");
+        };
+
+        // Assert — all MoveTo/LineTo/QuadraticTo endpoints should be at corners
+        let corners = [
+            Vec2::new(30.0, -45.0),
+            Vec2::new(30.0, 45.0),
+            Vec2::new(-30.0, 45.0),
+            Vec2::new(-30.0, -45.0),
+        ];
+        for cmd in commands {
+            let points: Vec<Vec2> = match *cmd {
+                PathCommand::MoveTo(p) | PathCommand::LineTo(p) => vec![p],
+                PathCommand::QuadraticTo { control, to } => vec![control, to],
+                _ => vec![],
+            };
+            for pt in points {
+                assert!(
+                    corners.iter().any(|c| (pt - *c).length() < 1e-4),
+                    "point ({}, {}) is not at any corner with radius=0",
+                    pt.x,
+                    pt.y
+                );
+            }
+        }
     }
 }
