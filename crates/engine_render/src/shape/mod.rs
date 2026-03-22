@@ -4,7 +4,7 @@ mod path;
 mod render;
 mod tessellate;
 
-pub use components::{Shape, ShapeVariant, Stroke, TessellatedMesh};
+pub use components::{ColorVertex, Shape, ShapeVariant, Stroke, TessellatedColorMesh, TessellatedMesh};
 pub use geometry::{
     QUAD_INDICES, UNIT_QUAD, rect_polygon, rect_vertices, rounded_rect_path, unit_quad_model,
 };

@@ -17,7 +17,8 @@ pub use crate::rect::Rect;
 pub use crate::renderer::{IDENTITY_MODEL, NullRenderer, RenderError, Renderer, RendererRes};
 pub use crate::shader::{ShaderHandle, ShaderRegistry, preprocess, shader_prepare_system};
 pub use crate::shape::{
-    PathCommand, QUAD_INDICES, Shape, ShapeRenderDisabled, ShapeVariant, Stroke, TessellatedMesh,
+    ColorVertex, PathCommand, QUAD_INDICES, Shape, ShapeRenderDisabled, ShapeVariant, Stroke,
+    TessellatedColorMesh, TessellatedMesh,
     UNIT_QUAD, affine2_to_mat4, rect_polygon, rect_vertices, resolve_commands, reverse_path,
     rounded_rect_path, sample_cubic, sample_quadratic, shape_render_system, split_contours,
     tessellate, tessellate_stroke, unit_quad_model,

@@ -29,10 +29,89 @@ pub struct TessellatedMesh {
     pub indices: Vec<u32>,
 }
 
+/// Vertex with baked position and RGBA color.
+/// Layout matches `ShapeVertex` in the wgpu renderer (24 bytes).
+#[repr(C)]
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct ColorVertex {
+    pub position: [f32; 2],
+    pub color: [f32; 4],
+}
+
+/// Pre-tessellated mesh with per-vertex color.
+/// Used by `BakedCardMesh` to store card geometry that never changes.
+#[derive(Clone, Debug, Default)]
+pub struct TessellatedColorMesh {
+    pub vertices: Vec<ColorVertex>,
+    pub indices: Vec<u32>,
+}
+
+impl TessellatedColorMesh {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Append position-only vertices with a uniform color, offsetting indices.
+    pub fn push_vertices(
+        &mut self,
+        positions: &[[f32; 2]],
+        indices: &[u32],
+        color: [f32; 4],
+    ) {
+        let base = self.vertices.len() as u32;
+        self.vertices.extend(
+            positions.iter().map(|&position| ColorVertex { position, color }),
+        );
+        self.indices.extend(indices.iter().map(|&i| i + base));
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.vertices.is_empty()
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn when_color_vertex_size_checked_then_exactly_24_bytes() {
+        // Act
+        let size = std::mem::size_of::<ColorVertex>();
+
+        // Assert
+        assert_eq!(size, 24);
+    }
+
+    #[test]
+    fn when_colored_mesh_merge_two_triangles_then_indices_offset_correctly() {
+        // Arrange
+        let mut mesh = TessellatedColorMesh::new();
+        let white = [1.0, 1.0, 1.0, 1.0];
+        let red = [1.0, 0.0, 0.0, 1.0];
+        mesh.push_vertices(
+            &[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]],
+            &[0, 1, 2],
+            white,
+        );
+
+        // Act
+        mesh.push_vertices(
+            &[[2.0, 0.0], [3.0, 0.0], [2.5, 1.0]],
+            &[0, 1, 2],
+            red,
+        );
+
+        // Assert
+        assert_eq!(mesh.vertices.len(), 6);
+        assert_eq!(mesh.indices.len(), 6);
+        assert_eq!(mesh.indices[3..], [3, 4, 5]);
+        assert_eq!(mesh.vertices[0].color, white);
+        assert_eq!(mesh.vertices[3].color, red);
+    }
 
     #[test]
     fn when_polygon_shape_variant_debug_formatted_then_snapshot_matches() {
