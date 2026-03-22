@@ -1,5 +1,5 @@
 use crate::card::art_shader::register_card_art_shader;
-use crate::card::baked_render::{baked_card_sync_system, card_art_overlay_system};
+use crate::card::baked_render::baked_card_sync_system;
 use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
 use crate::card::camera_drag::{CameraDragState, camera_drag_system, camera_zoom_system};
 use crate::card::damping::card_damping_system;
@@ -111,10 +111,6 @@ fn register_systems(app: &mut App) {
     .add_systems(
         Phase::Render,
         unified_render_system.after(shape_render_system),
-    )
-    .add_systems(
-        Phase::Render,
-        card_art_overlay_system.after(unified_render_system),
     )
     .add_systems(
         Phase::Render,

@@ -5,7 +5,7 @@ use engine_render::font::{GlyphCache, measure_text, render_text_transformed, wra
 use engine_render::material::{Material2d, apply_material};
 use engine_render::prelude::RendererRes;
 use engine_render::shape::{
-    ColorMesh, Shape, ShapeVariant, Stroke, affine2_to_mat4, shape_aabb, tessellate,
+    ColorMesh, MeshOverlays, Shape, ShapeVariant, Stroke, affine2_to_mat4, shape_aabb, tessellate,
     tessellate_stroke,
 };
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
@@ -42,6 +42,7 @@ type ColorMeshItem<'w> = (
     Option<&'w RenderLayer>,
     Option<&'w SortOrder>,
     Option<&'w EffectiveVisibility>,
+    Option<&'w MeshOverlays>,
 );
 
 #[derive(Clone, Copy)]
@@ -100,7 +101,7 @@ fn collect_draw_items(
             kind: DrawKind::Text,
         });
     }
-    for (entity, _, _, layer, sort, vis) in color_mesh_query.iter() {
+    for (entity, _, _, layer, sort, vis, _) in color_mesh_query.iter() {
         if vis.is_some_and(|v| !v.0) {
             continue;
         }
@@ -162,7 +163,8 @@ pub fn unified_render_system(
                 draw_text(&mut **renderer, &mut cache, text, global_transform);
             }
             DrawKind::ColorMesh => {
-                let Ok((_, mesh, transform, _, _, _)) = color_mesh_query.get(item.entity) else {
+                let Ok((_, mesh, transform, _, _, _, overlays)) = color_mesh_query.get(item.entity)
+                else {
                     continue;
                 };
                 if mesh.is_empty() {
@@ -170,6 +172,17 @@ pub fn unified_render_system(
                 }
                 let model = affine2_to_mat4(&transform.0);
                 renderer.draw_colored_mesh(&mesh.vertices, &mesh.indices, model);
+                if let Some(overlays) = overlays {
+                    for entry in &overlays.0 {
+                        apply_material(
+                            &mut **renderer,
+                            Some(&entry.material),
+                            &mut last_shader,
+                            &mut last_blend_mode,
+                        );
+                        renderer.draw_shape(&entry.vertices, &entry.indices, entry.color, model);
+                    }
+                }
             }
         }
     }

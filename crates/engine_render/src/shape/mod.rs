@@ -5,7 +5,8 @@ mod render;
 mod tessellate;
 
 pub use components::{
-    ColorMesh, ColorVertex, Shape, ShapeVariant, Stroke, TessellatedColorMesh, TessellatedMesh,
+    ColorMesh, ColorVertex, MeshOverlays, OverlayEntry, Shape, ShapeVariant, Stroke,
+    TessellatedColorMesh, TessellatedMesh,
 };
 pub use geometry::{
     QUAD_INDICES, UNIT_QUAD, rect_polygon, rect_vertices, rounded_rect_path, unit_quad_model,

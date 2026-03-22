@@ -71,6 +71,22 @@ impl TessellatedColorMesh {
     }
 }
 
+/// A shape overlay drawn on top of the entity's primary mesh.
+/// Used for shader-driven effects (art areas, foil, etc.) that can't be baked.
+#[derive(Clone, Debug)]
+pub struct OverlayEntry {
+    pub vertices: [[f32; 2]; 4],
+    pub indices: [u32; 6],
+    pub color: Color,
+    pub material: crate::material::Material2d,
+}
+
+/// Overlay quads drawn immediately after the entity's `ColorMesh`.
+/// Each entry gets its own shader/material application and draw call,
+/// but shares the entity's model transform and sort order.
+#[derive(Component, Clone, Debug, Default)]
+pub struct MeshOverlays(pub Vec<OverlayEntry>);
+
 /// ECS component wrapping a pre-tessellated colored mesh for direct rendering.
 /// The unified render system draws this via `draw_colored_mesh`, bypassing
 /// per-frame tessellation. Game code sets this component to control what is drawn.

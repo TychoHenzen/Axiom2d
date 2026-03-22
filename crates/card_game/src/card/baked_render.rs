@@ -1,54 +1,8 @@
-use bevy_ecs::prelude::{Changed, Or, Query, ResMut};
-use engine_render::material::apply_material;
-use engine_render::prelude::RendererRes;
-use engine_render::shape::{ColorMesh, affine2_to_mat4};
-use engine_scene::prelude::GlobalTransform2D;
+use bevy_ecs::prelude::{Changed, Or, Query};
+use engine_render::shape::ColorMesh;
 
-use super::baked_mesh::{BakedCardMesh, CardOverlays};
+use super::baked_mesh::BakedCardMesh;
 use super::component::Card;
-use super::visual_params::generate_card_visuals;
-
-const QUAD_INDICES: [u32; 6] = [0, 1, 2, 0, 2, 3];
-
-/// Draws art shader overlays on top of baked card meshes.
-/// Runs after `unified_render_system` in the Render phase.
-pub fn card_art_overlay_system(
-    query: Query<(&Card, &CardOverlays, &GlobalTransform2D)>,
-    mut renderer: ResMut<RendererRes>,
-) {
-    let mut last_shader = None;
-    let mut last_blend_mode = None;
-
-    for (card, overlays, transform) in &query {
-        if !card.face_up {
-            continue;
-        }
-        let Some(art) = &overlays.art else {
-            continue;
-        };
-        let visuals = generate_card_visuals(&card.signature);
-        let color = engine_core::color::Color {
-            r: visuals.art_color.r,
-            g: visuals.art_color.g,
-            b: visuals.art_color.b,
-            a: visuals.art_color.a,
-        };
-        apply_material(
-            &mut **renderer,
-            Some(&art.material),
-            &mut last_shader,
-            &mut last_blend_mode,
-        );
-        let model = affine2_to_mat4(&transform.0);
-        let vertices: [[f32; 2]; 4] = [
-            art.quad[0].into(),
-            art.quad[1].into(),
-            art.quad[2].into(),
-            art.quad[3].into(),
-        ];
-        renderer.draw_shape(&vertices, &QUAD_INDICES, color, model);
-    }
-}
 
 /// Syncs `BakedCardMesh` → `ColorMesh` based on `card.face_up`.
 /// Runs when `Card` or `BakedCardMesh` changes so the unified render system
