@@ -9,6 +9,9 @@ use crate::types::Seconds;
 const CONVERGE_THRESHOLD: f32 = 1e-4;
 const DEFAULT_STIFFNESS: f32 = 200.0;
 const DEFAULT_DAMPING: f32 = 20.0;
+// Largest single integration step that stays well inside the stability region
+// for stiffness=200: stable limit ≈ 2/sqrt(200) ≈ 0.141 s; 1/60 s gives a safe margin.
+const MAX_SUBSTEP_DT: f32 = 1.0 / 60.0;
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct ScaleSpring {
@@ -39,14 +42,21 @@ pub fn scale_spring_system(
     let Seconds(dt_secs) = dt.0;
 
     for (entity, mut transform, mut spring) in &mut query {
-        let (sc, sv) = spring_step(
-            transform.scale.y,
-            spring.target,
-            spring.velocity,
-            dt_secs,
-            spring.stiffness,
-            spring.damping,
-        );
+        let mut remaining = dt_secs;
+        let mut sc = transform.scale.y;
+        let mut sv = spring.velocity;
+        while remaining > 0.0 {
+            let step = remaining.min(MAX_SUBSTEP_DT);
+            (sc, sv) = spring_step(
+                sc,
+                spring.target,
+                sv,
+                step,
+                spring.stiffness,
+                spring.damping,
+            );
+            remaining -= step;
+        }
         transform.scale.y = sc;
         if !spring.lock_x {
             transform.scale.x = sc;
@@ -351,6 +361,40 @@ mod tests {
         assert!(
             world.get::<ScaleSpring>(entity).is_none(),
             "ScaleSpring should be removed when already at target"
+        );
+    }
+
+    // dt=0.5 simulates 2 FPS — the worst real-world low-FPS scenario for a card pickup
+    #[test]
+    fn when_large_dt_simulating_2fps_then_scale_stays_bounded() {
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(DeltaTime(Seconds(0.5)));
+        let entity = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::ZERO,
+                    rotation: 0.0,
+                    scale: Vec2::splat(1.0),
+                },
+                ScaleSpring::new(1.05),
+            ))
+            .id();
+
+        // Act — run 5 frames at 2 FPS (2.5 simulated seconds)
+        run_n_frames(&mut world, 5);
+
+        // Assert
+        let t = world.get::<Transform2D>(entity).unwrap();
+        assert!(
+            t.scale.x >= 0.0 && t.scale.x <= 10.0,
+            "scale.x diverged at 2 FPS: {}",
+            t.scale.x
+        );
+        assert!(
+            t.scale.y >= 0.0 && t.scale.y <= 10.0,
+            "scale.y diverged at 2 FPS: {}",
+            t.scale.y
         );
     }
 }

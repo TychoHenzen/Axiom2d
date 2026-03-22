@@ -585,6 +585,33 @@ mod tests {
     }
 
     #[test]
+    fn when_color_vertices_cast_to_shape_vertices_then_values_match() {
+        use crate::shape::ColorVertex;
+
+        // Arrange
+        let color_verts = [
+            ColorVertex {
+                position: [1.0, 2.0],
+                color: [0.5, 0.6, 0.7, 1.0],
+            },
+            ColorVertex {
+                position: [3.0, 4.0],
+                color: [0.1, 0.2, 0.3, 0.4],
+            },
+        ];
+
+        // Act — zero-copy cast from ColorVertex to ShapeVertex
+        let shape_verts: &[ShapeVertex] = bytemuck::cast_slice(&color_verts);
+
+        // Assert
+        assert_eq!(shape_verts.len(), 2);
+        assert_eq!(shape_verts[0].position, [1.0, 2.0]);
+        assert_eq!(shape_verts[0].color, [0.5, 0.6, 0.7, 1.0]);
+        assert_eq!(shape_verts[1].position, [3.0, 4.0]);
+        assert_eq!(shape_verts[1].color, [0.1, 0.2, 0.3, 0.4]);
+    }
+
+    #[test]
     fn when_fullscreen_quad_indices_resolved_then_two_ccw_triangles_cover_quad() {
         // Act
         let tri0: [[f32; 2]; 3] = [

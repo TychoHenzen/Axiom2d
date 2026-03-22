@@ -34,7 +34,7 @@ pub struct TessellatedMesh {
 /// Vertex with baked position and RGBA color.
 /// Layout matches `ShapeVertex` in the wgpu renderer (24 bytes).
 #[repr(C)]
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct ColorVertex {
     pub position: [f32; 2],
     pub color: [f32; 4],

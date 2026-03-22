@@ -337,14 +337,8 @@ impl Renderer for WgpuRenderer {
             index_offset: self.shape_batch.index_count() as u32,
             model,
         });
-        let shape_verts: Vec<ShapeVertex> = vertices
-            .iter()
-            .map(|v| ShapeVertex {
-                position: v.position,
-                color: v.color,
-            })
-            .collect();
-        self.shape_batch.push_colored(&shape_verts, indices);
+        let shape_verts: &[ShapeVertex] = bytemuck::cast_slice(vertices);
+        self.shape_batch.push_colored(shape_verts, indices);
     }
 
     fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color) {
