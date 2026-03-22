@@ -27,7 +27,7 @@ use crate::stash::icon::StashIcon;
 use engine_scene::sort_propagation::LocalSortOrder;
 use engine_ui::prelude::Text;
 
-const CARD_CORNER_RADIUS: f32 = 5.0;
+pub(crate) const CARD_CORNER_RADIUS: f32 = 5.0;
 
 struct FaceChildDef {
     side: CardFaceSide,
@@ -223,14 +223,14 @@ fn spawn_front_face_children(
 
 const NAME_TEXT_SORT: i32 = 5;
 const DESC_TEXT_SORT: i32 = 6;
-const TEXT_COLOR: Color = Color {
+pub(crate) const TEXT_COLOR: Color = Color {
     r: 0.1,
     g: 0.1,
     b: 0.1,
     a: 1.0,
 };
 
-fn fit_font_size(text: &str, base_size: f32, max_width: f32) -> f32 {
+pub(crate) fn fit_font_size(text: &str, base_size: f32, max_width: f32) -> f32 {
     let width = measure_text(text, base_size);
     if width <= max_width {
         base_size

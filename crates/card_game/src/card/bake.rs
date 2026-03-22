@@ -1,0 +1,206 @@
+use engine_render::font::{bake_text_into_mesh, bake_wrapped_text_into_mesh};
+use engine_render::prelude::{rect_polygon, rounded_rect_path, tessellate};
+use engine_render::shape::{ShapeVariant, TessellatedColorMesh};
+use glam::Vec2;
+
+use super::face_layout::FRONT_FACE_REGIONS;
+use super::gem_sockets::{aspect_color, gem_desc_positions, gem_radius};
+use super::label::CardLabel;
+use super::signature::{CardSignature, Element};
+use super::spawn_table_card::{CARD_CORNER_RADIUS, TEXT_COLOR, fit_font_size};
+use super::visual_params::generate_card_visuals;
+use crate::card::definition::rarity_border_color;
+
+const TEXT_COLOR_ARRAY: [f32; 4] = [TEXT_COLOR.r, TEXT_COLOR.g, TEXT_COLOR.b, TEXT_COLOR.a];
+
+fn color_to_array(c: engine_core::color::Color) -> [f32; 4] {
+    [c.r, c.g, c.b, c.a]
+}
+
+/// Tessellate all front-face geometry into a single mesh.
+/// Geometry is appended back-to-front (painter's order):
+/// border → name strip → art area bg → desc strip → text → gems
+pub fn bake_front_face(
+    signature: &CardSignature,
+    card_size: Vec2,
+    label: &CardLabel,
+) -> TessellatedColorMesh {
+    let mut mesh = TessellatedColorMesh::new();
+    let (w, h) = (card_size.x, card_size.y);
+
+    let visuals = generate_card_visuals(signature);
+    let rarity = signature.rarity();
+    let border_color = rarity_border_color(rarity);
+
+    // --- Shapes (border, strips) ---
+    for (i, region) in FRONT_FACE_REGIONS.iter().enumerate() {
+        let (reg_hw, reg_hh, offset_y) = region.resolve(w, h);
+        let color = match i {
+            0 => color_to_array(border_color),
+            2 => color_to_array(visuals.art_color),
+            _ => color_to_array(region.color),
+        };
+        let variant = if i == 0 {
+            rounded_rect_path(reg_hw, reg_hh, CARD_CORNER_RADIUS)
+        } else {
+            rect_polygon(reg_hw, reg_hh)
+        };
+        if let Ok(tess) = tessellate(&variant) {
+            let offset: Vec<[f32; 2]> = tess
+                .vertices
+                .iter()
+                .map(|&[x, y]| [x, y + offset_y])
+                .collect();
+            mesh.push_vertices(&offset, &tess.indices, color);
+        }
+    }
+
+    // --- Name text ---
+    let (name_half_w, _, name_offset_y) = FRONT_FACE_REGIONS[1].resolve(w, h);
+    let name_max_width = name_half_w * 2.0 * 0.9;
+    let name_font_size = fit_font_size(&label.name, h / 12.0, name_max_width);
+    bake_text_into_mesh(
+        &mut mesh,
+        &label.name,
+        name_font_size,
+        TEXT_COLOR_ARRAY,
+        0.0,
+        name_offset_y,
+    );
+
+    // --- Description text (wrapped) ---
+    let (desc_half_w, _, desc_offset_y) = FRONT_FACE_REGIONS[3].resolve(w, h);
+    let desc_font_size = h / 20.0;
+    let desc_max_width = desc_half_w * 2.0 * 0.9;
+    bake_wrapped_text_into_mesh(
+        &mut mesh,
+        &label.description,
+        desc_font_size,
+        TEXT_COLOR_ARRAY,
+        0.0,
+        desc_offset_y,
+        desc_max_width,
+    );
+
+    // --- Gems ---
+    let positions = gem_desc_positions(card_size);
+    let elements = [
+        Element::Solidum,
+        Element::Febris,
+        Element::Ordinem,
+        Element::Lumines,
+        Element::Varias,
+        Element::Inertiae,
+        Element::Subsidium,
+        Element::Spatium,
+    ];
+    for (i, element) in elements.iter().enumerate() {
+        let intensity = signature.intensity(*element);
+        let aspect = signature.dominant_aspect(*element);
+        let gem_color = color_to_array(aspect_color(aspect));
+        let radius = gem_radius(intensity);
+        let variant = ShapeVariant::Circle { radius };
+        if let Ok(tess) = tessellate(&variant) {
+            let pos = positions[i];
+            let offset: Vec<[f32; 2]> = tess
+                .vertices
+                .iter()
+                .map(|&[x, y]| [x + pos.x, y + pos.y])
+                .collect();
+            mesh.push_vertices(&offset, &tess.indices, gem_color);
+        }
+    }
+
+    mesh
+}
+
+/// Tessellate back-face geometry into a single mesh.
+pub fn bake_back_face(card_size: Vec2) -> TessellatedColorMesh {
+    let mut mesh = TessellatedColorMesh::new();
+    let (w, h) = (card_size.x, card_size.y);
+
+    // Outer border (rounded)
+    let outer = rounded_rect_path(w * 0.5, h * 0.5, CARD_CORNER_RADIUS);
+    if let Ok(tess) = tessellate(&outer) {
+        mesh.push_vertices(
+            &tess.vertices,
+            &tess.indices,
+            color_to_array(engine_core::color::Color::from_u8(30, 60, 120, 255)),
+        );
+    }
+
+    // Inner panel
+    let inner = rect_polygon(w * 0.3, h * 0.3);
+    if let Ok(tess) = tessellate(&inner) {
+        mesh.push_vertices(
+            &tess.vertices,
+            &tess.indices,
+            color_to_array(engine_core::color::Color::from_u8(60, 100, 180, 255)),
+        );
+    }
+
+    mesh
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::card::label::CardLabel;
+    use crate::card::signature::CardSignature;
+
+    #[test]
+    fn when_bake_front_then_mesh_has_vertices_and_valid_indices() {
+        // Arrange
+        let sig = CardSignature::default();
+        let card_size = Vec2::new(60.0, 90.0);
+        let label = CardLabel {
+            name: "Test".to_owned(),
+            description: "A test card".to_owned(),
+        };
+
+        // Act
+        let mesh = bake_front_face(&sig, card_size, &label);
+
+        // Assert
+        assert!(!mesh.is_empty(), "front mesh should have geometry");
+        assert_eq!(mesh.indices.len() % 3, 0, "indices should form triangles");
+        let vcount = mesh.vertices.len() as u32;
+        for &i in &mesh.indices {
+            assert!(i < vcount, "index {i} out of bounds ({vcount} vertices)");
+        }
+    }
+
+    #[test]
+    fn when_bake_front_then_contains_gem_geometry() {
+        // Arrange — signature with non-zero intensities produces visible gems
+        let sig = CardSignature::new([0.0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        let card_size = Vec2::new(60.0, 90.0);
+        let label = CardLabel {
+            name: "Gem Test".to_owned(),
+            description: "Has gems".to_owned(),
+        };
+
+        // Act
+        let mesh = bake_front_face(&sig, card_size, &label);
+
+        // Assert — mesh should have significantly more vertices than just 4 rectangles
+        assert!(
+            mesh.vertices.len() > 30,
+            "expected gems to add substantial geometry, got {} vertices",
+            mesh.vertices.len()
+        );
+    }
+
+    #[test]
+    fn when_bake_back_then_mesh_has_vertices() {
+        // Arrange
+        let card_size = Vec2::new(60.0, 90.0);
+
+        // Act
+        let mesh = bake_back_face(card_size);
+
+        // Assert
+        assert!(!mesh.is_empty());
+    }
+}
