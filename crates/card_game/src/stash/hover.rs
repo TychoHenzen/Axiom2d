@@ -97,7 +97,7 @@ mod tests {
     use bevy_ecs::prelude::*;
     use engine_input::prelude::{InputState, KeyCode, MouseState};
     use engine_render::prelude::{Camera2D, RendererRes};
-    use engine_render::testing::{ColoredMeshCallLog, ShapeCallLog, SpyRenderer};
+    use engine_render::testing::{ColoredMeshCallLog, SpyRenderer};
     use glam::Vec2;
 
     use super::{StashHoverPreview, stash_hover_preview_render_system, stash_hover_preview_system};
