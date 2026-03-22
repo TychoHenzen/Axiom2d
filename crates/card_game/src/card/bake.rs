@@ -8,7 +8,6 @@ use super::gem_sockets::{aspect_color, gem_desc_positions, gem_radius};
 use super::label::CardLabel;
 use super::signature::{CardSignature, Element};
 use super::spawn_table_card::{CARD_CORNER_RADIUS, TEXT_COLOR, fit_font_size};
-use super::visual_params::generate_card_visuals;
 use crate::card::definition::rarity_border_color;
 
 const TEXT_COLOR_ARRAY: [f32; 4] = [TEXT_COLOR.r, TEXT_COLOR.g, TEXT_COLOR.b, TEXT_COLOR.a];
@@ -28,16 +27,17 @@ pub fn bake_front_face(
     let mut mesh = TessellatedColorMesh::new();
     let (w, h) = (card_size.x, card_size.y);
 
-    let visuals = generate_card_visuals(signature);
     let rarity = signature.rarity();
     let border_color = rarity_border_color(rarity);
 
-    // --- Shapes (border, strips) ---
+    // --- Shapes (border, strips) — skip art region (drawn with shader) ---
     for (i, region) in FRONT_FACE_REGIONS.iter().enumerate() {
+        if region.use_art_shader {
+            continue;
+        }
         let (reg_hw, reg_hh, offset_y) = region.resolve(w, h);
         let color = match i {
             0 => color_to_array(border_color),
-            2 => color_to_array(visuals.art_color),
             _ => color_to_array(region.color),
         };
         let variant = if i == 0 {
@@ -189,6 +189,35 @@ mod tests {
             mesh.vertices.len() > 30,
             "expected gems to add substantial geometry, got {} vertices",
             mesh.vertices.len()
+        );
+    }
+
+    #[test]
+    fn when_bake_front_then_art_region_color_not_present() {
+        // Arrange — the art area (region 2) has use_art_shader=true and should be
+        // excluded from the baked mesh so the art shader can render it instead
+        let sig = CardSignature::default();
+        let card_size = Vec2::new(60.0, 90.0);
+        let label = CardLabel {
+            name: "Test".to_owned(),
+            description: "Desc".to_owned(),
+        };
+        let visuals = crate::card::visual_params::generate_card_visuals(&sig);
+        let art_color = [
+            visuals.art_color.r,
+            visuals.art_color.g,
+            visuals.art_color.b,
+            visuals.art_color.a,
+        ];
+
+        // Act
+        let mesh = bake_front_face(&sig, card_size, &label);
+
+        // Assert — no vertex should have the art area's generated color
+        let has_art_color = mesh.vertices.iter().any(|v| v.color == art_color);
+        assert!(
+            !has_art_color,
+            "baked mesh should not contain art area geometry (shader handles it)"
         );
     }
 

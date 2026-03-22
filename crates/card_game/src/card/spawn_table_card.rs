@@ -5,8 +5,9 @@ use engine_render::shape::ColorMesh;
 use engine_scene::prelude::{RenderLayer, SortOrder};
 use glam::Vec2;
 
+use crate::card::art_shader::CardArtShader;
 use crate::card::bake::{bake_back_face, bake_front_face};
-use crate::card::baked_mesh::{BakedCardMesh, CardOverlays};
+use crate::card::baked_mesh::{BakedCardMesh, CardOverlay, CardOverlays};
 use crate::card::base_type::BaseCardTypeRegistry;
 use crate::card::card_name::generate_card_name;
 use crate::card::component::Card;
@@ -89,11 +90,39 @@ pub fn spawn_visual_card(
     } else {
         baked.back.clone()
     };
+    let overlays = build_card_overlays(world, card_size);
     world
         .entity_mut(root)
-        .insert((baked, CardOverlays::default(), ColorMesh(initial_mesh)));
+        .insert((baked, overlays, ColorMesh(initial_mesh)));
 
     root
+}
+
+fn build_card_overlays(world: &World, card_size: Vec2) -> CardOverlays {
+    use crate::card::face_layout::FRONT_FACE_REGIONS;
+
+    let art_shader = world.get_resource::<CardArtShader>().map(|s| s.0);
+    let art = art_shader.map(|shader| {
+        let art_region = &FRONT_FACE_REGIONS[2];
+        let (half_w, half_h, offset_y) = art_region.resolve(card_size.x, card_size.y);
+        CardOverlay {
+            quad: [
+                Vec2::new(-half_w, -half_h + offset_y),
+                Vec2::new(half_w, -half_h + offset_y),
+                Vec2::new(half_w, half_h + offset_y),
+                Vec2::new(-half_w, half_h + offset_y),
+            ],
+            material: engine_render::material::Material2d {
+                shader,
+                ..engine_render::material::Material2d::default()
+            },
+        }
+    });
+    CardOverlays {
+        art,
+        foil: None,
+        back: None,
+    }
 }
 
 pub(crate) const TEXT_COLOR: engine_core::color::Color = engine_core::color::Color {
@@ -207,6 +236,31 @@ mod tests {
         assert!(
             world.get::<BakedCardMesh>(root).is_some(),
             "root should have BakedCardMesh component"
+        );
+    }
+
+    #[test]
+    fn when_spawn_with_art_shader_then_overlays_art_is_populated() {
+        // Arrange
+        use crate::card::art_shader::{CardArtShader, register_card_art_shader};
+        use engine_render::prelude::ShaderRegistry;
+        let mut world = World::new();
+        let mut registry = ShaderRegistry::default();
+        let art = register_card_art_shader(&mut registry);
+        world.insert_resource(art);
+        world.insert_resource(registry);
+        let def = make_test_def();
+
+        // Act
+        let root = spawn_def_face_up(&mut world, &def);
+
+        // Assert
+        let overlays = world
+            .get::<CardOverlays>(root)
+            .expect("root should have CardOverlays");
+        assert!(
+            overlays.art.is_some(),
+            "art overlay should be populated when CardArtShader resource exists"
         );
     }
 
