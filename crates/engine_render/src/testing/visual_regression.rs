@@ -623,6 +623,27 @@ impl Renderer for HeadlessRenderer {
         self.shape_batch.push(vertices, indices, color);
     }
 
+    fn draw_colored_mesh(
+        &mut self,
+        vertices: &[crate::shape::ColorVertex],
+        indices: &[u32],
+        model: [[f32; 4]; 4],
+    ) {
+        self.shape_blend_modes.push(self.current_blend_mode);
+        #[allow(clippy::cast_possible_truncation)]
+        self.shape_index_offsets
+            .push(self.shape_batch.index_count() as u32);
+        self.shape_models.push(model);
+        let shape_verts: Vec<ShapeVertex> = vertices
+            .iter()
+            .map(|v| ShapeVertex {
+                position: v.position,
+                color: v.color,
+            })
+            .collect();
+        self.shape_batch.push_colored(&shape_verts, indices);
+    }
+
     fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color) {
         let mut cache = std::mem::take(&mut self.glyph_cache);
         crate::font::render_text_glyphs(self, &mut cache, text, x, y, font_size, color);

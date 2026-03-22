@@ -5,6 +5,7 @@ use crate::atlas::TextureAtlas;
 use crate::material::BlendMode;
 use crate::rect::Rect;
 use crate::shader::ShaderHandle;
+use crate::shape::ColorVertex;
 use engine_core::types::TextureId;
 
 #[derive(Debug, thiserror::Error)]
@@ -33,6 +34,12 @@ pub trait Renderer {
         vertices: &[[f32; 2]],
         indices: &[u32],
         color: Color,
+        model: [[f32; 4]; 4],
+    );
+    fn draw_colored_mesh(
+        &mut self,
+        vertices: &[ColorVertex],
+        indices: &[u32],
         model: [[f32; 4]; 4],
     );
     fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color);
@@ -83,6 +90,13 @@ impl Renderer for NullRenderer {
         _vertices: &[[f32; 2]],
         _indices: &[u32],
         _color: Color,
+        _model: [[f32; 4]; 4],
+    ) {
+    }
+    fn draw_colored_mesh(
+        &mut self,
+        _vertices: &[ColorVertex],
+        _indices: &[u32],
         _model: [[f32; 4]; 4],
     ) {
     }
@@ -141,6 +155,14 @@ mod tests {
             &[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]],
             &[0, 1, 2],
             Color::WHITE,
+            IDENTITY_MODEL,
+        );
+        renderer.draw_colored_mesh(
+            &[crate::shape::ColorVertex {
+                position: [0.0, 0.0],
+                color: [1.0, 1.0, 1.0, 1.0],
+            }],
+            &[0],
             IDENTITY_MODEL,
         );
         renderer.set_view_projection([[0.0f32; 4]; 4]);

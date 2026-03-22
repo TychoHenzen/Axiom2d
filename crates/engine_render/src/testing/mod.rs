@@ -15,6 +15,7 @@ use crate::material::BlendMode;
 use crate::rect::Rect;
 use crate::renderer::{Renderer, RendererRes};
 use crate::shader::ShaderHandle;
+use crate::shape::ColorVertex;
 
 pub type RectCallLog = Arc<Mutex<Vec<Rect>>>;
 pub type SpriteCallLog = Arc<Mutex<Vec<(Rect, [f32; 4])>>>;
@@ -26,6 +27,7 @@ pub type UniformCapture = Arc<Mutex<Vec<Vec<u8>>>>;
 pub type TextureBindCapture = Arc<Mutex<Vec<(TextureId, u32)>>>;
 pub type CompileShaderCapture = Arc<Mutex<Vec<(ShaderHandle, String)>>>;
 pub type TextCallLog = Arc<Mutex<Vec<(String, f32, f32, f32, Color)>>>;
+pub type ColoredMeshCallLog = Arc<Mutex<Vec<(Vec<ColorVertex>, Vec<u32>, [[f32; 4]; 4])>>>;
 
 pub struct SpyRenderer {
     log: Arc<Mutex<Vec<String>>>,
@@ -40,6 +42,7 @@ pub struct SpyRenderer {
     texture_bind_calls: Option<TextureBindCapture>,
     compile_shader_calls: Option<CompileShaderCapture>,
     text_calls: Option<TextCallLog>,
+    colored_mesh_calls: Option<ColoredMeshCallLog>,
     viewport: (u32, u32),
 }
 
@@ -58,6 +61,7 @@ impl SpyRenderer {
             texture_bind_calls: None,
             compile_shader_calls: None,
             text_calls: None,
+            colored_mesh_calls: None,
             viewport: (0, 0),
         }
     }
@@ -117,6 +121,11 @@ impl SpyRenderer {
 
     pub fn with_text_capture(mut self, text_calls: TextCallLog) -> Self {
         self.text_calls = Some(text_calls);
+        self
+    }
+
+    pub fn with_colored_mesh_capture(mut self, calls: ColoredMeshCallLog) -> Self {
+        self.colored_mesh_calls = Some(calls);
         self
     }
 
@@ -223,6 +232,21 @@ impl Renderer for SpyRenderer {
                 .push((handle, source.to_owned()));
         }
         Ok(())
+    }
+
+    fn draw_colored_mesh(
+        &mut self,
+        vertices: &[ColorVertex],
+        indices: &[u32],
+        model: [[f32; 4]; 4],
+    ) {
+        self.log_call("draw_colored_mesh");
+        if let Some(capture) = &self.colored_mesh_calls {
+            capture
+                .lock()
+                .expect("colored mesh capture poisoned")
+                .push((vertices.to_vec(), indices.to_vec(), model));
+        }
     }
 
     fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color) {
@@ -349,6 +373,10 @@ pub fn insert_spy_with_text_capture(world: &mut World) -> TextCallLog {
     insert_spy_capturing(world, SpyRenderer::with_text_capture)
 }
 
+pub fn insert_spy_with_colored_mesh_capture(world: &mut World) -> ColoredMeshCallLog {
+    insert_spy_capturing(world, SpyRenderer::with_colored_mesh_capture)
+}
+
 pub fn insert_spy_with_text_and_viewport(
     world: &mut World,
     width: u32,
@@ -396,6 +424,14 @@ mod tests {
             Color::WHITE,
             crate::renderer::IDENTITY_MODEL,
         );
+        spy.draw_colored_mesh(
+            &[ColorVertex {
+                position: [0.0, 0.0],
+                color: [1.0, 1.0, 1.0, 1.0],
+            }],
+            &[0],
+            crate::renderer::IDENTITY_MODEL,
+        );
         spy.set_view_projection([[0.0f32; 4]; 4]);
         spy.set_blend_mode(BlendMode::Additive);
         spy.set_shader(crate::shader::ShaderHandle(0));
@@ -421,6 +457,7 @@ mod tests {
         "draw_rect",
         "draw_sprite",
         "draw_shape",
+        "draw_colored_mesh",
         "set_view_projection",
         "set_blend_mode",
         "set_shader",

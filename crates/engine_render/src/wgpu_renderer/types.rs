@@ -90,6 +90,12 @@ impl ShapeBatch {
         self.indices.extend(indices.iter().map(|&i| i + base));
     }
 
+    pub(crate) fn push_colored(&mut self, vertices: &[ShapeVertex], indices: &[u32]) {
+        let base = self.vertices.len() as u32;
+        self.vertices.extend_from_slice(vertices);
+        self.indices.extend(indices.iter().map(|&i| i + base));
+    }
+
     #[cfg(test)]
     pub(crate) fn vertex_count(&self) -> usize {
         self.vertices.len()
@@ -547,6 +553,35 @@ mod tests {
         assert_eq!(batch.vertices()[0].position, [0.0, 0.0]);
         assert_eq!(batch.vertices()[1].position, [1.0, 0.0]);
         assert_eq!(batch.vertices()[2].position, [0.5, 1.0]);
+    }
+
+    #[test]
+    fn when_colored_vertices_pushed_then_colors_preserved_per_vertex() {
+        // Arrange
+        let mut batch = ShapeBatch::new();
+        let vertices = [
+            ShapeVertex {
+                position: [0.0, 0.0],
+                color: [1.0, 0.0, 0.0, 1.0],
+            },
+            ShapeVertex {
+                position: [1.0, 0.0],
+                color: [0.0, 1.0, 0.0, 1.0],
+            },
+            ShapeVertex {
+                position: [0.5, 1.0],
+                color: [0.0, 0.0, 1.0, 1.0],
+            },
+        ];
+
+        // Act
+        batch.push_colored(&vertices, &[0, 1, 2]);
+
+        // Assert
+        assert_eq!(batch.vertex_count(), 3);
+        assert_eq!(batch.vertices()[0].color, [1.0, 0.0, 0.0, 1.0]);
+        assert_eq!(batch.vertices()[1].color, [0.0, 1.0, 0.0, 1.0]);
+        assert_eq!(batch.vertices()[2].color, [0.0, 0.0, 1.0, 1.0]);
     }
 
     #[test]

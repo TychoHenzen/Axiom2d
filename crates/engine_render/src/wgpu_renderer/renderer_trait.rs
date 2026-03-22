@@ -9,7 +9,7 @@ use crate::shader::ShaderHandle;
 use super::gpu_init::create_shape_pipeline_set;
 use super::renderer::{ShapeDrawRecord, WgpuRenderer};
 use super::types::{
-    BloomParamsUniform, FullscreenBuffers, FullscreenPass, QUAD_INDICES, TextureData,
+    BloomParamsUniform, FullscreenBuffers, FullscreenPass, QUAD_INDICES, ShapeVertex, TextureData,
     compute_batch_ranges, create_texture_bind_group, rect_to_instance, run_fullscreen_pass,
 };
 
@@ -322,6 +322,29 @@ impl Renderer for WgpuRenderer {
             model,
         });
         self.shape_batch.push(vertices, indices, color);
+    }
+
+    fn draw_colored_mesh(
+        &mut self,
+        vertices: &[crate::shape::ColorVertex],
+        indices: &[u32],
+        model: [[f32; 4]; 4],
+    ) {
+        #[allow(clippy::cast_possible_truncation)]
+        self.shape_draws.push(ShapeDrawRecord {
+            blend_mode: self.current_blend_mode,
+            shader_handle: self.active_shader,
+            index_offset: self.shape_batch.index_count() as u32,
+            model,
+        });
+        let shape_verts: Vec<ShapeVertex> = vertices
+            .iter()
+            .map(|v| ShapeVertex {
+                position: v.position,
+                color: v.color,
+            })
+            .collect();
+        self.shape_batch.push_colored(&shape_verts, indices);
     }
 
     fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color) {
