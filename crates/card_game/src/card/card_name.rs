@@ -21,7 +21,7 @@ pub fn generate_card_name(profile: &SignatureProfile, signature: &CardSignature)
 fn rng_from_signature(signature: &CardSignature) -> ChaCha8Rng {
     let axes = signature.axes();
     let seed = axes.iter().enumerate().fold(0u64, |acc, (i, &v)| {
-        let bits = v.to_bits() as u64;
+        let bits = u64::from(v.to_bits());
         acc ^ bits
             .wrapping_mul(0x9e37_79b9_7f4a_7c15)
             .wrapping_add(i as u64)
@@ -36,8 +36,7 @@ fn build_title(profile: &SignatureProfile, rng: &mut ChaCha8Rng) -> String {
 
     let dominant_aspect = profile
         .dominant_axis
-        .map(|el| profile.aspects[el as usize])
-        .unwrap_or(Aspect::Solid);
+        .map_or(Aspect::Solid, |el| profile.aspects[el as usize]);
     let adjectives = adjective_pool(dominant_aspect);
     let adj = adjectives.choose(rng).copied().unwrap_or("Ancient");
 
@@ -68,13 +67,11 @@ fn build_title(profile: &SignatureProfile, rng: &mut ChaCha8Rng) -> String {
 fn build_subtitle(profile: &SignatureProfile) -> String {
     let tier = profile
         .dominant_axis
-        .map(|el| tier_label(profile.tiers[el as usize]))
-        .unwrap_or("Dormant");
+        .map_or("Dormant", |el| tier_label(profile.tiers[el as usize]));
 
     let aspect = profile
         .dominant_axis
-        .map(|el| aspect_label(profile.aspects[el as usize]))
-        .unwrap_or("Unknown");
+        .map_or("Unknown", |el| aspect_label(profile.aspects[el as usize]));
 
     match &profile.archetype {
         Some(archetype) => format!("{tier} {aspect} {archetype}"),

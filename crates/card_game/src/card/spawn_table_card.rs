@@ -92,10 +92,10 @@ pub fn spawn_visual_card(
         signature,
     };
     let label = {
-        let profile = world
-            .get_resource::<BaseCardTypeRegistry>()
-            .map(|reg| SignatureProfile::new(&signature, reg))
-            .unwrap_or_else(|| SignatureProfile::without_archetype(&signature));
+        let profile = world.get_resource::<BaseCardTypeRegistry>().map_or_else(
+            || SignatureProfile::without_archetype(&signature),
+            |reg| SignatureProfile::new(&signature, reg),
+        );
         let card_name = generate_card_name(&profile, &signature);
         CardLabel {
             name: card_name.title,
