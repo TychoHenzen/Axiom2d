@@ -9,6 +9,8 @@ use crate::card::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
 use crate::stash::constants::{GRID_MARGIN, SLOT_STRIDE_H};
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::toggle::StashVisible;
+use engine_render::material::apply_material;
+use engine_render::shape::MeshOverlays;
 
 #[derive(Resource, Debug, Default)]
 pub struct StashHoverPreview {
@@ -41,7 +43,7 @@ pub fn stash_hover_preview_render_system(
     hover_preview: Res<StashHoverPreview>,
     grid: Res<StashGrid>,
     camera_query: Query<&Camera2D>,
-    baked_query: Query<&BakedCardMesh>,
+    baked_query: Query<(&BakedCardMesh, Option<&MeshOverlays>)>,
     mut renderer: ResMut<RendererRes>,
 ) {
     let Some(hovered_entity) = hover_preview.hovered_entity else {
@@ -52,7 +54,7 @@ pub fn stash_hover_preview_render_system(
         return;
     };
 
-    let Ok(baked) = baked_query.get(hovered_entity) else {
+    let Ok((baked, overlays)) = baked_query.get(hovered_entity) else {
         return;
     };
 
@@ -75,7 +77,15 @@ pub fn stash_hover_preview_render_system(
             [0.0, 0.0, 1.0, 0.0],
             [preview_center.x, preview_center.y, 0.0, 1.0],
         ];
+        renderer.set_shader(engine_render::prelude::ShaderHandle(0));
         renderer.draw_colored_mesh(&baked.front.vertices, &baked.front.indices, model);
+        if let Some(overlays) = overlays {
+            for entry in overlays.0.iter().filter(|e| e.visible) {
+                apply_material(&mut **renderer, Some(&entry.material), &mut None, &mut None);
+                renderer.draw_shape(&entry.vertices, &entry.indices, entry.color, model);
+            }
+            renderer.set_shader(engine_render::prelude::ShaderHandle(0));
+        }
     }
 }
 
