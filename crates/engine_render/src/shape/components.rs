@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use bevy_ecs::prelude::Component;
 use engine_core::color::Color;
 use glam::Vec2;
@@ -40,7 +42,7 @@ pub struct ColorVertex {
 
 /// Pre-tessellated mesh with per-vertex color.
 /// Used by `BakedCardMesh` to store card geometry that never changes.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TessellatedColorMesh {
     pub vertices: Vec<ColorVertex>,
     pub indices: Vec<u32>,
@@ -69,6 +71,25 @@ impl TessellatedColorMesh {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.vertices.is_empty()
+    }
+}
+
+/// ECS component wrapping a pre-tessellated colored mesh for direct rendering.
+/// The unified render system draws this via `draw_colored_mesh`, bypassing
+/// per-frame tessellation. Game code sets this component to control what is drawn.
+#[derive(Component, Clone, Debug, Default)]
+pub struct ColorMesh(pub TessellatedColorMesh);
+
+impl Deref for ColorMesh {
+    type Target = TessellatedColorMesh;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ColorMesh {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

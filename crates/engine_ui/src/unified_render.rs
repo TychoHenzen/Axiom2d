@@ -5,7 +5,8 @@ use engine_render::font::{GlyphCache, measure_text, render_text_transformed, wra
 use engine_render::material::{Material2d, apply_material};
 use engine_render::prelude::RendererRes;
 use engine_render::shape::{
-    Shape, ShapeVariant, Stroke, affine2_to_mat4, shape_aabb, tessellate, tessellate_stroke,
+    ColorMesh, Shape, ShapeVariant, Stroke, affine2_to_mat4, shape_aabb, tessellate,
+    tessellate_stroke,
 };
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
@@ -34,10 +35,20 @@ type TextItem<'w> = (
     Option<&'w EffectiveVisibility>,
 );
 
+type ColorMeshItem<'w> = (
+    Entity,
+    &'w ColorMesh,
+    &'w GlobalTransform2D,
+    Option<&'w RenderLayer>,
+    Option<&'w SortOrder>,
+    Option<&'w EffectiveVisibility>,
+);
+
 #[derive(Clone, Copy)]
 enum DrawKind {
     Shape,
     Text,
+    ColorMesh,
 }
 
 struct SortedDrawItem {
@@ -60,6 +71,7 @@ fn is_shape_culled(pos: Vec2, variant: &ShapeVariant, view_rect: Option<(Vec2, V
 fn collect_draw_items(
     shape_query: &Query<ShapeItem>,
     text_query: &Query<TextItem>,
+    color_mesh_query: &Query<ColorMeshItem>,
 ) -> Vec<SortedDrawItem> {
     let mut items: Vec<SortedDrawItem> = Vec::new();
     for (entity, _, _, layer, sort, vis, _, _) in shape_query.iter() {
@@ -88,6 +100,19 @@ fn collect_draw_items(
             kind: DrawKind::Text,
         });
     }
+    for (entity, _, _, layer, sort, vis) in color_mesh_query.iter() {
+        if vis.is_some_and(|v| !v.0) {
+            continue;
+        }
+        items.push(SortedDrawItem {
+            entity,
+            sort_key: (
+                layer.copied().unwrap_or(RenderLayer::World),
+                sort.copied().unwrap_or_default(),
+            ),
+            kind: DrawKind::ColorMesh,
+        });
+    }
     items.sort_by_key(|item| item.sort_key);
     items
 }
@@ -97,12 +122,13 @@ fn collect_draw_items(
 pub fn unified_render_system(
     shape_query: Query<ShapeItem>,
     text_query: Query<TextItem>,
+    color_mesh_query: Query<ColorMeshItem>,
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
     mut cache: Local<GlyphCache>,
 ) {
     let view_rect = compute_view_rect(&camera_query, &renderer);
-    let items = collect_draw_items(&shape_query, &text_query);
+    let items = collect_draw_items(&shape_query, &text_query, &color_mesh_query);
 
     let mut last_shader = None;
     let mut last_blend_mode = None;
@@ -134,6 +160,16 @@ pub fn unified_render_system(
                     continue;
                 };
                 draw_text(&mut **renderer, &mut cache, text, global_transform);
+            }
+            DrawKind::ColorMesh => {
+                let Ok((_, mesh, transform, _, _, _)) = color_mesh_query.get(item.entity) else {
+                    continue;
+                };
+                if mesh.is_empty() {
+                    continue;
+                }
+                let model = affine2_to_mat4(&transform.0);
+                renderer.draw_colored_mesh(&mesh.vertices, &mesh.indices, model);
             }
         }
     }
@@ -180,7 +216,11 @@ mod tests {
     use bevy_ecs::prelude::*;
     use engine_core::prelude::Color;
     use engine_render::prelude::{Shape, ShapeVariant};
-    use engine_render::testing::{ShapeCallLog, insert_spy_with_shape_capture};
+    use engine_render::shape::{ColorMesh, TessellatedColorMesh};
+    use engine_render::testing::{
+        ColoredMeshCallLog, ShapeCallLog, insert_spy_with_colored_mesh_capture,
+        insert_spy_with_shape_capture,
+    };
     use engine_scene::prelude::{EffectiveVisibility, RenderLayer, SortOrder};
     use engine_scene::transform_propagation::GlobalTransform2D;
     use glam::Affine2;
@@ -279,6 +319,39 @@ mod tests {
             first_text_idx.unwrap() < first_shape_idx.unwrap(),
             "text (SortOrder 1) should draw before shape (SortOrder 5)"
         );
+    }
+
+    fn run_system_colored(world: &mut World) -> ColoredMeshCallLog {
+        let calls = insert_spy_with_colored_mesh_capture(world);
+        let mut schedule = Schedule::default();
+        schedule.add_systems(unified_render_system);
+        schedule.run(world);
+        calls
+    }
+
+    #[test]
+    fn when_color_mesh_entity_then_draw_colored_mesh_called() {
+        // Arrange
+        let mut world = World::new();
+        let mut mesh = TessellatedColorMesh::new();
+        mesh.push_vertices(
+            &[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]],
+            &[0, 1, 2],
+            [1.0, 0.0, 0.0, 1.0],
+        );
+        world.spawn((
+            ColorMesh(mesh),
+            GlobalTransform2D(Affine2::IDENTITY),
+            SortOrder(0),
+        ));
+
+        // Act
+        let calls = run_system_colored(&mut world);
+
+        // Assert
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].0[0].color, [1.0, 0.0, 0.0, 1.0]);
     }
 
     #[test]
