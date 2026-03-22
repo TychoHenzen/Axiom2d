@@ -1,4 +1,5 @@
 pub use crate::card::art_shader::{CardArtShader, register_card_art_shader};
+pub use crate::card::baked_mesh::{BakedCardMesh, CardOverlays};
 pub use crate::card::base_type::{
     BaseCardType, BaseCardTypeRegistry, CardCategory, populate_default_types,
 };

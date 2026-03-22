@@ -1,4 +1,5 @@
 pub mod art_shader;
+pub mod baked_mesh;
 pub mod base_type;
 pub mod camera_drag;
 pub mod card_name;
