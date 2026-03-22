@@ -4,6 +4,7 @@ pub mod camera_drag;
 pub mod card_name;
 pub mod component;
 pub mod damping;
+pub mod debug_spawn;
 pub mod definition;
 pub mod drag;
 pub mod drag_state;

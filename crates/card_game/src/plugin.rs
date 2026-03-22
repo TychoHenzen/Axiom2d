@@ -2,6 +2,7 @@ use crate::card::art_shader::register_card_art_shader;
 use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
 use crate::card::camera_drag::{CameraDragState, camera_drag_system, camera_zoom_system};
 use crate::card::damping::card_damping_system;
+use crate::card::debug_spawn::{DebugSpawnRng, debug_spawn_system};
 use crate::card::drag::card_drag_system;
 use crate::card::drag_state::DragState;
 use crate::card::drop_zone_glow::hand_drop_zone_render_system;
@@ -54,6 +55,7 @@ impl Plugin for CardGamePlugin {
         populate_default_types(&mut registry);
         world.insert_resource(registry);
 
+        world.insert_resource(DebugSpawnRng::default());
         world.insert_resource(ShapeRenderDisabled);
 
         let art_shader = register_card_art_shader(&mut world.resource_mut::<ShaderRegistry>());
@@ -82,6 +84,7 @@ fn register_systems(app: &mut App) {
     )
     .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system))
     .add_systems(Phase::Update, (stash_toggle_system, stash_tab_click_system))
+    .add_systems(Phase::Update, debug_spawn_system)
     .add_systems(Phase::Update, stash_hover_preview_system)
     .add_systems(
         Phase::PostUpdate,
