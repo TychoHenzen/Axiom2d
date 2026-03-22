@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use glam::Vec2;
 use ttf_parser::GlyphId;
 
-use crate::shape::{PathCommand, ShapeVariant, TessellatedMesh, tessellate};
+use crate::shape::{PathCommand, ShapeVariant, TessellatedColorMesh, TessellatedMesh, tessellate};
 
 pub const FONT_BYTES: &[u8] = include_bytes!("../assets/JetBrainsMono-Regular.ttf");
 
@@ -234,6 +234,56 @@ pub fn tessellate_glyph(commands: &[PathCommand]) -> TessellatedMesh {
         vertices: Vec::new(),
         indices: Vec::new(),
     })
+}
+
+/// Tessellate text glyphs and append them to an existing mesh with pre-applied
+/// position offsets and uniform color. Text is centered horizontally around `base_x`.
+pub fn bake_text_into_mesh(
+    mesh: &mut TessellatedColorMesh,
+    text: &str,
+    font_size: f32,
+    color: [f32; 4],
+    base_x: f32,
+    base_y: f32,
+) {
+    let face = ttf_parser::Face::parse(FONT_BYTES, 0).expect("embedded font is valid");
+    let text_width = measure_text_with_face(&face, text, font_size);
+    let center_x = base_x - text_width * 0.5;
+    let glyphs = layout_text(&face, text, font_size);
+    let mut cache = GlyphCache::new();
+    for glyph in &glyphs {
+        let glyph_mesh = cache.get_or_tessellate(&face, glyph.glyph_id, font_size);
+        if glyph_mesh.vertices.is_empty() {
+            continue;
+        }
+        let offset_x = center_x + glyph.x_offset;
+        let transformed: Vec<[f32; 2]> = glyph_mesh
+            .vertices
+            .iter()
+            .map(|&[x, y]| [x + offset_x, y + base_y])
+            .collect();
+        mesh.push_vertices(&transformed, &glyph_mesh.indices, color);
+    }
+}
+
+/// Same as `bake_text_into_mesh` but with word wrapping.
+pub fn bake_wrapped_text_into_mesh(
+    mesh: &mut TessellatedColorMesh,
+    text: &str,
+    font_size: f32,
+    color: [f32; 4],
+    base_x: f32,
+    base_y: f32,
+    max_width: f32,
+) {
+    let lines = wrap_text(text, font_size, max_width);
+    let line_height = font_size * 1.3;
+    let total_height = (lines.len() as f32 - 1.0) * line_height;
+    let start_y = base_y - total_height * 0.5;
+    for (i, line) in lines.iter().enumerate() {
+        let y_offset = start_y + i as f32 * line_height;
+        bake_text_into_mesh(mesh, line, font_size, color, base_x, y_offset);
+    }
 }
 
 #[cfg(test)]
@@ -640,6 +690,48 @@ mod tests {
         // Assert
         assert_eq!(lines.len(), 1);
         assert_eq!(lines[0], "");
+    }
+
+    #[test]
+    fn when_bake_text_single_char_then_mesh_is_nonempty() {
+        // Arrange
+        let mut mesh = TessellatedColorMesh::new();
+        let color = [0.1, 0.1, 0.1, 1.0];
+
+        // Act
+        bake_text_into_mesh(&mut mesh, "A", 16.0, color, 0.0, 0.0);
+
+        // Assert
+        assert!(!mesh.is_empty());
+        assert!(mesh.vertices.iter().all(|v| v.color == color));
+    }
+
+    #[test]
+    fn when_bake_text_two_chars_then_second_glyph_vertices_offset_right() {
+        // Arrange
+        let mut mesh = TessellatedColorMesh::new();
+        let color = [1.0, 1.0, 1.0, 1.0];
+
+        // Act
+        bake_text_into_mesh(&mut mesh, "AB", 32.0, color, 0.0, 0.0);
+
+        // Assert — vertices should span a wider range than single-char
+        let mut single = TessellatedColorMesh::new();
+        bake_text_into_mesh(&mut single, "A", 32.0, color, 0.0, 0.0);
+        let max_x = mesh
+            .vertices
+            .iter()
+            .map(|v| v.position[0])
+            .fold(f32::NEG_INFINITY, f32::max);
+        let single_max_x = single
+            .vertices
+            .iter()
+            .map(|v| v.position[0])
+            .fold(f32::NEG_INFINITY, f32::max);
+        assert!(
+            max_x > single_max_x,
+            "two chars should extend further right"
+        );
     }
 
     #[test]
