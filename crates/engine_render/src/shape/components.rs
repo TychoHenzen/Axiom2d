@@ -55,15 +55,12 @@ impl TessellatedColorMesh {
     }
 
     /// Append position-only vertices with a uniform color, offsetting indices.
-    pub fn push_vertices(
-        &mut self,
-        positions: &[[f32; 2]],
-        indices: &[u32],
-        color: [f32; 4],
-    ) {
+    pub fn push_vertices(&mut self, positions: &[[f32; 2]], indices: &[u32], color: [f32; 4]) {
         let base = self.vertices.len() as u32;
         self.vertices.extend(
-            positions.iter().map(|&position| ColorVertex { position, color }),
+            positions
+                .iter()
+                .map(|&position| ColorVertex { position, color }),
         );
         self.indices.extend(indices.iter().map(|&i| i + base));
     }
@@ -113,18 +110,10 @@ mod tests {
         let mut mesh = TessellatedColorMesh::new();
         let white = [1.0, 1.0, 1.0, 1.0];
         let red = [1.0, 0.0, 0.0, 1.0];
-        mesh.push_vertices(
-            &[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]],
-            &[0, 1, 2],
-            white,
-        );
+        mesh.push_vertices(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]], &[0, 1, 2], white);
 
         // Act
-        mesh.push_vertices(
-            &[[2.0, 0.0], [3.0, 0.0], [2.5, 1.0]],
-            &[0, 1, 2],
-            red,
-        );
+        mesh.push_vertices(&[[2.0, 0.0], [3.0, 0.0], [2.5, 1.0]], &[0, 1, 2], red);
 
         // Assert
         assert_eq!(mesh.vertices.len(), 6);

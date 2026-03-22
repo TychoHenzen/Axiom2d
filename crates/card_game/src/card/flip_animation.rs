@@ -375,11 +375,7 @@ mod tests {
     }
 
     #[test]
-    fn when_animation_completes_then_visibility_sync_reflects_final_state() {
-        use crate::card::face_side::CardFaceSide;
-        use crate::card::item_form::card_item_form_visibility_system;
-        use engine_scene::prelude::{ChildOf, Children, Visible};
-
+    fn when_animation_completes_then_face_up_matches_target_and_scale_restored() {
         // Arrange
         let mut world = World::new();
         world.insert_resource(DeltaTime(Seconds(0.1)));
@@ -398,28 +394,15 @@ mod tests {
                 },
             ))
             .id();
-        let front = world
-            .spawn((ChildOf(root), CardFaceSide::Front, Visible(false)))
-            .id();
-        let back = world
-            .spawn((ChildOf(root), CardFaceSide::Back, Visible(true)))
-            .id();
-        let mut children = vec![front, back];
-        children.sort();
-        world.entity_mut(root).insert(Children(children));
 
         // Act
-        let mut schedule = Schedule::default();
-        schedule.add_systems((flip_animation_system, card_item_form_visibility_system).chain());
-        schedule.run(&mut world);
+        run_system(&mut world);
 
         // Assert
         assert!(world.entity(root).get::<FlipAnimation>().is_none());
         let scale_x = world.entity(root).get::<Transform2D>().unwrap().scale.x;
         assert!((scale_x - 1.0).abs() < 1e-5);
         assert!(world.entity(root).get::<Card>().unwrap().face_up);
-        assert!(world.entity(front).get::<Visible>().unwrap().0);
-        assert!(!world.entity(back).get::<Visible>().unwrap().0);
     }
 
     #[test]

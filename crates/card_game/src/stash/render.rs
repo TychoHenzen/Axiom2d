@@ -222,25 +222,21 @@ mod tests {
     }
 
     #[test]
-    fn when_visible_and_occupied_slot_then_drawn_with_card_shape_color() {
+    fn when_visible_and_occupied_slot_then_drawn_with_card_art_color() {
         // Arrange
         let (mut world, shape_calls) = make_world_with_spy(StashGrid::new(1, 1, 1), true);
 
-        let card_color = Color {
-            r: 1.0,
-            g: 0.0,
-            b: 0.0,
-            a: 1.0,
-        };
-        let root = world.spawn_empty().id();
-        world.spawn((
-            ChildOf(root),
-            StashIcon,
-            Shape {
-                variant: engine_render::prelude::ShapeVariant::Circle { radius: 1.0 },
-                color: card_color,
-            },
-        ));
+        let signature = crate::card::signature::CardSignature::default();
+        let expected_color =
+            crate::card::visual_params::generate_card_visuals(&signature).art_color;
+        let root = world
+            .spawn(crate::card::component::Card {
+                face_texture: engine_core::prelude::TextureId(0),
+                back_texture: engine_core::prelude::TextureId(0),
+                face_up: false,
+                signature,
+            })
+            .id();
 
         let mut grid = StashGrid::new(1, 1, 1);
         grid.place(0, 0, 0, root).unwrap();
@@ -251,7 +247,7 @@ mod tests {
 
         // Assert — calls[0] is background, calls[1] is the only slot
         let calls = shape_calls.lock().unwrap();
-        assert_eq!(calls[1].2, card_color);
+        assert_eq!(calls[1].2, expected_color);
     }
 
     #[test]

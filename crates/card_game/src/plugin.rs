@@ -1,4 +1,5 @@
 use crate::card::art_shader::register_card_art_shader;
+use crate::card::baked_render::baked_card_sync_system;
 use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
 use crate::card::camera_drag::{CameraDragState, camera_drag_system, camera_zoom_system};
 use crate::card::damping::card_damping_system;
@@ -8,7 +9,6 @@ use crate::card::drag_state::DragState;
 use crate::card::drop_zone_glow::hand_drop_zone_render_system;
 use crate::card::flip::card_flip_system;
 use crate::card::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
-use crate::card::baked_render::baked_card_sync_system;
 use crate::card::pick::card_pick_system;
 use crate::card::release::card_release_system;
 use crate::card::render_layer::card_render_layer_system;

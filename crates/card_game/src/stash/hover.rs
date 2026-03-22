@@ -1,24 +1,13 @@
-use bevy_ecs::prelude::{Entity, Local, Query, Res, ResMut, Resource};
+use bevy_ecs::prelude::{Entity, Query, Res, ResMut, Resource};
 use engine_input::prelude::{InputState, KeyCode, MouseState};
-use engine_render::font::{GlyphCache, measure_text, render_text_transformed, wrap_text};
-use engine_render::prelude::{
-    Camera2D, Material2d, RendererRes, ShaderHandle, Shape, resolve_viewport_camera,
-    screen_to_world, tessellate,
-};
-use engine_render::shape::affine2_to_mat4;
-use engine_scene::prelude::ChildOf;
-use engine_scene::sort_propagation::LocalSortOrder;
-use engine_ui::prelude::Text;
-use glam::{Affine2, Vec2};
+use engine_render::prelude::{Camera2D, RendererRes, resolve_viewport_camera, screen_to_world};
+use glam::Vec2;
 
+use crate::card::baked_mesh::BakedCardMesh;
 use crate::card::drag_state::DragState;
-use crate::card::face_side::CardFaceSide;
-use engine_render::prelude::QUAD_INDICES;
-
-use crate::card::geometry::{ART_QUAD, TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
+use crate::card::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
 use crate::stash::constants::{GRID_MARGIN, SLOT_STRIDE_H};
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
-use crate::stash::render::reset_default_shader;
 use crate::stash::toggle::StashVisible;
 
 #[derive(Resource, Debug, Default)]
@@ -47,27 +36,23 @@ pub fn stash_hover_preview_system(
     hover_preview.hovered_entity = hovered;
 }
 
+/// Renders a scaled preview of a hovered stash card using its baked front mesh.
 pub fn stash_hover_preview_render_system(
     hover_preview: Res<StashHoverPreview>,
     grid: Res<StashGrid>,
     camera_query: Query<&Camera2D>,
-    children_query: Query<(
-        &ChildOf,
-        &CardFaceSide,
-        &LocalSortOrder,
-        &engine_core::prelude::Transform2D,
-        Option<&Shape>,
-        Option<&Text>,
-        Option<&Material2d>,
-    )>,
+    baked_query: Query<&BakedCardMesh>,
     mut renderer: ResMut<RendererRes>,
-    mut glyph_cache: Local<GlyphCache>,
 ) {
     let Some(hovered_entity) = hover_preview.hovered_entity else {
         return;
     };
 
     let Some((vw, vh, camera)) = resolve_viewport_camera(&renderer, &camera_query) else {
+        return;
+    };
+
+    let Ok(baked) = baked_query.get(hovered_entity) else {
         return;
     };
 
@@ -83,87 +68,14 @@ pub fn stash_hover_preview_render_system(
     let scale_x = (preview_screen_w / camera.zoom) / TABLE_CARD_WIDTH;
     let scale_y = (preview_screen_h / camera.zoom) / TABLE_CARD_HEIGHT;
 
-    reset_default_shader(&mut **renderer);
-
-    let mut front_children: Vec<_> = children_query
-        .iter()
-        .filter(|(parent, side, _, _, _, _, _)| {
-            parent.0 == hovered_entity && **side == CardFaceSide::Front
-        })
-        .collect();
-    front_children.sort_by_key(|(_, _, sort, _, _, _, _)| sort.0);
-
-    for (_, _, _, child_transform, shape, text, material) in &front_children {
-        let child_x = child_transform.position.x * scale_x;
-        let child_y = child_transform.position.y * scale_y;
-        let cx = preview_center.x + child_x;
-        let cy = preview_center.y + child_y;
-
-        if let Some(shape) = shape {
-            let has_art_shader = material.is_some_and(|m| m.shader != ShaderHandle(0));
-            let model = [
-                [scale_x, 0.0, 0.0, 0.0],
-                [0.0, scale_y, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [cx, cy, 0.0, 1.0],
-            ];
-
-            if has_art_shader {
-                if let Some(m) = material {
-                    renderer.set_shader(m.shader);
-                }
-                renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, shape.color, model);
-                renderer.set_shader(ShaderHandle(0));
-            } else if let Ok(mesh) = tessellate(&shape.variant) {
-                renderer.draw_shape(&mesh.vertices, &mesh.indices, shape.color, model);
-            }
-        }
-
-        if let Some(text) = text {
-            let base = Affine2::from_scale_angle_translation(
-                Vec2::new(scale_x, scale_y),
-                0.0,
-                Vec2::new(cx, cy),
-            );
-            render_preview_text_component(&mut **renderer, &mut glyph_cache, text, &base);
-        }
-    }
-}
-
-const LINE_HEIGHT_FACTOR: f32 = 1.3;
-
-fn render_preview_text_component(
-    renderer: &mut dyn engine_render::prelude::Renderer,
-    cache: &mut GlyphCache,
-    text: &Text,
-    base_transform: &Affine2,
-) {
-    if let Some(max_width) = text.max_width {
-        let lines = wrap_text(&text.content, text.font_size, max_width);
-        let line_height = text.font_size * LINE_HEIGHT_FACTOR;
-        let total_height = (lines.len() as f32 - 1.0) * line_height;
-        let start_y = -total_height * 0.5;
-        for (i, line) in lines.iter().enumerate() {
-            let line_width = measure_text(line, text.font_size);
-            let y_offset = start_y + i as f32 * line_height;
-            let offset = Affine2::from_translation(Vec2::new(-line_width * 0.5, y_offset));
-            let line_transform = *base_transform * offset;
-            let model = affine2_to_mat4(&line_transform);
-            render_text_transformed(renderer, cache, line, &model, text.font_size, text.color);
-        }
-    } else {
-        let text_width = measure_text(&text.content, text.font_size);
-        let center_offset = Affine2::from_translation(Vec2::new(-text_width * 0.5, 0.0));
-        let centered = *base_transform * center_offset;
-        let model = affine2_to_mat4(&centered);
-        render_text_transformed(
-            renderer,
-            cache,
-            &text.content,
-            &model,
-            text.font_size,
-            text.color,
-        );
+    if !baked.front.is_empty() {
+        let model = [
+            [scale_x, 0.0, 0.0, 0.0],
+            [0.0, scale_y, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [preview_center.x, preview_center.y, 0.0, 1.0],
+        ];
+        renderer.draw_colored_mesh(&baked.front.vertices, &baked.front.indices, model);
     }
 }
 
@@ -175,7 +87,7 @@ mod tests {
     use bevy_ecs::prelude::*;
     use engine_input::prelude::{InputState, KeyCode, MouseState};
     use engine_render::prelude::{Camera2D, RendererRes};
-    use engine_render::testing::{ShapeCallLog, SpyRenderer};
+    use engine_render::testing::{ColoredMeshCallLog, ShapeCallLog, SpyRenderer};
     use glam::Vec2;
 
     use super::{StashHoverPreview, stash_hover_preview_render_system, stash_hover_preview_system};
@@ -217,12 +129,12 @@ mod tests {
         (world, card_entity)
     }
 
-    fn make_world_with_spy(grid: StashGrid) -> (World, ShapeCallLog) {
+    fn make_world_with_spy(grid: StashGrid) -> (World, ColoredMeshCallLog) {
         let mut world = World::new();
-        let shape_log: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let mesh_log: ColoredMeshCallLog = Arc::new(Mutex::new(Vec::new()));
         let log = Arc::new(Mutex::new(Vec::new()));
         let spy = SpyRenderer::new(log)
-            .with_shape_capture(shape_log.clone())
+            .with_colored_mesh_capture(mesh_log.clone())
             .with_viewport(1024, 768);
         world.insert_resource(RendererRes::new(Box::new(spy)));
         world.spawn(Camera2D {
@@ -232,7 +144,7 @@ mod tests {
         world.insert_resource(grid);
         world.insert_resource(DragState::default());
         world.insert_resource(StashHoverPreview::default());
-        (world, shape_log)
+        (world, mesh_log)
     }
 
     fn all_conditions_met(world: &mut World) {
@@ -449,27 +361,27 @@ mod tests {
     }
 
     #[test]
-    fn when_hovered_entity_none_then_no_shapes_drawn() {
+    fn when_hovered_entity_none_then_no_colored_mesh_drawn() {
         // Arrange
         let grid = StashGrid::new(10, 10, 1);
-        let (mut world, shape_log) = make_world_with_spy(grid);
+        let (mut world, mesh_log) = make_world_with_spy(grid);
 
         // Act
         run_render_system(&mut world);
 
         // Assert
-        let calls = shape_log.lock().unwrap();
+        let calls = mesh_log.lock().unwrap();
         assert!(
             calls.is_empty(),
-            "no shapes should be drawn when not hovering"
+            "no mesh should be drawn when not hovering"
         );
     }
 
     #[test]
-    fn when_hovered_entity_set_then_front_face_shapes_drawn() {
+    fn when_hovered_entity_set_then_baked_front_mesh_drawn() {
         // Arrange
         let grid = StashGrid::new(10, 10, 1);
-        let (mut world, shape_log) = make_world_with_spy(grid);
+        let (mut world, mesh_log) = make_world_with_spy(grid);
         let card = spawn_card_in_world(&mut world);
         world
             .resource_mut::<StashGrid>()
@@ -480,23 +392,23 @@ mod tests {
         // Act
         run_render_system(&mut world);
 
-        // Assert — 4 front face shapes + text glyph shapes
-        let calls = shape_log.lock().unwrap();
-        assert!(
-            calls.len() >= 4,
-            "expected at least 4 card face shapes, got {}",
-            calls.len()
+        // Assert — one draw_colored_mesh call for the baked front face
+        let calls = mesh_log.lock().unwrap();
+        assert_eq!(
+            calls.len(),
+            1,
+            "expected exactly 1 draw_colored_mesh call for baked card"
         );
     }
 
     #[test]
-    fn when_viewport_zero_then_no_shapes_drawn() {
+    fn when_viewport_zero_then_no_mesh_drawn() {
         // Arrange
         let mut world = World::new();
         let log = Arc::new(Mutex::new(Vec::new()));
-        let shape_log: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let mesh_log: ColoredMeshCallLog = Arc::new(Mutex::new(Vec::new()));
         let spy = SpyRenderer::new(log)
-            .with_shape_capture(shape_log.clone())
+            .with_colored_mesh_capture(mesh_log.clone())
             .with_viewport(0, 0);
         world.insert_resource(RendererRes::new(Box::new(spy)));
         world.spawn(Camera2D::default());
@@ -511,31 +423,7 @@ mod tests {
         run_render_system(&mut world);
 
         // Assert
-        let calls = shape_log.lock().unwrap();
+        let calls = mesh_log.lock().unwrap();
         assert!(calls.is_empty());
-    }
-
-    #[test]
-    fn when_hovered_entity_has_text_children_then_text_shapes_drawn() {
-        // Arrange
-        let grid = StashGrid::new(10, 10, 1);
-        let (mut world, shape_log) = make_world_with_spy(grid);
-        let card = spawn_card_in_world(&mut world);
-        world
-            .resource_mut::<StashGrid>()
-            .place(0, 0, 0, card)
-            .unwrap();
-        world.resource_mut::<StashHoverPreview>().hovered_entity = Some(card);
-
-        // Act
-        run_render_system(&mut world);
-
-        // Assert — 4 face shapes + text glyph shapes (name + description)
-        let calls = shape_log.lock().unwrap();
-        assert!(
-            calls.len() > 4,
-            "expected more than 4 shapes (4 face + text glyphs), got {}",
-            calls.len()
-        );
     }
 }

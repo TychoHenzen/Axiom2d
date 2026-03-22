@@ -265,12 +265,8 @@ mod tests {
     }
 
     #[test]
-    fn when_flip_then_visibility_sync_does_not_change_before_animation_completes() {
-        use crate::card::face_side::CardFaceSide;
-        use crate::card::item_form::card_item_form_visibility_system;
-        use engine_scene::prelude::{ChildOf, Children, Visible};
-
-        // Arrange — card face-down: front hidden, back visible
+    fn when_flip_triggered_then_face_up_unchanged_until_animation_completes() {
+        // Arrange — card face-down
         let mut world = World::new();
         let root = world
             .spawn((
@@ -281,37 +277,19 @@ mod tests {
                 SortOrder(0),
             ))
             .id();
-        let front = world
-            .spawn((ChildOf(root), CardFaceSide::Front, Visible(false)))
-            .id();
-        let back = world
-            .spawn((ChildOf(root), CardFaceSide::Back, Visible(true)))
-            .id();
-        let mut children = vec![front, back];
-        children.sort();
-        world.entity_mut(root).insert(Children(children));
         setup_mouse_right_click(&mut world, Vec2::ZERO);
         world.insert_resource(DragState::default());
 
-        // Act — flip system runs, then visibility sync runs
+        // Act
         let mut schedule = Schedule::default();
-        schedule.add_systems((card_flip_system, card_item_form_visibility_system).chain());
+        schedule.add_systems(card_flip_system);
         schedule.run(&mut world);
 
-        // Assert — face_up unchanged, so visibility stays as-is
+        // Assert — face_up stays false, animation inserted
         assert!(
             !world.entity(root).get::<Card>().unwrap().face_up,
             "face_up must not change until animation completes"
         );
-        assert!(
-            !world.entity(front).get::<Visible>().unwrap().0,
-            "front stays hidden while face_up is still false"
-        );
-        assert!(
-            world.entity(back).get::<Visible>().unwrap().0,
-            "back stays visible while face_up is still false"
-        );
-        // Animation was inserted
         assert!(world.entity(root).get::<FlipAnimation>().is_some());
     }
 }
