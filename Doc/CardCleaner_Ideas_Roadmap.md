@@ -84,7 +84,7 @@ Items from the tech debt audit that should be addressed before or alongside new 
 
 ## Card Identity System
 
-### I1 — Card Signature (Multi-Dimensional Properties) `[NOT STARTED]`
+### I1 — Card Signature (Multi-Dimensional Properties) `[IMPLEMENTED]`
 **Inspired by:** `CardSignature.cs` — 8D elemental vector [-1,1] per axis with distance/subtract/intensity operations
 **Engine gaps:** None — pure data model in `card_game` crate
 **Why:** Gives every card a rich, continuous identity instead of discrete types. Enables emergent rarity, deterministic generation, and cards-as-seeds for world generation. The 8 elemental axes (Solidum, Febris, Ordinem, Lumines, Varias, Inertiae, Subsidium, Spatium) create a space where proximity = similarity, letting us compute card relationships mathematically.
@@ -96,7 +96,7 @@ Items from the tech debt audit that should be addressed before or alongside new 
 - [ ] Integrate into existing `Card` component as an optional field (backwards-compatible with current texture-only cards)
 - [ ] Tests: distance symmetry, subtract produces residual, random stays in bounds, dominant aspect sign-correctness
 
-### I2 — Base Card Types (Template Matching) `[NOT STARTED]`
+### I2 — Base Card Types (Template Matching) `[IMPLEMENTED]`
 **Inspired by:** `BaseCardType.cs` — templates with BaseSignature + MatchRadius, inverse-distance weighted matching
 **Engine gaps:** None — pure data model
 **Why:** Cards aren't randomly typed — they match against defined archetypes by proximity in signature space. A sword card exists because its signature is close to the "Weapon" base type. Edge-of-radius cards are unusual and interesting. Categories (Equipment, Skill, Playstyle) give structure without rigidity.
@@ -107,7 +107,7 @@ Items from the tech debt audit that should be addressed before or alongside new 
 - [ ] `BaseCardTypeRegistry` resource: `Vec<BaseCardType>` with lookup by best match
 - [ ] Tests: exact match scores highest, outside radius scores zero, multiple candidates resolve by weight
 
-### I3 — Residual Energy (Signature-Derived Stats) `[NOT STARTED]`
+### I3 — Residual Energy (Signature-Derived Stats) `[IMPLEMENTED]`
 **Inspired by:** `ResidualEnergyModifier.cs` — signature minus base = residual, each element axis maps to gameplay stats
 **Engine gaps:** None — pure data model
 **Why:** A card's stats aren't stored — they're computed from how its signature differs from its base type. The Febris axis difference becomes attack power, Subsidium becomes healing, etc. Cards at the edge of a base type's radius have extreme residuals, making them unusual and powerful. Stats are emergent, not assigned.
@@ -119,7 +119,7 @@ Items from the tech debt audit that should be addressed before or alongside new 
 - [ ] `CardStats` computed struct: derived on-the-fly from signature + base + modifiers (never stored)
 - [ ] Tests: zero residual gives base stats, aligned residual boosts stat, misaligned residual returns base only
 
-### I4 — Emergent Rarity `[NOT STARTED]`
+### I4 — Emergent Rarity `[IMPLEMENTED]`
 **Inspired by:** `SignatureCardHelper.DetermineRarity()` — computed from signature extremity, not random
 **Engine gaps:** None
 **Why:** Rarity isn't an attribute — it's a consequence of how extreme a card's signature is. Each element's distance from the midpoint (0.5 threshold scale) contributes points, summed and log-scaled into 5 tiers. A card becomes Legendary because its properties are extreme, not because a loot table said so. Players discover rarity by examining the card.
@@ -133,7 +133,7 @@ Items from the tech debt audit that should be addressed before or alongside new 
 
 ## Card Visuals
 
-### I5 — Deterministic Card Generation `[NOT STARTED]`
+### I5 — Deterministic Card Generation `[IMPLEMENTED]`
 **Inspired by:** `SignatureCardGenerator.cs` — seed from signature values, seeded RNG selects all visuals
 **Engine gaps:** None — extends existing `spawn_visual_card` shape hierarchy
 **Why:** Same signature always produces the same card appearance. Serialize just the signature; reconstruct visuals on load. Tiny save files. No art asset database needed — visual parameters are computed from signature via seeded RNG (texture selection, color mixing, pattern choice).
@@ -144,7 +144,7 @@ Items from the tech debt audit that should be addressed before or alongside new 
 - [ ] Wire into `spawn_visual_card` so shape colors/sizes reflect generated params
 - [ ] Tests: same signature produces identical visuals, different signatures produce different visuals
 
-### I6 — Gem Sockets (Signature Visualization) `[NOT STARTED]`
+### I6 — Gem Sockets (Signature Visualization) `[IMPLEMENTED]`
 **Inspired by:** `SignatureCardGenerator.SetGemVisuals()` — 8 gem sockets with emission color/strength from signature elements
 **Engine gaps:** Possible Shape glow/emission effect (could fake with overlaid translucent shapes)
 **Why:** 8 small gem shapes along the card border, one per element. Color encodes positive/negative aspect, brightness encodes intensity. Players learn to read card properties at a glance without UI text. Visually rich without text rendering.
@@ -165,6 +165,55 @@ Items from the tech debt audit that should be addressed before or alongside new 
 - [ ] Additional corner accent shapes for Rare+ (small triangles or circles at card corners)
 - [ ] Optional subtle scale increase for higher rarity (1.0 → 1.02 → 1.05)
 - [ ] Tests: each rarity produces distinct border color, accent shapes present only for Rare+
+
+### I7a — Signature Profile (Quantized Identity Snapshot) `[IMPLEMENTED]`
+**Inspired by:** Debate consensus (Doc/Debate_Card_Identity_System.md) — all three identity systems (names, art, descriptions) should consume a single pre-computed struct
+**Engine gaps:** None — pure data model
+**Why:** A `SignatureProfile` Component provides a quantized, pre-computed view of a `CardSignature` for downstream systems. Axes are tiered into Dormant/Active/Intense (thresholds 0.3/0.7 on absolute value), dominant and secondary axes are identified (with 1.5x suppression rule), and archetype is resolved via `BaseCardTypeRegistry`. Prevents divergence between what the name says, what the art shows, and what the description reads.
+
+- [x] `Tier` enum: `Dormant`, `Active`, `Intense` — quantized from absolute axis intensity
+- [x] `SignatureProfile` Component: `tiers: [Tier; 8]`, `aspects: [Aspect; 8]`, `dominant_axis`, `secondary_axis`, `rarity`, `archetype: Option<String>`
+- [x] `SignatureProfile::new(signature, registry)` — full constructor with archetype lookup
+- [x] `SignatureProfile::without_archetype(signature)` — convenience for contexts without a registry
+- [x] Dominant/secondary identification with 1.5x dominance ratio suppression
+- [x] 22 tests covering tiers, aspects, dominance, rarity delegation, archetype matching, and integration
+- [x] Re-exported in prelude (`SignatureProfile`, `Tier`)
+
+### I7b — Procedural Card Names (Rarity-Gated Lookup) `[NOT STARTED]`
+**Inspired by:** Debate consensus — name complexity scales with rarity; lookup tables, not grammars
+**Engine gaps:** None — pure data model consuming `SignatureProfile`
+**Why:** Card names are mechanical shorthand. Common cards get transparent two-word names that teach vocabulary, rare cards get blended modifiers, legendaries get evocative curated names. All deterministic from signature. The name system reads `(rarity, dominant_aspect, secondary_aspect, archetype)` from `SignatureProfile`.
+
+- [ ] Common tier: `[Aspect word] [Archetype word]` from a ~80-entry lookup (16 aspects × 5 archetypes)
+- [ ] Rare tier: `[BlendedModifier] [Archetype]` from an ordered-pair lookup keyed on `(dominant_aspect, secondary_aspect)` (~80 entries)
+- [ ] Legendary tier: curated pool of ~50-100 evocative names keyed to signature clusters
+- [ ] Flat-signature fallback: bare archetype name when no axis exceeds dominance threshold
+- [ ] `generate_card_name(profile: &SignatureProfile) -> String` pure function
+- [ ] Tests: deterministic output, rarity gates name complexity, flat signatures get bare names, all rarity tiers produce valid names
+
+### I7c — Card Descriptions (Stat-Forward Format) `[NOT STARTED]`
+**Inspired by:** Debate consensus — "keyword — number — flavor verb" format from 30 years of card game design
+**Engine gaps:** None — consumes `SignatureProfile` + `ResidualStats`
+**Why:** Descriptions lead with mechanical values for scannability, then add a flavor verb from the dominant aspect to tie text to visual identity. Three information layers in five words: keyword is scannable, number is comparable, flavor verb connects to name and art.
+
+- [ ] Description format: `[Keyword] [Value] — [flavor verb from dominant aspect]`
+- [ ] Keywords and values pulled from top 2-3 residual stats by absolute magnitude
+- [ ] Flavor verb lookup: ~32 entries (2 per aspect, one active/one passive)
+- [ ] `generate_card_description(profile: &SignatureProfile, stats: &ResidualStats) -> String` pure function
+- [ ] Tests: deterministic output, stats ordered by magnitude, flavor verb matches dominant aspect
+
+### I7d — Glyph Art System (Compositional Card Visuals) `[NOT STARTED]`
+**Inspired by:** Debate consensus — archetype silhouettes + axis-derived glyph overlays; Kate Compton's glyph-primitives proposal endorsed by all experts
+**Engine gaps:** Requires authoring ~20 lyon path primitives; extends existing `generate_card_visuals` pipeline
+**Why:** Art is the primary identity channel. Players read art faster than text. Archetype defines a base silhouette (Weapon=angular, Shield=round, Spell=radial, Healer=organic, Scout=elongated), dominant axis adds a primary glyph overlay (flames, spirals, chevrons, waves), secondary axis adds an accent glyph. Tier-differentiated variants give qualitative jumps (a Dormant flame is a flicker, an Intense flame roars). Composition is spatial placement on the card face — exploits preattentive visual processing for instant card recognition.
+
+- [ ] 5 archetype silhouette lyon paths (one per base card type)
+- [ ] 8 axis glyph lyon paths (one per element), with 3 tier variants each (~24 glyph variants)
+- [ ] `GlyphLayout` struct: archetype silhouette + dominant glyph + optional secondary glyph + placement offsets
+- [ ] `generate_glyph_layout(profile: &SignatureProfile) -> GlyphLayout` pure function
+- [ ] Integrate into card face rendering (art area region from `face_layout.rs`)
+- [ ] Tune tier boundaries visually until cards at different tiers are instantly distinguishable
+- [ ] Tests: deterministic layout from profile, archetype selects correct silhouette, dominant selects correct glyph, tier selects correct variant
 
 ---
 

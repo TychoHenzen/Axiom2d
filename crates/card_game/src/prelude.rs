@@ -3,6 +3,7 @@ pub use crate::card::base_type::{
     BaseCardType, BaseCardTypeRegistry, CardCategory, populate_default_types,
 };
 pub use crate::card::camera_drag::{CameraDragState, camera_drag_system, camera_zoom_system};
+pub use crate::card::card_name::{CardName, generate_card_name};
 pub use crate::card::component::Card;
 pub use crate::card::damping::card_damping_system;
 pub use crate::card::definition::{
@@ -22,6 +23,7 @@ pub use crate::card::release::card_release_system;
 pub use crate::card::render_layer::card_render_layer_system;
 pub use crate::card::residual::{ModifierType, ResidualModifier, ResidualStats};
 pub use crate::card::signature::{Aspect, CardSignature, Element};
+pub use crate::card::signature_profile::{SignatureProfile, Tier};
 pub use crate::card::spawn_table_card::spawn_visual_card;
 pub use crate::card::visual_params::{CardVisualParams, PATTERN_COUNT, generate_card_visuals};
 pub use crate::hand::Hand;

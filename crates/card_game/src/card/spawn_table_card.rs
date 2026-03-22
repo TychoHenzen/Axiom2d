@@ -1,15 +1,17 @@
 use bevy_ecs::prelude::{Entity, World};
 use engine_core::prelude::{Color, TextureId, Transform2D};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
+use engine_render::font::measure_text;
 use engine_render::prelude::{Material2d, ShaderHandle, Shape, rect_polygon, rounded_rect_path};
 use engine_scene::prelude::{ChildOf, RenderLayer, SortOrder, Visible};
 use glam::Vec2;
 
 use crate::card::art_shader::CardArtShader;
 use crate::card::base_type::BaseCardTypeRegistry;
+use crate::card::card_name::generate_card_name;
 use crate::card::component::Card;
 use crate::card::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
-use crate::card::definition::{CardDefinition, description_from_abilities, rarity_border_color};
+use crate::card::definition::{CardDefinition, rarity_border_color};
 use crate::card::face_layout::FRONT_FACE_REGIONS;
 use crate::card::face_side::CardFaceSide;
 use crate::card::gem_sockets::{aspect_color, gem_desc_positions, gem_radius};
@@ -17,6 +19,7 @@ use crate::card::label::CardLabel;
 use crate::card::residual::ResidualStats;
 use crate::card::signature::CardSignature;
 use crate::card::signature::Element;
+use crate::card::signature_profile::SignatureProfile;
 use crate::card::visual_params::generate_card_visuals;
 use crate::card::zone::CardZone;
 use crate::stash::constants::{SLOT_HEIGHT, SLOT_WIDTH};
@@ -88,9 +91,16 @@ pub fn spawn_visual_card(
         face_up,
         signature,
     };
-    let label = CardLabel {
-        name: def.name.clone(),
-        description: description_from_abilities(&def.abilities),
+    let label = {
+        let profile = world
+            .get_resource::<BaseCardTypeRegistry>()
+            .map(|reg| SignatureProfile::new(&signature, reg))
+            .unwrap_or_else(|| SignatureProfile::without_archetype(&signature));
+        let card_name = generate_card_name(&profile, &signature);
+        CardLabel {
+            name: card_name.title,
+            description: card_name.subtitle,
+        }
     };
     let border_color = rarity_border_color(rarity);
 
@@ -220,6 +230,15 @@ const TEXT_COLOR: Color = Color {
     a: 1.0,
 };
 
+fn fit_font_size(text: &str, base_size: f32, max_width: f32) -> f32 {
+    let width = measure_text(text, base_size);
+    if width <= max_width {
+        base_size
+    } else {
+        base_size * max_width / width
+    }
+}
+
 fn spawn_text_children(
     world: &mut World,
     root: Entity,
@@ -229,8 +248,9 @@ fn spawn_text_children(
 ) {
     let h = card_size.y;
 
-    let (_, _, name_offset_y) = FRONT_FACE_REGIONS[1].resolve(card_size.x, h);
-    let name_font_size = h / 12.0;
+    let (name_half_w, _, name_offset_y) = FRONT_FACE_REGIONS[1].resolve(card_size.x, h);
+    let name_max_width = name_half_w * 2.0 * 0.9;
+    let name_font_size = fit_font_size(&label.name, h / 12.0, name_max_width);
     world.spawn((
         ChildOf(root),
         CardFaceSide::Front,
@@ -364,7 +384,7 @@ mod tests {
 
     use super::*;
     use crate::card::definition::{
-        CardAbilities, CardDefinition, CardType, Keyword, Rarity, art_descriptor_default,
+        CardAbilities, CardDefinition, CardType, Rarity, art_descriptor_default,
         rarity_border_color,
     };
     use crate::card::face_side::CardFaceSide;
@@ -467,7 +487,7 @@ mod tests {
     }
 
     #[test]
-    fn when_spawn_visual_card_then_root_has_card_label_with_name_from_definition() {
+    fn when_spawn_visual_card_then_root_has_card_label_with_procedural_name() {
         // Arrange
         let mut world = World::new();
         let def = make_test_def();
@@ -479,36 +499,14 @@ mod tests {
         let label = world
             .get::<CardLabel>(root)
             .expect("root should have CardLabel");
-        assert_eq!(label.name, "Fireball");
+        assert!(!label.name.is_empty(), "procedural title must not be empty");
     }
 
     #[test]
-    fn when_spawn_visual_card_then_card_label_description_from_abilities() {
+    fn when_spawn_visual_card_then_card_label_has_procedural_subtitle() {
         // Arrange
         let mut world = World::new();
         let def = make_test_def();
-
-        // Act
-        let root = spawn_def(&mut world, &def);
-
-        // Assert
-        let label = world
-            .get::<CardLabel>(root)
-            .expect("root should have CardLabel");
-        assert_eq!(label.description, "Deal 3 damage");
-    }
-
-    #[test]
-    fn when_spawn_visual_card_with_keywords_then_description_includes_keyword_names() {
-        // Arrange
-        let mut world = World::new();
-        let def = CardDefinition {
-            abilities: CardAbilities {
-                keywords: vec![Keyword::Taunt],
-                text: String::new(),
-            },
-            ..make_test_def()
-        };
 
         // Act
         let root = spawn_def(&mut world, &def);
@@ -518,9 +516,8 @@ mod tests {
             .get::<CardLabel>(root)
             .expect("root should have CardLabel");
         assert!(
-            label.description.contains("Taunt"),
-            "desc={}",
-            label.description
+            !label.description.is_empty(),
+            "procedural subtitle must not be empty"
         );
     }
 
@@ -740,7 +737,7 @@ mod tests {
     }
 
     #[test]
-    fn when_spawn_visual_card_then_name_text_matches_definition_name() {
+    fn when_spawn_visual_card_then_name_text_matches_label() {
         // Arrange
         let mut world = World::new();
         let def = make_test_def();
@@ -749,13 +746,18 @@ mod tests {
         let root = spawn_def_face_up(&mut world, &def);
 
         // Assert
+        let label = world.get::<CardLabel>(root).expect("label").clone();
         let texts = text_children_for_side(&mut world, root, CardFaceSide::Front);
-        let name_text = texts.iter().find(|(t, _, _)| t.content == "Fireball");
-        assert!(name_text.is_some(), "expected text child with name content");
+        let name_text = texts.iter().find(|(t, _, _)| t.content == label.name);
+        assert!(
+            name_text.is_some(),
+            "expected text child matching label name '{}'",
+            label.name
+        );
     }
 
     #[test]
-    fn when_spawn_visual_card_then_description_text_matches_abilities() {
+    fn when_spawn_visual_card_then_description_text_matches_label() {
         // Arrange
         let mut world = World::new();
         let def = make_test_def();
@@ -764,11 +766,15 @@ mod tests {
         let root = spawn_def_face_up(&mut world, &def);
 
         // Assert
+        let label = world.get::<CardLabel>(root).expect("label").clone();
         let texts = text_children_for_side(&mut world, root, CardFaceSide::Front);
-        let desc_text = texts.iter().find(|(t, _, _)| t.content == "Deal 3 damage");
+        let desc_text = texts
+            .iter()
+            .find(|(t, _, _)| t.content == label.description);
         assert!(
             desc_text.is_some(),
-            "expected text child with description content"
+            "expected text child matching label description '{}'",
+            label.description
         );
     }
 
@@ -782,10 +788,11 @@ mod tests {
         let root = spawn_def_face_up(&mut world, &def);
 
         // Assert — name strip is sort 2, name text must be > 2
+        let label = world.get::<CardLabel>(root).expect("label").clone();
         let texts = text_children_for_side(&mut world, root, CardFaceSide::Front);
         let name_text = texts
             .iter()
-            .find(|(t, _, _)| t.content == "Fireball")
+            .find(|(t, _, _)| t.content == label.name)
             .expect("name text");
         assert!(
             name_text.1.0 > 2,
@@ -804,10 +811,11 @@ mod tests {
         let root = spawn_def_face_up(&mut world, &def);
 
         // Assert — desc strip is sort 4, desc text must be > 4
+        let label = world.get::<CardLabel>(root).expect("label").clone();
         let texts = text_children_for_side(&mut world, root, CardFaceSide::Front);
         let desc_text = texts
             .iter()
-            .find(|(t, _, _)| t.content == "Deal 3 damage")
+            .find(|(t, _, _)| t.content == label.description)
             .expect("desc text");
         assert!(
             desc_text.1.0 > 4,
@@ -1433,9 +1441,10 @@ mod tests {
 
         // Assert
         let texts = text_children_for_side(&mut world, root, CardFaceSide::Front);
+        let label = world.get::<CardLabel>(root).expect("label").clone();
         let desc_text = texts
             .iter()
-            .find(|(t, _, _)| t.content == "Deal 3 damage")
+            .find(|(t, _, _)| t.content == label.description)
             .expect("desc text");
         let max_width = desc_text.0.max_width.expect("desc should have max_width");
         assert!(

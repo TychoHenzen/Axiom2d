@@ -1,6 +1,7 @@
 pub mod art_shader;
 pub mod base_type;
 pub mod camera_drag;
+pub mod card_name;
 pub mod component;
 pub mod damping;
 pub mod definition;
@@ -22,6 +23,7 @@ pub mod release;
 pub mod render_layer;
 pub mod residual;
 pub mod signature;
+pub mod signature_profile;
 pub mod spawn_table_card;
 pub mod visual_params;
 pub mod zone;
