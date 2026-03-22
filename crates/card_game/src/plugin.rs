@@ -8,7 +8,7 @@ use crate::card::drag_state::DragState;
 use crate::card::drop_zone_glow::hand_drop_zone_render_system;
 use crate::card::flip::card_flip_system;
 use crate::card::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
-use crate::card::item_form::card_item_form_visibility_system;
+use crate::card::baked_render::baked_card_sync_system;
 use crate::card::pick::card_pick_system;
 use crate::card::release::card_release_system;
 use crate::card::render_layer::card_render_layer_system;
@@ -89,7 +89,7 @@ fn register_systems(app: &mut App) {
     .add_systems(
         Phase::PostUpdate,
         (
-            card_item_form_visibility_system,
+            baked_card_sync_system,
             stash_layout_system,
             hierarchy_sort_system,
             card_render_layer_system,

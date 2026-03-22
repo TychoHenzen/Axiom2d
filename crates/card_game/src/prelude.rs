@@ -20,7 +20,7 @@ pub use crate::card::gem_sockets::{
     MAX_GEM_RADIUS, MIN_GEM_RADIUS, aspect_color, gem_border_positions, gem_radius,
 };
 pub use crate::card::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
-pub use crate::card::item_form::card_item_form_visibility_system;
+pub use crate::card::item_form::CardItemForm;
 pub use crate::card::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP, card_pick_system};
 pub use crate::card::release::card_release_system;
 pub use crate::card::render_layer::card_render_layer_system;

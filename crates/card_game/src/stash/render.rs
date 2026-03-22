@@ -1,22 +1,22 @@
 use std::collections::HashMap;
 
-use bevy_ecs::prelude::{Entity, Query, Res, ResMut, With};
+use bevy_ecs::prelude::{Entity, Query, Res, ResMut};
 use bevy_ecs::system::SystemParam;
 use engine_core::color::Color;
 use engine_render::prelude::{
-    BlendMode, Camera2D, QUAD_INDICES, RendererRes, ShaderHandle, Shape, UNIT_QUAD, rect_vertices,
+    BlendMode, Camera2D, QUAD_INDICES, RendererRes, ShaderHandle, UNIT_QUAD, rect_vertices,
     screen_to_world, unit_quad_model,
 };
-use engine_scene::prelude::ChildOf;
 use glam::Vec2;
 
+use crate::card::component::Card;
 use crate::card::geometry::{ART_QUAD, art_quad_model};
+use crate::card::visual_params::generate_card_visuals;
 use crate::stash::constants::{
     BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_HIGHLIGHT_COLOR,
     SLOT_STRIDE_H, SLOT_STRIDE_W, SLOT_WIDTH,
 };
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
-use crate::stash::icon::StashIcon;
 use crate::stash::toggle::StashVisible;
 use engine_render::prelude::resolve_viewport_camera;
 
@@ -36,7 +36,7 @@ pub(crate) fn reset_default_shader(renderer: &mut dyn engine_render::prelude::Re
 
 pub fn stash_render_system(
     params: StashRenderParams,
-    stash_icons: Query<(&ChildOf, &Shape), With<StashIcon>>,
+    card_query: Query<(Entity, &Card)>,
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
 ) {
@@ -69,9 +69,9 @@ pub fn stash_render_system(
         engine_render::prelude::IDENTITY_MODEL,
     );
 
-    let icon_colors: HashMap<Entity, Color> = stash_icons
+    let icon_colors: HashMap<Entity, Color> = card_query
         .iter()
-        .map(|(parent, shape)| (parent.0, shape.color))
+        .map(|(entity, card)| (entity, generate_card_visuals(&card.signature).art_color))
         .collect();
 
     let page = params.grid.current_page();
