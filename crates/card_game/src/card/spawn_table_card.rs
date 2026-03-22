@@ -1,78 +1,24 @@
 use bevy_ecs::prelude::{Entity, World};
-use engine_core::prelude::{Color, TextureId, Transform2D};
+use engine_core::prelude::{TextureId, Transform2D};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
-use engine_render::font::measure_text;
-use engine_render::prelude::{Material2d, ShaderHandle, Shape, rect_polygon, rounded_rect_path};
-use engine_scene::prelude::{ChildOf, RenderLayer, SortOrder, Visible};
+use engine_render::shape::ColorMesh;
+use engine_scene::prelude::{RenderLayer, SortOrder};
 use glam::Vec2;
 
-use crate::card::art_shader::CardArtShader;
+use crate::card::bake::{bake_back_face, bake_front_face};
+use crate::card::baked_mesh::{BakedCardMesh, CardOverlays};
 use crate::card::base_type::BaseCardTypeRegistry;
 use crate::card::card_name::generate_card_name;
 use crate::card::component::Card;
 use crate::card::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
-use crate::card::definition::{CardDefinition, rarity_border_color};
-use crate::card::face_layout::FRONT_FACE_REGIONS;
-use crate::card::face_side::CardFaceSide;
-use crate::card::gem_sockets::{aspect_color, gem_desc_positions, gem_radius};
+use crate::card::definition::CardDefinition;
 use crate::card::label::CardLabel;
 use crate::card::residual::ResidualStats;
 use crate::card::signature::CardSignature;
-use crate::card::signature::Element;
 use crate::card::signature_profile::SignatureProfile;
-use crate::card::visual_params::generate_card_visuals;
 use crate::card::zone::CardZone;
-use crate::stash::constants::{SLOT_HEIGHT, SLOT_WIDTH};
-use crate::stash::icon::StashIcon;
-use engine_scene::sort_propagation::LocalSortOrder;
-use engine_ui::prelude::Text;
 
 pub(crate) const CARD_CORNER_RADIUS: f32 = 5.0;
-
-struct FaceChildDef {
-    side: CardFaceSide,
-    visible: bool,
-    offset: Vec2,
-    half_w: f32,
-    half_h: f32,
-    color: Color,
-    sort: i32,
-    shader: Option<ShaderHandle>,
-    rounded: bool,
-}
-
-fn spawn_face_child(world: &mut World, root: Entity, def: &FaceChildDef) {
-    let variant = if def.rounded {
-        rounded_rect_path(def.half_w, def.half_h, CARD_CORNER_RADIUS)
-    } else {
-        rect_polygon(def.half_w, def.half_h)
-    };
-    let entity = world
-        .spawn((
-            ChildOf(root),
-            def.side,
-            Visible(def.visible),
-            Shape {
-                variant,
-                color: def.color,
-            },
-            Transform2D {
-                position: def.offset,
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            RenderLayer::World,
-            LocalSortOrder(def.sort),
-            SortOrder(0),
-        ))
-        .id();
-    if let Some(shader) = def.shader {
-        world.entity_mut(entity).insert(Material2d {
-            shader,
-            ..Material2d::default()
-        });
-    }
-}
 
 pub fn spawn_visual_card(
     world: &mut World,
@@ -83,8 +29,6 @@ pub fn spawn_visual_card(
     signature: CardSignature,
 ) -> Entity {
     let half = card_size * 0.5;
-
-    let rarity = signature.rarity();
     let card = Card {
         face_texture: TextureId(0),
         back_texture: TextureId(0),
@@ -102,7 +46,6 @@ pub fn spawn_visual_card(
             description: card_name.subtitle,
         }
     };
-    let border_color = rarity_border_color(rarity);
 
     let root = world
         .spawn((
@@ -137,93 +80,23 @@ pub fn spawn_visual_card(
         world.entity_mut(root).insert(stats);
     }
 
-    let visual_params = generate_card_visuals(&card.signature);
-    let art_shader = world.get_resource::<CardArtShader>().map(|s| s.0);
-    spawn_front_face_children(
-        world,
-        root,
-        card_size,
-        face_up,
-        art_shader,
-        border_color,
-        visual_params.art_color,
-    );
-    spawn_back_face_children(world, root, card_size, face_up);
-    spawn_text_children(world, root, card_size, face_up, &label);
-    spawn_gem_children(world, root, card_size, face_up, &card.signature);
-
-    let icon = world
-        .spawn((
-            ChildOf(root),
-            StashIcon,
-            Shape {
-                variant: rect_polygon(SLOT_WIDTH * 0.5, SLOT_HEIGHT * 0.5),
-                color: Color::from_u8(180, 200, 230, 255),
-            },
-            Visible(false),
-            Transform2D {
-                position: Vec2::ZERO,
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            RenderLayer::UI,
-            LocalSortOrder(1),
-            SortOrder(0),
-        ))
-        .id();
-    if let Some(shader) = art_shader {
-        world.entity_mut(icon).insert(Material2d {
-            shader,
-            ..Material2d::default()
-        });
-    }
+    let baked = BakedCardMesh {
+        front: bake_front_face(&card.signature, card_size, &label),
+        back: bake_back_face(card_size),
+    };
+    let initial_mesh = if face_up {
+        baked.front.clone()
+    } else {
+        baked.back.clone()
+    };
+    world
+        .entity_mut(root)
+        .insert((baked, CardOverlays::default(), ColorMesh(initial_mesh)));
 
     root
 }
 
-fn spawn_front_face_children(
-    world: &mut World,
-    root: Entity,
-    card_size: Vec2,
-    face_up: bool,
-    art_shader: Option<ShaderHandle>,
-    border_color: Color,
-    art_color: Color,
-) {
-    let (w, h) = (card_size.x, card_size.y);
-    for (i, region) in FRONT_FACE_REGIONS.iter().enumerate() {
-        let (half_w, half_h, offset_y) = region.resolve(w, h);
-        let shader = if region.use_art_shader {
-            art_shader
-        } else {
-            None
-        };
-        let color = match i {
-            0 => border_color,
-            2 => art_color,
-            _ => region.color,
-        };
-        spawn_face_child(
-            world,
-            root,
-            &FaceChildDef {
-                side: CardFaceSide::Front,
-                visible: face_up,
-                offset: Vec2::new(0.0, offset_y),
-                half_w,
-                half_h,
-                color,
-                sort: (i + 1) as i32,
-                shader,
-                rounded: i == 0,
-            },
-        );
-    }
-}
-
-const NAME_TEXT_SORT: i32 = 5;
-const DESC_TEXT_SORT: i32 = 6;
-pub(crate) const TEXT_COLOR: Color = Color {
+pub(crate) const TEXT_COLOR: engine_core::color::Color = engine_core::color::Color {
     r: 0.1,
     g: 0.1,
     b: 0.1,
@@ -231,147 +104,11 @@ pub(crate) const TEXT_COLOR: Color = Color {
 };
 
 pub(crate) fn fit_font_size(text: &str, base_size: f32, max_width: f32) -> f32 {
-    let width = measure_text(text, base_size);
+    let width = engine_render::font::measure_text(text, base_size);
     if width <= max_width {
         base_size
     } else {
         base_size * max_width / width
-    }
-}
-
-fn spawn_text_children(
-    world: &mut World,
-    root: Entity,
-    card_size: Vec2,
-    face_up: bool,
-    label: &CardLabel,
-) {
-    let h = card_size.y;
-
-    let (name_half_w, _, name_offset_y) = FRONT_FACE_REGIONS[1].resolve(card_size.x, h);
-    let name_max_width = name_half_w * 2.0 * 0.9;
-    let name_font_size = fit_font_size(&label.name, h / 12.0, name_max_width);
-    world.spawn((
-        ChildOf(root),
-        CardFaceSide::Front,
-        Visible(face_up),
-        Text {
-            content: label.name.clone(),
-            font_size: name_font_size,
-            color: TEXT_COLOR,
-            max_width: None,
-        },
-        Transform2D {
-            position: Vec2::new(0.0, name_offset_y),
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        },
-        RenderLayer::World,
-        LocalSortOrder(NAME_TEXT_SORT),
-        SortOrder(0),
-    ));
-
-    let (desc_half_w, _, desc_offset_y) = FRONT_FACE_REGIONS[3].resolve(card_size.x, h);
-    let desc_font_size = h / 20.0;
-    let desc_max_width = desc_half_w * 2.0 * 0.9;
-    world.spawn((
-        ChildOf(root),
-        CardFaceSide::Front,
-        Visible(face_up),
-        Text {
-            content: label.description.clone(),
-            font_size: desc_font_size,
-            color: TEXT_COLOR,
-            max_width: Some(desc_max_width),
-        },
-        Transform2D {
-            position: Vec2::new(0.0, desc_offset_y),
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        },
-        RenderLayer::World,
-        LocalSortOrder(DESC_TEXT_SORT),
-        SortOrder(0),
-    ));
-}
-
-fn spawn_back_face_children(world: &mut World, root: Entity, card_size: Vec2, face_up: bool) {
-    let (w, h) = (card_size.x, card_size.y);
-    let children = [
-        FaceChildDef {
-            side: CardFaceSide::Back,
-            visible: !face_up,
-            offset: Vec2::ZERO,
-            half_w: w * 0.5,
-            half_h: h * 0.5,
-            color: Color::from_u8(30, 60, 120, 255),
-            sort: 1,
-            shader: None,
-            rounded: true,
-        },
-        FaceChildDef {
-            side: CardFaceSide::Back,
-            visible: !face_up,
-            offset: Vec2::ZERO,
-            half_w: w * 0.3,
-            half_h: h * 0.3,
-            color: Color::from_u8(60, 100, 180, 255),
-            sort: 2,
-            shader: None,
-            rounded: false,
-        },
-    ];
-    for def in &children {
-        spawn_face_child(world, root, def);
-    }
-}
-
-const GEM_BASE_SORT: i32 = 7;
-
-fn spawn_gem_children(
-    world: &mut World,
-    root: Entity,
-    card_size: Vec2,
-    face_up: bool,
-    signature: &CardSignature,
-) {
-    use engine_render::prelude::ShapeVariant;
-
-    let positions = gem_desc_positions(card_size);
-    let elements = [
-        Element::Solidum,
-        Element::Febris,
-        Element::Ordinem,
-        Element::Lumines,
-        Element::Varias,
-        Element::Inertiae,
-        Element::Subsidium,
-        Element::Spatium,
-    ];
-
-    for (i, element) in elements.iter().enumerate() {
-        let intensity = signature.intensity(*element);
-        let aspect = signature.dominant_aspect(*element);
-        let color = aspect_color(aspect);
-        let radius = gem_radius(intensity);
-
-        world.spawn((
-            ChildOf(root),
-            CardFaceSide::Front,
-            Visible(face_up),
-            Shape {
-                variant: ShapeVariant::Circle { radius },
-                color,
-            },
-            Transform2D {
-                position: positions[i],
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            RenderLayer::World,
-            LocalSortOrder(GEM_BASE_SORT + i as i32),
-            SortOrder(0),
-        ));
     }
 }
 
