@@ -7,7 +7,7 @@ use engine_render::prelude::{
 
 use glam::Vec2;
 
-use crate::card::drag_state::DragState;
+use crate::card::interaction::drag_state::DragState;
 
 pub(crate) const HAND_DROP_ZONE_HEIGHT: f32 = 120.0;
 
@@ -53,8 +53,8 @@ mod tests {
     use glam::Vec2;
 
     use super::*;
-    use crate::card::drag_state::{DragInfo, DragState};
-    use crate::card::zone::CardZone;
+    use crate::card::component::CardZone;
+    use crate::card::interaction::drag_state::{DragInfo, DragState};
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();

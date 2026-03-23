@@ -2,12 +2,12 @@ use rand::SeedableRng;
 use rand::seq::SliceRandom;
 use rand_chacha::ChaCha8Rng;
 
-use crate::card::name_pools::{
+use crate::card::identity::name_pools::{
     AspectCluster, TitleParts, adjective_pool, aspect_cluster, common_title, generate_compound,
     generate_proper_noun, legendary_title, noun_pool, rare_title,
 };
-use crate::card::signature::{Aspect, CardSignature, Rarity};
-use crate::card::signature_profile::{SignatureProfile, Tier};
+use crate::card::identity::signature::{Aspect, CardSignature, Rarity};
+use crate::card::identity::signature_profile::{SignatureProfile, Tier};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CardName {
@@ -128,20 +128,14 @@ pub fn subtitle_phrase(tier: Tier, cluster: AspectCluster) -> &'static str {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::card::base_type::BaseCardTypeRegistry;
-    use crate::card::signature::CardSignature;
-    use crate::card::signature_profile::SignatureProfile;
+    use crate::card::identity::base_type::BaseCardTypeRegistry;
+    use crate::card::identity::signature::CardSignature;
+    use crate::card::identity::signature_profile::SignatureProfile;
 
     fn make_registry() -> BaseCardTypeRegistry {
         let mut registry = BaseCardTypeRegistry::default();
-        crate::card::base_type::populate_default_types(&mut registry);
+        crate::card::identity::base_type::populate_default_types(&mut registry);
         registry
-    }
-
-    fn dominant_cluster_for(profile: &SignatureProfile) -> AspectCluster {
-        profile.dominant_axis.map_or(AspectCluster::Physical, |el| {
-            aspect_cluster(profile.aspects[el as usize])
-        })
     }
 
     fn weapon_fixture() -> (SignatureProfile, CardSignature) {

@@ -2,7 +2,7 @@ use bevy_ecs::prelude::Query;
 use engine_scene::prelude::{Children, RenderLayer};
 
 use crate::card::component::Card;
-use crate::card::face_side::CardFaceSide;
+use crate::card::component::CardFaceSide;
 
 /// Propagates the parent card's `RenderLayer` to all card-face children.
 ///
@@ -37,7 +37,7 @@ mod tests {
     use engine_scene::prelude::{ChildOf, RenderLayer};
 
     use super::*;
-    use crate::card::face_side::CardFaceSide;
+    use crate::card::component::CardFaceSide;
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();

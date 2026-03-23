@@ -5,20 +5,20 @@ use engine_render::shape::ColorMesh;
 use engine_scene::prelude::{RenderLayer, SortOrder};
 use glam::Vec2;
 
-use crate::card::art_shader::CardArtShader;
-use crate::card::bake::{bake_back_face, bake_front_face};
-use crate::card::baked_mesh::BakedCardMesh;
-use crate::card::base_type::BaseCardTypeRegistry;
-use crate::card::card_description::generate_card_description;
-use crate::card::card_name::generate_card_name;
 use crate::card::component::Card;
-use crate::card::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
-use crate::card::definition::CardDefinition;
-use crate::card::label::CardLabel;
-use crate::card::residual::ResidualStats;
-use crate::card::signature::CardSignature;
-use crate::card::signature_profile::SignatureProfile;
-use crate::card::zone::CardZone;
+use crate::card::component::CardLabel;
+use crate::card::component::CardZone;
+use crate::card::identity::base_type::BaseCardTypeRegistry;
+use crate::card::identity::card_description::generate_card_description;
+use crate::card::identity::card_name::generate_card_name;
+use crate::card::identity::definition::CardDefinition;
+use crate::card::identity::residual::ResidualStats;
+use crate::card::identity::signature::CardSignature;
+use crate::card::identity::signature_profile::SignatureProfile;
+use crate::card::interaction::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
+use crate::card::rendering::art_shader::CardArtShader;
+use crate::card::rendering::bake::{bake_back_face, bake_front_face};
+use crate::card::rendering::baked_mesh::BakedCardMesh;
 
 pub(crate) const CARD_CORNER_RADIUS: f32 = 5.0;
 
@@ -113,7 +113,7 @@ fn build_mesh_overlays(
     signature: &CardSignature,
     face_up: bool,
 ) -> engine_render::shape::MeshOverlays {
-    use crate::card::face_layout::FRONT_FACE_REGIONS;
+    use crate::card::rendering::face_layout::FRONT_FACE_REGIONS;
     use engine_render::shape::{MeshOverlays, OverlayEntry};
 
     let mut entries = Vec::new();
@@ -121,7 +121,7 @@ fn build_mesh_overlays(
     if let Some(art_shader) = world.get_resource::<CardArtShader>().map(|s| s.0) {
         let art_region = &FRONT_FACE_REGIONS[2];
         let (half_w, half_h, offset_y) = art_region.resolve(card_size.x, card_size.y);
-        let visuals = crate::card::visual_params::generate_card_visuals(signature);
+        let visuals = crate::card::identity::visual_params::generate_card_visuals(signature);
         entries.push(OverlayEntry {
             vertices: [
                 [-half_w, -half_h + offset_y],
@@ -213,12 +213,14 @@ mod tests {
     use glam::Vec2;
 
     use super::*;
-    use crate::card::baked_mesh::BakedCardMesh;
-    use crate::card::definition::{
+    use crate::card::identity::definition::{
         CardAbilities, CardDefinition, CardType, art_descriptor_default,
     };
-    use crate::card::geometry::{TABLE_CARD_HEIGHT as CARD_HEIGHT, TABLE_CARD_WIDTH as CARD_WIDTH};
-    use crate::card::signature::CardSignature;
+    use crate::card::identity::signature::CardSignature;
+    use crate::card::rendering::baked_mesh::BakedCardMesh;
+    use crate::card::rendering::geometry::{
+        TABLE_CARD_HEIGHT as CARD_HEIGHT, TABLE_CARD_WIDTH as CARD_WIDTH,
+    };
 
     fn make_test_def() -> CardDefinition {
         CardDefinition {
@@ -306,7 +308,7 @@ mod tests {
     #[test]
     fn when_spawn_with_art_shader_then_mesh_overlays_has_art_entry() {
         // Arrange
-        use crate::card::art_shader::register_card_art_shader;
+        use crate::card::rendering::art_shader::register_card_art_shader;
         use engine_render::prelude::ShaderRegistry;
         use engine_render::shape::MeshOverlays;
         let mut world = World::new();
@@ -499,7 +501,7 @@ mod tests {
 
     #[test]
     fn when_spawn_with_matching_base_type_then_description_contains_effect_text() {
-        use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
+        use crate::card::identity::base_type::{BaseCardTypeRegistry, populate_default_types};
 
         // Arrange — signature with strong Febris (maps to Power → "Deal X damage")
         let mut world = World::new();
@@ -536,8 +538,8 @@ mod tests {
 
     #[test]
     fn when_spawn_with_matching_base_type_then_entity_has_residual_stats() {
-        use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
-        use crate::card::residual::ResidualStats;
+        use crate::card::identity::base_type::{BaseCardTypeRegistry, populate_default_types};
+        use crate::card::identity::residual::ResidualStats;
 
         // Arrange — signature near the Weapon archetype [0.8, 0.3, ...]
         let mut world = World::new();

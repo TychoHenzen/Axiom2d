@@ -3,7 +3,7 @@ use engine_core::prelude::Transform2D;
 use engine_render::prelude::{Camera2D, RendererRes, screen_to_world};
 use glam::Vec2;
 
-use crate::card::zone::CardZone;
+use crate::card::component::CardZone;
 use crate::stash::constants::{GRID_MARGIN, SLOT_HEIGHT, SLOT_STRIDE_H, SLOT_STRIDE_W, SLOT_WIDTH};
 use crate::stash::grid::StashGrid;
 use engine_render::prelude::resolve_viewport_camera;

@@ -1,17 +1,19 @@
-use crate::card::art_shader::register_card_art_shader;
-use crate::card::baked_render::baked_card_sync_system;
-use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
-use crate::card::camera_drag::{CameraDragState, camera_drag_system, camera_zoom_system};
-use crate::card::damping::card_damping_system;
-use crate::card::debug_spawn::{DebugSpawnRng, debug_spawn_system};
-use crate::card::drag::card_drag_system;
-use crate::card::drag_state::DragState;
-use crate::card::drop_zone_glow::hand_drop_zone_render_system;
-use crate::card::flip::card_flip_system;
-use crate::card::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
-use crate::card::pick::card_pick_system;
-use crate::card::release::card_release_system;
-use crate::card::render_layer::card_render_layer_system;
+use crate::card::identity::base_type::{BaseCardTypeRegistry, populate_default_types};
+use crate::card::interaction::camera_drag::{
+    CameraDragState, camera_drag_system, camera_zoom_system,
+};
+use crate::card::interaction::damping::card_damping_system;
+use crate::card::interaction::drag::card_drag_system;
+use crate::card::interaction::drag_state::DragState;
+use crate::card::interaction::flip::card_flip_system;
+use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
+use crate::card::interaction::pick::card_pick_system;
+use crate::card::interaction::release::card_release_system;
+use crate::card::rendering::art_shader::register_card_art_shader;
+use crate::card::rendering::baked_render::baked_card_sync_system;
+use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
+use crate::card::rendering::drop_zone_glow::hand_drop_zone_render_system;
+use crate::card::rendering::render_layer::card_render_layer_system;
 use crate::hand::Hand;
 use crate::hand::layout::hand_layout_system;
 use crate::stash::boundary::stash_boundary_system;
@@ -122,7 +124,7 @@ fn register_systems(app: &mut App) {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::card::art_shader::CardArtShader;
+    use crate::card::rendering::art_shader::CardArtShader;
     use engine_physics::prelude::PhysicsRes;
 
     #[test]

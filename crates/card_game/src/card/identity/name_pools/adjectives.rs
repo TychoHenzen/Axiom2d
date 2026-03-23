@@ -1,4 +1,4 @@
-use crate::card::signature::Aspect;
+use crate::card::identity::signature::Aspect;
 
 #[allow(clippy::too_many_lines)]
 pub fn adjective_pool(aspect: Aspect) -> &'static [&'static str] {

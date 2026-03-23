@@ -2,8 +2,8 @@ use bevy_ecs::prelude::{Changed, Or, Query};
 use engine_render::shape::{ColorMesh, MeshOverlays, TessellatedColorMesh};
 
 use super::baked_mesh::BakedCardMesh;
-use super::component::Card;
-use super::item_form::CardItemForm;
+use crate::card::component::Card;
+use crate::card::component::CardItemForm;
 
 /// Syncs `BakedCardMesh` → `ColorMesh` based on `card.face_up`.
 /// Also hides/shows `MeshOverlays` (art shader) — overlays only render face-up.
@@ -55,10 +55,10 @@ mod tests {
     use glam::Vec2;
 
     use super::*;
-    use crate::card::bake::{bake_back_face, bake_front_face};
-    use crate::card::item_form::CardItemForm;
-    use crate::card::label::CardLabel;
-    use crate::card::signature::CardSignature;
+    use crate::card::component::CardItemForm;
+    use crate::card::component::CardLabel;
+    use crate::card::identity::signature::CardSignature;
+    use crate::card::rendering::bake::{bake_back_face, bake_front_face};
 
     fn make_baked() -> BakedCardMesh {
         let label = CardLabel {

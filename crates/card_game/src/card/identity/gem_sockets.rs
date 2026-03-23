@@ -1,7 +1,7 @@
 use engine_core::color::Color;
 use glam::Vec2;
 
-use crate::card::signature::Aspect;
+use crate::card::identity::signature::Aspect;
 
 /// Maps each of the 16 Aspect variants to a distinct color.
 /// Positive aspects get warm hues (r > b or g > b), negative aspects get cool hues (b > r).
@@ -59,7 +59,7 @@ pub fn gem_border_positions(card_size: Vec2) -> [Vec2; 8] {
 /// between the description strip outer edge and the card edge.
 /// Positions are relative to card center (child-space offsets).
 pub fn gem_desc_positions(card_size: Vec2) -> [Vec2; 8] {
-    use crate::card::face_layout::FRONT_FACE_REGIONS;
+    use crate::card::rendering::face_layout::FRONT_FACE_REGIONS;
 
     let card_half_w = card_size.x * 0.5;
     let (desc_half_w, desc_half_h, desc_offset_y) =
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn when_gem_desc_positions_called_then_y_positions_span_desc_strip() {
-        use crate::card::face_layout::FRONT_FACE_REGIONS;
+        use crate::card::rendering::face_layout::FRONT_FACE_REGIONS;
 
         // Arrange
         let card_size = Vec2::new(60.0, 90.0);

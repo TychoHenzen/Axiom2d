@@ -3,11 +3,13 @@ use engine_input::prelude::MouseState;
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
 use engine_scene::prelude::{GlobalTransform2D, RenderLayer};
 
-use crate::card::drag_state::DragState;
-use crate::card::geometry::TABLE_CARD_WIDTH as CARD_WIDTH;
-use crate::card::item_form::CardItemForm;
-use crate::card::physics_helpers::activate_physics_body;
-use crate::card::pick::{DRAG_SCALE, DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
+use crate::card::component::CardItemForm;
+use crate::card::interaction::drag_state::DragState;
+use crate::card::interaction::physics_helpers::activate_physics_body;
+use crate::card::interaction::pick::{
+    DRAG_SCALE, DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP,
+};
+use crate::card::rendering::geometry::TABLE_CARD_WIDTH as CARD_WIDTH;
 use crate::stash::constants::SLOT_WIDTH;
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::toggle::StashVisible;
@@ -47,7 +49,7 @@ pub fn stash_boundary_system(
             .insert(RenderLayer::World)
             .remove::<CardItemForm>()
             .insert(ScaleSpring::new(DRAG_SCALE));
-        drag_state.dragging = Some(crate::card::drag_state::DragInfo {
+        drag_state.dragging = Some(crate::card::interaction::drag_state::DragInfo {
             stash_cursor_follow: false,
             ..info
         });
@@ -60,7 +62,7 @@ pub fn stash_boundary_system(
             .insert(RenderLayer::UI)
             .insert(CardItemForm)
             .insert(ScaleSpring::new(SLOT_WIDTH / CARD_WIDTH));
-        drag_state.dragging = Some(crate::card::drag_state::DragInfo {
+        drag_state.dragging = Some(crate::card::interaction::drag_state::DragInfo {
             stash_cursor_follow: true,
             ..info
         });
@@ -79,10 +81,10 @@ mod tests {
     use glam::{Affine2, Vec2};
 
     use super::stash_boundary_system;
-    use crate::card::drag_state::{DragInfo, DragState};
-    use crate::card::geometry::TABLE_CARD_WIDTH as CARD_WIDTH;
-    use crate::card::pick::DRAG_SCALE;
-    use crate::card::zone::CardZone;
+    use crate::card::component::CardZone;
+    use crate::card::interaction::drag_state::{DragInfo, DragState};
+    use crate::card::interaction::pick::DRAG_SCALE;
+    use crate::card::rendering::geometry::TABLE_CARD_WIDTH as CARD_WIDTH;
     use crate::stash::constants::SLOT_WIDTH;
     use crate::stash::grid::StashGrid;
     use crate::stash::toggle::StashVisible;

@@ -242,7 +242,7 @@ mod tests {
     fn when_rarity_border_color_called_with_same_sig_then_different_rarities_produce_different_colors()
      {
         // Arrange
-        use crate::card::signature::CardSignature;
+        use crate::card::identity::signature::CardSignature;
         let sig = CardSignature::new([0.5; 8]);
         let rarities = [
             Rarity::Common,
@@ -269,7 +269,7 @@ mod tests {
     #[test]
     fn when_rarity_border_color_called_with_different_sigs_then_same_rarity_varies() {
         // Arrange
-        use crate::card::signature::CardSignature;
+        use crate::card::identity::signature::CardSignature;
         let sig_a = CardSignature::new([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]);
         let sig_b = CardSignature::new([0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]);
 
@@ -287,7 +287,7 @@ mod tests {
     #[test]
     fn when_rarity_border_color_called_then_same_inputs_produce_same_output() {
         // Arrange
-        use crate::card::signature::CardSignature;
+        use crate::card::identity::signature::CardSignature;
         let sig = CardSignature::new([0.3, 0.6, 0.1, 0.9, 0.2, 0.5, 0.4, 0.7]);
 
         // Act

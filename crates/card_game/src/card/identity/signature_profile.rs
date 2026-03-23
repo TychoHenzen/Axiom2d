@@ -1,7 +1,7 @@
 use bevy_ecs::component::Component;
 
-use crate::card::base_type::BaseCardTypeRegistry;
-use crate::card::signature::{Aspect, CardSignature, Element, Rarity};
+use crate::card::identity::base_type::BaseCardTypeRegistry;
+use crate::card::identity::signature::{Aspect, CardSignature, Element, Rarity};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Tier {
@@ -75,8 +75,8 @@ impl SignatureProfile {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::card::base_type::BaseCardTypeRegistry;
-    use crate::card::signature::{Aspect, CardSignature, Element};
+    use crate::card::identity::base_type::BaseCardTypeRegistry;
+    use crate::card::identity::signature::{Aspect, CardSignature, Element};
 
     fn sig_with_axis(index: usize, value: f32) -> CardSignature {
         let mut axes = [0.0_f32; 8];
@@ -436,7 +436,7 @@ mod tests {
     fn when_signature_matches_registry_type_then_archetype_is_that_type() {
         // Arrange
         let mut registry = BaseCardTypeRegistry::default();
-        crate::card::base_type::populate_default_types(&mut registry);
+        crate::card::identity::base_type::populate_default_types(&mut registry);
         let sig = CardSignature::new([0.8, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
 
         // Act
@@ -453,13 +453,13 @@ mod tests {
     #[test]
     fn when_signature_matches_no_registry_type_then_archetype_is_none() {
         // Arrange — use a tiny match_radius so nothing matches a distant signature
-        use crate::card::base_type::BaseCardType;
+        use crate::card::identity::base_type::BaseCardType;
         let mut registry = BaseCardTypeRegistry::default();
         registry.register(BaseCardType {
             name: "Narrow".to_string(),
             base_signature: CardSignature::new([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             match_radius: 0.1,
-            category: crate::card::base_type::CardCategory::Equipment,
+            category: crate::card::identity::base_type::CardCategory::Equipment,
             modifiers: vec![],
         });
         let sig = CardSignature::new([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]);
@@ -493,7 +493,7 @@ mod tests {
     fn when_two_archetypes_match_then_archetype_is_closest() {
         // Arrange
         let mut registry = BaseCardTypeRegistry::default();
-        crate::card::base_type::populate_default_types(&mut registry);
+        crate::card::identity::base_type::populate_default_types(&mut registry);
         let sig = CardSignature::new([0.75, 0.35, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0]);
 
         // Act
@@ -511,7 +511,7 @@ mod tests {
     fn when_profile_constructed_then_all_fields_are_populated() {
         // Arrange — Solidum=0.8 (Intense), Febris=0.6 (Active), ratio 1.33 < 1.5
         let mut registry = BaseCardTypeRegistry::default();
-        crate::card::base_type::populate_default_types(&mut registry);
+        crate::card::identity::base_type::populate_default_types(&mut registry);
         let sig = CardSignature::new([0.8, 0.6, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]);
 
         // Act

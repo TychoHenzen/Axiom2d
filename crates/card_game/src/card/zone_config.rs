@@ -6,7 +6,7 @@
 
 use engine_scene::prelude::RenderLayer;
 
-use crate::card::zone::CardZone;
+use crate::card::component::CardZone;
 
 /// Describes the properties a card should have when in a given zone.
 /// Used by reconciliation logic to compute the delta between current

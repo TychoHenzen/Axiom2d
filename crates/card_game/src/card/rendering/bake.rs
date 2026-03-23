@@ -4,11 +4,11 @@ use engine_render::shape::{ShapeVariant, TessellatedColorMesh};
 use glam::Vec2;
 
 use super::face_layout::FRONT_FACE_REGIONS;
-use super::gem_sockets::{aspect_color, gem_desc_positions, gem_radius};
-use super::label::CardLabel;
-use super::signature::{CardSignature, Element};
 use super::spawn_table_card::{CARD_CORNER_RADIUS, TEXT_COLOR, fit_name_font_size};
-use crate::card::definition::rarity_border_color;
+use crate::card::component::CardLabel;
+use crate::card::identity::definition::rarity_border_color;
+use crate::card::identity::gem_sockets::{aspect_color, gem_desc_positions, gem_radius};
+use crate::card::identity::signature::{CardSignature, Element};
 
 const TEXT_COLOR_ARRAY: [f32; 4] = [TEXT_COLOR.r, TEXT_COLOR.g, TEXT_COLOR.b, TEXT_COLOR.a];
 
@@ -151,8 +151,8 @@ pub fn bake_back_face(card_size: Vec2) -> TessellatedColorMesh {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::card::label::CardLabel;
-    use crate::card::signature::CardSignature;
+    use crate::card::component::CardLabel;
+    use crate::card::identity::signature::CardSignature;
 
     #[test]
     fn when_bake_front_then_mesh_has_vertices_and_valid_indices() {
@@ -207,7 +207,7 @@ mod tests {
             name: "Test".to_owned(),
             description: "Desc".to_owned(),
         };
-        let visuals = crate::card::visual_params::generate_card_visuals(&sig);
+        let visuals = crate::card::identity::visual_params::generate_card_visuals(&sig);
         let art_color = [
             visuals.art_color.r,
             visuals.art_color.g,

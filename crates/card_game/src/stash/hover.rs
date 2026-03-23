@@ -3,9 +3,9 @@ use engine_input::prelude::{InputState, KeyCode, MouseState};
 use engine_render::prelude::{Camera2D, RendererRes, resolve_viewport_camera, screen_to_world};
 use glam::Vec2;
 
-use crate::card::baked_mesh::BakedCardMesh;
-use crate::card::drag_state::DragState;
-use crate::card::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
+use crate::card::interaction::drag_state::DragState;
+use crate::card::rendering::baked_mesh::BakedCardMesh;
+use crate::card::rendering::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
 use crate::stash::constants::{GRID_MARGIN, SLOT_STRIDE_H};
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::toggle::StashVisible;
@@ -101,7 +101,7 @@ mod tests {
     use glam::Vec2;
 
     use super::{StashHoverPreview, stash_hover_preview_render_system, stash_hover_preview_system};
-    use crate::card::drag_state::DragState;
+    use crate::card::interaction::drag_state::DragState;
     use crate::stash::grid::StashGrid;
     use crate::stash::toggle::StashVisible;
 
@@ -291,10 +291,10 @@ mod tests {
         let (mut world, card_entity) = make_world_with_occupied_slot();
         all_conditions_met(&mut world);
         world.insert_resource(DragState {
-            dragging: Some(crate::card::drag_state::DragInfo {
+            dragging: Some(crate::card::interaction::drag_state::DragInfo {
                 entity: card_entity,
                 local_grab_offset: Vec2::ZERO,
-                origin_zone: crate::card::zone::CardZone::Table,
+                origin_zone: crate::card::component::CardZone::Table,
                 stash_cursor_follow: false,
                 origin_position: Vec2::ZERO,
             }),
@@ -340,10 +340,10 @@ mod tests {
 
     // -- Render system tests ----------------------------------------------
 
-    use crate::card::definition::{
+    use crate::card::identity::definition::{
         CardAbilities, CardDefinition, CardType, art_descriptor_default,
     };
-    use crate::card::spawn_table_card::spawn_visual_card;
+    use crate::card::rendering::spawn_table_card::spawn_visual_card;
 
     fn make_test_def() -> CardDefinition {
         CardDefinition {
@@ -359,7 +359,7 @@ mod tests {
     }
 
     fn spawn_card_in_world(world: &mut World) -> Entity {
-        use crate::card::signature::CardSignature;
+        use crate::card::identity::signature::CardSignature;
         spawn_visual_card(
             world,
             &make_test_def(),

@@ -5,9 +5,9 @@ use engine_physics::prelude::Collider;
 use engine_scene::prelude::{GlobalTransform2D, SortOrder};
 
 use crate::card::component::Card;
-use crate::card::drag_state::DragState;
-use crate::card::flip_animation::FlipAnimation;
-use crate::card::zone::CardZone;
+use crate::card::component::CardZone;
+use crate::card::interaction::drag_state::DragState;
+use crate::card::interaction::flip_animation::FlipAnimation;
 
 #[allow(clippy::type_complexity)]
 pub fn card_flip_system(
@@ -65,9 +65,9 @@ mod tests {
 
     use super::card_flip_system;
     use crate::card::component::Card;
-    use crate::card::drag_state::{DragInfo, DragState};
-    use crate::card::flip_animation::{FLIP_DURATION, FlipAnimation};
-    use crate::card::zone::CardZone;
+    use crate::card::component::CardZone;
+    use crate::card::interaction::drag_state::{DragInfo, DragState};
+    use crate::card::interaction::flip_animation::{FLIP_DURATION, FlipAnimation};
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -86,7 +86,7 @@ mod tests {
                     face_texture: TextureId(1),
                     back_texture: TextureId(2),
                     face_up,
-                    signature: crate::card::signature::CardSignature::default(),
+                    signature: crate::card::identity::signature::CardSignature::default(),
                 },
                 CardZone::Table,
                 default_collider(),

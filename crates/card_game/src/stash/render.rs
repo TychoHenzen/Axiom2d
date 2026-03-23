@@ -10,8 +10,8 @@ use engine_render::prelude::{
 use glam::Vec2;
 
 use crate::card::component::Card;
-use crate::card::geometry::{ART_QUAD, art_quad_model};
-use crate::card::visual_params::generate_card_visuals;
+use crate::card::identity::visual_params::generate_card_visuals;
+use crate::card::rendering::geometry::{ART_QUAD, art_quad_model};
 use crate::stash::constants::{
     BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_HIGHLIGHT_COLOR,
     SLOT_STRIDE_H, SLOT_STRIDE_W, SLOT_WIDTH,
@@ -24,9 +24,9 @@ use engine_render::prelude::resolve_viewport_camera;
 pub struct StashRenderParams<'w> {
     grid: Res<'w, StashGrid>,
     visible: Res<'w, StashVisible>,
-    drag_state: Res<'w, crate::card::drag_state::DragState>,
+    drag_state: Res<'w, crate::card::interaction::drag_state::DragState>,
     mouse: Res<'w, engine_input::prelude::MouseState>,
-    art_shader: Option<Res<'w, crate::card::art_shader::CardArtShader>>,
+    art_shader: Option<Res<'w, crate::card::rendering::art_shader::CardArtShader>>,
 }
 
 pub(crate) fn reset_default_shader(renderer: &mut dyn engine_render::prelude::Renderer) {
@@ -160,7 +160,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(grid);
         world.insert_resource(StashVisible(visible));
-        world.insert_resource(crate::card::drag_state::DragState::default());
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
         world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -226,9 +226,9 @@ mod tests {
         // Arrange
         let (mut world, shape_calls) = make_world_with_spy(StashGrid::new(1, 1, 1), true);
 
-        let signature = crate::card::signature::CardSignature::default();
+        let signature = crate::card::identity::signature::CardSignature::default();
         let expected_color =
-            crate::card::visual_params::generate_card_visuals(&signature).art_color;
+            crate::card::identity::visual_params::generate_card_visuals(&signature).art_color;
         let root = world
             .spawn(crate::card::component::Card {
                 face_texture: engine_core::prelude::TextureId(0),
@@ -335,7 +335,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(2, 2, 1));
         world.insert_resource(StashVisible(true));
-        world.insert_resource(crate::card::drag_state::DragState::default());
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
         world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -362,7 +362,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(2, 2, 1));
         world.insert_resource(StashVisible(true));
-        world.insert_resource(crate::card::drag_state::DragState::default());
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
         world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -387,7 +387,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(1, 1, 1));
         world.insert_resource(StashVisible(true));
-        world.insert_resource(crate::card::drag_state::DragState::default());
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
         world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -433,7 +433,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(1, 1, 1));
         world.insert_resource(StashVisible(true));
-        world.insert_resource(crate::card::drag_state::DragState::default());
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
         world.insert_resource(engine_input::prelude::MouseState::default());
 
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -512,14 +512,14 @@ mod tests {
         world.insert_resource(StashVisible(true));
 
         let entity = world.spawn_empty().id();
-        let drag_info = crate::card::drag_state::DragInfo {
+        let drag_info = crate::card::interaction::drag_state::DragInfo {
             entity,
             local_grab_offset: Vec2::ZERO,
-            origin_zone: crate::card::zone::CardZone::Table,
+            origin_zone: crate::card::component::CardZone::Table,
             stash_cursor_follow: false,
             origin_position: Vec2::ZERO,
         };
-        world.insert_resource(crate::card::drag_state::DragState {
+        world.insert_resource(crate::card::interaction::drag_state::DragState {
             dragging: Some(drag_info),
         });
 
@@ -556,7 +556,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(StashGrid::new(2, 2, 1));
         world.insert_resource(StashVisible(true));
-        world.insert_resource(crate::card::drag_state::DragState::default());
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
 
         // Position mouse over slot (0,0) even though no drag is active
         let mut mouse = engine_input::prelude::MouseState::default();
@@ -593,14 +593,14 @@ mod tests {
         world.insert_resource(StashVisible(true));
 
         let entity = world.spawn_empty().id();
-        let drag_info = crate::card::drag_state::DragInfo {
+        let drag_info = crate::card::interaction::drag_state::DragInfo {
             entity,
             local_grab_offset: Vec2::ZERO,
-            origin_zone: crate::card::zone::CardZone::Table,
+            origin_zone: crate::card::component::CardZone::Table,
             stash_cursor_follow: false,
             origin_position: Vec2::ZERO,
         };
-        world.insert_resource(crate::card::drag_state::DragState {
+        world.insert_resource(crate::card::interaction::drag_state::DragState {
             dragging: Some(drag_info),
         });
 

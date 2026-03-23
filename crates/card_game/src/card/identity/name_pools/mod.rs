@@ -4,7 +4,7 @@ mod nouns;
 mod syllables;
 pub mod templates;
 
-use crate::card::signature::Aspect;
+use crate::card::identity::signature::Aspect;
 
 pub use adjectives::adjective_pool;
 pub use compound_parts::generate_compound;

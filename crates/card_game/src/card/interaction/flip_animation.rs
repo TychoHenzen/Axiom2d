@@ -76,7 +76,7 @@ mod tests {
             face_texture: TextureId(1),
             back_texture: TextureId(2),
             face_up,
-            signature: crate::card::signature::CardSignature::default(),
+            signature: crate::card::identity::signature::CardSignature::default(),
         }
     }
 

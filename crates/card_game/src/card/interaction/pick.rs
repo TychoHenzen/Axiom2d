@@ -6,11 +6,11 @@ use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 
 use crate::card::component::Card;
-use crate::card::drag_state::{DragInfo, DragState};
-use crate::card::game_state_param::CardGameState;
-use crate::card::item_form::CardItemForm;
-use crate::card::physics_helpers::activate_physics_body;
-use crate::card::zone::CardZone;
+use crate::card::component::CardItemForm;
+use crate::card::component::CardZone;
+use crate::card::interaction::drag_state::{DragInfo, DragState};
+use crate::card::interaction::game_state_param::CardGameState;
+use crate::card::interaction::physics_helpers::activate_physics_body;
 use crate::hand::cards::Hand;
 use crate::hand::layout::HandSpring;
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
@@ -297,8 +297,8 @@ mod tests {
 
     use super::{DRAG_SCALE, card_pick_system};
     use crate::card::component::Card;
-    use crate::card::drag_state::DragState;
-    use crate::card::zone::CardZone;
+    use crate::card::component::CardZone;
+    use crate::card::interaction::drag_state::DragState;
     use crate::hand::cards::Hand;
     use crate::hand::layout::HandSpring;
     use crate::test_helpers::{AddBodyLog, ColliderLog, DampingLog, SpyPhysicsBackend};
@@ -537,7 +537,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState {
-            dragging: Some(crate::card::drag_state::DragInfo {
+            dragging: Some(crate::card::interaction::drag_state::DragInfo {
                 entity: card_a,
                 local_grab_offset: Vec2::ZERO,
                 origin_zone: CardZone::Table,

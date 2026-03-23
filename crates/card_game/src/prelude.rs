@@ -1,36 +1,44 @@
-pub use crate::card::art_shader::{CardArtShader, register_card_art_shader};
-pub use crate::card::baked_mesh::{BakedCardMesh, CardOverlays};
-pub use crate::card::baked_render::baked_card_sync_system;
-pub use crate::card::base_type::{
+pub use crate::card::component::Card;
+pub use crate::card::component::CardItemForm;
+pub use crate::card::identity::base_type::{
     BaseCardType, BaseCardTypeRegistry, CardCategory, populate_default_types,
 };
-pub use crate::card::camera_drag::{CameraDragState, camera_drag_system, camera_zoom_system};
-pub use crate::card::card_description::generate_card_description;
-pub use crate::card::card_name::{CardName, generate_card_name};
-pub use crate::card::component::Card;
-pub use crate::card::damping::card_damping_system;
-pub use crate::card::debug_spawn::{DebugSpawnRng, debug_spawn_system};
-pub use crate::card::definition::{
+pub use crate::card::identity::card_description::generate_card_description;
+pub use crate::card::identity::card_name::{CardName, generate_card_name};
+pub use crate::card::identity::definition::{
     CardAbilities, CardDefinition, CardStats, CardType, Keyword, Rarity, art_descriptor_default,
     rarity_border_color,
 };
-pub use crate::card::drag::card_drag_system;
-pub use crate::card::drag_state::DragState;
-pub use crate::card::flip::card_flip_system;
-pub use crate::card::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
-pub use crate::card::gem_sockets::{
+pub use crate::card::identity::gem_sockets::{
     MAX_GEM_RADIUS, MIN_GEM_RADIUS, aspect_color, gem_border_positions, gem_radius,
 };
-pub use crate::card::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
-pub use crate::card::item_form::CardItemForm;
-pub use crate::card::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP, card_pick_system};
-pub use crate::card::release::card_release_system;
-pub use crate::card::render_layer::card_render_layer_system;
-pub use crate::card::residual::{ModifierType, ResidualModifier, ResidualStats};
-pub use crate::card::signature::{Aspect, CardSignature, Element};
-pub use crate::card::signature_profile::{SignatureProfile, Tier};
-pub use crate::card::spawn_table_card::spawn_visual_card;
-pub use crate::card::visual_params::{CardVisualParams, PATTERN_COUNT, generate_card_visuals};
+pub use crate::card::identity::residual::{ModifierType, ResidualModifier, ResidualStats};
+pub use crate::card::identity::signature::{Aspect, CardSignature, Element};
+pub use crate::card::identity::signature_profile::{SignatureProfile, Tier};
+pub use crate::card::identity::visual_params::{
+    CardVisualParams, PATTERN_COUNT, generate_card_visuals,
+};
+pub use crate::card::interaction::camera_drag::{
+    CameraDragState, camera_drag_system, camera_zoom_system,
+};
+pub use crate::card::interaction::damping::card_damping_system;
+pub use crate::card::interaction::drag::card_drag_system;
+pub use crate::card::interaction::drag_state::DragState;
+pub use crate::card::interaction::flip::card_flip_system;
+pub use crate::card::interaction::flip_animation::{
+    flip_animation_system, sync_scale_spring_lock_x,
+};
+pub use crate::card::interaction::pick::{
+    CARD_COLLISION_FILTER, CARD_COLLISION_GROUP, card_pick_system,
+};
+pub use crate::card::interaction::release::card_release_system;
+pub use crate::card::rendering::art_shader::{CardArtShader, register_card_art_shader};
+pub use crate::card::rendering::baked_mesh::{BakedCardMesh, CardOverlays};
+pub use crate::card::rendering::baked_render::baked_card_sync_system;
+pub use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
+pub use crate::card::rendering::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
+pub use crate::card::rendering::render_layer::card_render_layer_system;
+pub use crate::card::rendering::spawn_table_card::spawn_visual_card;
 pub use crate::hand::Hand;
 pub use crate::hand::layout::hand_layout_system;
 pub use crate::stash::boundary::stash_boundary_system;

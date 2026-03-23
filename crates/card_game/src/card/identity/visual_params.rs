@@ -1,4 +1,4 @@
-use crate::card::signature::CardSignature;
+use crate::card::identity::signature::CardSignature;
 use engine_core::color::Color;
 
 pub fn compute_seed(signature: &CardSignature) -> u64 {
@@ -25,7 +25,7 @@ pub struct CardVisualParams {
 pub const PATTERN_COUNT: u8 = 4;
 
 pub fn generate_card_visuals(signature: &CardSignature) -> CardVisualParams {
-    use crate::card::signature::Element;
+    use crate::card::identity::signature::Element;
     use rand::Rng;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;

@@ -2,7 +2,7 @@ use bevy_ecs::prelude::Component;
 use engine_core::prelude::TextureId;
 use serde::{Deserialize, Serialize};
 
-use super::signature::CardSignature;
+use super::identity::signature::CardSignature;
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Card {
@@ -21,6 +21,30 @@ impl Card {
             signature: CardSignature::default(),
         }
     }
+}
+
+/// Marker for cards in stash item-form (rendered as stash grid slots rather
+/// than full table cards).
+#[derive(Component, Debug, Clone, Copy, PartialEq)]
+pub struct CardItemForm;
+
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum CardFaceSide {
+    Front,
+    Back,
+}
+
+#[derive(Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CardLabel {
+    pub name: String,
+    pub description: String,
+}
+
+#[derive(Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum CardZone {
+    Table,
+    Hand(usize),
+    Stash { page: u8, col: u8, row: u8 },
 }
 
 #[cfg(test)]

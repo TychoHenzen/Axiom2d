@@ -2,7 +2,7 @@ use bevy_ecs::prelude::Entity;
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
 use glam::Vec2;
 
-use crate::card::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
+use crate::card::interaction::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 
 /// Register a dynamic rigid body in the physics backend with base damping
 /// and the given collision group.

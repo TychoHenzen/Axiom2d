@@ -5,11 +5,13 @@ use glam::Vec2;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 
-use crate::card::definition::{CardAbilities, CardDefinition, CardType, art_descriptor_default};
-use crate::card::geometry::TABLE_CARD_SIZE;
-use crate::card::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
-use crate::card::signature::CardSignature;
-use crate::card::spawn_table_card::spawn_visual_card;
+use crate::card::identity::definition::{
+    CardAbilities, CardDefinition, CardType, art_descriptor_default,
+};
+use crate::card::identity::signature::CardSignature;
+use crate::card::interaction::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
+use crate::card::rendering::geometry::TABLE_CARD_SIZE;
+use crate::card::rendering::spawn_table_card::spawn_visual_card;
 
 #[derive(Resource)]
 pub struct DebugSpawnRng(pub ChaCha8Rng);
@@ -80,8 +82,8 @@ pub fn debug_spawn_system(world: &mut World) {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
     use crate::card::component::Card;
+    use crate::card::identity::base_type::{BaseCardTypeRegistry, populate_default_types};
     use crate::test_helpers::SpyPhysicsBackend;
     use bevy_ecs::prelude::World;
     use engine_input::prelude::InputState;

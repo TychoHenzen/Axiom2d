@@ -7,13 +7,13 @@ use engine_scene::prelude::RenderLayer;
 use glam::Vec2;
 
 use crate::card::component::Card;
-use crate::card::drop_zone_glow::HAND_DROP_ZONE_HEIGHT;
-use crate::card::flip_animation::FlipAnimation;
-use crate::card::game_state_param::CardGameState;
-use crate::card::item_form::CardItemForm;
-use crate::card::physics_helpers::activate_physics_body;
-use crate::card::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
-use crate::card::zone::CardZone;
+use crate::card::component::CardItemForm;
+use crate::card::component::CardZone;
+use crate::card::interaction::flip_animation::FlipAnimation;
+use crate::card::interaction::game_state_param::CardGameState;
+use crate::card::interaction::physics_helpers::activate_physics_body;
+use crate::card::interaction::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
+use crate::card::rendering::drop_zone_glow::HAND_DROP_ZONE_HEIGHT;
 use crate::hand::cards::Hand;
 use crate::hand::layout::HandSpring;
 use crate::stash::grid::StashGrid;
@@ -258,10 +258,10 @@ mod tests {
     use glam::Vec2;
 
     use super::card_release_system;
-    use crate::card::drag_state::{DragInfo, DragState};
-    use crate::card::flip_animation::FlipAnimation;
-    use crate::card::item_form::CardItemForm;
-    use crate::card::zone::CardZone;
+    use crate::card::component::CardItemForm;
+    use crate::card::component::CardZone;
+    use crate::card::interaction::drag_state::{DragInfo, DragState};
+    use crate::card::interaction::flip_animation::FlipAnimation;
     use crate::hand::cards::Hand;
     use crate::hand::layout::HandSpring;
     use crate::stash::grid::StashGrid;

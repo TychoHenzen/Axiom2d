@@ -12,14 +12,14 @@ mod tests {
     use engine_render::testing::SpyRenderer;
     use glam::Vec2;
 
-    use crate::card::definition::{
+    use crate::card::component::CardItemForm;
+    use crate::card::component::CardZone;
+    use crate::card::identity::definition::{
         CardAbilities, CardDefinition, CardType, art_descriptor_default,
     };
-    use crate::card::drag_state::DragState;
-    use crate::card::item_form::CardItemForm;
-    use crate::card::signature::CardSignature;
-    use crate::card::spawn_table_card::spawn_visual_card;
-    use crate::card::zone::CardZone;
+    use crate::card::identity::signature::CardSignature;
+    use crate::card::interaction::drag_state::DragState;
+    use crate::card::rendering::spawn_table_card::spawn_visual_card;
     use crate::hand::cards::Hand;
     use crate::plugin::CardGamePlugin;
     use crate::stash::toggle::StashVisible;
