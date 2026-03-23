@@ -28,7 +28,7 @@ pub fn bake_front_face(
     let (w, h) = (card_size.x, card_size.y);
 
     let rarity = signature.rarity();
-    let border_color = rarity_border_color(rarity);
+    let border_color = rarity_border_color(rarity, signature);
 
     // --- Shapes (border, strips) — skip art region (drawn with shader) ---
     for (i, region) in FRONT_FACE_REGIONS.iter().enumerate() {

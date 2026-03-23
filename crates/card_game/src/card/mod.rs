@@ -4,6 +4,7 @@ pub mod baked_mesh;
 pub mod baked_render;
 pub mod base_type;
 pub mod camera_drag;
+pub mod card_description;
 pub mod card_name;
 pub mod component;
 pub mod damping;

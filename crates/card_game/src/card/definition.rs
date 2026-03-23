@@ -2,6 +2,8 @@ use bevy_ecs::prelude::Component;
 use engine_core::prelude::Color;
 use serde::{Deserialize, Serialize};
 
+use super::signature::CardSignature;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Keyword {
     Taunt,
@@ -78,14 +80,65 @@ pub fn description_from_abilities(abilities: &CardAbilities) -> String {
     }
 }
 
-pub fn rarity_border_color(rarity: Rarity) -> Color {
+/// Base hue ranges per rarity tier (H, S, L center values).
+/// Each card gets a randomized shade within its tier using the signature as seed.
+fn rarity_hsl(rarity: Rarity) -> (f32, f32, f32) {
     match rarity {
-        Rarity::Common => Color::new(0.6, 0.6, 0.6, 1.0),
-        Rarity::Uncommon => Color::new(0.2, 0.8, 0.2, 1.0),
-        Rarity::Rare => Color::new(0.2, 0.4, 1.0, 1.0),
-        Rarity::Epic => Color::new(0.6, 0.2, 0.9, 1.0),
-        Rarity::Legendary => Color::new(1.0, 0.65, 0.0, 1.0),
+        Rarity::Common => (0.0, 0.0, 0.75),      // light grays/whites
+        Rarity::Uncommon => (0.33, 0.55, 0.45),  // greens
+        Rarity::Rare => (0.61, 0.65, 0.50),      // blues
+        Rarity::Epic => (0.78, 0.60, 0.45),      // purples
+        Rarity::Legendary => (0.11, 0.85, 0.55), // golds/oranges
     }
+}
+
+fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (f32, f32, f32) {
+    if s < 1e-6 {
+        return (l, l, l);
+    }
+    let q = if l < 0.5 {
+        l * (1.0 + s)
+    } else {
+        l + s - l * s
+    };
+    let p = 2.0 * l - q;
+    let hue_to_rgb = |t: f32| {
+        let t = ((t % 1.0) + 1.0) % 1.0;
+        if t < 1.0 / 6.0 {
+            p + (q - p) * 6.0 * t
+        } else if t < 0.5 {
+            q
+        } else if t < 2.0 / 3.0 {
+            p + (q - p) * (2.0 / 3.0 - t) * 6.0
+        } else {
+            p
+        }
+    };
+    (
+        hue_to_rgb(h + 1.0 / 3.0),
+        hue_to_rgb(h),
+        hue_to_rgb(h - 1.0 / 3.0),
+    )
+}
+
+/// Returns a rarity-appropriate border color with per-card variation seeded by the signature.
+pub fn rarity_border_color(rarity: Rarity, signature: &CardSignature) -> Color {
+    let (base_h, base_s, base_l) = rarity_hsl(rarity);
+
+    // Derive a deterministic variation from the signature axes
+    let seed = signature
+        .axes()
+        .iter()
+        .enumerate()
+        .fold(0.0_f32, |acc, (i, &v)| acc + v * (i as f32 + 1.0) * 0.1);
+    let variation = (seed * 7.13).fract() * 2.0 - 1.0; // -1..1
+
+    let h = base_h + variation * 0.04; // ±4% hue shift
+    let s = (base_s + variation * 0.15).clamp(0.0, 1.0); // ±15% saturation
+    let l = (base_l + variation * 0.12).clamp(0.15, 0.90); // ±12% lightness
+
+    let (r, g, b) = hsl_to_rgb(h, s, l);
+    Color::new(r, g, b, 1.0)
 }
 
 pub fn art_descriptor_default(card_type: CardType) -> ArtDescriptor {
@@ -186,18 +239,24 @@ mod tests {
     }
 
     #[test]
-    fn when_rarity_border_color_called_then_all_five_rarities_return_different_colors() {
+    fn when_rarity_border_color_called_with_same_sig_then_different_rarities_produce_different_colors()
+     {
         // Arrange
-        let colors: Vec<Color> = [
+        use crate::card::signature::CardSignature;
+        let sig = CardSignature::new([0.5; 8]);
+        let rarities = [
             Rarity::Common,
             Rarity::Uncommon,
             Rarity::Rare,
             Rarity::Epic,
             Rarity::Legendary,
-        ]
-        .iter()
-        .map(|r| rarity_border_color(*r))
-        .collect();
+        ];
+
+        // Act
+        let colors: Vec<Color> = rarities
+            .iter()
+            .map(|r| rarity_border_color(*r, &sig))
+            .collect();
 
         // Assert
         for i in 0..colors.len() {
@@ -208,13 +267,38 @@ mod tests {
     }
 
     #[test]
-    fn when_rarity_border_color_called_for_legendary_then_color_is_not_white_or_transparent() {
+    fn when_rarity_border_color_called_with_different_sigs_then_same_rarity_varies() {
+        // Arrange
+        use crate::card::signature::CardSignature;
+        let sig_a = CardSignature::new([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]);
+        let sig_b = CardSignature::new([0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]);
+
         // Act
-        let color = rarity_border_color(Rarity::Legendary);
+        let color_a = rarity_border_color(Rarity::Rare, &sig_a);
+        let color_b = rarity_border_color(Rarity::Rare, &sig_b);
+
+        // Assert — different signatures should produce different shades
+        assert_ne!(
+            color_a, color_b,
+            "same rarity with different signatures should produce different colors"
+        );
+    }
+
+    #[test]
+    fn when_rarity_border_color_called_then_same_inputs_produce_same_output() {
+        // Arrange
+        use crate::card::signature::CardSignature;
+        let sig = CardSignature::new([0.3, 0.6, 0.1, 0.9, 0.2, 0.5, 0.4, 0.7]);
+
+        // Act
+        let color1 = rarity_border_color(Rarity::Epic, &sig);
+        let color2 = rarity_border_color(Rarity::Epic, &sig);
 
         // Assert
-        assert_ne!(color, Color::WHITE);
-        assert_ne!(color, Color::TRANSPARENT);
+        assert_eq!(
+            color1, color2,
+            "same inputs must produce deterministic output"
+        );
     }
 
     #[test]

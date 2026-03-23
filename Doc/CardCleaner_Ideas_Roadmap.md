@@ -155,16 +155,16 @@ Items from the tech debt audit that should be addressed before or alongside new 
 - [ ] Dark/dim gem for near-zero intensity, bright/large for extreme values
 - [ ] Tests: gem count matches element count, zero-intensity gem is minimal, high-intensity gem is prominent
 
-### I7 — Rarity Visual Indicators `[NOT STARTED]`
+### I7 — Rarity Visual Indicators `[IMPLEMENTED]`
 **Inspired by:** `RarityVisual` system — per-rarity texture sets for base, border, corners, banner
 **Engine gaps:** None — shape color/size variation per rarity tier
-**Why:** Rarity should be immediately visible. Border thickness, color saturation, and corner accent shapes scale with rarity tier. Common cards look plain; Legendary cards look ornate. All achievable with the existing shape hierarchy system.
+**Why:** Rarity is expressed through the card's border color. Each rarity tier has a distinct color family (Common=grays/whites, Uncommon=greens, Rare=blues, Epic=purples, Legendary=golds), with per-card variation seeded from the card's signature so every card gets a unique shade within its tier.
 
-- [ ] `RARITY_COLORS: [Color; 5]` constant array (grey → white → blue → purple → gold)
-- [ ] Border shape color keyed by rarity
-- [ ] Additional corner accent shapes for Rare+ (small triangles or circles at card corners)
-- [ ] Optional subtle scale increase for higher rarity (1.0 → 1.02 → 1.05)
-- [ ] Tests: each rarity produces distinct border color, accent shapes present only for Rare+
+- [x] `rarity_border_color(rarity, signature) -> Color` — HSL-based color with per-card randomization
+- [x] 5 rarity tiers: Common (light grays), Uncommon (greens), Rare (blues), Epic (purples), Legendary (golds/oranges)
+- [x] Per-card variation: ±4% hue, ±15% saturation, ±12% lightness seeded deterministically from signature
+- [x] HSL-to-RGB conversion (`hsl_to_rgb`) for smooth color space manipulation
+- [x] Tests: 3 tests — different rarities produce different colors, same rarity with different signatures varies, deterministic output
 
 ### I7a — Signature Profile (Quantized Identity Snapshot) `[IMPLEMENTED]`
 **Inspired by:** Debate consensus (Doc/Debate_Card_Identity_System.md) — all three identity systems (names, art, descriptions) should consume a single pre-computed struct
@@ -191,29 +191,30 @@ Items from the tech debt audit that should be addressed before or alongside new 
 - [ ] `generate_card_name(profile: &SignatureProfile) -> String` pure function
 - [ ] Tests: deterministic output, rarity gates name complexity, flat signatures get bare names, all rarity tiers produce valid names
 
-### I7c — Card Descriptions (Stat-Forward Format) `[NOT STARTED]`
-**Inspired by:** Debate consensus — "keyword — number — flavor verb" format from 30 years of card game design
-**Engine gaps:** None — consumes `SignatureProfile` + `ResidualStats`
-**Why:** Descriptions lead with mechanical values for scannability, then add a flavor verb from the dominant aspect to tie text to visual identity. Three information layers in five words: keyword is scannable, number is comparable, flavor verb connects to name and art.
+### I7c — Card Descriptions (Gameplay Effect Text) `[IMPLEMENTED]`
+**Inspired by:** Debate consensus + card game conventions — descriptions answer "what does this card do?"
+**Engine gaps:** None — consumes `ResidualStats`
+**Why:** Card descriptions communicate gameplay effects: what happens when you play the card. Derived from the card's residual stats (which map to concrete abilities like damage, healing, defense). Format is mechanical and scannable — players read descriptions to make tactical decisions, not for flavor. Flavor subtitles (in `card_name.rs`) are used as fallback when no stats are available.
 
-- [ ] Description format: `[Keyword] [Value] — [flavor verb from dominant aspect]`
-- [ ] Keywords and values pulled from top 2-3 residual stats by absolute magnitude
-- [ ] Flavor verb lookup: ~32 entries (2 per aspect, one active/one passive)
-- [ ] `generate_card_description(profile: &SignatureProfile, stats: &ResidualStats) -> String` pure function
-- [ ] Tests: deterministic output, stats ordered by magnitude, flavor verb matches dominant aspect
+- [x] Flavor subtitle phrases per tier/cluster (implemented in `card_name.rs`)
+- [x] `generate_card_description(stats: &ResidualStats) -> String` pure function in `card_description.rs`
+- [x] Effect lines: Power→"Deal X damage", Healing→"Restore X health", Defense→"Block X damage", Speed→"+X initiative", Cost/Duration/Range/Special
+- [x] Top 3 effects by absolute magnitude, one per line, scaled by EFFECT_SCALE (20.0)
+- [x] Values below MIN_DISPLAY_VALUE (1) omitted
+- [x] Wired into `spawn_visual_card`: uses stats-based description when available, falls back to subtitle
+- [x] 9 tests: zero stats, single stat, magnitude ordering, top-3 cap, small-value omission, per-keyword format, spawn integration
 
-### I7d — Glyph Art System (Compositional Card Visuals) `[NOT STARTED]`
-**Inspired by:** Debate consensus — archetype silhouettes + axis-derived glyph overlays; Kate Compton's glyph-primitives proposal endorsed by all experts
-**Engine gaps:** Requires authoring ~20 lyon path primitives; extends existing `generate_card_visuals` pipeline
-**Why:** Art is the primary identity channel. Players read art faster than text. Archetype defines a base silhouette (Weapon=angular, Shield=round, Spell=radial, Healer=organic, Scout=elongated), dominant axis adds a primary glyph overlay (flames, spirals, chevrons, waves), secondary axis adds an accent glyph. Tier-differentiated variants give qualitative jumps (a Dormant flame is a flicker, an Intense flame roars). Composition is spatial placement on the card face — exploits preattentive visual processing for instant card recognition.
+### I7d — Card Art Icons (Shader-Drawn Iconography) `[NOT STARTED]`
+**Inspired by:** Debate consensus — archetype silhouettes + axis-derived glyph overlays
+**Engine gaps:** Extends existing card art shader overlay system (baked_render.rs art_shader_program)
+**Why:** The card art shader currently draws procedural patterns (gradients, noise). This step adds recognizable icons — each card's art area renders a distinct icon derived from its archetype and dominant element. Icons are drawn by the art shader (not lyon paths), keeping them resolution-independent and integrated with the existing baked card rendering pipeline. Players instantly recognize card types by their icon silhouette.
 
-- [ ] 5 archetype silhouette lyon paths (one per base card type)
-- [ ] 8 axis glyph lyon paths (one per element), with 3 tier variants each (~24 glyph variants)
-- [ ] `GlyphLayout` struct: archetype silhouette + dominant glyph + optional secondary glyph + placement offsets
-- [ ] `generate_glyph_layout(profile: &SignatureProfile) -> GlyphLayout` pure function
-- [ ] Integrate into card face rendering (art area region from `face_layout.rs`)
-- [ ] Tune tier boundaries visually until cards at different tiers are instantly distinguishable
-- [ ] Tests: deterministic layout from profile, archetype selects correct silhouette, dominant selects correct glyph, tier selects correct variant
+- [ ] Icon selection: archetype determines base icon shape (Weapon=sword, Shield=shield, Spell=star, Healer=cross, Scout=arrow)
+- [ ] Element influence: dominant element modifies icon style (color tint, secondary detail)
+- [ ] Tier variation: Dormant=simple outline, Active=filled, Intense=filled+glow effect
+- [ ] `CardIconParams` struct: icon_type, element_tint, tier_detail — derived from SignatureProfile
+- [ ] Integrate into `art_shader_program` in baked_render.rs
+- [ ] Tests: deterministic icon params from profile, archetype selects correct icon, tier selects correct detail level
 
 ---
 

@@ -9,6 +9,7 @@ use crate::card::art_shader::CardArtShader;
 use crate::card::bake::{bake_back_face, bake_front_face};
 use crate::card::baked_mesh::BakedCardMesh;
 use crate::card::base_type::BaseCardTypeRegistry;
+use crate::card::card_description::generate_card_description;
 use crate::card::card_name::generate_card_name;
 use crate::card::component::Card;
 use crate::card::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
@@ -36,16 +37,27 @@ pub fn spawn_visual_card(
         face_up,
         signature,
     };
-    let label = {
-        let profile = world.get_resource::<BaseCardTypeRegistry>().map_or_else(
+    let (profile, stats) = {
+        let registry = world.get_resource::<BaseCardTypeRegistry>();
+        let profile = registry.map_or_else(
             || SignatureProfile::without_archetype(&signature),
             |reg| SignatureProfile::new(&signature, reg),
         );
-        let card_name = generate_card_name(&profile, &signature);
-        CardLabel {
-            name: card_name.title,
-            description: card_name.subtitle,
-        }
+        let stats = registry
+            .and_then(|reg| reg.best_match(&signature))
+            .map(|base_type| ResidualStats::from_card(&signature, base_type));
+        (profile, stats)
+    };
+
+    let card_name = generate_card_name(&profile, &signature);
+    let description = stats
+        .as_ref()
+        .map(generate_card_description)
+        .filter(|d| !d.is_empty())
+        .unwrap_or(card_name.subtitle);
+    let label = CardLabel {
+        name: card_name.title,
+        description,
     };
 
     let root = world
@@ -74,10 +86,7 @@ pub fn spawn_visual_card(
             .expect("freshly spawned card should have physics body");
     }
 
-    if let Some(registry) = world.get_resource::<BaseCardTypeRegistry>()
-        && let Some(base_type) = registry.best_match(&card.signature)
-    {
-        let stats = ResidualStats::from_card(&card.signature, base_type);
+    if let Some(stats) = stats {
         world.entity_mut(root).insert(stats);
     }
 
@@ -438,6 +447,43 @@ mod tests {
             children.is_empty(),
             "baked card should have no child entities, found {}",
             children.len()
+        );
+    }
+
+    #[test]
+    fn when_spawn_with_matching_base_type_then_description_contains_effect_text() {
+        use crate::card::base_type::{BaseCardTypeRegistry, populate_default_types};
+
+        // Arrange — signature with strong Febris (maps to Power → "Deal X damage")
+        let mut world = World::new();
+        let mut registry = BaseCardTypeRegistry::new();
+        populate_default_types(&mut registry);
+        world.insert_resource(registry);
+        let def = make_test_def();
+        let signature = CardSignature::new([0.7, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            false,
+            signature,
+        );
+
+        // Assert
+        let label = world
+            .get::<CardLabel>(root)
+            .expect("card should have CardLabel");
+        let has_effect = label.description.contains("damage")
+            || label.description.contains("health")
+            || label.description.contains("Block")
+            || label.description.contains("initiative");
+        assert!(
+            has_effect,
+            "card with residual stats should have effect-based description, got: {:?}",
+            label.description
         );
     }
 
