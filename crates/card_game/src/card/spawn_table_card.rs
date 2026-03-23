@@ -259,7 +259,7 @@ mod tests {
     #[test]
     fn when_spawn_with_art_shader_then_mesh_overlays_has_art_entry() {
         // Arrange
-        use crate::card::art_shader::{CardArtShader, register_card_art_shader};
+        use crate::card::art_shader::register_card_art_shader;
         use engine_render::prelude::ShaderRegistry;
         use engine_render::shape::MeshOverlays;
         let mut world = World::new();
