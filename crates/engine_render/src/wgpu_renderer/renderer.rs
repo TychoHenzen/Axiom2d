@@ -49,6 +49,8 @@ pub struct WgpuRenderer {
     pub(super) bloom_threshold: f32,
     pub(super) bloom_intensity: f32,
     pub(super) glyph_cache: crate::font::GlyphCache,
+    pub(super) msaa_view: wgpu::TextureView,
+    pub(super) sample_count: u32,
 }
 
 impl WgpuRenderer {
@@ -56,7 +58,38 @@ impl WgpuRenderer {
         Self::from_parts(gpu_init::build_renderer_parts(window, config))
     }
 
+    pub(super) fn create_msaa_texture(
+        device: &wgpu::Device,
+        format: wgpu::TextureFormat,
+        width: u32,
+        height: u32,
+        sample_count: u32,
+    ) -> wgpu::TextureView {
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("msaa_texture"),
+            size: wgpu::Extent3d {
+                width: width.max(1),
+                height: height.max(1),
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count,
+            dimension: wgpu::TextureDimension::D2,
+            format,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        });
+        texture.create_view(&wgpu::TextureViewDescriptor::default())
+    }
+
     fn from_parts(p: gpu_init::RendererParts) -> Self {
+        let msaa_view = Self::create_msaa_texture(
+            &p.gpu.device,
+            p.gpu_format,
+            p.gpu.config.width,
+            p.gpu.config.height,
+            p.sample_count,
+        );
         Self {
             surface: p.gpu.surface,
             device: p.gpu.device,
@@ -87,6 +120,8 @@ impl WgpuRenderer {
             bloom_threshold: 0.8,
             bloom_intensity: 0.3,
             glyph_cache: crate::font::GlyphCache::new(),
+            msaa_view,
+            sample_count: p.sample_count,
         }
     }
 

@@ -1,8 +1,9 @@
 use bevy_ecs::prelude::{Changed, Or, Query};
-use engine_render::shape::{ColorMesh, MeshOverlays};
+use engine_render::shape::{ColorMesh, MeshOverlays, TessellatedColorMesh};
 
 use super::baked_mesh::BakedCardMesh;
 use super::component::Card;
+use super::item_form::CardItemForm;
 
 /// Syncs `BakedCardMesh` → `ColorMesh` based on `card.face_up`.
 /// Also hides/shows `MeshOverlays` (art shader) — overlays only render face-up.
@@ -15,11 +16,21 @@ pub fn baked_card_sync_system(
             &Card,
             &mut ColorMesh,
             Option<&mut MeshOverlays>,
+            Option<&CardItemForm>,
         ),
         Or<(Changed<Card>, Changed<BakedCardMesh>)>,
     >,
 ) {
-    for (baked, card, mut mesh, overlays) in &mut query {
+    for (baked, card, mut mesh, overlays, item_form) in &mut query {
+        if item_form.is_some() {
+            mesh.0 = TessellatedColorMesh::default();
+            if let Some(mut overlays) = overlays {
+                for entry in &mut overlays.0 {
+                    entry.visible = false;
+                }
+            }
+            continue;
+        }
         let face = if card.face_up {
             &baked.front
         } else {
@@ -40,11 +51,12 @@ pub fn baked_card_sync_system(
 #[allow(clippy::unwrap_used)]
 mod tests {
     use bevy_ecs::prelude::*;
-    use engine_render::shape::ColorMesh;
+    use engine_render::shape::{ColorMesh, MeshOverlays, OverlayEntry};
     use glam::Vec2;
 
     use super::*;
     use crate::card::bake::{bake_back_face, bake_front_face};
+    use crate::card::item_form::CardItemForm;
     use crate::card::label::CardLabel;
     use crate::card::signature::CardSignature;
 
@@ -91,6 +103,112 @@ mod tests {
         let mut q = world.query::<&ColorMesh>();
         let mesh = q.single(&world).unwrap();
         assert_eq!(mesh.vertices.len(), expected_len);
+    }
+
+    #[test]
+    fn when_card_has_item_form_then_color_mesh_is_empty() {
+        // Arrange
+        let mut world = World::new();
+        world.spawn((
+            make_baked(),
+            make_card(true),
+            ColorMesh::default(),
+            CardItemForm,
+        ));
+
+        // Act
+        run(&mut world);
+
+        // Assert
+        let mut q = world.query::<&ColorMesh>();
+        let mesh = q.single(&world).unwrap();
+        assert!(
+            mesh.is_empty(),
+            "item-form card ColorMesh must have no vertices"
+        );
+    }
+
+    #[test]
+    fn when_card_has_item_form_then_overlays_hidden() {
+        // Arrange
+        let mut world = World::new();
+        let overlay = MeshOverlays(vec![OverlayEntry {
+            vertices: [[0.0; 2]; 4],
+            indices: [0, 1, 2, 2, 3, 0],
+            color: engine_core::prelude::Color::WHITE,
+            material: engine_render::material::Material2d::default(),
+            visible: true,
+        }]);
+        world.spawn((
+            make_baked(),
+            make_card(true),
+            ColorMesh::default(),
+            overlay,
+            CardItemForm,
+        ));
+
+        // Act
+        run(&mut world);
+
+        // Assert
+        let mut q = world.query::<&MeshOverlays>();
+        let overlays = q.single(&world).unwrap();
+        assert!(
+            overlays.0.iter().all(|e| !e.visible),
+            "item-form card overlays must all be hidden"
+        );
+    }
+
+    #[test]
+    fn when_card_has_item_form_face_down_then_color_mesh_is_empty() {
+        // Arrange
+        let mut world = World::new();
+        world.spawn((
+            make_baked(),
+            make_card(false),
+            ColorMesh::default(),
+            CardItemForm,
+        ));
+
+        // Act
+        run(&mut world);
+
+        // Assert
+        let mut q = world.query::<&ColorMesh>();
+        let mesh = q.single(&world).unwrap();
+        assert!(
+            mesh.is_empty(),
+            "item-form face-down card must have no vertices"
+        );
+    }
+
+    #[test]
+    fn when_item_form_removed_then_mesh_restored_on_next_sync() {
+        // Arrange — spawn card with ItemForm, run system to clear mesh
+        let mut world = World::new();
+        let baked = make_baked();
+        let expected_len = baked.front.vertices.len();
+        let entity = world
+            .spawn((baked, make_card(true), ColorMesh::default(), CardItemForm))
+            .id();
+        run(&mut world);
+        // Confirm mesh is empty after first sync
+        let mut q = world.query::<&ColorMesh>();
+        assert!(q.get(&world, entity).unwrap().is_empty());
+
+        // Act — remove ItemForm and touch Card to trigger change detection
+        world.entity_mut(entity).remove::<CardItemForm>();
+        world.entity_mut(entity).get_mut::<Card>().unwrap().face_up = true;
+        run(&mut world);
+
+        // Assert
+        let mut q = world.query::<&ColorMesh>();
+        let mesh = q.get(&world, entity).unwrap();
+        assert_eq!(
+            mesh.vertices.len(),
+            expected_len,
+            "mesh must be restored after leaving stash"
+        );
     }
 
     #[test]

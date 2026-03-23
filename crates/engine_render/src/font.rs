@@ -172,6 +172,47 @@ pub fn wrap_text(text: &str, font_size: f32, max_width: f32) -> Vec<String> {
     lines
 }
 
+/// Balanced wrapping: splits text into at most 2 lines, trying to keep
+/// line lengths roughly equal. Falls back to greedy `wrap_text` if
+/// the text fits on 1 line or has only 1 word.
+pub fn balanced_wrap_text(text: &str, font_size: f32, max_width: f32) -> Vec<String> {
+    let full_width = measure_text(text, font_size);
+    if full_width <= max_width {
+        return vec![text.to_string()];
+    }
+    let words: Vec<&str> = text.split(' ').collect();
+    if words.len() <= 1 {
+        return vec![text.to_string()];
+    }
+    // Try splitting at each word boundary, pick the split where both lines
+    // are closest in width (and both fit within max_width)
+    let face = ttf_parser::Face::parse(FONT_BYTES, 0).expect("embedded font is valid");
+    let mut best_split = 1;
+    let mut best_diff = f32::MAX;
+    for split in 1..words.len() {
+        let line1: String = words[..split].join(" ");
+        let line2: String = words[split..].join(" ");
+        let w1 = measure_text_with_face(&face, &line1, font_size);
+        let w2 = measure_text_with_face(&face, &line2, font_size);
+        if w1 <= max_width && w2 <= max_width {
+            let diff = (w1 - w2).abs();
+            if diff < best_diff {
+                best_diff = diff;
+                best_split = split;
+            }
+        }
+    }
+    let line1 = words[..best_split].join(" ");
+    let line2 = words[best_split..].join(" ");
+    // If no valid split found (both lines too wide), fall back to greedy
+    if measure_text_with_face(&face, &line1, font_size) > max_width
+        || measure_text_with_face(&face, &line2, font_size) > max_width
+    {
+        return wrap_text(text, font_size, max_width);
+    }
+    vec![line1, line2]
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn render_text_glyphs(
     renderer: &mut dyn crate::renderer::Renderer,
@@ -277,9 +318,42 @@ pub fn bake_wrapped_text_into_mesh(
     max_width: f32,
 ) {
     let lines = wrap_text(text, font_size, max_width);
+    bake_lines_into_mesh(mesh, &lines, font_size, color, base_x, base_y);
+}
+
+/// Same as `bake_wrapped_text_into_mesh` but uses balanced line-splitting
+/// (roughly equal line widths) capped at 2 lines.
+pub fn bake_balanced_text_into_mesh(
+    mesh: &mut TessellatedColorMesh,
+    text: &str,
+    font_size: f32,
+    color: [f32; 4],
+    base_x: f32,
+    base_y: f32,
+    max_width: f32,
+) {
+    let lines = balanced_wrap_text(text, font_size, max_width);
+    bake_lines_into_mesh(mesh, &lines, font_size, color, base_x, base_y);
+}
+
+fn bake_lines_into_mesh(
+    mesh: &mut TessellatedColorMesh,
+    lines: &[String],
+    font_size: f32,
+    color: [f32; 4],
+    base_x: f32,
+    base_y: f32,
+) {
+    if lines.len() == 1 {
+        bake_text_into_mesh(mesh, &lines[0], font_size, color, base_x, base_y);
+        return;
+    }
+    // Multi-line: space lines evenly around base_y.
+    // Glyph Y is negated (ascenders go negative, descenders positive),
+    // so positive Y offset moves text downward.
     let line_height = font_size * 1.3;
-    let total_height = (lines.len() as f32 - 1.0) * line_height;
-    let start_y = base_y - total_height * 0.5;
+    let total_span = (lines.len() as f32 - 1.0) * line_height;
+    let start_y = base_y - total_span * 0.5;
     for (i, line) in lines.iter().enumerate() {
         let y_offset = start_y + i as f32 * line_height;
         bake_text_into_mesh(mesh, line, font_size, color, base_x, y_offset);

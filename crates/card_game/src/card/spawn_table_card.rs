@@ -149,12 +149,59 @@ pub(crate) const TEXT_COLOR: engine_core::color::Color = engine_core::color::Col
     a: 1.0,
 };
 
-pub(crate) fn fit_font_size(text: &str, base_size: f32, max_width: f32) -> f32 {
-    let width = engine_render::font::measure_text(text, base_size);
-    if width <= max_width {
-        base_size
+/// Find the largest font size where the name wraps to at most 2 lines
+/// and fits within both `max_width` and `max_height`.
+///
+/// Strategy: first check if text fits on 1 line at base size. If not,
+/// find the font size where balanced 2-line wrapping works, then clamp
+/// to fit the strip height.
+pub(crate) fn fit_name_font_size(
+    text: &str,
+    base_size: f32,
+    max_width: f32,
+    max_height: f32,
+) -> f32 {
+    // Does it fit on 1 line at base size?
+    let full_width = engine_render::font::measure_text(text, base_size);
+    if full_width <= max_width {
+        return base_size;
+    }
+
+    // It needs wrapping. Find the font size where the wider half of a balanced
+    // 2-line split fits within max_width. Since text width scales linearly with
+    // font size, we can compute this directly.
+    let words: Vec<&str> = text.split(' ').collect();
+    if words.len() <= 1 {
+        // Single word — just shrink to fit width
+        return base_size * max_width / full_width;
+    }
+
+    // Find the best balanced split at base size and measure the wider half
+    let mut best_max_half = full_width;
+    for split in 1..words.len() {
+        let line1 = words[..split].join(" ");
+        let line2 = words[split..].join(" ");
+        let w1 = engine_render::font::measure_text(&line1, base_size);
+        let w2 = engine_render::font::measure_text(&line2, base_size);
+        let wider = w1.max(w2);
+        if wider < best_max_half {
+            best_max_half = wider;
+        }
+    }
+
+    // Scale font so the wider half fits within max_width
+    let width_size = if best_max_half > max_width {
+        base_size * max_width / best_max_half
     } else {
-        base_size * max_width / width
+        base_size
+    };
+
+    // Also clamp to fit 2 lines within the strip height
+    let two_line_height = width_size * 1.3 * 2.0;
+    if two_line_height <= max_height {
+        width_size
+    } else {
+        width_size * max_height / two_line_height
     }
 }
 

@@ -22,6 +22,7 @@ pub mod gem_sockets;
 pub mod geometry;
 pub mod item_form;
 pub mod label;
+pub mod name_pools;
 pub(crate) mod physics_helpers;
 pub mod pick;
 pub mod release;

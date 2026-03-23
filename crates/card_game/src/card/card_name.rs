@@ -2,6 +2,10 @@ use rand::SeedableRng;
 use rand::seq::SliceRandom;
 use rand_chacha::ChaCha8Rng;
 
+use crate::card::name_pools::{
+    AspectCluster, TitleParts, adjective_pool, aspect_cluster, common_title, generate_compound,
+    generate_proper_noun, legendary_title, noun_pool, rare_title,
+};
 use crate::card::signature::{Aspect, CardSignature, Rarity};
 use crate::card::signature_profile::{SignatureProfile, Tier};
 
@@ -43,31 +47,50 @@ fn build_title(profile: &SignatureProfile, rng: &mut ChaCha8Rng) -> String {
     let adjectives = adjective_pool(dominant_aspect);
     let adj = adjectives.choose(rng).copied().unwrap_or("Ancient");
 
+    let compound = generate_compound(rng, archetype, dominant_cluster);
+    let name = generate_proper_noun(rng);
+
     match profile.rarity {
-        Rarity::Common | Rarity::Uncommon => format!("{adj} {noun}"),
+        Rarity::Common | Rarity::Uncommon => {
+            let parts = TitleParts {
+                adj,
+                noun,
+                compound: &compound,
+                name: &name,
+                adj2: adj,
+            };
+            common_title(rng, &parts)
+        }
         Rarity::Rare | Rarity::Epic => {
-            let compound_nouns = compound_noun_pool(dominant_cluster, archetype);
-            let compound_noun = compound_nouns.choose(rng).copied().unwrap_or("Relic");
             let secondary_adj = profile.secondary_axis.map(|el| {
                 let pool = adjective_pool(profile.aspects[el as usize]);
                 pool.choose(rng).copied().unwrap_or("Ancient")
             });
-            match secondary_adj {
-                Some(sec) => format!("{adj} {compound_noun} of {sec}"),
-                None => format!("{compound_noun} of {adj}"),
-            }
+            let adj2 = secondary_adj.unwrap_or(adj);
+            let parts = TitleParts {
+                adj,
+                noun,
+                compound: &compound,
+                name: &name,
+                adj2,
+            };
+            rare_title(rng, &parts)
         }
         Rarity::Legendary => {
-            let legendary_pool =
-                legendary_name_pool(dominant_cluster, profile.archetype.as_deref());
-            let proper_noun = legendary_pool.choose(rng).copied().unwrap_or("Relic");
-            let epithet_adj = adjectives
+            let adj2_pool = adjectives
                 .iter()
                 .filter(|&&a| a != adj)
                 .copied()
                 .collect::<Vec<_>>();
-            let epithet = epithet_adj.choose(rng).copied().unwrap_or(adj);
-            format!("{proper_noun}, the {epithet}")
+            let epithet = adj2_pool.choose(rng).copied().unwrap_or(adj);
+            let parts = TitleParts {
+                adj,
+                noun,
+                compound: &compound,
+                name: &name,
+                adj2: epithet,
+            };
+            legendary_title(rng, &parts)
         }
     }
 }
@@ -101,834 +124,6 @@ pub fn subtitle_phrase(tier: Tier, cluster: AspectCluster) -> &'static str {
     }
 }
 
-fn noun_pool(archetype: &str, cluster: AspectCluster) -> &'static [&'static str] {
-    match (archetype, cluster) {
-        ("Weapon", AspectCluster::Physical) => {
-            &["Blade", "Maul", "Cleaver", "Hammer", "Edge", "Bludgeon"]
-        }
-        ("Weapon", AspectCluster::Elemental) => &[
-            "Brand",
-            "Frostfang",
-            "Sunblade",
-            "Ashbringer",
-            "Ember",
-            "Shard",
-        ],
-        ("Weapon", AspectCluster::Nature) => {
-            &["Thorn", "Briar", "Rootcleaver", "Fang", "Stinger", "Husk"]
-        }
-        ("Weapon", AspectCluster::Arcane) => &[
-            "Voidedge",
-            "Riftblade",
-            "Phasecutter",
-            "Flux",
-            "Shiftshard",
-            "Warp",
-        ],
-
-        ("Shield", AspectCluster::Physical) => {
-            &["Bulwark", "Plate", "Rampart", "Guard", "Wall", "Bastion"]
-        }
-        ("Shield", AspectCluster::Elemental) => &[
-            "Aegis",
-            "Flameward",
-            "Frostguard",
-            "Dawnshield",
-            "Veil",
-            "Mantle",
-        ],
-        ("Shield", AspectCluster::Nature) => &[
-            "Barkwall",
-            "Thornguard",
-            "Rootbulwark",
-            "Huskshield",
-            "Shell",
-            "Carapace",
-        ],
-        ("Shield", AspectCluster::Arcane) => &[
-            "Voidwall",
-            "Phaseguard",
-            "Riftbarrier",
-            "Warpshield",
-            "Nexus",
-            "Ward",
-        ],
-
-        ("Spell", AspectCluster::Physical) => {
-            &["Shatter", "Crush", "Tremor", "Quake", "Impact", "Shockwave"]
-        }
-        ("Spell", AspectCluster::Elemental) => {
-            &["Bolt", "Flare", "Frostbolt", "Pyre", "Sunburst", "Eclipse"]
-        }
-        ("Spell", AspectCluster::Nature) => &[
-            "Bloom",
-            "Blight",
-            "Overgrowth",
-            "Wilt",
-            "Tangle",
-            "Rootgrasp",
-        ],
-        ("Spell", AspectCluster::Arcane) => &[
-            "Rift",
-            "Voidbolt",
-            "Warpweave",
-            "Phaseshift",
-            "Paradox",
-            "Flux",
-        ],
-
-        ("Healer", AspectCluster::Physical) => {
-            &["Salve", "Balm", "Poultice", "Compress", "Splint", "Bandage"]
-        }
-        ("Healer", AspectCluster::Elemental) => &[
-            "Elixir",
-            "Sunwater",
-            "Frostbalm",
-            "Embertonic",
-            "Radiance",
-            "Glow",
-        ],
-        ("Healer", AspectCluster::Nature) => {
-            &["Bloom", "Remedy", "Verdance", "Sprout", "Renewal", "Sap"]
-        }
-        ("Healer", AspectCluster::Arcane) => &[
-            "Mend",
-            "Restoration",
-            "Phaseweave",
-            "Paradox",
-            "Flux",
-            "Reversal",
-        ],
-
-        ("Scout", AspectCluster::Physical) => {
-            &["Stride", "Footing", "Bearing", "Passage", "Track", "March"]
-        }
-        ("Scout", AspectCluster::Elemental) => &[
-            "Flicker",
-            "Glint",
-            "Frostpath",
-            "Embertrace",
-            "Signal",
-            "Gleam",
-        ],
-        ("Scout", AspectCluster::Nature) => &["Trail", "Scent", "Trace", "Omen", "Burrow", "Path"],
-        ("Scout", AspectCluster::Arcane) => &["Vantage", "Rift", "Warp", "Phase", "Blink", "Vista"],
-
-        ("Artifact", AspectCluster::Physical) => {
-            &["Relic", "Totem", "Idol", "Slab", "Monolith", "Anvil"]
-        }
-        ("Artifact", AspectCluster::Elemental) => {
-            &["Orb", "Prism", "Lantern", "Censer", "Brazier", "Crystal"]
-        }
-        ("Artifact", AspectCluster::Nature) => {
-            &["Seedstone", "Root", "Fossil", "Husk", "Acorn", "Heartwood"]
-        }
-        ("Artifact", AspectCluster::Arcane) => {
-            &["Focus", "Catalyst", "Nexus", "Gate", "Lens", "Conduit"]
-        }
-
-        (_, AspectCluster::Physical) => {
-            &["Fragment", "Shard", "Remnant", "Chunk", "Scrap", "Sliver"]
-        }
-        (_, AspectCluster::Elemental) => &["Spark", "Ember", "Wisp", "Mote", "Gleam", "Flicker"],
-        (_, AspectCluster::Nature) => &["Spore", "Root", "Seed", "Husk", "Twig", "Petal"],
-        (_, AspectCluster::Arcane) => &["Echo", "Vestige", "Trace", "Rift", "Ripple", "Anomaly"],
-    }
-}
-
-fn compound_noun_pool(cluster: AspectCluster, archetype: &str) -> &'static [&'static str] {
-    match (archetype, cluster) {
-        ("Weapon", AspectCluster::Physical) => &[
-            "Ironbrand",
-            "Steelcleave",
-            "Warhammer",
-            "Stonebreaker",
-            "Maulfist",
-            "Grindedge",
-        ],
-        ("Weapon", AspectCluster::Elemental) => &[
-            "Flamebrand",
-            "Frostfang",
-            "Sunblade",
-            "Ashbringer",
-            "Emberstrike",
-            "Duskedge",
-        ],
-        ("Weapon", AspectCluster::Nature) => &[
-            "Thornblade",
-            "Briarfang",
-            "Rootcleaver",
-            "Vinecutter",
-            "Petaledge",
-            "Blightsteel",
-        ],
-        ("Weapon", AspectCluster::Arcane) => &[
-            "Voidedge",
-            "Riftblade",
-            "Phasecutter",
-            "Warpfang",
-            "Fluxbrand",
-            "Nullcleave",
-        ],
-
-        ("Shield", AspectCluster::Physical) => &[
-            "Ironwall",
-            "Steelguard",
-            "Stonebastion",
-            "Plateward",
-            "Grindshield",
-            "Hammerguard",
-        ],
-        ("Shield", AspectCluster::Elemental) => &[
-            "Flameward",
-            "Frostguard",
-            "Dawnshield",
-            "Ashmantle",
-            "Embershield",
-            "Duskveil",
-        ],
-        ("Shield", AspectCluster::Nature) => &[
-            "Barkwall",
-            "Thornguard",
-            "Rootbulwark",
-            "Vineward",
-            "Petalshield",
-            "Blightmantle",
-        ],
-        ("Shield", AspectCluster::Arcane) => &[
-            "Voidwall",
-            "Riftguard",
-            "Phaseward",
-            "Warpshield",
-            "Fluxbarrier",
-            "Nullmantle",
-        ],
-
-        ("Spell", AspectCluster::Physical) => &[
-            "Ironpulse",
-            "Steelbolt",
-            "Stonecrush",
-            "Grindwave",
-            "Shatterblast",
-            "Tremorsurge",
-        ],
-        ("Spell", AspectCluster::Elemental) => &[
-            "Firebolt",
-            "Frostpulse",
-            "Sunburst",
-            "Ashblast",
-            "Emberflare",
-            "Duskwave",
-        ],
-        ("Spell", AspectCluster::Nature) => &[
-            "Bloomsurge",
-            "Blightbolt",
-            "Rootgrasp",
-            "Vinewhip",
-            "Petalstorm",
-            "Thornpulse",
-        ],
-        ("Spell", AspectCluster::Arcane) => &[
-            "Voidbolt",
-            "Riftpulse",
-            "Phaseblast",
-            "Warpweave",
-            "Fluxsurge",
-            "Nullburst",
-        ],
-
-        ("Healer", AspectCluster::Physical) => &[
-            "Ironbalm",
-            "Steelsalve",
-            "Stonemend",
-            "Platebind",
-            "Grindpatch",
-            "Hammersplint",
-        ],
-        ("Healer", AspectCluster::Elemental) => &[
-            "Firesalve",
-            "Frostbalm",
-            "Sunmend",
-            "Embertonic",
-            "Glowdraught",
-            "Dawnwater",
-        ],
-        ("Healer", AspectCluster::Nature) => &[
-            "Bloomsalve",
-            "Rootmend",
-            "Vinebalm",
-            "Petalcure",
-            "Verdantbloom",
-            "Sproutelixir",
-        ],
-        ("Healer", AspectCluster::Arcane) => &[
-            "Voidmend",
-            "Riftcure",
-            "Phaseweave",
-            "Warpsalve",
-            "Fluxdraught",
-            "Nullbloom",
-        ],
-
-        ("Scout", AspectCluster::Physical) => &[
-            "Ironstride",
-            "Steeltrack",
-            "Stonepath",
-            "Grindmarch",
-            "Platestep",
-            "Hammergait",
-        ],
-        ("Scout", AspectCluster::Elemental) => &[
-            "Flamestep",
-            "Frostpath",
-            "Sunstride",
-            "Embertrace",
-            "Glowtrail",
-            "Dusktrack",
-        ],
-        ("Scout", AspectCluster::Nature) => &[
-            "Bloompath",
-            "Roottrail",
-            "Vinestride",
-            "Petaltrace",
-            "Verdantpath",
-            "Sproutstep",
-        ],
-        ("Scout", AspectCluster::Arcane) => &[
-            "Voidstride",
-            "Riftpath",
-            "Phasestep",
-            "Warptrace",
-            "Fluxtrail",
-            "Nullstep",
-        ],
-
-        ("Artifact", AspectCluster::Physical) => &[
-            "Ironcore",
-            "Steelrelic",
-            "Stoneshard",
-            "Monolith",
-            "Platetotem",
-            "Grindfocus",
-        ],
-        ("Artifact", AspectCluster::Elemental) => &[
-            "Fireshard",
-            "Frostspark",
-            "Sunshard",
-            "Emberfocus",
-            "Glowstone",
-            "Duskrelic",
-        ],
-        ("Artifact", AspectCluster::Nature) => &[
-            "Bloomseed",
-            "Rootshard",
-            "Vinecore",
-            "Petalfocus",
-            "Verdantstone",
-            "Sproutfocus",
-        ],
-        ("Artifact", AspectCluster::Arcane) => &[
-            "Voidcore",
-            "Riftshard",
-            "Phasefocus",
-            "Warpstone",
-            "Fluxshard",
-            "Nullrelic",
-        ],
-
-        (_, AspectCluster::Physical) => &[
-            "Ironchunk",
-            "Steelfragment",
-            "Stoneshard",
-            "Grindscrap",
-            "Platesliver",
-            "Hammerchip",
-        ],
-        (_, AspectCluster::Elemental) => &[
-            "Firemote",
-            "Frostspark",
-            "Sunwisp",
-            "Emberfleck",
-            "Glowmote",
-            "Duskflicker",
-        ],
-        (_, AspectCluster::Nature) => &[
-            "Bloomspore",
-            "Rootseed",
-            "Vinehusk",
-            "Petaltwig",
-            "Verdantmote",
-            "Sproutseed",
-        ],
-        (_, AspectCluster::Arcane) => &[
-            "Voidecho",
-            "Riftwisp",
-            "Phasemote",
-            "Warpripple",
-            "Fluxmote",
-            "Nulltrace",
-        ],
-    }
-}
-
-fn legendary_name_pool(cluster: AspectCluster, archetype: Option<&str>) -> &'static [&'static str] {
-    match (archetype, cluster) {
-        (Some("Weapon"), AspectCluster::Physical) => &[
-            "Grimholt", "Valkyr", "Dominus", "Ferrus", "Thane", "Arcturus",
-        ],
-        (Some("Weapon"), AspectCluster::Elemental) => &[
-            "Solaris",
-            "Pyraxis",
-            "Glacius",
-            "Ashenveil",
-            "Luminos",
-            "Duskrender",
-        ],
-        (Some("Weapon"), AspectCluster::Nature) => &[
-            "Thornvale",
-            "Verdaxis",
-            "Blightcrown",
-            "Briarwraith",
-            "Rootcaller",
-            "Sylvanis",
-        ],
-        (Some("Weapon"), AspectCluster::Arcane) => &[
-            "Nullaris",
-            "Voidheart",
-            "Riftkeeper",
-            "Phaselord",
-            "Fluxion",
-            "Warpmind",
-        ],
-
-        (Some("Shield"), AspectCluster::Physical) => &[
-            "Basaltus",
-            "Aegion",
-            "Stoneward",
-            "Ironheart",
-            "Plateborn",
-            "Grindwall",
-        ],
-        (Some("Shield"), AspectCluster::Elemental) => &[
-            "Dawnguard",
-            "Frostheim",
-            "Pyreshield",
-            "Ashward",
-            "Luminarch",
-            "Duskhaven",
-        ],
-        (Some("Shield"), AspectCluster::Nature) => &[
-            "Oakheart",
-            "Thornwall",
-            "Rootshield",
-            "Petalguard",
-            "Verdance",
-            "Blightward",
-        ],
-        (Some("Shield"), AspectCluster::Arcane) => &[
-            "Nullguard",
-            "Voidshield",
-            "Riftmantle",
-            "Phaseveil",
-            "Fluxward",
-            "Warpwall",
-        ],
-
-        (Some("Spell"), AspectCluster::Physical) => &[
-            "Ironwrath",
-            "Stonecall",
-            "Shatterlord",
-            "Gravimance",
-            "Tremorsoul",
-            "Crushbinder",
-        ],
-        (Some("Spell"), AspectCluster::Elemental) => &[
-            "Pyrocant",
-            "Frostweaver",
-            "Solarion",
-            "Ashsinger",
-            "Luminance",
-            "Duskmancer",
-        ],
-        (Some("Spell"), AspectCluster::Nature) => &[
-            "Bloomcaller",
-            "Blightwarden",
-            "Rootsinger",
-            "Vinecaster",
-            "Verdancall",
-            "Thornmancer",
-        ],
-        (Some("Spell"), AspectCluster::Arcane) => &[
-            "Nullcaster",
-            "Voidcaller",
-            "Riftmancer",
-            "Phasebinder",
-            "Fluxweaver",
-            "Warpsinger",
-        ],
-
-        (Some("Healer"), AspectCluster::Physical) => &[
-            "Ironmender",
-            "Stonebinder",
-            "Platecure",
-            "Grindhealer",
-            "Hammermend",
-            "Steelsuture",
-        ],
-        (Some("Healer"), AspectCluster::Elemental) => &[
-            "Dawncaller",
-            "Frostmender",
-            "Pyrehealer",
-            "Ashbinder",
-            "Luminare",
-            "Duskmender",
-        ],
-        (Some("Healer"), AspectCluster::Nature) => &[
-            "Bloomhealer",
-            "Rootbinder",
-            "Verdantcure",
-            "Petalweaver",
-            "Sproutcaller",
-            "Saplord",
-        ],
-        (Some("Healer"), AspectCluster::Arcane) => &[
-            "Nullhealer",
-            "Voidmender",
-            "Riftbinder",
-            "Phasecure",
-            "Fluxmender",
-            "Warpcaller",
-        ],
-
-        (Some("Scout"), AspectCluster::Physical) => &[
-            "Ironseeker",
-            "Stonewatcher",
-            "Platescout",
-            "Grindwalker",
-            "Hammerpath",
-            "Steelstrider",
-        ],
-        (Some("Scout"), AspectCluster::Elemental) => &[
-            "Dawnseeker",
-            "Frostwatcher",
-            "Pyrepath",
-            "Ashstrider",
-            "Glowfinder",
-            "Duskwalker",
-        ],
-        (Some("Scout"), AspectCluster::Nature) => &[
-            "Bloomseeker",
-            "Rootwatcher",
-            "Verdantscout",
-            "Petalstrider",
-            "Sproutfinder",
-            "Trailbloom",
-        ],
-        (Some("Scout"), AspectCluster::Arcane) => &[
-            "Nullseeker",
-            "Voidwatcher",
-            "Riftscout",
-            "Phasewalker",
-            "Fluxfinder",
-            "Warpstrider",
-        ],
-
-        (Some("Artifact"), AspectCluster::Physical) => &[
-            "Ironheart",
-            "Stonecore",
-            "Platecrown",
-            "Grindsoul",
-            "Hammerstone",
-            "Steelshard",
-        ],
-        (Some("Artifact"), AspectCluster::Elemental) => &[
-            "Dawnstone",
-            "Frostcore",
-            "Pyreheart",
-            "Ashcrown",
-            "Luminore",
-            "Duskshard",
-        ],
-        (Some("Artifact"), AspectCluster::Nature) => &[
-            "Bloomheart",
-            "Rootcore",
-            "Verdantcrown",
-            "Petalstone",
-            "Sproutsoul",
-            "Seedheart",
-        ],
-        (Some("Artifact"), AspectCluster::Arcane) => &[
-            "Nullheart",
-            "Voidcore",
-            "Riftstone",
-            "Phasecrown",
-            "Fluxsoul",
-            "Warpshard",
-        ],
-
-        (_, AspectCluster::Physical) => &[
-            "Grimhollow",
-            "Stonewright",
-            "Ironbound",
-            "Steelwarden",
-            "Platecrown",
-            "Grindwraith",
-        ],
-        (_, AspectCluster::Elemental) => &[
-            "Ashenveil",
-            "Frostborn",
-            "Solarian",
-            "Luminari",
-            "Pyrecrown",
-            "Duskwarden",
-        ],
-        (_, AspectCluster::Nature) => &[
-            "Thornhollow",
-            "Bloomwright",
-            "Verdantborn",
-            "Rootwarden",
-            "Blightcrown",
-            "Petalwraith",
-        ],
-        (_, AspectCluster::Arcane) => &[
-            "Voidborn",
-            "Rifthollow",
-            "Phasewright",
-            "Nullwarden",
-            "Fluxcrown",
-            "Warpwraith",
-        ],
-    }
-}
-
-fn adjective_pool(aspect: Aspect) -> &'static [&'static str] {
-    match aspect {
-        Aspect::Solid => &[
-            "Iron",
-            "Stone",
-            "Unyielding",
-            "Forged",
-            "Tempered",
-            "Rigid",
-            "Steadfast",
-            "Unbroken",
-            "Solid",
-            "Heavy",
-            "Reinforced",
-            "Stubborn",
-        ],
-        Aspect::Fragile => &[
-            "Brittle",
-            "Cracked",
-            "Hollow",
-            "Frail",
-            "Splintered",
-            "Shattered",
-            "Thin",
-            "Worn",
-            "Faded",
-            "Delicate",
-            "Fractured",
-            "Withered",
-        ],
-        Aspect::Heat => &[
-            "Blazing",
-            "Scorched",
-            "Ember",
-            "Molten",
-            "Searing",
-            "Scalding",
-            "Smoldering",
-            "Incandescent",
-            "Fervent",
-            "Glowing",
-            "Burning",
-            "Ashen",
-        ],
-        Aspect::Cold => &[
-            "Frozen",
-            "Glacial",
-            "Frost",
-            "Icy",
-            "Bitter",
-            "Pale",
-            "Numbing",
-            "Crisp",
-            "Winter",
-            "Still",
-            "Chill",
-            "Crystalline",
-        ],
-        Aspect::Order => &[
-            "Lawful",
-            "Carved",
-            "True",
-            "Exact",
-            "Measured",
-            "Precise",
-            "Aligned",
-            "Structured",
-            "Ordained",
-            "Balanced",
-            "Steady",
-            "Proper",
-        ],
-        Aspect::Chaos => &[
-            "Wild",
-            "Frenzied",
-            "Jagged",
-            "Warped",
-            "Volatile",
-            "Errant",
-            "Twisted",
-            "Manic",
-            "Riotous",
-            "Fractious",
-            "Unbound",
-            "Scattered",
-        ],
-        Aspect::Light => &[
-            "Radiant",
-            "Gleaming",
-            "Gilded",
-            "Luminous",
-            "Brilliant",
-            "Shining",
-            "Aureate",
-            "Blessed",
-            "Dawnlit",
-            "Pristine",
-            "Clear",
-            "Celestial",
-        ],
-        Aspect::Dark => &[
-            "Shadow", "Dread", "Ashen", "Murky", "Cursed", "Blighted", "Umbral", "Hollow", "Sable",
-            "Tainted", "Veiled", "Grim",
-        ],
-        Aspect::Change => &[
-            "Shifting",
-            "Fluid",
-            "Mercurial",
-            "Mutable",
-            "Drifting",
-            "Restless",
-            "Turning",
-            "Adaptive",
-            "Flowing",
-            "Transient",
-            "Evolving",
-            "Flux",
-        ],
-        Aspect::Stasis => &[
-            "Sealed",
-            "Resting",
-            "Preserved",
-            "Dormant",
-            "Locked",
-            "Suspended",
-            "Inert",
-            "Crystallized",
-            "Timeless",
-            "Still",
-            "Bound",
-            "Petrified",
-        ],
-        Aspect::Force => &[
-            "Crushing",
-            "Driving",
-            "Kinetic",
-            "Forceful",
-            "Surging",
-            "Impact",
-            "Powerful",
-            "Crashing",
-            "Thundering",
-            "Relentless",
-            "Brutal",
-            "Fierce",
-        ],
-        Aspect::Calm => &[
-            "Serene", "Tranquil", "Quiet", "Hushed", "Gentle", "Soft", "Peaceful", "Drifting",
-            "Smooth", "Measured", "Restful", "Subtle",
-        ],
-        Aspect::Growth => &[
-            "Verdant",
-            "Thriving",
-            "Rising",
-            "Blooming",
-            "Burgeoning",
-            "Living",
-            "Sprouting",
-            "Vital",
-            "Lush",
-            "Fertile",
-            "Abundant",
-            "Flourishing",
-        ],
-        Aspect::Decay => &[
-            "Rotting",
-            "Rusted",
-            "Corroded",
-            "Crumbling",
-            "Festering",
-            "Withered",
-            "Putrid",
-            "Gnawed",
-            "Blighted",
-            "Moldering",
-            "Ancient",
-            "Ravaged",
-        ],
-        Aspect::Expansion => &[
-            "Vast",
-            "Reaching",
-            "Sweeping",
-            "Boundless",
-            "Spreading",
-            "Wide",
-            "Open",
-            "Soaring",
-            "Distant",
-            "Expanding",
-            "Unfolding",
-            "Broad",
-        ],
-        Aspect::Contraction => &[
-            "Compressed",
-            "Dense",
-            "Tight",
-            "Focused",
-            "Collapsed",
-            "Compact",
-            "Condensed",
-            "Drawn",
-            "Closed",
-            "Narrow",
-            "Coiled",
-            "Concentrated",
-        ],
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AspectCluster {
-    Physical,
-    Elemental,
-    Nature,
-    Arcane,
-}
-
-pub fn aspect_cluster(aspect: Aspect) -> AspectCluster {
-    match aspect {
-        Aspect::Solid | Aspect::Fragile | Aspect::Force | Aspect::Calm => AspectCluster::Physical,
-        Aspect::Heat | Aspect::Cold | Aspect::Light | Aspect::Dark => AspectCluster::Elemental,
-        Aspect::Growth | Aspect::Decay | Aspect::Order | Aspect::Chaos => AspectCluster::Nature,
-        Aspect::Change | Aspect::Stasis | Aspect::Expansion | Aspect::Contraction => {
-            AspectCluster::Arcane
-        }
-    }
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -954,6 +149,69 @@ mod tests {
         let sig = CardSignature::new([0.8, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
         let profile = SignatureProfile::new(&sig, &registry);
         (profile, sig)
+    }
+
+    /// Returns true if the title matches one of the Common/Uncommon templates.
+    fn matches_common_template(title: &str) -> bool {
+        let has_possessive = title.contains("'s ");
+        let words: Vec<&str> = title.split_whitespace().collect();
+        match words.len() {
+            // {adj} {noun} or {adj} {compound}
+            2 => true,
+            // {noun} of {adj}, The {adj} {noun}
+            3 if words[0] == "The" || words[1] == "of" => true,
+            // {name}'s {adj} {noun}
+            3 if has_possessive => true,
+            // The {adj} {noun} of {name}
+            5 if words[0] == "The" && words[3] == "of" => true,
+            _ => false,
+        }
+    }
+
+    /// Returns true if the title matches one of the Rare/Epic templates.
+    fn matches_rare_template(title: &str) -> bool {
+        let has_possessive = title.contains("'s ");
+        let words: Vec<&str> = title.split_whitespace().collect();
+        // {compound}, {adj} and {adj2}
+        if title.contains(',') && title.contains(" and ") {
+            return true;
+        }
+        match words.len() {
+            // The {adj} {compound}
+            3 if words[0] == "The" => true,
+            // {name}'s {adj} {compound}
+            3 if has_possessive => true,
+            // {adj} {compound} of {adj2}, {adj2} {compound} of {adj},
+            // {compound} of the {adj}
+            4 if words[1] == "of" || words[2] == "of" => true,
+            // {name}'s {adj2} {adj} {noun}
+            4 if has_possessive => true,
+            // The {adj} {compound} of {name}
+            5 if words[0] == "The" && words[3] == "of" => true,
+            _ => false,
+        }
+    }
+
+    /// Returns true if the title matches one of the Legendary templates.
+    fn matches_legendary_template(title: &str) -> bool {
+        let has_possessive = title.contains("'s ");
+        // {name}, the {epithet}
+        if title.contains(", the ") {
+            return true;
+        }
+        // The {epithet} {name}
+        if title.starts_with("The ") && !title.contains(',') && !title.contains(" of ") {
+            return true;
+        }
+        // {name}'s {adj} {compound} or {name}'s {epithet} {noun}
+        if has_possessive && !title.contains(" of ") {
+            return true;
+        }
+        // The {adj} {compound} of {name}
+        if title.starts_with("The ") && title.contains(" of ") {
+            return true;
+        }
+        false
     }
 
     #[test]
@@ -994,34 +252,34 @@ mod tests {
 
     #[test]
     fn when_profile_has_dominant_axis_and_archetype_then_subtitle_is_lore_phrase() {
-        // Arrange — Solidum at 0.8 → Intense tier, Solid → Physical cluster, archetype Weapon
+        // Arrange
         let (profile, sig) = weapon_fixture();
 
         // Act
         let name = generate_card_name(&profile, &sig);
 
-        // Assert — subtitle is a lore phrase from subtitle_phrase(Intense, Physical)
+        // Assert
         let expected = subtitle_phrase(Tier::Intense, AspectCluster::Physical);
         assert_eq!(name.subtitle, expected);
     }
 
     #[test]
     fn when_profile_has_no_archetype_then_subtitle_is_lore_phrase() {
-        // Arrange — Lumines at 0.5 → Active tier, Light → Elemental cluster, no archetype
+        // Arrange
         let sig = CardSignature::new([0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0]);
         let profile = SignatureProfile::without_archetype(&sig);
 
         // Act
         let name = generate_card_name(&profile, &sig);
 
-        // Assert — subtitle is same format regardless of archetype
+        // Assert
         let expected = subtitle_phrase(Tier::Active, AspectCluster::Elemental);
         assert_eq!(name.subtitle, expected);
     }
 
     #[test]
     fn when_all_axes_zero_then_subtitle_uses_dormant_phrase() {
-        // Arrange — all zeros → dominant=Solidum, tier=Dormant, Fragile → Physical cluster
+        // Arrange
         let sig = CardSignature::new([0.0; 8]);
         let profile = SignatureProfile::without_archetype(&sig);
 
@@ -1034,8 +292,8 @@ mod tests {
     }
 
     #[test]
-    fn when_rarity_is_common_then_title_uses_two_word_template() {
-        // Arrange — all zeros → raw_score=0 → Common
+    fn when_rarity_is_common_then_title_matches_one_of_four_templates() {
+        // Arrange
         let sig = CardSignature::new([0.0; 8]);
         let profile = SignatureProfile::without_archetype(&sig);
         assert_eq!(profile.rarity, Rarity::Common);
@@ -1044,17 +302,16 @@ mod tests {
         let name = generate_card_name(&profile, &sig);
 
         // Assert
-        let word_count = name.title.split_whitespace().count();
-        assert_eq!(
-            word_count, 2,
-            "Common title '{}' should be exactly 2 words",
+        assert!(
+            matches_common_template(&name.title),
+            "Common title '{}' must match a common template pattern",
             name.title
         );
     }
 
     #[test]
-    fn when_rarity_is_uncommon_then_title_uses_two_word_template() {
-        // Arrange — two axes at 0.5 → raw=1.0 → normalized≈0.315 → Uncommon
+    fn when_rarity_is_uncommon_then_title_matches_one_of_four_templates() {
+        // Arrange
         let sig = CardSignature::new([0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
         let profile = SignatureProfile::without_archetype(&sig);
         assert_eq!(profile.rarity, Rarity::Uncommon);
@@ -1063,17 +320,16 @@ mod tests {
         let name = generate_card_name(&profile, &sig);
 
         // Assert
-        let word_count = name.title.split_whitespace().count();
-        assert_eq!(
-            word_count, 2,
-            "Uncommon title '{}' should be exactly 2 words",
+        assert!(
+            matches_common_template(&name.title),
+            "Uncommon title '{}' must match a common template pattern",
             name.title
         );
     }
 
     #[test]
-    fn when_rarity_is_rare_then_title_uses_three_or_four_word_template() {
-        // Arrange — four axes at 0.6 → raw=2.4 → normalized≈0.557 → Rare
+    fn when_rarity_is_rare_then_title_matches_one_of_five_templates() {
+        // Arrange
         let sig = CardSignature::new([0.6, 0.6, 0.6, 0.6, 0.0, 0.0, 0.0, 0.0]);
         let profile = SignatureProfile::without_archetype(&sig);
         assert_eq!(profile.rarity, Rarity::Rare);
@@ -1082,17 +338,16 @@ mod tests {
         let name = generate_card_name(&profile, &sig);
 
         // Assert
-        let word_count = name.title.split_whitespace().count();
         assert!(
-            (3..=4).contains(&word_count),
-            "Rare title '{}' should be 3-4 words, got {word_count}",
+            matches_rare_template(&name.title),
+            "Rare title '{}' must match a rare template pattern",
             name.title
         );
     }
 
     #[test]
-    fn when_rarity_is_epic_then_title_uses_three_or_four_word_template() {
-        // Arrange — six axes at 0.8 → raw=4.8 → normalized≈0.800 → Epic
+    fn when_rarity_is_epic_then_title_matches_one_of_five_templates() {
+        // Arrange
         let sig = CardSignature::new([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.0, 0.0]);
         let profile = SignatureProfile::without_archetype(&sig);
         assert_eq!(profile.rarity, Rarity::Epic);
@@ -1101,17 +356,16 @@ mod tests {
         let name = generate_card_name(&profile, &sig);
 
         // Assert
-        let word_count = name.title.split_whitespace().count();
         assert!(
-            (3..=4).contains(&word_count),
-            "Epic title '{}' should be 3-4 words, got {word_count}",
+            matches_rare_template(&name.title),
+            "Epic title '{}' must match a rare template pattern",
             name.title
         );
     }
 
     #[test]
-    fn when_rarity_is_legendary_then_title_uses_curated_format_with_comma() {
-        // Arrange — all axes at 1.0 → Legendary
+    fn when_rarity_is_legendary_then_title_matches_one_of_two_templates() {
+        // Arrange
         let sig = CardSignature::new([1.0; 8]);
         let profile = SignatureProfile::without_archetype(&sig);
         assert_eq!(profile.rarity, Rarity::Legendary);
@@ -1121,13 +375,8 @@ mod tests {
 
         // Assert
         assert!(
-            name.title.contains(','),
-            "Legendary title '{}' should contain a comma",
-            name.title
-        );
-        assert!(
-            name.title.contains("the"),
-            "Legendary title '{}' should contain 'the'",
+            matches_legendary_template(&name.title),
+            "Legendary title '{}' must match a legendary template pattern",
             name.title
         );
     }
@@ -1171,7 +420,7 @@ mod tests {
 
     #[test]
     fn when_dominant_aspect_is_heat_vs_cold_then_titles_differ() {
-        // Arrange — Febris +0.8 → Heat, Febris -0.8 → Cold
+        // Arrange
         let sig_heat = CardSignature::new([0.0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
         let sig_cold = CardSignature::new([0.0, -0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
         let profile_heat = SignatureProfile::without_archetype(&sig_heat);
@@ -1233,7 +482,6 @@ mod tests {
                 "noun pool for '{archetype}' must not be empty"
             );
         }
-        // Also check the fallback (None/unknown archetype)
         let fallback = noun_pool("UnknownType", AspectCluster::Physical);
         assert!(!fallback.is_empty(), "fallback noun pool must not be empty");
     }
@@ -1286,60 +534,7 @@ mod tests {
     }
 
     #[test]
-    fn when_secondary_axis_present_and_rare_then_title_has_more_tokens_than_without() {
-        // Arrange — Rare with secondary (ratio < 1.5): [0.6, 0.5, 0.6, 0.5, ...]
-        let sig_with_sec = CardSignature::new([0.6, 0.5, 0.6, 0.5, 0.0, 0.0, 0.0, 0.0]);
-        let profile_with_sec = SignatureProfile::without_archetype(&sig_with_sec);
-        assert!(
-            profile_with_sec.secondary_axis.is_some(),
-            "fixture must have secondary axis"
-        );
-        assert_eq!(profile_with_sec.rarity, Rarity::Rare);
-
-        // Rare without secondary (ratio > 1.5): dominant=0.9, all others low
-        let sig_no_sec = CardSignature::new([0.9, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]);
-        let profile_no_sec = SignatureProfile::without_archetype(&sig_no_sec);
-        assert!(
-            profile_no_sec.secondary_axis.is_none(),
-            "fixture must not have secondary axis"
-        );
-
-        // Act
-        let name_with = generate_card_name(&profile_with_sec, &sig_with_sec);
-        let name_without = generate_card_name(&profile_no_sec, &sig_no_sec);
-
-        // Assert
-        let words_with = name_with.title.split_whitespace().count();
-        let words_without = name_without.title.split_whitespace().count();
-        assert!(
-            words_with > words_without,
-            "with secondary ({words_with} words: '{}') should have more tokens than without ({words_without} words: '{}')",
-            name_with.title,
-            name_without.title
-        );
-    }
-
-    #[test]
-    fn when_secondary_axis_absent_and_rare_then_title_still_generated() {
-        // Arrange — dominant=0.9, others at 0.2 → ratio > 1.5 → no secondary
-        let sig = CardSignature::new([0.9, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]);
-        let profile = SignatureProfile::without_archetype(&sig);
-        assert!(profile.secondary_axis.is_none());
-
-        // Act
-        let name = generate_card_name(&profile, &sig);
-
-        // Assert
-        assert!(!name.title.is_empty());
-        let word_count = name.title.split_whitespace().count();
-        assert!(
-            word_count >= 2,
-            "title should have at least 2 words, got {word_count}"
-        );
-    }
-
-    #[test]
-    fn when_multiple_rare_signatures_then_all_titles_are_three_or_four_words() {
+    fn when_multiple_rare_signatures_then_all_titles_match_rare_templates() {
         // Arrange — 10 distinct Rare signatures
         let rare_sigs = [
             [0.6, 0.6, 0.6, 0.6, 0.0, 0.0, 0.0, 0.0],
@@ -1367,17 +562,16 @@ mod tests {
             let name = generate_card_name(&profile, &sig);
 
             // Assert
-            let word_count = name.title.split_whitespace().count();
             assert!(
-                (3..=4).contains(&word_count),
-                "Rare title '{}' (from {axes:?}) should be 3-4 words, got {word_count}",
+                matches_rare_template(&name.title),
+                "Rare title '{}' (from {axes:?}) must match a rare template",
                 name.title
             );
         }
     }
 
     #[test]
-    fn when_multiple_legendary_signatures_then_all_titles_have_comma_and_the() {
+    fn when_multiple_legendary_signatures_then_all_titles_match_legendary_templates() {
         // Arrange — 5 distinct Legendary signatures
         let legendary_sigs = [
             [1.0; 8],
@@ -1401,13 +595,8 @@ mod tests {
 
             // Assert
             assert!(
-                name.title.contains(','),
-                "Legendary title '{}' (from {axes:?}) should contain a comma",
-                name.title
-            );
-            assert!(
-                name.title.contains("the"),
-                "Legendary title '{}' (from {axes:?}) should contain 'the'",
+                matches_legendary_template(&name.title),
+                "Legendary title '{}' (from {axes:?}) must match a legendary template",
                 name.title
             );
         }
@@ -1486,254 +675,16 @@ mod tests {
     }
 
     #[test]
-    fn when_weapon_with_solid_aspect_then_title_noun_from_physical_pool() {
-        // Arrange — Solidum +0.8 → Solid aspect → Physical cluster, matches Weapon archetype
-        let (profile, sig) = weapon_fixture();
-        assert_eq!(profile.rarity, Rarity::Uncommon);
-        let physical_nouns = noun_pool("Weapon", AspectCluster::Physical);
-
-        // Act
-        let name = generate_card_name(&profile, &sig);
-        let noun = name
-            .title
-            .split_whitespace()
-            .nth(1)
-            .expect("title has noun");
-
-        // Assert
-        assert!(
-            physical_nouns.contains(&noun),
-            "noun '{noun}' should be in Weapon+Physical pool {physical_nouns:?}"
-        );
-    }
-
-    #[test]
-    fn when_weapon_with_heat_aspect_then_title_noun_from_elemental_pool() {
-        // Arrange — Febris dominant but still within Weapon match radius
-        let registry = make_registry();
-        let sig = CardSignature::new([0.7, 0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-        let profile = SignatureProfile::new(&sig, &registry);
-        assert_eq!(profile.archetype.as_deref(), Some("Weapon"));
-        let elemental_nouns = noun_pool("Weapon", AspectCluster::Elemental);
-
-        // Act
-        let name = generate_card_name(&profile, &sig);
-        let noun = name
-            .title
-            .split_whitespace()
-            .nth(1)
-            .expect("title has noun");
-
-        // Assert
-        assert!(
-            elemental_nouns.contains(&noun),
-            "noun '{noun}' should be in Weapon+Elemental pool {elemental_nouns:?}"
-        );
-    }
-
-    #[test]
-    fn when_compound_noun_pool_queried_for_elemental_and_weapon_then_returns_compound_words() {
-        // Arrange
-        let cluster = AspectCluster::Elemental;
-        let archetype = "Weapon";
-
-        // Act
-        let pool = compound_noun_pool(cluster, archetype);
-
-        // Assert
-        assert!(
-            !pool.is_empty(),
-            "compound pool for ({cluster:?}, '{archetype}') must not be empty"
-        );
-        let known_compounds = [
-            "Flamebrand",
-            "Frostfang",
-            "Sunblade",
-            "Emberstrike",
-            "Coldedge",
-        ];
-        let has_compound = pool.iter().any(|w| known_compounds.contains(w));
-        assert!(
-            has_compound,
-            "compound pool for ({cluster:?}, '{archetype}') should contain at least one known compound; got {pool:?}"
-        );
-    }
-
-    #[test]
-    fn when_compound_noun_pool_queried_for_all_cluster_and_archetype_combinations_then_non_empty() {
-        // Arrange
-        let archetypes = [
-            "Weapon",
-            "Shield",
-            "Spell",
-            "Healer",
-            "Scout",
-            "Artifact",
-            "UnknownType",
-        ];
-        let clusters = [
-            AspectCluster::Physical,
-            AspectCluster::Elemental,
-            AspectCluster::Nature,
-            AspectCluster::Arcane,
-        ];
-
-        // Act & Assert
-        for archetype in archetypes {
-            for cluster in clusters {
-                let pool = compound_noun_pool(cluster, archetype);
-                assert!(
-                    !pool.is_empty(),
-                    "compound pool for ('{archetype}', {cluster:?}) must not be empty"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn when_rarity_is_rare_then_title_noun_is_from_compound_pool() {
-        // Arrange — four axes at 0.6 → Rare; Solidum dominant → Physical cluster
-        let sig = CardSignature::new([0.6, 0.6, 0.6, 0.6, 0.0, 0.0, 0.0, 0.0]);
+    fn when_secondary_axis_absent_and_rare_then_title_still_generated() {
+        // Arrange — dominant=0.9, others at 0.2 → ratio > 1.5 → no secondary
+        let sig = CardSignature::new([0.9, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]);
         let profile = SignatureProfile::without_archetype(&sig);
-        assert_eq!(profile.rarity, Rarity::Rare);
-
-        let compound_pool = compound_noun_pool(dominant_cluster_for(&profile), "Unknown");
+        assert!(profile.secondary_axis.is_none());
 
         // Act
         let name = generate_card_name(&profile, &sig);
-
-        // Assert — extract noun: 4-word = "[Adj] [Noun] of [SecAdj]", 3-word = "[Noun] of [Adj]"
-        let words: Vec<&str> = name.title.split_whitespace().collect();
-        let noun = match words.len() {
-            4 => words[1],
-            3 => words[0],
-            n => panic!("Rare title '{}' has unexpected word count {n}", name.title),
-        };
-        assert!(
-            compound_pool.contains(&noun),
-            "Rare title '{}': noun '{noun}' should be from compound pool {compound_pool:?}",
-            name.title
-        );
-    }
-
-    #[test]
-    fn when_rarity_is_common_then_title_noun_is_from_simple_pool() {
-        // Arrange — all zeros → Common; dominant → Physical cluster
-        let sig = CardSignature::new([0.0; 8]);
-        let profile = SignatureProfile::without_archetype(&sig);
-        assert_eq!(profile.rarity, Rarity::Common);
-
-        let simple_pool = noun_pool("Unknown", dominant_cluster_for(&profile));
-
-        // Act
-        let name = generate_card_name(&profile, &sig);
-
-        // Assert — Common title is "[Adj] [Noun]"
-        let noun = name
-            .title
-            .split_whitespace()
-            .nth(1)
-            .expect("Common title should have 2 words");
-        assert!(
-            simple_pool.contains(&noun),
-            "Common title '{}': noun '{noun}' should be from simple pool {simple_pool:?}",
-            name.title
-        );
-    }
-
-    #[test]
-    fn when_legendary_name_pool_queried_for_all_cluster_and_archetype_combinations_then_non_empty()
-    {
-        // Arrange
-        let archetypes: &[Option<&str>] = &[
-            Some("Weapon"),
-            Some("Shield"),
-            Some("Spell"),
-            Some("Healer"),
-            Some("Scout"),
-            Some("Artifact"),
-            None,
-        ];
-        let clusters = [
-            AspectCluster::Physical,
-            AspectCluster::Elemental,
-            AspectCluster::Nature,
-            AspectCluster::Arcane,
-        ];
-
-        // Act & Assert
-        for archetype in archetypes {
-            for cluster in clusters {
-                let pool = legendary_name_pool(cluster, *archetype);
-                assert!(
-                    !pool.is_empty(),
-                    "legendary pool for ({archetype:?}, {cluster:?}) must not be empty"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn when_legendary_name_pool_queried_for_weapon_vs_spell_then_pools_differ() {
-        // Arrange
-        let cluster = AspectCluster::Physical;
-
-        // Act
-        let weapon_pool = legendary_name_pool(cluster, Some("Weapon"));
-        let spell_pool = legendary_name_pool(cluster, Some("Spell"));
 
         // Assert
-        assert_ne!(
-            weapon_pool, spell_pool,
-            "Weapon and Spell legendary pools must differ for the same cluster"
-        );
-    }
-
-    #[test]
-    fn when_rarity_is_legendary_then_proper_noun_is_from_legendary_pool() {
-        // Arrange — all axes 1.0 → Legendary
-        let sig = CardSignature::new([1.0; 8]);
-        let profile = SignatureProfile::without_archetype(&sig);
-        assert_eq!(profile.rarity, Rarity::Legendary);
-
-        let legendary_pool = legendary_name_pool(dominant_cluster_for(&profile), None);
-
-        // Act
-        let name = generate_card_name(&profile, &sig);
-
-        // Assert — Legendary title is "[ProperNoun], the [Epithet]"
-        let proper_noun = name
-            .title
-            .split(',')
-            .next()
-            .expect("Legendary title should have comma");
-        assert!(
-            legendary_pool.contains(&proper_noun),
-            "Legendary title '{}': proper noun '{proper_noun}' should be from legendary pool {legendary_pool:?}",
-            name.title
-        );
-    }
-
-    #[test]
-    fn when_no_archetype_and_arcane_aspect_then_title_noun_from_arcane_fallback() {
-        // Arrange — Varias +0.8 → Change → Arcane cluster, no archetype match
-        let sig = CardSignature::new([0.0, 0.0, 0.0, 0.0, 0.8, 0.0, 0.0, 0.0]);
-        let profile = SignatureProfile::without_archetype(&sig);
-        assert!(profile.archetype.is_none());
-        let arcane_nouns = noun_pool("Unknown", AspectCluster::Arcane);
-
-        // Act
-        let name = generate_card_name(&profile, &sig);
-        let noun = name
-            .title
-            .split_whitespace()
-            .nth(1)
-            .expect("title has noun");
-
-        // Assert
-        assert!(
-            arcane_nouns.contains(&noun),
-            "noun '{noun}' should be in fallback+Arcane pool {arcane_nouns:?}"
-        );
+        assert!(!name.title.is_empty());
     }
 }

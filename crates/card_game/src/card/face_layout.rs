@@ -25,9 +25,9 @@ pub(crate) const FRONT_FACE_REGIONS: [FaceRegion; 4] = [
         color: Color::WHITE,
         use_art_shader: false,
     },
-    // Name strip (inset from top edge by ~4 units on a 90-tall card)
+    // Name strip
     FaceRegion {
-        offset_y: OffsetY::Fractional(-0.38),
+        offset_y: OffsetY::Fractional(-0.36),
         half_w_frac: 0.40,
         half_h_frac: 1.0 / 12.0,
         color: Color {
@@ -38,11 +38,11 @@ pub(crate) const FRONT_FACE_REGIONS: [FaceRegion; 4] = [
         },
         use_art_shader: false,
     },
-    // Art area
+    // Art area (fits between name strip bottom and desc strip top)
     FaceRegion {
-        offset_y: OffsetY::Fractional(-0.1),
+        offset_y: OffsetY::Fractional(-0.08),
         half_w_frac: 0.40,
-        half_h_frac: 0.25,
+        half_h_frac: 0.185,
         color: Color {
             r: 0.706,
             g: 0.784,

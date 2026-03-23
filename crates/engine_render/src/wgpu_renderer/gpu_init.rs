@@ -224,6 +224,7 @@ pub(super) struct PipelineDesc<'a> {
     pub(super) format: wgpu::TextureFormat,
     pub(super) blend: wgpu::BlendState,
     pub(super) vertex_layouts: &'a [wgpu::VertexBufferLayout<'a>],
+    pub(super) sample_count: u32,
 }
 
 pub(super) fn create_pipeline(
@@ -253,7 +254,11 @@ pub(super) fn create_pipeline(
         }),
         primitive: wgpu::PrimitiveState::default(),
         depth_stencil: None,
-        multisample: wgpu::MultisampleState::default(),
+        multisample: wgpu::MultisampleState {
+            count: desc.sample_count,
+            mask: !0,
+            alpha_to_coverage_enabled: false,
+        },
         multiview: None,
         cache: None,
     })
@@ -264,6 +269,7 @@ pub(super) fn create_quad_pipeline_set(
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
     format: wgpu::TextureFormat,
+    sample_count: u32,
 ) -> [wgpu::RenderPipeline; 3] {
     let vl = quad_vertex_layout();
     let il = instance_vertex_layout();
@@ -279,6 +285,7 @@ pub(super) fn create_quad_pipeline_set(
                 format,
                 blend: blend_mode_to_blend_state(mode),
                 vertex_layouts: &layouts,
+                sample_count,
             },
         )
     })
@@ -289,6 +296,7 @@ pub(super) fn create_shape_pipeline_set(
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
     format: wgpu::TextureFormat,
+    sample_count: u32,
 ) -> [wgpu::RenderPipeline; 3] {
     let sl = shape_vertex_layout();
     let layouts = [sl];
@@ -303,6 +311,7 @@ pub(super) fn create_shape_pipeline_set(
                 format,
                 blend: blend_mode_to_blend_state(mode),
                 vertex_layouts: &layouts,
+                sample_count,
             },
         )
     })
@@ -328,6 +337,7 @@ pub(super) fn create_shape_resources(
     device: &wgpu::Device,
     camera_layout: &wgpu::BindGroupLayout,
     format: wgpu::TextureFormat,
+    sample_count: u32,
 ) -> ShapeResources {
     let shape_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: None,
@@ -340,7 +350,13 @@ pub(super) fn create_shape_resources(
         bind_group_layouts: &[camera_layout, &mbl],
         push_constant_ranges: &[],
     });
-    let pipelines = create_shape_pipeline_set(device, &pipeline_layout, &shape_shader, format);
+    let pipelines = create_shape_pipeline_set(
+        device,
+        &pipeline_layout,
+        &shape_shader,
+        format,
+        sample_count,
+    );
     ShapeResources {
         pipelines,
         pipeline_layout,
@@ -392,6 +408,7 @@ pub(super) struct RendererParts {
     pub(super) index_buffer: wgpu::Buffer,
     pub(super) texture_bind_group: wgpu::BindGroup,
     pub(super) shape: ShapeResources,
+    pub(super) sample_count: u32,
 }
 
 pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -> RendererParts {
@@ -400,7 +417,9 @@ pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -
     let (cam, cam_layout) = create_camera_resources(&gpu.device);
     let shader = load_quad_shader(&gpu.device);
     let pl = create_quad_pipeline_layout(&gpu.device, &tex_layout, &cam_layout);
-    let quad_pipelines = create_quad_pipeline_set(&gpu.device, &pl, &shader, gpu.format);
+    let sample_count = 4;
+    let quad_pipelines =
+        create_quad_pipeline_set(&gpu.device, &pl, &shader, gpu.format, sample_count);
     let (quad_vertex_buffer, index_buffer) = create_static_buffers(&gpu.device);
     let tex_bg = create_texture_bind_group(
         &gpu.device,
@@ -412,7 +431,7 @@ pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -
             data: &[255; 4],
         },
     );
-    let shape = create_shape_resources(&gpu.device, &cam_layout, gpu.format);
+    let shape = create_shape_resources(&gpu.device, &cam_layout, gpu.format, sample_count);
     let fmt = gpu.format;
     RendererParts {
         gpu,
@@ -424,5 +443,6 @@ pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -
         index_buffer,
         texture_bind_group: tex_bg,
         shape,
+        sample_count,
     }
 }

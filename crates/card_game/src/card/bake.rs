@@ -1,4 +1,4 @@
-use engine_render::font::{bake_text_into_mesh, bake_wrapped_text_into_mesh};
+use engine_render::font::{bake_balanced_text_into_mesh, bake_wrapped_text_into_mesh};
 use engine_render::prelude::{rect_polygon, rounded_rect_path, tessellate};
 use engine_render::shape::{ShapeVariant, TessellatedColorMesh};
 use glam::Vec2;
@@ -7,7 +7,7 @@ use super::face_layout::FRONT_FACE_REGIONS;
 use super::gem_sockets::{aspect_color, gem_desc_positions, gem_radius};
 use super::label::CardLabel;
 use super::signature::{CardSignature, Element};
-use super::spawn_table_card::{CARD_CORNER_RADIUS, TEXT_COLOR, fit_font_size};
+use super::spawn_table_card::{CARD_CORNER_RADIUS, TEXT_COLOR, fit_name_font_size};
 use crate::card::definition::rarity_border_color;
 
 const TEXT_COLOR_ARRAY: [f32; 4] = [TEXT_COLOR.r, TEXT_COLOR.g, TEXT_COLOR.b, TEXT_COLOR.a];
@@ -55,17 +55,22 @@ pub fn bake_front_face(
         }
     }
 
-    // --- Name text ---
-    let (name_half_w, _, name_offset_y) = FRONT_FACE_REGIONS[1].resolve(w, h);
+    // --- Name text (wraps to max 2 lines, sized to fit name strip) ---
+    let (name_half_w, name_half_h, name_offset_y) = FRONT_FACE_REGIONS[1].resolve(w, h);
     let name_max_width = name_half_w * 2.0 * 0.9;
-    let name_font_size = fit_font_size(&label.name, h / 12.0, name_max_width);
-    bake_text_into_mesh(
+    let name_max_height = name_half_h * 2.0 * 0.9;
+    let name_font_size = fit_name_font_size(&label.name, h / 12.0, name_max_width, name_max_height);
+    // Shift text down by ~35% of font size to visually center glyphs
+    // (baseline sits at y, but most glyph mass is above the baseline)
+    let name_text_y = name_offset_y + name_font_size * 0.35;
+    bake_balanced_text_into_mesh(
         &mut mesh,
         &label.name,
         name_font_size,
         TEXT_COLOR_ARRAY,
         0.0,
-        name_offset_y,
+        name_text_y,
+        name_max_width,
     );
 
     // --- Description text (wrapped) ---

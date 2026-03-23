@@ -388,6 +388,7 @@ fn bloom_desc<'a>(
         format,
         blend: wgpu::BlendState::REPLACE,
         vertex_layouts,
+        sample_count: 1,
     }
 }
 

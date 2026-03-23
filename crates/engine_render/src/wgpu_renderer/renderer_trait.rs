@@ -16,17 +16,18 @@ use super::types::{
 impl WgpuRenderer {
     fn begin_scene_pass<'a>(
         encoder: &'a mut wgpu::CommandEncoder,
-        target_view: &'a wgpu::TextureView,
+        msaa_view: &'a wgpu::TextureView,
+        resolve_target: &'a wgpu::TextureView,
         clear_color: wgpu::Color,
     ) -> wgpu::RenderPass<'a> {
         encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: target_view,
-                resolve_target: None,
+                view: msaa_view,
+                resolve_target: Some(resolve_target),
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(clear_color),
-                    store: wgpu::StoreOp::Store,
+                    store: wgpu::StoreOp::Discard,
                 },
             })],
             depth_stencil_attachment: None,
@@ -156,7 +157,7 @@ impl WgpuRenderer {
             b: f64::from(self.clear_color.b),
             a: f64::from(self.clear_color.a),
         };
-        let mut pass = Self::begin_scene_pass(encoder, target_view, clear_color);
+        let mut pass = Self::begin_scene_pass(encoder, &self.msaa_view, target_view, clear_color);
         if !self.pending_instances.is_empty() {
             self.draw_quad_instances(&mut pass);
         }
@@ -378,6 +379,7 @@ impl Renderer for WgpuRenderer {
             &self.shape_pipeline_layout,
             &shader_module,
             self.surface_format,
+            self.sample_count,
         );
         self.shader_cache.insert(handle, pipelines);
         Ok(())
@@ -456,6 +458,13 @@ impl Renderer for WgpuRenderer {
         self.config.width = width.max(1);
         self.config.height = height.max(1);
         self.surface.configure(&self.device, &self.config);
+        self.msaa_view = Self::create_msaa_texture(
+            &self.device,
+            self.config.format,
+            self.config.width,
+            self.config.height,
+            self.sample_count,
+        );
         let cfg = self.bloom_config();
         if let Some(pp) = &mut self.post_process {
             pp.resize(&self.device, &cfg);
