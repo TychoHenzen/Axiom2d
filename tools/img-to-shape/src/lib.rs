@@ -112,7 +112,7 @@ mod tests {
     fn when_single_opaque_pixel_then_returns_one_path() {
         // Arrange — 3x3, only center pixel opaque red
         let mut rgba = vec![0u8; 3 * 3 * 4];
-        let center_byte = (1 * 3 + 1) * 4; // pixel (1,1)
+        let center_byte = (3 + 1) * 4; // pixel (1,1)
         rgba[center_byte] = 255;
         rgba[center_byte + 1] = 0;
         rgba[center_byte + 2] = 0;
@@ -130,7 +130,7 @@ mod tests {
     fn when_single_opaque_pixel_then_path_starts_with_moveto_ends_with_close() {
         // Arrange — 3x3, only center pixel opaque
         let mut rgba = vec![0u8; 3 * 3 * 4];
-        let center_byte = (1 * 3 + 1) * 4; // pixel (1,1)
+        let center_byte = (3 + 1) * 4; // pixel (1,1)
         rgba[center_byte] = 255;
         rgba[center_byte + 3] = 255;
 

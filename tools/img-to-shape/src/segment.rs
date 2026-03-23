@@ -179,8 +179,8 @@ mod tests {
 
         // Assert
         assert_eq!(regions.len(), 1);
-        assert_eq!(regions[0].mask[0], true);
-        assert_eq!(regions[0].mask[1], false);
+        assert!(regions[0].mask[0]);
+        assert!(!regions[0].mask[1]);
     }
 
     #[test]
@@ -197,8 +197,8 @@ mod tests {
         // Assert
         assert_eq!(regions.len(), 1);
         let c = regions[0].color;
-        let expected_r = (200.0 / 255.0 + 100.0 / 255.0) / 2.0;
-        let expected_g = (100.0 / 255.0 + 200.0 / 255.0) / 2.0;
+        let expected_r = f32::midpoint(200.0 / 255.0, 100.0 / 255.0);
+        let expected_g = f32::midpoint(100.0 / 255.0, 200.0 / 255.0);
         assert!(
             (c.r - expected_r).abs() < 1e-3,
             "r: expected {expected_r}, got {}",
