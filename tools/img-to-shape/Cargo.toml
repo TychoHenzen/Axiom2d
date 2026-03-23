@@ -1,0 +1,12 @@
+[package]
+name = "img-to-shape"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+engine_core = { path = "../../crates/engine_core" }
+engine_render = { path = "../../crates/engine_render" }
+glam = { workspace = true }
+
+[lints]
+workspace = true

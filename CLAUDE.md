@@ -72,7 +72,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - **Archetypal ECS**: Entities with identical component sets stored together. Systems are plain functions with typed parameters (e.g., `Query<(&mut Position, &Velocity)>`). Uses `bevy_ecs` as a standalone crate, wrapped by `engine_ecs`.
 - **Code-defined assets**: All assets (sprites, audio, shaders, tilemaps) are expressed as Rust code or RON data — no binary asset files. Uses `lyon` for vector graphics, `fundsp` for audio synthesis, WGSL for shaders.
 - **Trait-abstracted hardware**: Every hardware-dependent subsystem (renderer, audio, input) hides behind a trait with null/mock implementations for testing. Canonical test pattern: `World` + `Schedule` without touching hardware.
-- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, `engine_input`, `engine_scene`, `engine_audio`, `engine_physics`, `engine_assets`, `engine_ui`, `axiom2d` (facade + DefaultPlugins), `card_game` (game logic library), `card_game_bin` (binary entry point), and `demo` (solar system smoke test). Virtual manifest at root.
+- **Flat workspace of crates**: Layout under `crates/` — `engine_core`, `engine_render`, `engine_app`, `engine_ecs`, `engine_input`, `engine_scene`, `engine_audio`, `engine_physics`, `engine_assets`, `engine_ui`, `axiom2d` (facade + DefaultPlugins), `card_game` (game logic library), `card_game_bin` (binary entry point), and `demo` (solar system smoke test). Standalone tools live under `tools/` — `living-docs` (doc generator), `img-to-shape` (image-to-vector-shape conversion library). Virtual manifest at root.
 
 ### Scheduling Phases
 
