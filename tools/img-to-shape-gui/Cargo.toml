@@ -1,0 +1,18 @@
+[package]
+name = "img-to-shape-gui"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+img-to-shape = { path = "../img-to-shape" }
+engine_core = { path = "../../crates/engine_core" }
+engine_render = { path = "../../crates/engine_render" }
+glam = { workspace = true }
+thiserror = { workspace = true }
+image = { workspace = true }
+eframe = "0.31"
+egui = "0.31"
+rfd = "0.15"
+
+[lints]
+workspace = true

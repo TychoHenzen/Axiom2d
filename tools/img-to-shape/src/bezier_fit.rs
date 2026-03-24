@@ -106,16 +106,22 @@ fn fit_single_cubic(
     }
 
     let det = c[0][0] * c[1][1] - c[0][1] * c[1][0];
-    let (alpha_l, alpha_r) = if det.abs() < f32::EPSILON {
-        let dist = start.distance(end) / 3.0;
-        (dist, dist)
+    let chord = start.distance(end);
+    let heuristic_dist = chord / 3.0;
+
+    // Relative singularity check: compare det² to the product of diagonal
+    // entries. When the C matrix is ill-conditioned (nearly-parallel tangents,
+    // few points, clustered parameters), Cramer's rule produces garbage.
+    let c_diag = c[0][0] * c[1][1];
+    let well_conditioned = det.abs() > 1e-3 * c_diag.abs().max(f32::EPSILON);
+
+    let (alpha_l, alpha_r) = if !well_conditioned {
+        (heuristic_dist, heuristic_dist)
     } else {
         let al = (x[0] * c[1][1] - x[1] * c[0][1]) / det;
         let ar = (c[0][0] * x[1] - c[1][0] * x[0]) / det;
-        // If alphas are negative, use heuristic.
-        if al < 0.0 || ar < 0.0 {
-            let dist = start.distance(end) / 3.0;
-            (dist, dist)
+        if al < 0.0 || ar < 0.0 || al > chord || ar > chord {
+            (heuristic_dist, heuristic_dist)
         } else {
             (al, ar)
         }
@@ -344,5 +350,122 @@ mod tests {
             cubic_count, 0,
             "collinear points should not produce CubicTo"
         );
+    }
+
+    #[test]
+    fn when_short_curve_fitted_then_control_points_within_chord() {
+        // Arrange — 3-point arc, chord length = 2.0
+        // Control points must stay within chord distance of their endpoints.
+        let points = [(0.0, 0.0), (1.0, 2.0), (2.0, 0.0)];
+        let chord = 2.0_f32;
+
+        // Act
+        let commands = fit_bezier_path(&points, 0.5);
+
+        // Assert — control points within chord distance from their endpoints
+        let start = glam::Vec2::new(0.0, 0.0);
+        let end = glam::Vec2::new(2.0, 0.0);
+        for cmd in &commands {
+            if let PathCommand::CubicTo {
+                control1, control2, ..
+            } = cmd
+            {
+                assert!(
+                    control1.distance(start) <= chord + f32::EPSILON,
+                    "control1 {:?} is {:.2} from start, exceeds chord {chord}",
+                    control1,
+                    control1.distance(start)
+                );
+                assert!(
+                    control2.distance(end) <= chord + f32::EPSILON,
+                    "control2 {:?} is {:.2} from end, exceeds chord {chord}",
+                    control2,
+                    control2.distance(end)
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn when_very_short_curve_fitted_then_no_points_outside_bounding_box() {
+        // Arrange — 4-point bump: (0,0),(1,1),(2,1),(3,0), bbox [0,3]x[0,1]
+        let points = [(0.0, 0.0), (1.0, 1.0), (2.0, 1.0), (3.0, 0.0)];
+        let margin = 1.0_f32;
+
+        // Act
+        let commands = fit_bezier_path(&points, 0.5);
+
+        // Assert — all control points within bbox + margin
+        for cmd in &commands {
+            if let PathCommand::CubicTo {
+                control1,
+                control2,
+                to,
+            } = cmd
+            {
+                for (label, pt) in [("control1", control1), ("control2", control2), ("to", to)] {
+                    assert!(
+                        pt.x >= -margin && pt.x <= 3.0 + margin,
+                        "{label} x={:.2} outside [-{margin}, {}]",
+                        pt.x,
+                        3.0 + margin
+                    );
+                    assert!(
+                        pt.y >= -margin && pt.y <= 1.0 + margin,
+                        "{label} y={:.2} outside [-{margin}, {}]",
+                        pt.y,
+                        1.0 + margin
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn when_nearly_collinear_long_segment_then_control_points_stay_bounded() {
+        // Arrange — long segment with tiny curvature that bypasses the collinearity
+        // check. This triggers the ill-conditioned C matrix singularity:
+        // tangents are nearly parallel, det is near-zero, Cramer's rule would
+        // produce enormous alphas without robust singularity detection.
+        let points: Vec<(f32, f32)> = (0..10)
+            .map(|i| {
+                let t = i as f32 / 9.0;
+                let x = t * 100.0;
+                // Tiny parabolic deviation: max 0.6 at midpoint (just above
+                // the collinearity tolerance of 0.5)
+                let y = 0.6 * 4.0 * t * (1.0 - t);
+                (x, y)
+            })
+            .collect();
+        let chord = 100.0_f32;
+
+        // Act
+        let commands = fit_bezier_path(&points, 0.5);
+
+        // Assert — control points must not fly off to infinity
+        for cmd in &commands {
+            if let PathCommand::CubicTo {
+                control1,
+                control2,
+                to,
+            } = cmd
+            {
+                assert!(
+                    control1.y.abs() < chord,
+                    "control1 {:?} has y far from segment (singularity)",
+                    control1
+                );
+                assert!(
+                    control2.y.abs() < chord,
+                    "control2 {:?} has y far from segment (singularity)",
+                    control2
+                );
+                assert!(
+                    to.y.abs() < chord,
+                    "endpoint {:?} has y far from segment",
+                    to
+                );
+            }
+        }
     }
 }

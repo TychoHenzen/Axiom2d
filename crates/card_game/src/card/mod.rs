@@ -1,3 +1,4 @@
+pub mod art;
 pub mod component;
 pub mod identity;
 pub mod interaction;

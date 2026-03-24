@@ -1,7 +1,16 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
-// Cardinal directions: E, S, W, N (clockwise order).
-const DIRS: [(i32, i32); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
+// 8 directions clockwise: E, SE, S, SW, W, NW, N, NE.
+const DIRS: [(i32, i32); 8] = [
+    (1, 0),   // 0 E
+    (1, 1),   // 1 SE
+    (0, 1),   // 2 S
+    (-1, 1),  // 3 SW
+    (-1, 0),  // 4 W
+    (-1, -1), // 5 NW
+    (0, -1),  // 6 N
+    (1, -1),  // 7 NE
+];
 
 const NEIGHBORS8: [(i32, i32); 8] = [
     (-1, 0),
@@ -30,56 +39,129 @@ fn is_boundary(mask: &[bool], x: u32, y: u32, width: u32, height: u32) -> bool {
         .any(|(dx, dy)| !is_opaque(mask, x as i32 + dx, y as i32 + dy, width, height))
 }
 
-/// Trace the boundary starting at `(sx, sy)` using the left-hand rule with
-/// 4-directional movement. Returns the ordered list of boundary pixels.
+/// Map a neighbor offset to a DIRS index.
+fn dir_index(dx: i32, dy: i32) -> usize {
+    match (dx, dy) {
+        (1, 0) => 0,
+        (1, 1) => 1,
+        (0, 1) => 2,
+        (-1, 1) => 3,
+        (-1, 0) => 4,
+        (-1, -1) => 5,
+        (0, -1) => 6,
+        (1, -1) => 7,
+        _ => unreachable!(),
+    }
+}
+
+/// Mark all boundary pixels 8-connected to `(sx, sy)` as visited via BFS.
 #[allow(clippy::too_many_arguments)]
-fn trace_from(
+fn mark_component_visited(
     mask: &[bool],
     sx: u32,
     sy: u32,
     width: u32,
     height: u32,
     visited: &mut HashSet<(u32, u32)>,
-) -> Vec<(u32, u32)> {
-    let mut contour = vec![(sx, sy)];
+) {
+    let mut queue: VecDeque<(u32, u32)> = VecDeque::new();
     visited.insert((sx, sy));
-    let mut x = sx as i32;
-    let mut y = sy as i32;
-    // Start heading east (we scan left-to-right, so east is the natural direction).
-    let mut dir = 0usize;
+    queue.push_back((sx, sy));
 
-    loop {
-        // Try: left turn, straight, right turn, reverse.
-        let attempts = [
-            (dir + 3) % 4, // left
-            dir,           // straight
-            (dir + 1) % 4, // right
-            (dir + 2) % 4, // reverse
-        ];
+    while let Some((x, y)) = queue.pop_front() {
+        for &(dx, dy) in &DIRS {
+            let nx = x as i32 + dx;
+            let ny = y as i32 + dy;
+            if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
+                continue;
+            }
+            let p = (nx as u32, ny as u32);
+            if visited.contains(&p) {
+                continue;
+            }
+            if !is_boundary(mask, p.0, p.1, width, height) {
+                continue;
+            }
+            visited.insert(p);
+            queue.push_back(p);
+        }
+    }
+}
+
+/// Trace the outer perimeter of a boundary component using Moore neighborhood
+/// tracing. Returns boundary pixels in clockwise perimeter order.
+///
+/// Uses Jacob's stopping criterion: stop when we return to the start pixel
+/// from the same direction we initially entered it.
+#[allow(clippy::too_many_lines)]
+fn trace_perimeter(mask: &[bool], sx: u32, sy: u32, width: u32, height: u32) -> Vec<(u32, u32)> {
+    // Check if start pixel has any boundary neighbor
+    let has_neighbor = DIRS.iter().any(|&(dx, dy)| {
+        let nx = sx as i32 + dx;
+        let ny = sy as i32 + dy;
+        nx >= 0
+            && ny >= 0
+            && nx < width as i32
+            && ny < height as i32
+            && is_boundary(mask, nx as u32, ny as u32, width, height)
+    });
+    if !has_neighbor {
+        return vec![(sx, sy)];
+    }
+
+    let mut contour: Vec<(u32, u32)> = vec![(sx, sy)];
+    let mut seen: HashSet<(u32, u32)> = HashSet::new();
+    seen.insert((sx, sy));
+
+    let mut px = sx as i32;
+    let mut py = sy as i32;
+    // Initial backtrack: west of start (we scan left-to-right).
+    let start_back = (sx as i32 - 1, sy as i32);
+    let mut bx = start_back.0;
+    let mut by = start_back.1;
+
+    let max_steps = (width as usize) * (height as usize) * 2;
+    for _ in 0..max_steps {
+        let back_dir = dir_index(bx - px, by - py);
 
         let mut found = false;
-        for &try_dir in &attempts {
-            let (dx, dy) = DIRS[try_dir];
-            let nx = x + dx;
-            let ny = y + dy;
-            if !is_opaque(mask, nx, ny, width, height) {
+        for i in 0..8 {
+            let check_dir = (back_dir + i) % 8;
+            let (dx, dy) = DIRS[check_dir];
+            let nx = px + dx;
+            let ny = py + dy;
+
+            if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
                 continue;
             }
             if !is_boundary(mask, nx as u32, ny as u32, width, height) {
                 continue;
             }
-            // Closing the loop — return to start.
-            if nx as u32 == sx && ny as u32 == sy && contour.len() > 1 {
+
+            // t = pixel just before c in clockwise rotation around p
+            let t_dir = (check_dir + 7) % 8;
+            let (tdx, tdy) = DIRS[t_dir];
+            let tx = px + tdx;
+            let ty = py + tdy;
+
+            // Jacob's stopping criterion
+            if nx as u32 == sx
+                && ny as u32 == sy
+                && tx == start_back.0
+                && ty == start_back.1
+                && contour.len() > 1
+            {
                 return contour;
             }
-            if visited.contains(&(nx as u32, ny as u32)) {
-                continue;
+
+            if seen.insert((nx as u32, ny as u32)) {
+                contour.push((nx as u32, ny as u32));
             }
-            visited.insert((nx as u32, ny as u32));
-            contour.push((nx as u32, ny as u32));
-            x = nx;
-            y = ny;
-            dir = try_dir;
+
+            px = nx;
+            py = ny;
+            bx = tx;
+            by = ty;
             found = true;
             break;
         }
@@ -94,9 +176,10 @@ fn trace_from(
 
 /// Extract closed boundary contours from a binary mask.
 ///
-/// Scans left-to-right, top-to-bottom for unvisited boundary pixels and traces
-/// each connected boundary using the left-hand rule (4-directional, clockwise).
-/// Returns one `Vec<(x, y)>` per connected boundary region.
+/// Scans left-to-right, top-to-bottom for unvisited boundary pixels. For each
+/// new component, traces the outer perimeter using Moore neighborhood tracing
+/// (8-directional, clockwise), then marks all 8-connected boundary pixels in
+/// the component as visited via BFS.
 pub fn trace_contours(mask: &[bool], width: u32, height: u32) -> Vec<Vec<(u32, u32)>> {
     let mut contours = Vec::new();
     let mut visited: HashSet<(u32, u32)> = HashSet::new();
@@ -109,7 +192,8 @@ pub fn trace_contours(mask: &[bool], width: u32, height: u32) -> Vec<Vec<(u32, u
             if !is_boundary(mask, x, y, width, height) {
                 continue;
             }
-            let contour = trace_from(mask, x, y, width, height, &mut visited);
+            let contour = trace_perimeter(mask, x, y, width, height);
+            mark_component_visited(mask, x, y, width, height, &mut visited);
             if !contour.is_empty() {
                 contours.push(contour);
             }
@@ -223,5 +307,76 @@ mod tests {
                 "boundary point ({x}, {y}) is not on the image border"
             );
         }
+    }
+
+    #[test]
+    fn when_triangle_region_traced_then_single_contour_returned() {
+        // Arrange — triangle: tip at (2,0), base spans full row 2
+        #[rustfmt::skip]
+        let mask = vec![
+            false, false, true,  false, false,
+            false, true,  true,  true,  false,
+            true,  true,  true,  true,  true,
+        ];
+
+        // Act
+        let contours = trace_contours(&mask, 5, 3);
+
+        // Assert
+        assert_eq!(
+            contours.len(),
+            1,
+            "triangle boundary should be one contour, got {}",
+            contours.len()
+        );
+    }
+
+    #[test]
+    fn when_triangle_region_traced_then_contour_contains_all_corner_pixels() {
+        // Arrange — same triangle mask
+        #[rustfmt::skip]
+        let mask = vec![
+            false, false, true,  false, false,
+            false, true,  true,  true,  false,
+            true,  true,  true,  true,  true,
+        ];
+
+        // Act
+        let contours = trace_contours(&mask, 5, 3);
+
+        // Assert — tip and both base corners must be in the single contour
+        let contour = &contours[0];
+        assert!(contour.contains(&(2, 0)), "missing tip pixel (2,0)");
+        assert!(contour.contains(&(0, 2)), "missing base corner (0,2)");
+        assert!(contour.contains(&(4, 2)), "missing base corner (4,2)");
+    }
+
+    #[test]
+    fn when_diamond_region_traced_then_single_contour_returned() {
+        // Arrange — diamond in 5x5: all boundary pixels are diagonal-only connected
+        #[rustfmt::skip]
+        let mask = vec![
+            false, false, true,  false, false,
+            false, true,  true,  true,  false,
+            true,  true,  true,  true,  true,
+            false, true,  true,  true,  false,
+            false, false, true,  false, false,
+        ];
+
+        // Act
+        let contours = trace_contours(&mask, 5, 5);
+
+        // Assert
+        assert_eq!(
+            contours.len(),
+            1,
+            "diamond boundary should be one contour, got {}",
+            contours.len()
+        );
+        let contour = &contours[0];
+        assert!(contour.contains(&(2, 0)), "missing top corner (2,0)");
+        assert!(contour.contains(&(0, 2)), "missing left corner (0,2)");
+        assert!(contour.contains(&(4, 2)), "missing right corner (4,2)");
+        assert!(contour.contains(&(2, 4)), "missing bottom corner (2,4)");
     }
 }

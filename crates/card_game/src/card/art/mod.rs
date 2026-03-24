@@ -1,0 +1,24 @@
+pub mod armor1;
+
+use engine_render::prelude::tessellate;
+use engine_render::shape::{Shape, TessellatedColorMesh};
+
+/// Tessellate a slice of `Shape`s into a single `TessellatedColorMesh`.
+///
+/// Each shape is tessellated via lyon and its color applied to every vertex.
+/// Shapes that fail tessellation or produce empty geometry are skipped.
+pub fn tessellate_art_shapes(shapes: &[Shape]) -> TessellatedColorMesh {
+    let mut mesh = TessellatedColorMesh::new();
+    for shape in shapes {
+        if let Ok(tess) = tessellate(&shape.variant) {
+            if tess.vertices.is_empty() {
+                continue;
+            }
+            let color = [shape.color.r, shape.color.g, shape.color.b, shape.color.a];
+            let flipped: Vec<[f32; 2]> =
+                tess.vertices.iter().map(|&[x, y]| [x, -y]).collect();
+            mesh.push_vertices(&flipped, &tess.indices, color);
+        }
+    }
+    mesh
+}

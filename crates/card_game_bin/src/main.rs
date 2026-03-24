@@ -1,6 +1,7 @@
 mod card_data;
 
 use axiom2d::prelude::*;
+use card_game::card::art::{armor1::armor1, tessellate_art_shapes};
 use card_game::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
@@ -74,6 +75,19 @@ fn spawn_scene(world: &mut World) {
             Vec2::new(60.0, -20.0),
         )
         .expect("card entity should have physics body");
+
+    // Demo: render the armor01 art as a standalone ColorMesh.
+    // Shapes are tessellated at runtime into a single colored mesh.
+    let art_mesh = tessellate_art_shapes(&armor1());
+    world.spawn((
+        Transform2D {
+            position: Vec2::new(300.0, 200.0),
+            ..Default::default()
+        },
+        ColorMesh(art_mesh),
+        RenderLayer::World,
+        SortOrder(10),
+    ));
 }
 
 fn setup(app: &mut App) {

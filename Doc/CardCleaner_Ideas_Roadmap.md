@@ -512,6 +512,149 @@ Items from the tech debt audit that should be addressed before or alongside new 
 
 ---
 
+## Modular Device System
+
+Physical control panel metaphor where players wire together devices on the table to create card processing pipelines. Instead of a single deck-slot-to-generation flow, devices with typed jacks are connected by cables — card slots chain signatures, buttons fire triggers, screens consume signatures to generate worlds. The wiring itself becomes a gameplay mechanic.
+
+### I30 — Device Jack & Cable Infrastructure `[NOT STARTED]`
+**Inspired by:** `Core/Devices/` — `IDevice`, `IJack`, `Jack<T>`, `Cable`, `JackDirection`, `Trigger` — typed input/output jacks on devices, connected by physical cables with auto-swap and type safety
+**Engine gaps:** None — pure ECS data model. Cables could be rendered as line shapes between jack positions.
+**Why:** Creates a tangible, physical wiring system. Players drag cables between device jacks to build signal flows. Typed connections prevent invalid wiring (a `Trigger` output can't connect to a `CardSignature` input). Cables auto-swap direction if connected backwards (output→input is always enforced). The `Trigger` type (unit struct, no payload) enables fire-and-forget signals like "start generation now."
+
+- [ ] `JackDirection` enum: `Input`, `Output`
+- [ ] `Jack<T>` component: `name: String`, `direction: JackDirection`, `connected_to: Option<Entity>` — typed port on a device
+- [ ] `Cable` component: `source: Entity` (output jack), `destination: Entity` (input jack) — connects two jacks
+- [ ] `Trigger` unit struct — fire-and-forget signal with no payload
+- [ ] `connect_cable(source_jack, dest_jack) -> Result<Entity, CableError>` — validates direction + type compatibility, auto-swaps if needed
+- [ ] `disconnect_cable(cable_entity)` — tears down connection, removes cable entity
+- [ ] `cable_render_system` (Phase::Render): draw line shape between connected jack positions
+- [ ] Tests: compatible jacks connect, incompatible types rejected, auto-swap works, disconnect cleans up
+
+### I31 — Card Slot Devices (Signature Chaining) `[NOT STARTED]`
+**Inspired by:** `ModularDevices/CardSlotDevice.cs` — card slots with chain input/output jacks, signature aggregation via cable wiring. Chained slots emit combined `CardSignatureList`.
+**Engine gaps:** Requires I30 (jack/cable), I10 (deck slots for basic slot behavior)
+**Why:** Transforms deck slots into chainable devices. Slot A's card output cables into Slot B's chain input — Slot B then emits both signatures downstream. This lets players build multi-slot pipelines without a fixed "deck" layout. Each slot has three jacks: `CardOutput` (signature list out), `ChainInput` (receives upstream signatures), `ClearInput` (trigger to remove held card).
+
+- [ ] `CardSlotDevice` component: wraps `DeckSlot` with jack entities (`card_output: Entity`, `chain_input: Entity`, `clear_input: Entity`)
+- [ ] `CardSignatureList` struct: `Vec<CardSignature>` — aggregated signatures flowing through the chain
+- [ ] `card_slot_chain_system` (Phase::Update): when chain input receives data or held card changes, emit combined list on card output
+- [ ] Slot visual: small device shape on table with labeled jack positions
+- [ ] Tests: single slot emits its card, chained slot emits both, clear trigger removes card, empty chain emits empty list
+
+### I32 — Screen & Button Devices `[NOT STARTED]`
+**Inspired by:** `ModularDevices/ScreenDeviceBase.cs`, `HexScreenDevice.cs`, `ButtonDevice.cs` — screen devices receive card signatures + trigger to start map generation, button devices emit triggers with enable/disable jack
+**Engine gaps:** Requires I30 (jack/cable), I11 (session state machine), I12 (world gen)
+**Why:** The game loop becomes physically wired. Players cable card slots → screen's map seed input, cable ability cards → screen's ability input, then press a physical button wired to the screen's trigger input. The screen renders the generated world. This replaces a "Start Game" menu button with a tangible, on-table interaction. Button devices have an `EnableInput` jack — cable a condition check to disable the button until all slots are filled.
+
+- [ ] `ScreenDevice` component: `map_seed_input: Entity`, `ability_input: Entity`, `trigger_input: Entity`, `clear_output: Entity`
+- [ ] `screen_device_system` (Phase::Update): on trigger received, validate inputs, call world generation, emit clear signal on output (auto-empties connected slots)
+- [ ] `ButtonDevice` component: `trigger_output: Entity`, `enable_input: Entity`, `enabled: bool`
+- [ ] `button_press_system` (Phase::Input): detect click on button entity, emit `Trigger` on output if enabled
+- [ ] Deterministic seed: `generate_seed_from_signatures(sigs) -> u64` — combined hash of all signature elements
+- [ ] Tests: button press emits trigger when enabled, disabled button doesn't emit, screen starts generation on trigger, clear output fires after generation starts
+
+### I33 — Conveyor Belt (Automated Card Transport) `[NOT STARTED]`
+**Inspired by:** `Conveyor/ConveyorBelt.cs` — Area3D detection zone + destination marker, cards on belt get constant velocity toward target with lateral offset range
+**Engine gaps:** None — uses existing physics. Needs area-detection (AABB overlap query in `engine_physics`)
+**Why:** Automated card movement along defined paths. Place a conveyor on the table — cards that land on it slide toward a destination (e.g., into a deck slot or off the table edge). Creates "card rivers" for dealing animations, loot delivery, or discard mechanics. Speed + lateral offset range create visual variety.
+
+- [ ] `ConveyorBelt` component: `detection_aabb: Rect`, `destination: Vec2`, `speed: f32`, `lateral_offset: f32`
+- [ ] `ConveyorBeltState` component: `cards_on_belt: Vec<Entity>` — tracks cards currently being moved
+- [ ] `conveyor_system` (Phase::Update): for each card overlapping detection AABB, set velocity toward destination; remove card from tracking when exiting area
+- [ ] Wake sleeping cards when they enter the belt
+- [ ] Tests: card on belt moves toward destination, card off belt is unaffected, sleeping card wakes on entry, card removed from tracking on exit
+
+---
+
+## Advanced WFC Constraints
+
+Refinements to the WFC solver (I29) that dramatically improve map quality. These are separate from the basic soft modifiers (I19) — they address structural coherence, visual validity, and efficient biome lookup.
+
+### I19a — Spatial Coherence Constraint `[NOT STARTED]`
+**Inspired by:** `Wfc/Constraints/SpatialCoherenceConstraint.cs` — region tracking with target sizes, sqrt-scaled boost factors, oversized-region taper, linear tile repulsion for sparse structures like hedges
+**Engine gaps:** Requires I29 (WFC solver)
+**Why:** Without spatial coherence, WFC produces noisy tile soup — every tile type appears randomly everywhere. This constraint tracks regions of same-type tiles and boosts probability for tiles that would extend an existing region. Small regions get meaningful boost (sqrt scaling), large regions compete effectively, oversized regions taper off to encourage diversity. Linear tiles (hedges, paths) use repulsion instead — same-type tiles within a radius apply distance-weighted penalties, creating sparse, spread-out structures.
+
+- [ ] `RegionTracker` struct: tracks region membership via union-find, `get_region_size(pos) -> usize`
+- [ ] `SpatialCoherenceConstraint`: `target_region_size: usize` (default 50), `boost_factor: f32` (default 500), `linear_repulsion_radius: usize`, `linear_repulsion_strength: f32`
+- [ ] Boost calculation: `1.0 + sqrt(region_size / target) * boost_factor` for regular tiles
+- [ ] Taper for oversized: `1.0 + (1.0 - (oversize_ratio - 1.0) * 0.5) * boost_factor`
+- [ ] Linear repulsion: scan Chebyshev distance within radius, accumulate `strength * (1 - (dist-1)/radius)` penalty
+- [ ] `IEntropyInvalidator` trait: returns 2-hop cells affected by collapse for cache invalidation
+- [ ] Tests: matching neighbor boosts probability, oversized region tapers, linear tiles repel, no-neighbor returns neutral
+
+### I19b — No Solid Fill Constraint `[NOT STARTED]`
+**Inspired by:** `Wfc/Constraints/NoSolidFillConstraint.cs` — prevents 2×2 solid regions for auto-tiles lacking bitmask 15 variant (e.g., edge-based hedges converted to corner format)
+**Engine gaps:** Requires I27 (dual-grid auto-tiling) + I29 (WFC solver)
+**Why:** In dual-grid auto-tiling, a 2×2 region of the same auto-tile type produces bitmask 15 (all 4 corners filled). Some tilesets don't have this variant — placing such a configuration creates rendering artifacts. This hard constraint checks all four 2×2 windows a cell could complete and bans placement (returns probability 0.0) when it would create an invalid solid region.
+
+- [ ] `NoSolidFillConstraint`: takes `TileRegistry` reference to check auto-tile variant availability
+- [ ] For each candidate tile, check 4 window positions (candidate is SE/SW/NE/NW corner)
+- [ ] Each window checks the other 3 cells: all collapsed + all same terrain type + no bitmask 15 variant → ban
+- [ ] Non-auto-tiles pass through (probability 1.0)
+- [ ] Tests: valid placement returns 1.0, completing a 2×2 solid region of a tile without bitmask 15 returns 0.0, mixed tile types are allowed
+
+### I28a — Biome Strength Grid (Pre-computation) `[NOT STARTED]`
+**Inspired by:** `Biomes/BiomeStrengthGrid.cs` — pre-computed 3D array `[y, x, biome_index]` of biome strengths in [-1, 1] range, computed once before WFC for O(1) lookup during tile selection
+**Engine gaps:** Requires I28 (biome definitions) + I12 (card gradient)
+**Why:** During WFC, every tile candidate at every cell needs to know biome affinity. Computing Euclidean distance in 8D signature space per-query is expensive when done millions of times. The biome strength grid pre-computes all strengths once: for each map position, sample the card gradient to get a signature, compute distance to every biome's affinity signature, convert to [-1, 1] strength (0 distance → +1, max distance → -1). WFC constraints then do a single array lookup.
+
+- [ ] `BiomeStrengthGrid` struct: `strengths: Vec<f32>` (flattened `[height][width][biome_count]`), `width`, `height`, `biome_to_index: HashMap<String, usize>`
+- [ ] `BiomeStrengthGrid::new(map_size, gradient, registry)` — pre-compute all strengths
+- [ ] `get_strength(x, y, biome_id) -> f32` — O(1) lookup, returns 0.0 for unknown biome or out-of-bounds
+- [ ] Strength formula: `1.0 - 2.0 * clamp(distance / MAX_DISTANCE, 0, 1)` where `MAX_DISTANCE = 2*sqrt(2) ≈ 2.83`
+- [ ] Tests: identical signatures produce strength +1.0, maximally distant produce ≈-1.0, O(1) lookup matches brute-force computation
+
+---
+
+## Irregular Mesh World Generation (Alternative Pipeline)
+
+An alternative to the regular grid tilemap pipeline (I25–I29). Instead of square tiles on a grid, terrain is represented as an irregular quad mesh — hex-based with organic cell shapes. Creates more natural-looking terrain but is more complex to implement. This is a "Phase 6" stretch goal that could replace or coexist with the grid pipeline.
+
+### I34 — Irregular Quad Mesh Generation `[NOT STARTED]`
+**Inspired by:** `IrregularMesh/MeshGenerator.cs` + `IrregularMesh.cs` — hex grid → triangle merge → subdivision → Lloyd relaxation pipeline, spatial hash for O(1) quad lookup, boundary detection, adjacency precomputation
+**Engine gaps:** New mesh data structure in `card_game` or `engine_core`. Rendering via lyon tessellation of quad polygons.
+**Why:** Regular grids look blocky and artificial. Irregular meshes create organic, natural-looking terrain — each cell is a slightly different shape, edges between terrain types follow irregular boundaries. The generation pipeline is deterministic: hex grid provides base topology, triangle merging creates quads, subdivision adds detail, Lloyd relaxation equalizes cell sizes. Spatial hash enables O(1) point-in-cell queries for mouse interaction and pathfinding.
+
+- [ ] `IrregularMesh` struct: `vertices: Vec<MeshVertex>`, `quads: Vec<MeshQuad>`, `spatial_hash: HashMap<(i32, i32), Vec<usize>>`
+- [ ] `MeshVertex`: `id`, `position: Vec2`, `adjacent_vertex_ids`, `adjacent_quad_ids`, `is_boundary: bool`, `terrain_type`, `has_structure`
+- [ ] `MeshQuad`: `id`, `vertex_ids: [usize; 4]`, `adjacent_quad_ids`, `centroid: Vec2`, `area: f32`
+- [ ] `MeshGenerator::generate(config) -> IrregularMesh` — 4-step pipeline: hex triangles → merge (70% probability) → subdivide → relax (15 iterations)
+- [ ] `build_adjacency()` — vertex adjacency (shared edges), quad adjacency (shared edges), boundary detection (single-face edges)
+- [ ] `get_quad_at_position(pos) -> Option<&MeshQuad>` — spatial hash lookup
+- [ ] `get_quads_intersecting_rect(rect) -> Vec<&MeshQuad>` — for structure placement preview
+- [ ] Tests: generated mesh has only quads (no remaining triangles), adjacency is symmetric, spatial hash finds correct quad, boundary vertices identified correctly
+
+### I35 — Structure Placement on Maps `[NOT STARTED]`
+**Inspired by:** `IrregularMesh/StructurePlacement.cs` — walls, doors, bridges, fences, columns placed at map vertices with terrain compatibility, boundary restrictions, affected-quad preview
+**Engine gaps:** Requires either I25 (grid tilemap) or I34 (irregular mesh) — works with either topology
+**Why:** Generated maps need interactable structures beyond terrain tiles. Structures are placed at vertex positions (intersections between cells), affecting adjacent cells' passability. Walls block movement and sight, doors can open/close, bridges span water. Placement rules prevent invalid configurations (no structures on boundaries, terrain compatibility). The "affected quads" preview shows which cells would become impassable before committing.
+
+- [ ] `StructureType` enum: `Wall`, `Door`, `Bridge`, `Fence`, `Column`
+- [ ] `StructurePlacement` resource: `structures: HashMap<usize, StructureType>`, mesh reference
+- [ ] `can_place(vertex_id, structure_type) -> bool` — checks: not boundary, not occupied, terrain compatible
+- [ ] `place_structure(vertex_id, structure_type) -> bool` — places and emits event
+- [ ] `remove_structure(vertex_id) -> bool` — removes and emits event
+- [ ] `get_affected_quads(vertex_id) -> Vec<usize>` — preview which cells would become impassable
+- [ ] `find_nearest_valid_placement(pos, type, max_distance) -> Option<usize>` — snap-to-valid for mouse interaction
+- [ ] Terrain compatibility: walls/doors/fences/columns need solid ground, bridges can span water
+- [ ] Tests: placement on valid vertex succeeds, boundary vertex rejected, affected quads computed correctly, removal restores passability
+
+### I36 — Enemy Spawning & Management `[NOT STARTED]`
+**Inspired by:** `IrregularMesh/IrregularMapEnemyManager.cs` — distance-based enemy placement on generated maps, 1-3 enemies per map, minimum distance from player start, visual sprites, removal on defeat
+**Engine gaps:** Requires I11 (session state machine) + either I25 or I34 (map representation) + I13 (combat system)
+**Why:** Generated worlds need enemies to encounter. Enemies spawn at passable cells with a minimum distance from the player's start position (prevents immediate combat). Count is seeded (1-3 per map) for variety. Enemy visuals are simple colored shapes. The manager handles spawning, display, and cleanup when enemies are defeated — bridging the map system and combat system.
+
+- [ ] `EnemySpawnConfig`: `min_distance_from_player: f32` (default 200.0), `count_range: (usize, usize)` (default 1–3)
+- [ ] `EnemyManager` resource: `spawns: Vec<EnemySpawn>` where `EnemySpawn { cell_id, entity: Option<Entity>, defeated: bool }`
+- [ ] `place_enemies(map_data, player_start, config, rng)` — find eligible cells (passable + far enough), shuffle, take N
+- [ ] `spawn_enemy_visuals(world, map_data)` — create colored shape entities at cell positions
+- [ ] `remove_enemy(cell_id)` — mark defeated, despawn visual entity
+- [ ] Fallback: if no cells are far enough, use any passable non-start cell
+- [ ] Tests: enemies placed at valid passable cells, min distance enforced, defeated enemy removed, fallback handles small maps
+
+---
+
 ## Dependency Graph
 
 ```
@@ -542,30 +685,54 @@ CARD IDENTITY (pure data, no engine deps):
         ├──→ I10 (deck slots) ──→ I11 (session state machine) ──→ I23 (progress UI)
         │         ↑                    │
         │    TD-032 (e2e tests         ├──→ I12 (world gen gradient) ──→ I20 (biome preview)
-        │     before more systems)     │
+        │     before more systems)     │         │
+        │                              │         └──→ I28a (biome strength grid) ← needs I28 + I12
+        │                              │
         │                              └──→ I13 (combat) ← needs I3 for ability derivation
+        │                                        │
+        │                                        └──→ I36 (enemy spawning) ← needs I13 + map
         │
         └──→ I15 (sleep enforcer) ← standalone
              I16 (drop preview) ← standalone
              I17 (card highlight) ← standalone
              I24 (pause system) ← standalone
 
+MODULAR DEVICES (after deck slots):
+    I30 (jack/cable) ──→ I31 (card slot devices) ← needs I10
+                    │
+                    ├──→ I32 (screen + button devices) ← needs I11 + I12
+                    │
+                    └──→ I33 (conveyor belt) ← standalone after I30
+
 TILEMAP PIPELINE (do TD-001/002/003 change detection first!):
     I25 (tilemap grid) ──→ I26 (tile definitions) ──→ I28 (biome defs) ← needs I1
                                 │                           │
-                                └──→ I27 (dual-grid auto-tile)
+                                └──→ I27 (dual-grid auto-tile) ──→ I19b (no solid fill)
                                 │                           │
                                 └──→ I29 (WFC solver) ←─────┘
                                           │
                                           ├──→ I19 (WFC soft modifiers)
-                                          └──→ I21 (fog of war)
+                                          ├──→ I19a (spatial coherence)
+                                          ├──→ I21 (fog of war)
+                                          └──→ I35 (structure placement) ← works with grid or mesh
+                                                    │
+                                                    └──→ I36 (enemy spawning)
+
+IRREGULAR MESH PIPELINE (alternative to tilemap, Phase 7 stretch goal):
+    I34 (irregular mesh gen) ──→ I35 (structure placement)
+           │                           │
+           └──→ fog of war (reuse I21 trait with mesh adapter)
+           └──→ I36 (enemy spawning)
 
 SUGGESTED ORDER:
   Phase 0 (hardening):  TD-032, TD-004, TD-031
   Phase 1 (identity):   I1 → I2 → I3 → I4 → I5 → I6 → I7 → I9
   Phase 2 (game loop):  I10 → I11 → I13, I15–I18, I24 (parallel standalone items)
   Phase 3 (hardening):  TD-001/002/003, TD-005
-  Phase 4 (world gen):  I12 → I25 → I26 → I27 → I28 → I29 → I19–I21
+  Phase 4 (world gen):  I12 → I25 → I26 → I27 → I28 → I28a → I29 → I19–I21
   Phase 5 (persistence): I14 → I18 → I22
   Phase 6 (polish):     TD-018, TD-015, I23
+  Phase 7 (devices):    I30 → I31 → I32 → I33 (can start after Phase 2)
+  Phase 8 (WFC+):       I19a, I19b, I35 → I36 (after Phase 4)
+  Phase 9 (stretch):    I34 (irregular mesh — alternative to I25 pipeline)
 ```
