@@ -509,7 +509,7 @@ mod tests {
     #[test]
     fn when_gradient_segmented_with_min_area_then_tiny_regions_discarded() {
         // Arrange — 6x1 gradient from red to orange, tight threshold fragments it
-        let mut rgba = vec![0u8; 6 * 1 * 4];
+        let mut rgba = vec![0u8; 6 * 4];
         for col in 0..6 {
             let idx = col * 4;
             rgba[idx] = 255;
@@ -542,7 +542,7 @@ mod tests {
     #[test]
     fn when_min_area_zero_then_all_regions_kept() {
         // Arrange — same gradient, but min_area=0 keeps everything
-        let mut rgba = vec![0u8; 6 * 1 * 4];
+        let mut rgba = vec![0u8; 6 * 4];
         for col in 0..6 {
             let idx = col * 4;
             rgba[idx] = 255;

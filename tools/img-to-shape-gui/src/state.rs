@@ -123,7 +123,7 @@ impl AppState {
         shapes_to_art_file(&self.shapes, &metadata, &self.fn_name)
     }
 
-    /// The auto-save filename derived from fn_name (e.g. "armor01" → "armor01.rs").
+    /// The auto-save filename derived from `fn_name` (e.g. "armor01" → "armor01.rs").
     pub fn art_filename(&self) -> String {
         let name = if self.fn_name.is_empty() {
             "art_mesh"

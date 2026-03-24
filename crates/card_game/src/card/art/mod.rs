@@ -15,8 +15,7 @@ pub fn tessellate_art_shapes(shapes: &[Shape]) -> TessellatedColorMesh {
                 continue;
             }
             let color = [shape.color.r, shape.color.g, shape.color.b, shape.color.a];
-            let flipped: Vec<[f32; 2]> =
-                tess.vertices.iter().map(|&[x, y]| [x, -y]).collect();
+            let flipped: Vec<[f32; 2]> = tess.vertices.iter().map(|&[x, y]| [x, -y]).collect();
             mesh.push_vertices(&flipped, &tess.indices, color);
         }
     }

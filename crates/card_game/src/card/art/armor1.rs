@@ -13,11 +13,23 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::MoveTo(Vec2::new(-98.5, 87.5)),
                     PathCommand::LineTo(Vec2::new(82.5, 68.5)),
                     PathCommand::LineTo(Vec2::new(82.5, 36.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(76.24864, 11.494579), control2: Vec2::new(50.574776, -5.4252243), to: Vec2::new(32.5, -23.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(76.24864, 11.494579),
+                        control2: Vec2::new(50.574776, -5.4252243),
+                        to: Vec2::new(32.5, -23.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-29.5, -27.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-71.69275, -22.354544), control2: Vec2::new(-59.044403, -30.137064), to: Vec2::new(-73.5, -20.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-71.69275, -22.354544),
+                        control2: Vec2::new(-59.044403, -30.137064),
+                        to: Vec2::new(-73.5, -20.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-88.5, 11.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-96.81583, 44.763317), control2: Vec2::new(-93.72713, 30.044672), to: Vec2::new(-98.5, 55.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-96.81583, 44.763317),
+                        control2: Vec2::new(-93.72713, 30.044672),
+                        to: Vec2::new(-98.5, 55.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -28,18 +40,50 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-104.5, 96.5)),
                     PathCommand::LineTo(Vec2::new(87.5, 80.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(98.4584, 79.1302), control2: Vec2::new(93.096306, 80.70184), to: Vec2::new(103.5, 75.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(102.512115, 58.705914), control2: Vec2::new(100.28216, 42.889343), to: Vec2::new(96.5, 26.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(89.419075, 4.0770664), control2: Vec2::new(92.96649, 13.666225), to: Vec2::new(86.5, -2.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(98.4584, 79.1302),
+                        control2: Vec2::new(93.096306, 80.70184),
+                        to: Vec2::new(103.5, 75.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(102.512115, 58.705914),
+                        control2: Vec2::new(100.28216, 42.889343),
+                        to: Vec2::new(96.5, 26.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(89.419075, 4.0770664),
+                        control2: Vec2::new(92.96649, 13.666225),
+                        to: Vec2::new(86.5, -2.5),
+                    },
                     PathCommand::LineTo(Vec2::new(76.5, -22.5)),
                     PathCommand::LineTo(Vec2::new(63.5, -42.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(43.654434, -66.59818), control2: Vec2::new(54.822144, -54.443962), to: Vec2::new(29.5, -78.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-1.575119, -101.28842), control2: Vec2::new(11.900707, -100.5), to: Vec2::new(-4.5, -100.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(43.654434, -66.59818),
+                        control2: Vec2::new(54.822144, -54.443962),
+                        to: Vec2::new(29.5, -78.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-1.575119, -101.28842),
+                        control2: Vec2::new(11.900707, -100.5),
+                        to: Vec2::new(-4.5, -100.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-34.5, -76.5)),
                     PathCommand::LineTo(Vec2::new(-55.5, -55.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-74.81027, -29.374344), control2: Vec2::new(-67.59513, -40.67478), to: Vec2::new(-78.5, -22.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-89.37894, -0.7421341), control2: Vec2::new(-84.33888, -12.057169), to: Vec2::new(-93.5, 11.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-103.53554, 51.642147), control2: Vec2::new(-100.19004, 32.583664), to: Vec2::new(-104.5, 68.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-74.81027, -29.374344),
+                        control2: Vec2::new(-67.59513, -40.67478),
+                        to: Vec2::new(-78.5, -22.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-89.37894, -0.7421341),
+                        control2: Vec2::new(-84.33888, -12.057169),
+                        to: Vec2::new(-93.5, 11.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-103.53554, 51.642147),
+                        control2: Vec2::new(-100.19004, 32.583664),
+                        to: Vec2::new(-104.5, 68.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -51,9 +95,21 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::MoveTo(Vec2::new(-115.5, 121.5)),
                     PathCommand::LineTo(Vec2::new(46.5, 91.5)),
                     PathCommand::LineTo(Vec2::new(25.5, 84.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-9.119801, 80.65336), control2: Vec2::new(7.5554085, 81.5), to: Vec2::new(-24.5, 81.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-72.392624, 84.7654), control2: Vec2::new(-54.684364, 79.476135), to: Vec2::new(-79.5, 88.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-92.72491, 95.11245), control2: Vec2::new(-86.399124, 91.43275), to: Vec2::new(-98.5, 99.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-9.119801, 80.65336),
+                        control2: Vec2::new(7.5554085, 81.5),
+                        to: Vec2::new(-24.5, 81.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-72.392624, 84.7654),
+                        control2: Vec2::new(-54.684364, 79.476135),
+                        to: Vec2::new(-79.5, 88.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-92.72491, 95.11245),
+                        control2: Vec2::new(-86.399124, 91.43275),
+                        to: Vec2::new(-98.5, 99.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-112.5, 111.5)),
                     PathCommand::LineTo(Vec2::new(-115.5, 120.5)),
                     PathCommand::Close,
@@ -65,10 +121,26 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(0.5, -109.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(6.571213, -67.00151), control2: Vec2::new(54.56529, -42.665176), to: Vec2::new(90.5, -23.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(85.16671, -36.83323), control2: Vec2::new(89.432945, -26.967304), to: Vec2::new(74.5, -51.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(61.63042, -69.19567), control2: Vec2::new(69.419716, -59.032833), to: Vec2::new(50.5, -81.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(25.259228, -101.426926), control2: Vec2::new(38.265503, -92.102425), to: Vec2::new(11.5, -109.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(6.571213, -67.00151),
+                        control2: Vec2::new(54.56529, -42.665176),
+                        to: Vec2::new(90.5, -23.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(85.16671, -36.83323),
+                        control2: Vec2::new(89.432945, -26.967304),
+                        to: Vec2::new(74.5, -51.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(61.63042, -69.19567),
+                        control2: Vec2::new(69.419716, -59.032833),
+                        to: Vec2::new(50.5, -81.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(25.259228, -101.426926),
+                        control2: Vec2::new(38.265503, -92.102425),
+                        to: Vec2::new(11.5, -109.5),
+                    },
                     PathCommand::LineTo(Vec2::new(0.5, -114.5)),
                     PathCommand::Close,
                 ],
@@ -80,10 +152,26 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-113.5, 39.5)),
                     PathCommand::LineTo(Vec2::new(-1.5, -104.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-1.4032352, -105.564415), control2: Vec2::new(1.2087545, -117.791245), to: Vec2::new(-1.5, -120.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-67.87663, -60.546913), control2: Vec2::new(-44.61074, -84.96336), to: Vec2::new(-75.5, -51.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-93.53114, -21.877413), control2: Vec2::new(-85.64128, -36.60331), to: Vec2::new(-99.5, -7.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-110.82764, 23.965647), control2: Vec2::new(-106.35188, 8.907518), to: Vec2::new(-113.5, 37.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-1.4032352, -105.564415),
+                        control2: Vec2::new(1.2087545, -117.791245),
+                        to: Vec2::new(-1.5, -120.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-67.87663, -60.546913),
+                        control2: Vec2::new(-44.61074, -84.96336),
+                        to: Vec2::new(-75.5, -51.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-93.53114, -21.877413),
+                        control2: Vec2::new(-85.64128, -36.60331),
+                        to: Vec2::new(-99.5, -7.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-110.82764, 23.965647),
+                        control2: Vec2::new(-106.35188, 8.907518),
+                        to: Vec2::new(-113.5, 37.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -95,11 +183,31 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::MoveTo(Vec2::new(-47.5, -32.5)),
                     PathCommand::LineTo(Vec2::new(59.5, 11.5)),
                     PathCommand::LineTo(Vec2::new(59.5, 2.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(55.74776, -15.010454), control2: Vec2::new(58.272514, -7.068719), to: Vec2::new(52.5, -21.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(44.131905, -34.05214), control2: Vec2::new(48.752655, -27.68418), to: Vec2::new(38.5, -40.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(29.14885, -46.7341), control2: Vec2::new(34.688114, -43.5054), to: Vec2::new(21.5, -49.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(1.0152645, -54.962597), control2: Vec2::new(11.665726, -53.196133), to: Vec2::new(-10.5, -54.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-24.850159, -49.374943), control2: Vec2::new(-36.501556, -44.498444), to: Vec2::new(-47.5, -33.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(55.74776, -15.010454),
+                        control2: Vec2::new(58.272514, -7.068719),
+                        to: Vec2::new(52.5, -21.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(44.131905, -34.05214),
+                        control2: Vec2::new(48.752655, -27.68418),
+                        to: Vec2::new(38.5, -40.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(29.14885, -46.7341),
+                        control2: Vec2::new(34.688114, -43.5054),
+                        to: Vec2::new(21.5, -49.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(1.0152645, -54.962597),
+                        control2: Vec2::new(11.665726, -53.196133),
+                        to: Vec2::new(-10.5, -54.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-24.850159, -49.374943),
+                        control2: Vec2::new(-36.501556, -44.498444),
+                        to: Vec2::new(-47.5, -33.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -110,7 +218,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-19.5, 65.5)),
                     PathCommand::LineTo(Vec2::new(101.5, 94.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(112.05702, 62.82894), control2: Vec2::new(69.99853, 46.148674), to: Vec2::new(51.5, 29.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(112.05702, 62.82894),
+                        control2: Vec2::new(69.99853, 46.148674),
+                        to: Vec2::new(51.5, 29.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -120,10 +232,22 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-28.5, 78.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(4.2660065, 111.26601), control2: Vec2::new(60.771446, 103.39302), to: Vec2::new(105.5, 115.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(4.2660065, 111.26601),
+                        control2: Vec2::new(60.771446, 103.39302),
+                        to: Vec2::new(105.5, 115.5),
+                    },
                     PathCommand::LineTo(Vec2::new(100.5, 108.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(74.84261, 88.87965), control2: Vec2::new(90.04559, 98.336426), to: Vec2::new(53.5, 82.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(25.017845, 74.36224), control2: Vec2::new(39.672264, 77.74735), to: Vec2::new(9.5, 72.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(74.84261, 88.87965),
+                        control2: Vec2::new(90.04559, 98.336426),
+                        to: Vec2::new(53.5, 82.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(25.017845, 74.36224),
+                        control2: Vec2::new(39.672264, 77.74735),
+                        to: Vec2::new(9.5, 72.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-11.5, 72.5)),
                     PathCommand::Close,
                 ],
@@ -135,9 +259,21 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-67.5, -23.5)),
                     PathCommand::LineTo(Vec2::new(-66.5, -0.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(61.435493, 16.625223), control2: Vec2::new(30.298801, 46.7012), to: Vec2::new(62.5, 14.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(68.307915, -2.9237366), control2: Vec2::new(64.32489, 10.601349), to: Vec2::new(67.5, -27.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(12.65797, -86.56065), control2: Vec2::new(37.862892, -71.302055), to: Vec2::new(4.5, -89.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(61.435493, 16.625223),
+                        control2: Vec2::new(30.298801, 46.7012),
+                        to: Vec2::new(62.5, 14.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(68.307915, -2.9237366),
+                        control2: Vec2::new(64.32489, 10.601349),
+                        to: Vec2::new(67.5, -27.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(12.65797, -86.56065),
+                        control2: Vec2::new(37.862892, -71.302055),
+                        to: Vec2::new(4.5, -89.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-3.5, -89.5)),
                     PathCommand::LineTo(Vec2::new(-50.5, -45.5)),
                     PathCommand::Close,
@@ -149,12 +285,28 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-117.5, 63.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-74.343475, 2.3615952), control2: Vec2::new(-109.14284, 52.414246), to: Vec2::new(-20.5, -91.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-74.343475, 2.3615952),
+                        control2: Vec2::new(-109.14284, 52.414246),
+                        to: Vec2::new(-20.5, -91.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-24.5, -90.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-45.172142, -74.2576), control2: Vec2::new(-34.303413, -83.69659), to: Vec2::new(-56.5, -61.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-69.10466, -46.374405), control2: Vec2::new(-63.51418, -53.765457), to: Vec2::new(-73.5, -39.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-45.172142, -74.2576),
+                        control2: Vec2::new(-34.303413, -83.69659),
+                        to: Vec2::new(-56.5, -61.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-69.10466, -46.374405),
+                        control2: Vec2::new(-63.51418, -53.765457),
+                        to: Vec2::new(-73.5, -39.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-103.5, 17.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-116.94974, 48.067596), control2: Vec2::new(-113.00326, 33.519566), to: Vec2::new(-117.5, 60.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-116.94974, 48.067596),
+                        control2: Vec2::new(-113.00326, 33.519566),
+                        to: Vec2::new(-117.5, 60.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -164,9 +316,17 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-67.5, -61.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-35.073414, -85.17656), control2: Vec2::new(-2.5, -86.72708), to: Vec2::new(-2.5, -120.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-35.073414, -85.17656),
+                        control2: Vec2::new(-2.5, -86.72708),
+                        to: Vec2::new(-2.5, -120.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-12.5, -115.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-26.702038, -105.35569), control2: Vec2::new(-39.194206, -93.80579), to: Vec2::new(-51.5, -81.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-26.702038, -105.35569),
+                        control2: Vec2::new(-39.194206, -93.80579),
+                        to: Vec2::new(-51.5, -81.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-67.5, -62.5)),
                     PathCommand::Close,
                 ],
@@ -177,9 +337,17 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(99.5, 22.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(110.9552, 89.148445), control2: Vec2::new(91.70589, 75.760506), to: Vec2::new(117.5, 90.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(110.9552, 89.148445),
+                        control2: Vec2::new(91.70589, 75.760506),
+                        to: Vec2::new(117.5, 90.5),
+                    },
                     PathCommand::LineTo(Vec2::new(117.5, 70.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(115.75379, 54.784115), control2: Vec2::new(112.87566, 40.02805), to: Vec2::new(109.5, 24.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(115.75379, 54.784115),
+                        control2: Vec2::new(112.87566, 40.02805),
+                        to: Vec2::new(109.5, 24.5),
+                    },
                     PathCommand::LineTo(Vec2::new(99.5, 19.5)),
                     PathCommand::Close,
                 ],
@@ -190,10 +358,22 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-66.5, 85.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-19.31622, 97.295944), control2: Vec2::new(-63.851974, 86.37802), to: Vec2::new(70.5, 98.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-19.31622, 97.295944),
+                        control2: Vec2::new(-63.851974, 86.37802),
+                        to: Vec2::new(70.5, 98.5),
+                    },
                     PathCommand::LineTo(Vec2::new(49.5, 87.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(26.619696, 79.87323), control2: Vec2::new(4.8254414, 77.89425), to: Vec2::new(-19.5, 74.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-56.042152, 79.21512), control2: Vec2::new(-40.555054, 75.392204), to: Vec2::new(-66.5, 83.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(26.619696, 79.87323),
+                        control2: Vec2::new(4.8254414, 77.89425),
+                        to: Vec2::new(-19.5, 74.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-56.042152, 79.21512),
+                        control2: Vec2::new(-40.555054, 75.392204),
+                        to: Vec2::new(-66.5, 83.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -203,10 +383,22 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-28.5, -67.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-16.362038, -55.362038), control2: Vec2::new(-27.442791, -65.47807), to: Vec2::new(16.5, -66.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(16.5, -77.699585), control2: Vec2::new(3.4059768, -84.468925), to: Vec2::new(-4.5, -89.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-16.362038, -55.362038),
+                        control2: Vec2::new(-27.442791, -65.47807),
+                        to: Vec2::new(16.5, -66.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(16.5, -77.699585),
+                        control2: Vec2::new(3.4059768, -84.468925),
+                        to: Vec2::new(-4.5, -89.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-14.5, -85.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-19.40708, -81.41077), control2: Vec2::new(-25.588684, -77.32263), to: Vec2::new(-28.5, -71.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-19.40708, -81.41077),
+                        control2: Vec2::new(-25.588684, -77.32263),
+                        to: Vec2::new(-28.5, -71.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -216,8 +408,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(76.5, -30.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(100.0922, 22.046272), control2: Vec2::new(83.147385, 9.28843), to: Vec2::new(108.5, 24.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(106.09402, 7.658121), control2: Vec2::new(98.31522, -7.0108624), to: Vec2::new(91.5, -22.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(100.0922, 22.046272),
+                        control2: Vec2::new(83.147385, 9.28843),
+                        to: Vec2::new(108.5, 24.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(106.09402, 7.658121),
+                        control2: Vec2::new(98.31522, -7.0108624),
+                        to: Vec2::new(91.5, -22.5),
+                    },
                     PathCommand::LineTo(Vec2::new(76.5, -31.5)),
                     PathCommand::Close,
                 ],
@@ -229,10 +429,22 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-119.5, 98.5)),
                     PathCommand::LineTo(Vec2::new(-118.5, 106.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-108.51708, 91.52562), control2: Vec2::new(-116.7784, 104.66928), to: Vec2::new(-106.5, 61.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-108.51708, 91.52562),
+                        control2: Vec2::new(-116.7784, 104.66928),
+                        to: Vec2::new(-106.5, 61.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-104.5, 44.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-111.833336, 44.5), control2: Vec2::new(-107.69999, 43.433323), to: Vec2::new(-114.5, 52.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-119.8758, 76.69112), control2: Vec2::new(-118.17695, 64.362076), to: Vec2::new(-119.5, 89.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-111.833336, 44.5),
+                        control2: Vec2::new(-107.69999, 43.433323),
+                        to: Vec2::new(-114.5, 52.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-119.8758, 76.69112),
+                        control2: Vec2::new(-118.17695, 64.362076),
+                        to: Vec2::new(-119.5, 89.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -243,7 +455,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-38.5, 21.5)),
                     PathCommand::LineTo(Vec2::new(-1.5, 52.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(20.42181, 14.745773), control2: Vec2::new(25.67945, 29.149542), to: Vec2::new(-1.5, 6.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(20.42181, 14.745773),
+                        control2: Vec2::new(25.67945, 29.149542),
+                        to: Vec2::new(-1.5, 6.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -256,9 +472,17 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::LineTo(Vec2::new(-11.5, -53.5)),
                     PathCommand::LineTo(Vec2::new(-14.5, -57.5)),
                     PathCommand::LineTo(Vec2::new(-21.5, -57.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-31.788418, -54.927895), control2: Vec2::new(-38.008427, -49.03198), to: Vec2::new(-46.5, -42.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-31.788418, -54.927895),
+                        control2: Vec2::new(-38.008427, -49.03198),
+                        to: Vec2::new(-46.5, -42.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-57.5, -28.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-62.251797, -17.412472), control2: Vec2::new(-59.929222, -23.973373), to: Vec2::new(-63.5, -8.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-62.251797, -17.412472),
+                        control2: Vec2::new(-59.929222, -23.973373),
+                        to: Vec2::new(-63.5, -8.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -269,9 +493,21 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(15.5, -77.5)),
                     PathCommand::LineTo(Vec2::new(23.5, -64.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(61.148643, -29.988743), control2: Vec2::new(44.939705, -38.780148), to: Vec2::new(65.5, -28.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(65.5, -40.01274), control2: Vec2::new(31.180882, -70.81912), to: Vec2::new(26.5, -75.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(18.865782, -81.22566), control2: Vec2::new(19.473755, -84.46063), to: Vec2::new(15.5, -78.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(61.148643, -29.988743),
+                        control2: Vec2::new(44.939705, -38.780148),
+                        to: Vec2::new(65.5, -28.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(65.5, -40.01274),
+                        control2: Vec2::new(31.180882, -70.81912),
+                        to: Vec2::new(26.5, -75.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(18.865782, -81.22566),
+                        control2: Vec2::new(19.473755, -84.46063),
+                        to: Vec2::new(15.5, -78.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -281,10 +517,18 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-96.5, 88.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-95.20185, 91.0963), control2: Vec2::new(-96.24536, 90.5), to: Vec2::new(-93.5, 90.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-95.20185, 91.0963),
+                        control2: Vec2::new(-96.24536, 90.5),
+                        to: Vec2::new(-93.5, 90.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-33.5, 73.5)),
                     PathCommand::LineTo(Vec2::new(-39.5, 68.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-55.797653, 68.5), control2: Vec2::new(-44.240906, 67.91431), to: Vec2::new(-73.5, 75.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-55.797653, 68.5),
+                        control2: Vec2::new(-44.240906, 67.91431),
+                        to: Vec2::new(-73.5, 75.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-88.5, 83.5)),
                     PathCommand::Close,
                 ],
@@ -295,7 +539,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-57.5, 75.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-54.833332, 75.5), control2: Vec2::new(-55.5, 76.166664), to: Vec2::new(-55.5, 73.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-54.833332, 75.5),
+                        control2: Vec2::new(-55.5, 76.166664),
+                        to: Vec2::new(-55.5, 73.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-57.5, 73.5)),
                     PathCommand::Close,
                 ],
@@ -306,9 +554,21 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-18.5, -32.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-4.906969, -18.90697), control2: Vec2::new(11.291388, -24.32525), to: Vec2::new(29.5, -25.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(23.71116, -29.841629), control2: Vec2::new(26.990688, -27.754656), to: Vec2::new(19.5, -31.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(8.133981, -34.341503), control2: Vec2::new(-1.8509073, -34.470757), to: Vec2::new(-13.5, -33.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-4.906969, -18.90697),
+                        control2: Vec2::new(11.291388, -24.32525),
+                        to: Vec2::new(29.5, -25.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(23.71116, -29.841629),
+                        control2: Vec2::new(26.990688, -27.754656),
+                        to: Vec2::new(19.5, -31.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(8.133981, -34.341503),
+                        control2: Vec2::new(-1.8509073, -34.470757),
+                        to: Vec2::new(-13.5, -33.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -318,10 +578,18 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(20.5, 69.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(48.126793, 90.22009), control2: Vec2::new(22.937103, 71.91627), to: Vec2::new(107.5, 103.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(48.126793, 90.22009),
+                        control2: Vec2::new(22.937103, 71.91627),
+                        to: Vec2::new(107.5, 103.5),
+                    },
                     PathCommand::LineTo(Vec2::new(108.5, 95.5)),
                     PathCommand::LineTo(Vec2::new(60.5, 76.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(39.94026, 71.0174), control2: Vec2::new(50.595783, 73.399254), to: Vec2::new(28.5, 69.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(39.94026, 71.0174),
+                        control2: Vec2::new(50.595783, 73.399254),
+                        to: Vec2::new(28.5, 69.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -333,11 +601,19 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::MoveTo(Vec2::new(-29.5, -55.5)),
                     PathCommand::LineTo(Vec2::new(54.5, -20.5)),
                     PathCommand::LineTo(Vec2::new(49.5, -31.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(41.534508, -43.448242), control2: Vec2::new(45.874252, -37.78657), to: Vec2::new(36.5, -48.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(41.534508, -43.448242),
+                        control2: Vec2::new(45.874252, -37.78657),
+                        to: Vec2::new(36.5, -48.5),
+                    },
                     PathCommand::LineTo(Vec2::new(17.5, -58.5)),
                     PathCommand::LineTo(Vec2::new(7.5, -61.5)),
                     PathCommand::LineTo(Vec2::new(-7.5, -62.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-22.032148, -59.85779), control2: Vec2::new(-15.039823, -61.88407), to: Vec2::new(-28.5, -56.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-22.032148, -59.85779),
+                        control2: Vec2::new(-15.039823, -61.88407),
+                        to: Vec2::new(-28.5, -56.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -347,9 +623,17 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-42.5, 70.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-27.034912, 75.13953), control2: Vec2::new(-35.956215, 73.09338), to: Vec2::new(-15.5, 75.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-27.034912, 75.13953),
+                        control2: Vec2::new(-35.956215, 73.09338),
+                        to: Vec2::new(-15.5, 75.5),
+                    },
                     PathCommand::LineTo(Vec2::new(15.5, 71.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-2.4851513, 62.507423), control2: Vec2::new(11.724808, 68.72248), to: Vec2::new(-30.5, 64.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-2.4851513, 62.507423),
+                        control2: Vec2::new(11.724808, 68.72248),
+                        to: Vec2::new(-30.5, 64.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -360,8 +644,16 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(10.5, 72.5)),
                     PathCommand::LineTo(Vec2::new(86.5, 96.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(78.2941, 88.2941), control2: Vec2::new(83.40621, 92.88634), to: Vec2::new(70.5, 83.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(52.97669, 77.6589), control2: Vec2::new(62.60508, 80.465904), to: Vec2::new(41.5, 75.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(78.2941, 88.2941),
+                        control2: Vec2::new(83.40621, 92.88634),
+                        to: Vec2::new(70.5, 83.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(52.97669, 77.6589),
+                        control2: Vec2::new(62.60508, 80.465904),
+                        to: Vec2::new(41.5, 75.5),
+                    },
                     PathCommand::LineTo(Vec2::new(13.5, 72.5)),
                     PathCommand::Close,
                 ],
@@ -373,10 +665,22 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(75.5, 88.5)),
                     PathCommand::LineTo(Vec2::new(105.5, 117.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(115.05474, 123.86983), control2: Vec2::new(110.894424, 123.5), to: Vec2::new(116.5, 123.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(105.84145, 103.24876), control2: Vec2::new(111.56071, 109.56071), to: Vec2::new(103.5, 101.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(115.05474, 123.86983),
+                        control2: Vec2::new(110.894424, 123.5),
+                        to: Vec2::new(116.5, 123.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(105.84145, 103.24876),
+                        control2: Vec2::new(111.56071, 109.56071),
+                        to: Vec2::new(103.5, 101.5),
+                    },
                     PathCommand::LineTo(Vec2::new(93.5, 94.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(76.90304, 86.201515), control2: Vec2::new(83.46294, 86.5), to: Vec2::new(75.5, 86.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(76.90304, 86.201515),
+                        control2: Vec2::new(83.46294, 86.5),
+                        to: Vec2::new(75.5, 86.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -386,8 +690,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-11.5, -98.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(45.787075, -64.328766), control2: Vec2::new(23.376633, -64.5), to: Vec2::new(46.5, -64.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(56.729588, -84.959175), control2: Vec2::new(15.674398, -98.3256), to: Vec2::new(-0.5, -114.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(45.787075, -64.328766),
+                        control2: Vec2::new(23.376633, -64.5),
+                        to: Vec2::new(46.5, -64.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(56.729588, -84.959175),
+                        control2: Vec2::new(15.674398, -98.3256),
+                        to: Vec2::new(-0.5, -114.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -398,8 +710,16 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(63.5, 62.5)),
                     PathCommand::LineTo(Vec2::new(65.5, 69.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(70.714386, 74.714386), control2: Vec2::new(76.31802, 77.5), to: Vec2::new(83.5, 77.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(83.5, 70.3826), control2: Vec2::new(77.97745, 66.53713), to: Vec2::new(73.5, 61.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(70.714386, 74.714386),
+                        control2: Vec2::new(76.31802, 77.5),
+                        to: Vec2::new(83.5, 77.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(83.5, 70.3826),
+                        control2: Vec2::new(77.97745, 66.53713),
+                        to: Vec2::new(73.5, 61.5),
+                    },
                     PathCommand::LineTo(Vec2::new(64.5, 55.5)),
                     PathCommand::LineTo(Vec2::new(63.5, 58.5)),
                     PathCommand::Close,
@@ -411,8 +731,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-62.5, 10.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-57.05883, 1.5220737), control2: Vec2::new(-33.273415, -18.273415), to: Vec2::new(-46.5, -31.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-56.74568, -21.254318), control2: Vec2::new(-58.20022, -9.627859), to: Vec2::new(-62.5, 4.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-57.05883, 1.5220737),
+                        control2: Vec2::new(-33.273415, -18.273415),
+                        to: Vec2::new(-46.5, -31.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-56.74568, -21.254318),
+                        control2: Vec2::new(-58.20022, -9.627859),
+                        to: Vec2::new(-62.5, 4.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -422,8 +750,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-1.5, -122.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(4.1263833, -102.80766), control2: Vec2::new(18.564709, -86.5), to: Vec2::new(45.5, -86.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(31.812542, -100.18746), control2: Vec2::new(17.36802, -112.86113), to: Vec2::new(0.5, -122.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(4.1263833, -102.80766),
+                        control2: Vec2::new(18.564709, -86.5),
+                        to: Vec2::new(45.5, -86.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(31.812542, -100.18746),
+                        control2: Vec2::new(17.36802, -112.86113),
+                        to: Vec2::new(0.5, -122.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -434,9 +770,21 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(27.5, -55.5)),
                     PathCommand::LineTo(Vec2::new(60.5, 6.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(63.741035, 0.0179286), control2: Vec2::new(61.549583, 5.2437725), to: Vec2::new(60.5, -10.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(57.37394, -23.004236), control2: Vec2::new(59.486774, -15.934384), to: Vec2::new(53.5, -31.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(49.256855, -38.289032), control2: Vec2::new(45.138893, -43.861107), to: Vec2::new(39.5, -49.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(63.741035, 0.0179286),
+                        control2: Vec2::new(61.549583, 5.2437725),
+                        to: Vec2::new(60.5, -10.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(57.37394, -23.004236),
+                        control2: Vec2::new(59.486774, -15.934384),
+                        to: Vec2::new(53.5, -31.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(49.256855, -38.289032),
+                        control2: Vec2::new(45.138893, -43.861107),
+                        to: Vec2::new(39.5, -49.5),
+                    },
                     PathCommand::LineTo(Vec2::new(28.5, -57.5)),
                     PathCommand::Close,
                 ],
@@ -448,10 +796,22 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(5.5, 7.5)),
                     PathCommand::LineTo(Vec2::new(6.5, 11.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(12.200863, 17.200863), control2: Vec2::new(21.23627, 16.5), to: Vec2::new(28.5, 16.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(12.200863, 17.200863),
+                        control2: Vec2::new(21.23627, 16.5),
+                        to: Vec2::new(28.5, 16.5),
+                    },
                     PathCommand::LineTo(Vec2::new(41.5, 8.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(38.435043, 0.8376117), control2: Vec2::new(40.543392, 4.9607506), to: Vec2::new(34.5, -3.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(27.98785, -8.92679), control2: Vec2::new(31.103418, -8.5), to: Vec2::new(26.5, -8.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(38.435043, 0.8376117),
+                        control2: Vec2::new(40.543392, 4.9607506),
+                        to: Vec2::new(34.5, -3.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(27.98785, -8.92679),
+                        control2: Vec2::new(31.103418, -8.5),
+                        to: Vec2::new(26.5, -8.5),
+                    },
                     PathCommand::LineTo(Vec2::new(14.5, -2.5)),
                     PathCommand::LineTo(Vec2::new(5.5, 5.5)),
                     PathCommand::Close,
@@ -463,10 +823,22 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-41.5, -49.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-18.406479, -51.173443), control2: Vec2::new(27.5, -34.345924), to: Vec2::new(27.5, -57.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(23.075905, -61.924095), control2: Vec2::new(15.308201, -63.04795), to: Vec2::new(9.5, -64.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-18.406479, -51.173443),
+                        control2: Vec2::new(27.5, -34.345924),
+                        to: Vec2::new(27.5, -57.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(23.075905, -61.924095),
+                        control2: Vec2::new(15.308201, -63.04795),
+                        to: Vec2::new(9.5, -64.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-4.5, -65.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-16.998856, -63.93764), control2: Vec2::new(-9.931355, -65.29035), to: Vec2::new(-25.5, -60.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-16.998856, -63.93764),
+                        control2: Vec2::new(-9.931355, -65.29035),
+                        to: Vec2::new(-25.5, -60.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-37.5, -53.5)),
                     PathCommand::Close,
                 ],
@@ -478,7 +850,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(109.5, 105.5)),
                     PathCommand::LineTo(Vec2::new(116.5, 120.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(120.24069, 109.277916), control2: Vec2::new(117.5, 118.555916), to: Vec2::new(117.5, 91.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(120.24069, 109.277916),
+                        control2: Vec2::new(117.5, 118.555916),
+                        to: Vec2::new(117.5, 91.5),
+                    },
                     PathCommand::LineTo(Vec2::new(113.5, 88.5)),
                     PathCommand::LineTo(Vec2::new(110.5, 87.5)),
                     PathCommand::LineTo(Vec2::new(109.5, 103.5)),
@@ -491,10 +867,18 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-31.5, 59.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-24.117325, 64.42178), control2: Vec2::new(-11.655701, 62.5), to: Vec2::new(-3.5, 62.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-24.117325, 64.42178),
+                        control2: Vec2::new(-11.655701, 62.5),
+                        to: Vec2::new(-3.5, 62.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-6.5, 50.5)),
                     PathCommand::LineTo(Vec2::new(-8.5, 47.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-16.80093, 44.733025), control2: Vec2::new(-10.493963, 46.185616), to: Vec2::new(-27.5, 51.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-16.80093, 44.733025),
+                        control2: Vec2::new(-10.493963, 46.185616),
+                        to: Vec2::new(-27.5, 51.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-31.5, 57.5)),
                     PathCommand::Close,
                 ],
@@ -505,10 +889,18 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-118.5, 114.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-114.56399, 114.5), control2: Vec2::new(-115.12998, 112.57496), to: Vec2::new(-113.5, 108.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-114.56399, 114.5),
+                        control2: Vec2::new(-115.12998, 112.57496),
+                        to: Vec2::new(-113.5, 108.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-108.5, 85.5)),
                     PathCommand::LineTo(Vec2::new(-107.5, 64.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-114.85, 86.549995), control2: Vec2::new(-110.57125, 72.38698), to: Vec2::new(-118.5, 107.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-114.85, 86.549995),
+                        control2: Vec2::new(-110.57125, 72.38698),
+                        to: Vec2::new(-118.5, 107.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -518,8 +910,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-47.5, 67.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-21.163387, 70.13366), control2: Vec2::new(-40.83263, 68.840065), to: Vec2::new(11.5, 63.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-13.561565, 49.830055), control2: Vec2::new(4.585251, 58.3692), to: Vec2::new(-46.5, 47.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-21.163387, 70.13366),
+                        control2: Vec2::new(-40.83263, 68.840065),
+                        to: Vec2::new(11.5, 63.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-13.561565, 49.830055),
+                        control2: Vec2::new(4.585251, 58.3692),
+                        to: Vec2::new(-46.5, 47.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -530,7 +930,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-29.5, 20.5)),
                     PathCommand::LineTo(Vec2::new(-3.5, 19.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-1.9887003, -0.14689636), control2: Vec2::new(-2.5, 10.846035), to: Vec2::new(-2.5, -13.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-1.9887003, -0.14689636),
+                        control2: Vec2::new(-2.5, 10.846035),
+                        to: Vec2::new(-2.5, -13.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -540,10 +944,22 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-75.5, -29.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-43.207928, -29.5), control2: Vec2::new(-29.333942, -74.66606), to: Vec2::new(-6.5, -97.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-8.245348, -99.245346), control2: Vec2::new(-7.052801, -98.64906), to: Vec2::new(-10.5, -97.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-43.207928, -29.5),
+                        control2: Vec2::new(-29.333942, -74.66606),
+                        to: Vec2::new(-6.5, -97.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-8.245348, -99.245346),
+                        control2: Vec2::new(-7.052801, -98.64906),
+                        to: Vec2::new(-10.5, -97.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-24.5, -87.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-39.689808, -74.84183), control2: Vec2::new(-53.140194, -60.949757), to: Vec2::new(-65.5, -45.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-39.689808, -74.84183),
+                        control2: Vec2::new(-53.140194, -60.949757),
+                        to: Vec2::new(-65.5, -45.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-75.5, -30.5)),
                     PathCommand::Close,
                 ],
@@ -554,7 +970,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(46.5, 62.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(52.705887, 68.70589), control2: Vec2::new(48.14836, 65.084114), to: Vec2::new(62.5, 69.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(52.705887, 68.70589),
+                        control2: Vec2::new(48.14836, 65.084114),
+                        to: Vec2::new(62.5, 69.5),
+                    },
                     PathCommand::LineTo(Vec2::new(61.5, 50.5)),
                     PathCommand::LineTo(Vec2::new(59.5, 48.5)),
                     PathCommand::LineTo(Vec2::new(47.5, 60.5)),
@@ -567,7 +987,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-27.5, -28.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-11.287554, -3.0232964), control2: Vec2::new(-24.805756, -16.909014), to: Vec2::new(30.5, -24.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-11.287554, -3.0232964),
+                        control2: Vec2::new(-24.805756, -16.909014),
+                        to: Vec2::new(30.5, -24.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-22.5, -30.5)),
                     PathCommand::Close,
                 ],
@@ -580,7 +1004,11 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::MoveTo(Vec2::new(-77.5, 70.5)),
                     PathCommand::LineTo(Vec2::new(-75.5, 70.5)),
                     PathCommand::LineTo(Vec2::new(-45.5, 57.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-45.5, 46.38289), control2: Vec2::new(-45.171658, 55.443985), to: Vec2::new(-53.5, 31.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-45.5, 46.38289),
+                        control2: Vec2::new(-45.171658, 55.443985),
+                        to: Vec2::new(-53.5, 31.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-77.5, 69.5)),
                     PathCommand::Close,
                 ],
@@ -591,11 +1019,23 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-59.5, 8.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(10.786591, -34.67605), control2: Vec2::new(10.5, -7.1158504), to: Vec2::new(10.5, -35.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(10.786591, -34.67605),
+                        control2: Vec2::new(10.5, -7.1158504),
+                        to: Vec2::new(10.5, -35.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-11.5, -35.5)),
                     PathCommand::LineTo(Vec2::new(-25.5, -32.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-37.517387, -24.989132), control2: Vec2::new(-31.066236, -29.49126), to: Vec2::new(-44.5, -18.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-54.58243, -4.096528), control2: Vec2::new(-49.481102, -12.03307), to: Vec2::new(-59.5, 5.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-37.517387, -24.989132),
+                        control2: Vec2::new(-31.066236, -29.49126),
+                        to: Vec2::new(-44.5, -18.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-54.58243, -4.096528),
+                        control2: Vec2::new(-49.481102, -12.03307),
+                        to: Vec2::new(-59.5, 5.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -608,7 +1048,11 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::LineTo(Vec2::new(104.5, 94.5)),
                     PathCommand::LineTo(Vec2::new(108.5, 94.5)),
                     PathCommand::LineTo(Vec2::new(106.5, 60.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(104.43772, 45.032925), control2: Vec2::new(108.06682, 49.06682), to: Vec2::new(103.5, 44.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(104.43772, 45.032925),
+                        control2: Vec2::new(108.06682, 49.06682),
+                        to: Vec2::new(103.5, 44.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -620,7 +1064,11 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::MoveTo(Vec2::new(-22.5, 58.5)),
                     PathCommand::LineTo(Vec2::new(-4.5, 61.5)),
                     PathCommand::LineTo(Vec2::new(-4.5, 57.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-7.233905, 52.032192), control2: Vec2::new(-15.361164, 51.641964), to: Vec2::new(-20.5, 50.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-7.233905, 52.032192),
+                        control2: Vec2::new(-15.361164, 51.641964),
+                        to: Vec2::new(-20.5, 50.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-22.5, 54.5)),
                     PathCommand::Close,
                 ],
@@ -631,9 +1079,21 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(46.5, -63.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(71.11781, -32.46015), control2: Vec2::new(60.021786, -42.39851), to: Vec2::new(75.5, -29.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(71.36744, -41.89767), control2: Vec2::new(58.87822, -53.72541), to: Vec2::new(50.5, -63.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(48.264297, -65.7357), control2: Vec2::new(49.442802, -65.5), to: Vec2::new(47.5, -65.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(71.11781, -32.46015),
+                        control2: Vec2::new(60.021786, -42.39851),
+                        to: Vec2::new(75.5, -29.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(71.36744, -41.89767),
+                        control2: Vec2::new(58.87822, -53.72541),
+                        to: Vec2::new(50.5, -63.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(48.264297, -65.7357),
+                        control2: Vec2::new(49.442802, -65.5),
+                        to: Vec2::new(47.5, -65.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -643,9 +1103,17 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(11.5, 29.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(27.701708, 50.76474), control2: Vec2::new(18.699757, 50.5), to: Vec2::new(28.5, 50.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(27.701708, 50.76474),
+                        control2: Vec2::new(18.699757, 50.5),
+                        to: Vec2::new(28.5, 50.5),
+                    },
                     PathCommand::LineTo(Vec2::new(42.5, 21.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(31.058315, 15.779158), control2: Vec2::new(26.746386, 22.782606), to: Vec2::new(11.5, 28.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(31.058315, 15.779158),
+                        control2: Vec2::new(26.746386, 22.782606),
+                        to: Vec2::new(11.5, 28.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -655,9 +1123,17 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-13.5, -57.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-3.355033, -51.41302), control2: Vec2::new(-10.44368, -54.5), to: Vec2::new(9.5, -54.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-3.355033, -51.41302),
+                        control2: Vec2::new(-10.44368, -54.5),
+                        to: Vec2::new(9.5, -54.5),
+                    },
                     PathCommand::LineTo(Vec2::new(6.5, -59.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-0.5608883, -61.26522), control2: Vec2::new(-6.7764354, -61.189426), to: Vec2::new(-13.5, -58.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-0.5608883, -61.26522),
+                        control2: Vec2::new(-6.7764354, -61.189426),
+                        to: Vec2::new(-13.5, -58.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -667,7 +1143,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-30.5, -40.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-26.389652, -29.53907), control2: Vec2::new(-30.201853, -31.599382), to: Vec2::new(-18.5, -35.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-26.389652, -29.53907),
+                        control2: Vec2::new(-30.201853, -31.599382),
+                        to: Vec2::new(-18.5, -35.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-17.5, -36.5)),
                     PathCommand::LineTo(Vec2::new(-22.5, -47.5)),
                     PathCommand::LineTo(Vec2::new(-30.5, -43.5)),
@@ -681,9 +1161,17 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-118.5, 117.5)),
                     PathCommand::LineTo(Vec2::new(-117.5, 123.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-107.26727, 123.5), control2: Vec2::new(-115.85066, 124.06646), to: Vec2::new(-102.5, 102.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-107.26727, 123.5),
+                        control2: Vec2::new(-115.85066, 124.06646),
+                        to: Vec2::new(-102.5, 102.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-108.5, 86.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-116.43217, 94.43217), control2: Vec2::new(-109.35611, 87.05233), to: Vec2::new(-118.5, 115.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-116.43217, 94.43217),
+                        control2: Vec2::new(-109.35611, 87.05233),
+                        to: Vec2::new(-118.5, 115.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -693,9 +1181,21 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(37.5, -23.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(51.263397, -11.854049), control2: Vec2::new(44.823532, -12.5), to: Vec2::new(53.5, -12.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(53.5, -19.554276), control2: Vec2::new(47.559086, -24.426144), to: Vec2::new(43.5, -29.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(39.81345, -27.656725), control2: Vec2::new(42.027046, -29.027046), to: Vec2::new(37.5, -24.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(51.263397, -11.854049),
+                        control2: Vec2::new(44.823532, -12.5),
+                        to: Vec2::new(53.5, -12.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(53.5, -19.554276),
+                        control2: Vec2::new(47.559086, -24.426144),
+                        to: Vec2::new(43.5, -29.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(39.81345, -27.656725),
+                        control2: Vec2::new(42.027046, -29.027046),
+                        to: Vec2::new(37.5, -24.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -705,7 +1205,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-0.5, 10.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(5.020239, 13.260119), control2: Vec2::new(2.03823, 12.207646), to: Vec2::new(8.5, 13.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(5.020239, 13.260119),
+                        control2: Vec2::new(2.03823, 12.207646),
+                        to: Vec2::new(8.5, 13.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-0.5, -14.5)),
                     PathCommand::Close,
                 ],
@@ -717,8 +1221,16 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-38.5, -35.5)),
                     PathCommand::LineTo(Vec2::new(-35.5, -28.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-29.624655, -30.850138), control2: Vec2::new(-31.769283, -29.230717), to: Vec2::new(-28.5, -32.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-28.5, -38.038597), control2: Vec2::new(-28.106083, -34.58086), to: Vec2::new(-31.5, -42.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-29.624655, -30.850138),
+                        control2: Vec2::new(-31.769283, -29.230717),
+                        to: Vec2::new(-28.5, -32.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-28.5, -38.038597),
+                        control2: Vec2::new(-28.106083, -34.58086),
+                        to: Vec2::new(-31.5, -42.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-38.5, -38.5)),
                     PathCommand::Close,
                 ],
@@ -730,9 +1242,17 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(11.5, -34.5)),
                     PathCommand::LineTo(Vec2::new(57.5, 14.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(57.5, 5.282503), control2: Vec2::new(58.0963, 11.692594), to: Vec2::new(50.5, -3.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(57.5, 5.282503),
+                        control2: Vec2::new(58.0963, 11.692594),
+                        to: Vec2::new(50.5, -3.5),
+                    },
                     PathCommand::LineTo(Vec2::new(43.5, -14.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(30.80033, -27.19967), control2: Vec2::new(36.814552, -22.62363), to: Vec2::new(26.5, -29.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(30.80033, -27.19967),
+                        control2: Vec2::new(36.814552, -22.62363),
+                        to: Vec2::new(26.5, -29.5),
+                    },
                     PathCommand::LineTo(Vec2::new(14.5, -34.5)),
                     PathCommand::Close,
                 ],
@@ -743,9 +1263,17 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-107.5, 101.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-105.97295, 103.02705), control2: Vec2::new(-106.9216, 102.7108), to: Vec2::new(-104.5, 101.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-105.97295, 103.02705),
+                        control2: Vec2::new(-106.9216, 102.7108),
+                        to: Vec2::new(-104.5, 101.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-92.5, 93.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-95.98103, 86.53793), control2: Vec2::new(-92.873184, 91.902954), to: Vec2::new(-107.5, 82.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-95.98103, 86.53793),
+                        control2: Vec2::new(-92.873184, 91.902954),
+                        to: Vec2::new(-107.5, 82.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -755,9 +1283,17 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(88.5, 81.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(94.52762, 87.52762), control2: Vec2::new(90.96558, 84.40399), to: Vec2::new(99.5, 90.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(94.52762, 87.52762),
+                        control2: Vec2::new(90.96558, 84.40399),
+                        to: Vec2::new(99.5, 90.5),
+                    },
                     PathCommand::LineTo(Vec2::new(99.5, 75.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(88.786095, 78.71417), control2: Vec2::new(91.05634, 75.38731), to: Vec2::new(88.5, 80.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(88.786095, 78.71417),
+                        control2: Vec2::new(91.05634, 75.38731),
+                        to: Vec2::new(88.5, 80.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -767,8 +1303,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(91.5, 9.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(98.11332, 31.54441), control2: Vec2::new(93.151985, 24.064978), to: Vec2::new(101.5, 34.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(107.98617, 28.01383), control2: Vec2::new(99.26787, 17.035736), to: Vec2::new(95.5, 9.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(98.11332, 31.54441),
+                        control2: Vec2::new(93.151985, 24.064978),
+                        to: Vec2::new(101.5, 34.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(107.98617, 28.01383),
+                        control2: Vec2::new(99.26787, 17.035736),
+                        to: Vec2::new(95.5, 9.5),
+                    },
                     PathCommand::LineTo(Vec2::new(91.5, 7.5)),
                     PathCommand::Close,
                 ],
@@ -780,9 +1324,17 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-45.5, -31.5)),
                     PathCommand::LineTo(Vec2::new(-42.5, -23.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-38.365627, -23.5), control2: Vec2::new(-41.02058, -23.083534), to: Vec2::new(-35.5, -27.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-38.365627, -23.5),
+                        control2: Vec2::new(-41.02058, -23.083534),
+                        to: Vec2::new(-35.5, -27.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-39.5, -37.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-43.186527, -35.656734), control2: Vec2::new(-40.972992, -37.027008), to: Vec2::new(-45.5, -32.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-43.186527, -35.656734),
+                        control2: Vec2::new(-40.972992, -37.027008),
+                        to: Vec2::new(-45.5, -32.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -793,8 +1345,16 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(102.5, 37.5)),
                     PathCommand::LineTo(Vec2::new(108.5, 105.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(111.11692, 95.03233), control2: Vec2::new(109.5, 102.874596), to: Vec2::new(109.5, 81.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(108.60172, 65.33101), control2: Vec2::new(107.65106, 49.953194), to: Vec2::new(102.5, 34.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(111.11692, 95.03233),
+                        control2: Vec2::new(109.5, 102.874596),
+                        to: Vec2::new(109.5, 81.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(108.60172, 65.33101),
+                        control2: Vec2::new(107.65106, 49.953194),
+                        to: Vec2::new(102.5, 34.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -804,8 +1364,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(7.5, -58.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(9.578144, -48.10928), control2: Vec2::new(6.8510704, -53.91223), to: Vec2::new(24.5, -49.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(22.051317, -56.846046), control2: Vec2::new(14.536594, -58.327232), to: Vec2::new(7.5, -59.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(9.578144, -48.10928),
+                        control2: Vec2::new(6.8510704, -53.91223),
+                        to: Vec2::new(24.5, -49.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(22.051317, -56.846046),
+                        control2: Vec2::new(14.536594, -58.327232),
+                        to: Vec2::new(7.5, -59.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -816,8 +1384,16 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(98.5, 33.5)),
                     PathCommand::LineTo(Vec2::new(103.5, 65.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(110.706856, 58.29314), control2: Vec2::new(105.58538, 64.43919), to: Vec2::new(103.5, 41.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(99.394554, 29.18367), control2: Vec2::new(103.71641, 29.5), to: Vec2::new(98.5, 29.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(110.706856, 58.29314),
+                        control2: Vec2::new(105.58538, 64.43919),
+                        to: Vec2::new(103.5, 41.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(99.394554, 29.18367),
+                        control2: Vec2::new(103.71641, 29.5),
+                        to: Vec2::new(98.5, 29.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -827,9 +1403,21 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-44.5, 20.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-35.41324, 25.04338), control2: Vec2::new(-43.2212, 21.688139), to: Vec2::new(-19.5, 15.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-16.429039, 9.358077), control2: Vec2::new(-18.124447, 14.143805), to: Vec2::new(-25.5, 1.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-26.833334, 0.16666663), control2: Vec2::new(-26.166666, 0.16666663), to: Vec2::new(-27.5, 1.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-35.41324, 25.04338),
+                        control2: Vec2::new(-43.2212, 21.688139),
+                        to: Vec2::new(-19.5, 15.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-16.429039, 9.358077),
+                        control2: Vec2::new(-18.124447, 14.143805),
+                        to: Vec2::new(-25.5, 1.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-26.833334, 0.16666663),
+                        control2: Vec2::new(-26.166666, 0.16666663),
+                        to: Vec2::new(-27.5, 1.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -839,8 +1427,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-92.5, 91.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-86.54464, 97.45536), control2: Vec2::new(-91.925804, 92.7017), to: Vec2::new(-72.5, 83.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-80.834946, 77.943375), control2: Vec2::new(-74.43776, 80.93764), to: Vec2::new(-92.5, 90.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-86.54464, 97.45536),
+                        control2: Vec2::new(-91.925804, 92.7017),
+                        to: Vec2::new(-72.5, 83.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-80.834946, 77.943375),
+                        control2: Vec2::new(-74.43776, 80.93764),
+                        to: Vec2::new(-92.5, 90.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -850,9 +1446,17 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-22.5, 44.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-10.672339, 38.04855), control2: Vec2::new(-14.453339, 41.45334), to: Vec2::new(-9.5, 36.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-10.672339, 38.04855),
+                        control2: Vec2::new(-14.453339, 41.45334),
+                        to: Vec2::new(-9.5, 36.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-10.5, 32.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-12.554089, 30.445911), control2: Vec2::new(-11.078385, 31.289192), to: Vec2::new(-15.5, 33.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-12.554089, 30.445911),
+                        control2: Vec2::new(-11.078385, 31.289192),
+                        to: Vec2::new(-15.5, 33.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-22.5, 43.5)),
                     PathCommand::Close,
                 ],
@@ -865,7 +1469,11 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::MoveTo(Vec2::new(1.5, 19.5)),
                     PathCommand::LineTo(Vec2::new(20.5, 19.5)),
                     PathCommand::LineTo(Vec2::new(19.5, 16.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(11.286399, 13.762133), control2: Vec2::new(15.608191, 14.5), to: Vec2::new(6.5, 14.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(11.286399, 13.762133),
+                        control2: Vec2::new(15.608191, 14.5),
+                        to: Vec2::new(6.5, 14.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -876,7 +1484,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-24.5, 46.5)),
                     PathCommand::LineTo(Vec2::new(-3.5, 57.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-6.673755, 40.573303), control2: Vec2::new(-2.663041, 45.33696), to: Vec2::new(-8.5, 39.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-6.673755, 40.573303),
+                        control2: Vec2::new(-2.663041, 45.33696),
+                        to: Vec2::new(-8.5, 39.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-22.5, 45.5)),
                     PathCommand::Close,
                 ],
@@ -887,8 +1499,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-50.5, 46.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-48.782303, 53.027256), control2: Vec2::new(-50.249485, 65.5), to: Vec2::new(-43.5, 65.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-36.95911, 58.95911), control2: Vec2::new(-44.314228, 48.623848), to: Vec2::new(-50.5, 44.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-48.782303, 53.027256),
+                        control2: Vec2::new(-50.249485, 65.5),
+                        to: Vec2::new(-43.5, 65.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-36.95911, 58.95911),
+                        control2: Vec2::new(-44.314228, 48.623848),
+                        to: Vec2::new(-50.5, 44.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -898,8 +1518,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(81.5, -13.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(88.81518, 2.1753817), control2: Vec2::new(83.56488, -0.96756005), to: Vec2::new(90.5, 2.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(88.93039, -8.487253), control2: Vec2::new(90.47538, -2.3541574), to: Vec2::new(84.5, -15.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(88.81518, 2.1753817),
+                        control2: Vec2::new(83.56488, -0.96756005),
+                        to: Vec2::new(90.5, 2.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(88.93039, -8.487253),
+                        control2: Vec2::new(90.47538, -2.3541574),
+                        to: Vec2::new(84.5, -15.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -911,7 +1539,11 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::MoveTo(Vec2::new(70.5, -33.5)),
                     PathCommand::LineTo(Vec2::new(81.5, -14.5)),
                     PathCommand::LineTo(Vec2::new(83.5, -15.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(80.621605, -22.695986), control2: Vec2::new(76.96457, -28.035433), to: Vec2::new(71.5, -33.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(80.621605, -22.695986),
+                        control2: Vec2::new(76.96457, -28.035433),
+                        to: Vec2::new(71.5, -33.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -922,7 +1554,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-0.5, 43.5)),
                     PathCommand::LineTo(Vec2::new(3.5, 40.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(5.8233805, 30.044786), control2: Vec2::new(6.8743687, 34.248737), to: Vec2::new(3.5, 27.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(5.8233805, 30.044786),
+                        control2: Vec2::new(6.8743687, 34.248737),
+                        to: Vec2::new(3.5, 27.5),
+                    },
                     PathCommand::LineTo(Vec2::new(0.5, 24.5)),
                     PathCommand::LineTo(Vec2::new(-0.5, 40.5)),
                     PathCommand::Close,
@@ -934,8 +1570,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(8.5, 27.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(20.727173, 27.5), control2: Vec2::new(12.572998, 28.035278), to: Vec2::new(32.5, 22.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(17.71024, 21.362326), control2: Vec2::new(23.535286, 19.885887), to: Vec2::new(14.5, 23.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(20.727173, 27.5),
+                        control2: Vec2::new(12.572998, 28.035278),
+                        to: Vec2::new(32.5, 22.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(17.71024, 21.362326),
+                        control2: Vec2::new(23.535286, 19.885887),
+                        to: Vec2::new(14.5, 23.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -945,7 +1589,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-31.5, 48.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-22.457949, 48.5), control2: Vec2::new(-20.5, 34.911194), to: Vec2::new(-20.5, 28.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-22.457949, 48.5),
+                        control2: Vec2::new(-20.5, 34.911194),
+                        to: Vec2::new(-20.5, 28.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-31.5, 47.5)),
                     PathCommand::Close,
                 ],
@@ -956,7 +1604,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-23.5, -4.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-16.366055, 4.0607357), control2: Vec2::new(-21.103409, 1.5), to: Vec2::new(-8.5, 1.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-16.366055, 4.0607357),
+                        control2: Vec2::new(-21.103409, 1.5),
+                        to: Vec2::new(-8.5, 1.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-5.5, -6.5)),
                     PathCommand::LineTo(Vec2::new(-5.5, -8.5)),
                     PathCommand::LineTo(Vec2::new(-6.5, -8.5)),
@@ -970,7 +1622,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-54.5, -33.5)),
                     PathCommand::LineTo(Vec2::new(-34.5, -52.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-49.389877, -45.05506), control2: Vec2::new(-42.227764, -50.453907), to: Vec2::new(-54.5, -34.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-49.389877, -45.05506),
+                        control2: Vec2::new(-42.227764, -50.453907),
+                        to: Vec2::new(-54.5, -34.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -982,8 +1638,16 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::MoveTo(Vec2::new(-107.5, 81.5)),
                     PathCommand::LineTo(Vec2::new(-105.5, 83.5)),
                     PathCommand::LineTo(Vec2::new(-104.5, 65.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-104.5, 63.028618), control2: Vec2::new(-104.0286, 63.971394), to: Vec2::new(-105.5, 62.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-108.14652, 67.793045), control2: Vec2::new(-106.43253, 63.7579), to: Vec2::new(-107.5, 75.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-104.5, 63.028618),
+                        control2: Vec2::new(-104.0286, 63.971394),
+                        to: Vec2::new(-105.5, 62.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-108.14652, 67.793045),
+                        control2: Vec2::new(-106.43253, 63.7579),
+                        to: Vec2::new(-107.5, 75.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -993,8 +1657,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-50.5, 77.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-36.43779, 77.5), control2: Vec2::new(-46.484184, 77.748024), to: Vec2::new(-20.5, 74.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-27.237453, 71.13127), control2: Vec2::new(-42.544544, 75.87546), to: Vec2::new(-46.5, 76.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-36.43779, 77.5),
+                        control2: Vec2::new(-46.484184, 77.748024),
+                        to: Vec2::new(-20.5, 74.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-27.237453, 71.13127),
+                        control2: Vec2::new(-42.544544, 75.87546),
+                        to: Vec2::new(-46.5, 76.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1004,8 +1676,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(4.5, 54.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(16.10685, 59.77584), control2: Vec2::new(11.472326, 59.5), to: Vec2::new(17.5, 59.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(17.5, 52.283615), control2: Vec2::new(18.448664, 56.816223), to: Vec2::new(5.5, 52.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(16.10685, 59.77584),
+                        control2: Vec2::new(11.472326, 59.5),
+                        to: Vec2::new(17.5, 59.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(17.5, 52.283615),
+                        control2: Vec2::new(18.448664, 56.816223),
+                        to: Vec2::new(5.5, 52.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1016,7 +1696,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-88.5, 31.5)),
                     PathCommand::LineTo(Vec2::new(-80.5, 30.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-80.5, 26.239283), control2: Vec2::new(-85.223915, 24.592028), to: Vec2::new(-88.5, 23.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-80.5, 26.239283),
+                        control2: Vec2::new(-85.223915, 24.592028),
+                        to: Vec2::new(-88.5, 23.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1027,7 +1711,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(58.5, -20.5)),
                     PathCommand::LineTo(Vec2::new(61.5, 12.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(64.552895, 0.28841972), control2: Vec2::new(62.342125, -10.97363), to: Vec2::new(58.5, -22.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(64.552895, 0.28841972),
+                        control2: Vec2::new(62.342125, -10.97363),
+                        to: Vec2::new(58.5, -22.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1038,7 +1726,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(14.5, 6.5)),
                     PathCommand::LineTo(Vec2::new(16.5, 8.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(21.99568, 8.5), control2: Vec2::new(24.5, 0.676918), to: Vec2::new(24.5, -4.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(21.99568, 8.5),
+                        control2: Vec2::new(24.5, 0.676918),
+                        to: Vec2::new(24.5, -4.5),
+                    },
                     PathCommand::LineTo(Vec2::new(14.5, 5.5)),
                     PathCommand::Close,
                 ],
@@ -1050,8 +1742,16 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(48.5, -9.5)),
                     PathCommand::LineTo(Vec2::new(58.5, 12.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(59.64907, 14.79814), control2: Vec2::new(58.75465, 14.5), to: Vec2::new(60.5, 14.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(57.47521, 6.181823), control2: Vec2::new(54.923042, -4.076956), to: Vec2::new(48.5, -10.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(59.64907, 14.79814),
+                        control2: Vec2::new(58.75465, 14.5),
+                        to: Vec2::new(60.5, 14.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(57.47521, 6.181823),
+                        control2: Vec2::new(54.923042, -4.076956),
+                        to: Vec2::new(48.5, -10.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1063,7 +1763,11 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::MoveTo(Vec2::new(-63.5, 10.5)),
                     PathCommand::LineTo(Vec2::new(-56.5, -17.5)),
                     PathCommand::LineTo(Vec2::new(-57.5, -17.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-62.47192, -2.584239), control2: Vec2::new(-60.585293, -9.616185), to: Vec2::new(-63.5, 3.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-62.47192, -2.584239),
+                        control2: Vec2::new(-60.585293, -9.616185),
+                        to: Vec2::new(-63.5, 3.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1073,7 +1777,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-100.5, 84.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-88.36312, 78.431564), control2: Vec2::new(-98.5, 84.24573), to: Vec2::new(-98.5, 49.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-88.36312, 78.431564),
+                        control2: Vec2::new(-98.5, 84.24573),
+                        to: Vec2::new(-98.5, 49.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-99.5, 54.5)),
                     PathCommand::Close,
                 ],
@@ -1085,7 +1793,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-13.5, 76.5)),
                     PathCommand::LineTo(Vec2::new(8.5, 76.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(0.11488247, 73.70496), control2: Vec2::new(6.5520153, 75.56188), to: Vec2::new(-11.5, 74.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(0.11488247, 73.70496),
+                        control2: Vec2::new(6.5520153, 75.56188),
+                        to: Vec2::new(-11.5, 74.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1096,7 +1808,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(3.5, 25.5)),
                     PathCommand::LineTo(Vec2::new(5.5, 28.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(12.481699, 25.707321), control2: Vec2::new(9.098318, 27.621346), to: Vec2::new(15.5, 22.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(12.481699, 25.707321),
+                        control2: Vec2::new(9.098318, 27.621346),
+                        to: Vec2::new(15.5, 22.5),
+                    },
                     PathCommand::LineTo(Vec2::new(8.5, 22.5)),
                     PathCommand::Close,
                 ],
@@ -1108,7 +1824,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-16.5, 2.5)),
                     PathCommand::LineTo(Vec2::new(-10.5, 12.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-8.052787, 7.605574), control2: Vec2::new(-8.5, 9.990711), to: Vec2::new(-8.5, 5.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-8.052787, 7.605574),
+                        control2: Vec2::new(-8.5, 9.990711),
+                        to: Vec2::new(-8.5, 5.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-13.5, 2.5)),
                     PathCommand::Close,
                 ],
@@ -1119,8 +1839,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(6.5, 36.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(12.506941, 42.506943), control2: Vec2::new(7.6681204, 38.05633), to: Vec2::new(23.5, 46.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(15.426812, 38.42681), control2: Vec2::new(20.488544, 42.765438), to: Vec2::new(7.5, 34.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(12.506941, 42.506943),
+                        control2: Vec2::new(7.6681204, 38.05633),
+                        to: Vec2::new(23.5, 46.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(15.426812, 38.42681),
+                        control2: Vec2::new(20.488544, 42.765438),
+                        to: Vec2::new(7.5, 34.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1131,7 +1859,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(98.5, 94.5)),
                     PathCommand::LineTo(Vec2::new(102.5, 97.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(110.83478, 97.5), control2: Vec2::new(107.76944, 80.76944), to: Vec2::new(102.5, 75.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(110.83478, 97.5),
+                        control2: Vec2::new(107.76944, 80.76944),
+                        to: Vec2::new(102.5, 75.5),
+                    },
                     PathCommand::LineTo(Vec2::new(98.5, 93.5)),
                     PathCommand::Close,
                 ],
@@ -1142,7 +1874,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-105.5, 61.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-100.06743, 66.93257), control2: Vec2::new(-102.5, 48.676643), to: Vec2::new(-102.5, 44.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-100.06743, 66.93257),
+                        control2: Vec2::new(-102.5, 48.676643),
+                        to: Vec2::new(-102.5, 44.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-103.5, 43.5)),
                     PathCommand::LineTo(Vec2::new(-105.5, 55.5)),
                     PathCommand::Close,
@@ -1154,8 +1890,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-39.5, 64.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-37.150043, 66.84996), control2: Vec2::new(-35.455776, 65.45577), to: Vec2::new(-33.5, 63.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-33.5, 60.25968), control2: Vec2::new(-37.17333, 60.08167), to: Vec2::new(-39.5, 59.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-37.150043, 66.84996),
+                        control2: Vec2::new(-35.455776, 65.45577),
+                        to: Vec2::new(-33.5, 63.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-33.5, 60.25968),
+                        control2: Vec2::new(-37.17333, 60.08167),
+                        to: Vec2::new(-39.5, 59.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1165,8 +1909,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(13.5, 18.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(24.807629, 19.913454), control2: Vec2::new(18.812542, 19.5), to: Vec2::new(31.5, 19.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(20.24998, 16.687496), control2: Vec2::new(26.235199, 17.77352), to: Vec2::new(13.5, 16.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(24.807629, 19.913454),
+                        control2: Vec2::new(18.812542, 19.5),
+                        to: Vec2::new(31.5, 19.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(20.24998, 16.687496),
+                        control2: Vec2::new(26.235199, 17.77352),
+                        to: Vec2::new(13.5, 16.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1176,8 +1928,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(10.5, 68.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(18.441452, 73.794304), control2: Vec2::new(14.096295, 72.5), to: Vec2::new(23.5, 72.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(18.656757, 68.86757), control2: Vec2::new(21.081123, 70.02704), to: Vec2::new(16.5, 68.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(18.441452, 73.794304),
+                        control2: Vec2::new(14.096295, 72.5),
+                        to: Vec2::new(23.5, 72.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(18.656757, 68.86757),
+                        control2: Vec2::new(21.081123, 70.02704),
+                        to: Vec2::new(16.5, 68.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1188,7 +1948,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-50.5, -41.5)),
                     PathCommand::LineTo(Vec2::new(-32.5, -57.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-40.488766, -54.83708), control2: Vec2::new(-45.15756, -48.605644), to: Vec2::new(-50.5, -42.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-40.488766, -54.83708),
+                        control2: Vec2::new(-45.15756, -48.605644),
+                        to: Vec2::new(-50.5, -42.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1198,7 +1962,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-102.5, 43.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-97.91338, 38.913387), control2: Vec2::new(-96.661316, 31.177364), to: Vec2::new(-99.5, 25.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-97.91338, 38.913387),
+                        control2: Vec2::new(-96.661316, 31.177364),
+                        to: Vec2::new(-99.5, 25.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-102.5, 38.5)),
                     PathCommand::Close,
                 ],
@@ -1209,7 +1977,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-0.5, 39.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(2.5467672, 34.929848), control2: Vec2::new(2.5467758, 31.070164), to: Vec2::new(-0.5, 26.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(2.5467672, 34.929848),
+                        control2: Vec2::new(2.5467758, 31.070164),
+                        to: Vec2::new(-0.5, 26.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1220,7 +1992,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-19.5, 34.5)),
                     PathCommand::LineTo(Vec2::new(-9.5, 31.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-11.406765, 27.68647), control2: Vec2::new(-9.764787, 29.622536), to: Vec2::new(-16.5, 28.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-11.406765, 27.68647),
+                        control2: Vec2::new(-9.764787, 29.622536),
+                        to: Vec2::new(-16.5, 28.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-19.5, 32.5)),
                     PathCommand::Close,
                 ],
@@ -1231,7 +2007,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-39.5, 54.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-31.918861, 57.027046), control2: Vec2::new(-34.764915, 58.186554), to: Vec2::new(-30.5, 52.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-31.918861, 57.027046),
+                        control2: Vec2::new(-34.764915, 58.186554),
+                        to: Vec2::new(-30.5, 52.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-30.5, 51.5)),
                     PathCommand::LineTo(Vec2::new(-39.5, 52.5)),
                     PathCommand::Close,
@@ -1243,7 +2023,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-21.5, 4.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-16.976845, 10.530874), control2: Vec2::new(-20.031914, 7.843465), to: Vec2::new(-11.5, 11.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-16.976845, 10.530874),
+                        control2: Vec2::new(-20.031914, 7.843465),
+                        to: Vec2::new(-11.5, 11.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-21.5, 1.5)),
                     PathCommand::Close,
                 ],
@@ -1265,7 +2049,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(87.5, 94.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(91.93531, 99.67453), control2: Vec2::new(92.407745, 102.5), to: Vec2::new(98.5, 102.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(91.93531, 99.67453),
+                        control2: Vec2::new(92.407745, 102.5),
+                        to: Vec2::new(98.5, 102.5),
+                    },
                     PathCommand::LineTo(Vec2::new(88.5, 94.5)),
                     PathCommand::Close,
                 ],
@@ -1276,9 +2064,17 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-86.5, -9.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-79.833374, -9.5), control2: Vec2::new(-85.65683, -9.205939), to: Vec2::new(-77.5, -24.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-79.833374, -9.5),
+                        control2: Vec2::new(-85.65683, -9.205939),
+                        to: Vec2::new(-77.5, -24.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-75.5, -28.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-77.701866, -28.5), control2: Vec2::new(-76.315094, -28.777363), to: Vec2::new(-78.5, -25.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-77.701866, -28.5),
+                        control2: Vec2::new(-76.315094, -28.777363),
+                        to: Vec2::new(-78.5, -25.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1288,8 +2084,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-98.5, 25.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-94.46279, 21.462793), control2: Vec2::new(-93.5, 15.16144), to: Vec2::new(-93.5, 9.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-98.1428, 9.5), control2: Vec2::new(-97.13462, 18.062513), to: Vec2::new(-98.5, 22.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-94.46279, 21.462793),
+                        control2: Vec2::new(-93.5, 15.16144),
+                        to: Vec2::new(-93.5, 9.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-98.1428, 9.5),
+                        control2: Vec2::new(-97.13462, 18.062513),
+                        to: Vec2::new(-98.5, 22.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1299,8 +2103,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-0.5, 14.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(1.2418313, 17.983662), control2: Vec2::new(3.1278627, 16.872137), to: Vec2::new(5.5, 14.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(5.5, 11.553225), control2: Vec2::new(1.731605, 11.5), to: Vec2::new(-0.5, 11.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(1.2418313, 17.983662),
+                        control2: Vec2::new(3.1278627, 16.872137),
+                        to: Vec2::new(5.5, 14.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(5.5, 11.553225),
+                        control2: Vec2::new(1.731605, 11.5),
+                        to: Vec2::new(-0.5, 11.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1310,8 +2122,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-93.5, 8.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-86.80715, 8.5), control2: Vec2::new(-86.5, -2.3374457), to: Vec2::new(-86.5, -8.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-91.07534, -1.6369901), control2: Vec2::new(-88.068596, -6.621643), to: Vec2::new(-93.5, 7.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-86.80715, 8.5),
+                        control2: Vec2::new(-86.5, -2.3374457),
+                        to: Vec2::new(-86.5, -8.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-91.07534, -1.6369901),
+                        control2: Vec2::new(-88.068596, -6.621643),
+                        to: Vec2::new(-93.5, 7.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1321,8 +2141,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(61.5, -26.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(67.68485, -17.222717), control2: Vec2::new(63.894478, -17.5), to: Vec2::new(68.5, -17.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(64.0719, -27.463224), control2: Vec2::new(67.61447, -25.461842), to: Vec2::new(61.5, -27.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(67.68485, -17.222717),
+                        control2: Vec2::new(63.894478, -17.5),
+                        to: Vec2::new(68.5, -17.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(64.0719, -27.463224),
+                        control2: Vec2::new(67.61447, -25.461842),
+                        to: Vec2::new(61.5, -27.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1332,8 +2160,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-66.5, 4.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-65.840866, 9.773048), control2: Vec2::new(-66.99371, 13.253141), to: Vec2::new(-62.5, 15.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-58.842888, 11.842889), control2: Vec2::new(-65.26042, 0.2786175), to: Vec2::new(-65.5, -0.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-65.840866, 9.773048),
+                        control2: Vec2::new(-66.99371, 13.253141),
+                        to: Vec2::new(-62.5, 15.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-58.842888, 11.842889),
+                        control2: Vec2::new(-65.26042, 0.2786175),
+                        to: Vec2::new(-65.5, -0.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-66.5, 2.5)),
                     PathCommand::Close,
                 ],
@@ -1344,8 +2180,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(0.5, -14.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(1.9216375, -4.5485373), control2: Vec2::new(0.4459057, -9.608189), to: Vec2::new(5.5, 0.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(4.0527873, -9.630487), control2: Vec2::new(5.2453547, -4.263936), to: Vec2::new(1.5, -15.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(1.9216375, -4.5485373),
+                        control2: Vec2::new(0.4459057, -9.608189),
+                        to: Vec2::new(5.5, 0.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(4.0527873, -9.630487),
+                        control2: Vec2::new(5.2453547, -4.263936),
+                        to: Vec2::new(1.5, -15.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1355,8 +2199,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(12.5, 4.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(18.271236, 4.5), control2: Vec2::new(14.028598, 4.971402), to: Vec2::new(22.5, -3.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(16.584518, -1.5281731), control2: Vec2::new(20.300335, -3.1860008), to: Vec2::new(12.5, 3.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(18.271236, 4.5),
+                        control2: Vec2::new(14.028598, 4.971402),
+                        to: Vec2::new(22.5, -3.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(16.584518, -1.5281731),
+                        control2: Vec2::new(20.300335, -3.1860008),
+                        to: Vec2::new(12.5, 3.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1366,8 +2218,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(23.5, -60.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(37.78017, -51.319893), control2: Vec2::new(31.952257, -51.5), to: Vec2::new(38.5, -51.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(31.546679, -58.453323), control2: Vec2::new(36.15533, -54.59709), to: Vec2::new(23.5, -61.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(37.78017, -51.319893),
+                        control2: Vec2::new(31.952257, -51.5),
+                        to: Vec2::new(38.5, -51.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(31.546679, -58.453323),
+                        control2: Vec2::new(36.15533, -54.59709),
+                        to: Vec2::new(23.5, -61.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1377,7 +2237,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(9.5, 31.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(21.735054, 43.735054), control2: Vec2::new(15.843199, 43.5), to: Vec2::new(22.5, 43.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(21.735054, 43.735054),
+                        control2: Vec2::new(15.843199, 43.5),
+                        to: Vec2::new(22.5, 43.5),
+                    },
                     PathCommand::LineTo(Vec2::new(10.5, 31.5)),
                     PathCommand::Close,
                 ],
@@ -1389,7 +2253,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-18.5, 46.5)),
                     PathCommand::LineTo(Vec2::new(-8.5, 46.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-9.58084, 42.17664), control2: Vec2::new(-8.125634, 42.5), to: Vec2::new(-10.5, 42.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-9.58084, 42.17664),
+                        control2: Vec2::new(-8.125634, 42.5),
+                        to: Vec2::new(-10.5, 42.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1399,7 +2267,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(8.5, 34.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(9.904879, 38.714638), control2: Vec2::new(12.247007, 40.5), to: Vec2::new(17.5, 40.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(9.904879, 38.714638),
+                        control2: Vec2::new(12.247007, 40.5),
+                        to: Vec2::new(17.5, 40.5),
+                    },
                     PathCommand::LineTo(Vec2::new(11.5, 34.5)),
                     PathCommand::Close,
                 ],
@@ -1410,7 +2282,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-6.5, 4.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-5.1666665, 5.8333335), control2: Vec2::new(-5.8333335, 5.8333335), to: Vec2::new(-4.5, 4.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-5.1666665, 5.8333335),
+                        control2: Vec2::new(-5.8333335, 5.8333335),
+                        to: Vec2::new(-4.5, 4.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-4.5, -5.5)),
                     PathCommand::LineTo(Vec2::new(-6.5, 1.5)),
                     PathCommand::Close,
@@ -1434,7 +2310,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(6.5, 33.5)),
                     PathCommand::LineTo(Vec2::new(14.5, 34.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(13.406554, 31.219664), control2: Vec2::new(10.01169, 26.98831), to: Vec2::new(6.5, 30.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(13.406554, 31.219664),
+                        control2: Vec2::new(10.01169, 26.98831),
+                        to: Vec2::new(6.5, 30.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1444,8 +2324,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-66.5, -32.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-62.833393, -34.944405), control2: Vec2::new(-60.90006, -37.299828), to: Vec2::new(-59.5, -41.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-62.779514, -41.5), control2: Vec2::new(-65.26277, -35.56205), to: Vec2::new(-66.5, -33.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-62.833393, -34.944405),
+                        control2: Vec2::new(-60.90006, -37.299828),
+                        to: Vec2::new(-59.5, -41.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-62.779514, -41.5),
+                        control2: Vec2::new(-65.26277, -35.56205),
+                        to: Vec2::new(-66.5, -33.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1468,8 +2356,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(19.5, 26.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(25.443285, 26.5), control2: Vec2::new(30.925646, 24.358118), to: Vec2::new(36.5, 22.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(29.699448, 22.5), control2: Vec2::new(34.464676, 22.236906), to: Vec2::new(22.5, 25.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(25.443285, 26.5),
+                        control2: Vec2::new(30.925646, 24.358118),
+                        to: Vec2::new(36.5, 22.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(29.699448, 22.5),
+                        control2: Vec2::new(34.464676, 22.236906),
+                        to: Vec2::new(22.5, 25.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1479,7 +2375,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-12.5, 2.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-5.659924, 7.0600505), control2: Vec2::new(-7.3768387, 3.8841934), to: Vec2::new(-5.5, -5.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-5.659924, 7.0600505),
+                        control2: Vec2::new(-7.3768387, 3.8841934),
+                        to: Vec2::new(-5.5, -5.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1489,9 +2389,17 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-100.5, 94.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-97.83332, 94.5), control2: Vec2::new(-99.76681, 94.7001), to: Vec2::new(-95.5, 91.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-97.83332, 94.5),
+                        control2: Vec2::new(-99.76681, 94.7001),
+                        to: Vec2::new(-95.5, 91.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-96.5, 89.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-99.701836, 89.5), control2: Vec2::new(-98.13021, 88.94531), to: Vec2::new(-100.5, 92.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-99.701836, 89.5),
+                        control2: Vec2::new(-98.13021, 88.94531),
+                        to: Vec2::new(-100.5, 92.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1501,7 +2409,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-20.5, -9.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-16.486135, -9.5), control2: Vec2::new(-19.5, -17.486135), to: Vec2::new(-19.5, -21.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-16.486135, -9.5),
+                        control2: Vec2::new(-19.5, -17.486135),
+                        to: Vec2::new(-19.5, -21.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-20.5, -16.5)),
                     PathCommand::Close,
                 ],
@@ -1512,8 +2424,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-5.5, -9.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-1.5665283, -9.5), control2: Vec2::new(-2.5, -17.287876), to: Vec2::new(-2.5, -19.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-5.442809, -15.085787), control2: Vec2::new(-4.264298, -17.678509), to: Vec2::new(-5.5, -11.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-1.5665283, -9.5),
+                        control2: Vec2::new(-2.5, -17.287876),
+                        to: Vec2::new(-2.5, -19.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-5.442809, -15.085787),
+                        control2: Vec2::new(-4.264298, -17.678509),
+                        to: Vec2::new(-5.5, -11.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1524,7 +2444,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-58.5, -27.5)),
                     PathCommand::LineTo(Vec2::new(-51.5, -40.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-55.926685, -36.073315), control2: Vec2::new(-53.04217, -39.324093), to: Vec2::new(-58.5, -29.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-55.926685, -36.073315),
+                        control2: Vec2::new(-53.04217, -39.324093),
+                        to: Vec2::new(-58.5, -29.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1534,7 +2458,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(41.5, 92.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(55.474472, 95.72488), control2: Vec2::new(50.052773, 95.5), to: Vec2::new(57.5, 95.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(55.474472, 95.72488),
+                        control2: Vec2::new(50.052773, 95.5),
+                        to: Vec2::new(57.5, 95.5),
+                    },
                     PathCommand::LineTo(Vec2::new(46.5, 92.5)),
                     PathCommand::Close,
                 ],
@@ -1545,8 +2473,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(0.5, 56.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(4.8247156, 56.5), control2: Vec2::new(6.34243, 49.34243), to: Vec2::new(3.5, 46.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(0.7840576, 49.215942), control2: Vec2::new(2.629522, 47.046673), to: Vec2::new(0.5, 54.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(4.8247156, 56.5),
+                        control2: Vec2::new(6.34243, 49.34243),
+                        to: Vec2::new(3.5, 46.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(0.7840576, 49.215942),
+                        control2: Vec2::new(2.629522, 47.046673),
+                        to: Vec2::new(0.5, 54.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1556,8 +2492,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-0.5, 47.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(2.7403233, 47.5), control2: Vec2::new(2.9183304, 43.82668), to: Vec2::new(3.5, 41.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(1.085787, 41.5), control2: Vec2::new(2.7356987, 41.2643), to: Vec2::new(-0.5, 44.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(2.7403233, 47.5),
+                        control2: Vec2::new(2.9183304, 43.82668),
+                        to: Vec2::new(3.5, 41.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(1.085787, 41.5),
+                        control2: Vec2::new(2.7356987, 41.2643),
+                        to: Vec2::new(-0.5, 44.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1568,7 +2512,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(40.5, -49.5)),
                     PathCommand::LineTo(Vec2::new(48.5, -40.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(44.754635, -47.990726), control2: Vec2::new(47.288864, -45.15835), to: Vec2::new(41.5, -49.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(44.754635, -47.990726),
+                        control2: Vec2::new(47.288864, -45.15835),
+                        to: Vec2::new(41.5, -49.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1579,7 +2527,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(88.5, 16.5)),
                     PathCommand::LineTo(Vec2::new(91.5, 29.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(91.5, 21.019947), control2: Vec2::new(91.978874, 26.09625), to: Vec2::new(88.5, 14.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(91.5, 21.019947),
+                        control2: Vec2::new(91.978874, 26.09625),
+                        to: Vec2::new(88.5, 14.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1589,8 +2541,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-32.5, 25.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-29.09628, 28.90372), control2: Vec2::new(-31.962517, 26.407497), to: Vec2::new(-21.5, 28.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-21.5, 25.651999), control2: Vec2::new(-26.737034, 26.190742), to: Vec2::new(-29.5, 25.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-29.09628, 28.90372),
+                        control2: Vec2::new(-31.962517, 26.407497),
+                        to: Vec2::new(-21.5, 28.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-21.5, 25.651999),
+                        control2: Vec2::new(-26.737034, 26.190742),
+                        to: Vec2::new(-29.5, 25.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1600,7 +2560,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-55.5, -3.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-48.309044, -13.772794), control2: Vec2::new(-48.5, -9.431177), to: Vec2::new(-48.5, -14.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-48.309044, -13.772794),
+                        control2: Vec2::new(-48.5, -9.431177),
+                        to: Vec2::new(-48.5, -14.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-55.5, -4.5)),
                     PathCommand::Close,
                 ],
@@ -1611,8 +2575,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-74.5, 74.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-69.61751, 74.5), control2: Vec2::new(-65.1006, 73.03353), to: Vec2::new(-60.5, 71.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-66.248726, 71.5), control2: Vec2::new(-62.52994, 71.257484), to: Vec2::new(-71.5, 73.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-69.61751, 74.5),
+                        control2: Vec2::new(-65.1006, 73.03353),
+                        to: Vec2::new(-60.5, 71.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-66.248726, 71.5),
+                        control2: Vec2::new(-62.52994, 71.257484),
+                        to: Vec2::new(-71.5, 73.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1623,7 +2595,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-22.5, 36.5)),
                     PathCommand::LineTo(Vec2::new(-17.5, 27.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-23.24874, 27.5), control2: Vec2::new(-20.25747, 26.529877), to: Vec2::new(-22.5, 35.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-23.24874, 27.5),
+                        control2: Vec2::new(-20.25747, 26.529877),
+                        to: Vec2::new(-22.5, 35.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1633,8 +2609,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-19.5, 9.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-16.328497, 14.785838), control2: Vec2::new(-18.443647, 14.5), to: Vec2::new(-15.5, 14.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-14.028594, 10.085783), control2: Vec2::new(-13.557188, 11.971406), to: Vec2::new(-18.5, 9.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-16.328497, 14.785838),
+                        control2: Vec2::new(-18.443647, 14.5),
+                        to: Vec2::new(-15.5, 14.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-14.028594, 10.085783),
+                        control2: Vec2::new(-13.557188, 11.971406),
+                        to: Vec2::new(-18.5, 9.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1644,8 +2628,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(9.5, 8.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(12.429851, 11.429851), control2: Vec2::new(12.7438135, 8.524748), to: Vec2::new(13.5, 5.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(10.656723, 4.0783615), control2: Vec2::new(12.027044, 3.9729555), to: Vec2::new(9.5, 6.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(12.429851, 11.429851),
+                        control2: Vec2::new(12.7438135, 8.524748),
+                        to: Vec2::new(13.5, 5.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(10.656723, 4.0783615),
+                        control2: Vec2::new(12.027044, 3.9729555),
+                        to: Vec2::new(9.5, 6.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1656,7 +2648,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(89.5, -2.5)),
                     PathCommand::LineTo(Vec2::new(94.5, 8.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(94.5, 2.7732449), control2: Vec2::new(94.79807, 7.096142), to: Vec2::new(89.5, -3.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(94.5, 2.7732449),
+                        control2: Vec2::new(94.79807, 7.096142),
+                        to: Vec2::new(89.5, -3.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1666,8 +2662,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-23.5, -1.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-16.2643, 5.7357006), control2: Vec2::new(-19.799839, 5.5), to: Vec2::new(-15.5, 5.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-15.5, 1.4268241), control2: Vec2::new(-15.246951, 4.7168994), to: Vec2::new(-22.5, -1.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-16.2643, 5.7357006),
+                        control2: Vec2::new(-19.799839, 5.5),
+                        to: Vec2::new(-15.5, 5.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-15.5, 1.4268241),
+                        control2: Vec2::new(-15.246951, 4.7168994),
+                        to: Vec2::new(-22.5, -1.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1677,8 +2681,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-21.5, -46.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-20.3151, -40.575493), control2: Vec2::new(-21.701845, -42.701847), to: Vec2::new(-18.5, -39.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-16.015043, -41.98496), control2: Vec2::new(-17.82219, -47.5), to: Vec2::new(-21.5, -47.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-20.3151, -40.575493),
+                        control2: Vec2::new(-21.701845, -42.701847),
+                        to: Vec2::new(-18.5, -39.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-16.015043, -41.98496),
+                        control2: Vec2::new(-17.82219, -47.5),
+                        to: Vec2::new(-21.5, -47.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1699,7 +2711,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-10.5, -115.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-2.2333298, -121.700005), control2: Vec2::new(-2.5, -118.16669), to: Vec2::new(-2.5, -122.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-2.2333298, -121.700005),
+                        control2: Vec2::new(-2.5, -118.16669),
+                        to: Vec2::new(-2.5, -122.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-10.5, -116.5)),
                     PathCommand::Close,
                 ],
@@ -1720,7 +2736,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(18.5, 46.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(27.065361, 51.85335), control2: Vec2::new(23.355333, 51.5), to: Vec2::new(28.5, 51.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(27.065361, 51.85335),
+                        control2: Vec2::new(23.355333, 51.5),
+                        to: Vec2::new(28.5, 51.5),
+                    },
                     PathCommand::LineTo(Vec2::new(19.5, 46.5)),
                     PathCommand::Close,
                 ],
@@ -1731,7 +2751,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-37.5, 20.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-29.557196, 20.5), control2: Vec2::new(-32.149914, 22.149916), to: Vec2::new(-28.5, 18.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-29.557196, 20.5),
+                        control2: Vec2::new(-32.149914, 22.149916),
+                        to: Vec2::new(-28.5, 18.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-30.5, 18.5)),
                     PathCommand::Close,
                 ],
@@ -1742,7 +2766,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-21.5, 20.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-12.028645, 20.5), control2: Vec2::new(-14.621317, 22.621317), to: Vec2::new(-11.5, 19.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-12.028645, 20.5),
+                        control2: Vec2::new(-14.621317, 22.621317),
+                        to: Vec2::new(-11.5, 19.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-17.5, 19.5)),
                     PathCommand::Close,
                 ],
@@ -1753,8 +2781,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-0.5, 19.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(1.4428142, 21.442814), control2: Vec2::new(0.028582096, 20.5), to: Vec2::new(4.5, 20.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(1.8333361, 16.500004), control2: Vec2::new(3.4999962, 18.166664), to: Vec2::new(-0.5, 15.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(1.4428142, 21.442814),
+                        control2: Vec2::new(0.028582096, 20.5),
+                        to: Vec2::new(4.5, 20.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(1.8333361, 16.500004),
+                        control2: Vec2::new(3.4999962, 18.166664),
+                        to: Vec2::new(-0.5, 15.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1765,7 +2801,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-4.5, 15.5)),
                     PathCommand::LineTo(Vec2::new(-3.5, 16.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-1.8675424, 11.602627), control2: Vec2::new(-2.5, 14.55411), to: Vec2::new(-2.5, 7.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-1.8675424, 11.602627),
+                        control2: Vec2::new(-2.5, 14.55411),
+                        to: Vec2::new(-2.5, 7.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-3.5, 9.5)),
                     PathCommand::Close,
                 ],
@@ -1776,8 +2816,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(89.5, 4.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(91.03749, 7.574975), control2: Vec2::new(89.87981, 6.0865383), to: Vec2::new(93.5, 8.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(91.22318, 2.8079643), control2: Vec2::new(93.10554, 4.302768), to: Vec2::new(89.5, 2.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(91.03749, 7.574975),
+                        control2: Vec2::new(89.87981, 6.0865383),
+                        to: Vec2::new(93.5, 8.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(91.22318, 2.8079643),
+                        control2: Vec2::new(93.10554, 4.302768),
+                        to: Vec2::new(89.5, 2.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1787,8 +2835,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-26.5, -2.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-22.3151, 3.777351), control2: Vec2::new(-24.903702, 3.5), to: Vec2::new(-21.5, 3.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-22.947214, -0.8416438), control2: Vec2::new(-21.754639, 1.2453604), to: Vec2::new(-25.5, -2.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-22.3151, 3.777351),
+                        control2: Vec2::new(-24.903702, 3.5),
+                        to: Vec2::new(-21.5, 3.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-22.947214, -0.8416438),
+                        control2: Vec2::new(-21.754639, 1.2453604),
+                        to: Vec2::new(-25.5, -2.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1798,7 +2854,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-56.5, -18.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-54.76004, -21.283937), control2: Vec2::new(-50.1786, -25.178602), to: Vec2::new(-52.5, -27.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-54.76004, -21.283937),
+                        control2: Vec2::new(-50.1786, -25.178602),
+                        to: Vec2::new(-52.5, -27.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-56.5, -19.5)),
                     PathCommand::Close,
                 ],
@@ -1809,7 +2869,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-14.5, -86.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-6.1402016, -88.88851), control2: Vec2::new(-9.215938, -86.784065), to: Vec2::new(-4.5, -91.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-6.1402016, -88.88851),
+                        control2: Vec2::new(-9.215938, -86.784065),
+                        to: Vec2::new(-4.5, -91.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-13.5, -87.5)),
                     PathCommand::Close,
                 ],
@@ -1831,7 +2895,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(50.5, 69.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(60.132362, 72.710785), control2: Vec2::new(56.33774, 72.5), to: Vec2::new(61.5, 72.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(60.132362, 72.710785),
+                        control2: Vec2::new(56.33774, 72.5),
+                        to: Vec2::new(61.5, 72.5),
+                    },
                     PathCommand::LineTo(Vec2::new(53.5, 69.5)),
                     PathCommand::Close,
                 ],
@@ -1842,7 +2910,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-91.5, 84.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-84.656746, 81.07837), control2: Vec2::new(-87.08113, 83.08113), to: Vec2::new(-83.5, 79.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-84.656746, 81.07837),
+                        control2: Vec2::new(-87.08113, 83.08113),
+                        to: Vec2::new(-83.5, 79.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-89.5, 82.5)),
                     PathCommand::Close,
                 ],
@@ -1853,7 +2925,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-27.5, 50.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-24.17492, 50.5), control2: Vec2::new(-21.421877, 48.960938), to: Vec2::new(-18.5, 47.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-24.17492, 50.5),
+                        control2: Vec2::new(-21.421877, 48.960938),
+                        to: Vec2::new(-18.5, 47.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-19.5, 46.5)),
                     PathCommand::Close,
                 ],
@@ -1865,7 +2941,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(52.5, -8.5)),
                     PathCommand::LineTo(Vec2::new(55.5, -2.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(54.377464, -9.235203), control2: Vec2::new(56.313522, -7.593239), to: Vec2::new(52.5, -9.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(54.377464, -9.235203),
+                        control2: Vec2::new(56.313522, -7.593239),
+                        to: Vec2::new(52.5, -9.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1875,8 +2955,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-110.5, 108.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-107.425026, 106.96251), control2: Vec2::new(-108.913445, 108.12016), to: Vec2::new(-106.5, 104.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-109.70185, 104.5), control2: Vec2::new(-108.13021, 103.94532), to: Vec2::new(-110.5, 107.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-107.425026, 106.96251),
+                        control2: Vec2::new(-108.913445, 108.12016),
+                        to: Vec2::new(-106.5, 104.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-109.70185, 104.5),
+                        control2: Vec2::new(-108.13021, 103.94532),
+                        to: Vec2::new(-110.5, 107.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1886,7 +2974,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-98.5, 79.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-97.43632, 76.30896), control2: Vec2::new(-96.97327, 74.553474), to: Vec2::new(-98.5, 71.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-97.43632, 76.30896),
+                        control2: Vec2::new(-96.97327, 74.553474),
+                        to: Vec2::new(-98.5, 71.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1897,7 +2989,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(92.5, 34.5)),
                     PathCommand::LineTo(Vec2::new(94.5, 40.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(94.5, 34.3918), control2: Vec2::new(94.92165, 37.764954), to: Vec2::new(92.5, 30.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(94.5, 34.3918),
+                        control2: Vec2::new(94.92165, 37.764954),
+                        to: Vec2::new(92.5, 30.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1918,7 +3014,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-31.5, -5.5)),
                     PathCommand::LineTo(Vec2::new(-27.5, 0.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-30.631308, -6.806383), control2: Vec2::new(-27.961407, -6.5), to: Vec2::new(-31.5, -6.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-30.631308, -6.806383),
+                        control2: Vec2::new(-27.961407, -6.5),
+                        to: Vec2::new(-31.5, -6.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1929,7 +3029,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(38.5, -21.5)),
                     PathCommand::LineTo(Vec2::new(44.5, -15.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(44.5, -18.857016), control2: Vec2::new(44.73567, -16.264332), to: Vec2::new(39.5, -21.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(44.5, -18.857016),
+                        control2: Vec2::new(44.73567, -16.264332),
+                        to: Vec2::new(39.5, -21.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1961,8 +3065,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(2.5, 60.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(6.1324544, 59.28918), control2: Vec2::new(5.5, 60.554096), to: Vec2::new(5.5, 57.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(2.7546496, 57.5), control2: Vec2::new(3.7981367, 56.903725), to: Vec2::new(2.5, 59.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(6.1324544, 59.28918),
+                        control2: Vec2::new(5.5, 60.554096),
+                        to: Vec2::new(5.5, 57.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(2.7546496, 57.5),
+                        control2: Vec2::new(3.7981367, 56.903725),
+                        to: Vec2::new(2.5, 59.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1994,8 +3106,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(96.5, 104.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(99.73579, 107.73579), control2: Vec2::new(98.085785, 107.5), to: Vec2::new(100.5, 107.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(100.5, 104.75466), control2: Vec2::new(101.0963, 105.79815), to: Vec2::new(98.5, 104.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(99.73579, 107.73579),
+                        control2: Vec2::new(98.085785, 107.5),
+                        to: Vec2::new(100.5, 107.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(100.5, 104.75466),
+                        control2: Vec2::new(101.0963, 105.79815),
+                        to: Vec2::new(98.5, 104.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2005,7 +3125,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-0.5, 51.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(1.7445331, 51.5), control2: Vec2::new(1.5, 49.195137), to: Vec2::new(1.5, 47.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(1.7445331, 51.5),
+                        control2: Vec2::new(1.5, 49.195137),
+                        to: Vec2::new(1.5, 47.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-0.5, 48.5)),
                     PathCommand::Close,
                 ],
@@ -2027,7 +3151,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-30.5, 38.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-27.317833, 41.682167), control2: Vec2::new(-29.9386, 34.6228), to: Vec2::new(-30.5, 33.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-27.317833, 41.682167),
+                        control2: Vec2::new(-29.9386, 34.6228),
+                        to: Vec2::new(-30.5, 33.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2047,7 +3175,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-51.5, -27.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-48.299984, -31.766685), control2: Vec2::new(-48.5, -29.833326), to: Vec2::new(-48.5, -32.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-48.299984, -31.766685),
+                        control2: Vec2::new(-48.5, -29.833326),
+                        to: Vec2::new(-48.5, -32.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-51.5, -29.5)),
                     PathCommand::Close,
                 ],
@@ -2111,7 +3243,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-98.5, 70.5)),
                     PathCommand::LineTo(Vec2::new(-96.5, 77.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-96.5, 71.75461), control2: Vec2::new(-95.75464, 73.99072), to: Vec2::new(-97.5, 70.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-96.5, 71.75461),
+                        control2: Vec2::new(-95.75464, 73.99072),
+                        to: Vec2::new(-97.5, 70.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2131,7 +3267,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-32.5, 49.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-30.874304, 51.125698), control2: Vec2::new(-29.125696, 51.125694), to: Vec2::new(-27.5, 49.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-30.874304, 51.125698),
+                        control2: Vec2::new(-29.125696, 51.125694),
+                        to: Vec2::new(-27.5, 49.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2141,7 +3281,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-45.5, 21.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-39.881004, 23.747599), control2: Vec2::new(-42.295055, 23.5), to: Vec2::new(-38.5, 23.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-39.881004, 23.747599),
+                        control2: Vec2::new(-42.295055, 23.5),
+                        to: Vec2::new(-38.5, 23.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-43.5, 21.5)),
                     PathCommand::Close,
                 ],
@@ -2173,7 +3317,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(12.5, 8.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(14.027045, 10.027045), control2: Vec2::new(13.0783615, 9.710819), to: Vec2::new(15.5, 8.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(14.027045, 10.027045),
+                        control2: Vec2::new(13.0783615, 9.710819),
+                        to: Vec2::new(15.5, 8.5),
+                    },
                     PathCommand::LineTo(Vec2::new(13.5, 6.5)),
                     PathCommand::LineTo(Vec2::new(12.5, 7.5)),
                     PathCommand::Close,
@@ -2197,7 +3345,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-20.5, -81.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-18.306822, -81.5), control2: Vec2::new(-12.8217945, -85.5), to: Vec2::new(-16.5, -85.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-18.306822, -81.5),
+                        control2: Vec2::new(-12.8217945, -85.5),
+                        to: Vec2::new(-16.5, -85.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2219,7 +3371,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-21.5, 73.5)),
                     PathCommand::LineTo(Vec2::new(-16.5, 76.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-16.5, 74.5572), control2: Vec2::new(-16.264305, 75.735695), to: Vec2::new(-18.5, 73.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-16.5, 74.5572),
+                        control2: Vec2::new(-16.264305, 75.735695),
+                        to: Vec2::new(-18.5, 73.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2263,8 +3419,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-69.5, -29.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-67.2643, -27.2643), control2: Vec2::new(-68.44281, -27.5), to: Vec2::new(-66.5, -27.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(-67.60541, -30.816233), control2: Vec2::new(-66.44591, -30.5), to: Vec2::new(-68.5, -30.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-67.2643, -27.2643),
+                        control2: Vec2::new(-68.44281, -27.5),
+                        to: Vec2::new(-66.5, -27.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-67.60541, -30.816233),
+                        control2: Vec2::new(-66.44591, -30.5),
+                        to: Vec2::new(-68.5, -30.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2275,7 +3439,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(58.5, -39.5)),
                     PathCommand::LineTo(Vec2::new(61.5, -35.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(60.20186, -39.39443), control2: Vec2::new(61.245358, -37.754642), to: Vec2::new(58.5, -40.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(60.20186, -39.39443),
+                        control2: Vec2::new(61.245358, -37.754642),
+                        to: Vec2::new(58.5, -40.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2286,7 +3454,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-38.5, -63.5)),
                     PathCommand::LineTo(Vec2::new(-33.5, -65.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-35.027042, -67.02705), control2: Vec2::new(-34.078365, -66.710815), to: Vec2::new(-36.5, -65.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-35.027042, -67.02705),
+                        control2: Vec2::new(-34.078365, -66.710815),
+                        to: Vec2::new(-36.5, -65.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2361,7 +3533,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(8.5, 33.5)),
                     PathCommand::LineTo(Vec2::new(10.5, 35.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(10.5, 32.557194), control2: Vec2::new(10.971403, 33.971405), to: Vec2::new(8.5, 31.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(10.5, 32.557194),
+                        control2: Vec2::new(10.971403, 33.971405),
+                        to: Vec2::new(8.5, 31.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2383,7 +3559,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(76.5, -13.5)),
                     PathCommand::LineTo(Vec2::new(77.5, -10.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(79.376564, -12.376565), control2: Vec2::new(78.44139, -12.558608), to: Vec2::new(76.5, -14.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(79.376564, -12.376565),
+                        control2: Vec2::new(78.44139, -12.558608),
+                        to: Vec2::new(76.5, -14.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2405,7 +3585,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(62.5, -33.5)),
                     PathCommand::LineTo(Vec2::new(65.5, -30.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(65.5, -32.914215), control2: Vec2::new(65.73571, -31.264294), to: Vec2::new(62.5, -34.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(65.5, -32.914215),
+                        control2: Vec2::new(65.73571, -31.264294),
+                        to: Vec2::new(62.5, -34.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2415,7 +3599,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(42.5, -59.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(45.7357, -56.2643), control2: Vec2::new(44.08579, -56.5), to: Vec2::new(46.5, -56.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(45.7357, -56.2643),
+                        control2: Vec2::new(44.08579, -56.5),
+                        to: Vec2::new(46.5, -56.5),
+                    },
                     PathCommand::LineTo(Vec2::new(43.5, -59.5)),
                     PathCommand::Close,
                 ],
@@ -2427,7 +3615,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(34.5, -67.5)),
                     PathCommand::LineTo(Vec2::new(37.5, -64.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(37.5, -66.91422), control2: Vec2::new(37.735714, -65.26428), to: Vec2::new(34.5, -68.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(37.5, -66.91422),
+                        control2: Vec2::new(37.735714, -65.26428),
+                        to: Vec2::new(34.5, -68.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2458,7 +3650,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-0.5, 56.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-0.015897006, 55.04769), control2: Vec2::new(1.7198453, 52.5), to: Vec2::new(-0.5, 52.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-0.015897006, 55.04769),
+                        control2: Vec2::new(1.7198453, 52.5),
+                        to: Vec2::new(-0.5, 52.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2491,7 +3687,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-17.5, 47.5)),
                     PathCommand::LineTo(Vec2::new(-13.5, 47.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-13.5, 46.166668), control2: Vec2::new(-13.166667, 46.5), to: Vec2::new(-14.5, 46.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-13.5, 46.166668),
+                        control2: Vec2::new(-13.166667, 46.5),
+                        to: Vec2::new(-14.5, 46.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2501,7 +3701,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(5.5, 36.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(7.245357, 34.754642), control2: Vec2::new(6.649065, 35.947193), to: Vec2::new(5.5, 32.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(7.245357, 34.754642),
+                        control2: Vec2::new(6.649065, 35.947193),
+                        to: Vec2::new(5.5, 32.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2521,7 +3725,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-63.5, 12.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-61.649548, 14.3504505), control2: Vec2::new(-61.5, 12.259331), to: Vec2::new(-61.5, 10.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-61.649548, 14.3504505),
+                        control2: Vec2::new(-61.5, 12.259331),
+                        to: Vec2::new(-61.5, 10.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-63.5, 11.5)),
                     PathCommand::Close,
                 ],
@@ -2533,7 +3741,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-15.5, 6.5)),
                     PathCommand::LineTo(Vec2::new(-13.5, 8.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-13.5, 6.0285997), control2: Vec2::new(-13.028597, 6.9714026), to: Vec2::new(-14.5, 5.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-13.5, 6.0285997),
+                        control2: Vec2::new(-13.028597, 6.9714026),
+                        to: Vec2::new(-14.5, 5.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2565,8 +3777,16 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(7.5, 1.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(9.027045, 3.0270455), control2: Vec2::new(8.078363, 2.7108185), to: Vec2::new(10.5, 1.5) },
-                    PathCommand::CubicTo { control1: Vec2::new(10.5, 0.16666663), control2: Vec2::new(10.833333, 0.5), to: Vec2::new(9.5, 0.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(9.027045, 3.0270455),
+                        control2: Vec2::new(8.078363, 2.7108185),
+                        to: Vec2::new(10.5, 1.5),
+                    },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(10.5, 0.16666663),
+                        control2: Vec2::new(10.833333, 0.5),
+                        to: Vec2::new(9.5, 0.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2577,7 +3797,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(80.5, -4.5)),
                     PathCommand::LineTo(Vec2::new(81.5, -2.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(82.711655, -4.923313), control2: Vec2::new(83.48629, -5.5), to: Vec2::new(80.5, -5.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(82.711655, -4.923313),
+                        control2: Vec2::new(83.48629, -5.5),
+                        to: Vec2::new(80.5, -5.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2598,7 +3822,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(45.5, -13.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(47.735703, -11.264297), control2: Vec2::new(46.55719, -11.5), to: Vec2::new(48.5, -11.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(47.735703, -11.264297),
+                        control2: Vec2::new(46.55719, -11.5),
+                        to: Vec2::new(48.5, -11.5),
+                    },
                     PathCommand::LineTo(Vec2::new(45.5, -14.5)),
                     PathCommand::Close,
                 ],
@@ -2641,7 +3869,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-108.5, 118.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-107.23879, 118.5), control2: Vec2::new(-103.701454, 116.5), to: Vec2::new(-106.5, 116.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-107.23879, 118.5),
+                        control2: Vec2::new(-103.701454, 116.5),
+                        to: Vec2::new(-106.5, 116.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2651,7 +3883,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-104.5, 115.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-103.238785, 115.5), control2: Vec2::new(-99.70148, 113.5), to: Vec2::new(-102.5, 113.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-103.238785, 115.5),
+                        control2: Vec2::new(-99.70148, 113.5),
+                        to: Vec2::new(-102.5, 113.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2673,7 +3909,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-3.5, 51.5)),
                     PathCommand::LineTo(Vec2::new(-2.5, 52.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-2.5, 50.02861), control2: Vec2::new(-2.028596, 50.971405), to: Vec2::new(-3.5, 49.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-2.5, 50.02861),
+                        control2: Vec2::new(-2.028596, 50.971405),
+                        to: Vec2::new(-3.5, 49.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2737,7 +3977,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-9.5, -50.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-8.350926, -48.20185), control2: Vec2::new(-9.2453575, -48.5), to: Vec2::new(-7.5, -48.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-8.350926, -48.20185),
+                        control2: Vec2::new(-9.2453575, -48.5),
+                        to: Vec2::new(-7.5, -48.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-8.5, -50.5)),
                     PathCommand::Close,
                 ],
@@ -2759,7 +4003,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(23.5, -78.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(25.735725, -76.264275), control2: Vec2::new(24.55718, -76.5), to: Vec2::new(26.5, -76.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(25.735725, -76.264275),
+                        control2: Vec2::new(24.55718, -76.5),
+                        to: Vec2::new(26.5, -76.5),
+                    },
                     PathCommand::LineTo(Vec2::new(24.5, -78.5)),
                     PathCommand::Close,
                 ],
@@ -2770,7 +4018,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(19.5, -81.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(21.735662, -79.264336), control2: Vec2::new(20.557207, -79.5), to: Vec2::new(22.5, -79.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(21.735662, -79.264336),
+                        control2: Vec2::new(20.557207, -79.5),
+                        to: Vec2::new(22.5, -79.5),
+                    },
                     PathCommand::LineTo(Vec2::new(20.5, -81.5)),
                     PathCommand::Close,
                 ],
@@ -2814,7 +4066,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(72.5, 86.5)),
                     PathCommand::LineTo(Vec2::new(73.5, 88.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(73.5, 86.0286), control2: Vec2::new(73.971405, 86.971405), to: Vec2::new(72.5, 85.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(73.5, 86.0286),
+                        control2: Vec2::new(73.971405, 86.971405),
+                        to: Vec2::new(72.5, 85.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2834,7 +4090,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-14.5, 74.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-12.754639, 74.5), control2: Vec2::new(-13.649086, 74.79817), to: Vec2::new(-12.5, 72.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-12.754639, 74.5),
+                        control2: Vec2::new(-13.649086, 74.79817),
+                        to: Vec2::new(-12.5, 72.5),
+                    },
                     PathCommand::LineTo(Vec2::new(-13.5, 72.5)),
                     PathCommand::Close,
                 ],
@@ -2896,7 +4156,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(36.5, 20.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(37.971405, 21.971405), control2: Vec2::new(37.0286, 21.5), to: Vec2::new(39.5, 21.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(37.971405, 21.971405),
+                        control2: Vec2::new(37.0286, 21.5),
+                        to: Vec2::new(39.5, 21.5),
+                    },
                     PathCommand::LineTo(Vec2::new(37.5, 20.5)),
                     PathCommand::Close,
                 ],
@@ -2953,7 +4217,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(84.5, 3.5)),
                     PathCommand::LineTo(Vec2::new(85.5, 5.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(85.5, 3.028578), control2: Vec2::new(85.97142, 3.971417), to: Vec2::new(84.5, 2.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(85.5, 3.028578),
+                        control2: Vec2::new(85.97142, 3.971417),
+                        to: Vec2::new(84.5, 2.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -2964,7 +4232,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(82.5, -0.5)),
                     PathCommand::LineTo(Vec2::new(83.5, 1.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(83.5, -0.9714105), control2: Vec2::new(83.971405, -0.028591871), to: Vec2::new(82.5, -1.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(83.5, -0.9714105),
+                        control2: Vec2::new(83.971405, -0.028591871),
+                        to: Vec2::new(82.5, -1.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -3005,7 +4277,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-60.5, -42.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-58.75465, -42.5), control2: Vec2::new(-59.64907, -42.20186), to: Vec2::new(-58.5, -44.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-58.75465, -42.5),
+                        control2: Vec2::new(-59.64907, -42.20186),
+                        to: Vec2::new(-58.5, -44.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -3026,7 +4302,11 @@ pub fn armor1() -> Vec<Shape> {
             variant: ShapeVariant::Path {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-50.5, -52.5)),
-                    PathCommand::CubicTo { control1: Vec2::new(-48.754654, -52.5), control2: Vec2::new(-49.649063, -52.201874), to: Vec2::new(-48.5, -54.5) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-48.754654, -52.5),
+                        control2: Vec2::new(-49.649063, -52.201874),
+                        to: Vec2::new(-48.5, -54.5),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -3508,6 +4788,6 @@ pub fn armor1() -> Vec<Shape> {
                 ],
             },
             color: Color::new(0.40980393, 0.32352942, 0.5362745, 1.0),
-        }
+        },
     ]
 }

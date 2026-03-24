@@ -115,9 +115,7 @@ fn fit_single_cubic(
     let c_diag = c[0][0] * c[1][1];
     let well_conditioned = det.abs() > 1e-3 * c_diag.abs().max(f32::EPSILON);
 
-    let (alpha_l, alpha_r) = if !well_conditioned {
-        (heuristic_dist, heuristic_dist)
-    } else {
+    let (alpha_l, alpha_r) = if well_conditioned {
         let al = (x[0] * c[1][1] - x[1] * c[0][1]) / det;
         let ar = (c[0][0] * x[1] - c[1][0] * x[0]) / det;
         if al < 0.0 || ar < 0.0 || al > chord || ar > chord {
@@ -125,6 +123,8 @@ fn fit_single_cubic(
         } else {
             (al, ar)
         }
+    } else {
+        (heuristic_dist, heuristic_dist)
     };
 
     (start + tan_left * alpha_l, end + tan_right * alpha_r)
@@ -452,19 +452,13 @@ mod tests {
             {
                 assert!(
                     control1.y.abs() < chord,
-                    "control1 {:?} has y far from segment (singularity)",
-                    control1
+                    "control1 {control1:?} has y far from segment (singularity)"
                 );
                 assert!(
                     control2.y.abs() < chord,
-                    "control2 {:?} has y far from segment (singularity)",
-                    control2
+                    "control2 {control2:?} has y far from segment (singularity)"
                 );
-                assert!(
-                    to.y.abs() < chord,
-                    "endpoint {:?} has y far from segment",
-                    to
-                );
+                assert!(to.y.abs() < chord, "endpoint {to:?} has y far from segment");
             }
         }
     }

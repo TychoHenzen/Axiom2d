@@ -129,7 +129,7 @@ mod tests {
         // Assert
         assert!(code.contains("Circle"), "missing Circle: {code}");
         assert!(code.contains("25"), "missing radius 25: {code}");
-        assert!(code.contains("1"), "missing red component: {code}");
+        assert!(code.contains('1'), "missing red component: {code}");
     }
 
     // TC003
