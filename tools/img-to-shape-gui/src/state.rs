@@ -82,7 +82,13 @@ impl AppState {
     }
 
     /// Load new image data, clearing any previously computed shapes.
-    pub fn load_image(&mut self, rgba: Vec<u8>, width: u32, height: u32, source_path: Option<std::path::PathBuf>) {
+    pub fn load_image(
+        &mut self,
+        rgba: Vec<u8>,
+        width: u32,
+        height: u32,
+        source_path: Option<std::path::PathBuf>,
+    ) {
         self.image = Some(LoadedImage {
             rgba,
             width,

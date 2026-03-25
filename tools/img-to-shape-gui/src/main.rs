@@ -89,21 +89,20 @@ fn default_manifest_path() -> PathBuf {
 impl App {
     fn new() -> Self {
         let manifest_file = default_manifest_path();
-        let (manifest, manifest_path, status) =
-            if let Ok(m) = load_manifest(&manifest_file) {
-                let count = m.entries.len();
-                (
-                    m,
-                    manifest_file.to_string_lossy().to_string(),
-                    format!("Loaded manifest: {count} entries"),
-                )
-            } else {
-                (
-                    ShapeManifest::default(),
-                    String::new(),
-                    "No image loaded".to_string(),
-                )
-            };
+        let (manifest, manifest_path, status) = if let Ok(m) = load_manifest(&manifest_file) {
+            let count = m.entries.len();
+            (
+                m,
+                manifest_file.to_string_lossy().to_string(),
+                format!("Loaded manifest: {count} entries"),
+            )
+        } else {
+            (
+                ShapeManifest::default(),
+                String::new(),
+                "No image loaded".to_string(),
+            )
+        };
 
         Self {
             state: AppState::new(),
@@ -228,29 +227,28 @@ impl App {
         if ui
             .add_enabled(has_image && !is_converting, egui::Button::new("Convert"))
             .clicked()
+            && let Some(img) = &self.state.image
         {
-            if let Some(img) = &self.state.image {
-                let rgba = img.rgba.clone();
-                let width = img.width;
-                let height = img.height;
-                let config = self.state.config.clone();
-                let progress = ConvertProgress::new();
-                self.convert_progress = Some(progress.clone());
-                let (tx, rx) = mpsc::channel();
-                self.convert_rx = Some(rx);
-                self.status = "Converting...".to_string();
-                self.export_code = None;
-                std::thread::spawn(move || {
-                    let result = img_to_shape::image_to_shapes_with_progress(
-                        &rgba,
-                        width,
-                        height,
-                        &config,
-                        Some(&progress),
-                    );
-                    let _ = tx.send(result);
-                });
-            }
+            let rgba = img.rgba.clone();
+            let width = img.width;
+            let height = img.height;
+            let config = self.state.config.clone();
+            let progress = ConvertProgress::new();
+            self.convert_progress = Some(progress.clone());
+            let (tx, rx) = mpsc::channel();
+            self.convert_rx = Some(rx);
+            self.status = "Converting...".to_string();
+            self.export_code = None;
+            std::thread::spawn(move || {
+                let result = img_to_shape::image_to_shapes_with_progress(
+                    &rgba,
+                    width,
+                    height,
+                    &config,
+                    Some(&progress),
+                );
+                let _ = tx.send(result);
+            });
         }
         // Poll for completed conversion.
         if let Some(rx) = &self.convert_rx
@@ -769,19 +767,28 @@ impl App {
         {
             ui.horizontal(|ui| {
                 ui.label("Image:");
-                if ui.text_edit_singleline(&mut self.manifest.entries[idx].image_path).changed() {
+                if ui
+                    .text_edit_singleline(&mut self.manifest.entries[idx].image_path)
+                    .changed()
+                {
                     self.dirty = true;
                 }
             });
             ui.horizontal(|ui| {
                 ui.label("Output:");
-                if ui.text_edit_singleline(&mut self.manifest.entries[idx].output_path).changed() {
+                if ui
+                    .text_edit_singleline(&mut self.manifest.entries[idx].output_path)
+                    .changed()
+                {
                     self.dirty = true;
                 }
             });
             ui.horizontal(|ui| {
                 ui.label("Desc:");
-                if ui.text_edit_singleline(&mut self.manifest.entries[idx].description).changed() {
+                if ui
+                    .text_edit_singleline(&mut self.manifest.entries[idx].description)
+                    .changed()
+                {
                     self.dirty = true;
                 }
             });
@@ -907,10 +914,8 @@ impl eframe::App for App {
                     ui.horizontal(|ui| {
                         if ui.button("Save & Close").clicked() {
                             if !self.manifest_path.is_empty() {
-                                let _ = save_manifest(
-                                    &self.manifest,
-                                    Path::new(&self.manifest_path),
-                                );
+                                let _ =
+                                    save_manifest(&self.manifest, Path::new(&self.manifest_path));
                             }
                             self.dirty = false;
                             self.close_requested = false;
@@ -991,8 +996,11 @@ fn sanitize_fn_name(path: &Path) -> String {
 /// If `base_name` already exists in `manifest`, append/increment a trailing
 /// number until unique. E.g. `"armor"` → `"armor2"` → `"armor3"`.
 fn dedup_fn_name(base_name: &str, manifest: &ShapeManifest) -> String {
-    let existing: std::collections::HashSet<&str> =
-        manifest.entries.iter().map(|e| e.fn_name.as_str()).collect();
+    let existing: std::collections::HashSet<&str> = manifest
+        .entries
+        .iter()
+        .map(|e| e.fn_name.as_str())
+        .collect();
     if !existing.contains(base_name) {
         return base_name.to_string();
     }
