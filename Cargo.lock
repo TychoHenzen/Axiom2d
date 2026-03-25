@@ -2441,6 +2441,7 @@ dependencies = [
  "glam 0.29.3",
  "image",
  "img-to-shape",
+ "lyon",
  "rfd",
  "thiserror 2.0.18",
 ]

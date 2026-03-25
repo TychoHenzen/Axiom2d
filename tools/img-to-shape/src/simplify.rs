@@ -12,9 +12,9 @@ fn perpendicular_distance(p: (f32, f32), start: (f32, f32), end: (f32, f32)) -> 
     ((dy * p.0 - dx * p.1 + end.0 * start.1 - end.1 * start.0).abs()) / len_sq.sqrt()
 }
 
-/// Simplify a point sequence using the Ramer-Douglas-Peucker algorithm.
+/// Simplify an **open** point sequence using the Ramer-Douglas-Peucker algorithm.
 /// Endpoints are always preserved.
-pub fn rdp_simplify(points: &[(f32, f32)], epsilon: f32) -> Vec<(f32, f32)> {
+pub fn rdp_open(points: &[(f32, f32)], epsilon: f32) -> Vec<(f32, f32)> {
     if points.len() <= 2 {
         return points.to_vec();
     }
@@ -33,8 +33,8 @@ pub fn rdp_simplify(points: &[(f32, f32)], epsilon: f32) -> Vec<(f32, f32)> {
     }
 
     if max_dist > epsilon {
-        let mut left = rdp_simplify(&points[..=max_idx], epsilon);
-        let right = rdp_simplify(&points[max_idx..], epsilon);
+        let mut left = rdp_open(&points[..=max_idx], epsilon);
+        let right = rdp_open(&points[max_idx..], epsilon);
         left.pop(); // Remove duplicate split point.
         left.extend(right);
         left
@@ -43,10 +43,62 @@ pub fn rdp_simplify(points: &[(f32, f32)], epsilon: f32) -> Vec<(f32, f32)> {
     }
 }
 
+/// Simplify a **closed polygon** using Ramer-Douglas-Peucker.
+///
+/// Unlike `rdp_simplify` (which treats the input as an open polyline with
+/// fixed endpoints), this splits the polygon at the two farthest-apart
+/// vertices and simplifies each half independently. This ensures no vertex
+/// is artificially preserved just because it happens to be the first or
+/// last in the input sequence.
+pub fn rdp_simplify_closed(points: &[(f32, f32)], epsilon: f32) -> Vec<(f32, f32)> {
+    let n = points.len();
+    if n < 4 {
+        return points.to_vec();
+    }
+
+    // Find the two points farthest apart (by Euclidean distance).
+    let (mut split_a, mut split_b) = (0, n / 2);
+    let mut best_dist = 0.0_f32;
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let dx = points[j].0 - points[i].0;
+            let dy = points[j].1 - points[i].1;
+            let d = dx * dx + dy * dy;
+            if d > best_dist {
+                best_dist = d;
+                split_a = i;
+                split_b = j;
+            }
+        }
+    }
+
+    // Rotate so split_a is at index 0.
+    let mut rotated: Vec<(f32, f32)> = Vec::with_capacity(n);
+    for i in 0..n {
+        rotated.push(points[(split_a + i) % n]);
+    }
+    let split_b_rotated = (split_b + n - split_a) % n;
+
+    // First half: from split_a to split_b (indices 0..=split_b_rotated).
+    let first_half = &rotated[..=split_b_rotated];
+    // Second half: from split_b back to split_a (indices split_b_rotated..n, wrapping).
+    let mut second_half: Vec<(f32, f32)> = rotated[split_b_rotated..].to_vec();
+    second_half.push(rotated[0]); // Close back to split_a.
+
+    let mut simplified_first = rdp_open(first_half, epsilon);
+    let simplified_second = rdp_open(&second_half, epsilon);
+
+    // Merge: remove duplicate at split_b junction and at the closing point.
+    simplified_first.pop(); // Remove duplicate split_b.
+    simplified_first.extend(&simplified_second[..simplified_second.len() - 1]); // Remove duplicate split_a.
+
+    simplified_first
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use super::rdp_simplify;
+    use super::{rdp_open as rdp_simplify, rdp_simplify_closed};
 
     #[test]
     fn when_collinear_points_simplified_with_nonzero_epsilon_then_only_endpoints_remain() {
@@ -121,6 +173,86 @@ mod tests {
         assert!(
             simplified.len() > 2,
             "circle should not collapse to 2 points"
+        );
+    }
+
+    #[test]
+    fn when_closed_square_simplified_then_four_corners_preserved() {
+        // Arrange — square with collinear intermediate points
+        let points = vec![
+            (0.0, 0.0),
+            (5.0, 0.0),
+            (10.0, 0.0),
+            (10.0, 5.0),
+            (10.0, 10.0),
+            (5.0, 10.0),
+            (0.0, 10.0),
+            (0.0, 5.0),
+        ];
+
+        // Act
+        let simplified = rdp_simplify_closed(&points, 0.5);
+
+        // Assert — only 4 corners should remain
+        assert_eq!(
+            simplified.len(),
+            4,
+            "square should simplify to 4 corners, got {:?}",
+            simplified
+        );
+    }
+
+    #[test]
+    fn when_closed_l_shape_simplified_then_concave_corner_preserved() {
+        // Arrange — L-shape with many collinear points
+        #[rustfmt::skip]
+        let points = vec![
+            (0.0, 0.0), (1.0, 0.0), (2.0, 0.0),   // top edge
+            (2.0, 1.0), (2.0, 2.0), (2.0, 3.0),     // right edge of narrow part
+            (3.0, 3.0), (4.0, 3.0), (5.0, 3.0),     // top of bottom part
+            (5.0, 4.0), (5.0, 5.0),                   // right edge
+            (4.0, 5.0), (3.0, 5.0), (2.0, 5.0), (1.0, 5.0), (0.0, 5.0), // bottom
+            (0.0, 4.0), (0.0, 3.0), (0.0, 2.0), (0.0, 1.0), // left edge
+        ];
+
+        // Act
+        let simplified = rdp_simplify_closed(&points, 0.5);
+
+        // Assert — the concave corner at (2,3) must survive
+        assert!(
+            simplified.contains(&(2.0, 3.0)),
+            "concave corner (2,3) should be preserved, got {:?}",
+            simplified
+        );
+        // Should have 6 corners: (0,0), (2,0), (2,3), (5,3), (5,5), (0,5)
+        assert_eq!(
+            simplified.len(),
+            6,
+            "L-shape should simplify to 6 corners, got {:?}",
+            simplified
+        );
+    }
+
+    #[test]
+    fn when_closed_polygon_simplified_then_result_has_no_duplicate_endpoints() {
+        // Arrange — triangle
+        let points = vec![
+            (0.0, 0.0),
+            (5.0, 0.0),
+            (10.0, 0.0),
+            (10.0, 5.0),
+            (5.0, 10.0),
+            (0.0, 5.0),
+        ];
+
+        // Act
+        let simplified = rdp_simplify_closed(&points, 0.5);
+
+        // Assert — first and last should NOT be the same point
+        assert_ne!(
+            simplified.first(),
+            simplified.last(),
+            "closed polygon should not have duplicate start/end"
         );
     }
 }

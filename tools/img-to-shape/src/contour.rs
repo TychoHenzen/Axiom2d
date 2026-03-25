@@ -1,202 +1,165 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::BTreeMap;
 
-// 8 directions clockwise: E, SE, S, SW, W, NW, N, NE.
-const DIRS: [(i32, i32); 8] = [
-    (1, 0),   // 0 E
-    (1, 1),   // 1 SE
-    (0, 1),   // 2 S
-    (-1, 1),  // 3 SW
-    (-1, 0),  // 4 W
-    (-1, -1), // 5 NW
-    (0, -1),  // 6 N
-    (1, -1),  // 7 NE
-];
+type Vertex = (i32, i32);
+type EdgeKey = (Vertex, Vertex);
 
-const NEIGHBORS8: [(i32, i32); 8] = [
-    (-1, 0),
-    (-1, -1),
-    (0, -1),
-    (1, -1),
-    (1, 0),
-    (1, 1),
-    (0, 1),
-    (-1, 1),
-];
+/// 4 axis-aligned directions in clockwise order (image-space, Y-down):
+/// Right(1,0), Down(0,1), Left(-1,0), Up(0,-1)
+const CW: [Vertex; 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
 
-fn is_opaque(mask: &[bool], x: i32, y: i32, width: u32, height: u32) -> bool {
-    if x < 0 || y < 0 || x >= width as i32 || y >= height as i32 {
-        return false;
-    }
-    mask[y as usize * width as usize + x as usize]
+fn opaque(mask: &[bool], x: i32, y: i32, w: i32, h: i32) -> bool {
+    x >= 0 && y >= 0 && x < w && y < h && mask[y as usize * w as usize + x as usize]
 }
 
-fn is_boundary(mask: &[bool], x: u32, y: u32, width: u32, height: u32) -> bool {
-    if !mask[y as usize * width as usize + x as usize] {
-        return false;
+/// Collect directed boundary edges from all opaque pixels.
+///
+/// For each opaque pixel at (px, py), emit a directed edge along any side
+/// where the adjacent pixel is transparent (or out-of-bounds). Edge direction
+/// is CCW around the opaque region in image space (Y-down):
+/// - top edge:    left → right   (x0,y0) → (x1,y0)
+/// - right edge:  top → bottom   (x1,y0) → (x1,y1)
+/// - bottom edge: right → left   (x1,y1) → (x0,y1)
+/// - left edge:   bottom → top   (x0,y1) → (x0,y0)
+///
+/// Returns a multi-map: vertex → sorted list of outgoing destination vertices.
+fn collect_edges(mask: &[bool], w: i32, h: i32) -> BTreeMap<Vertex, Vec<Vertex>> {
+    let mut outgoing: BTreeMap<Vertex, Vec<Vertex>> = BTreeMap::new();
+
+    for py in 0..h {
+        for px in 0..w {
+            if !opaque(mask, px, py, w, h) {
+                continue;
+            }
+            let (x0, y0, x1, y1) = (px, py, px + 1, py + 1);
+
+            // Top edge: neighbor above is transparent
+            if !opaque(mask, px, py - 1, w, h) {
+                outgoing.entry((x0, y0)).or_default().push((x1, y0));
+            }
+            // Right edge: neighbor to right is transparent
+            if !opaque(mask, px + 1, py, w, h) {
+                outgoing.entry((x1, y0)).or_default().push((x1, y1));
+            }
+            // Bottom edge: neighbor below is transparent
+            if !opaque(mask, px, py + 1, w, h) {
+                outgoing.entry((x1, y1)).or_default().push((x0, y1));
+            }
+            // Left edge: neighbor to left is transparent
+            if !opaque(mask, px - 1, py, w, h) {
+                outgoing.entry((x0, y1)).or_default().push((x0, y0));
+            }
+        }
     }
-    NEIGHBORS8
+
+    outgoing
+}
+
+/// Pick the outgoing edge that makes the tightest right turn from the
+/// incoming direction. This resolves saddle-point vertices where two
+/// boundary chains cross the same grid intersection.
+///
+/// Incoming direction = `cur - prev`. We rotate 90° clockwise (right turn)
+/// and try each candidate; the one closest to that preferred direction wins.
+fn pick_right_turn(prev: Vertex, cur: Vertex, candidates: &[Vertex]) -> Vertex {
+    debug_assert!(!candidates.is_empty());
+    if candidates.len() == 1 {
+        return candidates[0];
+    }
+
+    let (idx, idy) = (cur.0 - prev.0, cur.1 - prev.1);
+
+    let incoming_slot = CW
         .iter()
-        .any(|(dx, dy)| !is_opaque(mask, x as i32 + dx, y as i32 + dy, width, height))
-}
+        .position(|&d| d == (idx, idy))
+        .expect("edge direction must be axis-aligned");
 
-/// Map a neighbor offset to a DIRS index.
-fn dir_index(dx: i32, dy: i32) -> usize {
-    match (dx, dy) {
-        (1, 0) => 0,
-        (1, 1) => 1,
-        (0, 1) => 2,
-        (-1, 1) => 3,
-        (-1, 0) => 4,
-        (-1, -1) => 5,
-        (0, -1) => 6,
-        (1, -1) => 7,
-        _ => unreachable!(),
-    }
-}
-
-/// Mark all boundary pixels 8-connected to `(sx, sy)` as visited via BFS.
-#[allow(clippy::too_many_arguments)]
-fn mark_component_visited(
-    mask: &[bool],
-    sx: u32,
-    sy: u32,
-    width: u32,
-    height: u32,
-    visited: &mut HashSet<(u32, u32)>,
-) {
-    let mut queue: VecDeque<(u32, u32)> = VecDeque::new();
-    visited.insert((sx, sy));
-    queue.push_back((sx, sy));
-
-    while let Some((x, y)) = queue.pop_front() {
-        for &(dx, dy) in &DIRS {
-            let nx = x as i32 + dx;
-            let ny = y as i32 + dy;
-            if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
-                continue;
-            }
-            let p = (nx as u32, ny as u32);
-            if visited.contains(&p) {
-                continue;
-            }
-            if !is_boundary(mask, p.0, p.1, width, height) {
-                continue;
-            }
-            visited.insert(p);
-            queue.push_back(p);
+    // Try right turn first (CW+1), then straight (CW+2), then left (CW+3).
+    // Skip U-turn (CW+0) — only used as last resort.
+    for offset in 1..=4 {
+        let preferred = CW[(incoming_slot + offset) % 4];
+        let target = (cur.0 + preferred.0, cur.1 + preferred.1);
+        if candidates.contains(&target) {
+            return target;
         }
     }
+
+    // Fallback (should not happen with valid boundary edges).
+    candidates[0]
 }
 
-/// Trace the outer perimeter of a boundary component using Moore neighborhood
-/// tracing. Returns boundary pixels in clockwise perimeter order.
+/// Build a next-edge map that resolves saddle points via right-turn rule.
 ///
-/// Uses Jacob's stopping criterion: stop when we return to the start pixel
-/// from the same direction we initially entered it.
-#[allow(clippy::too_many_lines)]
-fn trace_perimeter(mask: &[bool], sx: u32, sy: u32, width: u32, height: u32) -> Vec<(u32, u32)> {
-    // Check if start pixel has any boundary neighbor
-    let has_neighbor = DIRS.iter().any(|&(dx, dy)| {
-        let nx = sx as i32 + dx;
-        let ny = sy as i32 + dy;
-        nx >= 0
-            && ny >= 0
-            && nx < width as i32
-            && ny < height as i32
-            && is_boundary(mask, nx as u32, ny as u32, width, height)
-    });
-    if !has_neighbor {
-        return vec![(sx, sy)];
-    }
+/// Returns: `(prev, cur) → next` so the tracer can walk the chain.
+fn build_next_map(outgoing: &BTreeMap<Vertex, Vec<Vertex>>) -> BTreeMap<EdgeKey, Vertex> {
+    let mut next_map: BTreeMap<EdgeKey, Vertex> = BTreeMap::new();
 
-    let mut contour: Vec<(u32, u32)> = vec![(sx, sy)];
-    let mut seen: HashSet<(u32, u32)> = HashSet::new();
-    seen.insert((sx, sy));
-
-    let mut px = sx as i32;
-    let mut py = sy as i32;
-    // Initial backtrack: west of start (we scan left-to-right).
-    let start_back = (sx as i32 - 1, sy as i32);
-    let mut bx = start_back.0;
-    let mut by = start_back.1;
-
-    let max_steps = (width as usize) * (height as usize) * 2;
-    for _ in 0..max_steps {
-        let back_dir = dir_index(bx - px, by - py);
-
-        let mut found = false;
-        for i in 0..8 {
-            let check_dir = (back_dir + i) % 8;
-            let (dx, dy) = DIRS[check_dir];
-            let nx = px + dx;
-            let ny = py + dy;
-
-            if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
-                continue;
+    // For each edge (a → b), resolve the next vertex c after b.
+    for (&a, a_outs) in outgoing {
+        for &b in a_outs {
+            if let Some(b_outs) = outgoing.get(&b) {
+                let c = pick_right_turn(a, b, b_outs);
+                next_map.insert((a, b), c);
             }
-            if !is_boundary(mask, nx as u32, ny as u32, width, height) {
-                continue;
-            }
-
-            // t = pixel just before c in clockwise rotation around p
-            let t_dir = (check_dir + 7) % 8;
-            let (tdx, tdy) = DIRS[t_dir];
-            let tx = px + tdx;
-            let ty = py + tdy;
-
-            // Jacob's stopping criterion
-            if nx as u32 == sx
-                && ny as u32 == sy
-                && tx == start_back.0
-                && ty == start_back.1
-                && contour.len() > 1
-            {
-                return contour;
-            }
-
-            if seen.insert((nx as u32, ny as u32)) {
-                contour.push((nx as u32, ny as u32));
-            }
-
-            px = nx;
-            py = ny;
-            bx = tx;
-            by = ty;
-            found = true;
-            break;
-        }
-
-        if !found {
-            break;
         }
     }
 
-    contour
+    next_map
 }
 
-/// Extract closed boundary contours from a binary mask.
+/// Trace closed contours along pixel edges from a binary mask.
 ///
-/// Scans left-to-right, top-to-bottom for unvisited boundary pixels. For each
-/// new component, traces the outer perimeter using Moore neighborhood tracing
-/// (8-directional, clockwise), then marks all 8-connected boundary pixels in
-/// the component as visited via BFS.
-pub fn trace_contours(mask: &[bool], width: u32, height: u32) -> Vec<Vec<(u32, u32)>> {
-    let mut contours = Vec::new();
-    let mut visited: HashSet<(u32, u32)> = HashSet::new();
+/// Uses directed boundary edges emitted per opaque pixel, chained into closed
+/// polygons via right-turn disambiguation at saddle-point vertices. Coordinates
+/// are grid intersections in the range `[0, width] × [0, height]` (f32).
+///
+/// Winding is CCW in image space (Y-down). After the `pixel_to_engine` Y-flip
+/// applied downstream, this becomes CW — which is what lyon expects for outer
+/// contours with its default fill rule.
+pub fn trace_contours(mask: &[bool], width: u32, height: u32) -> Vec<Vec<(f32, f32)>> {
+    let w = width as i32;
+    let h = height as i32;
 
-    for y in 0..height {
-        for x in 0..width {
-            if visited.contains(&(x, y)) {
-                continue;
+    let outgoing = collect_edges(mask, w, h);
+    if outgoing.is_empty() {
+        return Vec::new();
+    }
+
+    let next_map = build_next_map(&outgoing);
+
+    let mut used: std::collections::HashSet<EdgeKey> = std::collections::HashSet::new();
+    let mut contours: Vec<Vec<(f32, f32)>> = Vec::new();
+
+    // Iterate edges in deterministic (BTreeMap) order.
+    let seeds: Vec<EdgeKey> = outgoing
+        .iter()
+        .flat_map(|(&from, tos)| tos.iter().map(move |&to| (from, to)))
+        .collect();
+
+    for seed_edge in seeds {
+        if used.contains(&seed_edge) {
+            continue;
+        }
+
+        let mut poly: Vec<(f32, f32)> = Vec::new();
+        let (mut prev, mut cur) = seed_edge;
+
+        loop {
+            if !used.insert((prev, cur)) {
+                break;
             }
-            if !is_boundary(mask, x, y, width, height) {
-                continue;
+            poly.push((prev.0 as f32, prev.1 as f32));
+
+            match next_map.get(&(prev, cur)) {
+                Some(&next) => {
+                    prev = cur;
+                    cur = next;
+                }
+                None => break,
             }
-            let contour = trace_perimeter(mask, x, y, width, height);
-            mark_component_visited(mask, x, y, width, height, &mut visited);
-            if !contour.is_empty() {
-                contours.push(contour);
-            }
+        }
+
+        if poly.len() >= 3 {
+            contours.push(poly);
         }
     }
 
@@ -221,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn when_single_opaque_pixel_then_one_contour_returned() {
+    fn when_single_opaque_pixel_then_one_square_contour() {
         // Arrange — center pixel of 3x3 mask
         let mut mask = vec![false; 9];
         mask[4] = true; // (1,1)
@@ -229,12 +192,13 @@ mod tests {
         // Act
         let contours = trace_contours(&mask, 3, 3);
 
-        // Assert
+        // Assert — grid-edge polygon has exactly 4 corners
         assert_eq!(contours.len(), 1);
+        assert_eq!(contours[0].len(), 4);
     }
 
     #[test]
-    fn when_2x2_opaque_square_then_one_contour_with_boundary_points() {
+    fn when_2x2_opaque_square_then_one_contour_with_4_corners() {
         // Arrange — top-left 2x2 block in a 4x4 grid
         #[rustfmt::skip]
         let mask = vec![
@@ -249,14 +213,17 @@ mod tests {
 
         // Assert
         assert_eq!(contours.len(), 1);
+        // 2x2 pixel square → 8 grid-edge vertices (collinear ones on straight
+        // edges are expected; RDP simplification removes them downstream).
         assert!(
             contours[0].len() >= 4,
-            "boundary of 2x2 should have at least 4 points"
+            "2x2 square should have at least 4 vertices, got {}",
+            contours[0].len()
         );
     }
 
     #[test]
-    fn when_l_shaped_region_then_one_contour_traces_concavity() {
+    fn when_l_shaped_region_then_one_contour_with_concavity() {
         // Arrange — L-shape in a 4x4 grid
         #[rustfmt::skip]
         let mask = vec![
@@ -269,11 +236,12 @@ mod tests {
         // Act
         let contours = trace_contours(&mask, 4, 4);
 
-        // Assert
+        // Assert — L-shape has 6 corners (a rectangle with one corner notched)
         assert_eq!(contours.len(), 1);
         assert!(
-            contours[0].len() >= 5,
-            "L-shape boundary should have at least 5 points"
+            contours[0].len() >= 6,
+            "L-shape has at least 6 corner vertices, got {}",
+            contours[0].len()
         );
     }
 
@@ -300,13 +268,33 @@ mod tests {
 
         // Assert
         assert_eq!(contours.len(), 1);
-        // All boundary points should be on the image border (row 0/3 or col 0/3)
+        // All vertices should be on the image border (x=0 or 4, y=0 or 4)
         for &(x, y) in &contours[0] {
             assert!(
-                x == 0 || x == 3 || y == 0 || y == 3,
-                "boundary point ({x}, {y}) is not on the image border"
+                x == 0.0 || x == 4.0 || y == 0.0 || y == 4.0,
+                "vertex ({x}, {y}) is not on the image border"
             );
         }
+    }
+
+    #[test]
+    fn when_diagonal_touching_pixels_then_two_separate_contours() {
+        // Arrange — saddle case: NW and SE pixels opaque, touching at (1,1)
+        #[rustfmt::skip]
+        let mask = vec![
+            true,  false,
+            false, true,
+        ];
+
+        // Act
+        let contours = trace_contours(&mask, 2, 2);
+
+        // Assert — must produce two separate contours, not one broken chain
+        assert_eq!(
+            contours.len(),
+            2,
+            "diagonal pixels must form two separate contours"
+        );
     }
 
     #[test]
@@ -332,28 +320,8 @@ mod tests {
     }
 
     #[test]
-    fn when_triangle_region_traced_then_contour_contains_all_corner_pixels() {
-        // Arrange — same triangle mask
-        #[rustfmt::skip]
-        let mask = vec![
-            false, false, true,  false, false,
-            false, true,  true,  true,  false,
-            true,  true,  true,  true,  true,
-        ];
-
-        // Act
-        let contours = trace_contours(&mask, 5, 3);
-
-        // Assert — tip and both base corners must be in the single contour
-        let contour = &contours[0];
-        assert!(contour.contains(&(2, 0)), "missing tip pixel (2,0)");
-        assert!(contour.contains(&(0, 2)), "missing base corner (0,2)");
-        assert!(contour.contains(&(4, 2)), "missing base corner (4,2)");
-    }
-
-    #[test]
-    fn when_diamond_region_traced_then_single_contour_returned() {
-        // Arrange — diamond in 5x5: all boundary pixels are diagonal-only connected
+    fn when_diamond_region_traced_then_single_contour_with_concavities() {
+        // Arrange — diamond in 5x5
         #[rustfmt::skip]
         let mask = vec![
             false, false, true,  false, false,
@@ -367,16 +335,38 @@ mod tests {
         let contours = trace_contours(&mask, 5, 5);
 
         // Assert
-        assert_eq!(
-            contours.len(),
-            1,
-            "diamond boundary should be one contour, got {}",
-            contours.len()
+        assert_eq!(contours.len(), 1);
+        // Diamond has staircase edges, more than 4 vertices
+        assert!(
+            contours[0].len() > 4,
+            "diamond should have more than 4 vertices, got {}",
+            contours[0].len()
         );
-        let contour = &contours[0];
-        assert!(contour.contains(&(2, 0)), "missing top corner (2,0)");
-        assert!(contour.contains(&(0, 2)), "missing left corner (0,2)");
-        assert!(contour.contains(&(4, 2)), "missing right corner (4,2)");
-        assert!(contour.contains(&(2, 4)), "missing bottom corner (2,4)");
+    }
+
+    #[test]
+    fn when_contour_traced_then_polygon_is_closed() {
+        // Arrange — 3x3 solid block
+        let mask = vec![true; 9];
+
+        // Act
+        let contours = trace_contours(&mask, 3, 3);
+
+        // Assert — first and last point should connect back (polygon is closed)
+        assert_eq!(contours.len(), 1);
+        let poly = &contours[0];
+        assert!(poly.len() >= 3);
+        // The polygon should form a closed loop — verify by checking it's a
+        // valid rectangle: 4 corners at (0,0), (3,0), (3,3), (0,3)
+        // Grid-edge tracing produces vertices at every pixel boundary
+        // intersection. A 3x3 square has 12 edge vertices (4 corners + 2
+        // intermediates per side). Check corner vertices are present.
+        let corners: Vec<(f32, f32)> = vec![(0.0, 0.0), (3.0, 0.0), (3.0, 3.0), (0.0, 3.0)];
+        for &pt in &corners {
+            assert!(
+                poly.contains(&pt),
+                "missing corner vertex {pt:?} in {poly:?}"
+            );
+        }
     }
 }

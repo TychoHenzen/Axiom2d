@@ -32,6 +32,19 @@ pub fn fit_bezier_path(points: &[(f32, f32)], max_error: f32) -> Vec<PathCommand
     commands
 }
 
+/// Fit cubic bezier curves to an open point sequence, returning only
+/// `LineTo`/`CubicTo` commands (no `MoveTo` or `Close`). Use this to fit
+/// individual boundary segments that will be assembled into a larger path.
+pub fn fit_bezier_segment(points: &[(f32, f32)], max_error: f32) -> Vec<PathCommand> {
+    if points.len() <= 1 {
+        return Vec::new();
+    }
+    let vecs: Vec<Vec2> = points.iter().map(|&(x, y)| Vec2::new(x, y)).collect();
+    let mut commands = Vec::new();
+    fit_cubic_segments(&vecs, max_error, &mut commands);
+    commands
+}
+
 /// Chord-length parameterization of points.
 fn chord_length_parameterize(points: &[Vec2]) -> Vec<f32> {
     let mut params = vec![0.0_f32; points.len()];
@@ -55,14 +68,34 @@ fn cubic_bezier(p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2, t: f32) -> Vec2 {
     p0 * (uu * u) + p1 * (3.0 * uu * t) + p2 * (3.0 * u * tt) + p3 * (tt * t)
 }
 
-/// Compute the tangent direction from a sequence of points at the start/end.
+/// Compute the tangent direction at the start of a point sequence.
+///
+/// Uses a weighted average of up to 3 consecutive edge vectors, with
+/// decreasing weight for edges further from the endpoint. This prevents
+/// axis-aligned consecutive point pairs (extremely common in pixel-grid
+/// contours after RDP simplification) from producing tangents that are
+/// 90° off from the actual curve direction.
 fn estimate_left_tangent(points: &[Vec2]) -> Vec2 {
-    (points[1] - points[0]).normalize_or_zero()
+    let n_edges = (points.len() - 1).min(3);
+    let mut tangent = Vec2::ZERO;
+    for i in 0..n_edges {
+        tangent += (points[i + 1] - points[i]) * (1.0 / (i as f32 + 1.0));
+    }
+    tangent.normalize_or_zero()
 }
 
+/// Compute the tangent direction at the end of a point sequence.
+///
+/// Mirror of `estimate_left_tangent` — averages edge vectors backward
+/// from the endpoint with decreasing weight.
 fn estimate_right_tangent(points: &[Vec2]) -> Vec2 {
     let n = points.len();
-    (points[n - 2] - points[n - 1]).normalize_or_zero()
+    let n_edges = (n - 1).min(3);
+    let mut tangent = Vec2::ZERO;
+    for i in 0..n_edges {
+        tangent += (points[n - 2 - i] - points[n - 1 - i]) * (1.0 / (i as f32 + 1.0));
+    }
+    tangent.normalize_or_zero()
 }
 
 /// Fit a single cubic bezier to the points using least-squares.
@@ -118,7 +151,8 @@ fn fit_single_cubic(
     let (alpha_l, alpha_r) = if well_conditioned {
         let al = (x[0] * c[1][1] - x[1] * c[0][1]) / det;
         let ar = (c[0][0] * x[1] - c[1][0] * x[0]) / det;
-        if al < 0.0 || ar < 0.0 || al > chord || ar > chord {
+        let max_alpha = chord * 0.75;
+        if al < 0.0 || ar < 0.0 || al > max_alpha || ar > max_alpha {
             (heuristic_dist, heuristic_dist)
         } else {
             (al, ar)
@@ -462,4 +496,5 @@ mod tests {
             }
         }
     }
+
 }

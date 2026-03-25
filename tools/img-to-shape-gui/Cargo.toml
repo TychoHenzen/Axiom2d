@@ -12,6 +12,7 @@ thiserror = { workspace = true }
 image = { workspace = true }
 eframe = "0.31"
 egui = "0.31"
+lyon = { workspace = true }
 rfd = "0.15"
 
 [lints]

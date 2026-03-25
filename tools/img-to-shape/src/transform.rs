@@ -4,6 +4,7 @@ use glam::Vec2;
 ///
 /// Pixel space: (0, 0) = top-left, Y increases downward.
 /// Engine space: (0, 0) = center, Y increases upward.
+#[allow(dead_code)]
 pub fn pixel_to_engine(col: f32, row: f32, width: f32, height: f32) -> Vec2 {
     let x = col + 0.5 - width / 2.0;
     let y = height / 2.0 - (row + 0.5);

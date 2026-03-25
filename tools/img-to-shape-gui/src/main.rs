@@ -1,4 +1,5 @@
 use eframe::egui;
+use img_to_shape::ResizeMethod;
 use img_to_shape_gui::loader::load_image_from_bytes;
 use img_to_shape_gui::preview::shape_to_egui_shapes;
 use img_to_shape_gui::state::{ASPECTS, AppState, ELEMENTS};
@@ -37,6 +38,12 @@ struct App {
     state: AppState,
     status: String,
     export_code: Option<String>,
+    /// Texture handle for the resized pixel buffer preview.
+    pixel_texture: Option<egui::TextureHandle>,
+    /// Zoom level (1.0 = fit-to-panel).
+    zoom: f32,
+    /// Pan offset in screen pixels.
+    pan: egui::Vec2,
 }
 
 impl App {
@@ -45,6 +52,9 @@ impl App {
             state: AppState::new(),
             status: "No image loaded".to_string(),
             export_code: None,
+            pixel_texture: None,
+            zoom: 1.0,
+            pan: egui::Vec2::ZERO,
         }
     }
 
@@ -62,6 +72,62 @@ impl App {
         }
     }
 
+    /// Handle scroll-to-zoom and drag-to-pan, then return the image rect
+    /// for content of the given native size, placed within the given canvas response.
+    fn zoomed_image_rect(
+        &mut self,
+        response: &egui::Response,
+        content_size: egui::Vec2,
+        canvas_size: egui::Vec2,
+    ) -> egui::Rect {
+        // Zoom with scroll wheel (zoom toward pointer).
+        let scroll = response.ctx.input(|i| i.smooth_scroll_delta.y);
+        if scroll != 0.0 && response.hovered() {
+            let factor = (scroll * 0.005).exp();
+            let old_zoom = self.zoom;
+            self.zoom = (self.zoom * factor).clamp(0.1, 50.0);
+            // Zoom toward pointer position.
+            if let Some(pointer) = response.hover_pos() {
+                let center = response.rect.center() + self.pan;
+                let delta = pointer - center;
+                self.pan += delta * (1.0 - self.zoom / old_zoom);
+            }
+        }
+        // Pan with secondary (right) or middle mouse drag.
+        if response.dragged_by(egui::PointerButton::Secondary)
+            || response.dragged_by(egui::PointerButton::Middle)
+        {
+            self.pan += response.drag_delta();
+        }
+        // Double-click to reset zoom/pan.
+        if response.double_clicked() {
+            self.zoom = 1.0;
+            self.pan = egui::Vec2::ZERO;
+        }
+
+        let base_scale = fit_scale(content_size, canvas_size);
+        let effective_scale = base_scale * self.zoom;
+        let scaled = content_size * effective_scale;
+        egui::Rect::from_center_size(response.rect.center() + self.pan, scaled)
+    }
+
+    fn upload_pixel_texture(&mut self, ctx: &egui::Context) {
+        let w = self.state.shape_width as usize;
+        let h = self.state.shape_height as usize;
+        if w == 0 || h == 0 || self.state.resized_rgba.len() != w * h * 4 {
+            self.pixel_texture = None;
+            return;
+        }
+        let image = egui::ColorImage::from_rgba_unmultiplied([w, h], &self.state.resized_rgba);
+        let options = egui::TextureOptions::NEAREST;
+        match &mut self.pixel_texture {
+            Some(handle) => handle.set(image, options),
+            None => {
+                self.pixel_texture = Some(ctx.load_texture("pixel_preview", image, options));
+            }
+        }
+    }
+
     fn show_controls(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         ui.heading("img-to-shape");
         ui.separator();
@@ -76,6 +142,25 @@ impl App {
         ui.label(&self.status);
         ui.separator();
 
+        self.show_parameters(ui);
+
+        let has_image = self.state.image.is_some();
+        if ui
+            .add_enabled(has_image, egui::Button::new("Convert"))
+            .clicked()
+        {
+            self.state.run_conversion();
+            let count = self.state.shapes.len();
+            self.status = format!("Converted: {count} shapes");
+            self.export_code = None;
+            self.upload_pixel_texture(ctx);
+        }
+        ui.separator();
+
+        self.show_export(ctx, ui);
+    }
+
+    fn show_parameters(&mut self, ui: &mut egui::Ui) {
         ui.heading("Parameters");
         ui.add(
             egui::Slider::new(&mut self.state.config.color_threshold, 0.0..=1.0)
@@ -101,21 +186,25 @@ impl App {
         {
             self.state.config.max_dimension = max_dim as u32;
         }
+        egui::ComboBox::from_label("Resize method")
+            .selected_text(match self.state.config.resize_method {
+                ResizeMethod::Nearest => "Nearest",
+                ResizeMethod::Scale2x => "Scale2x",
+            })
+            .show_ui(ui, |ui| {
+                ui.selectable_value(
+                    &mut self.state.config.resize_method,
+                    ResizeMethod::Nearest,
+                    "Nearest",
+                );
+                ui.selectable_value(
+                    &mut self.state.config.resize_method,
+                    ResizeMethod::Scale2x,
+                    "Scale2x",
+                );
+            });
+        ui.checkbox(&mut self.state.config.use_bezier, "Bezier curves");
         ui.separator();
-
-        let has_image = self.state.image.is_some();
-        if ui
-            .add_enabled(has_image, egui::Button::new("Convert"))
-            .clicked()
-        {
-            self.state.run_conversion();
-            let count = self.state.shapes.len();
-            self.status = format!("Converted: {count} shapes");
-            self.export_code = None;
-        }
-        ui.separator();
-
-        self.show_export(ctx, ui);
     }
 
     fn show_metadata(&mut self, ui: &mut egui::Ui) {
@@ -209,7 +298,37 @@ impl App {
         }
     }
 
-    fn show_preview(&self, ui: &mut egui::Ui) {
+    fn show_pixel_preview(&mut self, ui: &mut egui::Ui) {
+        if let Some(tex) = &self.pixel_texture {
+            let tex_size = tex.size_vec2();
+            let tex_id = tex.id();
+            let canvas_size = ui.available_size();
+            let sense = egui::Sense::click_and_drag().union(egui::Sense::hover());
+            let (response, painter) = ui.allocate_painter(canvas_size, sense);
+            painter.rect_filled(response.rect, 0.0, egui::Color32::from_gray(32));
+
+            let img_rect = self.zoomed_image_rect(&response, tex_size, canvas_size);
+
+            painter.image(
+                tex_id,
+                img_rect,
+                egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                egui::Color32::WHITE,
+            );
+            painter.rect_stroke(
+                img_rect,
+                0.0,
+                egui::Stroke::new(1.0, egui::Color32::from_gray(80)),
+                egui::epaint::StrokeKind::Middle,
+            );
+        } else {
+            ui.centered_and_justified(|ui| {
+                ui.label("No pixel data");
+            });
+        }
+    }
+
+    fn show_shape_preview(&mut self, ui: &mut egui::Ui) {
         if self.state.shapes.is_empty() {
             ui.centered_and_justified(|ui| {
                 ui.label("Load an image and click Convert to preview shapes");
@@ -218,7 +337,8 @@ impl App {
         }
 
         let canvas_size = ui.available_size();
-        let (response, painter) = ui.allocate_painter(canvas_size, egui::Sense::hover());
+        let sense = egui::Sense::click_and_drag().union(egui::Sense::hover());
+        let (response, painter) = ui.allocate_painter(canvas_size, sense);
 
         painter.rect_filled(response.rect, 0.0, egui::Color32::from_gray(32));
 
@@ -239,8 +359,10 @@ impl App {
                 .as_ref()
                 .map_or(256.0, |img| img.height as f32)
         };
-        let img_rect =
-            egui::Rect::from_center_size(response.rect.center(), egui::vec2(img_w, img_h));
+
+        let content_size = egui::vec2(img_w, img_h);
+        let img_rect = self.zoomed_image_rect(&response, content_size, canvas_size);
+        let effective_scale = img_rect.width() / img_w;
 
         // Draw image boundary outline.
         painter.rect_stroke(
@@ -250,28 +372,26 @@ impl App {
             egui::epaint::StrokeKind::Middle,
         );
 
-        let offset = response.rect.min.to_vec2();
-        // Clip shape rendering to the image boundary. Egui's PathShape fill
-        // uses triangle-fan tessellation that produces artifacts (fill bleeding
-        // outside vertex bounding box) for self-intersecting paths. Clipping
-        // to the image rect prevents those artifacts from being visible.
+        // Shape rendering: scale engine coords to fit the zoomed rect.
+        let shape_canvas = egui::vec2(img_w, img_h);
         let mut painter = painter;
         painter.set_clip_rect(img_rect);
         for shape in &self.state.shapes {
-            for mut egui_shape in shape_to_egui_shapes(shape, canvas_size) {
-                egui_shape.translate(offset);
+            for mut egui_shape in shape_to_egui_shapes(shape, shape_canvas) {
+                egui_shape.translate(-egui::vec2(shape_canvas.x / 2.0, shape_canvas.y / 2.0));
+                scale_egui_shape(&mut egui_shape, effective_scale);
+                egui_shape.translate(img_rect.center().to_vec2());
                 painter.add(egui_shape);
             }
         }
-        // Restore clip rect to full canvas for the tooltip and border.
         painter.set_clip_rect(response.rect);
 
         // Mouse coordinate display — shows engine-space position on hover.
         if let Some(pointer_pos) = response.hover_pos() {
-            let rel = pointer_pos - response.rect.min;
-            let engine_x = rel.x - canvas_size.x / 2.0;
-            let engine_y = canvas_size.y / 2.0 - rel.y;
-            let label = format!("({engine_x:.1}, {engine_y:.1})");
+            let rel = pointer_pos - img_rect.center();
+            let engine_x = rel.x / effective_scale;
+            let engine_y = -(rel.y / effective_scale);
+            let label = format!("({engine_x:.1}, {engine_y:.1})  {:.0}%", self.zoom * 100.0);
             painter.text(
                 pointer_pos + egui::vec2(12.0, -12.0),
                 egui::Align2::LEFT_BOTTOM,
@@ -303,9 +423,69 @@ impl eframe::App for App {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.show_preview(ui);
+            let has_pixels = self.pixel_texture.is_some();
+            let has_shapes = !self.state.shapes.is_empty();
+
+            if has_pixels && has_shapes {
+                // Split view: pixels left, shapes right.
+                ui.columns(2, |cols| {
+                    cols[0].vertical(|ui| {
+                        ui.label("Pixels");
+                        self.show_pixel_preview(ui);
+                    });
+                    cols[1].vertical(|ui| {
+                        ui.label("Shapes");
+                        self.show_shape_preview(ui);
+                    });
+                });
+            } else if has_shapes {
+                self.show_shape_preview(ui);
+            } else if has_pixels {
+                self.show_pixel_preview(ui);
+            } else {
+                ui.centered_and_justified(|ui| {
+                    ui.label("Load an image and click Convert to preview shapes");
+                });
+            }
         });
 
         self.handle_dropped_files(ctx);
+    }
+}
+
+/// Compute a uniform scale factor to fit `content` within `available`, preserving aspect ratio.
+fn fit_scale(content: egui::Vec2, available: egui::Vec2) -> f32 {
+    let sx = available.x / content.x;
+    let sy = available.y / content.y;
+    sx.min(sy).max(0.001)
+}
+
+/// Scale all positions in an egui shape by a uniform factor around the origin.
+fn scale_egui_shape(shape: &mut egui::Shape, scale: f32) {
+    match shape {
+        egui::Shape::Path(ps) => {
+            for p in &mut ps.points {
+                p.x *= scale;
+                p.y *= scale;
+            }
+        }
+        egui::Shape::Circle(cs) => {
+            cs.center.x *= scale;
+            cs.center.y *= scale;
+            cs.radius *= scale;
+        }
+        egui::Shape::Mesh(mesh) => {
+            let mesh = std::sync::Arc::make_mut(mesh);
+            for v in &mut mesh.vertices {
+                v.pos.x *= scale;
+                v.pos.y *= scale;
+            }
+        }
+        egui::Shape::Vec(shapes) => {
+            for s in shapes {
+                scale_egui_shape(s, scale);
+            }
+        }
+        _ => {}
     }
 }

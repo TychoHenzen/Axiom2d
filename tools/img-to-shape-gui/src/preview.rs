@@ -3,6 +3,9 @@ use egui::{Color32, Pos2, Vec2 as EguiVec2};
 use engine_core::color::Color;
 use engine_render::shape::{PathCommand, Shape, sample_cubic, sample_quadratic};
 use glam::Vec2;
+use lyon::math::point;
+use lyon::path::Path as LyonPath;
+use lyon::tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers};
 
 const BEZIER_SAMPLES: usize = 16;
 
@@ -106,13 +109,76 @@ pub fn shape_to_egui_shapes(shape: &Shape, canvas_size: EguiVec2) -> Vec<egui::S
     }
 }
 
+/// Tessellate a polygon using lyon for correct concave rendering.
+///
+/// egui's `PathShape` uses fan tessellation which only works for convex
+/// polygons. Concave shapes (stars, L-shapes, etc.) need proper
+/// triangulation to render correctly.
 fn make_path_shape(points: &[Pos2], closed: bool, fill: Color32) -> egui::Shape {
-    egui::Shape::Path(PathShape {
+    if points.len() < 3 || !closed {
+        // Degenerate or open path — fall back to egui's path rendering.
+        return egui::Shape::Path(PathShape {
+            points: points.to_vec(),
+            closed,
+            fill,
+            stroke: PathStroke::NONE,
+        });
+    }
+
+    // Build lyon path from points.
+    let mut builder = LyonPath::builder();
+    builder.begin(point(points[0].x, points[0].y));
+    for p in &points[1..] {
+        builder.line_to(point(p.x, p.y));
+    }
+    builder.close();
+    let path = builder.build();
+
+    // Tessellate.
+    let mut geometry: VertexBuffers<Pos2, u32> = VertexBuffers::new();
+    let mut tessellator = FillTessellator::new();
+    let result = tessellator.tessellate_path(
+        &path,
+        &FillOptions::default(),
+        &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| {
+            let p = vertex.position();
+            Pos2::new(p.x, p.y)
+        }),
+    );
+
+    if result.is_err() || geometry.indices.is_empty() {
+        // Tessellation failed — fall back to egui path.
+        return egui::Shape::Path(PathShape {
+            points: points.to_vec(),
+            closed,
+            fill,
+            stroke: PathStroke::NONE,
+        });
+    }
+
+    // Build egui Mesh from tessellated triangles.
+    let mut mesh = egui::Mesh::default();
+    mesh.vertices = geometry
+        .vertices
+        .iter()
+        .map(|p| egui::epaint::Vertex {
+            pos: *p,
+            uv: egui::pos2(0.0, 0.0),
+            color: fill,
+        })
+        .collect();
+    mesh.indices = geometry.indices;
+
+    // Add a thin stroke outline in the same color to cover sub-pixel gaps
+    // between adjacent tessellated regions.
+    let outline = egui::Shape::Path(PathShape {
         points: points.to_vec(),
-        closed,
-        fill,
-        stroke: PathStroke::NONE,
-    })
+        closed: true,
+        fill: Color32::TRANSPARENT,
+        stroke: PathStroke::new(1.5, fill),
+    });
+
+    egui::Shape::Vec(vec![egui::Shape::mesh(mesh), outline])
 }
 
 #[cfg(test)]
@@ -167,7 +233,7 @@ mod tests {
 
     // TC012
     #[test]
-    fn when_close_command_then_egui_path_is_closed() {
+    fn when_close_command_then_egui_shape_is_filled_mesh() {
         // Arrange
         let commands = vec![
             PathCommand::MoveTo(Vec2::ZERO),
@@ -179,14 +245,17 @@ mod tests {
         // Act
         let shapes = path_commands_to_egui_shapes(&commands, canvas(), &Color::WHITE);
 
-        // Assert
-        let ps = extract_path_shape(&shapes[0]);
-        assert!(ps.closed);
+        // Assert — closed polygons produce a Vec containing mesh + stroke outline
+        assert_eq!(shapes.len(), 1);
+        assert!(
+            matches!(&shapes[0], egui::Shape::Vec(_)),
+            "closed polygon should produce a Vec (mesh + outline)"
+        );
     }
 
     // TC013
     #[test]
-    fn when_cubic_bezier_command_then_egui_path_has_sampled_points() {
+    fn when_cubic_bezier_command_then_egui_shape_contains_mesh() {
         // Arrange
         let commands = vec![
             PathCommand::MoveTo(Vec2::ZERO),
@@ -201,18 +270,21 @@ mod tests {
         // Act
         let shapes = path_commands_to_egui_shapes(&commands, canvas(), &Color::WHITE);
 
-        // Assert
-        let ps = extract_path_shape(&shapes[0]);
+        // Assert — closed bezier produces Vec containing mesh + outline
+        assert_eq!(shapes.len(), 1);
+        let inner = match &shapes[0] {
+            egui::Shape::Vec(v) => v,
+            other => panic!("expected Vec, got {other:?}"),
+        };
         assert!(
-            ps.points.len() > 2,
-            "cubic should produce sampled points, got {}",
-            ps.points.len()
+            inner.iter().any(|s| matches!(s, egui::Shape::Mesh(_))),
+            "should contain a Mesh sub-shape"
         );
     }
 
     // TC014
     #[test]
-    fn when_quadratic_bezier_command_then_egui_path_has_sampled_points() {
+    fn when_quadratic_bezier_command_then_egui_shape_contains_mesh() {
         // Arrange
         let commands = vec![
             PathCommand::MoveTo(Vec2::ZERO),
@@ -226,12 +298,15 @@ mod tests {
         // Act
         let shapes = path_commands_to_egui_shapes(&commands, canvas(), &Color::WHITE);
 
-        // Assert
-        let ps = extract_path_shape(&shapes[0]);
+        // Assert — closed quadratic produces Vec containing mesh + outline
+        assert_eq!(shapes.len(), 1);
+        let inner = match &shapes[0] {
+            egui::Shape::Vec(v) => v,
+            other => panic!("expected Vec, got {other:?}"),
+        };
         assert!(
-            ps.points.len() > 2,
-            "quadratic should produce sampled points, got {}",
-            ps.points.len()
+            inner.iter().any(|s| matches!(s, egui::Shape::Mesh(_))),
+            "should contain a Mesh sub-shape"
         );
     }
 

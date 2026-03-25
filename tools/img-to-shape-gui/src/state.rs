@@ -1,6 +1,6 @@
 use engine_render::shape::Shape;
-use img_to_shape::ConvertConfig;
 use img_to_shape::codegen::{ArtMetadata, shapes_to_art_file};
+use img_to_shape::{ConvertConfig, ResizeMethod};
 
 use crate::codegen::shapes_to_rust_code;
 
@@ -38,8 +38,10 @@ pub struct AppState {
     pub image: Option<LoadedImage>,
     pub config: ConvertConfig,
     pub shapes: Vec<Shape>,
+    /// The resized RGBA pixel buffer fed into segmentation (for preview display).
+    pub resized_rgba: Vec<u8>,
     /// Dimensions of the coordinate space the shapes live in (may differ from
-    /// the source image when downscaling is active).
+    /// the source image when resizing is active).
     pub shape_width: u32,
     pub shape_height: u32,
     /// Index into ELEMENTS for the selected element (0–7).
@@ -69,8 +71,11 @@ impl AppState {
                 bezier_error: 0.5,
                 min_area: 4,
                 max_dimension: 128,
+                resize_method: ResizeMethod::Scale2x,
+                use_bezier: true,
             },
             shapes: Vec::new(),
+            resized_rgba: Vec::new(),
             shape_width: 0,
             shape_height: 0,
             element_index: 0,
@@ -88,6 +93,7 @@ impl AppState {
             height,
         });
         self.shapes.clear();
+        self.resized_rgba.clear();
         self.shape_width = 0;
         self.shape_height = 0;
     }
@@ -96,11 +102,11 @@ impl AppState {
     /// No-op if no image is loaded.
     pub fn run_conversion(&mut self) {
         let Some(img) = &self.image else { return };
-        let (shapes, sw, sh) =
-            img_to_shape::image_to_shapes(&img.rgba, img.width, img.height, &self.config);
-        self.shapes = shapes;
-        self.shape_width = sw;
-        self.shape_height = sh;
+        let result = img_to_shape::image_to_shapes(&img.rgba, img.width, img.height, &self.config);
+        self.shapes = result.shapes;
+        self.resized_rgba = result.rgba;
+        self.shape_width = result.width;
+        self.shape_height = result.height;
     }
 
     /// Update the conversion config. Does NOT auto-recompute shapes.
@@ -227,6 +233,8 @@ mod tests {
             bezier_error: 2.0,
             min_area: 4,
             max_dimension: 128,
+            resize_method: ResizeMethod::Scale2x,
+            use_bezier: true,
         });
 
         // Assert

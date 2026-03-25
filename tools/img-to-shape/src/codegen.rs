@@ -64,8 +64,10 @@ pub fn shapes_to_art_file(shapes: &[Shape], metadata: &ArtMetadata<'_>, fn_name:
 }
 
 fn fmt_f32(v: f32) -> String {
-    let s = format!("{v}");
-    if s.contains('.') { s } else { format!("{v}.0") }
+    // Round to 2 decimal places to keep generated code compact.
+    let rounded = (v * 100.0).round() / 100.0;
+    let s = format!("{rounded}");
+    if s.contains('.') { s } else { format!("{rounded}.0") }
 }
 
 fn write_shape(out: &mut String, shape: &Shape) {
