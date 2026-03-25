@@ -368,8 +368,7 @@ pub fn extract_region_faces(
                     };
 
                     // Determine external status from any half-edge's twin.
-                    let twin_region =
-                        half_edges[half_edges[chain_he_ids[0]].twin].left_region;
+                    let twin_region = half_edges[half_edges[chain_he_ids[0]].twin].left_region;
                     let is_external = twin_region < 0 || *region < 0;
 
                     let new_idx = chains.len();

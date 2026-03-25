@@ -623,8 +623,7 @@ pub fn image_to_shapes(
     } else {
         config.rdp_epsilon
     };
-    let graph =
-        boundary_graph::extract_region_faces(&region_map, work_w, work_h, graph_epsilon);
+    let graph = boundary_graph::extract_region_faces(&region_map, work_w, work_h, graph_epsilon);
 
     // ── Pre-compute fitted commands per chain (in pixel coords) ──────
     // Both faces sharing a chain use the same pre-computed commands (one
@@ -2172,7 +2171,7 @@ mod tests {
             }
         }
 
-        let uncovered = mismatches
+        let _uncovered = mismatches
             .iter()
             .filter(|m| m.contains("UNCOVERED"))
             .count();
