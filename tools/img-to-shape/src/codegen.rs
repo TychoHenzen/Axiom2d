@@ -67,7 +67,11 @@ fn fmt_f32(v: f32) -> String {
     // Round to 2 decimal places to keep generated code compact.
     let rounded = (v * 100.0).round() / 100.0;
     let s = format!("{rounded}");
-    if s.contains('.') { s } else { format!("{rounded}.0") }
+    if s.contains('.') {
+        s
+    } else {
+        format!("{rounded}.0")
+    }
 }
 
 fn write_shape(out: &mut String, shape: &Shape) {

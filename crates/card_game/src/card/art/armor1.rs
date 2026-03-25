@@ -259,7 +259,11 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::LineTo(Vec2::new(-84.0, 49.0)),
                     PathCommand::LineTo(Vec2::new(-82.0, 76.0)),
                     PathCommand::LineTo(Vec2::new(-85.0, 80.0)),
-                    PathCommand::CubicTo { control1: Vec2::new(-84.79, 81.69), control2: Vec2::new(-84.47, 83.37), to: Vec2::new(-84.0, 85.0) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-84.79, 81.69),
+                        control2: Vec2::new(-84.47, 83.37),
+                        to: Vec2::new(-84.0, 85.0),
+                    },
                     PathCommand::LineTo(Vec2::new(-72.0, 86.0)),
                     PathCommand::LineTo(Vec2::new(-65.0, 80.0)),
                     PathCommand::LineTo(Vec2::new(-66.0, 78.0)),
@@ -337,7 +341,11 @@ pub fn armor1() -> Vec<Shape> {
                     PathCommand::LineTo(Vec2::new(85.0, 3.0)),
                     PathCommand::LineTo(Vec2::new(85.0, 77.0)),
                     PathCommand::LineTo(Vec2::new(88.0, 79.0)),
-                    PathCommand::CubicTo { control1: Vec2::new(88.82, 83.64), control2: Vec2::new(89.44, 88.32), to: Vec2::new(90.0, 93.0) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(88.82, 83.64),
+                        control2: Vec2::new(89.44, 88.32),
+                        to: Vec2::new(90.0, 93.0),
+                    },
                     PathCommand::Close,
                 ],
             },
@@ -1168,7 +1176,11 @@ pub fn armor1() -> Vec<Shape> {
                 commands: vec![
                     PathCommand::MoveTo(Vec2::new(-69.0, 68.0)),
                     PathCommand::LineTo(Vec2::new(-71.0, 66.0)),
-                    PathCommand::CubicTo { control1: Vec2::new(-70.78, 60.99), control2: Vec2::new(-70.45, 55.99), to: Vec2::new(-70.0, 51.0) },
+                    PathCommand::CubicTo {
+                        control1: Vec2::new(-70.78, 60.99),
+                        control2: Vec2::new(-70.45, 55.99),
+                        to: Vec2::new(-70.0, 51.0),
+                    },
                     PathCommand::LineTo(Vec2::new(-68.0, 49.0)),
                     PathCommand::LineTo(Vec2::new(-68.0, 44.0)),
                     PathCommand::LineTo(Vec2::new(-77.0, 40.0)),
@@ -5968,6 +5980,6 @@ pub fn armor1() -> Vec<Shape> {
                 ],
             },
             color: Color::new(0.77, 0.58, 0.28, 1.0),
-        }
+        },
     ]
 }

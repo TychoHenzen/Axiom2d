@@ -118,7 +118,6 @@ fn signed_polygon_area(points: &[(f32, f32)]) -> f32 {
     sum * 0.5
 }
 
-
 /// Build a map from pixel position to region index (-1 = transparent).
 fn build_region_map(regions: &[segment::Region], width: u32, height: u32) -> Vec<i32> {
     let mut map = vec![-1i32; (width * height) as usize];
@@ -222,7 +221,11 @@ fn segment_cache_key(segment: &[(f32, f32)]) -> SegmentKey {
         segment.last().expect("non-empty").0 as i32,
         segment.last().expect("non-empty").1 as i32,
     );
-    let (lo, disambig_idx) = if a <= b { (a, 1) } else { (b, segment.len() - 2) };
+    let (lo, disambig_idx) = if a <= b {
+        (a, 1)
+    } else {
+        (b, segment.len() - 2)
+    };
     let hi = if a <= b { b } else { a };
 
     let disambig = if segment.len() >= 3 {
@@ -267,9 +270,7 @@ fn reverse_path_commands(cmds: &[PathCommand], seg_start: Vec2) -> Vec<PathComma
                 result.push(PathCommand::LineTo(endpoints[i]));
             }
             PathCommand::CubicTo {
-                control1,
-                control2,
-                ..
+                control1, control2, ..
             } => {
                 result.push(PathCommand::CubicTo {
                     control1: *control2,
@@ -301,7 +302,7 @@ fn neighbor_for_segment(segment: &[(f32, f32)], region_map: &[i32], w: i32, h: i
     // The neighbor pixel is on the right side of the directed edge.
     // Derived from the contour tracer's edge emission rules.
     let (px, py) = match (dx.signum(), dy.signum()) {
-        (1, 0) => (x0, y0 - 1),     // rightward → neighbor above
+        (1, 0) => (x0, y0 - 1),      // rightward → neighbor above
         (0, 1) => (x0, y0),          // downward → neighbor to the right
         (-1, 0) => (x0 - 1, y0),     // leftward → neighbor below
         (0, -1) => (x0 - 1, y0 - 1), // upward → neighbor to the left
@@ -479,9 +480,7 @@ pub fn image_to_shapes(
             // Transform pixel-space point to engine-space.
             let to_engine = |&(x, y): &(f32, f32)| (x - w / 2.0, h / 2.0 - y);
 
-            let commands = if let Some(segments) =
-                split_at_junctions(contour_pts, &junctions)
-            {
+            let commands = if let Some(segments) = split_at_junctions(contour_pts, &junctions) {
                 // Per-segment processing: internal boundaries use LineTo
                 // (shared vertices, gap-free tiling), external boundaries
                 // (neighbor is transparent) use bezier curves for smoothness.
@@ -516,16 +515,13 @@ pub fn image_to_shapes(
                 let first_pt = to_engine(&simplified_segs[0][0]);
                 let mut cmds = vec![PathCommand::MoveTo(Vec2::new(first_pt.0, first_pt.1))];
 
-                for (raw_seg, simp_seg) in
-                    segments.iter().zip(simplified_segs.iter())
-                {
+                for (raw_seg, simp_seg) in segments.iter().zip(simplified_segs.iter()) {
                     // Determine if this segment is an internal boundary
                     // (shared with another opaque region) or external
                     // (adjacent to transparency). Internal boundaries use
                     // LineTo for gap-free tiling; external boundaries can
                     // use bezier curves for smoothness.
-                    let neighbor_id =
-                        neighbor_for_segment(raw_seg, &region_map, wi, hi);
+                    let neighbor_id = neighbor_for_segment(raw_seg, &region_map, wi, hi);
                     let is_internal = neighbor_id >= 0;
 
                     if !config.use_bezier || is_internal {
@@ -541,8 +537,7 @@ pub fn image_to_shapes(
                     // Fit curves once, cache the result. The adjacent region
                     // reuses the same curves (reversed) so both sides match.
                     let key = segment_cache_key(raw_seg);
-                    let engine_seg: Vec<(f32, f32)> =
-                        simp_seg.iter().map(to_engine).collect();
+                    let engine_seg: Vec<(f32, f32)> = simp_seg.iter().map(to_engine).collect();
                     let seg_start_v = Vec2::new(engine_seg[0].0, engine_seg[0].1);
 
                     if let Some((cached_start, cached_cmds)) = bezier_cache.get(&key) {
@@ -555,10 +550,8 @@ pub fn image_to_shapes(
                             cmds.extend(reverse_path_commands(cached_cmds, *cached_start));
                         }
                     } else {
-                        let fitted = bezier_fit::fit_bezier_segment(
-                            &engine_seg,
-                            config.bezier_error,
-                        );
+                        let fitted =
+                            bezier_fit::fit_bezier_segment(&engine_seg, config.bezier_error);
                         bezier_cache.insert(key, (seg_start_v, fitted.clone()));
                         cmds.extend(fitted);
                     }
@@ -569,8 +562,7 @@ pub fn image_to_shapes(
                 // No junctions — the entire boundary is shared with a
                 // single neighbor. Check whether that neighbor is opaque
                 // (internal boundary) or transparent (external boundary).
-                let neighbor_id =
-                    neighbor_for_segment(contour_pts, &region_map, wi, hi);
+                let neighbor_id = neighbor_for_segment(contour_pts, &region_map, wi, hi);
                 let is_internal = neighbor_id >= 0;
 
                 // Internal boundaries use epsilon=0: the outer region
@@ -581,11 +573,7 @@ pub fn image_to_shapes(
                 // simplified polygon to miss pixel corners. External
                 // boundaries can tolerate simplification since gaps
                 // against transparency are acceptable.
-                let no_junction_epsilon = if is_internal {
-                    0.0
-                } else {
-                    effective_epsilon
-                };
+                let no_junction_epsilon = if is_internal { 0.0 } else { effective_epsilon };
 
                 // Canonical split + rdp_open + cache ensures both this
                 // region and the adjacent region sharing the boundary
@@ -602,8 +590,7 @@ pub fn image_to_shapes(
 
                 // Rotate so canonical vertex is first, then append it
                 // at the end to form an open polyline from canon→...→canon.
-                let mut rotated: Vec<(f32, f32)> =
-                    Vec::with_capacity(contour_pts.len() + 1);
+                let mut rotated: Vec<(f32, f32)> = Vec::with_capacity(contour_pts.len() + 1);
                 rotated.extend_from_slice(&contour_pts[canon_idx..]);
                 rotated.extend_from_slice(&contour_pts[..canon_idx]);
                 rotated.push(contour_pts[canon_idx]);
@@ -636,8 +623,7 @@ pub fn image_to_shapes(
                     continue;
                 }
 
-                let engine_pts: Vec<(f32, f32)> =
-                    poly.iter().map(to_engine).collect();
+                let engine_pts: Vec<(f32, f32)> = poly.iter().map(to_engine).collect();
 
                 // Internal boundaries use LineTo (bezier curves deviate
                 // from the pixel grid). External boundaries can use bezier.
@@ -842,8 +828,7 @@ mod tests {
         let simplified = simplify::rdp_simplify_closed(contour_pts, 0.5);
         assert!(
             simplified.len() >= 4,
-            "simplified square should have >= 4 vertices, got {:?}",
-            simplified
+            "simplified square should have >= 4 vertices, got {simplified:?}"
         );
 
         // Stage 3: engine coords
@@ -855,8 +840,7 @@ mod tests {
             .collect();
         assert!(
             engine_pts.len() >= 4,
-            "engine pts should have >= 4, got {:?}",
-            engine_pts
+            "engine pts should have >= 4, got {engine_pts:?}"
         );
 
         // Stage 4: bezier fit
@@ -1730,7 +1714,7 @@ mod tests {
         inside
     }
 
-    /// Extract polygon vertices from a shape's path commands (LineTo endpoints only).
+    /// Extract polygon vertices from a shape's path commands (`LineTo` endpoints only).
     fn extract_shape_polygon(shape: &Shape) -> Vec<(f32, f32)> {
         let commands = match &shape.variant {
             ShapeVariant::Path { commands } => commands,
@@ -1748,20 +1732,13 @@ mod tests {
 
     /// Check if a point is inside any shape (using painter's algorithm order:
     /// last shape covering the point determines color).
-    fn topmost_shape_at<'a>(
-        shapes: &'a [Shape],
-        px: f32,
-        py: f32,
-    ) -> Option<&'a Shape> {
+    fn topmost_shape_at(shapes: &[Shape], px: f32, py: f32) -> Option<&Shape> {
         // Shapes are sorted largest-first (background first, details last).
         // The last shape in the list that contains the point is the topmost.
-        shapes
-            .iter()
-            .rev()
-            .find(|shape| {
-                let poly = extract_shape_polygon(shape);
-                poly.len() >= 3 && point_in_polygon(px, py, &poly)
-            })
+        shapes.iter().rev().find(|shape| {
+            let poly = extract_shape_polygon(shape);
+            poly.len() >= 3 && point_in_polygon(px, py, &poly)
+        })
     }
 
     #[test]
@@ -1777,7 +1754,7 @@ mod tests {
                 let idx = ((row * w + col) * 4) as usize;
                 // Triangle: pixels where row >= col+2, within rows 2..8 cols 2..8
                 let is_inner =
-                    row >= 2 && row < 8 && col >= 2 && col < 8 && (row - 2) >= (col - 2);
+                    (2..8).contains(&row) && (2..8).contains(&col) && (row - 2) >= (col - 2);
                 if is_inner {
                     rgba[idx] = 255; // red
                     rgba[idx + 1] = 0;
@@ -1812,7 +1789,7 @@ mod tests {
                 let eng_x = col as f32 + 0.5 - w as f32 / 2.0;
                 let eng_y = h as f32 / 2.0 - (row as f32 + 0.5);
                 let is_inner =
-                    row >= 2 && row < 8 && col >= 2 && col < 8 && (row - 2) >= (col - 2);
+                    (2..8).contains(&row) && (2..8).contains(&col) && (row - 2) >= (col - 2);
                 let expected_color = if is_inner { red } else { blue };
 
                 if let Some(shape) = topmost_shape_at(&result.shapes, eng_x, eng_y) {
@@ -1847,7 +1824,7 @@ mod tests {
             for col in 0..w {
                 let idx = ((row * w + col) * 4) as usize;
                 let is_inner =
-                    row >= 2 && row < 8 && col >= 2 && col < 8 && (row - 2) >= (col - 2);
+                    (2..8).contains(&row) && (2..8).contains(&col) && (row - 2) >= (col - 2);
                 if is_inner {
                     rgba[idx] = 255;
                 } else {
@@ -1878,7 +1855,7 @@ mod tests {
                 let eng_x = col as f32 + 0.5 - w as f32 / 2.0;
                 let eng_y = h as f32 / 2.0 - (row as f32 + 0.5);
                 let is_inner =
-                    row >= 2 && row < 8 && col >= 2 && col < 8 && (row - 2) >= (col - 2);
+                    (2..8).contains(&row) && (2..8).contains(&col) && (row - 2) >= (col - 2);
                 let expected_color = if is_inner { red } else { blue };
 
                 if let Some(shape) = topmost_shape_at(&result.shapes, eng_x, eng_y) {
@@ -2004,7 +1981,8 @@ mod tests {
             for col in 0..w {
                 let idx = ((row * w + col) * 4) as usize;
                 // Shallow triangle: row >= 2 && col >= 2 && (row-2) >= 2*(col-2)
-                let is_inner = row >= 2 && row < 7 && col >= 2 && col < 6
+                let is_inner = (2..7).contains(&row)
+                    && (2..6).contains(&col)
                     && (row as i32 - 2) >= 2 * (col as i32 - 2);
                 if is_inner {
                     rgba[idx] = 255; // red
@@ -2032,7 +2010,8 @@ mod tests {
             for col in 0..w {
                 let eng_x = col as f32 + 0.5 - w as f32 / 2.0;
                 let eng_y = h as f32 / 2.0 - (row as f32 + 0.5);
-                let is_inner = row >= 2 && row < 7 && col >= 2 && col < 6
+                let is_inner = (2..7).contains(&row)
+                    && (2..6).contains(&col)
                     && (row as i32 - 2) >= 2 * (col as i32 - 2);
                 let expected = if is_inner { red } else { blue };
 
@@ -2110,9 +2089,7 @@ mod tests {
                         && (shape.color.g - expected.g).abs() < 0.1
                         && (shape.color.b - expected.b).abs() < 0.1;
                     if !ok {
-                        mismatches.push(format!(
-                            "({col},{row}) wrong color"
-                        ));
+                        mismatches.push(format!("({col},{row}) wrong color"));
                     }
                 } else {
                     mismatches.push(format!("({col},{row}) UNCOVERED"));

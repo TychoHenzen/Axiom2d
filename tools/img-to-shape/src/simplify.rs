@@ -197,8 +197,7 @@ mod tests {
         assert_eq!(
             simplified.len(),
             4,
-            "square should simplify to 4 corners, got {:?}",
-            simplified
+            "square should simplify to 4 corners, got {simplified:?}"
         );
     }
 
@@ -221,15 +220,13 @@ mod tests {
         // Assert — the concave corner at (2,3) must survive
         assert!(
             simplified.contains(&(2.0, 3.0)),
-            "concave corner (2,3) should be preserved, got {:?}",
-            simplified
+            "concave corner (2,3) should be preserved, got {simplified:?}"
         );
         // Should have 6 corners: (0,0), (2,0), (2,3), (5,3), (5,5), (0,5)
         assert_eq!(
             simplified.len(),
             6,
-            "L-shape should simplify to 6 corners, got {:?}",
-            simplified
+            "L-shape should simplify to 6 corners, got {simplified:?}"
         );
     }
 
