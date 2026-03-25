@@ -2428,6 +2428,10 @@ dependencies = [
  "engine_core",
  "engine_render",
  "glam 0.29.3",
+ "image",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -2443,6 +2447,8 @@ dependencies = [
  "img-to-shape",
  "lyon",
  "rfd",
+ "serde",
+ "serde_json",
  "thiserror 2.0.18",
 ]
 

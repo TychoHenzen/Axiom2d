@@ -1,5 +1,6 @@
 use engine_render::shape::Shape;
 use img_to_shape::codegen::{ArtMetadata, shapes_to_art_file, shapes_to_compact_art_file};
+use img_to_shape::manifest::{ASPECTS, ELEMENTS};
 use img_to_shape::{ConvertConfig, OutputEstimate, ResizeMethod};
 
 use crate::codegen::shapes_to_rust_code;
@@ -9,29 +10,9 @@ pub struct LoadedImage {
     pub rgba: Vec<u8>,
     pub width: u32,
     pub height: u32,
+    /// Filesystem path the image was loaded from (if known).
+    pub source_path: Option<std::path::PathBuf>,
 }
-
-pub const ELEMENTS: [&str; 8] = [
-    "Solidum",
-    "Febris",
-    "Ordinem",
-    "Lumines",
-    "Varias",
-    "Inertiae",
-    "Subsidium",
-    "Spatium",
-];
-
-pub const ASPECTS: [[&str; 2]; 8] = [
-    ["Solid", "Fragile"],
-    ["Heat", "Cold"],
-    ["Order", "Chaos"],
-    ["Light", "Dark"],
-    ["Change", "Stasis"],
-    ["Force", "Calm"],
-    ["Growth", "Decay"],
-    ["Expansion", "Contraction"],
-];
 
 /// Top-level application state for the img-to-shape GUI.
 pub struct AppState {
@@ -59,6 +40,8 @@ pub struct AppState {
     pub estimate: Option<OutputEstimate>,
     /// Use compact float-array encoding for generated files.
     pub compact_encoding: bool,
+    /// Human-readable description of the image / art piece.
+    pub description: String,
 }
 
 impl Default for AppState {
@@ -94,15 +77,17 @@ impl AppState {
             fn_name: String::new(),
             estimate: None,
             compact_encoding: false,
+            description: String::new(),
         }
     }
 
     /// Load new image data, clearing any previously computed shapes.
-    pub fn load_image(&mut self, rgba: Vec<u8>, width: u32, height: u32) {
+    pub fn load_image(&mut self, rgba: Vec<u8>, width: u32, height: u32, source_path: Option<std::path::PathBuf>) {
         self.image = Some(LoadedImage {
             rgba,
             width,
             height,
+            source_path,
         });
         self.shapes.clear();
         self.background = None;
@@ -196,7 +181,7 @@ mod tests {
         let (rgba, w, h) = make_3x3_single_pixel_image();
 
         // Act
-        state.load_image(rgba, w, h);
+        state.load_image(rgba, w, h, None);
 
         // Assert
         assert!(state.image.is_some());
@@ -209,7 +194,7 @@ mod tests {
         // Arrange
         let mut state = AppState::new();
         let (rgba, w, h) = make_3x3_single_pixel_image();
-        state.load_image(rgba, w, h);
+        state.load_image(rgba, w, h, None);
 
         // Act
         state.run_conversion();
@@ -240,7 +225,7 @@ mod tests {
         // Arrange
         let mut state = AppState::new();
         let (rgba, w, h) = make_3x3_single_pixel_image();
-        state.load_image(rgba, w, h);
+        state.load_image(rgba, w, h, None);
         state.run_conversion();
         let shapes_before = state.shapes.clone();
 
@@ -271,7 +256,7 @@ mod tests {
         // Arrange
         let mut state = AppState::new();
         let (rgba, w, h) = make_3x3_single_pixel_image();
-        state.load_image(rgba, w, h);
+        state.load_image(rgba, w, h, None);
         state.run_conversion();
 
         // Act
@@ -301,7 +286,7 @@ mod tests {
         // Arrange
         let mut state = AppState::new();
         let (rgba, w, h) = make_3x3_single_pixel_image();
-        state.load_image(rgba, w, h);
+        state.load_image(rgba, w, h, None);
         state.run_conversion();
         state.fn_name = "test_art".to_string();
 
@@ -320,13 +305,13 @@ mod tests {
         // Arrange
         let mut state = AppState::new();
         let (rgba, w, h) = make_3x3_single_pixel_image();
-        state.load_image(rgba.clone(), w, h);
+        state.load_image(rgba.clone(), w, h, None);
         state.run_conversion();
         assert!(!state.shapes.is_empty());
 
         // Act — load transparent image
         let transparent = vec![0u8; 3 * 3 * 4];
-        state.load_image(transparent, 3, 3);
+        state.load_image(transparent, 3, 3, None);
 
         // Assert
         assert!(

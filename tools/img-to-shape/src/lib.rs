@@ -1,15 +1,63 @@
 mod bezier_fit;
 mod boundary_graph;
 pub mod codegen;
+pub mod manifest;
 pub mod scale2x;
 mod segment;
 mod simplify;
 mod transform;
 
 use std::collections::BTreeSet;
+use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::{Arc, Mutex};
 
 use engine_render::shape::{PathCommand, Shape, ShapeVariant};
 use glam::Vec2;
+use serde::{Deserialize, Serialize};
+
+/// Shared progress handle for tracking conversion progress from another thread.
+/// Clone the `Arc` and poll `percent()` / `stage()` from the UI thread.
+#[derive(Clone)]
+pub struct ConvertProgress {
+    percent: Arc<AtomicU8>,
+    stage: Arc<Mutex<String>>,
+}
+
+impl ConvertProgress {
+    pub fn new() -> Self {
+        Self {
+            percent: Arc::new(AtomicU8::new(0)),
+            stage: Arc::new(Mutex::new(String::new())),
+        }
+    }
+
+    /// Current progress percentage (0–100).
+    pub fn percent(&self) -> u8 {
+        self.percent.load(Ordering::Relaxed)
+    }
+
+    /// Current stage description.
+    pub fn stage(&self) -> String {
+        self.stage
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    fn set(&self, percent: u8, stage: &str) {
+        self.percent.store(percent, Ordering::Relaxed);
+        *self
+            .stage
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = stage.to_string();
+    }
+}
+
+impl Default for ConvertProgress {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// Evaluate a cubic bezier at parameter t.
 fn sample_cubic(p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2, t: f32) -> Vec2 {
@@ -246,7 +294,7 @@ fn push_transformed_command(
 
 /// Algorithm used when upscaling images smaller than `max_dimension`.
 /// Downscaling always uses nearest-neighbor regardless of this setting.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResizeMethod {
     /// Nearest-neighbor: each pixel is duplicated. Fast but produces
     /// staircase artifacts that segment into one shape per pixel.
@@ -291,6 +339,7 @@ pub struct ConvertResult {
 }
 
 /// Configuration for the image-to-shapes conversion pipeline.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConvertConfig {
     /// Maximum Euclidean distance in normalized RGB space (0.0–1.0) for two
     /// adjacent pixels to be considered the "same color" during flood-fill.
@@ -358,6 +407,7 @@ fn merge_small_regions(
     merge_below: usize,
     max_shapes: usize,
     width: u32,
+    report: &dyn Fn(u8, &str),
 ) {
     if regions.len() <= 1 {
         return;
@@ -488,6 +538,9 @@ fn merge_small_regions(
             best
         };
 
+    // Track progress by regions remaining (always accurate, no pre-estimate).
+    let start_count = regions.len();
+
     // Phase 1: merge regions below merge_below.
     if merge_below > 0 {
         loop {
@@ -503,11 +556,19 @@ fn merge_small_regions(
                 (target, idx)
             };
             do_merge(regions, &mut area, &mut owner, lo, hi);
+            let remaining = regions.len();
+            let merged = start_count - remaining;
+            if merged.is_multiple_of(3) {
+                let frac = merged as f32 / start_count as f32;
+                let pct = 30 + (frac * 10.0).min(9.0) as u8; // 30–39%
+                report(pct, &format!("Merging small regions ({remaining} left)..."));
+            }
         }
     }
 
     // Phase 2: enforce max_shapes cap.
     if max_shapes > 0 {
+        let phase2_start = regions.len();
         while regions.len() > max_shapes {
             let adj = build_adj(&owner, regions.len());
             let idx = (0..regions.len())
@@ -522,6 +583,17 @@ fn merge_small_regions(
                 (target, idx)
             };
             do_merge(regions, &mut area, &mut owner, lo, hi);
+            let remaining = regions.len();
+            let to_remove = phase2_start.saturating_sub(max_shapes);
+            let removed = phase2_start - remaining;
+            if removed.is_multiple_of(3) && to_remove > 0 {
+                let frac = removed as f32 / to_remove as f32;
+                let pct = 35 + (frac * 5.0).min(4.0) as u8; // 35–39%
+                report(
+                    pct,
+                    &format!("Capping shapes ({remaining} → {max_shapes})..."),
+                );
+            }
         }
     }
 }
@@ -540,6 +612,27 @@ pub fn image_to_shapes(
     height: u32,
     config: &ConvertConfig,
 ) -> ConvertResult {
+    image_to_shapes_with_progress(rgba, width, height, config, None)
+}
+
+/// Same as `image_to_shapes` but updates a shared progress handle so the
+/// caller can display conversion progress from another thread.
+#[allow(clippy::too_many_lines)]
+pub fn image_to_shapes_with_progress(
+    rgba: &[u8],
+    width: u32,
+    height: u32,
+    config: &ConvertConfig,
+    progress: Option<&ConvertProgress>,
+) -> ConvertResult {
+    let report = |pct: u8, stage: &str| {
+        if let Some(p) = progress {
+            p.set(pct, stage);
+        }
+    };
+
+    report(0, "Starting...");
+
     if rgba.is_empty() || width == 0 || height == 0 {
         return ConvertResult {
             shapes: Vec::new(),
@@ -558,6 +651,7 @@ pub fn image_to_shapes(
         };
     }
 
+    report(5, "Resizing...");
     let max_dim = config.max_dimension;
     let (work_rgba, work_w, work_h);
     if max_dim > 0 && width.max(height) != max_dim {
@@ -587,6 +681,7 @@ pub fn image_to_shapes(
         work_rgba = rgba.to_vec();
     }
 
+    report(15, "Segmenting...");
     let mut regions = segment::segment(
         &work_rgba,
         work_w,
@@ -603,13 +698,21 @@ pub fn image_to_shapes(
     } else {
         config.merge_below
     };
+    report(30, "Merging regions...");
     if effective_merge > 0 || config.max_shapes > 0 {
-        merge_small_regions(&mut regions, effective_merge, config.max_shapes, work_w);
+        merge_small_regions(
+            &mut regions,
+            effective_merge,
+            config.max_shapes,
+            work_w,
+            &report,
+        );
     }
 
     let w = work_w as f32;
     let h = work_h as f32;
 
+    report(40, "Building boundary graph...");
     // ── Planar graph: the central data model ──────────────────────────
     // Build a half-edge planar graph from pixel boundaries. Extract faces
     // (closed polygons) with shared edge chains between junction vertices.
@@ -625,49 +728,61 @@ pub fn image_to_shapes(
     };
     let graph = boundary_graph::extract_region_faces(&region_map, work_w, work_h, graph_epsilon);
 
+    report(60, "Fitting curves...");
     // ── Pre-compute fitted commands per chain (in pixel coords) ──────
     // Both faces sharing a chain use the same pre-computed commands (one
     // forward, one reversed), so bezier fitting is gap-free even on
     // interior chains.
-    let chain_commands: Vec<Vec<PathCommand>> = graph
-        .chains
-        .iter()
-        .map(|chain| {
-            if config.use_bezier && chain.points.len() > 2 {
-                if chain.is_closed {
-                    fit_closed_bezier(&chain.points, config.bezier_error)
-                } else {
-                    bezier_fit::fit_bezier_segment(&chain.points, config.bezier_error)
-                }
-            } else if chain.is_closed {
-                // Closed loop with LineTo: include closing segment.
-                let mut cmds: Vec<PathCommand> = chain.points[1..]
-                    .iter()
-                    .map(|&(x, y)| PathCommand::LineTo(Vec2::new(x, y)))
-                    .collect();
-                cmds.push(PathCommand::LineTo(Vec2::new(
-                    chain.points[0].0,
-                    chain.points[0].1,
-                )));
-                cmds
+    let total_chains = graph.chains.len();
+    let mut chain_commands: Vec<Vec<PathCommand>> = Vec::with_capacity(total_chains);
+    for (ci, chain) in graph.chains.iter().enumerate() {
+        let cmds = if config.use_bezier && chain.points.len() > 2 {
+            if chain.is_closed {
+                fit_closed_bezier(&chain.points, config.bezier_error)
             } else {
-                // Open chain with LineTo.
-                chain.points[1..]
-                    .iter()
-                    .map(|&(x, y)| PathCommand::LineTo(Vec2::new(x, y)))
-                    .collect()
+                bezier_fit::fit_bezier_segment(&chain.points, config.bezier_error)
             }
-        })
-        .collect();
+        } else if chain.is_closed {
+            // Closed loop with LineTo: include closing segment.
+            let mut cmds: Vec<PathCommand> = chain.points[1..]
+                .iter()
+                .map(|&(x, y)| PathCommand::LineTo(Vec2::new(x, y)))
+                .collect();
+            cmds.push(PathCommand::LineTo(Vec2::new(
+                chain.points[0].0,
+                chain.points[0].1,
+            )));
+            cmds
+        } else {
+            // Open chain with LineTo.
+            chain.points[1..]
+                .iter()
+                .map(|&(x, y)| PathCommand::LineTo(Vec2::new(x, y)))
+                .collect()
+        };
+        chain_commands.push(cmds);
+        if total_chains > 0 && ci.is_multiple_of(20) {
+            let frac = ci as f32 / total_chains as f32;
+            let pct = 60 + (frac * 20.0) as u8; // 60–80%
+            report(pct, &format!("Fitting curves ({ci}/{total_chains})..."));
+        }
+    }
 
     let to_engine = |x: f32, y: f32| -> (f32, f32) { (x - w / 2.0, h / 2.0 - y) };
     let half_w = w / 2.0;
     let half_h = h / 2.0;
 
+    report(80, "Assembling shapes...");
     // ── Assemble shapes from graph faces (last step) ─────────────────
     let mut shapes: Vec<(f32, Shape)> = Vec::new();
+    let total_faces = graph.faces.len();
 
-    for face in &graph.faces {
+    for (fi, face) in graph.faces.iter().enumerate() {
+        if total_faces > 0 && fi.is_multiple_of(50) {
+            let frac = fi as f32 / total_faces as f32;
+            let pct = 80 + (frac * 15.0) as u8; // 80–95%
+            report(pct, &format!("Assembling shapes ({fi}/{total_faces})..."));
+        }
         if face.region_id < 0 {
             continue;
         }
@@ -748,11 +863,13 @@ pub fn image_to_shapes(
         })
     };
 
+    report(95, "Sorting & finalizing...");
     // Sort largest-footprint first so big shapes act as background
     // (painted first), small details on top (painted last).
     shapes.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
     let final_shapes: Vec<Shape> = shapes.into_iter().map(|(_, shape)| shape).collect();
     let estimate = compute_estimate(&final_shapes);
+    report(100, "Done");
     ConvertResult {
         shapes: final_shapes,
         background,

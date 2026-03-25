@@ -1,0 +1,66 @@
+{
+  "entries": [
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_16_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\armor1.rs",
+      "fn_name": "armor1",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 0.5,
+        "bezier_error": 0.5,
+        "min_area": 4,
+        "max_dimension": 256,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "plain metal armor"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_01_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_01_t.rs",
+      "fn_name": "barbarian_icons_01_t",
+      "config": {
+        "color_threshold": 0.05,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 0.5,
+        "bezier_error": 0.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 0,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": false,
+      "description": "basic sword"
+    }
+  ]
+}

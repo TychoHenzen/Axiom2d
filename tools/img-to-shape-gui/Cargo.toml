@@ -10,6 +10,8 @@ engine_render = { path = "../../crates/engine_render" }
 glam = { workspace = true }
 thiserror = { workspace = true }
 image = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 eframe = "0.31"
 egui = "0.31"
 lyon = { workspace = true }

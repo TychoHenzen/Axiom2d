@@ -7,6 +7,10 @@ version.workspace = true
 engine_core = { path = "../../crates/engine_core" }
 engine_render = { path = "../../crates/engine_render" }
 glam = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+image = { workspace = true }
+thiserror = { workspace = true }
 
 [lints]
 workspace = true
