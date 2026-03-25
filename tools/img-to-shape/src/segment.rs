@@ -50,9 +50,19 @@ pub fn segment(
                 continue;
             }
             let c = pixel_color(rgba, idx);
-            if rgba[idx * 4 + 3] < alpha_threshold
-                || color_distance(c, start_color) > color_threshold
-            {
+            if rgba[idx * 4 + 3] < alpha_threshold {
+                continue;
+            }
+            // Compare against the running average color so that gradients
+            // are absorbed into one region instead of fragmenting at the
+            // seed-distance boundary.
+            let avg = if count > 0 {
+                let inv = 1.0 / count as f32;
+                Color::new(sum_r * inv, sum_g * inv, sum_b * inv, 1.0)
+            } else {
+                start_color
+            };
+            if color_distance(c, avg) > color_threshold {
                 continue;
             }
             visited[idx] = true;

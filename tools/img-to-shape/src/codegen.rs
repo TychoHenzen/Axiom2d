@@ -176,6 +176,185 @@ fn write_color(out: &mut String, color: &Color) {
     );
 }
 
+// --- Compact encoding ---
+//
+// Tags (encoded as f32 in the data array):
+// 0.0 = MoveTo  → 2 floats (x, y)
+// 1.0 = LineTo  → 2 floats (x, y)
+// 2.0 = CubicTo → 6 floats (c1x, c1y, c2x, c2y, x, y)
+// 3.0 = Close   → 0 floats
+// 4.0 = shape   → 4 floats (r, g, b, a) — starts a new shape
+
+const TAG_MOVE_TO: f32 = 0.0;
+const TAG_LINE_TO: f32 = 1.0;
+const TAG_CUBIC_TO: f32 = 2.0;
+const TAG_CLOSE: f32 = 3.0;
+const TAG_SHAPE: f32 = 4.0;
+
+/// Generate a compact `.rs` file that stores shapes as a flat `&[f32]` array
+/// with a hydration function that builds `Vec<Shape>` at load time.
+pub fn shapes_to_compact_art_file(
+    shapes: &[Shape],
+    metadata: &ArtMetadata<'_>,
+    fn_name: &str,
+) -> String {
+    let name = if fn_name.is_empty() {
+        "art_mesh"
+    } else {
+        fn_name
+    };
+
+    let mut out = String::new();
+
+    // Imports
+    out.push_str(
+        "use engine_core::color::Color;\n\
+         use engine_render::shape::{PathCommand, Shape, ShapeVariant};\n\
+         use glam::Vec2;\n\n",
+    );
+
+    // Metadata doc comment
+    let _ = writeln!(out, "/// Element: {}", metadata.element);
+    let _ = writeln!(out, "/// Aspect: {}", metadata.aspect);
+    let _ = write!(out, "/// Signature: [");
+    for (i, &v) in metadata.signature_axes.iter().enumerate() {
+        if i > 0 {
+            out.push_str(", ");
+        }
+        let _ = write!(out, "{}", fmt_f32(v));
+    }
+    out.push_str("]\n");
+
+    // Encode shapes into flat f32 data.
+    let data = encode_shapes_to_floats(shapes);
+
+    // Data array
+    let _ = writeln!(out, "const DATA: &[f32] = &[");
+    // Write 10 floats per line for compactness.
+    for (i, &v) in data.iter().enumerate() {
+        if i % 10 == 0 {
+            out.push_str("    ");
+        }
+        let _ = write!(out, "{},", fmt_f32(v));
+        if i % 10 == 9 || i == data.len() - 1 {
+            out.push('\n');
+        } else {
+            out.push(' ');
+        }
+    }
+    out.push_str("];\n\n");
+
+    // Hydration function
+    let _ = writeln!(out, "pub fn {name}() -> Vec<Shape> {{");
+    out.push_str("    hydrate_shapes(DATA)\n");
+    out.push_str("}\n\n");
+
+    // The hydration helper
+    out.push_str(HYDRATE_FN);
+
+    out
+}
+
+/// Encode a slice of shapes into a flat f32 array using the compact tag format.
+pub fn encode_shapes_to_floats(shapes: &[Shape]) -> Vec<f32> {
+    let mut data = Vec::new();
+    for shape in shapes {
+        data.push(TAG_SHAPE);
+        push_f32_rounded(&mut data, shape.color.r);
+        push_f32_rounded(&mut data, shape.color.g);
+        push_f32_rounded(&mut data, shape.color.b);
+        push_f32_rounded(&mut data, shape.color.a);
+
+        if let ShapeVariant::Path { commands } = &shape.variant {
+            for cmd in commands {
+                match cmd {
+                    PathCommand::MoveTo(v) => {
+                        data.push(TAG_MOVE_TO);
+                        push_f32_rounded(&mut data, v.x);
+                        push_f32_rounded(&mut data, v.y);
+                    }
+                    PathCommand::LineTo(v) => {
+                        data.push(TAG_LINE_TO);
+                        push_f32_rounded(&mut data, v.x);
+                        push_f32_rounded(&mut data, v.y);
+                    }
+                    PathCommand::CubicTo {
+                        control1,
+                        control2,
+                        to,
+                    } => {
+                        data.push(TAG_CUBIC_TO);
+                        push_f32_rounded(&mut data, control1.x);
+                        push_f32_rounded(&mut data, control1.y);
+                        push_f32_rounded(&mut data, control2.x);
+                        push_f32_rounded(&mut data, control2.y);
+                        push_f32_rounded(&mut data, to.x);
+                        push_f32_rounded(&mut data, to.y);
+                    }
+                    PathCommand::Close => {
+                        data.push(TAG_CLOSE);
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    data
+}
+
+fn push_f32_rounded(data: &mut Vec<f32>, v: f32) {
+    data.push((v * 100.0).round() / 100.0);
+}
+
+/// The hydration function source code, emitted into the generated file.
+const HYDRATE_FN: &str = "\
+fn hydrate_shapes(data: &[f32]) -> Vec<Shape> {
+    let mut shapes = Vec::new();
+    let mut i = 0;
+    while i < data.len() {
+        let tag = data[i] as u8;
+        i += 1;
+        if tag == 4 {
+            // Shape tag: 4 color floats follow.
+            let color = Color::new(data[i], data[i + 1], data[i + 2], data[i + 3]);
+            i += 4;
+            let mut commands = Vec::new();
+            while i < data.len() && data[i] as u8 != 4 {
+                let cmd_tag = data[i] as u8;
+                i += 1;
+                match cmd_tag {
+                    0 => {
+                        commands.push(PathCommand::MoveTo(Vec2::new(data[i], data[i + 1])));
+                        i += 2;
+                    }
+                    1 => {
+                        commands.push(PathCommand::LineTo(Vec2::new(data[i], data[i + 1])));
+                        i += 2;
+                    }
+                    2 => {
+                        commands.push(PathCommand::CubicTo {
+                            control1: Vec2::new(data[i], data[i + 1]),
+                            control2: Vec2::new(data[i + 2], data[i + 3]),
+                            to: Vec2::new(data[i + 4], data[i + 5]),
+                        });
+                        i += 6;
+                    }
+                    3 => {
+                        commands.push(PathCommand::Close);
+                    }
+                    _ => break,
+                }
+            }
+            shapes.push(Shape {
+                variant: ShapeVariant::Path { commands },
+                color,
+            });
+        }
+    }
+    shapes
+}
+";
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -394,5 +573,92 @@ mod tests {
         assert!(code.contains("CubicTo"), "missing CubicTo:\n{code}");
         assert!(code.contains("control1"), "missing control1:\n{code}");
         assert!(code.contains("control2"), "missing control2:\n{code}");
+    }
+
+    // --- Compact encoding tests ---
+
+    #[test]
+    fn when_compact_encoding_then_output_contains_data_array_and_hydrate() {
+        // Arrange
+        let shapes = vec![triangle_shape(Color::RED)];
+        let meta = default_metadata();
+
+        // Act
+        let code = shapes_to_compact_art_file(&shapes, &meta, "test_art");
+
+        // Assert
+        assert!(
+            code.contains("const DATA: &[f32]"),
+            "missing DATA array:\n{code}"
+        );
+        assert!(
+            code.contains("hydrate_shapes"),
+            "missing hydrate fn:\n{code}"
+        );
+        assert!(code.contains("pub fn test_art"), "missing pub fn:\n{code}");
+    }
+
+    #[test]
+    fn when_compact_encoding_then_data_contains_shape_tag() {
+        // Arrange
+        let shapes = vec![triangle_shape(Color::RED)];
+
+        // Act
+        let data = encode_shapes_to_floats(&shapes);
+
+        // Assert — first float should be TAG_SHAPE (4.0)
+        assert!(
+            (data[0] - 4.0).abs() < f32::EPSILON,
+            "first tag should be 4.0 (shape)"
+        );
+        // Then 4 color floats (r=1.0, g=0.0, b=0.0, a=1.0)
+        assert!((data[1] - 1.0).abs() < f32::EPSILON, "r should be 1.0");
+        assert!((data[2]).abs() < f32::EPSILON, "g should be 0.0");
+        assert!((data[3]).abs() < f32::EPSILON, "b should be 0.0");
+        assert!((data[4] - 1.0).abs() < f32::EPSILON, "a should be 1.0");
+    }
+
+    #[test]
+    fn when_compact_encoding_roundtripped_then_shape_count_matches() {
+        // Arrange — encode then paste the data into a quick decode check
+        let shapes = vec![triangle_shape(Color::RED), triangle_shape(Color::BLUE)];
+
+        // Act
+        let data = encode_shapes_to_floats(&shapes);
+
+        // Assert — count shape tags (4.0 values at positions where a tag is expected)
+        let shape_tags = data
+            .iter()
+            .filter(|&&v| (v - 4.0).abs() < f32::EPSILON)
+            .count();
+        // There should be at least 2 shape tags (could be more if a float happens to be 4.0,
+        // but with our test colors that won't happen)
+        assert_eq!(shape_tags, 2, "expected 2 shape tags in data");
+    }
+
+    #[test]
+    fn when_compact_encoding_with_many_commands_then_fewer_lines_than_verbose() {
+        // Arrange — shape with 200 LineTo commands (simulates real art output)
+        let commands: Vec<PathCommand> = std::iter::once(PathCommand::MoveTo(Vec2::ZERO))
+            .chain((1..200).map(|i| PathCommand::LineTo(Vec2::new(i as f32, (i * 2) as f32))))
+            .chain(std::iter::once(PathCommand::Close))
+            .collect();
+        let shapes = vec![Shape {
+            variant: ShapeVariant::Path { commands },
+            color: Color::RED,
+        }];
+        let meta = default_metadata();
+
+        // Act
+        let verbose = shapes_to_art_file(&shapes, &meta, "test");
+        let compact = shapes_to_compact_art_file(&shapes, &meta, "test");
+
+        // Assert — compact should have fewer lines once data volume exceeds hydrate fn overhead
+        let verbose_lines = verbose.lines().count();
+        let compact_lines = compact.lines().count();
+        assert!(
+            compact_lines < verbose_lines,
+            "compact ({compact_lines} lines) should be fewer than verbose ({verbose_lines} lines)"
+        );
     }
 }

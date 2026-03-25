@@ -6,6 +6,7 @@ use glam::Vec2;
 /// Uses cubic bezier curve fitting (Schneider's algorithm) for curved segments.
 /// Collinear segments fall back to `LineTo`. The `max_error` parameter controls
 /// how closely the fitted curves must approximate the input points.
+#[cfg(test)]
 pub fn fit_bezier_path(points: &[(f32, f32)], max_error: f32) -> Vec<PathCommand> {
     if points.is_empty() {
         return Vec::new();

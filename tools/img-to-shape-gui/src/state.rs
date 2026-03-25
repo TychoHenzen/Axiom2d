@@ -1,6 +1,6 @@
 use engine_render::shape::Shape;
-use img_to_shape::codegen::{ArtMetadata, shapes_to_art_file};
-use img_to_shape::{ConvertConfig, ResizeMethod};
+use img_to_shape::codegen::{ArtMetadata, shapes_to_art_file, shapes_to_compact_art_file};
+use img_to_shape::{ConvertConfig, OutputEstimate, ResizeMethod};
 
 use crate::codegen::shapes_to_rust_code;
 
@@ -38,6 +38,9 @@ pub struct AppState {
     pub image: Option<LoadedImage>,
     pub config: ConvertConfig,
     pub shapes: Vec<Shape>,
+    /// Magenta background rectangle for preview (shows coverage gaps).
+    /// Stored separately so it is never exported.
+    pub background: Option<Shape>,
     /// The resized RGBA pixel buffer fed into segmentation (for preview display).
     pub resized_rgba: Vec<u8>,
     /// Dimensions of the coordinate space the shapes live in (may differ from
@@ -52,6 +55,10 @@ pub struct AppState {
     pub signature_axes: [f32; 8],
     /// Function name for the generated file.
     pub fn_name: String,
+    /// Output size estimate from the last conversion.
+    pub estimate: Option<OutputEstimate>,
+    /// Use compact float-array encoding for generated files.
+    pub compact_encoding: bool,
 }
 
 impl Default for AppState {
@@ -73,8 +80,11 @@ impl AppState {
                 max_dimension: 128,
                 resize_method: ResizeMethod::Scale2x,
                 use_bezier: true,
+                merge_below: 0,
+                max_shapes: 0,
             },
             shapes: Vec::new(),
+            background: None,
             resized_rgba: Vec::new(),
             shape_width: 0,
             shape_height: 0,
@@ -82,6 +92,8 @@ impl AppState {
             aspect_pole: 0,
             signature_axes: [0.0; 8],
             fn_name: String::new(),
+            estimate: None,
+            compact_encoding: false,
         }
     }
 
@@ -93,6 +105,7 @@ impl AppState {
             height,
         });
         self.shapes.clear();
+        self.background = None;
         self.resized_rgba.clear();
         self.shape_width = 0;
         self.shape_height = 0;
@@ -103,10 +116,12 @@ impl AppState {
     pub fn run_conversion(&mut self) {
         let Some(img) = &self.image else { return };
         let result = img_to_shape::image_to_shapes(&img.rgba, img.width, img.height, &self.config);
+        self.background = result.background;
         self.shapes = result.shapes;
         self.resized_rgba = result.rgba;
         self.shape_width = result.width;
         self.shape_height = result.height;
+        self.estimate = Some(result.estimate);
     }
 
     /// Update the conversion config. Does NOT auto-recompute shapes.
@@ -119,14 +134,18 @@ impl AppState {
         shapes_to_rust_code(&self.shapes)
     }
 
-    /// Generate a complete `.rs` file with compact `Vec<Shape>` data.
+    /// Generate a complete `.rs` file with shape data.
     pub fn generate_art_file(&self) -> String {
         let metadata = ArtMetadata {
             element: ELEMENTS[self.element_index],
             aspect: ASPECTS[self.element_index][self.aspect_pole],
             signature_axes: self.signature_axes,
         };
-        shapes_to_art_file(&self.shapes, &metadata, &self.fn_name)
+        if self.compact_encoding {
+            shapes_to_compact_art_file(&self.shapes, &metadata, &self.fn_name)
+        } else {
+            shapes_to_art_file(&self.shapes, &metadata, &self.fn_name)
+        }
     }
 
     /// The auto-save filename derived from `fn_name` (e.g. "armor01" → "armor01.rs").
@@ -235,6 +254,8 @@ mod tests {
             max_dimension: 128,
             resize_method: ResizeMethod::Scale2x,
             use_bezier: true,
+            merge_below: 0,
+            max_shapes: 0,
         });
 
         // Assert

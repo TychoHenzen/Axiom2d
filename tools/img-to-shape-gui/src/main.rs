@@ -160,6 +160,7 @@ impl App {
         self.show_export(ctx, ui);
     }
 
+    #[allow(clippy::too_many_lines)]
     fn show_parameters(&mut self, ui: &mut egui::Ui) {
         ui.heading("Parameters");
         ui.add(
@@ -204,6 +205,36 @@ impl App {
                 );
             });
         ui.checkbox(&mut self.state.config.use_bezier, "Bezier curves");
+        ui.separator();
+
+        ui.heading("Output Size");
+        let mut merge_below = self.state.config.merge_below as f32;
+        if ui
+            .add(egui::Slider::new(&mut merge_below, 0.0..=200.0).text("Merge below (px)"))
+            .changed()
+        {
+            self.state.config.merge_below = merge_below as usize;
+        }
+        let mut max_shapes = self.state.config.max_shapes as f32;
+        if ui
+            .add(egui::Slider::new(&mut max_shapes, 0.0..=500.0).text("Max shapes (0=unlimited)"))
+            .changed()
+        {
+            self.state.config.max_shapes = max_shapes as usize;
+        }
+        ui.checkbox(&mut self.state.compact_encoding, "Compact encoding");
+
+        if let Some(est) = &self.state.estimate {
+            ui.group(|ui| {
+                ui.label(format!("Shapes: {}", est.shape_count));
+                ui.label(format!(
+                    "Commands: {} ({} LineTo, {} CubicTo)",
+                    est.command_count, est.line_to_count, est.cubic_to_count
+                ));
+                ui.label(format!("Est. LoC: ~{}", est.estimated_loc));
+                ui.label(format!("Est. floats: ~{}", est.estimated_floats));
+            });
+        }
         ui.separator();
     }
 
@@ -376,7 +407,7 @@ impl App {
         let shape_canvas = egui::vec2(img_w, img_h);
         let mut painter = painter;
         painter.set_clip_rect(img_rect);
-        for shape in &self.state.shapes {
+        for shape in self.state.background.iter().chain(&self.state.shapes) {
             for mut egui_shape in shape_to_egui_shapes(shape, shape_canvas) {
                 egui_shape.translate(-egui::vec2(shape_canvas.x / 2.0, shape_canvas.y / 2.0));
                 scale_egui_shape(&mut egui_shape, effective_scale);
