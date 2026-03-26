@@ -316,19 +316,19 @@ mod tests {
             config: ConvertConfig {
                 color_threshold: 0.1,
                 alpha_threshold: 128,
-                rdp_epsilon: 0.5,
-                bezier_error: 0.5,
+                rdp_epsilon: 1.5,
+                bezier_error: 1.5,
                 min_area: 4,
                 max_dimension: 128,
                 resize_method: ResizeMethod::Scale2x,
                 use_bezier: true,
-                merge_below: 0,
+                merge_below: 5,
                 max_shapes: 0,
             },
             element_index: 0,
             aspect_pole: 0,
             signature_axes: [0.0; 8],
-            compact_encoding: false,
+            compact_encoding: true,
             description: String::new(),
         }
     }
@@ -382,7 +382,7 @@ mod tests {
         // Assert
         assert!(json.contains("\"fn_name\": \"test_art\""));
         assert!(json.contains("\"image_path\": \"test.png\""));
-        assert!(json.contains("\"compact_encoding\": false"));
+        assert!(json.contains("\"compact_encoding\": true"));
     }
 
     #[test]

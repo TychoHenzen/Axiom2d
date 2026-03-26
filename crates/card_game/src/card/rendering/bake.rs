@@ -5,7 +5,8 @@ use glam::Vec2;
 
 use super::face_layout::FRONT_FACE_REGIONS;
 use super::spawn_table_card::{CARD_CORNER_RADIUS, TEXT_COLOR, fit_name_font_size};
-use crate::card::art::{fit_art_mesh_to_region, tessellate_art_shapes};
+use crate::card::art::tessellate_art_shapes;
+use crate::card::art_selection::fit_art_mesh_to_region;
 use crate::card::component::CardLabel;
 use crate::card::identity::definition::rarity_border_color;
 use crate::card::identity::gem_sockets::{aspect_color, gem_desc_positions, gem_radius};

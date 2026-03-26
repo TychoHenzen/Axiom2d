@@ -57,13 +57,13 @@ impl AppState {
             config: ConvertConfig {
                 color_threshold: 0.1,
                 alpha_threshold: 128,
-                rdp_epsilon: 0.5,
-                bezier_error: 0.5,
+                rdp_epsilon: 1.5,
+                bezier_error: 1.5,
                 min_area: 4,
                 max_dimension: 128,
                 resize_method: ResizeMethod::Scale2x,
                 use_bezier: true,
-                merge_below: 0,
+                merge_below: 5,
                 max_shapes: 0,
             },
             shapes: Vec::new(),
@@ -76,7 +76,7 @@ impl AppState {
             signature_axes: [0.0; 8],
             fn_name: String::new(),
             estimate: None,
-            compact_encoding: false,
+            compact_encoding: true,
             description: String::new(),
         }
     }

@@ -5,7 +5,8 @@ use engine_render::shape::ColorMesh;
 use engine_scene::prelude::{RenderLayer, SortOrder};
 use glam::Vec2;
 
-use crate::card::art::{ShapeRepository, select_art_for_signature};
+use crate::card::art::ShapeRepository;
+use crate::card::art_selection::select_art_for_signature;
 use crate::card::component::Card;
 use crate::card::component::CardLabel;
 use crate::card::component::CardZone;
