@@ -27,8 +27,18 @@ pub struct ArtEntry {
 
 impl ArtEntry {
     /// Creates a new `ArtEntry` from a shape list and its card identity metadata.
-    pub fn new(shapes: Vec<Shape>, element: Element, aspect: Aspect, signature: CardSignature) -> Self {
-        Self { shapes, element, aspect, signature }
+    pub fn new(
+        shapes: Vec<Shape>,
+        element: Element,
+        aspect: Aspect,
+        signature: CardSignature,
+    ) -> Self {
+        Self {
+            shapes,
+            element,
+            aspect,
+            signature,
+        }
     }
 
     /// Returns the element this art entry is associated with.
@@ -75,48 +85,69 @@ impl ShapeRepository {
 
     /// Hydrate all registered art shapes and store them in the cache.
     pub fn hydrate_all(&mut self) {
-        self.cache.insert("armor1", ArtEntry::new(
-            armor1::armor1(),
-            Element::Solidum,
-            Aspect::Solid,
-            CardSignature::new([0.14, 0.59, 0.69, -0.92, -0.25, 0.58, 0.93, -0.64]),
-        ));
-        self.cache.insert("barbarian_icons_01_t", ArtEntry::new(
-            barbarian_icons_01_t::barbarian_icons_01_t(),
-            Element::Solidum,
-            Aspect::Solid,
-            CardSignature::new([-0.25, -0.38, 0.25, -0.6, -0.49, -0.66, 0.09, 0.53]),
-        ));
-        self.cache.insert("barbarian_icons_02_t", ArtEntry::new(
-            barbarian_icons_02_t::barbarian_icons_02_t(),
-            Element::Solidum,
-            Aspect::Solid,
-            CardSignature::new([-0.33, -0.58, 0.45, -0.54, -0.57, -0.86, 0.3, 0.58]),
-        ));
-        self.cache.insert("barbarian_icons_03_t", ArtEntry::new(
-            barbarian_icons_03_t::barbarian_icons_03_t(),
-            Element::Solidum,
-            Aspect::Solid,
-            CardSignature::new([-0.38, -0.52, 0.37, -0.45, -0.63, -0.81, 0.24, 0.65]),
-        ));
-        self.cache.insert("barbarian_icons_04_t", ArtEntry::new(
-            barbarian_icons_04_t::barbarian_icons_04_t(),
-            Element::Solidum,
-            Aspect::Solid,
-            CardSignature::new([0.09, -0.72, 0.59, -0.94, -0.69, -0.47, -0.1, 0.73]),
-        ));
-        self.cache.insert("barbarian_icons_05_t", ArtEntry::new(
-            barbarian_icons_05_t::barbarian_icons_05_t(),
-            Element::Solidum,
-            Aspect::Solid,
-            CardSignature::new([0.01, -0.64, 0.5, -0.88, -0.78, -0.4, -0.16, 0.78]),
-        ));
-        self.cache.insert("barbarian_icons_06_t", ArtEntry::new(
-            barbarian_icons_06_t::barbarian_icons_06_t(),
-            Element::Solidum,
-            Aspect::Solid,
-            CardSignature::new([-0.04, -0.86, 0.71, -0.79, -0.83, -0.61, 0.04, 0.86]),
-        ));
+        self.cache.insert(
+            "armor1",
+            ArtEntry::new(
+                armor1::armor1(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.14, 0.59, 0.69, -0.92, -0.25, 0.58, 0.93, -0.64]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_01_t",
+            ArtEntry::new(
+                barbarian_icons_01_t::barbarian_icons_01_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([-0.25, -0.38, 0.25, -0.6, -0.49, -0.66, 0.09, 0.53]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_02_t",
+            ArtEntry::new(
+                barbarian_icons_02_t::barbarian_icons_02_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([-0.33, -0.58, 0.45, -0.54, -0.57, -0.86, 0.3, 0.58]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_03_t",
+            ArtEntry::new(
+                barbarian_icons_03_t::barbarian_icons_03_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([-0.38, -0.52, 0.37, -0.45, -0.63, -0.81, 0.24, 0.65]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_04_t",
+            ArtEntry::new(
+                barbarian_icons_04_t::barbarian_icons_04_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.09, -0.72, 0.59, -0.94, -0.69, -0.47, -0.1, 0.73]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_05_t",
+            ArtEntry::new(
+                barbarian_icons_05_t::barbarian_icons_05_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.01, -0.64, 0.5, -0.88, -0.78, -0.4, -0.16, 0.78]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_06_t",
+            ArtEntry::new(
+                barbarian_icons_06_t::barbarian_icons_06_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([-0.04, -0.86, 0.71, -0.79, -0.83, -0.61, 0.04, 0.86]),
+            ),
+        );
     }
 
     /// Get a clone of the cached shapes for the given name.
@@ -162,7 +193,11 @@ impl ShapeRepository {
             .map(|(&name, entry)| (name, entry, entry.signature.distance_to(query)))
             .collect();
         entries.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal));
-        entries.into_iter().take(n).map(|(name, entry, _)| (name, entry)).collect()
+        entries
+            .into_iter()
+            .take(n)
+            .map(|(name, entry, _)| (name, entry))
+            .collect()
     }
 
     /// Returns the number of cached entries.
