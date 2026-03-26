@@ -7,8 +7,8 @@
       "config": {
         "color_threshold": 0.1,
         "alpha_threshold": 128,
-        "rdp_epsilon": 0.5,
-        "bezier_error": 0.5,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
         "min_area": 4,
         "max_dimension": 256,
         "resize_method": "Scale2x",
@@ -38,8 +38,8 @@
       "config": {
         "color_threshold": 0.05,
         "alpha_threshold": 128,
-        "rdp_epsilon": 0.5,
-        "bezier_error": 0.5,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
         "min_area": 4,
         "max_dimension": 128,
         "resize_method": "Scale2x",
@@ -59,7 +59,7 @@
         0.0,
         0.0
       ],
-      "compact_encoding": false,
+      "compact_encoding": true,
       "description": "basic sword"
     }
   ]

@@ -63,6 +63,26 @@ pub fn shapes_to_art_file(shapes: &[Shape], metadata: &ArtMetadata<'_>, fn_name:
     out
 }
 
+/// Generate a bare `vec![...]` literal containing shape data.
+///
+/// Unlike `shapes_to_art_file`, this produces no imports, metadata, or
+/// function wrapper — just the vec expression. Useful for clipboard export.
+pub fn shapes_to_vec_literal(shapes: &[Shape]) -> String {
+    if shapes.is_empty() {
+        return "vec![]".to_string();
+    }
+
+    let mut out = String::from("vec![\n");
+    for (i, shape) in shapes.iter().enumerate() {
+        if i > 0 {
+            out.push_str(",\n");
+        }
+        write_shape(&mut out, shape);
+    }
+    out.push_str("\n]");
+    out
+}
+
 fn fmt_f32(v: f32) -> String {
     // Round to 2 decimal places to keep generated code compact.
     let rounded = (v * 100.0).round() / 100.0;
@@ -873,5 +893,48 @@ mod tests {
             code.contains("pub use repository::ShapeRepository"),
             "missing ShapeRepository re-export:\n{code}"
         );
+    }
+
+    // --- Vec literal tests ---
+
+    #[test]
+    fn when_vec_literal_empty_shapes_then_returns_empty_vec() {
+        // Arrange
+        let shapes: Vec<Shape> = vec![];
+
+        // Act
+        let code = shapes_to_vec_literal(&shapes);
+
+        // Assert
+        assert_eq!(code, "vec![]");
+    }
+
+    #[test]
+    fn when_vec_literal_single_shape_then_contains_shape_struct() {
+        // Arrange
+        let shapes = vec![triangle_shape(Color::RED)];
+
+        // Act
+        let code = shapes_to_vec_literal(&shapes);
+
+        // Assert
+        assert!(code.starts_with("vec!["), "should start with vec![: {code}");
+        assert!(code.ends_with(']'), "should end with ]: {code}");
+        assert!(code.contains("Shape {"), "missing Shape:\n{code}");
+        assert!(code.contains("MoveTo"), "missing MoveTo:\n{code}");
+        assert!(code.contains("Close"), "missing Close:\n{code}");
+    }
+
+    #[test]
+    fn when_vec_literal_multiple_shapes_then_contains_all() {
+        // Arrange
+        let shapes = vec![triangle_shape(Color::RED), triangle_shape(Color::BLUE)];
+
+        // Act
+        let code = shapes_to_vec_literal(&shapes);
+
+        // Assert
+        let count = code.matches("Shape {").count();
+        assert_eq!(count, 2, "expected 2 shapes:\n{code}");
     }
 }

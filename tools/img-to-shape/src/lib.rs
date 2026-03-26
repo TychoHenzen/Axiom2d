@@ -5,7 +5,7 @@ pub mod manifest;
 pub mod scale2x;
 mod segment;
 mod simplify;
-mod transform;
+
 
 use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -929,8 +929,8 @@ mod tests {
         ConvertConfig {
             color_threshold: 0.1,
             alpha_threshold: 128,
-            rdp_epsilon: 0.5,
-            bezier_error: 0.5,
+            rdp_epsilon: 1.5,
+            bezier_error: 1.5,
             min_area: 0,
             max_dimension: 0,
             resize_method: ResizeMethod::Nearest,

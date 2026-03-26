@@ -1,9 +1,9 @@
 use engine_render::shape::Shape;
-use img_to_shape::codegen::{ArtMetadata, shapes_to_art_file, shapes_to_compact_art_file};
+use img_to_shape::codegen::{
+    ArtMetadata, shapes_to_art_file, shapes_to_compact_art_file, shapes_to_vec_literal,
+};
 use img_to_shape::manifest::{ASPECTS, ELEMENTS};
 use img_to_shape::{ConvertConfig, OutputEstimate, ResizeMethod};
-
-use crate::codegen::shapes_to_rust_code;
 
 /// Loaded image data: raw RGBA bytes + dimensions.
 pub struct LoadedImage {
@@ -122,7 +122,7 @@ impl AppState {
 
     /// Generate Rust source code for the current shapes (legacy vec literal).
     pub fn generate_export_code(&self) -> String {
-        shapes_to_rust_code(&self.shapes)
+        shapes_to_vec_literal(&self.shapes)
     }
 
     /// Generate a complete `.rs` file with shape data.

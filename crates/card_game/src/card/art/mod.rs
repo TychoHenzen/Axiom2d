@@ -6,6 +6,7 @@ pub mod hydrate;
 pub mod repository;
 
 pub mod armor1;
+pub mod barbarian_icons_01_t;
 
 use engine_render::prelude::tessellate;
 use engine_render::shape::{Shape, TessellatedColorMesh};
