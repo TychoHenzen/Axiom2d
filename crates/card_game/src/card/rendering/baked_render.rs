@@ -68,7 +68,7 @@ mod tests {
         let size = Vec2::new(60.0, 90.0);
         let sig = CardSignature::default();
         BakedCardMesh {
-            front: bake_front_face(&sig, size, &label),
+            front: bake_front_face(&sig, size, &label, None),
             back: bake_back_face(size),
         }
     }

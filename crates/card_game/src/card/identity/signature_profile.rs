@@ -10,17 +10,6 @@ pub enum Tier {
     Intense,
 }
 
-const ELEMENTS: [Element; 8] = [
-    Element::Solidum,
-    Element::Febris,
-    Element::Ordinem,
-    Element::Lumines,
-    Element::Varias,
-    Element::Inertiae,
-    Element::Subsidium,
-    Element::Spatium,
-];
-
 #[derive(Component, Debug, Clone, PartialEq)]
 pub struct SignatureProfile {
     pub tiers: [Tier; 8],
@@ -39,14 +28,15 @@ impl SignatureProfile {
     }
 
     pub fn without_archetype(signature: &CardSignature) -> Self {
-        let tiers = ELEMENTS.map(|element| match signature.intensity(element) {
+        let tiers = Element::ALL.map(|element| match signature.intensity(element) {
             i if i >= 0.7 => Tier::Intense,
             i if i >= 0.3 => Tier::Active,
             _ => Tier::Dormant,
         });
-        let aspects = ELEMENTS.map(|element| signature.dominant_aspect(element));
+        let aspects = Element::ALL.map(|element| signature.dominant_aspect(element));
 
-        let mut intensities: [(Element, f32); 8] = ELEMENTS.map(|e| (e, signature.intensity(e)));
+        let mut intensities: [(Element, f32); 8] =
+            Element::ALL.map(|e| (e, signature.intensity(e)));
         intensities.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         let dominant_axis = Some(intensities[0].0);

@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::codegen::{
-    ArtMetadata, generate_art_mod, generate_hydrate_module, generate_repository_module,
-    shapes_to_art_file, shapes_to_compact_art_file,
+    ArtMetadata, RepositoryEntry, generate_art_mod, generate_hydrate_module,
+    generate_repository_module, shapes_to_art_file, shapes_to_compact_art_file,
 };
 use crate::{ConvertConfig, ConvertProgress};
 
@@ -187,19 +187,32 @@ pub fn batch_build_with_progress(
         .collect();
 
     // Generate support files next to the art outputs.
-    let successful_names: Vec<&str> = results
+    let successful_entries: Vec<(&ShapeManifestEntry, &EntryBuildResult)> = manifest
+        .entries
         .iter()
-        .filter(|r| r.success)
-        .map(|r| r.fn_name.as_str())
+        .zip(results.iter())
+        .filter(|(_, r)| r.success)
         .collect();
 
-    if !successful_names.is_empty() {
-        // Determine the output directory from the first successful entry's output_path.
-        if let Some(first_output) = manifest
-            .entries
+    if !successful_entries.is_empty() {
+        let successful_names: Vec<&str> = successful_entries
             .iter()
-            .zip(results.iter())
-            .find(|(_, r)| r.success)
+            .map(|(_, r)| r.fn_name.as_str())
+            .collect();
+
+        let repo_entries: Vec<RepositoryEntry<'_>> = successful_entries
+            .iter()
+            .map(|(manifest_entry, result)| RepositoryEntry {
+                fn_name: result.fn_name.as_str(),
+                element_index: manifest_entry.element_index,
+                aspect_pole: manifest_entry.aspect_pole,
+                signature_axes: manifest_entry.signature_axes,
+            })
+            .collect();
+
+        // Determine the output directory from the first successful entry's output_path.
+        if let Some(first_output) = successful_entries
+            .first()
             .map(|(e, _)| base_dir.join(&e.output_path))
             && let Some(art_dir) = first_output.parent()
         {
@@ -207,7 +220,7 @@ pub fn batch_build_with_progress(
             let _ = std::fs::write(art_dir.join("hydrate.rs"), generate_hydrate_module());
             let _ = std::fs::write(
                 art_dir.join("repository.rs"),
-                generate_repository_module(&successful_names),
+                generate_repository_module(&repo_entries),
             );
             let _ = std::fs::write(art_dir.join("mod.rs"), generate_art_mod(&successful_names));
         }
@@ -389,6 +402,70 @@ mod tests {
         assert!(report.results[0].error.is_some());
         assert_eq!(report.failed(), 1);
         assert_eq!(report.succeeded(), 0);
+    }
+
+    #[test]
+    fn when_batch_build_succeeds_then_repository_contains_art_entry_inserts() {
+        // Arrange — create a minimal 2x2 PNG so the pipeline has something to process
+        let dir = std::env::temp_dir().join("img_to_shape_test_art_entry");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let img = image::RgbaImage::from_fn(2, 2, |_, _| image::Rgba([255, 0, 0, 255]));
+        let img_path = dir.join("red.png");
+        img.save(&img_path).unwrap();
+
+        let manifest = ShapeManifest {
+            entries: vec![ShapeManifestEntry {
+                image_path: "red.png".to_string(),
+                output_path: "art/red_art.rs".to_string(),
+                fn_name: "red_art".to_string(),
+                config: ConvertConfig {
+                    color_threshold: 0.1,
+                    alpha_threshold: 128,
+                    rdp_epsilon: 1.0,
+                    bezier_error: 1.0,
+                    min_area: 0,
+                    max_dimension: 4,
+                    resize_method: ResizeMethod::Scale2x,
+                    use_bezier: false,
+                    merge_below: 0,
+                    max_shapes: 0,
+                },
+                element_index: 1, // Febris
+                aspect_pole: 0,   // Heat
+                signature_axes: [0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                compact_encoding: true,
+                description: String::new(),
+            }],
+        };
+
+        // Act
+        let report = batch_build(&manifest, &dir);
+
+        // Assert
+        assert_eq!(report.succeeded(), 1, "batch_build should succeed");
+        let repo_content = std::fs::read_to_string(dir.join("art/repository.rs"))
+            .expect("repository.rs should exist");
+        assert!(
+            repo_content.contains("ArtEntry::new("),
+            "missing ArtEntry constructor:\n{repo_content}"
+        );
+        assert!(
+            repo_content.contains("Element::Febris"),
+            "missing Element::Febris:\n{repo_content}"
+        );
+        assert!(
+            repo_content.contains("Aspect::Heat"),
+            "missing Aspect::Heat:\n{repo_content}"
+        );
+        assert!(
+            repo_content.contains("CardSignature::new("),
+            "missing CardSignature:\n{repo_content}"
+        );
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

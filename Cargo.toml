@@ -53,6 +53,14 @@ cast_possible_wrap = "allow"
 # Correctness lints worth promoting
 unwrap_used = "warn"
 
+[profile.dev]
+debug = 1              # line tables only — cuts DWARF bloat dramatically
+incremental = true     # keep for iteration speed, cargo clean periodically
+
+[profile.dev.package."*"]
+debug = false          # no debug info for dependencies
+opt-level = 0
+
 [profile.release]
 opt-level = "z"       # optimize for size instead of speed
 lto = true            # full LTO — slower builds, smaller binary

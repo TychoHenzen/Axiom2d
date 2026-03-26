@@ -50,6 +50,17 @@ pub enum Aspect {
 }
 
 impl Element {
+    pub const ALL: [Self; 8] = [
+        Self::Solidum,
+        Self::Febris,
+        Self::Ordinem,
+        Self::Lumines,
+        Self::Varias,
+        Self::Inertiae,
+        Self::Subsidium,
+        Self::Spatium,
+    ];
+
     fn index(self) -> usize {
         self as usize
     }

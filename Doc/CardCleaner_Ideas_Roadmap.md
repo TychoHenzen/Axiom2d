@@ -204,17 +204,26 @@ Items from the tech debt audit that should be addressed before or alongside new 
 - [x] Wired into `spawn_visual_card`: uses stats-based description when available, falls back to subtitle
 - [x] 9 tests: zero stats, single stat, magnitude ordering, top-3 cap, small-value omission, per-keyword format, spawn integration
 
-### I7d — Card Art Icons (Shader-Drawn Iconography) `[NOT STARTED]`
+### I7d — Card Art Icons (Vector Art from img-to-shape) `[IN PROGRESS]`
 **Inspired by:** Debate consensus — archetype silhouettes + axis-derived glyph overlays
-**Engine gaps:** Extends existing card art shader overlay system (baked_render.rs art_shader_program)
-**Why:** The card art shader currently draws procedural patterns (gradients, noise). This step adds recognizable icons — each card's art area renders a distinct icon derived from its archetype and dominant element. Icons are drawn by the art shader (not lyon paths), keeping them resolution-independent and integrated with the existing baked card rendering pipeline. Players instantly recognize card types by their icon silhouette.
+**Engine gaps:** None — uses img-to-shape vector art pipeline + existing baked card mesh
+**Why:** Cards display vector art icons in the art region, selected by signature proximity from `ShapeRepository`. The img-to-shape tool converts source images to compact `Shape` data; at runtime, `select_art_for_signature` picks the best match by dominant element (with closest-by-signature fallback), tessellates it, fits it to the art region bounds, and bakes it into the card's front mesh.
 
-- [ ] Icon selection: archetype determines base icon shape (Weapon=sword, Shield=shield, Spell=star, Healer=cross, Scout=arrow)
+**Completed:**
+- [x] `select_art_for_signature(sig, repo) -> Option<&ArtEntry>` — dominant element match with closest_to fallback
+- [x] `art_bounding_box(mesh) -> Option<(min, max)>` — AABB of tessellated mesh
+- [x] `fit_art_mesh_to_region(mesh, half_w, half_h, center_y)` — uniform scale + translate preserving aspect ratio
+- [x] `bake_front_face` accepts `Option<&[Shape]>` art parameter, injects fitted art into baked mesh
+- [x] `spawn_visual_card` queries `ShapeRepository` resource, passes art to bake
+- [x] `ShapeRepository` derives `Resource`, hydrated during splash screen preload
+- [x] `Element::ALL` const on `Element` type, replacing 3 duplicated arrays
+- [x] 13 tests covering selection, bounding box, fitting, bake integration, spawn integration
+
+**Remaining:**
+- [ ] More art source images → more entries in ShapeRepository (currently only armor1, barbarian_icons_01_t)
 - [ ] Element influence: dominant element modifies icon style (color tint, secondary detail)
 - [ ] Tier variation: Dormant=simple outline, Active=filled, Intense=filled+glow effect
 - [ ] `CardIconParams` struct: icon_type, element_tint, tier_detail — derived from SignatureProfile
-- [ ] Integrate into `art_shader_program` in baked_render.rs
-- [ ] Tests: deterministic icon params from profile, archetype selects correct icon, tier selects correct detail level
 
 ---
 

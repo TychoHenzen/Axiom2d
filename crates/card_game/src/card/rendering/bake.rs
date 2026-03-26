@@ -1,10 +1,11 @@
 use engine_render::font::{bake_balanced_text_into_mesh, bake_wrapped_text_into_mesh};
 use engine_render::prelude::{rect_polygon, rounded_rect_path, tessellate};
-use engine_render::shape::{ShapeVariant, TessellatedColorMesh};
+use engine_render::shape::{Shape, ShapeVariant, TessellatedColorMesh};
 use glam::Vec2;
 
 use super::face_layout::FRONT_FACE_REGIONS;
 use super::spawn_table_card::{CARD_CORNER_RADIUS, TEXT_COLOR, fit_name_font_size};
+use crate::card::art::{fit_art_mesh_to_region, tessellate_art_shapes};
 use crate::card::component::CardLabel;
 use crate::card::identity::definition::rarity_border_color;
 use crate::card::identity::gem_sockets::{aspect_color, gem_desc_positions, gem_radius};
@@ -23,6 +24,7 @@ pub fn bake_front_face(
     signature: &CardSignature,
     card_size: Vec2,
     label: &CardLabel,
+    art_shapes: Option<&[Shape]>,
 ) -> TessellatedColorMesh {
     let mut mesh = TessellatedColorMesh::new();
     let (w, h) = (card_size.x, card_size.y);
@@ -52,6 +54,19 @@ pub fn bake_front_face(
                 .map(|&[x, y]| [x, y + offset_y])
                 .collect();
             mesh.push_vertices(&offset, &tess.indices, color);
+        }
+    }
+
+    // --- Art shapes (tessellated vector art, fitted to art region) ---
+    if let Some(shapes) = art_shapes {
+        let art_mesh = tessellate_art_shapes(shapes);
+        if !art_mesh.is_empty() {
+            let (art_hw, art_hh, art_oy) = FRONT_FACE_REGIONS[2].resolve(w, h);
+            let fitted = fit_art_mesh_to_region(&art_mesh, art_hw, art_hh, art_oy);
+            let vertex_base = mesh.vertices.len() as u32;
+            mesh.vertices.extend_from_slice(&fitted.vertices);
+            mesh.indices
+                .extend(fitted.indices.iter().map(|&i| i + vertex_base));
         }
     }
 
@@ -89,17 +104,7 @@ pub fn bake_front_face(
 
     // --- Gems ---
     let positions = gem_desc_positions(card_size);
-    let elements = [
-        Element::Solidum,
-        Element::Febris,
-        Element::Ordinem,
-        Element::Lumines,
-        Element::Varias,
-        Element::Inertiae,
-        Element::Subsidium,
-        Element::Spatium,
-    ];
-    for (i, element) in elements.iter().enumerate() {
+    for (i, element) in Element::ALL.iter().enumerate() {
         let intensity = signature.intensity(*element);
         let aspect = signature.dominant_aspect(*element);
         let gem_color = color_to_array(aspect_color(aspect));
@@ -165,7 +170,7 @@ mod tests {
         };
 
         // Act
-        let mesh = bake_front_face(&sig, card_size, &label);
+        let mesh = bake_front_face(&sig, card_size, &label, None);
 
         // Assert
         assert!(!mesh.is_empty(), "front mesh should have geometry");
@@ -187,7 +192,7 @@ mod tests {
         };
 
         // Act
-        let mesh = bake_front_face(&sig, card_size, &label);
+        let mesh = bake_front_face(&sig, card_size, &label, None);
 
         // Assert — mesh should have significantly more vertices than just 4 rectangles
         assert!(
@@ -216,7 +221,7 @@ mod tests {
         ];
 
         // Act
-        let mesh = bake_front_face(&sig, card_size, &label);
+        let mesh = bake_front_face(&sig, card_size, &label, None);
 
         // Assert — no vertex should have the art area's generated color
         let has_art_color = mesh.vertices.iter().any(|v| v.color == art_color);
@@ -236,5 +241,76 @@ mod tests {
 
         // Assert
         assert!(!mesh.is_empty());
+    }
+
+    #[test]
+    fn when_baking_with_art_shapes_then_more_vertices_than_without() {
+        // Arrange
+        let sig = CardSignature::default();
+        let card_size = Vec2::new(60.0, 90.0);
+        let label = CardLabel {
+            name: "Test".to_owned(),
+            description: "Desc".to_owned(),
+        };
+        let art_shapes = vec![Shape {
+            variant: ShapeVariant::Circle { radius: 10.0 },
+            color: engine_core::color::Color::WHITE,
+        }];
+
+        // Act
+        let without = bake_front_face(&sig, card_size, &label, None);
+        let with = bake_front_face(&sig, card_size, &label, Some(&art_shapes));
+
+        // Assert
+        assert!(
+            with.vertices.len() > without.vertices.len(),
+            "with art: {} vertices, without: {} — expected more with art",
+            with.vertices.len(),
+            without.vertices.len()
+        );
+    }
+
+    #[test]
+    fn when_baking_with_art_shapes_then_all_indices_valid() {
+        // Arrange
+        let sig = CardSignature::default();
+        let card_size = Vec2::new(60.0, 90.0);
+        let label = CardLabel {
+            name: "Test".to_owned(),
+            description: "Desc".to_owned(),
+        };
+        let art_shapes = vec![Shape {
+            variant: ShapeVariant::Circle { radius: 10.0 },
+            color: engine_core::color::Color::WHITE,
+        }];
+
+        // Act
+        let mesh = bake_front_face(&sig, card_size, &label, Some(&art_shapes));
+
+        // Assert — all indices must be valid after art injection
+        let vcount = mesh.vertices.len() as u32;
+        assert_eq!(mesh.indices.len() % 3, 0, "indices should form triangles");
+        for &i in &mesh.indices {
+            assert!(i < vcount, "index {i} out of bounds ({vcount} vertices)");
+        }
+    }
+
+    #[test]
+    fn when_baking_without_art_then_vertex_count_unchanged() {
+        // Arrange
+        let sig = CardSignature::default();
+        let card_size = Vec2::new(60.0, 90.0);
+        let label = CardLabel {
+            name: "Test".to_owned(),
+            description: "Desc".to_owned(),
+        };
+
+        // Act
+        let mesh_a = bake_front_face(&sig, card_size, &label, None);
+        let mesh_b = bake_front_face(&sig, card_size, &label, None);
+
+        // Assert
+        assert_eq!(mesh_a.vertices.len(), mesh_b.vertices.len());
+        assert_eq!(mesh_a.indices.len(), mesh_b.indices.len());
     }
 }

@@ -6,7 +6,6 @@ pub mod scale2x;
 mod segment;
 mod simplify;
 
-
 use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Mutex};

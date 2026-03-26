@@ -5,6 +5,7 @@ use engine_render::shape::ColorMesh;
 use engine_scene::prelude::{RenderLayer, SortOrder};
 use glam::Vec2;
 
+use crate::card::art::{ShapeRepository, select_art_for_signature};
 use crate::card::component::Card;
 use crate::card::component::CardLabel;
 use crate::card::component::CardZone;
@@ -90,8 +91,12 @@ pub fn spawn_visual_card(
         world.entity_mut(root).insert(stats);
     }
 
+    let art_shapes = world
+        .get_resource::<ShapeRepository>()
+        .and_then(|repo| select_art_for_signature(&signature, repo))
+        .map(|entry| entry.shapes().to_vec());
     let baked = BakedCardMesh {
-        front: bake_front_face(&card.signature, card_size, &label),
+        front: bake_front_face(&card.signature, card_size, &label, art_shapes.as_deref()),
         back: bake_back_face(card_size),
     };
     let initial_mesh = if face_up {
@@ -534,6 +539,75 @@ mod tests {
             "card with residual stats should have effect-based description, got: {:?}",
             label.description
         );
+    }
+
+    #[test]
+    fn when_spawn_with_shape_repository_then_front_mesh_has_more_vertices() {
+        use crate::card::art::ShapeRepository;
+
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+        // Spawn baseline without repo
+        let baseline_root = spawn_def(&mut world, &def);
+        let baseline_verts = world
+            .get::<BakedCardMesh>(baseline_root)
+            .unwrap()
+            .front
+            .vertices
+            .len();
+
+        // Now insert a hydrated ShapeRepository and spawn again
+        let mut repo = ShapeRepository::new();
+        repo.hydrate_all();
+        world.insert_resource(repo);
+        let sig = CardSignature::new([0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::new(100.0, 0.0),
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            false,
+            sig,
+        );
+
+        // Assert
+        let with_art_verts = world
+            .get::<BakedCardMesh>(root)
+            .unwrap()
+            .front
+            .vertices
+            .len();
+        assert!(
+            with_art_verts > baseline_verts,
+            "with repo: {with_art_verts} vertices, without: {baseline_verts} — expected more"
+        );
+    }
+
+    #[test]
+    fn when_spawn_without_shape_repository_then_front_mesh_matches_baseline() {
+        // Arrange
+        let mut world = World::new();
+        let def = make_test_def();
+
+        // Act — spawn twice without repo
+        let root_a = spawn_def(&mut world, &def);
+        let root_b = spawn_def(&mut world, &def);
+
+        // Assert
+        let verts_a = world
+            .get::<BakedCardMesh>(root_a)
+            .unwrap()
+            .front
+            .vertices
+            .len();
+        let verts_b = world
+            .get::<BakedCardMesh>(root_b)
+            .unwrap()
+            .front
+            .vertices
+            .len();
+        assert_eq!(verts_a, verts_b);
     }
 
     #[test]

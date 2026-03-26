@@ -1,7 +1,7 @@
 mod card_data;
 
 use axiom2d::prelude::*;
-use card_game::card::art::{armor1::armor1, tessellate_art_shapes};
+use card_game::card::art::{ShapeRepository, armor1::armor1, tessellate_art_shapes};
 use card_game::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
@@ -76,8 +76,6 @@ fn spawn_scene(world: &mut World) {
         )
         .expect("card entity should have physics body");
 
-    // Demo: render the armor01 art as a standalone ColorMesh.
-    // Shapes are tessellated at runtime into a single colored mesh.
     let art_mesh = tessellate_art_shapes(&armor1());
     world.spawn((
         Transform2D {
@@ -109,9 +107,14 @@ fn setup(app: &mut App) {
         .resource_mut::<PostSplashSetup>()
         .add(spawn_scene);
 
-    app.world_mut()
-        .resource_mut::<PreloadHooks>()
-        .add(|world: &mut World| {
+    {
+        let hooks = &mut *app.world_mut().resource_mut::<PreloadHooks>();
+        hooks.add(|world: &mut World| {
+            let mut repo = ShapeRepository::new();
+            repo.hydrate_all();
+            world.insert_resource(repo);
+        });
+        hooks.add(|world: &mut World| {
             const WARM_UP_STEPS: u32 = 10;
             const WARM_UP_DT: f32 = 1.0 / 60.0;
             let Some(mut physics) = world.remove_resource::<PhysicsRes>() else {
@@ -122,6 +125,7 @@ fn setup(app: &mut App) {
             }
             world.insert_resource(physics);
         });
+    }
 }
 
 fn main() {
