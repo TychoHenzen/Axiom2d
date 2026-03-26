@@ -31,7 +31,10 @@ impl ShapeRepository {
     /// Hydrate all registered art shapes and store them in the cache.
     pub fn hydrate_all(&mut self) {
         self.cache.insert("armor1", armor1::armor1());
-        self.cache.insert("barbarian_icons_01_t", barbarian_icons_01_t::barbarian_icons_01_t());
+        self.cache.insert(
+            "barbarian_icons_01_t",
+            barbarian_icons_01_t::barbarian_icons_01_t(),
+        );
     }
 
     /// Get a clone of the cached shapes for the given name.
