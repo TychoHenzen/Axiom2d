@@ -1,2 +1,2 @@
 ﻿[build]
-target-dir = "/home/tycho/.cargo/shared-target"
+target-dir = "target"
