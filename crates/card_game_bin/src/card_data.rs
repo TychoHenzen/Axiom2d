@@ -12,7 +12,15 @@ pub struct StarterCard {
 pub fn starter_deck(_rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
     // Hand-crafted signatures that produce one of each rarity tier.
     // Rarity is derived from sum-of-abs-axes through a log-normalized score.
-    let cards: Vec<(&str, CardType, Option<CardStats>, Vec<Keyword>, &str, Vec2, [f32; 8])> = vec![
+    let cards: Vec<(
+        &str,
+        CardType,
+        Option<CardStats>,
+        Vec<Keyword>,
+        &str,
+        Vec2,
+        [f32; 8],
+    )> = vec![
         (
             "Fireball",
             CardType::Spell,
@@ -72,22 +80,20 @@ pub fn starter_deck(_rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
     cards
         .into_iter()
         .map(
-            |(name, card_type, stats, keywords, text, position, axes)| {
-                StarterCard {
-                    definition: CardDefinition {
-                        card_type,
-                        name: name.to_owned(),
-                        stats,
-                        abilities: CardAbilities {
-                            keywords,
-                            text: text.to_owned(),
-                        },
-                        art: art_descriptor_default(card_type),
+            |(name, card_type, stats, keywords, text, position, axes)| StarterCard {
+                definition: CardDefinition {
+                    card_type,
+                    name: name.to_owned(),
+                    stats,
+                    abilities: CardAbilities {
+                        keywords,
+                        text: text.to_owned(),
                     },
-                    position,
-                    face_up: true,
-                    signature: CardSignature::new(axes),
-                }
+                    art: art_descriptor_default(card_type),
+                },
+                position,
+                face_up: true,
+                signature: CardSignature::new(axes),
             },
         )
         .collect()
@@ -147,10 +153,25 @@ mod tests {
 
         // Assert
         let rarities: Vec<Rarity> = deck.iter().map(|c| c.signature.rarity()).collect();
-        assert!(rarities.contains(&Rarity::Common), "missing Common: {rarities:?}");
-        assert!(rarities.contains(&Rarity::Uncommon), "missing Uncommon: {rarities:?}");
-        assert!(rarities.contains(&Rarity::Rare), "missing Rare: {rarities:?}");
-        assert!(rarities.contains(&Rarity::Epic), "missing Epic: {rarities:?}");
-        assert!(rarities.contains(&Rarity::Legendary), "missing Legendary: {rarities:?}");
+        assert!(
+            rarities.contains(&Rarity::Common),
+            "missing Common: {rarities:?}"
+        );
+        assert!(
+            rarities.contains(&Rarity::Uncommon),
+            "missing Uncommon: {rarities:?}"
+        );
+        assert!(
+            rarities.contains(&Rarity::Rare),
+            "missing Rare: {rarities:?}"
+        );
+        assert!(
+            rarities.contains(&Rarity::Epic),
+            "missing Epic: {rarities:?}"
+        );
+        assert!(
+            rarities.contains(&Rarity::Legendary),
+            "missing Legendary: {rarities:?}"
+        );
     }
 }
