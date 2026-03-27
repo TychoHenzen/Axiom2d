@@ -1,5 +1,5 @@
-use bevy_ecs::prelude::{Query, Res, ResMut, Resource};
-use engine_core::prelude::DeltaTime;
+use bevy_ecs::prelude::{Query, Res, Resource};
+use engine_input::prelude::MouseState;
 use engine_render::prelude::{ShaderHandle, ShaderRegistry};
 use engine_render::shape::MeshOverlays;
 
@@ -9,20 +9,24 @@ pub const UV_GRADIENT_WGSL: &str = include_str!("../../shaders/uv_gradient.wgsl"
 pub const GLOSSY_WGSL: &str = include_str!("../../shaders/glossy.wgsl");
 pub const EMBOSSED_WGSL: &str = include_str!("../../shaders/embossed.wgsl");
 pub const FOIL_WGSL: &str = include_str!("../../shaders/foil.wgsl");
+pub const GLOW_WGSL: &str = include_str!("../../shaders/glow.wgsl");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShaderVariant {
     None,
-    Glossy,
     Embossed,
+    Glow,
+    Glossy,
     Foil,
 }
 
 impl ShaderVariant {
     pub fn from_rarity(rarity: Rarity) -> Self {
         match rarity {
-            Rarity::Common | Rarity::Uncommon | Rarity::Epic => Self::None,
-            Rarity::Rare => Self::Glossy,
+            Rarity::Common => Self::None,
+            Rarity::Uncommon => Self::Embossed,
+            Rarity::Rare => Self::Glow,
+            Rarity::Epic => Self::Glossy,
             Rarity::Legendary => Self::Foil,
         }
     }
@@ -36,31 +40,24 @@ pub struct CardArtShader(pub ShaderHandle);
 pub struct ArtRegionParams {
     pub half_w: f32,
     pub half_h: f32,
-    pub time: f32,
-    pub _pad: f32,
+    pub pointer_x: f32,
+    pub pointer_y: f32,
+    pub offset_y: f32,
+    pub _pad0: f32,
+    pub _pad1: f32,
+    pub _pad2: f32,
 }
 
-#[derive(Resource, Debug, Clone, Copy)]
-pub struct ShaderTime(pub f32);
-
-impl Default for ShaderTime {
-    fn default() -> Self {
-        Self(0.0)
-    }
-}
-
-pub fn shader_time_system(
-    dt: Res<DeltaTime>,
-    mut shader_time: ResMut<ShaderTime>,
-    mut overlays_query: Query<&mut MeshOverlays>,
-) {
-    shader_time.0 += dt.0.0;
-    let time_bytes = shader_time.0.to_le_bytes();
+pub fn shader_pointer_system(mouse: Res<MouseState>, mut overlays_query: Query<&mut MeshOverlays>) {
+    let world_pos = mouse.world_pos();
+    let px_bytes = world_pos.x.to_le_bytes();
+    let py_bytes = world_pos.y.to_le_bytes();
     for mut overlays in &mut overlays_query {
         for entry in &mut overlays.0 {
             let uniforms = &mut entry.material.uniforms;
             if uniforms.len() >= 16 {
-                uniforms[8..12].copy_from_slice(&time_bytes);
+                uniforms[8..12].copy_from_slice(&px_bytes);
+                uniforms[12..16].copy_from_slice(&py_bytes);
             }
         }
     }
@@ -72,15 +69,17 @@ pub fn register_card_art_shader(registry: &mut ShaderRegistry) -> CardArtShader 
 
 #[derive(Resource, Debug, Clone, Copy)]
 pub struct VariantShaders {
-    pub glossy: ShaderHandle,
     pub embossed: ShaderHandle,
+    pub glow: ShaderHandle,
+    pub glossy: ShaderHandle,
     pub foil: ShaderHandle,
 }
 
 pub fn register_variant_shaders(registry: &mut ShaderRegistry) -> VariantShaders {
     VariantShaders {
-        glossy: registry.register(GLOSSY_WGSL),
         embossed: registry.register(EMBOSSED_WGSL),
+        glow: registry.register(GLOW_WGSL),
+        glossy: registry.register(GLOSSY_WGSL),
         foil: registry.register(FOIL_WGSL),
     }
 }
@@ -138,35 +137,39 @@ mod tests {
     }
 
     #[test]
-    fn when_rarity_below_rare_then_shader_variant_is_none() {
-        // Arrange
-        let low_rarities = [Rarity::Common, Rarity::Uncommon];
+    fn when_rarity_is_common_then_shader_variant_is_none() {
+        // Act
+        let variant = ShaderVariant::from_rarity(Rarity::Common);
 
-        for rarity in low_rarities {
-            // Act
-            let variant = ShaderVariant::from_rarity(rarity);
-
-            // Assert
-            assert_eq!(variant, ShaderVariant::None, "expected None for {rarity:?}");
-        }
+        // Assert
+        assert_eq!(variant, ShaderVariant::None);
     }
 
     #[test]
-    fn when_rarity_is_rare_then_shader_variant_is_glossy() {
+    fn when_rarity_is_uncommon_then_shader_variant_is_embossed() {
+        // Act
+        let variant = ShaderVariant::from_rarity(Rarity::Uncommon);
+
+        // Assert
+        assert_eq!(variant, ShaderVariant::Embossed);
+    }
+
+    #[test]
+    fn when_rarity_is_rare_then_shader_variant_is_glow() {
         // Act
         let variant = ShaderVariant::from_rarity(Rarity::Rare);
 
         // Assert
-        assert_eq!(variant, ShaderVariant::Glossy);
+        assert_eq!(variant, ShaderVariant::Glow);
     }
 
     #[test]
-    fn when_rarity_is_epic_then_shader_variant_is_none() {
+    fn when_rarity_is_epic_then_shader_variant_is_glossy() {
         // Act
         let variant = ShaderVariant::from_rarity(Rarity::Epic);
 
         // Assert
-        assert_eq!(variant, ShaderVariant::None);
+        assert_eq!(variant, ShaderVariant::Glossy);
     }
 
     #[test]
@@ -236,6 +239,11 @@ mod tests {
     }
 
     #[test]
+    fn when_glow_shader_parsed_and_inspected_then_valid_with_correct_bindings() {
+        assert_variant_shader_valid(GLOW_WGSL, "glow");
+    }
+
+    #[test]
     fn when_all_card_shaders_parsed_then_accept_uv_at_location2() {
         // Arrange
         let shaders: &[(&str, &str)] = &[
@@ -243,6 +251,7 @@ mod tests {
             (GLOSSY_WGSL, "glossy"),
             (EMBOSSED_WGSL, "embossed"),
             (FOIL_WGSL, "foil"),
+            (GLOW_WGSL, "glow"),
         ];
 
         for (source, name) in shaders {
@@ -259,20 +268,24 @@ mod tests {
     }
 
     #[test]
-    fn when_art_region_params_converted_to_bytes_then_size_is_sixteen_bytes() {
+    fn when_art_region_params_converted_to_bytes_then_size_is_thirty_two_bytes() {
         // Arrange
         let params = ArtRegionParams {
             half_w: 27.0,
             half_h: 22.5,
-            time: 0.0,
-            _pad: 0.0,
+            pointer_x: 0.0,
+            pointer_y: 0.0,
+            offset_y: 5.0,
+            _pad0: 0.0,
+            _pad1: 0.0,
+            _pad2: 0.0,
         };
 
         // Act
         let bytes = bytemuck::bytes_of(&params);
 
         // Assert
-        assert_eq!(bytes.len(), 16);
+        assert_eq!(bytes.len(), 32);
     }
 
     #[test]
@@ -284,8 +297,9 @@ mod tests {
         let variants = register_variant_shaders(&mut registry);
 
         // Assert
-        assert_eq!(registry.lookup(variants.glossy), Some(GLOSSY_WGSL));
         assert_eq!(registry.lookup(variants.embossed), Some(EMBOSSED_WGSL));
+        assert_eq!(registry.lookup(variants.glow), Some(GLOW_WGSL));
+        assert_eq!(registry.lookup(variants.glossy), Some(GLOSSY_WGSL));
         assert_eq!(registry.lookup(variants.foil), Some(FOIL_WGSL));
     }
 }

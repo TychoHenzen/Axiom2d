@@ -100,7 +100,7 @@ impl WgpuRenderer {
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: None,
-                    contents: &[0u8; 16],
+                    contents: &[0u8; 32],
                     usage: wgpu::BufferUsages::UNIFORM,
                 });
         let default_material_bind_group =

@@ -117,11 +117,15 @@ impl WgpuRenderer {
                 if draw.material_uniforms.is_empty() {
                     return self.default_material_bind_group.clone();
                 }
+                let mut contents = draw.material_uniforms.clone();
+                if contents.len() < 32 {
+                    contents.resize(32, 0);
+                }
                 let buffer = self
                     .device
                     .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                         label: None,
-                        contents: &draw.material_uniforms,
+                        contents: &contents,
                         usage: wgpu::BufferUsages::UNIFORM,
                     });
                 self.device.create_bind_group(&wgpu::BindGroupDescriptor {

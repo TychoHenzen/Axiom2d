@@ -133,8 +133,12 @@ fn build_mesh_overlays(
     let art_params = ArtRegionParams {
         half_w,
         half_h,
-        time: 0.0,
-        _pad: 0.0,
+        pointer_x: 0.0,
+        pointer_y: 0.0,
+        offset_y,
+        _pad0: 0.0,
+        _pad1: 0.0,
+        _pad2: 0.0,
     };
     let art_uniforms = bytemuck::bytes_of(&art_params).to_vec();
 
@@ -188,8 +192,9 @@ fn build_mesh_overlays(
         variant => world
             .get_resource::<VariantShaders>()
             .map(|vs| match variant {
-                ShaderVariant::Glossy => vs.glossy,
                 ShaderVariant::Embossed => vs.embossed,
+                ShaderVariant::Glow => vs.glow,
+                ShaderVariant::Glossy => vs.glossy,
                 ShaderVariant::Foil => vs.foil,
                 ShaderVariant::None => unreachable!(),
             }),
@@ -672,9 +677,17 @@ mod tests {
         let overlays = world.get::<MeshOverlays>(root).unwrap();
         for (oi, entry) in overlays.0.iter().enumerate() {
             let total = entry.mesh.vertices.len();
-            let zero = entry.mesh.vertices.iter().filter(|v| v.uv == [0.0, 0.0]).count();
+            let zero = entry
+                .mesh
+                .vertices
+                .iter()
+                .filter(|v| v.uv == [0.0, 0.0])
+                .count();
             let nonzero = total - zero;
-            eprintln!("Overlay {oi}: {total} verts, {zero} zero-uv, {nonzero} nonzero-uv, visible={}", entry.visible);
+            eprintln!(
+                "Overlay {oi}: {total} verts, {zero} zero-uv, {nonzero} nonzero-uv, visible={}",
+                entry.visible
+            );
             for (vi, v) in entry.mesh.vertices.iter().enumerate() {
                 if v.uv != [0.0, 0.0] && vi < 5 {
                     eprintln!("  v[{vi}] pos={:?} uv={:?}", v.position, v.uv);
@@ -682,10 +695,20 @@ mod tests {
             }
         }
 
-        let baked = world.get::<crate::card::rendering::baked_mesh::BakedCardMesh>(root).unwrap();
+        let baked = world
+            .get::<crate::card::rendering::baked_mesh::BakedCardMesh>(root)
+            .unwrap();
         let total = baked.front.vertices.len();
-        let zero = baked.front.vertices.iter().filter(|v| v.uv == [0.0, 0.0]).count();
-        eprintln!("BakedFront: {total} verts, {zero} zero-uv, {} nonzero-uv", total - zero);
+        let zero = baked
+            .front
+            .vertices
+            .iter()
+            .filter(|v| v.uv == [0.0, 0.0])
+            .count();
+        eprintln!(
+            "BakedFront: {total} verts, {zero} zero-uv, {} nonzero-uv",
+            total - zero
+        );
 
         assert!(overlays.0.len() == 2);
     }
@@ -895,8 +918,8 @@ mod tests {
             .expect("root should have MeshOverlays");
         assert_eq!(
             overlays.0[1].material.uniforms.len(),
-            16,
-            "variant overlay uniforms should be 16 bytes (half_w + half_h + time + pad)"
+            32,
+            "variant overlay uniforms should be 32 bytes (ArtRegionParams)"
         );
     }
 

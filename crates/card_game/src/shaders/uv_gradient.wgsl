@@ -9,8 +9,12 @@ struct ModelUniform {
 struct ArtRegionParams {
     half_w: f32,
     half_h: f32,
-    time: f32,
-    _pad: f32,
+    pointer_x: f32,
+    pointer_y: f32,
+    offset_y: f32,
+    _pad0: f32,
+    _pad1: f32,
+    _pad2: f32,
 };
 
 @group(0) @binding(0) var<uniform> camera: CameraUniform;

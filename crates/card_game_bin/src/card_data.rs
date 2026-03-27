@@ -9,8 +9,10 @@ pub struct StarterCard {
     pub signature: CardSignature,
 }
 
-pub fn starter_deck(rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
-    let cards = vec![
+pub fn starter_deck(_rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
+    // Hand-crafted signatures that produce one of each rarity tier.
+    // Rarity is derived from sum-of-abs-axes through a log-normalized score.
+    let cards: Vec<(&str, CardType, Option<CardStats>, Vec<Keyword>, &str, Vec2, [f32; 8])> = vec![
         (
             "Fireball",
             CardType::Spell,
@@ -18,7 +20,8 @@ pub fn starter_deck(rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
             vec![],
             "Deal 3 damage",
             Vec2::new(-120.0, 0.0),
-            false,
+            // Common: raw ≈ 0.8, normalized ≈ 0.25
+            [0.1, -0.1, 0.1, -0.1, 0.1, -0.1, 0.1, -0.1],
         ),
         (
             "Shield",
@@ -27,7 +30,8 @@ pub fn starter_deck(rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
             vec![],
             "Block 2 damage",
             Vec2::new(-60.0, 30.0),
-            false,
+            // Uncommon: raw ≈ 1.6, normalized ≈ 0.43
+            [0.2, -0.2, 0.2, -0.2, 0.2, -0.2, 0.2, -0.2],
         ),
         (
             "Heal",
@@ -40,7 +44,8 @@ pub fn starter_deck(rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
             vec![Keyword::Lifesteal],
             "Restore 4 HP",
             Vec2::new(0.0, 0.0),
-            true,
+            // Rare: raw ≈ 2.8, normalized ≈ 0.55
+            [0.35, -0.35, 0.35, -0.35, 0.35, -0.35, 0.35, -0.35],
         ),
         (
             "Lightning",
@@ -49,7 +54,8 @@ pub fn starter_deck(rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
             vec![],
             "Deal 5 damage",
             Vec2::new(60.0, -20.0),
-            false,
+            // Epic: raw ≈ 4.4, normalized ≈ 0.72
+            [0.55, -0.55, 0.55, -0.55, 0.55, -0.55, 0.55, -0.55],
         ),
         (
             "Draw",
@@ -58,15 +64,15 @@ pub fn starter_deck(rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
             vec![],
             "Draw 2 cards",
             Vec2::new(120.0, 10.0),
-            false,
+            // Legendary: raw ≈ 6.4, normalized ≈ 0.86
+            [0.8, -0.8, 0.8, -0.8, 0.8, -0.8, 0.8, -0.8],
         ),
     ];
 
     cards
         .into_iter()
         .map(
-            |(name, card_type, stats, keywords, text, position, face_up)| {
-                let signature = CardSignature::random(rng);
+            |(name, card_type, stats, keywords, text, position, axes)| {
                 StarterCard {
                     definition: CardDefinition {
                         card_type,
@@ -79,8 +85,8 @@ pub fn starter_deck(rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
                         art: art_descriptor_default(card_type),
                     },
                     position,
-                    face_up,
-                    signature,
+                    face_up: true,
+                    signature: CardSignature::new(axes),
                 }
             },
         )
@@ -114,39 +120,37 @@ mod tests {
     }
 
     #[test]
-    fn when_same_seed_then_identical_signatures() {
+    fn when_starter_deck_built_then_all_cards_are_face_up() {
         // Arrange
-        let mut rng1 = ChaCha8Rng::seed_from_u64(42);
-        let mut rng2 = ChaCha8Rng::seed_from_u64(42);
+        let mut rng = ChaCha8Rng::seed_from_u64(0);
 
         // Act
-        let deck1 = starter_deck(&mut rng1);
-        let deck2 = starter_deck(&mut rng2);
+        let deck = starter_deck(&mut rng);
 
         // Assert
-        for (a, b) in deck1.iter().zip(deck2.iter()) {
-            assert_eq!(a.signature, b.signature);
+        for card in &deck {
+            assert!(
+                card.face_up,
+                "card '{}' should be face up",
+                card.definition.name
+            );
         }
     }
 
     #[test]
-    fn when_different_seeds_then_at_least_one_signature_differs() {
+    fn when_starter_deck_built_then_every_rarity_tier_is_represented() {
         // Arrange
-        let mut rng1 = ChaCha8Rng::seed_from_u64(0);
-        let mut rng2 = ChaCha8Rng::seed_from_u64(1);
+        let mut rng = ChaCha8Rng::seed_from_u64(0);
 
         // Act
-        let deck1 = starter_deck(&mut rng1);
-        let deck2 = starter_deck(&mut rng2);
+        let deck = starter_deck(&mut rng);
 
         // Assert
-        let any_different = deck1
-            .iter()
-            .zip(deck2.iter())
-            .any(|(a, b)| a.signature != b.signature);
-        assert!(
-            any_different,
-            "different seeds should produce different signatures"
-        );
+        let rarities: Vec<Rarity> = deck.iter().map(|c| c.signature.rarity()).collect();
+        assert!(rarities.contains(&Rarity::Common), "missing Common: {rarities:?}");
+        assert!(rarities.contains(&Rarity::Uncommon), "missing Uncommon: {rarities:?}");
+        assert!(rarities.contains(&Rarity::Rare), "missing Rare: {rarities:?}");
+        assert!(rarities.contains(&Rarity::Epic), "missing Epic: {rarities:?}");
+        assert!(rarities.contains(&Rarity::Legendary), "missing Legendary: {rarities:?}");
     }
 }

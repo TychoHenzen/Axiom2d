@@ -9,8 +9,12 @@ struct ModelUniform {
 struct ArtRegionParams {
     half_w: f32,
     half_h: f32,
-    time: f32,
-    _pad: f32,
+    pointer_x: f32,
+    pointer_y: f32,
+    offset_y: f32,
+    _pad0: f32,
+    _pad1: f32,
+    _pad2: f32,
 };
 
 @group(0) @binding(0) var<uniform> camera: CameraUniform;
@@ -22,6 +26,7 @@ struct VertexOutput {
     @location(0) color: vec4<f32>,
     @location(1) local_pos: vec2<f32>,
     @location(2) uv: vec2<f32>,
+    @location(3) world_pos: vec2<f32>,
 };
 
 @vertex
@@ -33,36 +38,42 @@ fn vs_shape(
     var out: VertexOutput;
     out.local_pos = position;
     out.uv = uv;
-    let world_pos = model.model * vec4<f32>(position, 0.0, 1.0);
-    out.position = camera.view_proj * world_pos;
+    let wp = model.model * vec4<f32>(position, 0.0, 1.0);
+    out.world_pos = wp.xy;
+    out.position = camera.view_proj * wp;
     out.color = color;
     return out;
 }
 
 @fragment
 fn fs_shape(in: VertexOutput) -> @location(0) vec4<f32> {
-    let t = art_params.time;
-
     if in.uv.x + in.uv.y < 0.001 {
         return vec4<f32>(0.0, 0.0, 0.0, 0.0);
     }
 
-    // Bright specular sweep across each shape's UV space.
-    // A narrow band of light slides diagonally through each shape.
-    let sweep_phase = fract(in.uv.x * 0.6 + in.uv.y * 0.4 - t * 0.25);
-    let glint = exp(-pow((sweep_phase - 0.5) * 5.0, 2.0));
+    // Pointer direction relative to this fragment in world space
+    let pointer = vec2<f32>(art_params.pointer_x, art_params.pointer_y);
+    let delta = pointer - in.world_pos;
+    let dist = length(delta);
 
-    // Second slower sweep in the other direction for sparkle
-    let sweep2 = fract(in.uv.x * 0.3 - in.uv.y * 0.7 - t * 0.15);
+    // Project pointer direction onto UV diagonal for glint position
+    let dir_norm = delta / max(dist, 1.0);
+    let sweep_pos = dot(in.uv, vec2<f32>(0.6, 0.4)) + dot(dir_norm, vec2<f32>(0.5, 0.5)) * 0.3;
+    let glint = exp(-pow((sweep_pos - 0.5) * 5.0, 2.0));
+
+    // Secondary glint from the perpendicular direction
+    let sweep2 = dot(in.uv, vec2<f32>(0.3, -0.7)) + dot(dir_norm, vec2<f32>(-0.5, 0.5)) * 0.3;
     let glint2 = exp(-pow((sweep2 - 0.5) * 6.0, 2.0));
 
-    // Shape edge darkening: gives depth, makes shapes look glossy/lacquered
+    // Edge darkening for glossy/lacquered depth
     let edge_dist = min(min(in.uv.x, 1.0 - in.uv.x), min(in.uv.y, 1.0 - in.uv.y));
     let darken = smoothstep(0.0, 0.15, edge_dist);
 
-    let spec = max(glint, glint2 * 0.6);
+    // Proximity boost — glints are brighter when pointer is close
+    let proximity = 1.0 / (1.0 + dist * 0.005);
 
-    // Darken the base slightly, then add bright white specular on top
+    let spec = max(glint, glint2 * 0.6) * proximity;
+
     let darkened = in.color.rgb * (0.7 + darken * 0.3);
     let result = darkened + vec3<f32>(spec * 0.9);
 

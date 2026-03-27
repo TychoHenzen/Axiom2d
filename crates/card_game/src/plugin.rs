@@ -10,7 +10,7 @@ use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale
 use crate::card::interaction::pick::card_pick_system;
 use crate::card::interaction::release::card_release_system;
 use crate::card::rendering::art_shader::{
-    ShaderTime, register_card_art_shader, register_variant_shaders, shader_time_system,
+    register_card_art_shader, register_variant_shaders, shader_pointer_system,
 };
 use crate::card::rendering::baked_render::baked_card_sync_system;
 use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
@@ -60,7 +60,6 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(registry);
 
         world.insert_resource(DebugSpawnRng::default());
-        world.insert_resource(ShaderTime::default());
         world.insert_resource(ShapeRenderDisabled);
 
         {
@@ -102,7 +101,7 @@ fn register_systems(app: &mut App) {
         Phase::PostUpdate,
         (
             baked_card_sync_system,
-            shader_time_system,
+            shader_pointer_system,
             stash_layout_system,
             hierarchy_sort_system,
             card_render_layer_system,
