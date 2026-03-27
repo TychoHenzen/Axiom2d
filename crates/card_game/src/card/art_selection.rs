@@ -66,8 +66,8 @@ pub fn fit_art_mesh_to_region(
     }
 
     let scale = (region_half_w * 2.0 / art_w).min(region_half_h * 2.0 / art_h);
-    let centroid_x = (min[0] + max[0]) / 2.0;
-    let centroid_y = (min[1] + max[1]) / 2.0;
+    let centroid_x = f32::midpoint(min[0], max[0]);
+    let centroid_y = f32::midpoint(min[1], max[1]);
 
     let vertices = mesh
         .vertices

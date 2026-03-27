@@ -346,7 +346,7 @@ pub struct RepositoryEntry<'a> {
     pub signature_axes: [f32; 8],
 }
 
-/// Element enum variant names, indexed by element_index.
+/// Element enum variant names, indexed by `element_index`.
 const ELEMENT_VARIANTS: [&str; 8] = [
     "Solidum",
     "Febris",
@@ -358,7 +358,7 @@ const ELEMENT_VARIANTS: [&str; 8] = [
     "Spatium",
 ];
 
-/// Aspect enum variant names, indexed by [element_index][aspect_pole].
+/// Aspect enum variant names, indexed by [`element_index`][aspect_pole].
 const ASPECT_VARIANTS: [[&str; 2]; 8] = [
     ["Solid", "Fragile"],
     ["Heat", "Cold"],
@@ -539,7 +539,7 @@ fn seed_signature_from_name(name: &str) -> [f32; 8] {
     for (i, axis) in axes.iter_mut().enumerate() {
         let mut h: u64 = 0xcbf2_9ce4_8422_2325 ^ (i as u64 * 0x100_0000_01b3);
         for &b in name.as_bytes() {
-            h ^= b as u64;
+            h ^= u64::from(b);
             h = h.wrapping_mul(0x100_0000_01b3);
         }
         // Map to [-1, 1]
