@@ -47,29 +47,44 @@ fn vs_shape(
 
 @fragment
 fn fs_shape(in: VertexOutput) -> @location(0) vec4<f32> {
-    // Fragments with valid UVs are art shape geometry — fully transparent
-    if in.uv.x + in.uv.y > 0.001 {
+    // Only render on art fragments
+    if in.uv.x + in.uv.y < 0.001 {
         return vec4<f32>(0.0, 0.0, 0.0, 0.0);
     }
 
-    // Distance from this fragment to the art region rectangle
-    let art_center = vec2<f32>(0.0, art_params.offset_y);
-    let art_half = vec2<f32>(art_params.half_w, art_params.half_h);
-    let d = abs(in.local_pos - art_center) - art_half;
-    let outside = max(d, vec2<f32>(0.0));
-    let dist = length(outside);
+    // Pointer direction relative to this fragment
+    let pointer = vec2<f32>(art_params.pointer_x, art_params.pointer_y);
+    let delta = pointer - in.world_pos;
+    let dist = length(delta);
+    let dir_norm = delta / max(dist, 1.0);
 
-    // Tight bloom: only visible within a few pixels of the art boundary
-    let bloom_spread = 4.0;
-    let bloom = exp(-dist * dist / (bloom_spread * bloom_spread));
+    // Thin-film interference: phase varies across UV surface based on pointer angle
+    let angle = atan2(dir_norm.y, dir_norm.x);
+    let phase = dot(in.uv, vec2<f32>(cos(angle), sin(angle)));
 
-    // Cut off anything too far from the art edge
-    if bloom < 0.05 {
-        return vec4<f32>(0.0, 0.0, 0.0, 0.0);
-    }
+    // Subtle hue rotation — shift the base color through a small chromatic range
+    let shift = sin(phase * 6.2832) * 0.15;
+    let shifted = vec3<f32>(
+        in.color.r + shift,
+        in.color.g + shift * 0.7,
+        in.color.b - shift,
+    );
 
-    // Warm white glow
-    let glow_color = mix(vec3<f32>(1.0, 0.95, 0.85), in.color.rgb, 0.3);
+    // Edge iridescence: stronger color shift near UV boundaries
+    let edge_dist = min(min(in.uv.x, 1.0 - in.uv.x), min(in.uv.y, 1.0 - in.uv.y));
+    let edge_boost = 1.0 - smoothstep(0.0, 0.25, edge_dist);
+    let edge_shift = sin((phase + 0.5) * 6.2832) * 0.2 * edge_boost;
 
-    return vec4<f32>(glow_color, bloom * 0.5);
+    let result = vec3<f32>(
+        shifted.r + edge_shift * 0.8,
+        shifted.g - edge_shift * 0.3,
+        shifted.b + edge_shift,
+    );
+
+    // Proximity boost — effect intensifies when pointer is close
+    let proximity = 1.0 / (1.0 + dist * 0.005);
+    let strength = 0.4 + proximity * 0.6;
+
+    let final_color = mix(in.color.rgb, result, strength);
+    return vec4<f32>(final_color, 0.55);
 }

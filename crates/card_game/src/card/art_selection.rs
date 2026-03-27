@@ -101,10 +101,6 @@ mod tests {
         ArtEntry::new(vec![], element, aspect, CardSignature::default())
     }
 
-    fn make_entry_with_sig(element: Element, aspect: Aspect, axes: [f32; 8]) -> ArtEntry {
-        ArtEntry::new(vec![], element, aspect, CardSignature::new(axes))
-    }
-
     // --- select_art_for_signature ---
 
     #[test]

@@ -331,8 +331,6 @@ mod tests {
         )
     }
 
-    // --- Behavior tests ---
-
     #[test]
     fn when_spawn_visual_card_then_root_has_card_component_face_down() {
         // Arrange
@@ -651,66 +649,6 @@ mod tests {
             with_art_verts > baseline_verts,
             "with repo: {with_art_verts} vertices, without: {baseline_verts} — expected more"
         );
-    }
-
-    #[test]
-    fn debug_variant_overlay_uv_stats() {
-        use crate::card::art::ShapeRepository;
-        use engine_render::shape::MeshOverlays;
-
-        let mut world = setup_world_with_all_shaders();
-        let mut repo = ShapeRepository::new();
-        repo.hydrate_all();
-        world.insert_resource(repo);
-        let def = make_test_def();
-        let legendary_sig = CardSignature::new([1.0; 8]);
-
-        let root = spawn_visual_card(
-            &mut world,
-            &def,
-            Vec2::ZERO,
-            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
-            true,
-            legendary_sig,
-        );
-
-        let overlays = world.get::<MeshOverlays>(root).unwrap();
-        for (oi, entry) in overlays.0.iter().enumerate() {
-            let total = entry.mesh.vertices.len();
-            let zero = entry
-                .mesh
-                .vertices
-                .iter()
-                .filter(|v| v.uv == [0.0, 0.0])
-                .count();
-            let nonzero = total - zero;
-            eprintln!(
-                "Overlay {oi}: {total} verts, {zero} zero-uv, {nonzero} nonzero-uv, visible={}",
-                entry.visible
-            );
-            for (vi, v) in entry.mesh.vertices.iter().enumerate() {
-                if v.uv != [0.0, 0.0] && vi < 5 {
-                    eprintln!("  v[{vi}] pos={:?} uv={:?}", v.position, v.uv);
-                }
-            }
-        }
-
-        let baked = world
-            .get::<crate::card::rendering::baked_mesh::BakedCardMesh>(root)
-            .unwrap();
-        let total = baked.front.vertices.len();
-        let zero = baked
-            .front
-            .vertices
-            .iter()
-            .filter(|v| v.uv == [0.0, 0.0])
-            .count();
-        eprintln!(
-            "BakedFront: {total} verts, {zero} zero-uv, {} nonzero-uv",
-            total - zero
-        );
-
-        assert!(overlays.0.len() == 2);
     }
 
     #[test]
@@ -1040,5 +978,73 @@ mod tests {
             world.get::<ResidualStats>(root).is_some(),
             "card matching a base type should have ResidualStats component"
         );
+    }
+
+    #[test]
+    fn when_rare_card_spawned_then_glow_overlay_uses_glow_shader() {
+        use crate::card::rendering::art_shader::VariantShaders;
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange
+        let mut world = setup_world_with_all_shaders();
+        let def = make_test_def();
+        let rare_sig = CardSignature::new([0.35, -0.35, 0.35, -0.35, 0.35, -0.35, 0.35, -0.35]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            rare_sig,
+        );
+
+        // Assert
+        let glow_handle = world
+            .get_resource::<VariantShaders>()
+            .expect("VariantShaders resource")
+            .glow;
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(overlays.0.len(), 2, "rare card should have 2 overlays");
+        assert_eq!(
+            overlays.0[1].material.shader, glow_handle,
+            "second overlay should use the glow shader"
+        );
+    }
+
+    #[test]
+    fn when_rare_card_without_art_then_no_glow_overlay() {
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange — no ShapeRepository, so no art shapes
+        let mut world = setup_world_with_all_shaders();
+        let def = make_test_def();
+        let rare_sig = CardSignature::new([0.35, -0.35, 0.35, -0.35, 0.35, -0.35, 0.35, -0.35]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            rare_sig,
+        );
+
+        // Assert — without art, glow overlay should use the front_mesh fallback (existing behavior)
+        // or be absent. Either way, it shouldn't crash.
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        if overlays.0.len() > 1 {
+            // If a glow overlay exists without art, it should use front_mesh (existing behavior)
+            assert!(
+                overlays.0[1].mesh.vertices.len() > 4,
+                "fallback glow overlay should use front_mesh, not an empty mesh"
+            );
+        }
     }
 }

@@ -244,6 +244,15 @@ mod tests {
     }
 
     #[test]
+    fn when_glow_shader_inspected_then_uses_chromatic_shift() {
+        // Assert — glow shader uses thin-film chromatic color shift
+        assert!(
+            GLOW_WGSL.contains("phase"),
+            "glow shader should use phase-based color shifting"
+        );
+    }
+
+    #[test]
     fn when_all_card_shaders_parsed_then_accept_uv_at_location2() {
         // Arrange
         let shaders: &[(&str, &str)] = &[
