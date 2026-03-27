@@ -2,6 +2,7 @@ struct ShapeOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
     @location(1) local_pos: vec2<f32>,
+    @location(2) uv: vec2<f32>,
 };
 
 struct CameraUniform {
@@ -12,16 +13,23 @@ struct ModelUniform {
     model: mat4x4<f32>,
 };
 
+struct MaterialParams {
+    _pad: vec4<f32>,
+};
+
 @group(0) @binding(0) var<uniform> camera: CameraUniform;
 @group(1) @binding(0) var<uniform> model: ModelUniform;
+@group(2) @binding(0) var<uniform> material: MaterialParams;
 
 @vertex
 fn vs_shape(
     @location(0) position: vec2<f32>,
     @location(1) color: vec4<f32>,
+    @location(2) uv: vec2<f32>,
 ) -> ShapeOutput {
     var out: ShapeOutput;
     out.local_pos = position;
+    out.uv = uv;
     let world_pos = model.model * vec4<f32>(position, 0.0, 1.0);
     out.position = camera.view_proj * world_pos;
     out.color = color;

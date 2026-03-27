@@ -186,7 +186,11 @@ pub fn unified_render_system(
                             &mut last_shader,
                             &mut last_blend_mode,
                         );
-                        renderer.draw_shape(&entry.vertices, &entry.indices, entry.color, model);
+                        renderer.draw_colored_mesh(
+                            &entry.mesh.vertices,
+                            &entry.mesh.indices,
+                            model,
+                        );
                     }
                 }
             }

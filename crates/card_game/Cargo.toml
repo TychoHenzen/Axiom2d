@@ -19,6 +19,7 @@ glam = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
 serde = { workspace = true }
+bytemuck = { workspace = true }
 
 [dev-dependencies]
 axiom2d = { path = "../axiom2d" }

@@ -314,4 +314,52 @@ mod tests {
         assert_eq!(mesh_a.vertices.len(), mesh_b.vertices.len());
         assert_eq!(mesh_a.indices.len(), mesh_b.indices.len());
     }
+
+    #[test]
+    fn when_bake_front_with_art_then_art_vertices_have_uv_and_non_art_have_zero() {
+        // Arrange
+        let sig = CardSignature::default();
+        let card_size = Vec2::new(60.0, 90.0);
+        let label = CardLabel {
+            name: "Test".to_owned(),
+            description: "Desc".to_owned(),
+        };
+        let art_shapes = vec![Shape {
+            variant: ShapeVariant::Circle { radius: 10.0 },
+            color: engine_core::color::Color::RED,
+        }];
+
+        // Act
+        let with_art = bake_front_face(&sig, card_size, &label, Some(&art_shapes));
+
+        // Assert — partition by UV: non-art vertices have zero UV, art vertices don't
+        let zero_uv_count = with_art
+            .vertices
+            .iter()
+            .filter(|v| v.uv == [0.0, 0.0])
+            .count();
+        let nonzero_uv_count = with_art
+            .vertices
+            .iter()
+            .filter(|v| v.uv != [0.0, 0.0])
+            .count();
+
+        assert!(
+            nonzero_uv_count > 0,
+            "should have art vertices with non-zero UV"
+        );
+        assert!(
+            zero_uv_count > 0,
+            "should have non-art vertices with zero UV"
+        );
+
+        // All non-zero UVs must be in [0,1] range
+        for (i, v) in with_art.vertices.iter().enumerate() {
+            assert!(
+                v.uv[0] >= 0.0 && v.uv[0] <= 1.0 && v.uv[1] >= 0.0 && v.uv[1] <= 1.0,
+                "vertex {i} uv out of [0,1] range: {:?}",
+                v.uv
+            );
+        }
+    }
 }

@@ -78,6 +78,7 @@ pub fn fit_art_mesh_to_region(
                 (v.position[1] - centroid_y) * scale + region_center_y,
             ],
             color: v.color,
+            uv: v.uv,
         })
         .collect();
 

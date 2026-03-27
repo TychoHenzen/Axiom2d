@@ -82,7 +82,7 @@ pub fn stash_hover_preview_render_system(
         if let Some(overlays) = overlays {
             for entry in &overlays.0 {
                 apply_material(&mut **renderer, Some(&entry.material), &mut None, &mut None);
-                renderer.draw_shape(&entry.vertices, &entry.indices, entry.color, model);
+                renderer.draw_colored_mesh(&entry.mesh.vertices, &entry.mesh.indices, model);
             }
             renderer.set_shader(engine_render::prelude::ShaderHandle(0));
         }

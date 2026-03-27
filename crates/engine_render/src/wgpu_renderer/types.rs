@@ -46,6 +46,7 @@ pub(crate) const FULLSCREEN_QUAD_VERTICES: [QuadVertex; 4] = [
 pub(crate) struct ShapeVertex {
     pub(crate) position: [f32; 2],
     pub(crate) color: [f32; 4],
+    pub(crate) uv: [f32; 2],
 }
 
 #[repr(C)]
@@ -82,11 +83,12 @@ impl ShapeBatch {
     pub(crate) fn push(&mut self, positions: &[[f32; 2]], indices: &[u32], color: Color) {
         let base = self.vertices.len() as u32;
         let color = [color.r, color.g, color.b, color.a];
-        self.vertices.extend(
-            positions
-                .iter()
-                .map(|&position| ShapeVertex { position, color }),
-        );
+        self.vertices
+            .extend(positions.iter().map(|&position| ShapeVertex {
+                position,
+                color,
+                uv: [0.0, 0.0],
+            }));
         self.indices.extend(indices.iter().map(|&i| i + base));
     }
 
@@ -451,25 +453,27 @@ mod tests {
     }
 
     #[test]
-    fn when_shape_vertex_size_checked_then_exactly_24_bytes() {
+    fn when_shape_vertex_size_checked_then_exactly_32_bytes() {
         // Act
         let size = std::mem::size_of::<ShapeVertex>();
 
-        // Assert
-        assert_eq!(size, 24);
+        // Assert — position [f32;2] + color [f32;4] + uv [f32;2] = 32
+        assert_eq!(size, 32);
     }
 
     #[test]
-    fn when_shape_vertices_cast_to_bytes_then_no_panic() {
+    fn when_shape_vertices_cast_to_bytes_then_length_is_64_for_two_vertices() {
         // Arrange
         let vertices = [
             ShapeVertex {
                 position: [0.0, 0.0],
                 color: [1.0, 1.0, 1.0, 1.0],
+                uv: [0.0, 0.0],
             },
             ShapeVertex {
                 position: [1.0, 0.0],
                 color: [1.0, 0.0, 0.0, 1.0],
+                uv: [0.5, 0.5],
             },
         ];
 
@@ -477,7 +481,7 @@ mod tests {
         let bytes: &[u8] = bytemuck::cast_slice(&vertices);
 
         // Assert
-        assert_eq!(bytes.len(), 48);
+        assert_eq!(bytes.len(), 64);
     }
 
     #[test]
@@ -563,14 +567,17 @@ mod tests {
             ShapeVertex {
                 position: [0.0, 0.0],
                 color: [1.0, 0.0, 0.0, 1.0],
+                uv: [0.0, 0.0],
             },
             ShapeVertex {
                 position: [1.0, 0.0],
                 color: [0.0, 1.0, 0.0, 1.0],
+                uv: [0.0, 0.0],
             },
             ShapeVertex {
                 position: [0.5, 1.0],
                 color: [0.0, 0.0, 1.0, 1.0],
+                uv: [0.0, 0.0],
             },
         ];
 
@@ -593,10 +600,12 @@ mod tests {
             ColorVertex {
                 position: [1.0, 2.0],
                 color: [0.5, 0.6, 0.7, 1.0],
+                uv: [0.25, 0.75],
             },
             ColorVertex {
                 position: [3.0, 4.0],
                 color: [0.1, 0.2, 0.3, 0.4],
+                uv: [0.0, 1.0],
             },
         ];
 
@@ -607,8 +616,10 @@ mod tests {
         assert_eq!(shape_verts.len(), 2);
         assert_eq!(shape_verts[0].position, [1.0, 2.0]);
         assert_eq!(shape_verts[0].color, [0.5, 0.6, 0.7, 1.0]);
+        assert_eq!(shape_verts[0].uv, [0.25, 0.75]);
         assert_eq!(shape_verts[1].position, [3.0, 4.0]);
         assert_eq!(shape_verts[1].color, [0.1, 0.2, 0.3, 0.4]);
+        assert_eq!(shape_verts[1].uv, [0.0, 1.0]);
     }
 
     #[test]

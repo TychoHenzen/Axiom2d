@@ -179,17 +179,20 @@ Items from the tech debt audit that should be addressed before or alongside new 
 - [x] 22 tests covering tiers, aspects, dominance, rarity delegation, archetype matching, and integration
 - [x] Re-exported in prelude (`SignatureProfile`, `Tier`)
 
-### I7b — Procedural Card Names (Rarity-Gated Lookup) `[NOT STARTED]`
+### I7b — Procedural Card Names (Rarity-Gated Lookup) `[IMPLEMENTED]`
 **Inspired by:** Debate consensus — name complexity scales with rarity; lookup tables, not grammars
 **Engine gaps:** None — pure data model consuming `SignatureProfile`
 **Why:** Card names are mechanical shorthand. Common cards get transparent two-word names that teach vocabulary, rare cards get blended modifiers, legendaries get evocative curated names. All deterministic from signature. The name system reads `(rarity, dominant_aspect, secondary_aspect, archetype)` from `SignatureProfile`.
 
-- [ ] Common tier: `[Aspect word] [Archetype word]` from a ~80-entry lookup (16 aspects × 5 archetypes)
-- [ ] Rare tier: `[BlendedModifier] [Archetype]` from an ordered-pair lookup keyed on `(dominant_aspect, secondary_aspect)` (~80 entries)
-- [ ] Legendary tier: curated pool of ~50-100 evocative names keyed to signature clusters
-- [ ] Flat-signature fallback: bare archetype name when no axis exceeds dominance threshold
-- [ ] `generate_card_name(profile: &SignatureProfile) -> String` pure function
-- [ ] Tests: deterministic output, rarity gates name complexity, flat signatures get bare names, all rarity tiers produce valid names
+- [x] `CardName` struct with `title` and `subtitle` fields
+- [x] `generate_card_name(profile, signature)` — seeded RNG from signature, rarity-gated title templates
+- [x] Common/Uncommon tier: multiple templates (`{adj} {noun}`, `{noun} of {adj}`, `The {adj} {noun}`, `{name}'s {adj} {noun}`, etc.)
+- [x] Rare/Epic tier: compound-based templates with secondary axis adjective blending
+- [x] Legendary tier: epithet-based templates (`{name}, the {epithet}`, `The {epithet} {name}`, etc.)
+- [x] Flat-signature fallback: works via "Unknown" archetype and Dormant tier defaults
+- [x] Subtitle phrases: 12 lore phrases keyed on `(Tier, AspectCluster)`
+- [x] `name_pools` module: `adjective_pool` (16 aspects), `noun_pool` (archetype × cluster), `generate_compound`, `generate_proper_noun`
+- [x] 23 tests: determinism, rarity template matching, aspect coverage, archetype variation, cluster mapping, edge cases
 
 ### I7c — Card Descriptions (Gameplay Effect Text) `[IMPLEMENTED]`
 **Inspired by:** Debate consensus + card game conventions — descriptions answer "what does this card do?"

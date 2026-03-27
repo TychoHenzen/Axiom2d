@@ -133,9 +133,7 @@ mod tests {
         // Arrange
         let mut world = World::new();
         let overlay = MeshOverlays(vec![OverlayEntry {
-            vertices: [[0.0; 2]; 4],
-            indices: [0, 1, 2, 2, 3, 0],
-            color: engine_core::prelude::Color::WHITE,
+            mesh: engine_render::shape::TessellatedColorMesh::new(),
             material: engine_render::material::Material2d::default(),
             visible: true,
         }]);

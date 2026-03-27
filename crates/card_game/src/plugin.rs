@@ -9,7 +9,9 @@ use crate::card::interaction::flip::card_flip_system;
 use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
 use crate::card::interaction::pick::card_pick_system;
 use crate::card::interaction::release::card_release_system;
-use crate::card::rendering::art_shader::register_card_art_shader;
+use crate::card::rendering::art_shader::{
+    ShaderTime, register_card_art_shader, register_variant_shaders, shader_time_system,
+};
 use crate::card::rendering::baked_render::baked_card_sync_system;
 use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
 use crate::card::rendering::drop_zone_glow::hand_drop_zone_render_system;
@@ -58,10 +60,18 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(registry);
 
         world.insert_resource(DebugSpawnRng::default());
+        world.insert_resource(ShaderTime::default());
         world.insert_resource(ShapeRenderDisabled);
 
-        let art_shader = register_card_art_shader(&mut world.resource_mut::<ShaderRegistry>());
-        world.insert_resource(art_shader);
+        {
+            let mut shader_reg = world.resource_mut::<ShaderRegistry>();
+            let art_shader = register_card_art_shader(&mut shader_reg);
+            let variant_shaders = register_variant_shaders(&mut shader_reg);
+            // Drop the mutable borrow before inserting resources
+            drop(shader_reg);
+            world.insert_resource(art_shader);
+            world.insert_resource(variant_shaders);
+        }
 
         register_systems(app);
     }
@@ -92,6 +102,7 @@ fn register_systems(app: &mut App) {
         Phase::PostUpdate,
         (
             baked_card_sync_system,
+            shader_time_system,
             stash_layout_system,
             hierarchy_sort_system,
             card_render_layer_system,

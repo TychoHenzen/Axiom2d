@@ -34,6 +34,7 @@ pub struct HeadlessRenderer {
     camera_bind_group: wgpu::BindGroup,
     shape_pipelines: [wgpu::RenderPipeline; 3],
     model_bind_group_layout: wgpu::BindGroupLayout,
+    default_material_bind_group: wgpu::BindGroup,
     model_uniform_align: u32,
     clear_color: Color,
     pending_instances: Vec<Instance>,
@@ -277,10 +278,29 @@ impl HeadlessRenderer {
 
         let model_uniform_align = device.limits().min_uniform_buffer_offset_alignment;
 
+        let material_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: wgpu::BufferSize::new(16),
+                    },
+                    count: None,
+                }],
+            });
+
         let shape_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: None,
-                bind_group_layouts: &[&camera_bind_group_layout, &model_bind_group_layout],
+                bind_group_layouts: &[
+                    &camera_bind_group_layout,
+                    &model_bind_group_layout,
+                    &material_bind_group_layout,
+                ],
                 push_constant_ranges: &[],
             });
 
@@ -305,6 +325,11 @@ impl HeadlessRenderer {
                                 offset: 8,
                                 shader_location: 1,
                             },
+                            wgpu::VertexAttribute {
+                                format: wgpu::VertexFormat::Float32x2,
+                                offset: 24,
+                                shader_location: 2,
+                            },
                         ],
                     }],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
@@ -327,6 +352,21 @@ impl HeadlessRenderer {
             })
         });
 
+        let default_material_buffer =
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: &[0u8; 16],
+                usage: wgpu::BufferUsages::UNIFORM,
+            });
+        let default_material_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &material_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: default_material_buffer.as_entire_binding(),
+            }],
+        });
+
         Self {
             device,
             queue,
@@ -342,6 +382,7 @@ impl HeadlessRenderer {
             camera_bind_group,
             shape_pipelines,
             model_bind_group_layout,
+            default_material_bind_group,
             model_uniform_align,
             clear_color: Color::BLACK,
             pending_instances: Vec::new(),
@@ -532,6 +573,7 @@ impl HeadlessRenderer {
         resources: &'a ShapeGpuResources,
     ) {
         pass.set_bind_group(0, &self.camera_bind_group, &[]);
+        pass.set_bind_group(2, &self.default_material_bind_group, &[]);
         pass.set_vertex_buffer(0, resources.vertex_buffer.slice(..));
         pass.set_index_buffer(resources.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 
@@ -639,6 +681,7 @@ impl Renderer for HeadlessRenderer {
             .map(|v| ShapeVertex {
                 position: v.position,
                 color: v.color,
+                uv: v.uv,
             })
             .collect();
         self.shape_batch.push_colored(&shape_verts, indices);

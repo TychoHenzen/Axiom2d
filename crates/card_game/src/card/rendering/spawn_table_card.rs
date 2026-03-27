@@ -105,7 +105,8 @@ pub fn spawn_visual_card(
     } else {
         baked.back.clone()
     };
-    let mesh_overlays = build_mesh_overlays(world, card_size, &card.signature, face_up);
+    let mesh_overlays =
+        build_mesh_overlays(world, card_size, &card.signature, face_up, &baked.front);
     world
         .entity_mut(root)
         .insert((baked, mesh_overlays, ColorMesh(initial_mesh)));
@@ -118,27 +119,89 @@ fn build_mesh_overlays(
     card_size: Vec2,
     signature: &CardSignature,
     face_up: bool,
+    front_mesh: &engine_render::shape::TessellatedColorMesh,
 ) -> engine_render::shape::MeshOverlays {
+    use crate::card::rendering::art_shader::{ArtRegionParams, ShaderVariant, VariantShaders};
     use crate::card::rendering::face_layout::FRONT_FACE_REGIONS;
-    use engine_render::shape::{MeshOverlays, OverlayEntry};
+    use engine_render::shape::{ColorVertex, MeshOverlays, OverlayEntry, TessellatedColorMesh};
 
     let mut entries = Vec::new();
+    let visuals = crate::card::identity::visual_params::generate_card_visuals(signature);
 
+    let art_region = &FRONT_FACE_REGIONS[2];
+    let (half_w, half_h, offset_y) = art_region.resolve(card_size.x, card_size.y);
+    let art_params = ArtRegionParams {
+        half_w,
+        half_h,
+        time: 0.0,
+        _pad: 0.0,
+    };
+    let art_uniforms = bytemuck::bytes_of(&art_params).to_vec();
+
+    // Art vignette overlay: a quad over the art region
     if let Some(art_shader) = world.get_resource::<CardArtShader>().map(|s| s.0) {
-        let art_region = &FRONT_FACE_REGIONS[2];
-        let (half_w, half_h, offset_y) = art_region.resolve(card_size.x, card_size.y);
-        let visuals = crate::card::identity::visual_params::generate_card_visuals(signature);
-        entries.push(OverlayEntry {
-            vertices: [
-                [-half_w, -half_h + offset_y],
-                [half_w, -half_h + offset_y],
-                [half_w, half_h + offset_y],
-                [-half_w, half_h + offset_y],
+        let c = [
+            visuals.art_color.r,
+            visuals.art_color.g,
+            visuals.art_color.b,
+            visuals.art_color.a,
+        ];
+        let quad_mesh = TessellatedColorMesh {
+            vertices: vec![
+                ColorVertex {
+                    position: [-half_w, -half_h + offset_y],
+                    color: c,
+                    uv: [0.0, 0.0],
+                },
+                ColorVertex {
+                    position: [half_w, -half_h + offset_y],
+                    color: c,
+                    uv: [1.0, 0.0],
+                },
+                ColorVertex {
+                    position: [half_w, half_h + offset_y],
+                    color: c,
+                    uv: [1.0, 1.0],
+                },
+                ColorVertex {
+                    position: [-half_w, half_h + offset_y],
+                    color: c,
+                    uv: [0.0, 1.0],
+                },
             ],
-            indices: [0, 1, 2, 0, 2, 3],
-            color: visuals.art_color,
+            indices: vec![0, 1, 2, 0, 2, 3],
+        };
+        entries.push(OverlayEntry {
+            mesh: quad_mesh,
             material: engine_render::material::Material2d {
                 shader: art_shader,
+                uniforms: art_uniforms.clone(),
+                ..engine_render::material::Material2d::default()
+            },
+            visible: face_up,
+        });
+    }
+
+    // Variant shader overlay: uses the full baked card geometry
+    let variant_shader = match visuals.shader_variant {
+        ShaderVariant::None => None,
+        variant => world
+            .get_resource::<VariantShaders>()
+            .map(|vs| match variant {
+                ShaderVariant::Glossy => vs.glossy,
+                ShaderVariant::Embossed => vs.embossed,
+                ShaderVariant::Foil => vs.foil,
+                ShaderVariant::None => unreachable!(),
+            }),
+    };
+
+    if let Some(shader) = variant_shader {
+        entries.push(OverlayEntry {
+            mesh: front_mesh.clone(),
+            material: engine_render::material::Material2d {
+                shader,
+                uniforms: art_uniforms,
+                blend_mode: engine_render::material::BlendMode::Alpha,
                 ..engine_render::material::Material2d::default()
             },
             visible: face_up,
@@ -586,6 +649,92 @@ mod tests {
     }
 
     #[test]
+    fn debug_variant_overlay_uv_stats() {
+        use crate::card::art::ShapeRepository;
+        use engine_render::shape::MeshOverlays;
+
+        let mut world = setup_world_with_all_shaders();
+        let mut repo = ShapeRepository::new();
+        repo.hydrate_all();
+        world.insert_resource(repo);
+        let def = make_test_def();
+        let legendary_sig = CardSignature::new([1.0; 8]);
+
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            legendary_sig,
+        );
+
+        let overlays = world.get::<MeshOverlays>(root).unwrap();
+        for (oi, entry) in overlays.0.iter().enumerate() {
+            let total = entry.mesh.vertices.len();
+            let zero = entry.mesh.vertices.iter().filter(|v| v.uv == [0.0, 0.0]).count();
+            let nonzero = total - zero;
+            eprintln!("Overlay {oi}: {total} verts, {zero} zero-uv, {nonzero} nonzero-uv, visible={}", entry.visible);
+            for (vi, v) in entry.mesh.vertices.iter().enumerate() {
+                if v.uv != [0.0, 0.0] && vi < 5 {
+                    eprintln!("  v[{vi}] pos={:?} uv={:?}", v.position, v.uv);
+                }
+            }
+        }
+
+        let baked = world.get::<crate::card::rendering::baked_mesh::BakedCardMesh>(root).unwrap();
+        let total = baked.front.vertices.len();
+        let zero = baked.front.vertices.iter().filter(|v| v.uv == [0.0, 0.0]).count();
+        eprintln!("BakedFront: {total} verts, {zero} zero-uv, {} nonzero-uv", total - zero);
+
+        assert!(overlays.0.len() == 2);
+    }
+
+    #[test]
+    fn when_spawn_with_art_then_variant_overlay_has_nonzero_uv() {
+        use crate::card::art::ShapeRepository;
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange — legendary card with art repo
+        let mut world = setup_world_with_all_shaders();
+        let mut repo = ShapeRepository::new();
+        repo.hydrate_all();
+        world.insert_resource(repo);
+        let def = make_test_def();
+        let legendary_sig = CardSignature::new([1.0; 8]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            legendary_sig,
+        );
+
+        // Assert — variant overlay (index 1) should have some vertices with non-zero UV
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(overlays.0.len(), 2, "legendary should have 2 overlays");
+
+        let variant_mesh = &overlays.0[1].mesh;
+        let nonzero_uv_count = variant_mesh
+            .vertices
+            .iter()
+            .filter(|v| v.uv != [0.0, 0.0])
+            .count();
+        let total = variant_mesh.vertices.len();
+
+        assert!(
+            nonzero_uv_count > 0,
+            "variant overlay should have vertices with non-zero UV from art, \
+             but all {total} vertices have uv=[0,0]"
+        );
+    }
+
+    #[test]
     fn when_spawn_without_shape_repository_then_front_mesh_matches_baseline() {
         // Arrange
         let mut world = World::new();
@@ -609,6 +758,235 @@ mod tests {
             .vertices
             .len();
         assert_eq!(verts_a, verts_b);
+    }
+
+    fn setup_world_with_all_shaders() -> World {
+        use crate::card::rendering::art_shader::{
+            register_card_art_shader, register_variant_shaders,
+        };
+        use engine_render::prelude::ShaderRegistry;
+
+        let mut world = World::new();
+        let mut registry = ShaderRegistry::default();
+        let art = register_card_art_shader(&mut registry);
+        let variants = register_variant_shaders(&mut registry);
+        world.insert_resource(art);
+        world.insert_resource(variants);
+        world.insert_resource(registry);
+        world
+    }
+
+    #[test]
+    fn when_spawn_with_legendary_signature_then_mesh_overlays_has_two_entries() {
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange
+        let mut world = setup_world_with_all_shaders();
+        let def = make_test_def();
+        let legendary_sig = CardSignature::new([1.0; 8]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            legendary_sig,
+        );
+
+        // Assert
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(
+            overlays.0.len(),
+            2,
+            "legendary card should have art + foil overlay entries"
+        );
+    }
+
+    #[test]
+    fn when_spawn_with_common_signature_and_all_shaders_then_mesh_overlays_has_one_entry() {
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange
+        let mut world = setup_world_with_all_shaders();
+        let def = make_test_def();
+        let common_sig = CardSignature::new([0.0; 8]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            common_sig,
+        );
+
+        // Assert
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(
+            overlays.0.len(),
+            1,
+            "common card should have only the art overlay entry"
+        );
+    }
+
+    #[test]
+    fn when_spawn_with_legendary_signature_then_variant_overlay_uses_foil_shader_handle() {
+        use crate::card::rendering::art_shader::VariantShaders;
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange
+        let mut world = setup_world_with_all_shaders();
+        let def = make_test_def();
+        let legendary_sig = CardSignature::new([1.0; 8]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            legendary_sig,
+        );
+
+        // Assert
+        let foil_handle = world
+            .get_resource::<VariantShaders>()
+            .expect("VariantShaders resource should exist")
+            .foil;
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(
+            overlays.0[1].material.shader, foil_handle,
+            "second overlay should use the foil shader"
+        );
+    }
+
+    #[test]
+    fn when_spawn_with_legendary_signature_then_variant_overlay_uniforms_are_sixteen_bytes() {
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange
+        let mut world = setup_world_with_all_shaders();
+        let def = make_test_def();
+        let legendary_sig = CardSignature::new([1.0; 8]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            legendary_sig,
+        );
+
+        // Assert
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(
+            overlays.0[1].material.uniforms.len(),
+            16,
+            "variant overlay uniforms should be 16 bytes (half_w + half_h + time + pad)"
+        );
+    }
+
+    #[test]
+    fn when_spawn_with_legendary_signature_face_down_then_variant_overlay_not_visible() {
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange
+        let mut world = setup_world_with_all_shaders();
+        let def = make_test_def();
+        let legendary_sig = CardSignature::new([1.0; 8]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            false,
+            legendary_sig,
+        );
+
+        // Assert
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(overlays.0.len(), 2, "legendary should still have 2 entries");
+        assert!(
+            !overlays.0[1].visible,
+            "face-down card's variant overlay should not be visible"
+        );
+    }
+
+    #[test]
+    fn when_spawn_without_variant_shader_resources_and_legendary_signature_then_one_entry() {
+        use crate::card::rendering::art_shader::register_card_art_shader;
+        use engine_render::prelude::ShaderRegistry;
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange — only art shader, no variant shaders
+        let mut world = World::new();
+        let mut registry = ShaderRegistry::default();
+        let art = register_card_art_shader(&mut registry);
+        world.insert_resource(art);
+        world.insert_resource(registry);
+        let def = make_test_def();
+        let legendary_sig = CardSignature::new([1.0; 8]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            legendary_sig,
+        );
+
+        // Assert
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(
+            overlays.0.len(),
+            1,
+            "without variant shader resources, should gracefully fall back to art-only"
+        );
+    }
+
+    #[test]
+    fn when_spawn_with_art_shader_then_overlay_quad_has_uv_corners() {
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange
+        let mut world = setup_world_with_all_shaders();
+        let def = make_test_def();
+
+        // Act
+        let root = spawn_def_face_up(&mut world, &def);
+
+        // Assert — first overlay is the art quad
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        let quad_verts = &overlays.0[0].mesh.vertices;
+        assert_eq!(quad_verts.len(), 4);
+        assert_eq!(quad_verts[0].uv, [0.0, 0.0]);
+        assert_eq!(quad_verts[1].uv, [1.0, 0.0]);
+        assert_eq!(quad_verts[2].uv, [1.0, 1.0]);
+        assert_eq!(quad_verts[3].uv, [0.0, 1.0]);
     }
 
     #[test]

@@ -1,5 +1,9 @@
-use crate::card::identity::signature::CardSignature;
+use crate::card::identity::signature::{CardSignature, Element};
+use crate::card::rendering::art_shader::ShaderVariant;
 use engine_core::color::Color;
+use rand::Rng;
+use rand::SeedableRng;
+use rand_chacha::ChaCha8Rng;
 
 pub fn compute_seed(signature: &CardSignature) -> u64 {
     signature
@@ -20,16 +24,16 @@ pub fn compute_seed(signature: &CardSignature) -> u64 {
 pub struct CardVisualParams {
     pub art_color: Color,
     pub pattern_index: u8,
+    pub shader_variant: ShaderVariant,
 }
 
 pub const PATTERN_COUNT: u8 = 4;
 
-pub fn generate_card_visuals(signature: &CardSignature) -> CardVisualParams {
-    use crate::card::identity::signature::Element;
-    use rand::Rng;
-    use rand::SeedableRng;
-    use rand_chacha::ChaCha8Rng;
+/// Small per-channel noise added to art color. Preserves uniqueness across
+/// signatures while keeping semantic signal (warmth/brightness) dominant.
+const COLOR_NOISE: f32 = 0.05;
 
+pub fn generate_card_visuals(signature: &CardSignature) -> CardVisualParams {
     let seed = compute_seed(signature);
     let mut rng = ChaCha8Rng::seed_from_u64(seed);
 
@@ -45,20 +49,19 @@ pub fn generate_card_visuals(signature: &CardSignature) -> CardVisualParams {
     let base_g = brightness;
     let base_b = brightness - warmth;
 
-    // Small seeded noise (±0.05) preserves uniqueness across signatures
-    // while keeping the semantic signal dominant (noise << warmth/brightness range)
-    const NOISE: f32 = 0.05;
     let art_color = Color::new(
-        (base_r + rng.gen_range(-NOISE..=NOISE)).clamp(0.0, 1.0),
-        (base_g + rng.gen_range(-NOISE..=NOISE)).clamp(0.0, 1.0),
-        (base_b + rng.gen_range(-NOISE..=NOISE)).clamp(0.0, 1.0),
+        (base_r + rng.gen_range(-COLOR_NOISE..=COLOR_NOISE)).clamp(0.0, 1.0),
+        (base_g + rng.gen_range(-COLOR_NOISE..=COLOR_NOISE)).clamp(0.0, 1.0),
+        (base_b + rng.gen_range(-COLOR_NOISE..=COLOR_NOISE)).clamp(0.0, 1.0),
         1.0,
     );
     let pattern_index = rng.gen_range(0..PATTERN_COUNT);
+    let shader_variant = ShaderVariant::from_rarity(signature.rarity());
 
     CardVisualParams {
         art_color,
         pattern_index,
+        shader_variant,
     }
 }
 
@@ -232,6 +235,34 @@ mod tests {
             params_cold.art_color.b,
             params_cold.art_color.r
         );
+    }
+
+    #[test]
+    fn when_generate_card_visuals_called_with_common_signature_then_shader_variant_is_none() {
+        use crate::card::rendering::art_shader::ShaderVariant;
+
+        // Arrange
+        let sig = CardSignature::new([0.0; 8]);
+
+        // Act
+        let params = generate_card_visuals(&sig);
+
+        // Assert
+        assert_eq!(params.shader_variant, ShaderVariant::None);
+    }
+
+    #[test]
+    fn when_generate_card_visuals_called_with_legendary_signature_then_shader_variant_is_foil() {
+        use crate::card::rendering::art_shader::ShaderVariant;
+
+        // Arrange
+        let sig = CardSignature::new([1.0; 8]);
+
+        // Act
+        let params = generate_card_visuals(&sig);
+
+        // Assert
+        assert_eq!(params.shader_variant, ShaderVariant::Foil);
     }
 
     #[test]

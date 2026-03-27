@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use wgpu::util::DeviceExt;
 use winit::window::Window;
 
 use engine_core::color::Color;
@@ -17,6 +18,7 @@ pub(super) struct ShapeDrawRecord {
     pub(super) shader_handle: ShaderHandle,
     pub(super) index_offset: u32,
     pub(super) model: [[f32; 4]; 4],
+    pub(super) material_uniforms: Vec<u8>,
 }
 
 pub struct WgpuRenderer {
@@ -40,12 +42,15 @@ pub struct WgpuRenderer {
     pub(super) shape_pipelines: [wgpu::RenderPipeline; 3],
     pub(super) shape_pipeline_layout: wgpu::PipelineLayout,
     pub(super) model_bind_group_layout: wgpu::BindGroupLayout,
+    pub(super) material_bind_group_layout: wgpu::BindGroupLayout,
+    pub(super) default_material_bind_group: wgpu::BindGroup,
     pub(super) model_uniform_align: u32,
     pub(super) shader_cache: HashMap<ShaderHandle, [wgpu::RenderPipeline; 3]>,
     pub(super) active_shader: ShaderHandle,
     pub(super) surface_format: wgpu::TextureFormat,
     pub(super) post_process: Option<PostProcessResources>,
     pub(super) post_process_pending: bool,
+    pub(super) pending_material_uniforms: Vec<u8>,
     pub(super) bloom_threshold: f32,
     pub(super) bloom_intensity: f32,
     pub(super) glyph_cache: crate::font::GlyphCache,
@@ -90,6 +95,23 @@ impl WgpuRenderer {
             p.gpu.config.height,
             p.sample_count,
         );
+        let default_material_buffer =
+            p.gpu
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: &[0u8; 16],
+                    usage: wgpu::BufferUsages::UNIFORM,
+                });
+        let default_material_bind_group =
+            p.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &p.shape.material_bind_group_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: default_material_buffer.as_entire_binding(),
+                }],
+            });
         Self {
             surface: p.gpu.surface,
             device: p.gpu.device,
@@ -105,6 +127,8 @@ impl WgpuRenderer {
             shape_pipelines: p.shape.pipelines,
             shape_pipeline_layout: p.shape.pipeline_layout,
             model_bind_group_layout: p.shape.model_bind_group_layout,
+            material_bind_group_layout: p.shape.material_bind_group_layout,
+            default_material_bind_group,
             model_uniform_align: p.shape.model_uniform_align,
             surface_format: p.gpu_format,
             clear_color: Color::BLACK,
@@ -115,6 +139,7 @@ impl WgpuRenderer {
             shape_draws: Vec::new(),
             shader_cache: HashMap::new(),
             active_shader: ShaderHandle(0),
+            pending_material_uniforms: Vec::new(),
             post_process: None,
             post_process_pending: false,
             bloom_threshold: 0.8,
@@ -132,6 +157,7 @@ impl WgpuRenderer {
         self.active_shader = ShaderHandle(0);
         self.shape_batch.clear();
         self.shape_draws.clear();
+        self.pending_material_uniforms.clear();
     }
 
     pub(super) fn ensure_post_process(&mut self) {

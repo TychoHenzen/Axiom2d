@@ -31,13 +31,16 @@ pub struct TessellatedMesh {
     pub indices: Vec<u32>,
 }
 
-/// Vertex with baked position and RGBA color.
-/// Layout matches `ShapeVertex` in the wgpu renderer (24 bytes).
+/// Vertex with baked position, RGBA color, and per-shape UV coordinates.
+/// Layout matches `ShapeVertex` in the wgpu renderer (32 bytes).
+/// UV encodes normalized position within the shape's bounding box [0,1],
+/// giving shaders geometric hints about shape structure (edges, gradients).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct ColorVertex {
     pub position: [f32; 2],
     pub color: [f32; 4],
+    pub uv: [f32; 2],
 }
 
 /// Pre-tessellated mesh with per-vertex color.
@@ -57,11 +60,35 @@ impl TessellatedColorMesh {
     /// Append position-only vertices with a uniform color, offsetting indices.
     pub fn push_vertices(&mut self, positions: &[[f32; 2]], indices: &[u32], color: [f32; 4]) {
         let base = self.vertices.len() as u32;
-        self.vertices.extend(
-            positions
-                .iter()
-                .map(|&position| ColorVertex { position, color }),
-        );
+        self.vertices
+            .extend(positions.iter().map(|&position| ColorVertex {
+                position,
+                color,
+                uv: [0.0, 0.0],
+            }));
+        self.indices.extend(indices.iter().map(|&i| i + base));
+    }
+
+    /// Append position-only vertices with a uniform color and per-vertex UV, offsetting indices.
+    pub fn push_vertices_with_uv(
+        &mut self,
+        positions: &[[f32; 2]],
+        uvs: &[[f32; 2]],
+        indices: &[u32],
+        color: [f32; 4],
+    ) {
+        let base = self.vertices.len() as u32;
+        self.vertices
+            .extend(
+                positions
+                    .iter()
+                    .zip(uvs.iter())
+                    .map(|(&position, &uv)| ColorVertex {
+                        position,
+                        color,
+                        uv,
+                    }),
+            );
         self.indices.extend(indices.iter().map(|&i| i + base));
     }
 
@@ -75,9 +102,7 @@ impl TessellatedColorMesh {
 /// Used for shader-driven effects (art areas, foil, etc.) that can't be baked.
 #[derive(Clone, Debug)]
 pub struct OverlayEntry {
-    pub vertices: [[f32; 2]; 4],
-    pub indices: [u32; 6],
-    pub color: Color,
+    pub mesh: TessellatedColorMesh,
     pub material: crate::material::Material2d,
     pub visible: bool,
 }
@@ -113,12 +138,48 @@ mod tests {
     use super::*;
 
     #[test]
-    fn when_color_vertex_size_checked_then_exactly_24_bytes() {
+    fn when_color_vertex_size_checked_then_exactly_32_bytes() {
         // Act
         let size = std::mem::size_of::<ColorVertex>();
 
+        // Assert — position [f32;2] + color [f32;4] + uv [f32;2] = 32
+        assert_eq!(size, 32);
+    }
+
+    #[test]
+    fn when_push_vertices_called_then_uv_defaults_to_zero() {
+        // Arrange
+        let mut mesh = TessellatedColorMesh::new();
+
+        // Act
+        mesh.push_vertices(
+            &[[0.0, 0.0], [10.0, 0.0], [5.0, 10.0]],
+            &[0, 1, 2],
+            [1.0, 0.0, 0.0, 1.0],
+        );
+
         // Assert
-        assert_eq!(size, 24);
+        for v in &mesh.vertices {
+            assert_eq!(v.uv, [0.0, 0.0]);
+        }
+    }
+
+    #[test]
+    fn when_push_vertices_with_uv_called_then_uv_preserved_per_vertex() {
+        // Arrange
+        let mut mesh = TessellatedColorMesh::new();
+        let positions = [[0.0, 0.0], [10.0, 0.0], [5.0, 10.0]];
+        let uvs = [[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]];
+        let color = [1.0, 0.0, 0.0, 1.0];
+
+        // Act
+        mesh.push_vertices_with_uv(&positions, &uvs, &[0, 1, 2], color);
+
+        // Assert
+        assert_eq!(mesh.vertices.len(), 3);
+        assert_eq!(mesh.vertices[0].uv, [0.0, 0.0]);
+        assert_eq!(mesh.vertices[1].uv, [1.0, 0.0]);
+        assert_eq!(mesh.vertices[2].uv, [0.5, 1.0]);
     }
 
     #[test]

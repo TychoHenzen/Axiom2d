@@ -14,7 +14,7 @@ pollster = "0.4"
 thiserror = "2.0"
 guillotiere = "0.6"
 image = { version = "0.25", default-features = false, features = ["png"] }
-wgpu = { version = "24", default-features = false, features = ["dx12", "vulkan-portability", "wgsl"] }
+wgpu = { version = "24", default-features = false, features = ["dx12", "wgsl"] }
 winit = "0.30"
 lyon = "1.0"
 naga = { version = "24", features = ["wgsl-in"] }
@@ -31,7 +31,7 @@ ron = "0.9"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "ansi", "std"] }
 ttf-parser = "0.25"
 
 [workspace.lints.clippy]
@@ -62,11 +62,11 @@ debug = false          # no debug info for dependencies
 opt-level = 0
 
 [profile.release]
-opt-level = "z"       # optimize for size instead of speed
+opt-level = "z"       # optimize for size ("z" measured 14% smaller than "s")
 lto = true            # full LTO — slower builds, smaller binary
 codegen-units = 1     # better optimization, slower compile
 panic = "abort"       # drops unwind tables
-strip = "debuginfo"   # keeps symbol names for stack traces, strips DWARF
+strip = "symbols"     # strips everything — use release-debuggable for stack traces
 
 [profile.release-debuggable]
 inherits = "release"

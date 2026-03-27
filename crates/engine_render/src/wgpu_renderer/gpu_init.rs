@@ -28,6 +28,7 @@ pub(super) struct ShapeResources {
     pub(super) pipelines: [wgpu::RenderPipeline; 3],
     pub(super) pipeline_layout: wgpu::PipelineLayout,
     pub(super) model_bind_group_layout: wgpu::BindGroupLayout,
+    pub(super) material_bind_group_layout: wgpu::BindGroupLayout,
     pub(super) model_uniform_align: u32,
 }
 
@@ -213,6 +214,11 @@ fn shape_vertex_layout() -> wgpu::VertexBufferLayout<'static> {
                 offset: 8,
                 shader_location: 1,
             },
+            wgpu::VertexAttribute {
+                format: wgpu::VertexFormat::Float32x2,
+                offset: 24,
+                shader_location: 2,
+            },
         ],
     }
 }
@@ -333,6 +339,22 @@ fn model_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     })
 }
 
+fn material_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: None,
+        entries: &[wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: wgpu::BufferSize::new(16),
+            },
+            count: None,
+        }],
+    })
+}
+
 pub(super) fn create_shape_resources(
     device: &wgpu::Device,
     camera_layout: &wgpu::BindGroupLayout,
@@ -344,10 +366,11 @@ pub(super) fn create_shape_resources(
         source: wgpu::ShaderSource::Wgsl(SHAPE_SHADER_SRC.into()),
     });
     let mbl = model_bind_group_layout(device);
+    let mat_bl = material_bind_group_layout(device);
     let model_uniform_align = device.limits().min_uniform_buffer_offset_alignment;
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
-        bind_group_layouts: &[camera_layout, &mbl],
+        bind_group_layouts: &[camera_layout, &mbl, &mat_bl],
         push_constant_ranges: &[],
     });
     let pipelines = create_shape_pipeline_set(
@@ -361,6 +384,7 @@ pub(super) fn create_shape_resources(
         pipelines,
         pipeline_layout,
         model_bind_group_layout: mbl,
+        material_bind_group_layout: mat_bl,
         model_uniform_align,
     }
 }
@@ -444,5 +468,29 @@ pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -
         texture_bind_group: tex_bg,
         shape,
         sample_count,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn when_shape_vertex_layout_inspected_then_has_uv_at_location_2() {
+        // Act
+        let layout = shape_vertex_layout();
+
+        // Assert
+        assert_eq!(layout.array_stride, 32);
+        assert_eq!(layout.attributes.len(), 3);
+        assert_eq!(layout.attributes[0].format, wgpu::VertexFormat::Float32x2);
+        assert_eq!(layout.attributes[0].offset, 0);
+        assert_eq!(layout.attributes[0].shader_location, 0);
+        assert_eq!(layout.attributes[1].format, wgpu::VertexFormat::Float32x4);
+        assert_eq!(layout.attributes[1].offset, 8);
+        assert_eq!(layout.attributes[1].shader_location, 1);
+        assert_eq!(layout.attributes[2].format, wgpu::VertexFormat::Float32x2);
+        assert_eq!(layout.attributes[2].offset, 24);
+        assert_eq!(layout.attributes[2].shader_location, 2);
     }
 }

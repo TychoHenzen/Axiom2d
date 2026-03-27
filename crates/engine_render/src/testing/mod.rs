@@ -428,6 +428,7 @@ mod tests {
             &[ColorVertex {
                 position: [0.0, 0.0],
                 color: [1.0, 1.0, 1.0, 1.0],
+                uv: [0.0, 0.0],
             }],
             &[0],
             crate::renderer::IDENTITY_MODEL,

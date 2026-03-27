@@ -161,6 +161,7 @@ mod tests {
             &[crate::shape::ColorVertex {
                 position: [0.0, 0.0],
                 color: [1.0, 1.0, 1.0, 1.0],
+                uv: [0.0, 0.0],
             }],
             &[0],
             IDENTITY_MODEL,

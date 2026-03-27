@@ -110,11 +110,38 @@ impl WgpuRenderer {
         }
     }
 
+    fn create_material_bind_groups(&self) -> Vec<wgpu::BindGroup> {
+        self.shape_draws
+            .iter()
+            .map(|draw| {
+                if draw.material_uniforms.is_empty() {
+                    return self.default_material_bind_group.clone();
+                }
+                let buffer = self
+                    .device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: None,
+                        contents: &draw.material_uniforms,
+                        usage: wgpu::BufferUsages::UNIFORM,
+                    });
+                self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &self.material_bind_group_layout,
+                    entries: &[wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: buffer.as_entire_binding(),
+                    }],
+                })
+            })
+            .collect()
+    }
+
     #[allow(clippy::cast_possible_truncation)]
     fn issue_shape_draw_calls(
         &self,
         pass: &mut wgpu::RenderPass,
         model_bg: &wgpu::BindGroup,
+        material_bgs: &[wgpu::BindGroup],
         aligned_entry: usize,
     ) {
         let total_indices = self.shape_batch.index_count() as u32;
@@ -127,6 +154,7 @@ impl WgpuRenderer {
             }
             let dyn_offset = (i * aligned_entry) as u32;
             pass.set_bind_group(1, model_bg, &[dyn_offset]);
+            pass.set_bind_group(2, &material_bgs[i], &[]);
             let idx_start = draw.index_offset;
             let idx_end = self
                 .shape_draws
@@ -140,10 +168,11 @@ impl WgpuRenderer {
         let (vb, ib) = self.create_shape_buffers();
         let aligned_entry = (self.model_uniform_align as usize).max(64);
         let model_bg = self.create_model_bind_group(aligned_entry);
+        let material_bgs = self.create_material_bind_groups();
         pass.set_bind_group(0, &self.camera_bind_group, &[]);
         pass.set_vertex_buffer(0, vb.slice(..));
         pass.set_index_buffer(ib.slice(..), wgpu::IndexFormat::Uint32);
-        self.issue_shape_draw_calls(pass, &model_bg, aligned_entry);
+        self.issue_shape_draw_calls(pass, &model_bg, &material_bgs, aligned_entry);
     }
 
     pub(super) fn draw_scene_to(
@@ -316,11 +345,13 @@ impl Renderer for WgpuRenderer {
         model: [[f32; 4]; 4],
     ) {
         #[allow(clippy::cast_possible_truncation)]
+        let material_uniforms = std::mem::take(&mut self.pending_material_uniforms);
         self.shape_draws.push(ShapeDrawRecord {
             blend_mode: self.current_blend_mode,
             shader_handle: self.active_shader,
             index_offset: self.shape_batch.index_count() as u32,
             model,
+            material_uniforms,
         });
         self.shape_batch.push(vertices, indices, color);
     }
@@ -332,11 +363,13 @@ impl Renderer for WgpuRenderer {
         model: [[f32; 4]; 4],
     ) {
         #[allow(clippy::cast_possible_truncation)]
+        let material_uniforms = std::mem::take(&mut self.pending_material_uniforms);
         self.shape_draws.push(ShapeDrawRecord {
             blend_mode: self.current_blend_mode,
             shader_handle: self.active_shader,
             index_offset: self.shape_batch.index_count() as u32,
             model,
+            material_uniforms,
         });
         let shape_verts: &[ShapeVertex] = bytemuck::cast_slice(vertices);
         self.shape_batch.push_colored(shape_verts, indices);
@@ -356,7 +389,9 @@ impl Renderer for WgpuRenderer {
         self.active_shader = shader;
     }
 
-    fn set_material_uniforms(&mut self, _data: &[u8]) {}
+    fn set_material_uniforms(&mut self, data: &[u8]) {
+        self.pending_material_uniforms = data.to_vec();
+    }
 
     fn bind_material_texture(&mut self, _texture: engine_core::types::TextureId, _binding: u32) {}
 

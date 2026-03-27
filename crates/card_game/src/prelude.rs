@@ -32,7 +32,10 @@ pub use crate::card::interaction::pick::{
     CARD_COLLISION_FILTER, CARD_COLLISION_GROUP, card_pick_system,
 };
 pub use crate::card::interaction::release::card_release_system;
-pub use crate::card::rendering::art_shader::{CardArtShader, register_card_art_shader};
+pub use crate::card::rendering::art_shader::{
+    CardArtShader, ShaderTime, VariantShaders, register_card_art_shader, register_variant_shaders,
+    shader_time_system,
+};
 pub use crate::card::rendering::baked_mesh::{BakedCardMesh, CardOverlays};
 pub use crate::card::rendering::baked_render::baked_card_sync_system;
 pub use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
