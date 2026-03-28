@@ -126,7 +126,9 @@ fn build_mesh_overlays(
     use engine_render::shape::{ColorVertex, MeshOverlays, OverlayEntry, TessellatedColorMesh};
 
     let mut entries = Vec::new();
-    let visuals = crate::card::identity::visual_params::generate_card_visuals(signature);
+    let profile =
+        crate::card::identity::signature_profile::SignatureProfile::without_archetype(signature);
+    let visuals = crate::card::identity::visual_params::generate_card_visuals(signature, &profile);
 
     let art_region = &FRONT_FACE_REGIONS[2];
     let (half_w, half_h, offset_y) = art_region.resolve(card_size.x, card_size.y);

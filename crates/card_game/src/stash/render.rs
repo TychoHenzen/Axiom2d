@@ -10,6 +10,7 @@ use engine_render::prelude::{
 use glam::Vec2;
 
 use crate::card::component::Card;
+use crate::card::identity::signature_profile::SignatureProfile;
 use crate::card::identity::visual_params::generate_card_visuals;
 use crate::card::rendering::geometry::{ART_QUAD, art_quad_model};
 use crate::stash::constants::{
@@ -71,7 +72,13 @@ pub fn stash_render_system(
 
     let icon_colors: HashMap<Entity, Color> = card_query
         .iter()
-        .map(|(entity, card)| (entity, generate_card_visuals(&card.signature).art_color))
+        .map(|(entity, card)| {
+            let profile = SignatureProfile::without_archetype(&card.signature);
+            (
+                entity,
+                generate_card_visuals(&card.signature, &profile).art_color,
+            )
+        })
         .collect();
 
     let page = params.grid.current_page();
@@ -227,8 +234,14 @@ mod tests {
         let (mut world, shape_calls) = make_world_with_spy(StashGrid::new(1, 1, 1), true);
 
         let signature = crate::card::identity::signature::CardSignature::default();
-        let expected_color =
-            crate::card::identity::visual_params::generate_card_visuals(&signature).art_color;
+        let expected_color = {
+            let profile =
+                crate::card::identity::signature_profile::SignatureProfile::without_archetype(
+                    &signature,
+                );
+            crate::card::identity::visual_params::generate_card_visuals(&signature, &profile)
+                .art_color
+        };
         let root = world
             .spawn(crate::card::component::Card {
                 face_texture: engine_core::prelude::TextureId(0),
@@ -504,8 +517,6 @@ mod tests {
 
     #[test]
     fn when_dragging_over_empty_slot_then_slot_drawn_with_highlight_color() {
-        use crate::stash::constants::SLOT_HIGHLIGHT_COLOR;
-
         // Arrange
         let mut world = World::new();
         world.insert_resource(StashGrid::new(2, 2, 1));

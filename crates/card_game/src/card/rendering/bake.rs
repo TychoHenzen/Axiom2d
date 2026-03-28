@@ -213,7 +213,9 @@ mod tests {
             name: "Test".to_owned(),
             description: "Desc".to_owned(),
         };
-        let visuals = crate::card::identity::visual_params::generate_card_visuals(&sig);
+        let profile =
+            crate::card::identity::signature_profile::SignatureProfile::without_archetype(&sig);
+        let visuals = crate::card::identity::visual_params::generate_card_visuals(&sig, &profile);
         let art_color = [
             visuals.art_color.r,
             visuals.art_color.g,
