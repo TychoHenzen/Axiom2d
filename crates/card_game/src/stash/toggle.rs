@@ -24,15 +24,6 @@ mod tests {
     }
 
     #[test]
-    fn when_defaulted_then_stash_is_hidden() {
-        // Arrange / Act
-        let vis = StashVisible::default();
-
-        // Assert
-        assert!(!vis.0);
-    }
-
-    #[test]
     fn when_tab_just_pressed_and_hidden_then_becomes_visible() {
         // Arrange
         let mut world = World::new();

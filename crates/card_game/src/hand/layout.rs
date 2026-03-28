@@ -227,6 +227,7 @@ mod tests {
         assert_eq!(t.position, sentinel);
     }
 
+    /// @doc: Zero viewport is a guard condition — prevents division by zero in screen-to-world conversion
     #[test]
     fn when_viewport_width_is_zero_then_card_transform_is_not_mutated() {
         // Arrange
@@ -697,6 +698,7 @@ mod tests {
         );
     }
 
+    /// @doc: Spring-animated cards move progressively — one frame isn't enough, creating smooth dealing motion
     #[test]
     fn when_spring_card_one_frame_then_moves_toward_target_but_does_not_arrive() {
         // Arrange
@@ -740,6 +742,7 @@ mod tests {
         );
     }
 
+    /// @doc: Rotation springs alongside position — cards fan out smoothly rather than snapping to their tilt angle
     #[test]
     fn when_spring_card_then_rotation_also_springs() {
         // Arrange

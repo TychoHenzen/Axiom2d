@@ -597,6 +597,7 @@ mod tests {
         );
     }
 
+    /// @doc: Undamped bodies coast indefinitely after impulse — zero damping = persistent free motion
     #[test]
     fn when_zero_damping_body_given_impulse_then_keeps_moving_after_force_stops() {
         // Arrange
@@ -617,6 +618,7 @@ mod tests {
         );
     }
 
+    /// @doc: Linear damping reduces travel distance — higher damping = faster energy dissipation
     #[test]
     fn when_high_linear_damping_then_travels_less_distance_than_zero_damping() {
         // Arrange
@@ -641,6 +643,7 @@ mod tests {
         );
     }
 
+    /// @doc: Angular damping slows spin — higher damping = faster rotational energy loss
     #[test]
     fn when_high_angular_damping_then_rotates_less_than_undamped() {
         // Arrange
@@ -670,6 +673,7 @@ mod tests {
         );
     }
 
+    /// @doc: Damping reset to zero restores undamped motion — used when cards transition between zones
     #[test]
     fn when_damping_reset_to_zero_then_body_moves_like_undamped() {
         // Arrange
@@ -724,6 +728,7 @@ mod tests {
         assert!(pos.y.abs() < 1e-4, "expected ~0 y, got {}", pos.y);
     }
 
+    /// @doc: Force at center produces translation only — no torque when force passes through COM
     #[test]
     fn when_sustained_x_force_at_center_then_only_x_grows_and_rotation_stays_zero() {
         // Arrange
@@ -752,6 +757,7 @@ mod tests {
         assert!(rot.abs() < 1e-5, "expected no rotation, got {rot}");
     }
 
+    /// @doc: Force applied at offset point produces both translation and torque — off-center hits spin cards
     #[test]
     fn when_sustained_x_force_at_offset_y_point_then_body_translates_and_rotates() {
         // Arrange
@@ -960,6 +966,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// @doc: Collision group isolation — entities in same exclusive group never produce collision events
     #[test]
     fn when_same_exclusive_group_then_no_collision_event() {
         // Arrange

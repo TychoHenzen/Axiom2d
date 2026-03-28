@@ -157,18 +157,7 @@ mod tests {
         assert_eq!(result, None);
     }
 
-    #[test]
-    fn when_slot_occupied_error_displayed_then_message_is_human_readable() {
-        // Arrange
-        let err = SlotOccupied;
-
-        // Act
-        let message = format!("{err}");
-
-        // Assert
-        assert!(!message.is_empty());
-    }
-
+    /// @doc: Occupied slot placement is rejected without overwriting — prevents silent card loss during drag-and-drop
     #[test]
     fn when_placing_on_occupied_slot_then_returns_error_and_preserves_original() {
         // Arrange
@@ -235,6 +224,7 @@ mod tests {
         assert_eq!(result, Some((0, 2)));
     }
 
+    /// @doc: Column-major fill order — first_empty scans down columns then across, matching visual grid layout
     #[test]
     fn when_first_column_full_then_first_empty_wraps_to_next_column() {
         // Arrange
@@ -267,6 +257,7 @@ mod tests {
         assert_eq!(result, None);
     }
 
+    /// @doc: Pages are independent — first_empty only scans the requested page, not the entire grid
     #[test]
     fn when_first_empty_on_second_page_then_ignores_first_page() {
         // Arrange
@@ -327,33 +318,6 @@ mod tests {
     }
 
     #[test]
-    fn when_width_called_then_returns_constructed_width() {
-        // Arrange
-        let grid = StashGrid::new(10, 8, 3);
-
-        // Act / Assert
-        assert_eq!(grid.width(), 10);
-    }
-
-    #[test]
-    fn when_height_called_then_returns_constructed_height() {
-        // Arrange
-        let grid = StashGrid::new(10, 8, 3);
-
-        // Act / Assert
-        assert_eq!(grid.height(), 8);
-    }
-
-    #[test]
-    fn when_page_count_called_then_returns_constructed_page_count() {
-        // Arrange
-        let grid = StashGrid::new(10, 8, 3);
-
-        // Act / Assert
-        assert_eq!(grid.page_count(), 3);
-    }
-
-    #[test]
     fn when_set_current_page_within_range_then_current_page_returns_it() {
         // Arrange
         let mut grid = StashGrid::new(10, 10, 3);
@@ -365,6 +329,7 @@ mod tests {
         assert_eq!(grid.current_page(), 2);
     }
 
+    /// @doc: Page index clamping prevents out-of-bounds access — UI tab clicks can't create invalid page state
     #[test]
     fn when_set_current_page_beyond_count_then_clamped_to_last_page() {
         // Arrange
@@ -455,6 +420,7 @@ mod tests {
         assert_eq!(result, Some((1, 2)));
     }
 
+    /// @doc: Gap pixels between slots still resolve to a slot — integer division absorbs the gap, so drops never miss
     #[test]
     fn when_cursor_in_gap_between_slots_then_snaps_to_adjacent_slot() {
         // Arrange

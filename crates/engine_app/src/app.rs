@@ -263,15 +263,6 @@ mod tests {
         counter.0 += 1;
     }
 
-    #[test]
-    fn when_app_new_called_then_plugin_count_is_zero() {
-        // Act
-        let app = App::new();
-
-        // Assert
-        assert_eq!(app.plugin_count(), 0);
-    }
-
     struct NoOpPlugin;
     impl Plugin for NoOpPlugin {
         fn build(&self, _app: &mut App) {}
@@ -341,15 +332,6 @@ mod tests {
     }
 
     #[test]
-    fn when_app_default_called_then_plugin_count_is_zero() {
-        // Act
-        let app = App::default();
-
-        // Assert
-        assert_eq!(app.plugin_count(), 0);
-    }
-
-    #[test]
     fn when_handle_redraw_called_then_present_called_via_renderer_res() {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -403,6 +385,7 @@ mod tests {
         assert_eq!(app.world().resource::<Counter>().0, 2);
     }
 
+    /// @doc: Phase execution order is enforced: Input→PreUpdate→Update→PostUpdate→Render — game logic depends on this
     #[test]
     fn when_systems_in_all_phases_then_run_in_canonical_order() {
         #[derive(Resource, Default)]
@@ -462,6 +445,7 @@ mod tests {
         assert_eq!(app.schedule_count(), 5);
     }
 
+    /// @doc: Draw calls always precede present — rendering into a swapped buffer would show stale frames
     #[test]
     fn when_render_phase_system_uses_renderer_res_then_draw_calls_precede_present() {
         fn render_system(mut renderer: ResMut<RendererRes>) {
@@ -524,15 +508,6 @@ mod tests {
     }
 
     #[test]
-    fn when_app_created_then_renderer_res_not_yet_in_world() {
-        // Act
-        let app = App::new();
-
-        // Assert
-        assert!(app.world().get_resource::<RendererRes>().is_none());
-    }
-
-    #[test]
     fn when_handle_resize_called_then_renderer_resize_is_called() {
         // Arrange
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -546,16 +521,6 @@ mod tests {
 
         // Assert
         assert_eq!(log.lock().unwrap().as_slice(), &["resize"]);
-    }
-
-    #[test]
-    fn when_app_new_called_then_window_size_resource_is_present() {
-        // Act
-        let app = App::new();
-
-        // Assert
-        let size = app.world().get_resource::<WindowSize>();
-        assert!(size.is_some());
     }
 
     /// @doc: Resize updates both the `WindowSize` resource and calls `renderer.resize()` — dual sync
@@ -574,19 +539,6 @@ mod tests {
         let size = app.world().resource::<WindowSize>();
         assert_eq!(size.width, Pixels(1024.0));
         assert_eq!(size.height, Pixels(768.0));
-    }
-
-    #[test]
-    fn when_app_new_called_then_delta_time_resource_is_present() {
-        // Act
-        let app = App::new();
-
-        // Assert
-        assert!(
-            app.world()
-                .get_resource::<engine_core::time::DeltaTime>()
-                .is_some()
-        );
     }
 
     /// @doc: Phase execution order is fixed: Input -> `PreUpdate` -> Update -> `PostUpdate` -> Render

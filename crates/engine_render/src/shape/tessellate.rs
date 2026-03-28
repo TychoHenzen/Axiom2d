@@ -443,6 +443,7 @@ mod tests {
         assert!(wide.vertices.len() >= narrow.vertices.len());
     }
 
+    /// @doc: MoveTo with non-zero coordinates — incorrect state tracking can snap geometry to origin
     #[test]
     fn when_path_moveto_nonorigin_then_vertices_are_near_moveto_point() {
         // Arrange — MoveTo to (50,50), then draw a triangle there.
@@ -506,6 +507,7 @@ mod tests {
         }
     }
 
+    /// @doc: Zero-radius circle must not panic — degenerate shapes occur from animation edge cases
     #[test]
     fn when_tessellating_zero_radius_circle_then_does_not_panic() {
         // Arrange
@@ -608,6 +610,7 @@ mod tests {
         assert_eq!(max, Vec2::new(30.0, 40.0));
     }
 
+    /// @doc: Degenerate polygons (< 3 points) return empty mesh — prevents tessellation crashes
     #[test]
     fn when_tessellating_polygon_with_fewer_than_three_points_then_returns_empty_mesh() {
         // Arrange
@@ -857,6 +860,7 @@ mod tests {
         assert_eq!(max, Vec2::ZERO);
     }
 
+    /// @doc: Path AABB includes cubic control points — conservative bounds prevent false culling
     #[test]
     fn when_path_aabb_with_cubic_control_points_then_covers_endpoints() {
         // Arrange
@@ -951,6 +955,7 @@ mod tests {
         assert!(!mesh.indices.is_empty());
     }
 
+    /// @doc: Path Close command generates closing stroke segment — omission causes missing visual edge
     // Mutant 2: delete `!` in build_lyon_path Close arm (line 305).
     // `if !needs_begin` becomes `if needs_begin`, so Close never ends the path
     // builder — the contour is left open.  For stroke tessellation this omits

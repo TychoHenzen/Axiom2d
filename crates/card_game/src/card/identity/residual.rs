@@ -132,6 +132,7 @@ mod tests {
         );
     }
 
+    /// @doc: Polarity gating — positive-gated modifiers ignore negative residuals, creating asymmetric stat scaling
     #[test]
     fn when_use_positive_true_and_axis_negative_then_returns_zero() {
         // Arrange
@@ -492,6 +493,7 @@ mod tests {
 
     // ===== Integration: from_card =====
 
+    /// @doc: Stats derive from the residual (card minus base) — the further a card drifts from its archetype, the stronger its stats
     #[test]
     fn when_from_card_called_then_computes_residual_and_applies_modifiers() {
         // Arrange
@@ -523,6 +525,7 @@ mod tests {
         );
     }
 
+    /// @doc: Zero residual means zero stats — a card exactly at its archetype center has no combat bonuses
     #[test]
     fn when_from_card_with_identical_signature_then_all_stats_zero() {
         // Arrange

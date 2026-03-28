@@ -100,6 +100,7 @@ mod tests {
         assert!((output[2] - 0.6).abs() < f32::EPSILON);
     }
 
+    /// @doc: Mixer scales all samples by global volume — single-track mixing with gain applied uniformly
     #[test]
     fn when_single_sound_at_half_volume_then_output_is_scaled() {
         // Arrange
@@ -150,6 +151,7 @@ mod tests {
         assert!(state.active_sounds.is_empty());
     }
 
+    /// @doc: Per-track volumes are applied independently — different tracks can have different attenuation
     #[test]
     fn when_mix_into_with_two_tracks_then_per_track_volume_applied() {
         // Arrange
@@ -192,6 +194,7 @@ mod tests {
         assert!((output[0] - 0.25).abs() < f32::EPSILON);
     }
 
+    /// @doc: Cursor tracks playback progress through sound — resuming produces next chunk, not repeated audio
     #[test]
     fn when_sound_longer_than_buffer_then_cursor_advances() {
         // Arrange
@@ -212,6 +215,7 @@ mod tests {
         assert!((output2[2] - 0.6).abs() < f32::EPSILON);
     }
 
+    /// @doc: Partial mixing — remaining samples only, never re-mixed — prevents audio overlap on resume
     #[test]
     fn when_sound_partially_consumed_then_only_remaining_samples_mixed() {
         // Arrange — 4 samples, consume 3 in first call, 1 remains

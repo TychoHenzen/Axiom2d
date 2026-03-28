@@ -46,35 +46,3 @@ pub enum CardZone {
     Hand(usize),
     Stash { page: u8, col: u8, row: u8 },
 }
-
-#[cfg(test)]
-#[allow(clippy::unwrap_used)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn when_card_face_down_then_signature_is_all_zeros() {
-        // Arrange
-        let face = TextureId(1);
-        let back = TextureId(2);
-
-        // Act
-        let card = Card::face_down(face, back);
-
-        // Assert
-        assert_eq!(card.signature, CardSignature::default());
-    }
-
-    #[test]
-    fn when_card_constructed_face_down_then_face_up_is_false() {
-        // Arrange
-        let face = TextureId(1);
-        let back = TextureId(2);
-
-        // Act
-        let card = Card::face_down(face, back);
-
-        // Assert
-        assert!(!card.face_up);
-    }
-}

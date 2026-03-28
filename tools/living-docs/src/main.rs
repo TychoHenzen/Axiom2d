@@ -1,6 +1,7 @@
 use living_docs::{
-    AnnotationMap, BodyMap, SourceMap, convert_to_docs, generate_markdown, parse_annotations,
-    parse_cargo_output, parse_test_bodies, parse_test_locations, parse_test_results,
+    AnnotationMap, BodyMap, SourceMap, convert_to_docs, generate_llm_markdown, generate_markdown,
+    parse_annotations, parse_cargo_output, parse_test_bodies, parse_test_locations,
+    parse_test_results,
 };
 use std::path::Path;
 use std::process::Command;
@@ -49,6 +50,8 @@ fn scan_dir(
 }
 
 fn main() {
+    let llm_mode = std::env::args().any(|a| a == "--llm");
+
     // Run actual tests — "Running" headers go to stderr, results to stdout — merge via shell redirect
     let output = Command::new("bash")
         .args(["-c", "cargo.exe test 2>&1"])
@@ -74,10 +77,20 @@ fn main() {
         .sum();
 
     let date = chrono_free_date();
-    let markdown = generate_markdown(&docs, total, &date);
 
-    let out_path = Path::new("Doc").join("Living_Documentation.md");
-    std::fs::write(&out_path, &markdown).expect("failed to write Living_Documentation.md");
+    let (markdown, out_path) = if llm_mode {
+        (
+            generate_llm_markdown(&docs, total, &date),
+            Path::new("Doc").join("Living_Documentation_LLM.md"),
+        )
+    } else {
+        (
+            generate_markdown(&docs, total, &date),
+            Path::new("Doc").join("Living_Documentation.md"),
+        )
+    };
+
+    std::fs::write(&out_path, &markdown).expect("failed to write documentation");
 
     println!("Generated {} with {total} test cases.", out_path.display());
 }

@@ -241,6 +241,7 @@ mod tests {
         assert_eq!(count, 0);
     }
 
+    /// @doc: Frustum culling must skip shapes fully outside view rect — prevents wasting GPU cycles on off-screen geometry
     #[test]
     fn when_culled_shape_has_stroke_then_neither_drawn() {
         // Arrange
@@ -272,6 +273,7 @@ mod tests {
         assert_eq!(count, 0);
     }
 
+    /// @doc: Shapes without Material default to AlphaBlend — unspecified blend must support transparency
     #[test]
     fn when_shape_has_no_material_then_set_blend_mode_called_with_alpha() {
         // Arrange
@@ -309,6 +311,7 @@ mod tests {
         assert_eq!(calls.as_slice(), &[BlendMode::Additive]);
     }
 
+    /// @doc: SortOrder determines blend mode order — higher sort orders are drawn later with their own blend mode
     #[test]
     fn when_two_shapes_with_different_blend_modes_then_both_blend_modes_applied() {
         // Arrange
@@ -402,6 +405,7 @@ mod tests {
         assert_eq!(count, 2);
     }
 
+    /// @doc: RenderLayer::Background sorts before RenderLayer::World — layering prevents composition errors
     #[test]
     fn when_two_shapes_on_different_layers_then_background_drawn_before_world() {
         // Arrange
@@ -436,6 +440,7 @@ mod tests {
         assert_eq!(calls[1].2, red);
     }
 
+    /// @doc: SortOrder enables depth compositing — lower values render first (painter's algorithm)
     #[test]
     fn when_two_shapes_same_layer_different_sort_order_then_lower_drawn_first() {
         // Arrange
@@ -472,6 +477,7 @@ mod tests {
         assert_eq!(calls[1].2, red);
     }
 
+    /// @doc: Missing RenderLayer defaults to World layer — ensures correct sort order when component absent
     #[test]
     fn when_shape_has_no_render_layer_then_treated_as_world_layer() {
         // Arrange
@@ -610,6 +616,7 @@ mod tests {
         assert_eq!(count, 1);
     }
 
+    /// @doc: Culling uses AABB including radius — edge-touching shapes must be drawn, not culled
     #[test]
     fn when_shape_barely_inside_view_due_to_radius_then_drawn() {
         // Arrange — circle at (790, 300) r=30: AABB [760, 820] overlaps view [0, 800]
@@ -702,6 +709,7 @@ mod tests {
         );
     }
 
+    /// @doc: Material shader overrides default — per-shape shader override enables custom rendering
     #[test]
     fn when_shape_has_material_then_set_shader_called_with_material_shader() {
         // Arrange
@@ -793,6 +801,7 @@ mod tests {
         }
     }
 
+    /// @doc: SortOrder trumps shader differences — render order is always sort-order-then-layer, never by material
     #[test]
     fn when_two_shapes_with_different_shaders_then_sort_order_controls_draw_order() {
         // Arrange
@@ -829,6 +838,7 @@ mod tests {
         assert_eq!(calls[1].2, red);
     }
 
+    /// @doc: Missing Camera2D disables culling — fallback ensures shapes render when camera not found
     #[test]
     fn when_no_camera_entity_then_all_shapes_drawn_without_culling() {
         // Arrange
@@ -922,6 +932,7 @@ mod tests {
         assert_eq!(count, 0);
     }
 
+    /// @doc: Culling boundary is inclusive — shapes with AABB touching edge must not be culled
     #[test]
     fn when_shape_at_view_edge_then_not_culled() {
         // Arrange — circle r=10 at (395,300): AABB [385,405]×[290,310] overlaps view [0,800]×[0,600]
@@ -950,6 +961,7 @@ mod tests {
         );
     }
 
+    /// @doc: Culling AABB test uses view rect in world space — viewport-to-world conversion must be correct
     #[test]
     fn when_shape_at_positive_y_near_view_edge_then_not_culled() {
         // Arrange — viewport 2×2 → view y ∈ [-1, 1]; circle r=1 at (0,2): AABB y [0.586, 3.414] overlaps

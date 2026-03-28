@@ -148,6 +148,7 @@ mod tests {
         assert!((scale_x - 0.5).abs() < 1e-5);
     }
 
+    /// @doc: Midpoint shrinkage = 0—card is edge-on at flip transition for hidden face swap
     #[test]
     fn when_animation_at_midpoint_then_scale_x_is_zero() {
         // Arrange
@@ -206,6 +207,7 @@ mod tests {
         assert!((scale_x - 0.5).abs() < 1e-5);
     }
 
+    /// @doc: Face swap happens at midpoint—ensures card texture matches shrunk edge state
     #[test]
     fn when_animation_crosses_midpoint_then_face_up_toggled_to_target() {
         // Arrange
@@ -405,6 +407,7 @@ mod tests {
         assert!(world.entity(root).get::<Card>().unwrap().face_up);
     }
 
+    /// @doc: Midpoint boundary condition >= 0.5—ensures swap happens at exact midpoint
     #[test]
     fn when_progress_exactly_at_midpoint_then_face_up_changes_to_target() {
         // Arrange

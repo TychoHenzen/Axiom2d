@@ -445,6 +445,7 @@ mod tests {
         assert!(world.resource::<DragState>().dragging.is_none());
     }
 
+    /// @doc: Sort order selects which card to pick when overlapping—highest sort is topmost
     #[test]
     fn when_two_overlapping_cards_then_picks_highest_sort_order() {
         // Arrange
@@ -482,6 +483,7 @@ mod tests {
         assert_eq!(drag.map(|d| d.entity), Some(card_b));
     }
 
+    /// @doc: Sort order bump on pick prevents z-fighting when overlapping cards are rearranged
     #[test]
     fn when_card_picked_then_sort_order_bumped_above_all_others() {
         // Arrange
@@ -555,6 +557,7 @@ mod tests {
         assert_eq!(drag.entity, card_a);
     }
 
+    /// @doc: Local grab offset transformed by inverse rotation—drag stays aligned to card frame
     #[test]
     fn when_card_picked_at_offset_then_local_grab_offset_is_inverse_rotated() {
         // Arrange
@@ -657,6 +660,7 @@ mod tests {
         assert!(world.resource::<DragState>().dragging.is_some());
     }
 
+    /// @doc: OBB hit test accounts for card rotation—axis-aligned check would miss rotated cards
     #[test]
     fn when_rotated_card_clicked_inside_obb_then_picked() {
         // Arrange
@@ -800,6 +804,7 @@ mod tests {
         assert!(world.resource::<Hand>().is_empty());
     }
 
+    /// @doc: Cards entering the table get physics body—no longer UI-managed, joinable in collisions
     #[test]
     fn when_pick_from_hand_then_physics_body_added() {
         // Arrange
@@ -836,6 +841,7 @@ mod tests {
         assert_eq!(calls[0].1, Vec2::new(50.0, 200.0));
     }
 
+    /// @doc: Render layer shifts to World on pick—hand cards drawn over table, picked cards below UI
     #[test]
     fn when_pick_from_hand_then_render_layer_becomes_world() {
         // Arrange

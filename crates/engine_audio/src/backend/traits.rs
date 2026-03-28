@@ -63,6 +63,7 @@ mod tests {
         assert_eq!(backend.play_count(), 1);
     }
 
+    /// @doc: Each playback gets a unique ID — enables stopping individual sounds without affecting others
     #[test]
     fn when_play_on_track_called_twice_with_sfx_then_ids_differ() {
         // Arrange
@@ -120,6 +121,7 @@ mod tests {
         assert_eq!(backend.play_count(), 1);
     }
 
+    /// @doc: Play count accumulates across calls — tracks total sounds queued for playback
     #[test]
     fn when_three_sounds_played_then_play_count_returns_three() {
         // Arrange

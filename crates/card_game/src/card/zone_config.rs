@@ -46,6 +46,7 @@ impl ZoneConfig {
 mod tests {
     use super::*;
 
+    /// @doc: Hand cards have no physics — they float in screen-space UI and can't be knocked by table collisions
     #[test]
     fn when_zone_is_hand_then_config_has_no_physics_and_ui_layer() {
         // Arrange / Act
@@ -68,6 +69,7 @@ mod tests {
         assert!(!config.has_item_form);
     }
 
+    /// @doc: Stash cards use item-form rendering — compact slot appearance instead of full card geometry
     #[test]
     fn when_zone_is_stash_then_config_has_item_form_and_ui_layer() {
         // Arrange / Act

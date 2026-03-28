@@ -147,6 +147,7 @@ mod tests {
         assert_eq!(clock.delta(), Seconds(0.016));
     }
 
+    /// @doc: Delta drains on read — calling delta() twice without advancing returns zero, preventing double-counting
     #[test]
     fn when_fake_clock_delta_called_twice_then_second_call_returns_zero() {
         // Arrange
@@ -306,6 +307,7 @@ mod tests {
         }
     }
 
+    /// @doc: Without clock advance between frames, delta is zero — prevents phantom time from stale clock state
     #[test]
     fn when_time_system_runs_twice_without_advance_then_second_delta_is_zero() {
         // Arrange

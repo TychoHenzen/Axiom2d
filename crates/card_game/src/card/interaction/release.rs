@@ -548,6 +548,7 @@ mod tests {
         assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Table);
     }
 
+    /// @doc: Hand transition removes physics body—hand cards never collide with table cards
     #[test]
     fn when_card_released_into_hand_from_table_then_full_zone_transition() {
         // Arrange
@@ -580,6 +581,7 @@ mod tests {
         assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Table);
     }
 
+    /// @doc: Hand-to-table transition adds physics body—card becomes subject to collisions and gravity
     #[test]
     fn when_release_on_table_from_hand_then_physics_body_added() {
         // Arrange
@@ -597,6 +599,7 @@ mod tests {
         assert_eq!(calls[0].1, Vec2::new(50.0, 50.0));
     }
 
+    /// @doc: Face-down cards auto-flip to face-up on hand entry—reveal card on pickup
     #[test]
     fn when_face_down_card_released_into_hand_then_flip_animation_inserted() {
         // Arrange
@@ -667,6 +670,7 @@ mod tests {
         );
     }
 
+    /// @doc: Full hand prevents pickup—card drops back to table if hand is at capacity
     #[test]
     fn when_hand_full_and_release_in_hand_area_then_card_stays_on_table() {
         // Arrange
@@ -707,6 +711,7 @@ mod tests {
         );
     }
 
+    /// @doc: HandSpring attached on hand pickup—card animates to its layout position
     #[test]
     fn when_release_to_hand_then_handspring_inserted() {
         // Arrange
@@ -758,6 +763,7 @@ mod tests {
         assert!(world.resource::<DragState>().dragging.is_none());
     }
 
+    /// @doc: Occupied stash slot forces snap-back to origin—collision avoidance for stash placement
     #[test]
     fn when_released_over_occupied_stash_slot_then_card_returned_to_origin() {
         // Arrange — slot (0,0,0) occupied by blocker, origin slot (0,1,0)

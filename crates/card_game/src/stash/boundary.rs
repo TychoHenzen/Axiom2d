@@ -184,6 +184,7 @@ mod tests {
         );
     }
 
+    /// @doc: Exiting stash boundary re-adds physics — card transitions from cursor-follow mode back to physics drag
     #[test]
     fn when_stash_follow_and_cursor_exits_stash_then_physics_body_added() {
         // Arrange
@@ -269,6 +270,7 @@ mod tests {
         );
     }
 
+    /// @doc: Entering stash strips physics — card switches to direct cursor tracking for precise slot placement
     #[test]
     fn when_physics_drag_and_cursor_enters_stash_then_physics_body_removed() {
         // Arrange
@@ -355,6 +357,7 @@ mod tests {
         );
     }
 
+    /// @doc: Hiding stash while dragging over it triggers exit transition — card returns to physics mode immediately
     #[test]
     fn when_stash_hidden_and_follow_true_then_physics_body_added() {
         // Arrange

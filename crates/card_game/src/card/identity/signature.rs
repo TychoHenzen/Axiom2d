@@ -173,6 +173,7 @@ impl std::ops::Index<Element> for CardSignature {
 mod tests {
     use super::*;
 
+    /// @doc: Signature axes are clamped to [-1, 1] — prevents runaway values from signature arithmetic
     #[test]
     fn when_constructing_signature_with_value_above_one_then_axis_is_clamped_to_one() {
         // Arrange
@@ -258,6 +259,7 @@ mod tests {
         );
     }
 
+    /// @doc: Distance is symmetric — base type matching doesn't depend on which signature is the reference point
     #[test]
     fn when_computing_distance_then_a_to_b_equals_b_to_a() {
         // Arrange
@@ -450,6 +452,7 @@ mod tests {
         }
     }
 
+    /// @doc: Subtraction result is clamped — residual computation can't produce out-of-range signature axes
     #[test]
     fn when_subtracting_produces_values_outside_range_then_result_is_clamped() {
         // Arrange
@@ -515,6 +518,7 @@ mod tests {
         assert_eq!(sig.rarity(), Rarity::Legendary);
     }
 
+    /// @doc: Rarity uses absolute magnitude — a fully negative signature is just as extreme as fully positive
     #[test]
     fn when_all_axes_at_negative_max_then_rarity_is_legendary() {
         // Arrange
@@ -533,6 +537,7 @@ mod tests {
         assert_eq!(sig.rarity(), sig.rarity());
     }
 
+    /// @doc: Rarity is monotonic with extremity — more extreme signatures never downgrade in rarity tier
     #[test]
     fn when_more_extreme_signature_then_rarity_is_equal_or_higher() {
         // Arrange

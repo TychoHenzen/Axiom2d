@@ -107,13 +107,7 @@ mod tests {
 
     // ── Tests ────────────────────────────────────────────────────────
 
-    /// Pick a table card at world origin, drag to the hand zone (bottom of screen),
-    /// and verify the full zone transition: Table → Hand.
-    ///
-    /// Schedule dependency chain exercised:
-    ///   Frame 0: `transform_propagation_system` → `camera_prepare_system` (establish transforms)
-    ///   Frame 1: `mouse_input_system` → `mouse_world_pos_system` → `card_pick_system` (pick)
-    ///   Frame 2: `mouse_input_system` → `card_release_system` (release into hand zone)
+    /// @doc: Full pick→release integration through the real schedule — verifies system ordering for Table→Hand zone transition
     #[test]
     fn when_card_picked_from_table_and_released_into_hand_then_card_in_hand() {
         // Arrange
@@ -166,8 +160,7 @@ mod tests {
         );
     }
 
-    /// Pick a table card and release it back on the table area (top half of screen).
-    /// The card should stay in `CardZone::Table` with physics intact.
+    /// @doc: Table→Table round-trip preserves physics — dropping a card back on the table doesn't strip its body
     #[test]
     fn when_card_picked_from_table_and_released_on_table_then_card_stays_on_table() {
         // Arrange
@@ -207,12 +200,7 @@ mod tests {
         );
     }
 
-    /// Pick a table card and release it over an open stash slot.
-    /// The card should transition to `CardZone::Stash` and gain `CardItemForm`.
-    ///
-    /// Stash slot (0,0) screen position: margin=20, `stride_w=54`, `stride_h=79`.
-    /// Top-left of slot (0,0) is at screen (20, 20). Any point inside the stride
-    /// range maps to slot (0,0).
+    /// @doc: Table→Stash integration — verifies full zone transition including CardItemForm insertion and grid placement
     #[test]
     fn when_card_picked_from_table_and_released_on_stash_then_card_in_stash() {
         // Arrange
@@ -267,12 +255,7 @@ mod tests {
         );
     }
 
-    /// Place a card in the stash, then pick it from the stash slot and release
-    /// into the hand zone. Verifies the Stash → Hand transition through the
-    /// real schedule.
-    ///
-    /// Stash picks use `mouse.screen_pos()` with `find_stash_slot_at()`, so we
-    /// click at the slot's screen coordinates rather than world coordinates.
+    /// @doc: Stash→Hand integration — uses screen-space slot coordinates for stash pick, world coords for hand release
     #[test]
     fn when_card_picked_from_stash_and_released_into_hand_then_card_in_hand() {
         // Arrange — get a card into the stash via the pick-release flow.
@@ -336,9 +319,7 @@ mod tests {
         );
     }
 
-    /// Verify that `DragState` is None after every release, even across multiple
-    /// pick-release cycles. This is a lightweight sanity check that the release
-    /// system always clears state.
+    /// @doc: Drag state must clear after every release — leaked drag state would cause phantom picks on the next click
     #[test]
     fn when_multiple_pick_release_cycles_then_drag_state_cleared_each_time() {
         // Arrange

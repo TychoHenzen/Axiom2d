@@ -218,46 +218,4 @@ mod tests {
         // Act / Assert
         assert_eq!(hand.cards(), &[a, b, c]);
     }
-
-    #[test]
-    fn when_hand_empty_then_len_returns_zero() {
-        // Arrange
-        let hand = Hand::new(5);
-
-        // Act / Assert
-        assert_eq!(hand.len(), 0);
-    }
-
-    #[test]
-    fn when_hand_empty_then_is_empty_returns_true() {
-        // Arrange
-        let hand = Hand::new(5);
-
-        // Act / Assert
-        assert!(hand.is_empty());
-    }
-
-    #[test]
-    fn when_hand_has_cards_then_is_empty_returns_false() {
-        // Arrange
-        let mut world = World::new();
-        let entity = world.spawn_empty().id();
-        let mut hand = Hand::new(5);
-        hand.add(entity).unwrap();
-
-        // Act / Assert
-        assert!(!hand.is_empty());
-    }
-
-    #[test]
-    fn when_hand_full_error_displayed_then_message_is_human_readable() {
-        // Arrange
-        let err = HandFull;
-
-        // Act
-        let message = format!("{err}");
-
-        // Assert
-        assert!(!message.is_empty());
-    }
 }

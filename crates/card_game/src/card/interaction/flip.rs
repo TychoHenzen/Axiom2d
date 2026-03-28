@@ -103,6 +103,7 @@ mod tests {
         world.insert_resource(mouse);
     }
 
+    /// @doc: Flip state unchanged until animation completes—prevents flashing mid-flip
     #[test]
     fn when_flip_triggered_then_face_up_unchanged_and_animation_inserted() {
         // Arrange
@@ -225,6 +226,7 @@ mod tests {
         assert!(world.entity(card).get::<FlipAnimation>().is_none());
     }
 
+    /// @doc: Sort order selects highest card at click position—prevents flipping obscured cards
     #[test]
     fn when_right_click_overlapping_cards_then_only_topmost_gets_animation() {
         // Arrange
@@ -242,6 +244,7 @@ mod tests {
         assert!(world.entity(card_b).get::<FlipAnimation>().is_some());
     }
 
+    /// @doc: Don't interrupt active flip animation—prevents competing flip directions mid-play
     #[test]
     fn when_flip_triggered_while_animation_active_then_animation_unchanged() {
         // Arrange — card already mid-animation

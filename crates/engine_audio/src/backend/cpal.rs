@@ -176,6 +176,7 @@ mod tests {
         assert!((backend.volume() - 1.0).abs() < f32::EPSILON);
     }
 
+    /// @doc: CPAL backend assigns unique IDs per playback — isolation enables per-sound lifecycle control
     #[test]
     fn when_play_called_twice_then_ids_are_unique() {
         // Arrange
@@ -239,6 +240,7 @@ mod tests {
         assert_eq!(backend.active_sound_count(), 1);
     }
 
+    /// @doc: Per-track volume isolation — setting one track does not affect others in shared state
     #[test]
     fn when_set_track_volume_on_cpal_then_internal_state_updated() {
         // Arrange

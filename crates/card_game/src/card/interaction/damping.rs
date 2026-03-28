@@ -63,6 +63,7 @@ mod tests {
         );
     }
 
+    /// @doc: Fast-spinning cards experience reduced drag to prevent premature slowdown during flicks
     #[test]
     fn when_high_angular_velocity_then_drag_less_than_base() {
         // Arrange / Act
@@ -100,6 +101,7 @@ mod tests {
         );
     }
 
+    /// @doc: Extreme spin rates floor at minimum drag—prevents drag collapse and maintains playability
     #[test]
     fn when_extreme_angular_velocity_then_drag_floored_at_minimum() {
         // Arrange / Act
@@ -266,6 +268,7 @@ mod tests {
         assert!(entities.contains(&e3));
     }
 
+    /// @doc: Hand cards skip damping—they're never physics-driven and don't have bodies
     #[test]
     fn when_card_in_hand_then_set_damping_not_called() {
         // Arrange

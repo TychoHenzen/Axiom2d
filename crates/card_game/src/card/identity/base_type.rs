@@ -210,6 +210,7 @@ mod tests {
         assert!(result);
     }
 
+    /// @doc: Boundary-inclusive matching — cards exactly at the radius edge still belong to the base type
     #[test]
     fn when_signature_is_exactly_at_radius_boundary_then_can_match_returns_true() {
         // Arrange
@@ -249,6 +250,7 @@ mod tests {
         assert!(!result);
     }
 
+    /// @doc: Match weight is 1.0 at center, 0.0 at edge — linear falloff drives "how strongly" a card belongs to a type
     #[test]
     fn when_signature_is_identical_to_base_then_match_weight_is_one() {
         // Arrange
@@ -391,6 +393,7 @@ mod tests {
         assert!(result.is_none());
     }
 
+    /// @doc: Closest match wins — when a card falls in multiple type radii, the highest-weight type determines identity
     #[test]
     fn when_two_types_both_match_then_best_match_returns_closer_one() {
         // Arrange
@@ -411,6 +414,7 @@ mod tests {
         assert_eq!(result.expect("should match").name, "TypeA");
     }
 
+    /// @doc: Registration order doesn't affect matching — best_match compares all types, not first-registered
     #[test]
     fn when_best_match_is_registered_second_then_it_still_wins() {
         // Arrange

@@ -225,6 +225,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    /// @doc: Atlas UV normalization maps pixel rects to 0..1 — shader sampling requires normalized coordinates
     #[test]
     fn when_adding_image_then_uv_rect_is_normalized_to_zero_one() {
         // Arrange
@@ -268,6 +269,7 @@ mod tests {
         assert_ne!(h1.texture_id, h2.texture_id);
     }
 
+    /// @doc: Guillotiere allocator must produce non-overlapping rects — overlaps corrupt texture sampling
     #[test]
     fn when_adding_two_images_then_uv_rects_do_not_overlap() {
         // Arrange
@@ -422,6 +424,7 @@ mod tests {
         assert_ne!(h2.uv_rect, h3.uv_rect);
     }
 
+    /// @doc: Pixel row-major memory layout: compute offset correctly with stride to avoid data corruption
     #[test]
     fn when_building_atlas_then_pixel_data_appears_at_correct_offset() {
         // Arrange
@@ -463,6 +466,7 @@ mod tests {
         assert_eq!(sample(h_blue.uv_rect), &[0, 0, 255, 255]);
     }
 
+    /// @doc: UV normalization must preserve aspect ratio — wrong formula causes stretched textures
     #[test]
     fn when_normalizing_uv_rect_then_output_is_in_zero_one_range() {
         // Act
@@ -516,6 +520,7 @@ mod tests {
         );
     }
 
+    /// @doc: Second image offset must not change UV height calculation — UV rect is always normalized correctly
     #[test]
     fn when_second_image_at_nonzero_y_then_uv_height_matches_image_ratio() {
         // Arrange — narrow atlas forces second image to y > 0
@@ -602,6 +607,7 @@ mod tests {
         assert!(!log.lock().unwrap().contains(&"upload_atlas".to_string()));
     }
 
+    /// @doc: AtlasUploaded marker prevents re-uploading — GPU resource should only transfer once
     #[test]
     fn when_system_runs_twice_then_upload_atlas_called_only_once() {
         // Arrange

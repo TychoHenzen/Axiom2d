@@ -482,6 +482,7 @@ mod tests {
         assert!(mesh.indices.is_empty());
     }
 
+    /// @doc: Glyph cache returns same mesh on repeated queries — caching eliminates redundant tessellation
     #[test]
     fn when_cache_queried_twice_for_same_glyph_then_same_vertex_count() {
         // Arrange
@@ -504,6 +505,7 @@ mod tests {
         assert_eq!(idxs1, idxs2);
     }
 
+    /// @doc: Glyph cache key includes font size — different sizes create separate entries to preserve fidelity
     #[test]
     fn when_cache_queried_at_different_sizes_then_separate_entries() {
         // Arrange
@@ -817,6 +819,7 @@ mod tests {
         );
     }
 
+    /// @doc: Wrapping never splits words mid-word — overflow words placed alone on a line
     #[test]
     fn when_wrap_text_single_long_word_then_one_line() {
         // Arrange

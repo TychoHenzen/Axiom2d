@@ -169,6 +169,7 @@ mod tests {
         );
     }
 
+    /// @doc: Converged springs auto-remove — prevents wasted per-frame spring math on settled cards
     #[test]
     fn when_scale_spring_converged_then_component_removed() {
         // Arrange
@@ -194,6 +195,7 @@ mod tests {
         );
     }
 
+    /// @doc: Final scale snaps to exact target — avoids floating-point drift leaving cards at 0.999x scale
     #[test]
     fn when_scale_spring_converged_then_scale_snapped_to_exact_target() {
         // Arrange
@@ -217,6 +219,7 @@ mod tests {
         assert_eq!(t.scale, Vec2::ONE);
     }
 
+    /// @doc: lock_x preserves horizontal scale during flip animation — only vertical axis participates in the squash
     #[test]
     fn when_lock_x_true_then_scale_y_springs_but_scale_x_unchanged() {
         // Arrange
@@ -250,6 +253,7 @@ mod tests {
         );
     }
 
+    /// @doc: Spring removal requires BOTH position and velocity convergence — prevents premature removal during overshoot
     #[test]
     fn when_position_converged_but_velocity_above_threshold_then_spring_not_removed() {
         // Arrange
@@ -364,7 +368,7 @@ mod tests {
         );
     }
 
-    // dt=0.5 simulates 2 FPS — the worst real-world low-FPS scenario for a card pickup
+    /// @doc: Large dt (2 FPS) must not cause scale explosion — spring math stays stable under extreme frame drops
     #[test]
     fn when_large_dt_simulating_2fps_then_scale_stays_bounded() {
         // Arrange

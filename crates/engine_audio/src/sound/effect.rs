@@ -107,6 +107,7 @@ mod tests {
         assert_eq!(sound.samples.len(), 22_050);
     }
 
+    /// @doc: Synthesis is stateless — factory creates fresh graph each call, no caching or state carryover
     #[test]
     fn when_synthesize_called_twice_then_each_call_returns_fresh_sound_data() {
         // Arrange

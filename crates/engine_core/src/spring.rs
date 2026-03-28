@@ -45,6 +45,7 @@ mod tests {
         assert!(vel.abs() < 1e-6, "expected vel≈0.0, got {vel}");
     }
 
+    /// @doc: Overshoot produces restoring force — damped spring pulls back toward target, preventing oscillation blow-up
     #[test]
     fn when_spring_step_past_target_with_forward_velocity_then_velocity_decreases() {
         // Arrange
@@ -82,6 +83,7 @@ mod tests {
         );
     }
 
+    /// @doc: Semi-implicit Euler integration — position uses updated velocity, giving better energy conservation than explicit Euler
     #[test]
     fn when_spring_step_position_computed_then_uses_new_velocity_not_old() {
         // Arrange

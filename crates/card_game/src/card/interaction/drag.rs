@@ -121,6 +121,7 @@ mod tests {
 
     use crate::test_helpers::spawn_entity;
 
+    /// @doc: Stash cursor follow bypasses physics—card tracks mouse directly without velocity/force
     #[test]
     fn when_stash_cursor_follow_then_position_set_to_world_pos_and_no_physics_velocity() {
         // Arrange
@@ -275,6 +276,7 @@ mod tests {
         );
     }
 
+    /// @doc: Perpendicular drag displacement creates pure rotation—arm length and desired must be orthogonal
     #[test]
     fn when_dragging_off_center_perpendicular_then_pure_rotation() {
         // Arrange — body at origin, grabbed at (10,0), cursor moves straight up to (10,5)
@@ -310,6 +312,7 @@ mod tests {
         );
     }
 
+    /// @doc: Drag along arm direction creates pure translation—displacement parallel to arm yields zero torque
     #[test]
     fn when_dragging_off_center_along_arm_then_pure_translation() {
         // Arrange — body at origin, grabbed at (10,0), cursor at (15,0)
@@ -340,6 +343,7 @@ mod tests {
         );
     }
 
+    /// @doc: Rigid body constraint: grab velocity = center velocity + omega × arm—must equal desired
     #[test]
     fn when_dragging_off_center_then_grab_point_velocity_matches_desired() {
         // Arrange — the rigid body constraint: v_grab = v_center + ω × arm
@@ -372,6 +376,7 @@ mod tests {
         );
     }
 
+    /// @doc: Arm vector = grab_world − body_pos—absolute positions, not relative offsets
     #[test]
     fn when_dragging_off_center_with_nonzero_body_pos_then_arm_computed_correctly() {
         // Arrange — body at (10, 0), grabbed at local (5, 0), cursor at (20, 0)
@@ -408,6 +413,7 @@ mod tests {
         );
     }
 
+    /// @doc: arm_len_sq threshold boundary (< 1e-4) distinguishes center vs. rotation physics path
     #[test]
     fn when_arm_length_just_above_threshold_then_rotation_path_used() {
         // Arrange — arm_len_sq needs to be >= 1e-4 (arm length >= 0.01)
@@ -548,6 +554,7 @@ mod tests {
         );
     }
 
+    /// @doc: Angular velocity clamped to ±15 rad/s—prevents unrealistic spin from edge grabs
     #[test]
     fn when_edge_grab_produces_extreme_spin_then_angular_velocity_clamped() {
         // Arrange — body at origin, grabbed at (5,0), cursor at (5, 500)

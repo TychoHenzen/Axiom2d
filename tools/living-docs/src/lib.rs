@@ -361,6 +361,49 @@ pub fn convert_to_docs(
         .collect()
 }
 
+/// Generate compact plain-text documentation optimized for LLM consumption.
+///
+/// No HTML, no code blocks. Source locations and annotations are inlined.
+/// Uses `##` / `###` headings and simple bullet lists for minimal token usage.
+pub fn generate_llm_markdown(docs: &[CrateDoc], total: usize, date: &str) -> String {
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "# Axiom2d Living Documentation ({total} tests, {date})\n"
+    );
+
+    let mut sorted: Vec<&CrateDoc> = docs.iter().collect();
+    sorted.sort_by_key(|d| &d.name);
+
+    for doc in sorted {
+        let test_count: usize = doc.modules.values().map(Vec::len).sum();
+        let _ = writeln!(out, "## {} ({test_count} tests)", doc.name);
+
+        for (module, tests) in &doc.modules {
+            let _ = writeln!(out, "### {module} ({} tests)", tests.len());
+            for test in tests {
+                let status = match test.passed {
+                    Some(true) => "pass",
+                    Some(false) => "FAIL",
+                    None => "?",
+                };
+                let loc = test
+                    .source
+                    .as_ref()
+                    .map_or(String::new(), |s| format!(" ({}:{})", s.file, s.line));
+                if let Some(ref ann) = test.annotation {
+                    let _ = writeln!(out, "- [{status}] {}{loc} — {ann}", test.description);
+                } else {
+                    let _ = writeln!(out, "- [{status}] {}{loc}", test.description);
+                }
+            }
+        }
+        out.push('\n');
+    }
+
+    out
+}
+
 /// Generate markdown documentation from `CrateDoc` entries.
 pub fn generate_markdown(docs: &[CrateDoc], total: usize, date: &str) -> String {
     let mut out = String::new();
@@ -467,9 +510,9 @@ pub fn parse_cargo_output(output: &str) -> BTreeMap<String, Vec<ParsedTest>> {
 mod tests {
     use super::{
         AnnotationMap, BodyMap, CrateDoc, ParsedTest, ResultMap, SourceLocation, SourceMap,
-        TestDoc, convert_to_docs, generate_markdown, parse_annotations, parse_cargo_output,
-        parse_crate_name, parse_test_bodies, parse_test_entry, parse_test_locations,
-        parse_test_results, to_readable_description,
+        TestDoc, convert_to_docs, generate_llm_markdown, generate_markdown, parse_annotations,
+        parse_cargo_output, parse_crate_name, parse_test_bodies, parse_test_entry,
+        parse_test_locations, parse_test_results, to_readable_description,
     };
     use std::collections::BTreeMap;
 
@@ -1953,5 +1996,121 @@ fn gap_brace()
             result.get("gap_brace"),
             Some(&"    let y = 99;\n".to_string()),
         );
+    }
+
+    // TC132: LLM format uses plain headings and bullet lists, no HTML
+    #[test]
+    fn when_llm_format_then_no_html_tags() {
+        // Arrange
+        let mut modules = BTreeMap::new();
+        modules.insert(
+            "color".to_string(),
+            vec![TestDoc {
+                description: "When from u8 called, then converts".to_string(),
+                annotation: Some("Verifies byte-to-float conversion".to_string()),
+                source: Some(SourceLocation {
+                    file: "crates/engine_core/src/color.rs".to_string(),
+                    line: 42,
+                }),
+                body: Some("let c = Color::from_u8(255);".to_string()),
+                passed: Some(true),
+            }],
+        );
+        let docs = vec![CrateDoc {
+            name: "engine_core".to_string(),
+            modules,
+        }];
+
+        // Act
+        let md = generate_llm_markdown(&docs, 1, "2026-03-28");
+
+        // Assert
+        assert!(!md.contains("<details>"));
+        assert!(!md.contains("<summary>"));
+        assert!(!md.contains("<blockquote>"));
+        assert!(!md.contains("<code>"));
+        assert!(!md.contains("```rust"));
+        assert!(md.contains("## engine_core (1 tests)"));
+        assert!(md.contains("### color (1 tests)"));
+        assert!(md.contains(
+            "- [pass] When from u8 called, then converts (crates/engine_core/src/color.rs:42) — Verifies byte-to-float conversion"
+        ));
+    }
+
+    // TC133: LLM format includes source location but omits code bodies
+    #[test]
+    fn when_llm_format_then_has_source_but_no_body() {
+        // Arrange
+        let mut modules = BTreeMap::new();
+        modules.insert(
+            "rect".to_string(),
+            vec![TestDoc {
+                description: "When constructed, then stores values".to_string(),
+                annotation: None,
+                source: Some(SourceLocation {
+                    file: "crates/engine_core/src/rect.rs".to_string(),
+                    line: 10,
+                }),
+                body: Some("let r = Rect::new(0, 0, 10, 10);".to_string()),
+                passed: Some(false),
+            }],
+        );
+        let docs = vec![CrateDoc {
+            name: "engine_core".to_string(),
+            modules,
+        }];
+
+        // Act
+        let md = generate_llm_markdown(&docs, 1, "2026-03-28");
+
+        // Assert
+        assert!(md.contains("(crates/engine_core/src/rect.rs:10)"));
+        assert!(!md.contains("Rect::new"));
+        assert!(md.contains(
+            "- [FAIL] When constructed, then stores values (crates/engine_core/src/rect.rs:10)"
+        ));
+    }
+
+    // TC134: LLM format header includes count and date inline
+    #[test]
+    fn when_llm_format_then_header_has_count_and_date() {
+        // Arrange
+        let docs = vec![CrateDoc {
+            name: "demo".to_string(),
+            modules: BTreeMap::new(),
+        }];
+
+        // Act
+        let md = generate_llm_markdown(&docs, 42, "2026-03-28");
+
+        // Assert
+        assert!(md.starts_with("# Axiom2d Living Documentation (42 tests, 2026-03-28)"));
+    }
+
+    // TC135: LLM format shows unknown status for tests without results
+    #[test]
+    fn when_llm_format_and_no_result_then_question_mark() {
+        // Arrange
+        let mut modules = BTreeMap::new();
+        modules.insert(
+            "misc".to_string(),
+            vec![TestDoc {
+                description: "Some test".to_string(),
+                annotation: None,
+                source: None,
+                body: None,
+                passed: None,
+            }],
+        );
+        let docs = vec![CrateDoc {
+            name: "engine_core".to_string(),
+            modules,
+        }];
+
+        // Act
+        let md = generate_llm_markdown(&docs, 1, "2026-03-28");
+
+        // Assert
+        assert!(md.contains("- [?] Some test"));
     }
 }

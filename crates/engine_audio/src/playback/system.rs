@@ -305,6 +305,7 @@ mod tests {
         assert!(remaining.is_empty());
     }
 
+    /// @doc: Pre-computed spatial gains bypass attenuation — allows manual gain control or preview mode
     #[test]
     fn when_spatial_gains_present_then_play_sound_applies_them() {
         // Arrange
@@ -327,6 +328,7 @@ mod tests {
         assert_eq!(*play_count.lock().unwrap(), 1);
     }
 
+    /// @doc: Mono-to-stereo conversion applies spatial gains separately — mono upmix with panning applied
     #[test]
     fn when_apply_spatial_gains_mono_then_stereo_samples_scaled() {
         // Arrange
@@ -352,6 +354,7 @@ mod tests {
         assert!((result.samples[3] - 0.5 * 0.7).abs() < 1e-6); // frame 1 right
     }
 
+    /// @doc: Stereo channels are scaled independently — preserves spatial direction after gain adjustment
     #[test]
     fn when_apply_spatial_gains_stereo_then_channels_scaled_independently() {
         // Arrange
@@ -377,6 +380,7 @@ mod tests {
         assert!((result.samples[3] - 0.4 * 0.25).abs() < 1e-6); // frame 1 right
     }
 
+    /// @doc: Single-channel silence does not cull — only both gains zero triggers skip (asymmetric panning valid)
     #[test]
     fn when_one_gain_zero_other_nonzero_then_sound_still_plays() {
         // Arrange — only left is zero, right is nonzero → should NOT be culled
@@ -403,6 +407,7 @@ mod tests {
         );
     }
 
+    /// @doc: Gain below epsilon threshold culls the sound entirely — prevents wasted mixing on inaudible sources
     #[test]
     fn when_both_gains_zero_then_play_sound_skips_backend() {
         // Arrange
@@ -425,6 +430,7 @@ mod tests {
         assert_eq!(*play_count.lock().unwrap(), 0);
     }
 
+    /// @doc: Epsilon boundary is exclusive — gain exactly EPSILON plays, gain < EPSILON culls (precision edge case)
     #[test]
     fn when_right_gain_exactly_epsilon_and_left_zero_then_sound_not_culled() {
         // Arrange — right=EPSILON (not < EPSILON), left=0: culling condition is false → plays
@@ -451,6 +457,7 @@ mod tests {
         );
     }
 
+    /// @doc: Epsilon boundary is exclusive — prevents culling sounds with minimal but audible gain
     #[test]
     fn when_gain_exactly_epsilon_then_sound_not_culled() {
         // Arrange — left = EPSILON (not < EPSILON), right = 0.0 → should NOT be culled
