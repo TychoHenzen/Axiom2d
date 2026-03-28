@@ -414,7 +414,7 @@ mod tests {
         assert_eq!(result.expect("should match").name, "TypeA");
     }
 
-    /// @doc: Registration order doesn't affect matching — best_match compares all types, not first-registered
+    /// @doc: Registration order doesn't affect matching — `best_match` compares all types, not first-registered
     #[test]
     fn when_best_match_is_registered_second_then_it_still_wins() {
         // Arrange

@@ -200,7 +200,7 @@ mod tests {
         );
     }
 
-    /// @doc: Table→Stash integration — verifies full zone transition including CardItemForm insertion and grid placement
+    /// @doc: Table→Stash integration — verifies full zone transition including `CardItemForm` insertion and grid placement
     #[test]
     fn when_card_picked_from_table_and_released_on_stash_then_card_in_stash() {
         // Arrange

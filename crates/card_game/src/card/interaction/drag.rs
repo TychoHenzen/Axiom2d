@@ -376,7 +376,7 @@ mod tests {
         );
     }
 
-    /// @doc: Arm vector = grab_world − body_pos—absolute positions, not relative offsets
+    /// @doc: Arm vector = `grab_world` − `body_pos—absolute` positions, not relative offsets
     #[test]
     fn when_dragging_off_center_with_nonzero_body_pos_then_arm_computed_correctly() {
         // Arrange — body at (10, 0), grabbed at local (5, 0), cursor at (20, 0)
@@ -413,7 +413,7 @@ mod tests {
         );
     }
 
-    /// @doc: arm_len_sq threshold boundary (< 1e-4) distinguishes center vs. rotation physics path
+    /// @doc: `arm_len_sq` threshold boundary (< 1e-4) distinguishes center vs. rotation physics path
     #[test]
     fn when_arm_length_just_above_threshold_then_rotation_path_used() {
         // Arrange — arm_len_sq needs to be >= 1e-4 (arm length >= 0.01)
