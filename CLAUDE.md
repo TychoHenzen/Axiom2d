@@ -63,7 +63,7 @@ Workspace-level clippy lints are configured in the root `Cargo.toml` under `[wor
 
 Two GitHub Actions workflows in `.github/workflows/`:
 - **`ci.yml`** (every push/PR to master): autofix (clippy --fix + fmt, pushes fixes back) → build + test — fast gate for every commit.
-- **`quality.yml`** (daily at 06:00 UTC + manual `workflow_dispatch`): clippy, audit, docs, coverage — expensive checks run on a schedule to conserve Actions minutes.
+- **`quality.yml`** (daily at 06:00 UTC + manual `workflow_dispatch`): clippy, audit, docs, coverage, udeps, shader validation, dead code, duplicate detection — expensive checks run on a schedule to conserve Actions minutes.
 
 Mutation testing (`cargo-mutants`) is run locally via the `/mutant-hunt` skill in Claude Code — too slow for CI.
 

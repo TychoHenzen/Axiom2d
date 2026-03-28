@@ -63,3 +63,66 @@ jobs:
         with:
           name: coverage-report
           path: lcov.info
+
+  udeps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - name: Install cargo-udeps
+        run: cargo install cargo-udeps --locked
+      - name: Check for unused dependencies
+        run: cargo +nightly udeps --workspace --all-targets
+
+  shaders:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install naga-cli
+        run: cargo install naga-cli --locked
+      - name: Validate WGSL shaders
+        run: |
+          find crates -name '*.wgsl' | while read -r shader; do
+            echo "Validating $shader"
+            naga "$shader" --validate
+          done
+
+  dead-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - name: Check for dead code
+        run: cargo build --workspace --all-targets
+        env:
+          RUSTFLAGS: "-D dead_code"
+
+  duplicates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install jscpd
+        run: npm install -g jscpd
+      - name: Detect duplicate code
+        id: jscpd
+        run: jscpd crates/ --pattern "**/*.rs" --min-tokens 50 --reporters consoleFull --output jscpd-report || echo "duplicates_found=true" >> "$GITHUB_OUTPUT"
+      - name: Upload duplicate report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: jscpd-report
+          path: jscpd-report/
+      - name: Fail if duplicates found
+        if: steps.jscpd.outputs.duplicates_found == 'true'
+        run: exit 1
