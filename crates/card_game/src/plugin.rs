@@ -196,7 +196,7 @@ mod tests {
         assert!(!registry.is_empty());
     }
 
-    /// @doc: TierShaders must be registered at plugin startup so tier condition
+    /// @doc: `TierShaders` must be registered at plugin startup so tier condition
     /// overlays (worn/shiny) appear on spawned cards. Without this resource,
     /// `build_mesh_overlays` silently skips the tier overlay, making all cards
     /// look Active regardless of their actual intensity tier.

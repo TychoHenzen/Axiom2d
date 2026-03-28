@@ -392,7 +392,7 @@ mod tests {
         assert_eq!(registry.lookup(variants.foil), Some(FOIL_WGSL));
     }
 
-    /// @doc: TierShaders resource must hold valid shader handles for both Dormant
+    /// @doc: `TierShaders` resource must hold valid shader handles for both Dormant
     /// (worn/faded) and Intense (shiny) effects. If registration fails or returns
     /// stale handles, the spawn pipeline will silently skip tier overlays, making
     /// all cards look Active regardless of their actual tier.

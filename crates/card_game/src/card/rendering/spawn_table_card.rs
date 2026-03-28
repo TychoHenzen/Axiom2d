@@ -231,10 +231,26 @@ fn build_mesh_overlays(
         let white = [1.0, 1.0, 1.0, 1.0];
         let tier_quad = TessellatedColorMesh {
             vertices: vec![
-                ColorVertex { position: [-card_hw, -card_hh], color: white, uv: [0.0, 0.0] },
-                ColorVertex { position: [card_hw, -card_hh], color: white, uv: [1.0, 0.0] },
-                ColorVertex { position: [card_hw, card_hh], color: white, uv: [1.0, 1.0] },
-                ColorVertex { position: [-card_hw, card_hh], color: white, uv: [0.0, 1.0] },
+                ColorVertex {
+                    position: [-card_hw, -card_hh],
+                    color: white,
+                    uv: [0.0, 0.0],
+                },
+                ColorVertex {
+                    position: [card_hw, -card_hh],
+                    color: white,
+                    uv: [1.0, 0.0],
+                },
+                ColorVertex {
+                    position: [card_hw, card_hh],
+                    color: white,
+                    uv: [1.0, 1.0],
+                },
+                ColorVertex {
+                    position: [-card_hw, card_hh],
+                    color: white,
+                    uv: [0.0, 1.0],
+                },
             ],
             indices: vec![0, 1, 2, 0, 2, 3],
         };
@@ -1141,7 +1157,7 @@ mod tests {
     // --- Tier condition overlay tests ---
 
     /// @doc: Dormant tier cards (low signature intensity) get a worn/scratched shader
-    /// overlay as a third MeshOverlays entry. Without this, dormant and active cards
+    /// overlay as a third `MeshOverlays` entry. Without this, dormant and active cards
     /// look identical, removing the visual signal of card power level that players
     /// rely on for quick table reads.
     #[test]
@@ -1258,7 +1274,7 @@ mod tests {
         );
     }
 
-    /// @doc: Tier overlay visibility must match face_up state at spawn time. Face-down
+    /// @doc: Tier overlay visibility must match `face_up` state at spawn time. Face-down
     /// cards hide all overlays to prevent shader effects from bleeding through the
     /// opaque back face.
     #[test]

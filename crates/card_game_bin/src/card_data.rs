@@ -151,8 +151,7 @@ mod tests {
             let profile = SignatureProfile::without_archetype(&card.signature);
             let tier = profile
                 .dominant_axis
-                .map(|e| profile.tiers[e as usize])
-                .unwrap_or(Tier::Dormant);
+                .map_or(Tier::Dormant, |e| profile.tiers[e as usize]);
             assert_eq!(
                 tier,
                 Tier::Dormant,
@@ -175,8 +174,7 @@ mod tests {
             let profile = SignatureProfile::without_archetype(&card.signature);
             let tier = profile
                 .dominant_axis
-                .map(|e| profile.tiers[e as usize])
-                .unwrap_or(Tier::Active);
+                .map_or(Tier::Active, |e| profile.tiers[e as usize]);
             assert_eq!(
                 tier,
                 Tier::Active,
@@ -199,8 +197,7 @@ mod tests {
             let profile = SignatureProfile::without_archetype(&card.signature);
             let tier = profile
                 .dominant_axis
-                .map(|e| profile.tiers[e as usize])
-                .unwrap_or(Tier::Intense);
+                .map_or(Tier::Intense, |e| profile.tiers[e as usize]);
             assert_eq!(
                 tier,
                 Tier::Intense,
