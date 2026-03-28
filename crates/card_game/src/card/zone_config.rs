@@ -58,6 +58,10 @@ mod tests {
         assert!(!config.has_item_form);
     }
 
+    /// @doc: Table cards have physics bodies and render in World layer — they
+    /// participate in collisions and are drawn behind UI elements like the hand
+    /// and stash. Removing physics would make table cards immovable; wrong layer
+    /// would draw them on top of the hand fan.
     #[test]
     fn when_zone_is_table_then_config_has_physics_and_world_layer() {
         // Arrange / Act

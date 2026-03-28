@@ -108,6 +108,8 @@ mod tests {
         assert_eq!(desc, "Restore 8 health");
     }
 
+    /// @doc: Multiple stat effects are sorted by magnitude (absolute value), strongest first.
+    /// This prioritization ensures key effects appear first in the description text.
     #[test]
     fn when_multiple_stats_then_ordered_by_magnitude_descending() {
         // Arrange
@@ -129,6 +131,8 @@ mod tests {
         assert_eq!(lines[2], "Block 2 damage");
     }
 
+    /// @doc: Card descriptions are capped at 3 effects (take(3)) to avoid UI clutter.
+    /// Without this limit, complex cards would overflow the description panel.
     #[test]
     fn when_more_than_three_stats_then_only_top_three_shown() {
         // Arrange
@@ -152,6 +156,8 @@ mod tests {
         );
     }
 
+    /// @doc: Residual stats below MIN_DISPLAY_VALUE (1) after scaling are filtered out (filter_map).
+    /// This prevents tiny fractional residuals from cluttering the description with "Deal 0 damage" noise.
     #[test]
     fn when_stat_too_small_to_display_then_omitted() {
         // Arrange — 0.02 * 20 = 0.4, rounds to 0, below MIN_DISPLAY_VALUE

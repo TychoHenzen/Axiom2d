@@ -71,6 +71,9 @@ mod tests {
         assert_eq!(sound.channels, 1);
     }
 
+    /// @doc: Sample buffer size must exactly equal `sample_rate * duration *
+    /// channels`. An off-by-one would cause the mixer to read past the end of
+    /// the buffer (UB-adjacent panic) or produce a pop/click from a short sample.
     #[test]
     fn when_synthesize_called_then_sample_length_equals_frame_count_times_channels() {
         // Arrange
@@ -83,6 +86,9 @@ mod tests {
         assert_eq!(sound.samples.len(), 44_100);
     }
 
+    /// @doc: Smoke test that the DSP graph actually produces signal — a silent
+    /// output from a non-zero source graph would indicate a broken fundsp pipeline
+    /// or incorrect `tick()` call, making all synthesized sounds inaudible.
     #[test]
     fn when_nonzero_amplitude_graph_then_samples_are_not_all_zero() {
         // Arrange

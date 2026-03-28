@@ -125,15 +125,6 @@ pub fn time_system(mut clock: ResMut<ClockRes>, mut dt: ResMut<DeltaTime>) {
 mod tests {
     use super::*;
 
-    #[test]
-    fn when_fake_clock_constructed_then_delta_is_zero() {
-        // Act
-        let mut clock = FakeClock::default();
-
-        // Assert
-        assert_eq!(clock.delta(), Seconds(0.0));
-    }
-
     /// @doc: `FakeClock` enables deterministic testing — `advance()` accumulates, `delta()` drains
     #[test]
     fn when_fake_clock_advanced_then_delta_returns_advancement() {

@@ -106,6 +106,8 @@ mod tests {
         assert_eq!(mesh.vertices.len(), expected_len);
     }
 
+    /// @doc: Cards in ItemForm (stash icon grid) must have no ColorMesh—they are rendered as small icons,
+    /// not full-size cards. Without this check, item-form cards would render twice (icon + full mesh).
     #[test]
     fn when_card_has_item_form_then_color_mesh_is_empty() {
         // Arrange
@@ -129,6 +131,8 @@ mod tests {
         );
     }
 
+    /// @doc: Art shader overlays must be hidden for stash item-form cards, matching the ColorMesh behavior.
+    /// Overlays include art shader and variant shader effects; hiding them prevents visual pollution in the dense grid.
     #[test]
     fn when_card_has_item_form_then_overlays_hidden() {
         // Arrange
@@ -181,6 +185,8 @@ mod tests {
         );
     }
 
+    /// @doc: Removing ItemForm component must restore the card's full mesh on the next sync.
+    /// This test exercises the full transition path: Table → Stash (ItemForm added, mesh cleared) → Hand (ItemForm removed, mesh restored).
     #[test]
     fn when_item_form_removed_then_mesh_restored_on_next_sync() {
         // Arrange — spawn card with ItemForm, run system to clear mesh

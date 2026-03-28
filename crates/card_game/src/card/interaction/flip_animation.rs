@@ -90,6 +90,7 @@ mod tests {
         run_system(&mut world);
     }
 
+    /// @doc: Progress accumulates as dt / duration—controls animation playback speed independent of framerate
     #[test]
     fn when_animation_advances_then_progress_increases_by_dt_over_duration() {
         // Arrange
@@ -119,6 +120,7 @@ mod tests {
         assert!((anim.progress - 0.25).abs() < 1e-5);
     }
 
+    /// @doc: First half of flip shrinks scale.x toward zero—card appears to turn away from camera
     #[test]
     fn when_animation_in_first_half_then_scale_x_shrinks_proportionally() {
         // Arrange
@@ -178,6 +180,7 @@ mod tests {
         assert!(scale_x.abs() < 1e-5, "scale.x should be 0.0 at midpoint");
     }
 
+    /// @doc: Second half of flip expands scale.x from zero—card appears to turn toward camera with new face
     #[test]
     fn when_animation_in_second_half_then_scale_x_grows_proportionally() {
         // Arrange
@@ -291,6 +294,7 @@ mod tests {
         assert!(!world.entity(entity).get::<Card>().unwrap().face_up);
     }
 
+    /// @doc: FlipAnimation removed at completion—prevent re-triggering same flip state twice
     #[test]
     fn when_animation_completes_then_component_removed() {
         // Arrange
@@ -319,6 +323,7 @@ mod tests {
         assert!(world.entity(entity).get::<FlipAnimation>().is_none());
     }
 
+    /// @doc: Scale.x reset to normal after animation—prevents lingering visual shrinkage
     #[test]
     fn when_animation_completes_then_scale_x_restored_to_one() {
         // Arrange

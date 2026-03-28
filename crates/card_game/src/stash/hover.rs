@@ -169,6 +169,7 @@ mod tests {
 
     // -- Trigger condition tests (update system) --------------------------
 
+    /// @doc: Hover preview requires three conditions: stash visible, Ctrl held, no active drag — ensures preview doesn't interfere with card movement.
     #[test]
     fn when_ctrl_held_and_cursor_over_occupied_slot_and_no_drag_then_hovered_entity_set() {
         // Arrange
@@ -202,6 +203,7 @@ mod tests {
         );
     }
 
+    /// @doc: Ctrl key acts as preview toggle — requires explicit modkey to avoid accidental preview pop-ups during normal play.
     #[test]
     fn when_no_ctrl_pressed_then_hovered_entity_none() {
         // Arrange
@@ -285,6 +287,7 @@ mod tests {
         );
     }
 
+    /// @doc: Dragging suppresses hover preview — prevents confusing double-rendering of card being held and its preview simultaneously.
     #[test]
     fn when_drag_active_then_hovered_entity_none() {
         // Arrange
@@ -387,6 +390,7 @@ mod tests {
         );
     }
 
+    /// @doc: Hover preview renders baked card geometry — validates the render pipeline correctly projects stash cards to corner of screen.
     #[test]
     fn when_hovered_entity_set_then_baked_front_mesh_drawn() {
         // Arrange

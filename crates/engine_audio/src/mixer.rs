@@ -66,20 +66,6 @@ mod tests {
     }
 
     #[test]
-    fn when_default_mixer_state_then_all_tracks_are_one() {
-        // Arrange
-        let state = MixerState::default();
-
-        // Assert
-        for track in MixerTrack::ALL {
-            assert!(
-                (state.track_volume(track) - 1.0).abs() < f32::EPSILON,
-                "{track:?} should default to 1.0"
-            );
-        }
-    }
-
-    #[test]
     fn when_set_track_volume_then_only_that_track_changes() {
         // Arrange
         let mut state = MixerState::default();

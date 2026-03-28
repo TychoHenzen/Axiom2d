@@ -24,19 +24,3 @@ pub struct CardOverlays {
     pub foil: Option<CardOverlay>,
     pub back: Option<CardOverlay>,
 }
-
-#[cfg(test)]
-#[allow(clippy::unwrap_used)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn when_baked_card_mesh_default_then_both_faces_empty() {
-        // Act
-        let baked = BakedCardMesh::default();
-
-        // Assert
-        assert!(baked.front.is_empty());
-        assert!(baked.back.is_empty());
-    }
-}

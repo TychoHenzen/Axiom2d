@@ -19,6 +19,10 @@ pub fn spring_step(
 mod tests {
     use super::*;
 
+    /// @doc: Spring math correctness — verifies that the acceleration, velocity,
+    /// and position formulas produce expected values for a known initial state.
+    /// If the formula were wrong (e.g., wrong sign on damping), cards would
+    /// oscillate wildly or freeze instead of smoothly settling.
     #[test]
     fn when_spring_step_from_zero_toward_positive_target_then_returns_computed_position_and_velocity()
      {
@@ -35,6 +39,9 @@ mod tests {
         assert!((vel - 320.0).abs() < 1e-3, "expected vel≈320.0, got {vel}");
     }
 
+    /// @doc: Equilibrium stability — a spring at rest at its target must produce
+    /// zero force. If floating-point drift caused even tiny movement here, settled
+    /// cards would jitter indefinitely instead of holding position.
     #[test]
     fn when_spring_step_at_target_with_zero_velocity_then_position_and_velocity_unchanged() {
         // Act
@@ -62,6 +69,10 @@ mod tests {
         );
     }
 
+    /// @doc: Damped convergence guarantee — after enough iterations the spring
+    /// must settle near its target. An underdamped or divergent spring would cause
+    /// cards to bounce forever or fly off-screen instead of snapping into their
+    /// hand/stash layout positions.
     #[test]
     fn when_spring_step_iterated_300_times_then_converges_toward_target() {
         // Arrange

@@ -93,6 +93,7 @@ mod tests {
         assert_eq!(result.unwrap(), 1);
     }
 
+    /// @doc: Hand capacity is a hard boundary — prevents silent card drops and enforces discard mechanics when adding to a full hand.
     #[test]
     fn when_adding_card_to_full_hand_then_returns_hand_full_error() {
         // Arrange
@@ -167,6 +168,7 @@ mod tests {
         assert_eq!(result, None);
     }
 
+    /// @doc: Removing a card must not shuffle the hand — preserving order ensures the fan layout does not glitch when cards are discarded mid-game.
     #[test]
     fn when_removing_a_card_then_remaining_cards_preserve_relative_order() {
         // Arrange

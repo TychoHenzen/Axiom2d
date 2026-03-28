@@ -557,7 +557,7 @@ mod tests {
         assert_eq!(drag.entity, card_a);
     }
 
-    /// @doc: Local grab offset transformed by inverse rotation—drag stays aligned to card frame
+    /// @doc: Local grab offset transformed by inverse rotation—drag stays aligned to card frame even after rotation
     #[test]
     fn when_card_picked_at_offset_then_local_grab_offset_is_inverse_rotated() {
         // Arrange
@@ -877,6 +877,7 @@ mod tests {
         assert_eq!(*layer, RenderLayer::World);
     }
 
+    /// @doc: Hand card priority over table cards—hand cards above table in picking, sort order breaks ties
     #[test]
     fn when_hand_card_and_table_card_overlap_then_highest_sort_wins() {
         // Arrange
@@ -1076,6 +1077,7 @@ mod tests {
         );
     }
 
+    /// @doc: Stash picks preserve UI layer and skip physics—cards stay in cursor-follow mode during drag
     #[test]
     fn when_left_click_on_stash_card_then_no_physics_body_added_and_render_layer_stays_ui() {
         // Arrange

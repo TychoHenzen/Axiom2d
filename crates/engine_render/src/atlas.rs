@@ -256,6 +256,7 @@ mod tests {
         assert_eq!(handle.uv_rect, [0.0, 0.0, 1.0, 1.0]);
     }
 
+    /// @doc: Each allocation must have unique TextureId — id collisions break texture lookups and render incorrect sprites
     #[test]
     fn when_adding_two_images_then_each_has_distinct_texture_id() {
         // Arrange
@@ -290,6 +291,7 @@ mod tests {
         );
     }
 
+    /// @doc: Pairwise non-overlapping invariant must hold under load — overlaps cause texture corruption across multiple draw calls
     #[test]
     fn when_adding_many_images_then_all_uv_rects_are_non_overlapping() {
         // Arrange
@@ -379,6 +381,7 @@ mod tests {
         assert!(matches!(result, Err(AtlasError::InvalidDimensions)));
     }
 
+    /// @doc: TextureAtlas::lookup must return exact handle.uv_rect from add_image — mismatch breaks sprite sampling
     #[test]
     fn when_looking_up_known_texture_id_then_returns_matching_uv_rect() {
         // Arrange
@@ -393,6 +396,7 @@ mod tests {
         assert_eq!(result, Some(handle.uv_rect));
     }
 
+    /// @doc: Lookup must return None for non-existent TextureId — catching invalid IDs prevents shader sampling garbage
     #[test]
     fn when_looking_up_unknown_texture_id_then_returns_none() {
         // Arrange
@@ -407,6 +411,7 @@ mod tests {
         assert_eq!(result, None);
     }
 
+    /// @doc: Multiple lookups must each return their unique UV rects — aliasing or collision breaks multi-sprite rendering
     #[test]
     fn when_looking_up_multiple_textures_then_each_returns_its_own_uv_rect() {
         // Arrange
@@ -443,6 +448,7 @@ mod tests {
         assert_eq!(&atlas.data[offset..offset + 4], &[255, 0, 0, 255]);
     }
 
+    /// @doc: Two images must not overwrite each other's pixels in final atlas — overlapping writes cause color bleed
     #[test]
     fn when_building_atlas_with_two_images_then_neither_overwrites_the_other() {
         // Arrange
@@ -485,6 +491,7 @@ mod tests {
         assert_eq!(uv, [0.0, 0.0, 0.125, 0.125]);
     }
 
+    /// @doc: Each pixel row must respect atlas stride — incorrect stride calculation causes row-major layout corruption
     #[test]
     fn when_building_atlas_then_all_rows_of_image_are_correctly_placed() {
         // Arrange
@@ -580,6 +587,7 @@ mod tests {
         schedule.run(world);
     }
 
+    /// @doc: upload_atlas_system must invoke renderer when TextureAtlas resource exists — GPU upload won't happen without this call
     #[test]
     fn when_atlas_present_then_upload_atlas_called() {
         // Arrange
@@ -594,6 +602,7 @@ mod tests {
         assert!(log.lock().unwrap().contains(&"upload_atlas".to_string()));
     }
 
+    /// @doc: upload_atlas_system must skip when no TextureAtlas resource — prevents spam calls and respects resource-missing contracts
     #[test]
     fn when_no_atlas_then_upload_atlas_not_called() {
         // Arrange
@@ -632,6 +641,7 @@ mod tests {
         assert_eq!(calls.len(), 1);
     }
 
+    /// @doc: AtlasUploaded marker presence must prevent re-upload — double-upload causes GPU resource leaks and redundant transfers
     #[test]
     fn when_atlas_uploaded_marker_present_then_upload_atlas_not_called() {
         // Arrange

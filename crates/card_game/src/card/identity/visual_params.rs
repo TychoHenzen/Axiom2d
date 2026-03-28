@@ -85,6 +85,8 @@ mod tests {
     use crate::card::identity::signature_profile::{SignatureProfile, Tier};
     use crate::card::rendering::art_shader::ShaderVariant;
 
+    /// @doc: Ensures all 8 elements map to visually distinct base colors.
+    /// Without this test, two elements could accidentally share a color, breaking visual uniqueness on the card.
     #[test]
     fn when_element_hue_mapping_called_for_each_element_then_all_eight_hues_are_distinct() {
         // Arrange
@@ -105,6 +107,8 @@ mod tests {
         }
     }
 
+    /// @doc: Verifies all element base colors have alpha=1.0 (fully opaque).
+    /// Transparent element tints would render incorrectly on card artwork.
     #[test]
     fn when_element_hue_mapping_called_then_all_colors_are_fully_opaque() {
         // Arrange / Act
@@ -122,6 +126,8 @@ mod tests {
         }
     }
 
+    /// @doc: Confirms dominant element drives the tint color, not signature axes directly.
+    /// This ensures rarity-independent visual consistency: same element always produces same tint.
     #[test]
     fn when_profile_has_dominant_febris_then_element_tint_matches_febris_base_color() {
         // Arrange
@@ -173,6 +179,8 @@ mod tests {
         );
     }
 
+    /// @doc: Validates that art color deviates from element tint by at most COLOR_NOISE (0.05 per channel).
+    /// This noise prevents cards of the same element from looking identical while respecting visual coherence.
     #[test]
     fn when_generate_card_visuals_called_then_art_color_is_close_to_element_tint_within_noise() {
         // Arrange
@@ -204,6 +212,8 @@ mod tests {
         );
     }
 
+    /// @doc: Maps signature intensity to tier detail (Dormant < 0.3). Card artwork complexity scales with tier.
+    /// This ensures weak signatures get minimal visual detail, preventing overstated power representation.
     #[test]
     fn when_dominant_axis_is_dormant_then_tier_detail_is_dormant() {
         // Arrange — Solidum at 0.1 (below 0.3 threshold = Dormant)
@@ -217,6 +227,8 @@ mod tests {
         assert_eq!(params.tier_detail, Tier::Dormant);
     }
 
+    /// @doc: Maps Active tier for signatures in [0.3, 0.7) range.
+    /// Without this test, tier threshold logic could drift and misrepresent card intensity.
     #[test]
     fn when_dominant_axis_is_active_then_tier_detail_is_active() {
         // Arrange — Solidum at 0.5 (0.3..0.7 = Active)
@@ -230,6 +242,8 @@ mod tests {
         assert_eq!(params.tier_detail, Tier::Active);
     }
 
+    /// @doc: Maps Intense tier for signatures >= 0.7 (high power/rarity cards).
+    /// Tier detail drives art complexity shaders, so incorrect mapping breaks visual hierarchy.
     #[test]
     fn when_dominant_axis_is_intense_then_tier_detail_is_intense() {
         // Arrange — Solidum at 0.8 (>= 0.7 = Intense)
@@ -243,6 +257,8 @@ mod tests {
         assert_eq!(params.tier_detail, Tier::Intense);
     }
 
+    /// @doc: Element identity must be visually distinct in the tint color, not just metadata.
+    /// Different element profiles must produce perceptually different colors to players.
     #[test]
     fn when_two_profiles_with_different_dominant_elements_then_element_tints_differ() {
         // Arrange
@@ -262,6 +278,8 @@ mod tests {
         );
     }
 
+    /// @doc: Element tint depends only on dominant element, not intensity.
+    /// This ensures consistent color branding across Common/Rare/Legendary variants of same element.
     #[test]
     fn when_two_profiles_with_same_dominant_element_but_different_intensities_then_tints_equal() {
         // Arrange — both Solidum-dominant, different intensities
@@ -318,6 +336,8 @@ mod tests {
         }
     }
 
+    /// @doc: Signature-to-RNG seed mapping must be deterministic so cards are reproducible.
+    /// Save/load or multiplayer sync would break if same signature produced different visuals.
     #[test]
     fn when_compute_seed_called_on_identical_signatures_then_results_are_equal() {
         // Arrange
@@ -333,6 +353,8 @@ mod tests {
         assert_eq!(seed_a, seed_b);
     }
 
+    /// @doc: Different signatures must hash to different seeds (distribution property).
+    /// Poor hashing could cause two distinct cards to generate identical art, defeating signature uniqueness.
     #[test]
     fn when_compute_seed_called_on_different_signatures_then_results_differ() {
         // Arrange
@@ -356,6 +378,8 @@ mod tests {
         compute_seed(&sig);
     }
 
+    /// @doc: Sign-opposite signatures (e.g., +0.5 vs -0.5 Heat vs Cold) must hash differently.
+    /// Without this test, positive/negative axes could accidentally collide, breaking aspect uniqueness.
     #[test]
     fn when_compute_seed_called_on_sign_opposite_signatures_then_seeds_differ() {
         // Arrange
@@ -370,6 +394,8 @@ mod tests {
         assert_ne!(seed_pos, seed_neg);
     }
 
+    /// @doc: All generated art colors must be fully opaque (alpha=1.0) regardless of signature.
+    /// Transparent colors would blend with background incorrectly, corrupting visual identity.
     #[test]
     fn when_generate_card_visuals_called_then_art_color_is_fully_opaque() {
         // Arrange
@@ -382,6 +408,8 @@ mod tests {
         assert_eq!(params.art_color.a, 1.0);
     }
 
+    /// @doc: Visual generation is deterministic: same signature always produces identical visuals.
+    /// Non-determinism would make card identity unstable (critical for save files and UI consistency).
     #[test]
     fn when_generate_card_visuals_called_twice_with_same_signature_then_results_are_identical() {
         // Arrange
@@ -395,6 +423,8 @@ mod tests {
         assert_eq!(params_a, params_b);
     }
 
+    /// @doc: Two cards with different signatures must not render with the same color.
+    /// Collision in art colors would create visual confusion, defeating signature differentiation.
     #[test]
     fn when_generate_card_visuals_called_on_different_signatures_then_art_colors_differ() {
         // Arrange
@@ -409,6 +439,8 @@ mod tests {
         assert_ne!(params_a.art_color, params_b.art_color);
     }
 
+    /// @doc: Pattern index selection must always be within [0, PATTERN_COUNT) to avoid out-of-bounds art lookups.
+    /// Overflow here would panic or access wrong art textures at runtime.
     #[test]
     fn when_generate_card_visuals_called_then_pattern_index_is_within_bounds() {
         // Arrange
@@ -426,6 +458,8 @@ mod tests {
         );
     }
 
+    /// @doc: Common rarity (all axes near 0) maps to no shader effects (ShaderVariant::None).
+    /// Rarity-driven visual feedback requires correct shader selection, otherwise all cards look identical.
     #[test]
     fn when_generate_card_visuals_called_with_common_signature_then_shader_variant_is_none() {
         // Arrange
@@ -438,6 +472,8 @@ mod tests {
         assert_eq!(params.shader_variant, ShaderVariant::None);
     }
 
+    /// @doc: Legendary rarity (all axes at max) maps to ShaderVariant::Foil for premium visual effect.
+    /// Without this test, high-rarity cards would not visually distinguish themselves in gameplay.
     #[test]
     fn when_generate_card_visuals_called_with_legendary_signature_then_shader_variant_is_foil() {
         // Arrange

@@ -103,6 +103,10 @@ mod tests {
 
     // --- select_art_for_signature ---
 
+    /// @doc: Art selection matches the card's dominant element — the axis with
+    /// the largest absolute value determines which art set to use. Negative
+    /// axes map to the same element as positive, so a deeply cold card still
+    /// gets the Ordinem art rather than falling back to a random entry.
     #[test]
     fn when_selecting_art_with_negative_dominant_axis_then_returns_entry_for_that_element() {
         // Arrange
@@ -138,6 +142,10 @@ mod tests {
         assert!(result.is_none());
     }
 
+    /// @doc: When the repository lacks art for the dominant element, selection
+    /// falls back to the closest entry by signature distance. This ensures every
+    /// card gets some art even with a partially populated repository, avoiding
+    /// blank card faces during early development or modding.
     #[test]
     fn when_no_element_match_then_falls_back_to_closest_by_signature() {
         // Arrange
@@ -193,6 +201,10 @@ mod tests {
 
     // --- fit_art_mesh_to_region ---
 
+    /// @doc: Art fitting must constrain all vertices to the card's art region.
+    /// Vertices outside the region would bleed into the card border or title
+    /// area, breaking the visual layout. The fit uses uniform scale + center
+    /// offset to preserve the original art proportions.
     #[test]
     fn when_fitting_art_into_region_then_all_vertices_within_bounds() {
         // Arrange
@@ -230,6 +242,9 @@ mod tests {
         }
     }
 
+    /// @doc: Art fitting preserves aspect ratio via uniform scaling — a 2:1
+    /// landscape art piece must stay 2:1 on the card. Non-uniform scaling would
+    /// squash or stretch the vector art, making it look distorted.
     #[test]
     fn when_fitting_art_with_nonsquare_input_then_aspect_ratio_preserved() {
         // Arrange

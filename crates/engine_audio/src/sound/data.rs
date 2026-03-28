@@ -17,6 +17,9 @@ impl SoundData {
 mod tests {
     use super::*;
 
+    /// @doc: For mono audio, each sample is one frame. `frame_count()` divides
+    /// by channel count — getting this wrong would cause the mixer to read half
+    /// the buffer (stereo assumption) or double it, producing glitchy playback.
     #[test]
     fn when_mono_then_frame_count_equals_sample_len() {
         // Arrange
@@ -33,6 +36,9 @@ mod tests {
         assert_eq!(frames, 4);
     }
 
+    /// @doc: Stereo audio interleaves L/R samples, so frame count is half the
+    /// sample count. The mixer uses frame count to determine playback duration —
+    /// a wrong value would cause sounds to end at half length or play garbage.
     #[test]
     fn when_stereo_then_frame_count_is_half_sample_len() {
         // Arrange

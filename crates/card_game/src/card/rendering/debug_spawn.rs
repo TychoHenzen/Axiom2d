@@ -155,6 +155,9 @@ mod tests {
         assert_eq!(card_count, 0);
     }
 
+    /// @doc: Debug-spawned cards must each receive a unique signature from the
+    /// seeded RNG. Duplicate signatures would produce identical-looking cards
+    /// with the same name, stats, and art — useless for testing visual variety.
     #[test]
     fn when_cards_spawned_then_each_has_unique_signature() {
         // Arrange

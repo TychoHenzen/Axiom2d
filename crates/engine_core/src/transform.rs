@@ -139,6 +139,10 @@ mod tests {
         assert_eq!(affine, expected);
     }
 
+    /// @doc: Transform composition order is scale-then-rotate-then-translate (SRT).
+    /// Getting this wrong would cause objects to orbit the origin instead of
+    /// rotating in place, since translation applied before rotation shifts the
+    /// pivot point.
     #[test]
     fn when_transform_composed_then_order_is_scale_rotate_translate() {
         // Arrange
@@ -157,6 +161,9 @@ mod tests {
         assert!(translation.y.abs() < 1e-6);
     }
 
+    /// @doc: Negative scale enables horizontal flip (used during card flip
+    /// animation). If `to_affine2` rejected or clamped negative scale values,
+    /// the flip animation's scale-x-through-zero trick would break.
     #[test]
     fn when_transform_has_negative_scale_then_affine2_preserves_flip() {
         // Arrange

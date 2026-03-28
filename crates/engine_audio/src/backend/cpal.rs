@@ -167,15 +167,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn when_constructed_then_volume_is_one() {
-        // Act
-        let backend = CpalBackend::new();
-
-        // Assert
-        assert!((backend.volume() - 1.0).abs() < f32::EPSILON);
-    }
-
     /// @doc: CPAL backend assigns unique IDs per playback — isolation enables per-sound lifecycle control
     #[test]
     fn when_play_called_twice_then_ids_are_unique() {

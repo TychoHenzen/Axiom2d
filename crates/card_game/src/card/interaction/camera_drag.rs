@@ -122,6 +122,7 @@ mod tests {
         assert_eq!(camera.position, Vec2::new(50.0, 50.0));
     }
 
+    /// @doc: Drag delta inverted for camera movement—moving mouse right pans camera left
     #[test]
     fn when_rmb_held_and_mouse_moved_then_camera_moves_inversely() {
         // Arrange
@@ -168,6 +169,7 @@ mod tests {
         );
     }
 
+    /// @doc: Screen drag scaled by zoom reciprocal—zoomed in makes same motion move camera less
     #[test]
     fn when_zoomed_in_then_same_screen_drag_moves_camera_less() {
         // Arrange
@@ -318,6 +320,7 @@ mod tests {
         assert!(camera.zoom >= ZOOM_MIN);
     }
 
+    /// @doc: Zoom accumulates linearly by scroll delta × speed constant—controls zoom sensitivity
     #[test]
     fn when_scroll_by_two_then_zoom_equals_initial_plus_speed_times_delta() {
         // Arrange

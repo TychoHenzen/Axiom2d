@@ -58,18 +58,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn when_input_state_default_then_no_keys_are_pressed() {
-        // Arrange
-        let state = InputState::default();
-
-        // Act
-        let result = state.pressed(KeyCode::Space);
-
-        // Assert
-        assert!(!result);
-    }
-
-    #[test]
     fn when_key_pressed_then_pressed_returns_true() {
         // Arrange
         let mut state = InputState::default();

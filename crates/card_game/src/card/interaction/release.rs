@@ -536,6 +536,7 @@ mod tests {
         assert!(world.resource::<DragState>().dragging.is_some());
     }
 
+    /// @doc: Table-to-table release preserves zone—player can drop and re-arrange cards on play surface
     #[test]
     fn when_card_released_on_table_then_zone_unchanged() {
         // Arrange
@@ -567,6 +568,7 @@ mod tests {
         assert_eq!(remove_log.lock().unwrap()[0], entity);
     }
 
+    /// @doc: Hand-to-table release transitions zone—card leaves hand inventory to play surface
     #[test]
     fn when_release_on_table_from_hand_then_zone_becomes_table() {
         // Arrange
@@ -599,6 +601,7 @@ mod tests {
         assert_eq!(calls[0].1, Vec2::new(50.0, 50.0));
     }
 
+    /// @doc: Face-down cards auto-flip to face-up on hand entry—reveal card on pickup
     /// @doc: Face-down cards auto-flip to face-up on hand entry—reveal card on pickup
     #[test]
     fn when_face_down_card_released_into_hand_then_flip_animation_inserted() {
@@ -687,6 +690,7 @@ mod tests {
         assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Table);
     }
 
+    /// @doc: Zero viewport height disables hand drop zone—guards against division by zero or absent UI
     #[test]
     fn when_viewport_height_zero_then_card_dropped_on_table_not_hand() {
         // Arrange

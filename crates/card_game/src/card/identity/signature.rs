@@ -213,6 +213,10 @@ mod tests {
         assert_eq!(sig.axes(), expected);
     }
 
+    /// @doc: Element-based indexing maps each enum variant to its axis position
+    /// in the 8D signature array. If the mapping drifted (e.g., from reordering
+    /// Element variants), every card's identity would silently scramble — Febris
+    /// cards would display Ordinem art.
     #[test]
     fn when_indexing_signature_with_element_enum_then_returns_correct_axis_value() {
         // Arrange

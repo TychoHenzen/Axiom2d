@@ -182,6 +182,10 @@ mod tests {
         }
     }
 
+    /// @doc: Gem tessellation must complete during front-face baking. Signature intensities
+    /// directly control gem radius, and all gems (all 8 elements) are always included in the mesh
+    /// regardless of intensity level. This test ensures gems don't disappear when rarity-driven
+    /// rendering changes.
     #[test]
     fn when_bake_front_then_contains_gem_geometry() {
         // Arrange — signature with non-zero intensities produces visible gems
@@ -203,6 +207,10 @@ mod tests {
         );
     }
 
+    /// @doc: Art region separation is critical—art geometry must be rendered by the art shader,
+    /// not the baked mesh. If art colors appear in baked vertices, the art shader will composite
+    /// on top, double-rendering the art. This test ensures the baked mesh respects the
+    /// use_art_shader flag in FRONT_FACE_REGIONS.
     #[test]
     fn when_bake_front_then_art_region_color_not_present() {
         // Arrange — the art area (region 2) has use_art_shader=true and should be
@@ -317,6 +325,9 @@ mod tests {
         assert_eq!(mesh_a.indices.len(), mesh_b.indices.len());
     }
 
+    /// @doc: UV coordinates distinguish art geometry from solid-color geometry in the unified render pass.
+    /// Art vertices have non-zero UV (for art atlas lookup); non-art vertices have zero UV.
+    /// If this invariant breaks, art and non-art blending in the shader will fail, causing visual artifacts.
     #[test]
     fn when_bake_front_with_art_then_art_vertices_have_uv_and_non_art_have_zero() {
         // Arrange

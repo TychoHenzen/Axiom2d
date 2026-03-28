@@ -563,6 +563,7 @@ mod tests {
         assert!(angle.abs() < 1e-6);
     }
 
+    /// @doc: Center card in odd-sized hands must be axis-aligned — this verifies symmetry guarantees the middle slot at zero rotation.
     #[test]
     fn when_fan_angle_with_count_three_then_center_is_zero() {
         // Act
@@ -615,6 +616,7 @@ mod tests {
         );
     }
 
+    /// @doc: When hands overflow the fan arc, cards must not spread beyond bounds — clamping prevents layout from exceeding physical layout limits.
     #[test]
     fn when_many_cards_exceed_arc_then_spread_clamped_to_full_arc() {
         // Arrange — enough cards that desired_step * (n-1) > full arc
@@ -660,6 +662,7 @@ mod tests {
         );
     }
 
+    /// @doc: Fan geometry uses circular arc parametrization — verifies x offset computes sin(angle) × radius, protecting arc correctness.
     #[test]
     fn when_fan_screen_position_at_30_degrees_then_x_uses_radius_times_sin() {
         // Arrange — non-zero angle reveals whether radius = FAN_RADIUS * FAN_SCALE
@@ -679,6 +682,7 @@ mod tests {
         );
     }
 
+    /// @doc: Y offset must use cos(angle) × radius not sin — this guards against trigonometric mixup in fan y-coordinate calculation.
     #[test]
     fn when_fan_screen_position_at_30_degrees_then_y_uses_radius_times_cos() {
         // Arrange — non-zero angle reveals whether y offset = cos(angle) * radius
@@ -723,6 +727,7 @@ mod tests {
         );
     }
 
+    /// @doc: Spring systems must dampen oscillation and eventually settle — this ensures overdamped behavior reaches hand layout targets without bouncing.
     #[test]
     fn when_spring_card_many_frames_then_converges_near_target() {
         // Arrange
@@ -772,6 +777,7 @@ mod tests {
         );
     }
 
+    /// @doc: Angular springs dampen just as position springs do — ensures cards tilt smoothly to their fan angles rather than snapping.
     #[test]
     fn when_spring_card_many_frames_then_rotation_converges() {
         // Arrange

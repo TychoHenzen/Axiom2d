@@ -126,6 +126,7 @@ mod tests {
         assert_eq!(anim.progress, 0.0);
     }
 
+    /// @doc: Flip animation targets toggled state—animates to opposite of current face_up value
     #[test]
     fn when_right_click_hits_table_card_then_flip_animation_targets_face_up() {
         // Arrange
@@ -179,6 +180,7 @@ mod tests {
         assert!(world.entity(card).get::<FlipAnimation>().is_none());
     }
 
+    /// @doc: Hand cards immune to flip—only table cards can be flipped with right-click
     #[test]
     fn when_right_click_on_hand_card_then_no_animation_inserted() {
         // Arrange
@@ -202,6 +204,7 @@ mod tests {
         assert!(world.entity(card).get::<FlipAnimation>().is_none());
     }
 
+    /// @doc: Right-click ignored during drag—prevents flip intent while manipulating cards
     #[test]
     fn when_right_click_during_drag_then_no_animation_inserted() {
         // Arrange

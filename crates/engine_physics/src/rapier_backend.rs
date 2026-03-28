@@ -286,6 +286,7 @@ mod tests {
     use crate::collision_event::CollisionKind;
     use crate::test_helpers::{spawn_entities, spawn_entity};
 
+    /// @doc: Empty step must not panic — physics engine must handle zero-entity case gracefully
     #[test]
     fn when_rapier_step_on_empty_world_then_no_panic() {
         // Arrange
@@ -313,6 +314,7 @@ mod tests {
         assert!((pos.y - 7.0).abs() < 1e-4);
     }
 
+    /// @doc: Duplicate add_body must return false — idempotent guard prevents double-registration in rapier world
     #[test]
     fn when_same_entity_added_twice_then_second_returns_false() {
         // Arrange
@@ -355,6 +357,7 @@ mod tests {
         );
     }
 
+    /// @doc: All collider types must be addable — missing shape support breaks card physics shapes
     #[test]
     fn when_collider_variants_added_then_all_return_true() {
         // Arrange
@@ -379,6 +382,7 @@ mod tests {
         assert!(polygon);
     }
 
+    /// @doc: add_collider on unregistered entity must return false — guard prevents orphan colliders without bodies
     #[test]
     fn when_add_collider_for_unknown_entity_then_returns_false() {
         // Arrange
@@ -392,6 +396,7 @@ mod tests {
         assert!(!result);
     }
 
+    /// @doc: Gravity must accelerate bodies downward — wrong gravity direction breaks game world feel
     #[test]
     fn when_dynamic_body_steps_under_gravity_then_y_changes() {
         // Arrange
@@ -408,6 +413,7 @@ mod tests {
         assert!(pos.y < 10.0, "expected y < 10.0, got {}", pos.y);
     }
 
+    /// @doc: New body must report zero rotation — non-zero initial rotation breaks card draw behavior
     #[test]
     fn when_dynamic_body_added_then_rotation_returns_some() {
         // Arrange
@@ -439,6 +445,7 @@ mod tests {
         assert!(backend.body_rotation(entity).is_none());
     }
 
+    /// @doc: Empty physics step must produce no collision events — prevents ghost events on startup
     #[test]
     fn when_no_colliders_step_and_drain_then_no_events() {
         // Arrange
@@ -479,6 +486,7 @@ mod tests {
         );
     }
 
+    /// @doc: drain_collision_events must consume queue — calling drain twice produces empty second result
     #[test]
     fn when_drain_called_twice_without_step_then_second_is_empty() {
         // Arrange
@@ -498,6 +506,7 @@ mod tests {
         assert!(events.is_empty());
     }
 
+    /// @doc: Removed bodies in collision events must not crash drain — event buffer handles stale entity IDs gracefully
     #[test]
     fn when_body_removed_after_collision_then_drain_does_not_panic() {
         // Arrange
@@ -515,6 +524,7 @@ mod tests {
         let _ = backend.drain_collision_events();
     }
 
+    /// @doc: remove_body on non-existent entity must return Err — prevents phantom cleanup in removal systems
     #[test]
     fn when_remove_body_for_unknown_entity_on_rapier_then_returns_err() {
         // Arrange
@@ -528,6 +538,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// @doc: add_force_at_point on unknown entity must return Err — prevents silent force loss in drag system
     #[test]
     fn when_add_force_at_point_for_unknown_entity_then_returns_err() {
         // Arrange
@@ -541,6 +552,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// @doc: set_damping on unknown entity must return Err — prevents silent damping loss in physics setup
     #[test]
     fn when_set_damping_on_unknown_entity_then_returns_err() {
         // Arrange
@@ -708,6 +720,7 @@ mod tests {
         );
     }
 
+    /// @doc: Zero force must cause no motion — verifies force accumulation doesn't drift at zero
     #[test]
     fn when_zero_force_applied_at_center_then_body_does_not_move() {
         // Arrange
@@ -781,6 +794,7 @@ mod tests {
         assert!(rot.abs() > 1e-5, "expected rotation from torque, got {rot}");
     }
 
+    /// @doc: body_linear_velocity must report exact set velocity — velocity query feeds drag calculation and feedback
     #[test]
     fn when_body_linear_velocity_queried_then_returns_current_velocity() {
         // Arrange
@@ -806,6 +820,7 @@ mod tests {
         );
     }
 
+    /// @doc: Velocity query on non-existent entity must return None — prevents crash in input query systems
     #[test]
     fn when_body_linear_velocity_on_unknown_entity_then_returns_none() {
         // Arrange
@@ -819,6 +834,7 @@ mod tests {
         assert!(vel.is_none());
     }
 
+    /// @doc: set_linear_velocity must immediately affect motion — velocity change feeds physics-based drag animation
     #[test]
     fn when_set_linear_velocity_then_body_moves_accordingly() {
         // Arrange
@@ -839,6 +855,7 @@ mod tests {
         assert!(pos.x > 5.0, "expected body to move right, got x={}", pos.x);
     }
 
+    /// @doc: set_angular_velocity must cause rotation — wrong angular velocity breaks card rotation feedback
     #[test]
     fn when_set_angular_velocity_then_body_rotates() {
         // Arrange
@@ -857,6 +874,7 @@ mod tests {
         assert!(rot.abs() > 0.5, "expected body to rotate, got rot={rot}");
     }
 
+    /// @doc: body_point_to_world must apply rotation matrix correctly — wrong transform breaks offsets in torque/drag calculations
     #[test]
     fn when_rapier_body_rotated_then_body_point_to_world_matches_manual_transform() {
         // Arrange
@@ -883,6 +901,7 @@ mod tests {
         assert_vec2_approx(world_pt, expected, 1e-4);
     }
 
+    /// @doc: New body must report zero angular velocity — non-zero initial spin breaks consistency
     #[test]
     fn when_body_angular_velocity_on_new_body_then_returns_zero() {
         // Arrange
@@ -901,6 +920,7 @@ mod tests {
         );
     }
 
+    /// @doc: Angular velocity query on non-existent entity must return None — prevents crash in spin feedback
     #[test]
     fn when_body_angular_velocity_on_unknown_entity_then_returns_none() {
         // Arrange
@@ -914,6 +934,7 @@ mod tests {
         assert!(angvel.is_none());
     }
 
+    /// @doc: body_angular_velocity must return exact set value — mismatch breaks spin feedback synchronization
     #[test]
     fn when_body_angular_velocity_after_set_then_returns_set_value() {
         // Arrange
@@ -932,6 +953,7 @@ mod tests {
         assert!((angvel - 5.0).abs() < 1e-4, "expected ~5.0, got {angvel}");
     }
 
+    /// @doc: Angular velocity sign must be preserved — wrong sign reverses card spin direction
     #[test]
     fn when_body_angular_velocity_negative_then_sign_preserved() {
         // Arrange
@@ -953,6 +975,7 @@ mod tests {
         );
     }
 
+    /// @doc: set_collision_group on unknown entity must return Err — prevents silent filter application
     #[test]
     fn when_set_collision_group_on_unknown_entity_then_returns_err() {
         // Arrange
@@ -995,6 +1018,7 @@ mod tests {
         );
     }
 
+    /// @doc: Collision groups must respect membership filters — wrong group setup breaks zone isolation
     #[test]
     fn when_card_and_wall_groups_then_collision_event_fires() {
         // Arrange
@@ -1028,6 +1052,7 @@ mod tests {
         );
     }
 
+    /// @doc: Collision filters applied after collider creation must still take effect — backward-compat for zone setup
     #[test]
     fn when_collision_group_set_after_collider_added_then_filter_applied() {
         // Arrange — add bodies+colliders first, THEN set groups (the expected card game usage)

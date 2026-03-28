@@ -90,6 +90,8 @@ mod tests {
         });
     }
 
+    /// @doc: Hand drop zone glow must render only during an active drag (DragState::dragging is Some).
+    /// The glow provides visual feedback for valid drop targets, so it must appear/disappear based on drag state and be translucent.
     #[test]
     fn when_drag_active_then_glow_rect_drawn() {
         // Arrange
@@ -109,6 +111,8 @@ mod tests {
         );
     }
 
+    /// @doc: When DragState has no active drag, the glow rect must not render. This prevents unnecessary draw calls
+    /// and visual clutter when cards are at rest. The system early-exits to avoid camera/viewport lookups.
     #[test]
     fn when_no_drag_then_no_glow_rect_drawn() {
         // Arrange
@@ -122,6 +126,8 @@ mod tests {
         assert!(shape_calls.lock().unwrap().is_empty());
     }
 
+    /// @doc: Edge case: zero viewport dimensions (e.g., window minimized) must not crash the system.
+    /// Early exit in resolve_viewport_camera prevents division by zero and invalid screen-to-world conversions.
     #[test]
     fn when_viewport_zero_then_no_glow_rect_and_no_panic() {
         // Arrange

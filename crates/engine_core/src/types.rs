@@ -93,6 +93,10 @@ mod tests {
         assert_eq!(pixels, back);
     }
 
+    /// @doc: Custom `Add`/`Sub`/`Mul` impls on `Pixels` newtype — verifies the
+    /// operator overloads forward correctly to the inner f32. A broken impl
+    /// would cause layout math (card spacing, stash grid stride) to silently
+    /// produce wrong values.
     #[test]
     fn when_pixels_arithmetic_then_add_sub_mul_produce_correct_results() {
         assert_eq!(Pixels(1.5) + Pixels(2.5), Pixels(4.0));
@@ -100,6 +104,9 @@ mod tests {
         assert_eq!(Pixels(4.0) * 0.5, Pixels(2.0));
     }
 
+    /// @doc: Custom `Add`/`Sub`/`Mul` impls on `Seconds` newtype — time arithmetic
+    /// is used throughout the fixed timestep and animation systems. A broken
+    /// operator would cause simulation to run at the wrong speed.
     #[test]
     fn when_seconds_arithmetic_then_add_sub_mul_produce_correct_results() {
         assert_eq!(Seconds(0.5) + Seconds(0.25), Seconds(0.75));

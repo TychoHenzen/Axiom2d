@@ -92,6 +92,9 @@ mod tests {
         assert_eq!(color, back);
     }
 
+    /// @doc: `from_u8` divides each channel by 255.0 to produce 0..1 floats
+    /// for the GPU. An off-by-one here (e.g., dividing by 256) would make
+    /// full-white slightly dim and cause subtle color banding.
     #[test]
     fn when_color_from_u8_called_then_converts_to_normalized_f32() {
         // Act

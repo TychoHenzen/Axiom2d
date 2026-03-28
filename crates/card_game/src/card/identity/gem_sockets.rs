@@ -158,6 +158,8 @@ mod tests {
         assert_eq!(positions.len(), 8);
     }
 
+    /// @doc: All 8 gem border positions must lie within card bounds plus MAX_GEM_RADIUS margin.
+    /// Out-of-bounds gems would render off-card, corrupting the visual frame and player experience.
     #[test]
     fn when_gem_positions_computed_then_all_within_card_border_band() {
         // Arrange
@@ -194,6 +196,8 @@ mod tests {
         assert_eq!(positions.len(), 8);
     }
 
+    /// @doc: Description-flanking gems split evenly: 4 on left, 4 on right (symmetric layout).
+    /// Asymmetric distribution would visually unbalance the card or collide with art.
     #[test]
     fn when_gem_desc_positions_called_then_four_left_four_right_of_center() {
         // Arrange
@@ -230,6 +234,8 @@ mod tests {
         }
     }
 
+    /// @doc: Left and right gem columns must be vertically aligned and horizontally mirrored.
+    /// Asymmetry would look unbalanced and suggest intentional layout bugs to players.
     #[test]
     fn when_gem_desc_positions_called_then_columns_are_symmetric() {
         // Arrange
@@ -259,6 +265,8 @@ mod tests {
         }
     }
 
+    /// @doc: All gems must fit vertically within the description strip bounds.
+    /// Gems outside this range would either overlap the card art above/below or look misplaced.
     #[test]
     fn when_gem_desc_positions_called_then_y_positions_span_desc_strip() {
         use crate::card::rendering::face_layout::FRONT_FACE_REGIONS;
@@ -285,6 +293,8 @@ mod tests {
         }
     }
 
+    /// @doc: The 4 gems per column must have distinct y-positions (spacing > 1.0 unit apart).
+    /// Overlapping gem positions would render on top of each other, hiding some visually.
     #[test]
     fn when_gem_desc_positions_called_then_four_distinct_y_values() {
         // Arrange
@@ -330,6 +340,8 @@ mod tests {
         assert_eq!(radius, MAX_GEM_RADIUS);
     }
 
+    /// @doc: Gem radius scales linearly from MIN_GEM_RADIUS to MAX_GEM_RADIUS with intensity [0.0, 1.0].
+    /// Non-linearity would distort the visual feedback of element intensity on the card.
     #[test]
     fn when_gem_radius_at_mid_intensity_then_between_min_and_max() {
         // Arrange / Act

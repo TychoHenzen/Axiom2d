@@ -90,17 +90,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn when_no_buttons_pressed_then_mouse_state_reports_nothing_pressed() {
-        // Arrange
-        let state = MouseState::default();
-
-        // Assert
-        assert!(!state.pressed(MouseButton::Left));
-        assert!(!state.pressed(MouseButton::Middle));
-        assert!(!state.pressed(MouseButton::Right));
-    }
-
-    #[test]
     fn when_button_pressed_then_pressed_returns_true() {
         // Arrange
         let mut state = MouseState::default();

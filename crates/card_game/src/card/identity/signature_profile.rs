@@ -191,6 +191,8 @@ mod tests {
         }
     }
 
+    /// @doc: Positive element values map to positive aspects (e.g., Heat) while negatives map to opposites (Cold).
+    /// This dual-aspect system defines card personality; wrong mapping breaks aspect identity.
     #[test]
     fn when_positive_axis_then_aspect_is_positive_variant() {
         // Arrange
@@ -207,6 +209,8 @@ mod tests {
         );
     }
 
+    /// @doc: Negative element values map to opposite aspects (e.g., Decay for negative Growth).
+    /// Players rely on sign-polarity to understand card attributes, so this mapping is load-bearing.
     #[test]
     fn when_negative_axis_then_aspect_is_negative_variant() {
         // Arrange
@@ -223,6 +227,8 @@ mod tests {
         );
     }
 
+    /// @doc: Validates the complete aspect-polarity mapping across all 8 elements under positive signature.
+    /// Broad coverage prevents subtle sign-flips in individual element branches.
     #[test]
     fn when_all_axes_positive_then_all_aspects_are_positive_variants() {
         // Arrange
@@ -250,6 +256,8 @@ mod tests {
         }
     }
 
+    /// @doc: Confirms dominant_axis selects the highest-intensity element (strongest influence on card identity).
+    /// Without this test, weaker axes could incorrectly dominate, breaking card personality consistency.
     #[test]
     fn when_one_axis_clearly_highest_then_dominant_is_that_element() {
         // Arrange
@@ -268,6 +276,8 @@ mod tests {
         );
     }
 
+    /// @doc: Dominant selection uses absolute intensity, so strong negative axes are still dominant.
+    /// Without this test, sign could leak into dominance logic, breaking negative-focused cards.
     #[test]
     fn when_dominant_axis_is_negative_then_dominant_is_still_correct() {
         // Arrange
@@ -286,6 +296,8 @@ mod tests {
         );
     }
 
+    /// @doc: All-zero (Common) cards default dominant to index-0 (Solidum) as tiebreaker.
+    /// Guarantees every signature resolves to a dominant even when unsigned; else None would propagate errors downstream.
     #[test]
     fn when_all_axes_zero_then_dominant_is_first_element() {
         // Arrange
@@ -302,6 +314,8 @@ mod tests {
         );
     }
 
+    /// @doc: Ties in intensity resolve to lower index (Solidum beats Febris if equal strength).
+    /// Consistent tiebreaking prevents non-determinism; otherwise signature → profile mapping would be unstable.
     #[test]
     fn when_two_axes_tied_for_highest_then_dominant_is_lower_index_element() {
         // Arrange
@@ -323,6 +337,8 @@ mod tests {
         );
     }
 
+    /// @doc: Secondary axis requires ratio < 1.5x (dominant cannot be >50% stronger than second).
+    /// This threshold ensures dual-aspect cards don't accidentally become single-aspect, preserving design intent.
     #[test]
     fn when_top_axis_exceeds_1_5x_second_then_secondary_is_none() {
         // Arrange — Solidum=0.9, Febris=0.4, ratio=2.25 > 1.5
@@ -343,6 +359,8 @@ mod tests {
         );
     }
 
+    /// @doc: Validates secondary axis emerges when dominant is close enough to second (ratio < 1.5x).
+    /// Balanced two-axis cards gain a secondary, affecting name generation and visual variety.
     #[test]
     fn when_top_axis_within_1_5x_of_second_then_secondary_is_present() {
         // Arrange — Solidum=0.9, Febris=0.7, ratio=1.286 < 1.5
@@ -364,6 +382,8 @@ mod tests {
         );
     }
 
+    /// @doc: Boundary test: ratio exactly 1.5x is treated as "too imbalanced" (secondary suppressed).
+    /// Tests that < 1.5x logic doesn't accidentally accept >= 1.5x due to floating-point epsilon.
     #[test]
     fn when_ratio_is_exactly_1_5x_then_secondary_is_none() {
         // Arrange — Ordinem=0.75, Lumines=0.5, ratio=1.5 exactly
@@ -385,6 +405,8 @@ mod tests {
         );
     }
 
+    /// @doc: Secondary selection uses absolute intensity, allowing negative secondary even when dominant is positive.
+    /// Without this test, mixed-sign balanced cards would lose their secondary, breaking hybrid archetypes.
     #[test]
     fn when_secondary_axis_is_negative_then_still_identified() {
         // Arrange — Varias=0.85, Inertiae=-0.65, ratio≈1.31 < 1.5
@@ -406,6 +428,8 @@ mod tests {
         );
     }
 
+    /// @doc: SignatureProfile preserves rarity from the original CardSignature.
+    /// Rarity drives visual effects, card templates, and gameplay value, so loss here cascades downstream.
     #[test]
     fn when_signature_has_known_rarity_then_profile_stores_same_value() {
         // Arrange — all axes at 1.0 should produce Legendary
@@ -422,6 +446,8 @@ mod tests {
         );
     }
 
+    /// @doc: Confirms signature-to-archetype matching (e.g., high Solidum → Weapon).
+    /// Archetype determines card role and ability templates; wrong matching breaks game balance and flavor.
     #[test]
     fn when_signature_matches_registry_type_then_archetype_is_that_type() {
         // Arrange
@@ -440,6 +466,8 @@ mod tests {
         );
     }
 
+    /// @doc: Archetype remains None when signature is too distant from all registered base types.
+    /// Without this test, distant signatures could incorrectly match weak types, breaking card identity.
     #[test]
     fn when_signature_matches_no_registry_type_then_archetype_is_none() {
         // Arrange — use a tiny match_radius so nothing matches a distant signature
@@ -464,6 +492,8 @@ mod tests {
         );
     }
 
+    /// @doc: Empty registry always produces archetype=None (no type to match).
+    /// Tests that matching logic doesn't crash or panic on zero types.
     #[test]
     fn when_registry_is_empty_then_archetype_is_none() {
         // Arrange
@@ -479,6 +509,8 @@ mod tests {
         );
     }
 
+    /// @doc: When multiple archetypes match, selects the closest (minimal distance in signature space).
+    /// Ensures unambiguous archetype resolution even with overlapping base types.
     #[test]
     fn when_two_archetypes_match_then_archetype_is_closest() {
         // Arrange
@@ -497,6 +529,8 @@ mod tests {
         );
     }
 
+    /// @doc: Integration test: all 6 profile fields (tiers, aspects, dominant, secondary, rarity, archetype) are set.
+    /// Ensures the profile construction pipeline produces a complete, usable card identity.
     #[test]
     fn when_profile_constructed_then_all_fields_are_populated() {
         // Arrange — Solidum=0.8 (Intense), Febris=0.6 (Active), ratio 1.33 < 1.5

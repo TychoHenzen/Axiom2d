@@ -67,6 +67,8 @@ mod tests {
         (root, face)
     }
 
+    /// @doc: Card RenderLayer must propagate to children (CardFaceSide entities) to keep face meshes on the correct layer.
+    /// If a card moves from Table (World) to Hand (UI), its child faces must follow, or they render behind UI instead of on top.
     #[test]
     fn when_parent_ui_and_child_world_then_child_becomes_ui() {
         // Arrange
@@ -93,6 +95,8 @@ mod tests {
         assert_eq!(*world.get::<RenderLayer>(face).unwrap(), RenderLayer::World);
     }
 
+    /// @doc: Dynamic layer changes (zone transitions: Table → Hand → Stash) must be reflected in children.
+    /// This test exercises the full update cycle: initial sync, layer change, then re-sync to verify propagation works repeatedly.
     #[test]
     fn when_parent_changes_layer_then_child_follows() {
         // Arrange
@@ -109,6 +113,8 @@ mod tests {
         assert_eq!(*world.get::<RenderLayer>(face).unwrap(), RenderLayer::UI);
     }
 
+    /// @doc: Only CardFaceSide children should have their layer synced. Non-face children (e.g., StashIcon entities)
+    /// must retain independent layer control. This query filter protects against unintended side effects on unrelated entities.
     #[test]
     fn when_child_has_no_card_face_side_then_not_affected() {
         // Arrange — non-face child (e.g., StashIcon) keeps its own layer

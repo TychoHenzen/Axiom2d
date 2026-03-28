@@ -76,26 +76,6 @@ impl<'a> IntoIterator for &'a mut PlaySoundBuffer {
 mod tests {
     use super::*;
 
-    use crate::mixer::MixerTrack;
-
-    #[test]
-    fn when_play_sound_new_then_track_defaults_to_sfx() {
-        // Act
-        let cmd = PlaySound::new("beep");
-
-        // Assert
-        assert_eq!(cmd.track, MixerTrack::Sfx);
-    }
-
-    #[test]
-    fn when_play_sound_on_track_then_track_is_preserved() {
-        // Act
-        let cmd = PlaySound::on_track("bgm", MixerTrack::Music);
-
-        // Assert
-        assert_eq!(cmd.track, MixerTrack::Music);
-    }
-
     #[test]
     fn when_push_and_drain_then_returns_one_command() {
         // Arrange

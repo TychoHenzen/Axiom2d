@@ -50,6 +50,10 @@ mod tests {
         schedule.run(world);
     }
 
+    /// @doc: Mouse world position is derived from screen coordinates via the
+    /// camera's inverse projection. Every hit test (card pick, stash hover,
+    /// hand drop zone) reads `world_pos()` — a wrong conversion would cause
+    /// clicks to miss their targets by the camera offset.
     #[test]
     fn when_world_pos_system_runs_with_camera_then_world_pos_is_screen_to_world_converted() {
         // Arrange
@@ -94,6 +98,10 @@ mod tests {
         assert_eq!(mouse.world_pos(), Vec2::new(0.0, 0.0));
     }
 
+    /// @doc: Cursor offset from viewport center at zoom 2x should produce half
+    /// the world-space displacement (200px screen offset → 100 world units).
+    /// If zoom weren't factored in, card picking would become increasingly
+    /// inaccurate as the player zooms in or out.
     #[test]
     fn when_world_pos_system_runs_with_offset_cursor_and_zoom_then_world_pos_is_scaled() {
         // Arrange

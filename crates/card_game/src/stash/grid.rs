@@ -275,6 +275,7 @@ mod tests {
         assert_eq!(result, Some((0, 0)));
     }
 
+    /// @doc: Grid bounds checking prevents placement outside the stash — guards against integer overflow in slot lookup.
     #[test]
     fn when_placing_with_col_out_of_bounds_then_slot_not_stored() {
         // Arrange
@@ -289,6 +290,7 @@ mod tests {
         assert_eq!(grid.get(0, 10, 0), None);
     }
 
+    /// @doc: Y-boundary validation is independent of X — prevents off-by-one bugs in row-vs-column bounds checking.
     #[test]
     fn when_placing_with_row_out_of_bounds_then_slot_not_stored() {
         // Arrange
@@ -303,6 +305,7 @@ mod tests {
         assert_eq!(grid.get(0, 0, 10), None);
     }
 
+    /// @doc: Page bounds checking is strict — invalid pages silently reject placements to prevent cross-page slot pollution.
     #[test]
     fn when_placing_on_invalid_page_then_slot_not_stored() {
         // Arrange
@@ -354,6 +357,7 @@ mod tests {
         assert_eq!(grid.current_page(), 0);
     }
 
+    /// @doc: Pages are truly isolated in coordinate space — allows full reuse of same (col, row) across page tabs without collision.
     #[test]
     fn when_placing_on_different_pages_then_same_coordinates_are_independent() {
         // Arrange
@@ -371,6 +375,7 @@ mod tests {
         assert_eq!(grid.get(1, 5, 5), Some(&entity_b));
     }
 
+    /// @doc: Cursor-to-grid mapping uses GRID_MARGIN offset and stride constants — ensures drag-and-drop hits the intended slot.
     #[test]
     fn when_cursor_at_slot_center_then_returns_correct_col_row() {
         // Arrange

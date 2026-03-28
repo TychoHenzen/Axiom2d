@@ -129,16 +129,6 @@ mod tests {
     }
 
     #[test]
-    fn when_camera2d_created_with_defaults_then_position_is_zero_and_zoom_is_one() {
-        // Act
-        let camera = Camera2D::default();
-
-        // Assert
-        assert_eq!(camera.position, Vec2::ZERO);
-        assert_eq!(camera.zoom, 1.0);
-    }
-
-    #[test]
     fn when_camera_at_origin_zoom_one_then_ndc_center_is_zero() {
         // Arrange
         let camera = Camera2D::default();

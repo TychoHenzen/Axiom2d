@@ -189,6 +189,7 @@ mod tests {
         assert_eq!(world.resource::<StashGrid>().current_page(), 0);
     }
 
+    /// @doc: Tab gap pixels don't change pages — only tab rectangles are clickable, preventing accidental page flips.
     #[test]
     fn when_click_between_tabs_then_page_unchanged() {
         // Arrange
@@ -238,6 +239,7 @@ mod tests {
         assert_eq!(world.resource::<StashGrid>().current_page(), 0);
     }
 
+    /// @doc: Hidden stash blocks tab clicks — prevents page switching when UI is not visible.
     #[test]
     fn when_stash_hidden_and_click_on_tab_then_page_unchanged() {
         // Arrange
@@ -363,6 +365,7 @@ mod tests {
         assert_eq!(shape_calls.lock().unwrap().len(), 1);
     }
 
+    /// @doc: Active tab visually distinct from inactive — users see which page they're on.
     #[test]
     fn when_on_page_zero_then_first_tab_is_active_color() {
         // Arrange
@@ -441,6 +444,7 @@ mod tests {
         }
     }
 
+    /// @doc: Tab group centered under grid — ensures tab UI stays visually aligned with stash regardless of grid width.
     #[test]
     fn when_tabs_rendered_then_centered_under_grid() {
         // Arrange
@@ -474,6 +478,7 @@ mod tests {
         );
     }
 
+    /// @doc: Tab spacing uniform — prevents compression or stretching artifacts when pages > 2.
     #[test]
     fn when_tabs_rendered_then_adjacent_tabs_evenly_spaced() {
         // Arrange

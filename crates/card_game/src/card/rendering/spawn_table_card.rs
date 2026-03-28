@@ -406,6 +406,9 @@ mod tests {
         );
     }
 
+    /// @doc: Front and back face meshes must be fully tessellated during card spawn.
+    /// Players see empty cards if these meshes are missing, even if overlays exist. This protects against
+    /// regressions in bake_front_face and bake_back_face integration.
     #[test]
     fn when_spawn_visual_card_then_baked_front_mesh_is_nonempty() {
         // Arrange
@@ -444,6 +447,8 @@ mod tests {
         );
     }
 
+    /// @doc: Initial ColorMesh selection (front vs. back) depends on the face_up parameter.
+    /// This test ensures the unified render system has the correct mesh from spawn, without waiting for the next sync.
     #[test]
     fn when_spawn_visual_card_face_down_then_color_mesh_matches_back() {
         // Arrange
@@ -472,6 +477,8 @@ mod tests {
         );
     }
 
+    /// @doc: Spawning with face_up=true must immediately have the front mesh visible.
+    /// Players see cards in hand face-up without delay, so the initial mesh selection is non-negotiable.
     #[test]
     fn when_spawn_visual_card_face_up_then_color_mesh_matches_front() {
         // Arrange
@@ -551,6 +558,8 @@ mod tests {
         assert_eq!(card.signature, signature);
     }
 
+    /// @doc: spawn_visual_card must not create child entities. The baked card is a flat ECS entity,
+    /// not a hierarchical scene. Child entities would break transform updates and physics.
     #[test]
     fn when_spawn_visual_card_then_no_child_entities_exist() {
         // Arrange
@@ -610,6 +619,9 @@ mod tests {
         );
     }
 
+    /// @doc: Art shapes from the repository must integrate into the baked mesh tessellation.
+    /// If art doesn't appear, either the repository lookup failed or the mesh injection (vertex base offset)
+    /// has a bug. This test catches both issues.
     #[test]
     fn when_spawn_with_shape_repository_then_front_mesh_has_more_vertices() {
         use crate::card::art::ShapeRepository;
@@ -653,6 +665,9 @@ mod tests {
         );
     }
 
+    /// @doc: Legendary cards must have variant overlays (foil/glow/glossy shader) applied to the baked mesh.
+    /// The overlay mesh inherits the front mesh's UV coordinates, so art vertices must carry non-zero UV.
+    /// If this test fails, variant shaders won't see their art data and will render incorrectly.
     #[test]
     fn when_spawn_with_art_then_variant_overlay_has_nonzero_uv() {
         use crate::card::art::ShapeRepository;
@@ -739,6 +754,9 @@ mod tests {
         world
     }
 
+    /// @doc: Legendary rarity (all element intensities at 1.0) must trigger a variant shader overlay in addition to art.
+    /// Rarity hierarchy: common=1 (art only), rare=2 (art + glow), legendary=2 (art + foil). Without this overlay,
+    /// legendary cards look identical to rares.
     #[test]
     fn when_spawn_with_legendary_signature_then_mesh_overlays_has_two_entries() {
         use engine_render::shape::MeshOverlays;
@@ -799,6 +817,8 @@ mod tests {
         );
     }
 
+    /// @doc: Legendary cards must use the foil shader, not glow or glossy. Rarity determines shader selection,
+    /// so if the wrong shader handle is assigned, players see the wrong visual effect for the rarity tier.
     #[test]
     fn when_spawn_with_legendary_signature_then_variant_overlay_uses_foil_shader_handle() {
         use crate::card::rendering::art_shader::VariantShaders;
@@ -833,6 +853,8 @@ mod tests {
         );
     }
 
+    /// @doc: Variant overlay uniforms must encode ArtRegionParams (32 bytes). If the size is wrong,
+    /// the shader's buffer access will read garbage or panic. This guards against unintended changes to struct layout.
     #[test]
     fn when_spawn_with_legendary_signature_then_variant_overlay_uniforms_are_sixteen_bytes() {
         use engine_render::shape::MeshOverlays;
@@ -863,6 +885,8 @@ mod tests {
         );
     }
 
+    /// @doc: Overlays must only be visible when the card is face-up. Face-down cards show only the back mesh,
+    /// so variant shaders must be hidden to prevent visual artifacts under the opaque back face.
     #[test]
     fn when_spawn_with_legendary_signature_face_down_then_variant_overlay_not_visible() {
         use engine_render::shape::MeshOverlays;
@@ -929,6 +953,8 @@ mod tests {
         );
     }
 
+    /// @doc: Art overlay quad must have correctly mapped UV corners [0,0] to [1,1] to ensure the art shader
+    /// samples the correct region of the art atlas. Missing or incorrect UVs will cause art to render upside-down, sideways, or repeated.
     #[test]
     fn when_spawn_with_art_shader_then_overlay_quad_has_uv_corners() {
         use engine_render::shape::MeshOverlays;
@@ -982,6 +1008,8 @@ mod tests {
         );
     }
 
+    /// @doc: Rare cards (balanced element intensities) must use the glow shader, not foil.
+    /// Confusing rare/legendary shaders breaks the rarity visual hierarchy that players rely on to assess card power.
     #[test]
     fn when_rare_card_spawned_then_glow_overlay_uses_glow_shader() {
         use crate::card::rendering::art_shader::VariantShaders;

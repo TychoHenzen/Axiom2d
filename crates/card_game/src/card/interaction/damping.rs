@@ -47,6 +47,9 @@ mod tests {
     use super::*;
     use crate::test_helpers::{DampingLog, SpyPhysicsBackend};
 
+    /// @doc: At zero spin, cards receive full base drag so they slow down
+    /// quickly when released. This is the default resting state — without it,
+    /// cards would slide indefinitely on the table after a gentle push.
     #[test]
     fn when_zero_angular_velocity_then_base_drag_returned() {
         // Arrange / Act
@@ -80,6 +83,8 @@ mod tests {
         );
     }
 
+    /// @doc: Damping uses absolute angular velocity — spin direction doesn't
+    /// affect drag. A clockwise flick should feel identical to counterclockwise.
     #[test]
     fn when_negative_angular_velocity_then_same_as_positive() {
         // Arrange / Act
@@ -120,6 +125,10 @@ mod tests {
         );
     }
 
+    /// @doc: Drag curve must be monotonically decreasing — faster spin always
+    /// means less drag. A non-monotonic curve would create a "dead zone" where
+    /// increasing spin paradoxically slows the card more, breaking the feel of
+    /// flick-to-spin interactions.
     #[test]
     fn when_increasing_angular_velocity_then_drag_monotonically_decreases() {
         // Arrange

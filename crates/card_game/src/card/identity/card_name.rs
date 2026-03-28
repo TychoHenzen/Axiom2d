@@ -209,6 +209,8 @@ mod tests {
         false
     }
 
+    /// @doc: Card name generation is deterministic: same signature always produces the same title.
+    /// This is critical for save/load and multiplayer sync; non-determinism would corrupt card identity.
     #[test]
     fn when_same_signature_used_twice_then_title_is_identical() {
         // Arrange
@@ -225,6 +227,8 @@ mod tests {
         );
     }
 
+    /// @doc: Different signatures must produce different card titles (no collisions).
+    /// Title collisions would make distinct cards visually indistinguishable, breaking gameplay.
     #[test]
     fn when_two_distinct_signatures_used_then_titles_are_different() {
         // Arrange
@@ -376,6 +380,8 @@ mod tests {
         );
     }
 
+    /// @doc: Archetype (Weapon vs Spell) determines noun pool selection, producing distinct naming.
+    /// Without this test, archetypes could fail to influence names, losing flavor differentiation.
     #[test]
     fn when_archetype_is_weapon_then_title_noun_differs_from_spell() {
         // Arrange
@@ -413,6 +419,8 @@ mod tests {
         );
     }
 
+    /// @doc: Dominant aspect (Heat vs Cold) influences adjective pool, producing flavor-distinct names.
+    /// Without this test, aspect polarity could be ignored, making opposite cards indistinguishable.
     #[test]
     fn when_dominant_aspect_is_heat_vs_cold_then_titles_differ() {
         // Arrange
@@ -669,6 +677,8 @@ mod tests {
         }
     }
 
+    /// @doc: Secondary axis can be absent (when dominant >> second) but title generation still succeeds.
+    /// Tests that missing secondary doesn't crash the name builder; uses dominant's pool as fallback.
     #[test]
     fn when_secondary_axis_absent_and_rare_then_title_still_generated() {
         // Arrange — dominant=0.9, others at 0.2 → ratio > 1.5 → no secondary

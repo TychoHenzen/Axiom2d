@@ -263,6 +263,7 @@ mod tests {
         assert_eq!(calls[1].2, expected_color);
     }
 
+    /// @doc: Column spacing must be precisely SLOT_STRIDE_W — grid visual layout alignment depends on correct X offsets.
     #[test]
     fn when_visible_then_adjacent_columns_differ_by_slot_stride_in_x() {
         // Arrange
@@ -283,6 +284,7 @@ mod tests {
         );
     }
 
+    /// @doc: Row spacing must be precisely SLOT_STRIDE_H — ensures grid rows stack without overlap or gaps.
     #[test]
     fn when_visible_then_adjacent_rows_differ_by_slot_stride_in_y() {
         // Arrange
@@ -303,6 +305,7 @@ mod tests {
         );
     }
 
+    /// @doc: Background shape must span the entire grid extent — prevents visual gaps between grid background and slot edges.
     #[test]
     fn when_visible_then_first_shape_covers_full_grid_area() {
         // Arrange — 2x2 grid so grid bounds are deterministic
@@ -480,6 +483,7 @@ mod tests {
         );
     }
 
+    /// @doc: Slot translation must map screen-space center to world coords — validates camera integration in grid rendering.
     #[test]
     fn when_stash_rendered_then_model_translation_matches_slot_center() {
         // Arrange
@@ -515,6 +519,7 @@ mod tests {
         );
     }
 
+    /// @doc: Drop target slots highlight when dragging — visual feedback shows where card will land.
     #[test]
     fn when_dragging_over_empty_slot_then_slot_drawn_with_highlight_color() {
         // Arrange
@@ -561,6 +566,7 @@ mod tests {
         assert_eq!(calls[1].2, SLOT_HIGHLIGHT_COLOR);
     }
 
+    /// @doc: Highlight only renders during drag — ensures slots stay neutral-colored at rest even with cursor over them.
     #[test]
     fn when_no_drag_and_cursor_over_slot_then_slot_drawn_with_normal_color() {
         // Arrange

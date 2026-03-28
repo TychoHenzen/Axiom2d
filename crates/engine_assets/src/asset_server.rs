@@ -180,6 +180,10 @@ mod tests {
         assert_eq!(server.ref_count(handle), Some(2));
     }
 
+    /// @doc: Reference-counted removal — decrementing a shared handle must not
+    /// evict the asset while other holders exist. Without this, removing one
+    /// shader reference could delete the GPU resource while another system
+    /// still expects it, causing a missing-asset panic on next draw call.
     #[test]
     fn when_remove_with_ref_count_above_one_then_decrements_without_evicting() {
         // Arrange
@@ -196,6 +200,9 @@ mod tests {
         assert_eq!(server.get(handle), Some(&"hello".to_string()));
     }
 
+    /// @doc: Final remove evicts the asset from the server — the handle becomes
+    /// invalid. This prevents memory leaks from orphaned assets that no system
+    /// references anymore.
     #[test]
     fn when_remove_with_ref_count_one_then_evicts_asset() {
         // Arrange

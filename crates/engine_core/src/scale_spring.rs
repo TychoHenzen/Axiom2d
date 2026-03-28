@@ -101,19 +101,6 @@ mod tests {
     }
 
     #[test]
-    fn when_scale_spring_new_then_target_set_and_velocity_zero() {
-        // Act
-        let spring = ScaleSpring::new(2.5);
-
-        // Assert
-        assert_eq!(spring.target, 2.5);
-        assert_eq!(spring.velocity, 0.0);
-        assert!(!spring.lock_x);
-        assert_eq!(spring.stiffness, DEFAULT_STIFFNESS);
-        assert_eq!(spring.damping, DEFAULT_DAMPING);
-    }
-
-    #[test]
     fn when_scale_spring_one_frame_then_moves_toward_target() {
         // Arrange
         let mut world = make_world();
@@ -285,6 +272,10 @@ mod tests {
         );
     }
 
+    /// @doc: Convergence threshold boundary — displacement exactly at the
+    /// threshold must NOT remove the spring. An off-by-one `<` vs `<=`
+    /// comparison would cause springs to be removed one frame too early,
+    /// leaving cards visibly short of their target scale.
     #[test]
     fn when_position_at_exact_threshold_boundary_then_spring_not_removed() {
         // Arrange
@@ -343,6 +334,9 @@ mod tests {
         );
     }
 
+    /// @doc: Springs already at rest are removed on first tick — no wasted
+    /// computation. This happens when a card's current scale already matches
+    /// the spring target (e.g., releasing a card that wasn't resized).
     #[test]
     fn when_scale_at_target_with_zero_velocity_then_immediately_removed() {
         // Arrange

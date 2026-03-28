@@ -385,6 +385,7 @@ mod tests {
         assert!(face.glyph_index('A').is_some());
     }
 
+    /// @doc: Glyph outlining must produce path commands — empty outline fails tessellation and renders nothing
     #[test]
     fn when_outlining_glyph_a_then_path_commands_are_non_empty() {
         // Arrange
@@ -405,6 +406,7 @@ mod tests {
         );
     }
 
+    /// @doc: Font size must linearly scale outline coordinates — wrong scale causes text to render at incorrect size
     #[test]
     fn when_outlining_glyph_a_at_double_size_then_coordinates_scale() {
         // Arrange
@@ -433,6 +435,7 @@ mod tests {
         );
     }
 
+    /// @doc: Tessellation must produce non-empty vertex/index buffers — empty mesh fails GPU submission
     #[test]
     fn when_tessellating_glyph_a_then_mesh_is_non_empty() {
         // Arrange
@@ -449,6 +452,7 @@ mod tests {
         assert_eq!(mesh.indices.len() % 3, 0);
     }
 
+    /// @doc: All tessellation indices must reference valid vertices — out-of-bounds indices crash GPU or render garbage
     #[test]
     fn when_tessellating_glyph_a_then_all_indices_within_bounds() {
         // Arrange
@@ -469,6 +473,7 @@ mod tests {
         }
     }
 
+    /// @doc: Empty glyph outlines must tessellate to empty meshes — prevents spurious GPU work and aliasing artifacts
     #[test]
     fn when_tessellating_empty_commands_then_mesh_is_empty() {
         // Arrange
@@ -531,6 +536,7 @@ mod tests {
         assert_eq!(cache.len(), 2);
     }
 
+    /// @doc: First glyph x_offset must be zero — non-zero offset shifts text baseline and breaks alignment
     #[test]
     fn when_laying_out_single_char_then_x_offset_is_zero() {
         // Arrange
@@ -544,6 +550,7 @@ mod tests {
         assert!((glyphs[0].x_offset - 0.0).abs() < 1e-6);
     }
 
+    /// @doc: Glyph advance width must determine next glyph position — wrong advance causes overlapping or gapped text
     #[test]
     fn when_laying_out_two_chars_then_second_offset_equals_first_advance() {
         // Arrange
@@ -564,6 +571,7 @@ mod tests {
         );
     }
 
+    /// @doc: Glyph offsets must strictly increase left-to-right — non-monotonic layout causes character overlap
     #[test]
     fn when_laying_out_hello_then_x_offsets_monotonically_increase() {
         // Arrange
@@ -586,6 +594,7 @@ mod tests {
         }
     }
 
+    /// @doc: Space glyph advance must be respected — ignoring space width collapses words into each other
     #[test]
     fn when_laying_out_string_with_space_then_space_advances_cursor() {
         // Arrange
@@ -610,6 +619,7 @@ mod tests {
         (spy, shape_calls)
     }
 
+    /// @doc: Single character must produce exactly one draw_shape call — renderer invocation must match character count
     #[test]
     fn when_render_text_single_char_then_one_draw_shape_call() {
         // Arrange
@@ -632,6 +642,7 @@ mod tests {
         assert_eq!(calls.len(), 1);
     }
 
+    /// @doc: Character count must match draw_shape call count — missing calls mean unrendered glyphs
     #[test]
     fn when_render_text_three_chars_then_three_draw_shape_calls() {
         // Arrange
@@ -654,6 +665,7 @@ mod tests {
         assert_eq!(calls.len(), 3);
     }
 
+    /// @doc: Space character must not produce draw_shape calls — rendering spaces wastes GPU work and is invisible
     #[test]
     fn when_render_text_with_space_then_space_not_drawn() {
         // Arrange
@@ -676,6 +688,7 @@ mod tests {
         assert_eq!(calls.len(), 2, "space should not produce a draw_shape call");
     }
 
+    /// @doc: Glyph model matrices must translate rightward for subsequent characters — wrong translation causes overlap or reversal
     #[test]
     fn when_render_text_two_chars_then_second_model_translated_right() {
         // Arrange
@@ -704,6 +717,7 @@ mod tests {
         );
     }
 
+    /// @doc: Text color must propagate to all draw_shape calls — color mismatch renders wrong or monochrome text
     #[test]
     fn when_render_text_with_color_then_draw_shape_receives_color() {
         // Arrange
@@ -719,6 +733,7 @@ mod tests {
         assert_eq!(calls[0].2, red);
     }
 
+    /// @doc: Short text within width must not wrap — unnecessary wrapping breaks layout calculations
     #[test]
     fn when_wrap_text_fits_in_one_line_then_single_line_returned() {
         // Arrange
@@ -734,6 +749,7 @@ mod tests {
         assert_eq!(lines[0], "Hello");
     }
 
+    /// @doc: Text exceeding max_width must split at word boundaries — unbroken overflow causes render clipping
     #[test]
     fn when_wrap_text_exceeds_width_then_multiple_lines() {
         // Arrange
@@ -750,6 +766,7 @@ mod tests {
         assert_eq!(lines[1], "World");
     }
 
+    /// @doc: Multiple wraps must handle incrementally narrow widths — wrapping logic must not deadlock or drop words
     #[test]
     fn when_wrap_text_three_words_narrow_then_three_lines() {
         // Arrange
@@ -767,6 +784,7 @@ mod tests {
         );
     }
 
+    /// @doc: Empty string must produce single empty line — null/missing output breaks iteration and layout
     #[test]
     fn when_wrap_text_empty_then_single_empty_line() {
         // Act
@@ -777,6 +795,7 @@ mod tests {
         assert_eq!(lines[0], "");
     }
 
+    /// @doc: Baking single character must produce mesh vertices and propagate color — empty mesh fails render
     #[test]
     fn when_bake_text_single_char_then_mesh_is_nonempty() {
         // Arrange
@@ -791,6 +810,7 @@ mod tests {
         assert!(mesh.vertices.iter().all(|v| v.color == color));
     }
 
+    /// @doc: Baked glyph vertices must extend horizontally with character count — insufficient extent suggests missing glyphs
     #[test]
     fn when_bake_text_two_chars_then_second_glyph_vertices_offset_right() {
         // Arrange

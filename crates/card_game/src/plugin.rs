@@ -138,6 +138,9 @@ mod tests {
     use crate::card::rendering::art_shader::CardArtShader;
     use engine_physics::prelude::PhysicsRes;
 
+    /// @doc: Hand size is capped at 10 — the fan layout algorithm and card
+    /// spacing assume a bounded hand. An uncapped hand would cause cards to
+    /// overlap or shrink below readable size in the fan arc.
     #[test]
     fn when_plugin_built_then_hand_max_size_is_10() {
         // Arrange
@@ -156,6 +159,10 @@ mod tests {
         assert!(hand.is_full());
     }
 
+    /// @doc: `CardGamePlugin` does not insert `PhysicsRes` — it expects the
+    /// engine-level `DefaultPlugins` to provide the physics backend. If the
+    /// card game inserted its own, it would overwrite the engine's rapier
+    /// backend with a default (null) one, silently disabling all physics.
     #[test]
     fn when_plugin_built_then_physics_res_not_inserted() {
         // Arrange
@@ -169,6 +176,9 @@ mod tests {
         assert!(app.world().get_resource::<PhysicsRes>().is_none());
     }
 
+    /// @doc: The plugin pre-populates the `BaseTypeRegistry` with the five
+    /// default archetypes. Without this, all cards would have `archetype: None`
+    /// and generic names, since `best_match` returns `None` on an empty registry.
     #[test]
     fn when_plugin_built_then_registry_has_default_base_types() {
         // Arrange
