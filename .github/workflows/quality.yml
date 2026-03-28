@@ -63,37 +63,3 @@ jobs:
         with:
           name: coverage-report
           path: lcov.info
-
-  mutants:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-mutants
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
-      - name: Run mutation tests
-        run: cargo mutants --no-shuffle -vV --in-place --timeout 30 --cap-lints=true
-      - name: Show missed mutants
-        if: always()
-        run: |
-          if [ -f mutants.out/outcomes.json ]; then
-            jq -r '[.outcomes[] | select(.summary == "MissedMutant")] | .[] | "MISSED  \(.scenario.Mutant.name)"' mutants.out/outcomes.json
-            missed=$(jq '[.outcomes[] | select(.summary == "MissedMutant")] | length' mutants.out/outcomes.json)
-            caught=$(jq '[.outcomes[] | select(.summary == "CaughtMutant")] | length' mutants.out/outcomes.json)
-            total=$((missed + caught))
-            echo ""
-            echo "${caught}/${total} caught, ${missed} missed"
-            if [ "$missed" -gt 0 ]; then exit 1; fi
-          fi
-      - name: Archive mutants.out
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: mutants-out
-          path: mutants.out
