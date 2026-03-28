@@ -77,6 +77,7 @@ impl PhysicsBackend for RapierBackend {
 
     fn add_body(&mut self, entity: Entity, body_type: &RigidBody, position: Vec2) -> bool {
         if self.entity_to_handle.contains_key(&entity) {
+            tracing::warn!(?entity, "add_body: duplicate entity already registered");
             return false;
         }
         let rb = match body_type {
@@ -100,10 +101,11 @@ impl PhysicsBackend for RapierBackend {
             Collider::Aabb(half_extents) => ColliderBuilder::cuboid(half_extents.x, half_extents.y),
             Collider::ConvexPolygon(points) => {
                 let rapier_points: Vec<_> = points.iter().map(|p| point![p.x, p.y]).collect();
-                match ColliderBuilder::convex_hull(&rapier_points) {
-                    Some(builder) => builder,
-                    None => return false,
-                }
+                let Some(builder) = ColliderBuilder::convex_hull(&rapier_points) else {
+                    tracing::warn!(?entity, "add_collider: convex hull build failed — points may be collinear or degenerate");
+                    return false;
+                };
+                builder
             }
         }
         .active_events(ActiveEvents::COLLISION_EVENTS);
@@ -1080,5 +1082,46 @@ mod tests {
             events.is_empty(),
             "retroactive group filter should suppress collision, got {events:?}"
         );
+    }
+
+    /// @doc: Duplicate `add_body` calls must return false — silently succeeding would
+    /// create a second rapier handle for the same entity, leaking the first handle and
+    /// making `remove_body` only clean up one of them. The warning log aids debugging
+    /// when a system accidentally re-registers an entity.
+    #[test]
+    fn when_add_body_called_twice_for_same_entity_then_returns_false() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+
+        // Act
+        let result = backend.add_body(entity, &RigidBody::Dynamic, Vec2::new(10.0, 10.0));
+
+        // Assert
+        assert!(!result, "duplicate add_body must return false");
+    }
+
+    /// @doc: A degenerate convex hull (e.g., collinear points) causes rapier's
+    /// `convex_hull` builder to return None. `add_collider` must return false rather
+    /// than panicking — the warning log surfaces the geometry issue to the developer.
+    #[test]
+    fn when_add_collider_with_degenerate_hull_then_returns_false() {
+        // Arrange
+        let mut backend = RapierBackend::new(Vec2::ZERO);
+        let entity = spawn_entity();
+        backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+        // Three collinear points — rapier cannot form a 2D convex hull.
+        let degenerate = Collider::ConvexPolygon(vec![
+            Vec2::new(0.0, 0.0),
+            Vec2::new(1.0, 0.0),
+            Vec2::new(2.0, 0.0),
+        ]);
+
+        // Act
+        let result = backend.add_collider(entity, &degenerate);
+
+        // Assert
+        assert!(!result, "degenerate convex hull must return false");
     }
 }

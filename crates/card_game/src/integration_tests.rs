@@ -8,7 +8,7 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use axiom2d::prelude::*;
-    use engine_core::time::FakeClock;
+    use engine_core::time::FixedDeltaClock;
     use engine_render::testing::SpyRenderer;
     use glam::Vec2;
 
@@ -40,11 +40,12 @@ mod tests {
         // DefaultPlugins registers all engine systems + resources.
         app.add_plugin(DefaultPlugins);
 
-        // Replace SystemClock with FakeClock for deterministic delta time.
-        let mut fake_clock = FakeClock::default();
-        fake_clock.advance(Seconds(1.0 / 60.0));
+        // Replace SystemClock with FixedDeltaClock for deterministic delta time.
+        // Returns 1/60 s on every tick — unlike FakeClock which drains on first delta().
         app.world_mut()
-            .insert_resource(ClockRes::new(Box::new(fake_clock)));
+            .insert_resource(ClockRes::new(Box::new(FixedDeltaClock::new(Seconds(
+                1.0 / 60.0,
+            )))));
 
         // Replace renderer with spy (viewport 800x600).
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -107,7 +108,7 @@ mod tests {
 
     // ── Tests ────────────────────────────────────────────────────────
 
-    /// @doc: Full pick→release integration through the real schedule — verifies system ordering for Table→Hand zone transition
+    /// @doc: Verifies system ordering for the Table→Hand zone transition across the real schedule.
     #[test]
     fn when_card_picked_from_table_and_released_into_hand_then_card_in_hand() {
         // Arrange
@@ -200,7 +201,7 @@ mod tests {
         );
     }
 
-    /// @doc: Table→Stash integration — verifies full zone transition including `CardItemForm` insertion and grid placement
+    /// @doc: Verifies the full Table→Stash zone transition including `CardItemForm` insertion and grid placement.
     #[test]
     fn when_card_picked_from_table_and_released_on_stash_then_card_in_stash() {
         // Arrange
@@ -377,6 +378,113 @@ mod tests {
         assert!(
             app.world().resource::<DragState>().dragging.is_none(),
             "DragState must always be None when no drag is active"
+        );
+    }
+
+    /// @doc: Stash→Table transition must fully rejoin the table zone: `CardZone::Table`, physics body
+    /// restored, `CardItemForm` removed, and drag state cleared.
+    #[test]
+    fn when_stash_card_released_on_table_then_zone_table_body_present_item_form_removed_drag_cleared()
+     {
+        // Arrange — place a card in the stash via the real pick-release flow.
+        let mut app = make_game_app();
+        let def = make_test_definition();
+        let entity = spawn_visual_card(
+            app.world_mut(),
+            &def,
+            Vec2::ZERO,
+            Vec2::new(60.0, 90.0),
+            false,
+            CardSignature::default(),
+        );
+        app.world_mut().resource_mut::<StashVisible>().0 = true;
+        tick(&mut app);
+
+        simulate_mouse_press(&mut app, Vec2::new(400.0, 300.0));
+        tick(&mut app);
+        simulate_mouse_release(&mut app, Vec2::new(45.0, 57.0));
+        tick(&mut app);
+        // Flush Commands so CardItemForm is inserted before we assert the precondition.
+        tick(&mut app);
+
+        assert!(
+            matches!(
+                *app.world().get::<CardZone>(entity).unwrap(),
+                CardZone::Stash { .. }
+            ),
+            "precondition: card must be in stash before the act"
+        );
+
+        // Act — pick from stash slot (0,0), release on open table area.
+        // x=650 is right of the stash grid (right edge = 20 + 10*54 = 560).
+        // y=100 is above the hand zone (hand zone starts at screen y=480).
+        simulate_mouse_press(&mut app, Vec2::new(45.0, 57.0));
+        tick(&mut app);
+        simulate_mouse_release(&mut app, Vec2::new(650.0, 100.0));
+        tick(&mut app);
+        // Flush Commands for CardItemForm removal and RigidBody insertion.
+        tick(&mut app);
+
+        // Assert
+        assert_eq!(
+            *app.world().get::<CardZone>(entity).unwrap(),
+            CardZone::Table,
+            "CardZone should be Table after releasing stash card on table area"
+        );
+        assert!(
+            app.world().get::<RigidBody>(entity).is_some(),
+            "table card must have a RigidBody after Stash→Table transition"
+        );
+        assert!(
+            app.world().get::<CardItemForm>(entity).is_none(),
+            "CardItemForm must be removed when card leaves the stash"
+        );
+        assert!(
+            app.world().resource::<DragState>().dragging.is_none(),
+            "DragState must be cleared after release"
+        );
+    }
+
+    /// @doc: Verifies `flip_animation_system` is wired into the `CardGamePlugin` schedule — a system
+    /// that exists only in the library but is never registered would leave `FlipAnimation` inert.
+    #[test]
+    fn when_flip_animation_inserted_on_table_card_then_after_18_ticks_face_up_toggled_and_animation_removed()
+     {
+        use crate::card::component::Card;
+        use crate::card::interaction::flip_animation::FlipAnimation;
+
+        // Arrange
+        let mut app = make_game_app();
+        let def = make_test_definition();
+        let entity = spawn_visual_card(
+            app.world_mut(),
+            &def,
+            Vec2::ZERO,
+            Vec2::new(60.0, 90.0),
+            false,
+            CardSignature::default(),
+        );
+        // Frame 0: establish GlobalTransform2D so the entity is fully initialised.
+        tick(&mut app);
+
+        // Insert FlipAnimation directly — tests the animation system wiring, not the trigger.
+        app.world_mut()
+            .entity_mut(entity)
+            .insert(FlipAnimation::start(true));
+
+        // Act — 18 ticks at 1/60 s each covers FLIP_DURATION (0.3 s) in full.
+        for _ in 0..18 {
+            tick(&mut app);
+        }
+
+        // Assert
+        assert!(
+            app.world().get::<Card>(entity).unwrap().face_up,
+            "face_up must be true after 18 ticks advance the flip animation to completion"
+        );
+        assert!(
+            app.world().get::<FlipAnimation>(entity).is_none(),
+            "FlipAnimation component must be removed once progress >= 1.0"
         );
     }
 }

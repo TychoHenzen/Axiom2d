@@ -2,6 +2,7 @@ use bevy_ecs::prelude::{Query, Res, ResMut, Resource};
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 
+use super::cache::CachedMesh;
 use super::components::{Shape, ShapeVariant, Stroke};
 use super::tessellate::{shape_aabb, tessellate, tessellate_stroke};
 use crate::camera::Camera2D;
@@ -25,7 +26,7 @@ pub fn affine2_to_mat4(affine: &glam::Affine2) -> [[f32; 4]; 4] {
     ]
 }
 
-fn is_shape_culled(pos: Vec2, variant: &ShapeVariant, view_rect: Option<(Vec2, Vec2)>) -> bool {
+pub fn is_shape_culled(pos: Vec2, variant: &ShapeVariant, view_rect: Option<(Vec2, Vec2)>) -> bool {
     let Some((view_min, view_max)) = view_rect else {
         return false;
     };
@@ -44,6 +45,7 @@ type ShapeQuery<'w> = (
     Option<&'w EffectiveVisibility>,
     Option<&'w Material2d>,
     Option<&'w Stroke>,
+    Option<&'w CachedMesh>,
 );
 
 pub fn shape_render_system(
@@ -65,16 +67,20 @@ pub fn shape_render_system(
     });
     let mut last_shader = None;
     let mut last_blend_mode = None;
-    for (shape, transform, _, _, _, mat, stroke) in shapes {
+    for (shape, transform, _, _, _, mat, stroke, cached) in shapes {
         if is_shape_culled(transform.0.translation, &shape.variant, view_rect) {
             continue;
         }
         apply_material(&mut **renderer, mat, &mut last_shader, &mut last_blend_mode);
         let model = affine2_to_mat4(&transform.0);
-        let Ok(mesh) = tessellate(&shape.variant) else {
-            continue;
-        };
-        renderer.draw_shape(&mesh.vertices, &mesh.indices, shape.color, model);
+        if let Some(cached) = cached {
+            renderer.draw_shape(&cached.0.vertices, &cached.0.indices, shape.color, model);
+        } else {
+            let Ok(mesh) = tessellate(&shape.variant) else {
+                continue;
+            };
+            renderer.draw_shape(&mesh.vertices, &mesh.indices, shape.color, model);
+        }
         if let Some(stroke) = stroke
             && let Ok(sm) = tessellate_stroke(&shape.variant, stroke.width)
         {
@@ -992,6 +998,70 @@ mod tests {
         assert_eq!(
             count, 1,
             "shape whose AABB overlaps view_max.y should be rendered"
+        );
+    }
+
+    /// @doc: When a `CachedMesh` is present on a shape entity, `shape_render_system` must
+    /// use the cached vertices instead of re-tessellating. This test pre-populates a
+    /// deliberately fake mesh (a single triangle) that differs from what `tessellate` would
+    /// produce — if the cached vertices reach `draw_shape`, the cache path is proven active.
+    #[test]
+    fn when_shape_has_cached_mesh_then_draw_shape_uses_cached_vertices() {
+        use crate::shape::cache::CachedMesh;
+        use crate::shape::components::TessellatedMesh;
+
+        // Arrange — a fake single-triangle mesh that tessellate() would never produce.
+        let fake_vertices = vec![[0.0_f32, 0.0], [1.0, 0.0], [0.0, 1.0]];
+        let fake_indices = vec![0_u32, 1, 2];
+        let cached = CachedMesh(TessellatedMesh {
+            vertices: fake_vertices.clone(),
+            indices: fake_indices.clone(),
+        });
+
+        let mut world = World::new();
+        let calls = insert_spy_with_shape_capture(&mut world);
+        world.spawn((
+            default_shape(),
+            GlobalTransform2D(Affine2::IDENTITY),
+            cached,
+        ));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — draw_shape must receive the fake cached vertices, not tessellated ones.
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(), 1, "draw_shape should be called once");
+        assert_eq!(
+            calls[0].0, fake_vertices,
+            "vertices must come from CachedMesh, not tessellate()"
+        );
+        assert_eq!(
+            calls[0].1, fake_indices,
+            "indices must come from CachedMesh, not tessellate()"
+        );
+    }
+
+    /// @doc: When `CachedMesh` is absent, `shape_render_system` must fall back to inline
+    /// tessellation so shapes spawned before `mesh_cache_system` runs (or in tests that
+    /// skip caching) still render correctly.
+    #[test]
+    fn when_shape_has_no_cached_mesh_then_draw_shape_still_called_via_tessellate_fallback() {
+        // Arrange — no CachedMesh, just Shape + GlobalTransform2D.
+        let mut world = World::new();
+        let calls = insert_spy_with_shape_capture(&mut world);
+        world.spawn((default_shape(), GlobalTransform2D(Affine2::IDENTITY)));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — draw_shape is called with tessellated vertices (non-empty).
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(), 1, "draw_shape should be called once");
+        assert!(
+            calls[0].0.len() > 3,
+            "fallback tessellate path should produce real circle vertices, got {} verts",
+            calls[0].0.len()
         );
     }
 }

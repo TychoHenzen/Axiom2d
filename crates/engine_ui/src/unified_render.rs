@@ -1,12 +1,12 @@
 use bevy_ecs::prelude::{Entity, Local, Query, ResMut};
 use engine_render::camera::Camera2D;
-use engine_render::culling::{aabb_intersects_view_rect, compute_view_rect};
+use engine_render::culling::compute_view_rect;
 use engine_render::font::{GlyphCache, measure_text, render_text_transformed, wrap_text};
 use engine_render::material::{Material2d, apply_material};
 use engine_render::prelude::RendererRes;
 use engine_render::shape::{
-    ColorMesh, MeshOverlays, Shape, ShapeVariant, Stroke, affine2_to_mat4, shape_aabb, tessellate,
-    tessellate_stroke,
+    CachedMesh, ColorMesh, MeshOverlays, Shape, Stroke, affine2_to_mat4, is_shape_culled,
+    tessellate, tessellate_stroke,
 };
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
@@ -24,6 +24,7 @@ type ShapeItem<'w> = (
     Option<&'w EffectiveVisibility>,
     Option<&'w Material2d>,
     Option<&'w Stroke>,
+    Option<&'w CachedMesh>,
 );
 
 type TextItem<'w> = (
@@ -58,24 +59,13 @@ struct SortedDrawItem {
     kind: DrawKind,
 }
 
-fn is_shape_culled(pos: Vec2, variant: &ShapeVariant, view_rect: Option<(Vec2, Vec2)>) -> bool {
-    let Some((view_min, view_max)) = view_rect else {
-        return false;
-    };
-    let (local_min, local_max) = shape_aabb(variant);
-    let r = local_min.abs().max(local_max.abs()).length();
-    let entity_min = Vec2::new(pos.x - r, pos.y - r);
-    let entity_max = Vec2::new(pos.x + r, pos.y + r);
-    !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max)
-}
-
 fn collect_draw_items(
     shape_query: &Query<ShapeItem>,
     text_query: &Query<TextItem>,
     color_mesh_query: &Query<ColorMeshItem>,
 ) -> Vec<SortedDrawItem> {
     let mut items: Vec<SortedDrawItem> = Vec::new();
-    for (entity, _, _, layer, sort, vis, _, _) in shape_query.iter() {
+    for (entity, _, _, layer, sort, vis, _, _, _) in shape_query.iter() {
         if vis.is_some_and(|v| !v.0) {
             continue;
         }
@@ -137,7 +127,8 @@ pub fn unified_render_system(
     for item in &items {
         match item.kind {
             DrawKind::Shape => {
-                let Ok((_, shape, transform, _, _, _, mat, stroke)) = shape_query.get(item.entity)
+                let Ok((_, shape, transform, _, _, _, mat, stroke, cached)) =
+                    shape_query.get(item.entity)
                 else {
                     continue;
                 };
@@ -146,10 +137,14 @@ pub fn unified_render_system(
                 }
                 apply_material(&mut **renderer, mat, &mut last_shader, &mut last_blend_mode);
                 let model = affine2_to_mat4(&transform.0);
-                let Ok(mesh) = tessellate(&shape.variant) else {
-                    continue;
-                };
-                renderer.draw_shape(&mesh.vertices, &mesh.indices, shape.color, model);
+                if let Some(cached) = cached {
+                    renderer.draw_shape(&cached.0.vertices, &cached.0.indices, shape.color, model);
+                } else {
+                    let Ok(mesh) = tessellate(&shape.variant) else {
+                        continue;
+                    };
+                    renderer.draw_shape(&mesh.vertices, &mesh.indices, shape.color, model);
+                }
                 if let Some(stroke) = stroke
                     && let Ok(sm) = tessellate_stroke(&shape.variant, stroke.width)
                 {
@@ -408,5 +403,76 @@ mod tests {
         // Assert
         let calls = shape_calls.lock().unwrap();
         assert!(calls.is_empty());
+    }
+
+    /// @doc: When `CachedMesh` is present, `unified_render_system` must use the cached
+    /// vertices instead of re-tessellating. This avoids redundant lyon tessellation on
+    /// every frame for the card game's ~200 shapes.
+    #[test]
+    fn when_shape_has_cached_mesh_then_unified_render_uses_cached_vertices() {
+        use engine_render::shape::{CachedMesh, TessellatedMesh};
+
+        // Arrange — a fake single-triangle mesh.
+        let fake_vertices = vec![[0.0_f32, 0.0], [1.0, 0.0], [0.0, 1.0]];
+        let fake_indices = vec![0_u32, 1, 2];
+        let cached = CachedMesh(TessellatedMesh {
+            vertices: fake_vertices.clone(),
+            indices: fake_indices.clone(),
+        });
+
+        let mut world = World::new();
+        world.spawn((
+            Shape {
+                variant: ShapeVariant::Circle { radius: 30.0 },
+                color: Color::WHITE,
+            },
+            GlobalTransform2D(Affine2::IDENTITY),
+            SortOrder(0),
+            cached,
+        ));
+
+        // Act
+        let shape_calls = run_system(&mut world);
+
+        // Assert
+        let calls = shape_calls.lock().unwrap();
+        assert_eq!(calls.len(), 1, "draw_shape should be called once");
+        assert_eq!(
+            calls[0].0, fake_vertices,
+            "vertices must come from CachedMesh, not tessellate()"
+        );
+        assert_eq!(
+            calls[0].1, fake_indices,
+            "indices must come from CachedMesh, not tessellate()"
+        );
+    }
+
+    /// @doc: When `CachedMesh` is absent, `unified_render_system` falls back to inline
+    /// tessellation. This ensures shapes render correctly before `mesh_cache_system` has
+    /// populated the cache, and in tests that skip caching.
+    #[test]
+    fn when_shape_has_no_cached_mesh_then_unified_render_falls_back_to_tessellate() {
+        // Arrange — no CachedMesh.
+        let mut world = World::new();
+        world.spawn((
+            Shape {
+                variant: ShapeVariant::Circle { radius: 30.0 },
+                color: Color::WHITE,
+            },
+            GlobalTransform2D(Affine2::IDENTITY),
+            SortOrder(0),
+        ));
+
+        // Act
+        let shape_calls = run_system(&mut world);
+
+        // Assert
+        let calls = shape_calls.lock().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert!(
+            calls[0].0.len() > 3,
+            "fallback tessellate path should produce circle vertices, got {} verts",
+            calls[0].0.len()
+        );
     }
 }

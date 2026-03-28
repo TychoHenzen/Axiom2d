@@ -74,7 +74,9 @@ pub fn debug_spawn_system(world: &mut World) {
 
     let mut physics = world.resource_mut::<PhysicsRes>();
     for entity in entities {
-        let _ = physics.set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER);
+        physics
+            .set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER)
+            .expect("set_collision_group: body must exist for freshly spawned card");
     }
 }
 

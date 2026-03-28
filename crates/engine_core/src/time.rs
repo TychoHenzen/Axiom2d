@@ -43,6 +43,23 @@ impl Time for FakeClock {
     }
 }
 
+/// Returns the same fixed delta on every call — use in integration tests that need predictable per-frame time.
+pub struct FixedDeltaClock {
+    dt: Seconds,
+}
+
+impl FixedDeltaClock {
+    pub fn new(dt: Seconds) -> Self {
+        Self { dt }
+    }
+}
+
+impl Time for FixedDeltaClock {
+    fn delta(&mut self) -> Seconds {
+        self.dt
+    }
+}
+
 pub struct SystemClock {
     last_instant: std::time::Instant,
 }
