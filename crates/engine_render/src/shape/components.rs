@@ -105,6 +105,9 @@ pub struct OverlayEntry {
     pub mesh: TessellatedColorMesh,
     pub material: crate::material::Material2d,
     pub visible: bool,
+    /// When `true`, this overlay is only shown when the card is face-up.
+    /// When `false`, the overlay is shown on both faces (e.g. tier condition shaders).
+    pub front_only: bool,
 }
 
 /// Overlay quads drawn immediately after the entity's `ColorMesh`.

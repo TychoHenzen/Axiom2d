@@ -10,6 +10,7 @@ pub mod barbarian_icons_03_t;
 pub mod barbarian_icons_04_t;
 pub mod barbarian_icons_05_t;
 pub mod barbarian_icons_06_t;
+pub mod card_back;
 
 use engine_render::prelude::tessellate;
 use engine_render::shape::{Shape, TessellatedColorMesh};

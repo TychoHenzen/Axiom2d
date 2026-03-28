@@ -187,6 +187,7 @@ fn build_mesh_overlays(
                 ..engine_render::material::Material2d::default()
             },
             visible: face_up,
+            front_only: true,
         });
     }
 
@@ -214,6 +215,7 @@ fn build_mesh_overlays(
                 ..engine_render::material::Material2d::default()
             },
             visible: face_up,
+            front_only: true,
         });
     }
 
@@ -269,7 +271,8 @@ fn build_mesh_overlays(
                 blend_mode: engine_render::material::BlendMode::Alpha,
                 ..engine_render::material::Material2d::default()
             },
-            visible: face_up,
+            visible: true,
+            front_only: false,
         });
     }
 
@@ -1278,7 +1281,7 @@ mod tests {
     /// cards hide all overlays to prevent shader effects from bleeding through the
     /// opaque back face.
     #[test]
-    fn when_spawn_dormant_face_down_with_tier_shaders_then_tier_overlay_not_visible() {
+    fn when_spawn_dormant_face_down_with_tier_shaders_then_tier_overlay_visible() {
         use engine_render::shape::MeshOverlays;
 
         // Arrange
@@ -1296,14 +1299,18 @@ mod tests {
             dormant_sig,
         );
 
-        // Assert
+        // Assert — tier overlays apply to both faces
         let overlays = world
             .get::<MeshOverlays>(root)
             .expect("root should have MeshOverlays");
         assert_eq!(overlays.0.len(), 2, "dormant common should have 2 entries");
         assert!(
-            !overlays.0[1].visible,
-            "face-down card's tier overlay should not be visible"
+            overlays.0[1].visible,
+            "tier overlay should be visible even when face-down"
+        );
+        assert!(
+            !overlays.0[1].front_only,
+            "tier overlay should not be front_only"
         );
     }
 }

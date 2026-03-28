@@ -42,7 +42,7 @@ pub fn baked_card_sync_system(
         }
         if let Some(mut overlays) = overlays {
             for entry in &mut overlays.0 {
-                entry.visible = card.face_up;
+                entry.visible = !entry.front_only || card.face_up;
             }
         }
     }
@@ -141,6 +141,7 @@ mod tests {
             mesh: engine_render::shape::TessellatedColorMesh::new(),
             material: engine_render::material::Material2d::default(),
             visible: true,
+            front_only: true,
         }]);
         world.spawn((
             make_baked(),

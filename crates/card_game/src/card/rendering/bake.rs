@@ -126,11 +126,14 @@ pub fn bake_front_face(
 }
 
 /// Tessellate back-face geometry into a single mesh.
+///
+/// Draws a rounded-rect border (preserving the card silhouette) then fits
+/// the `card_back` vector art inside the card bounds.
 pub fn bake_back_face(card_size: Vec2) -> TessellatedColorMesh {
     let mut mesh = TessellatedColorMesh::new();
     let (w, h) = (card_size.x, card_size.y);
 
-    // Outer border (rounded)
+    // Rounded border background — preserves the card's rounded-corner shape
     let outer = rounded_rect_path(w * 0.5, h * 0.5, CARD_CORNER_RADIUS);
     if let Ok(tess) = tessellate(&outer) {
         mesh.push_vertices(
@@ -140,14 +143,19 @@ pub fn bake_back_face(card_size: Vec2) -> TessellatedColorMesh {
         );
     }
 
-    // Inner panel
-    let inner = rect_polygon(w * 0.3, h * 0.3);
-    if let Ok(tess) = tessellate(&inner) {
-        mesh.push_vertices(
-            &tess.vertices,
-            &tess.indices,
-            color_to_array(engine_core::color::Color::from_u8(60, 100, 180, 255)),
-        );
+    // Card-back art — fitted within the card bounds (slightly inset to show border)
+    let art_shapes = crate::card::art::card_back::card_front2();
+    let art_mesh = crate::card::art::tessellate_art_shapes(&art_shapes);
+    if !art_mesh.is_empty() {
+        let inset = CARD_CORNER_RADIUS;
+        let art_hw = w * 0.5 - inset;
+        let art_hh = h * 0.5 - inset;
+        let fitted =
+            crate::card::art_selection::fit_art_mesh_to_region(&art_mesh, art_hw, art_hh, 0.0);
+        let vertex_base = mesh.vertices.len() as u32;
+        mesh.vertices.extend_from_slice(&fitted.vertices);
+        mesh.indices
+            .extend(fitted.indices.iter().map(|&i| i + vertex_base));
     }
 
     mesh
