@@ -1576,7 +1576,6 @@ dependencies = [
  "engine_core",
  "glam 0.29.3",
  "insta",
- "proptest",
  "rapier2d",
  "ron 0.9.0",
  "serde",
