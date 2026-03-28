@@ -244,7 +244,7 @@ fn drop_on_table(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::struct_excessive_bools)]
 mod tests {
     use std::sync::{Arc, Mutex};
 

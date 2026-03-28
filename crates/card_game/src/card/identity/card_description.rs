@@ -36,7 +36,7 @@ fn format_effect(modifier_type: ModifierType, raw_value: f32) -> Option<String> 
 
 pub fn generate_card_description(stats: &ResidualStats) -> String {
     let mut entries = stat_entries(stats);
-    entries.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap());
+    entries.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).expect("NaN in stats"));
     entries
         .into_iter()
         .take(3)

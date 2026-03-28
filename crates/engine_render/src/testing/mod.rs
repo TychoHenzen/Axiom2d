@@ -405,7 +405,7 @@ pub fn insert_spy_with_blend_and_sprite_capture(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use std::sync::{Arc, Mutex};
 

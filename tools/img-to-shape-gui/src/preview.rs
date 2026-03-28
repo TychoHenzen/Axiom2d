@@ -157,17 +157,19 @@ fn make_path_shape(points: &[Pos2], closed: bool, fill: Color32) -> egui::Shape 
     }
 
     // Build egui Mesh from tessellated triangles.
-    let mut mesh = egui::Mesh::default();
-    mesh.vertices = geometry
-        .vertices
-        .iter()
-        .map(|p| egui::epaint::Vertex {
-            pos: *p,
-            uv: egui::pos2(0.0, 0.0),
-            color: fill,
-        })
-        .collect();
-    mesh.indices = geometry.indices;
+    let mesh = egui::Mesh {
+        vertices: geometry
+            .vertices
+            .iter()
+            .map(|p| egui::epaint::Vertex {
+                pos: *p,
+                uv: egui::pos2(0.0, 0.0),
+                color: fill,
+            })
+            .collect(),
+        indices: geometry.indices,
+        ..Default::default()
+    };
 
     // Add a thin stroke outline in the same color to cover sub-pixel gaps
     // between adjacent tessellated regions.

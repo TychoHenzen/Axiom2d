@@ -33,7 +33,7 @@ pub struct TessellatedMesh {
 
 /// Vertex with baked position, RGBA color, and per-shape UV coordinates.
 /// Layout matches `ShapeVertex` in the wgpu renderer (32 bytes).
-/// UV encodes normalized position within the shape's bounding box [0,1],
+/// UV encodes normalized position within the shape's bounding box \[0,1\],
 /// giving shaders geometric hints about shape structure (edges, gradients).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
@@ -133,7 +133,7 @@ impl DerefMut for ColorMesh {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use super::*;
 

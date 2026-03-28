@@ -50,6 +50,16 @@ cast_possible_truncation = "allow"
 cast_precision_loss = "allow"
 cast_sign_loss = "allow"
 cast_possible_wrap = "allow"
+# Engine/game functions often have many params (mesh, color, position, size, etc.)
+too_many_arguments = "allow"
+# Long functions are common in tessellation, codegen, and test helpers
+too_many_lines = "allow"
+# Pedantic lints too noisy for game/engine code
+similar_names = "allow"
+many_single_char_names = "allow"
+trivially_copy_pass_by_ref = "allow"
+# Tests compare exact f32 constants; production code uses epsilon where needed
+float_cmp = "allow"
 # Correctness lints worth promoting
 unwrap_used = "warn"
 

@@ -42,6 +42,7 @@ pub trait Renderer {
         indices: &[u32],
         model: [[f32; 4]; 4],
     );
+    #[allow(clippy::too_many_arguments)]
     fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color);
     fn set_view_projection(&mut self, matrix: [[f32; 4]; 4]);
     fn set_blend_mode(&mut self, mode: BlendMode);

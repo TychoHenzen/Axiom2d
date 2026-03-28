@@ -519,18 +519,18 @@ mod tests {
             .map(|r| graph.faces.iter().filter(|f| f.region_id == r).collect())
             .collect();
 
-        for r in 0..4 {
+        for (r, faces) in region_faces.iter().enumerate() {
             assert_eq!(
-                region_faces[r].len(),
+                faces.len(),
                 1,
                 "region {r} should have 1 face, got {}",
-                region_faces[r].len()
+                faces.len()
             );
         }
 
         // All 4 faces should contain the center point (1.0, 1.0).
-        for r in 0..4 {
-            let pts = graph.face_vertices(region_faces[r][0]);
+        for (r, faces) in region_faces.iter().enumerate() {
+            let pts = graph.face_vertices(faces[0]);
             assert!(
                 pts.contains(&(1.0, 1.0)),
                 "region {r} face should contain center (1,1), got {pts:?}"
@@ -538,8 +538,8 @@ mod tests {
         }
 
         // Each face should be a unit square (4 vertices).
-        for r in 0..4 {
-            let pts = graph.face_vertices(region_faces[r][0]);
+        for (r, faces) in region_faces.iter().enumerate() {
+            let pts = graph.face_vertices(faces[0]);
             assert_eq!(
                 pts.len(),
                 4,

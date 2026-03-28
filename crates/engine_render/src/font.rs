@@ -87,6 +87,11 @@ impl GlyphCache {
     pub fn len(&self) -> usize {
         self.entries.len()
     }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
 }
 
 pub struct LayoutGlyph {
@@ -279,6 +284,7 @@ pub fn tessellate_glyph(commands: &[PathCommand]) -> TessellatedMesh {
 
 /// Tessellate text glyphs and append them to an existing mesh with pre-applied
 /// position offsets and uniform color. Text is centered horizontally around `base_x`.
+#[allow(clippy::too_many_arguments)]
 pub fn bake_text_into_mesh(
     mesh: &mut TessellatedColorMesh,
     text: &str,
@@ -308,6 +314,7 @@ pub fn bake_text_into_mesh(
 }
 
 /// Same as `bake_text_into_mesh` but with word wrapping.
+#[allow(clippy::too_many_arguments)]
 pub fn bake_wrapped_text_into_mesh(
     mesh: &mut TessellatedColorMesh,
     text: &str,
@@ -323,6 +330,7 @@ pub fn bake_wrapped_text_into_mesh(
 
 /// Same as `bake_wrapped_text_into_mesh` but uses balanced line-splitting
 /// (roughly equal line widths) capped at 2 lines.
+#[allow(clippy::too_many_arguments)]
 pub fn bake_balanced_text_into_mesh(
     mesh: &mut TessellatedColorMesh,
     text: &str,
@@ -336,6 +344,7 @@ pub fn bake_balanced_text_into_mesh(
     bake_lines_into_mesh(mesh, &lines, font_size, color, base_x, base_y);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn bake_lines_into_mesh(
     mesh: &mut TessellatedColorMesh,
     lines: &[String],
@@ -361,7 +370,7 @@ fn bake_lines_into_mesh(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use super::*;
 

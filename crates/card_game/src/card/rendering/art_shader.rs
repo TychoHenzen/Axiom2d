@@ -37,6 +37,7 @@ pub struct CardArtShader(pub ShaderHandle);
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[allow(clippy::pub_underscore_fields)]
 pub struct ArtRegionParams {
     pub half_w: f32,
     pub half_h: f32,

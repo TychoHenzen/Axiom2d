@@ -170,6 +170,7 @@ mod tests {
         if title.contains(',') && title.contains(" and ") {
             return true;
         }
+        #[allow(clippy::match_same_arms)]
         match words.len() {
             // The {adj} {compound}
             3 if words[0] == "The" => true,

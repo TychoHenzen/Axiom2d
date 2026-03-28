@@ -993,9 +993,8 @@ mod tests {
         let result = image_to_shapes(&rgba, 3, 3, &default_config());
 
         // Assert
-        let commands = match &result.shapes[0].variant {
-            ShapeVariant::Path { commands } => commands,
-            _ => panic!("expected Path variant"),
+        let ShapeVariant::Path { commands } = &result.shapes[0].variant else {
+            panic!("expected Path variant");
         };
         assert!(matches!(commands[0], PathCommand::MoveTo(_)));
         assert!(matches!(*commands.last().unwrap(), PathCommand::Close));
@@ -1045,9 +1044,8 @@ mod tests {
 
         // Assert
         assert_eq!(result.shapes.len(), 1);
-        let commands = match &result.shapes[0].variant {
-            ShapeVariant::Path { commands } => commands,
-            _ => panic!("expected Path variant"),
+        let ShapeVariant::Path { commands } = &result.shapes[0].variant else {
+            panic!("expected Path variant");
         };
         // Extract all Vec2 coordinates from commands
         let mut has_neg_x = false;
@@ -1627,9 +1625,8 @@ mod tests {
 
         // Assert — extract all path vertices
         assert_eq!(result.shapes.len(), 1, "L-shape should be one region");
-        let commands = match &result.shapes[0].variant {
-            ShapeVariant::Path { commands } => commands,
-            _ => panic!("expected Path"),
+        let ShapeVariant::Path { commands } = &result.shapes[0].variant else {
+            panic!("expected Path");
         };
 
         // Collect all endpoint coordinates from path commands
@@ -1723,9 +1720,8 @@ mod tests {
 
         // Assert — extract vertices from path commands
         assert_eq!(result.shapes.len(), 1, "star should be one region");
-        let commands = match &result.shapes[0].variant {
-            ShapeVariant::Path { commands } => commands,
-            _ => panic!("expected Path"),
+        let ShapeVariant::Path { commands } = &result.shapes[0].variant else {
+            panic!("expected Path");
         };
 
         let mut xs: Vec<f32> = Vec::new();
@@ -1824,9 +1820,8 @@ mod tests {
             !result.shapes.is_empty(),
             "should produce at least one shape"
         );
-        let commands = match &result.shapes[0].variant {
-            ShapeVariant::Path { commands } => commands,
-            _ => panic!("expected Path"),
+        let ShapeVariant::Path { commands } = &result.shapes[0].variant else {
+            panic!("expected Path");
         };
 
         let mut xs: Vec<f32> = Vec::new();
@@ -1888,9 +1883,8 @@ mod tests {
 
     /// Extract polygon vertices from a shape's path commands (`LineTo` endpoints only).
     fn extract_shape_polygon(shape: &Shape) -> Vec<(f32, f32)> {
-        let commands = match &shape.variant {
-            ShapeVariant::Path { commands } => commands,
-            _ => panic!("expected Path variant"),
+        let ShapeVariant::Path { commands } = &shape.variant else {
+            panic!("expected Path variant");
         };
         commands
             .iter()

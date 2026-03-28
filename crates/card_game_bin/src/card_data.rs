@@ -12,6 +12,7 @@ pub struct StarterCard {
 pub fn starter_deck(_rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
     // Hand-crafted signatures that produce one of each rarity tier.
     // Rarity is derived from sum-of-abs-axes through a log-normalized score.
+    #[allow(clippy::type_complexity)]
     let cards: Vec<(
         &str,
         CardType,

@@ -63,11 +63,12 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(ShapeRenderDisabled);
 
         {
-            let mut shader_reg = world.resource_mut::<ShaderRegistry>();
-            let art_shader = register_card_art_shader(&mut shader_reg);
-            let variant_shaders = register_variant_shaders(&mut shader_reg);
-            // Drop the mutable borrow before inserting resources
-            drop(shader_reg);
+            let (art_shader, variant_shaders) = {
+                let mut shader_reg = world.resource_mut::<ShaderRegistry>();
+                let art = register_card_art_shader(&mut shader_reg);
+                let variants = register_variant_shaders(&mut shader_reg);
+                (art, variants)
+            };
             world.insert_resource(art_shader);
             world.insert_resource(variant_shaders);
         }

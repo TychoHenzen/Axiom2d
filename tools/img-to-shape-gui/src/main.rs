@@ -574,9 +574,9 @@ impl App {
         self.state.element_index = entry.element_index;
         self.state.aspect_pole = entry.aspect_pole;
         self.state.signature_axes = entry.signature_axes;
-        self.state.fn_name = entry.fn_name.clone();
+        entry.fn_name.clone_into(&mut self.state.fn_name);
         self.state.compact_encoding = entry.compact_encoding;
-        self.state.description = entry.description.clone();
+        entry.description.clone_into(&mut self.state.description);
     }
 
     /// Build the image path string for a new manifest entry, relative to

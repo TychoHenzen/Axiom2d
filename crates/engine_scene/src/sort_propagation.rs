@@ -11,6 +11,7 @@ pub struct LocalSortOrder(pub i32);
 
 /// Walks the scene graph depth-first, sorting siblings by `LocalSortOrder`,
 /// and assigns an incrementing `SortOrder` to each entity visited.
+#[allow(clippy::type_complexity)]
 pub fn hierarchy_sort_system(
     roots: Query<(Entity, Option<&LocalSortOrder>), (With<SortOrder>, Without<ChildOf>)>,
     children_query: Query<&Children>,

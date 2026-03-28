@@ -9,6 +9,7 @@ use crate::card::component::CardItemForm;
 /// Also hides/shows `MeshOverlays` (art shader) — overlays only render face-up.
 /// Runs when `Card` or `BakedCardMesh` changes so the unified render system
 /// always has the correct face mesh to draw.
+#[allow(clippy::type_complexity)]
 pub fn baked_card_sync_system(
     mut query: Query<
         (

@@ -452,6 +452,7 @@ pub fn generate_repository_module(entries: &[RepositoryEntry<'_>]) -> String {
         let name = entry.fn_name;
         let element = ELEMENT_VARIANTS[entry.element_index];
         let aspect = ASPECT_VARIANTS[entry.element_index][entry.aspect_pole];
+        #[allow(clippy::float_cmp)]
         let axes = if entry.signature_axes == [0.0; 8] {
             seed_signature_from_name(name)
         } else {
@@ -653,7 +654,7 @@ pub fn hydrate_shapes(data: &[f32]) -> Vec<Shape> {
 ";
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use super::*;
     use glam::Vec2;

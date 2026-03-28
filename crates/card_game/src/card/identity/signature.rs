@@ -97,8 +97,8 @@ impl CardSignature {
 
     pub fn subtract(&self, other: &Self) -> Self {
         let mut result = [0.0; 8];
-        for i in 0..8 {
-            result[i] = self.axes[i] - other.axes[i];
+        for (i, val) in result.iter_mut().enumerate() {
+            *val = self.axes[i] - other.axes[i];
         }
         Self::new(result)
     }
@@ -441,11 +441,10 @@ mod tests {
 
         // Assert
         let expected = [0.5, 0.3, -0.1, 0.2, 0.2, 0.2, -0.2, 0.2];
-        for i in 0..8 {
+        for (i, &exp) in expected.iter().enumerate() {
             assert!(
-                (result.axes()[i] - expected[i]).abs() < 1e-5,
-                "axis {i}: expected {}, got {}",
-                expected[i],
+                (result.axes()[i] - exp).abs() < 1e-5,
+                "axis {i}: expected {exp}, got {}",
                 result.axes()[i]
             );
         }
