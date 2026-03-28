@@ -89,7 +89,7 @@ jobs:
         run: |
           find crates -name '*.wgsl' | while read -r shader; do
             echo "Validating $shader"
-            naga "$shader" --validate
+            naga "$shader"
           done
 
   dead-code:
