@@ -121,7 +121,9 @@ fn build_mesh_overlays(
     face_up: bool,
     front_mesh: &engine_render::shape::TessellatedColorMesh,
 ) -> engine_render::shape::MeshOverlays {
-    use crate::card::rendering::art_shader::{ArtRegionParams, ShaderVariant, VariantShaders};
+    use crate::card::rendering::art_shader::{
+        ArtRegionParams, ConditionEffect, ShaderVariant, TierShaders, VariantShaders,
+    };
     use crate::card::rendering::face_layout::FRONT_FACE_REGIONS;
     use engine_render::shape::{ColorVertex, MeshOverlays, OverlayEntry, TessellatedColorMesh};
 
@@ -207,7 +209,47 @@ fn build_mesh_overlays(
             mesh: front_mesh.clone(),
             material: engine_render::material::Material2d {
                 shader,
-                uniforms: art_uniforms,
+                uniforms: art_uniforms.clone(),
+                blend_mode: engine_render::material::BlendMode::Alpha,
+                ..engine_render::material::Material2d::default()
+            },
+            visible: face_up,
+        });
+    }
+
+    // Tier condition overlay: worn (Dormant) or shiny (Intense), drawn on top of everything
+    let condition = ConditionEffect::from_tier(visuals.tier_detail);
+    let tier_shader = match condition {
+        ConditionEffect::None => None,
+        ConditionEffect::Worn => world.get_resource::<TierShaders>().map(|ts| ts.dormant),
+        ConditionEffect::Shiny => world.get_resource::<TierShaders>().map(|ts| ts.intense),
+    };
+
+    if let Some(shader) = tier_shader {
+        // Full-card quad with UVs [0,0]→[1,1] so the tier shader covers the entire face
+        let (card_hw, card_hh) = (card_size.x * 0.5, card_size.y * 0.5);
+        let white = [1.0, 1.0, 1.0, 1.0];
+        let tier_quad = TessellatedColorMesh {
+            vertices: vec![
+                ColorVertex { position: [-card_hw, -card_hh], color: white, uv: [0.0, 0.0] },
+                ColorVertex { position: [card_hw, -card_hh], color: white, uv: [1.0, 0.0] },
+                ColorVertex { position: [card_hw, card_hh], color: white, uv: [1.0, 1.0] },
+                ColorVertex { position: [-card_hw, card_hh], color: white, uv: [0.0, 1.0] },
+            ],
+            indices: vec![0, 1, 2, 0, 2, 3],
+        };
+        // Write signature-derived seed into _pad0 so the tier shader gets a
+        // stable per-card seed that survives dragging and repositioning.
+        let seed = crate::card::identity::visual_params::compute_seed(signature);
+        let seed_f32 = (seed & 0xFFFF_FFFF) as f32;
+        let mut tier_uniforms = art_uniforms.clone();
+        // _pad0 is at byte offset 20 (5th f32: half_w, half_h, pointer_x, pointer_y, offset_y, _pad0)
+        tier_uniforms[20..24].copy_from_slice(&seed_f32.to_le_bytes());
+        entries.push(OverlayEntry {
+            mesh: tier_quad,
+            material: engine_render::material::Material2d {
+                shader,
+                uniforms: tier_uniforms,
                 blend_mode: engine_render::material::BlendMode::Alpha,
                 ..engine_render::material::Material2d::default()
             },
@@ -754,6 +796,24 @@ mod tests {
         world
     }
 
+    fn setup_world_with_all_shaders_and_tiers() -> World {
+        use crate::card::rendering::art_shader::{
+            register_card_art_shader, register_tier_shaders, register_variant_shaders,
+        };
+        use engine_render::prelude::ShaderRegistry;
+
+        let mut world = World::new();
+        let mut registry = ShaderRegistry::default();
+        let art = register_card_art_shader(&mut registry);
+        let variants = register_variant_shaders(&mut registry);
+        let tiers = register_tier_shaders(&mut registry);
+        world.insert_resource(art);
+        world.insert_resource(variants);
+        world.insert_resource(tiers);
+        world.insert_resource(registry);
+        world
+    }
+
     /// @doc: Legendary rarity (all element intensities at 1.0) must trigger a variant shader overlay in addition to art.
     /// Rarity hierarchy: common=1 (art only), rare=2 (art + glow), legendary=2 (art + foil). Without this overlay,
     /// legendary cards look identical to rares.
@@ -1076,5 +1136,158 @@ mod tests {
                 "fallback glow overlay should use front_mesh, not an empty mesh"
             );
         }
+    }
+
+    // --- Tier condition overlay tests ---
+
+    /// @doc: Dormant tier cards (low signature intensity) get a worn/scratched shader
+    /// overlay as a third MeshOverlays entry. Without this, dormant and active cards
+    /// look identical, removing the visual signal of card power level that players
+    /// rely on for quick table reads.
+    #[test]
+    fn when_spawn_dormant_tier_common_with_tier_shaders_then_tier_overlay_uses_dormant_shader() {
+        use crate::card::rendering::art_shader::TierShaders;
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange — all-zero signature = Common rarity + Dormant tier
+        let mut world = setup_world_with_all_shaders_and_tiers();
+        let def = make_test_def();
+        let dormant_sig = CardSignature::new([0.0; 8]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            dormant_sig,
+        );
+
+        // Assert — Common rarity = no variant overlay, but Dormant tier = worn overlay
+        // Expected: art-vignette(0) + tier-worn(1)
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(
+            overlays.0.len(),
+            2,
+            "dormant common card should have art + tier overlay"
+        );
+        let dormant_handle = world
+            .get_resource::<TierShaders>()
+            .expect("TierShaders resource")
+            .dormant;
+        assert_eq!(
+            overlays.0[1].material.shader, dormant_handle,
+            "tier overlay should use the dormant shader"
+        );
+    }
+
+    /// @doc: Active tier (mid-range intensity) is the baseline — no tier overlay is
+    /// added, keeping the rendering pipeline lean for the most common card tier.
+    #[test]
+    fn when_spawn_active_tier_common_with_tier_shaders_then_no_tier_overlay() {
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange — signature with 0.5 on one axis = Active tier, Common rarity
+        let mut world = setup_world_with_all_shaders_and_tiers();
+        let def = make_test_def();
+        let active_sig = CardSignature::new([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            active_sig,
+        );
+
+        // Assert — Active tier = ConditionEffect::None = no tier overlay
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(
+            overlays.0.len(),
+            1,
+            "active common card should have only art overlay (no tier overlay)"
+        );
+    }
+
+    /// @doc: Intense tier cards get a shiny shimmer overlay. When combined with a
+    /// rarity variant overlay, the tier overlay is always last (highest painter's order)
+    /// so the shimmer composites on top of everything.
+    #[test]
+    fn when_spawn_intense_tier_legendary_with_tier_shaders_then_three_overlays() {
+        use crate::card::rendering::art_shader::TierShaders;
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange — all-1.0 = Legendary rarity + Intense tier
+        let mut world = setup_world_with_all_shaders_and_tiers();
+        let def = make_test_def();
+        let intense_sig = CardSignature::new([1.0; 8]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            true,
+            intense_sig,
+        );
+
+        // Assert — art(0) + rarity foil(1) + tier intense(2)
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(
+            overlays.0.len(),
+            3,
+            "intense legendary card should have art + rarity + tier overlays"
+        );
+        let intense_handle = world
+            .get_resource::<TierShaders>()
+            .expect("TierShaders resource")
+            .intense;
+        assert_eq!(
+            overlays.0[2].material.shader, intense_handle,
+            "third overlay should use the intense shader"
+        );
+    }
+
+    /// @doc: Tier overlay visibility must match face_up state at spawn time. Face-down
+    /// cards hide all overlays to prevent shader effects from bleeding through the
+    /// opaque back face.
+    #[test]
+    fn when_spawn_dormant_face_down_with_tier_shaders_then_tier_overlay_not_visible() {
+        use engine_render::shape::MeshOverlays;
+
+        // Arrange
+        let mut world = setup_world_with_all_shaders_and_tiers();
+        let def = make_test_def();
+        let dormant_sig = CardSignature::new([0.0; 8]);
+
+        // Act
+        let root = spawn_visual_card(
+            &mut world,
+            &def,
+            Vec2::ZERO,
+            Vec2::new(CARD_WIDTH, CARD_HEIGHT),
+            false,
+            dormant_sig,
+        );
+
+        // Assert
+        let overlays = world
+            .get::<MeshOverlays>(root)
+            .expect("root should have MeshOverlays");
+        assert_eq!(overlays.0.len(), 2, "dormant common should have 2 entries");
+        assert!(
+            !overlays.0[1].visible,
+            "face-down card's tier overlay should not be visible"
+        );
     }
 }

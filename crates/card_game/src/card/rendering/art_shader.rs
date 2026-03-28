@@ -4,8 +4,11 @@ use engine_render::prelude::{ShaderHandle, ShaderRegistry};
 use engine_render::shape::MeshOverlays;
 
 use crate::card::identity::signature::Rarity;
+use crate::card::identity::signature_profile::Tier;
 
 pub const UV_GRADIENT_WGSL: &str = include_str!("../../shaders/uv_gradient.wgsl");
+pub const DORMANT_WGSL: &str = include_str!("../../shaders/dormant.wgsl");
+pub const INTENSE_WGSL: &str = include_str!("../../shaders/intense.wgsl");
 pub const GLOSSY_WGSL: &str = include_str!("../../shaders/glossy.wgsl");
 pub const EMBOSSED_WGSL: &str = include_str!("../../shaders/embossed.wgsl");
 pub const FOIL_WGSL: &str = include_str!("../../shaders/foil.wgsl");
@@ -28,6 +31,23 @@ impl ShaderVariant {
             Rarity::Rare => Self::Glow,
             Rarity::Epic => Self::Glossy,
             Rarity::Legendary => Self::Foil,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConditionEffect {
+    None,
+    Worn,
+    Shiny,
+}
+
+impl ConditionEffect {
+    pub fn from_tier(tier: Tier) -> Self {
+        match tier {
+            Tier::Dormant => Self::Worn,
+            Tier::Active => Self::None,
+            Tier::Intense => Self::Shiny,
         }
     }
 }
@@ -74,6 +94,19 @@ pub struct VariantShaders {
     pub glow: ShaderHandle,
     pub glossy: ShaderHandle,
     pub foil: ShaderHandle,
+}
+
+#[derive(Resource, Debug, Clone, Copy)]
+pub struct TierShaders {
+    pub dormant: ShaderHandle,
+    pub intense: ShaderHandle,
+}
+
+pub fn register_tier_shaders(registry: &mut ShaderRegistry) -> TierShaders {
+    TierShaders {
+        dormant: registry.register(DORMANT_WGSL),
+        intense: registry.register(INTENSE_WGSL),
+    }
 }
 
 pub fn register_variant_shaders(registry: &mut ShaderRegistry) -> VariantShaders {
@@ -298,6 +331,52 @@ mod tests {
         assert_eq!(bytes.len(), 32);
     }
 
+    /// @doc: Dormant tier cards have low signature intensity — the Worn effect
+    /// desaturates and fades the card art to convey age and weakness. Without
+    /// this mapping, dormant cards would look identical to active ones, removing
+    /// a key visual signal of card power level.
+    #[test]
+    fn when_tier_is_dormant_then_condition_effect_is_worn() {
+        // Arrange
+        let tier = crate::card::identity::signature_profile::Tier::Dormant;
+
+        // Act
+        let effect = ConditionEffect::from_tier(tier);
+
+        // Assert
+        assert_eq!(effect, ConditionEffect::Worn);
+    }
+
+    /// @doc: Active tier is the baseline condition — no visual distortion applied.
+    /// Most cards fall here (intensity 0.3–0.7), so "normal" means no shader overlay,
+    /// keeping the rendering pipeline lean for the common case.
+    #[test]
+    fn when_tier_is_active_then_condition_effect_is_none() {
+        // Arrange
+        let tier = crate::card::identity::signature_profile::Tier::Active;
+
+        // Act
+        let effect = ConditionEffect::from_tier(tier);
+
+        // Assert
+        assert_eq!(effect, ConditionEffect::None);
+    }
+
+    /// @doc: Intense tier cards have extreme signature values — the Shiny effect
+    /// adds shimmer and brightness to signal peak condition. Players should
+    /// immediately recognize these as exceptional cards from across the table.
+    #[test]
+    fn when_tier_is_intense_then_condition_effect_is_shiny() {
+        // Arrange
+        let tier = crate::card::identity::signature_profile::Tier::Intense;
+
+        // Act
+        let effect = ConditionEffect::from_tier(tier);
+
+        // Assert
+        assert_eq!(effect, ConditionEffect::Shiny);
+    }
+
     #[test]
     fn when_registering_variant_shaders_then_all_handles_are_retrievable() {
         // Arrange
@@ -311,5 +390,22 @@ mod tests {
         assert_eq!(registry.lookup(variants.glow), Some(GLOW_WGSL));
         assert_eq!(registry.lookup(variants.glossy), Some(GLOSSY_WGSL));
         assert_eq!(registry.lookup(variants.foil), Some(FOIL_WGSL));
+    }
+
+    /// @doc: TierShaders resource must hold valid shader handles for both Dormant
+    /// (worn/faded) and Intense (shiny) effects. If registration fails or returns
+    /// stale handles, the spawn pipeline will silently skip tier overlays, making
+    /// all cards look Active regardless of their actual tier.
+    #[test]
+    fn when_registering_tier_shaders_then_both_handles_are_retrievable() {
+        // Arrange
+        let mut registry = ShaderRegistry::default();
+
+        // Act
+        let tiers = register_tier_shaders(&mut registry);
+
+        // Assert
+        assert_eq!(registry.lookup(tiers.dormant), Some(DORMANT_WGSL));
+        assert_eq!(registry.lookup(tiers.intense), Some(INTENSE_WGSL));
     }
 }

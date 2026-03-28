@@ -10,7 +10,8 @@ use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale
 use crate::card::interaction::pick::card_pick_system;
 use crate::card::interaction::release::card_release_system;
 use crate::card::rendering::art_shader::{
-    register_card_art_shader, register_variant_shaders, shader_pointer_system,
+    register_card_art_shader, register_tier_shaders, register_variant_shaders,
+    shader_pointer_system,
 };
 use crate::card::rendering::baked_render::baked_card_sync_system;
 use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
@@ -63,14 +64,16 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(ShapeRenderDisabled);
 
         {
-            let (art_shader, variant_shaders) = {
+            let (art_shader, variant_shaders, tier_shaders) = {
                 let mut shader_reg = world.resource_mut::<ShaderRegistry>();
                 let art = register_card_art_shader(&mut shader_reg);
                 let variants = register_variant_shaders(&mut shader_reg);
-                (art, variants)
+                let tiers = register_tier_shaders(&mut shader_reg);
+                (art, variants, tiers)
             };
             world.insert_resource(art_shader);
             world.insert_resource(variant_shaders);
+            world.insert_resource(tier_shaders);
         }
 
         register_systems(app);
@@ -191,6 +194,37 @@ mod tests {
         // Assert
         let registry = app.world().get_resource::<BaseCardTypeRegistry>().unwrap();
         assert!(!registry.is_empty());
+    }
+
+    /// @doc: TierShaders must be registered at plugin startup so tier condition
+    /// overlays (worn/shiny) appear on spawned cards. Without this resource,
+    /// `build_mesh_overlays` silently skips the tier overlay, making all cards
+    /// look Active regardless of their actual intensity tier.
+    #[test]
+    fn when_plugin_built_then_tier_shaders_resource_is_present_and_resolves() {
+        use crate::card::rendering::art_shader::TierShaders;
+
+        // Arrange
+        let mut app = App::new();
+        app.world_mut().insert_resource(ShaderRegistry::default());
+
+        // Act
+        app.add_plugin(CardGamePlugin);
+
+        // Assert
+        let tiers = app
+            .world()
+            .get_resource::<TierShaders>()
+            .expect("TierShaders resource should be inserted by plugin");
+        let registry = app.world().get_resource::<ShaderRegistry>().unwrap();
+        assert!(
+            registry.lookup(tiers.dormant).is_some(),
+            "dormant shader handle should resolve in registry"
+        );
+        assert!(
+            registry.lookup(tiers.intense).is_some(),
+            "intense shader handle should resolve in registry"
+        );
     }
 
     #[test]

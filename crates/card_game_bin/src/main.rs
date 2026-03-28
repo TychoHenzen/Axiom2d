@@ -1,7 +1,7 @@
 mod card_data;
 
 use axiom2d::prelude::*;
-use card_game::card::art::{ShapeRepository, armor1::armor1, tessellate_art_shapes};
+use card_game::card::art::ShapeRepository;
 use card_game::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
@@ -61,31 +61,6 @@ fn spawn_scene(world: &mut World) {
             .set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER)
             .expect("card entity should have physics body");
     }
-    physics
-        .add_force_at_point(
-            card_entities[0],
-            Vec2::new(5000.0, 2000.0),
-            Vec2::new(-120.0, 0.0),
-        )
-        .expect("card entity should have physics body");
-    physics
-        .add_force_at_point(
-            card_entities[3],
-            Vec2::new(-3000.0, 4000.0),
-            Vec2::new(60.0, -20.0),
-        )
-        .expect("card entity should have physics body");
-
-    let art_mesh = tessellate_art_shapes(&armor1());
-    world.spawn((
-        Transform2D {
-            position: Vec2::new(300.0, 200.0),
-            ..Default::default()
-        },
-        ColorMesh(art_mesh),
-        RenderLayer::World,
-        SortOrder(10),
-    ));
 }
 
 fn setup(app: &mut App) {

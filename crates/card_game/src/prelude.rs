@@ -33,8 +33,8 @@ pub use crate::card::interaction::pick::{
 };
 pub use crate::card::interaction::release::card_release_system;
 pub use crate::card::rendering::art_shader::{
-    CardArtShader, VariantShaders, register_card_art_shader, register_variant_shaders,
-    shader_pointer_system,
+    CardArtShader, ConditionEffect, TierShaders, VariantShaders, register_card_art_shader,
+    register_tier_shaders, register_variant_shaders, shader_pointer_system,
 };
 pub use crate::card::rendering::baked_mesh::{BakedCardMesh, CardOverlays};
 pub use crate::card::rendering::baked_render::baked_card_sync_system;
