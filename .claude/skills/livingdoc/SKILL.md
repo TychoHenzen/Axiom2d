@@ -72,37 +72,53 @@ After the cleanup pass, work through the test index and add `/// @doc:` annotati
 
 ### What makes a good annotation
 
-An annotation explains **why the behavior matters** to someone reading the living documentation. It is user-facing documentation that connects the test to a design decision, invariant, or user-visible behavior.
+An annotation is **user-facing documentation** aimed at someone browsing the living docs to understand how the engine and game work. It should read like a short paragraph that connects the test to a design decision, invariant, or user-visible behavior — explaining not just *what* the test checks but *why* it matters and *what would go wrong* without it.
 
-**Format**: Single line, placed directly above `#[test]`:
+**Format**: Multi-line `/// @doc:` block placed directly above `#[test]`. Use `///` continuation lines for the paragraph body:
 ```rust
-/// @doc: Explanation of why this behavior matters
+/// @doc: Cards entering the hand lose their physics body so they can't be
+/// knocked around by table collisions. Without this, a card you've already
+/// picked up could get launched off-screen by another card sliding into it,
+/// which would be confusing and break the hand inventory's spatial layout.
 #[test]
-fn when_action_then_outcome() {
+fn when_card_enters_hand_then_physics_body_removed() {
 ```
 
-**Good annotations** (explain the "why"):
+**Good annotations** (descriptive, explain the "why" and consequences):
 ```rust
-/// @doc: Constant-power stereo panning — emitter fully right produces 100% right channel gain
-/// @doc: Coincident positions must not produce NaN — atan2(0,0) edge case handled by defaulting to centered pan
-/// @doc: Cards entering the hand lose their physics body so they can't be knocked around by table collisions
-/// @doc: Fixed timestep accumulates fractional frame time — ensures physics runs at consistent rate regardless of render FPS
+/// @doc: The fixed timestep accumulator carries fractional frame time across
+/// frames so that physics always runs at a consistent tick rate regardless of
+/// render FPS. If the remainder were discarded, fast machines would simulate
+/// slightly less total time than slow ones, causing drift in deterministic
+/// replays and making physics-dependent gameplay subtly frame-rate-dependent.
+
+/// @doc: Constant-power stereo panning ensures that an audio emitter placed
+/// fully to the right produces 100% right channel gain and 0% left. This
+/// uses an equal-power curve (sin/cos) rather than linear interpolation so
+/// that a sound panning across the stereo field doesn't dip in perceived
+/// loudness at the center position.
+
+/// @doc: When the emitter and listener occupy the exact same position, the
+/// angle between them is undefined (atan2(0,0)). The panning system handles
+/// this by defaulting to centered stereo rather than producing NaN, which
+/// would propagate through the mix and silence the entire audio output.
 ```
 
-**Bad annotations** (just restate the test name):
+**Bad annotations** (too terse, just restate the test name):
 ```rust
 /// @doc: Tests that color converts from u8  ← just restates "when_color_from_u8"
 /// @doc: Checks the hit test function       ← says nothing about why hit testing matters
 /// @doc: Verifies the system works           ← completely vacuous
+/// @doc: Cards in hand have no physics body  ← slightly better but still just restates the test name
 ```
 
 ### Style guidelines
 
-- **Succinct**: One sentence, ideally under 120 characters. If you need two sentences, the test might be doing too much.
-- **Design-intent first**: Lead with the design decision or invariant, not the mechanism. "Cards in hand are immune to physics collisions" not "The system removes the RigidBody component".
+- **Paragraph-length**: Aim for 2–4 sentences (roughly 40–80 words). Enough to explain the design intent and consequences, but not an essay. If a test is truly trivial and self-explanatory from its name, skip the annotation entirely rather than writing a thin one.
+- **Design-intent first**: Lead with the design decision or invariant, then explain what would break without it. "Cards in hand are immune to physics collisions" → "...because a stray collision could launch a held card off-screen."
 - **Domain language**: Use the game/engine's vocabulary — "card", "hand", "stash", "flip", "drag", "camera", "atlas", "render layer", "sort order".
-- **Edge cases get context**: If the test exists because of a specific edge case or past bug, say so. "Division by zero when velocity is exactly zero — clamp prevents NaN propagation."
-- **No redundancy with test name**: The test name already says *what* happens. The annotation says *why it matters* or *what design decision it protects*.
+- **Edge cases get context**: If the test exists because of a specific edge case or past bug, say so and explain the failure mode it prevents.
+- **No redundancy with test name**: The test name already says *what* happens. The annotation says *why it matters*, *what design decision it protects*, and *what would go wrong* if the invariant were violated.
 
 ### Prioritization
 

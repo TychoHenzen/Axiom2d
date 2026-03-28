@@ -145,16 +145,23 @@ pub fn parse_annotations(source: &str) -> HashMap<String, String> {
     for (i, line) in lines.iter().enumerate() {
         let trimmed = line.trim();
         if let Some(rest) = trimmed.strip_prefix("/// @doc:") {
-            let annotation = rest.trim().to_string();
+            let mut parts = vec![rest.trim()];
             for next_line in &lines[(i + 1)..] {
                 let next = next_line.trim();
                 if next.starts_with("fn ") {
                     if let Some(name) = next.strip_prefix("fn ").and_then(|s| s.split('(').next()) {
-                        result.insert(name.trim().to_string(), annotation);
+                        result.insert(name.trim().to_string(), parts.join(" "));
                     }
                     break;
                 }
-                if next.is_empty() || next.starts_with("///") || next.starts_with("#[") {
+                if let Some(cont) = next.strip_prefix("///") {
+                    let cont = cont.trim();
+                    if !cont.starts_with("@doc:") && !cont.is_empty() {
+                        parts.push(cont);
+                    }
+                    continue;
+                }
+                if next.is_empty() || next.starts_with("#[") {
                     continue;
                 }
                 break;
@@ -1221,10 +1228,9 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
         );
     }
 
-    // TC035: Kills mutant "replace || with && in parse_annotations" (line 148, second ||)
-    // Doc comment line between @doc and #[test] should be skipped
+    // TC035: Continuation doc lines after @doc: are accumulated into the annotation
     #[test]
-    fn when_doc_comment_between_annotation_and_test_then_still_matches() {
+    fn when_doc_comment_between_annotation_and_test_then_accumulates() {
         // Arrange
         let source =
             "/// @doc: Has extra docs\n/// some other doc\n#[test]\nfn extra_docs_test() {}";
@@ -1235,7 +1241,33 @@ schedule::tests::when_phase_index_called_then_returns_ordinal: test
         // Assert
         assert_eq!(
             result.get("extra_docs_test"),
-            Some(&"Has extra docs".to_string())
+            Some(&"Has extra docs some other doc".to_string())
+        );
+    }
+
+    /// @doc: Multi-line annotations are the primary format for descriptive
+    /// living documentation. The parser joins continuation `///` lines with
+    /// spaces so that paragraph-length annotations render as a single block
+    /// in the generated output.
+    #[test]
+    fn when_multiline_doc_annotation_then_joins_with_spaces() {
+        // Arrange
+        let source = "\
+/// @doc: Cards entering the hand lose their physics body so they can't be
+/// knocked around by table collisions. Without this, a card you've already
+/// picked up could get launched off-screen.
+#[test]
+fn when_card_enters_hand_then_physics_body_removed() {}";
+
+        // Act
+        let result = parse_annotations(source);
+
+        // Assert
+        assert_eq!(
+            result.get("when_card_enters_hand_then_physics_body_removed"),
+            Some(&"Cards entering the hand lose their physics body so they can't be \
+                   knocked around by table collisions. Without this, a card you've already \
+                   picked up could get launched off-screen.".to_string())
         );
     }
 
