@@ -408,7 +408,7 @@ mod tests {
 
     /// @doc: Front and back face meshes must be fully tessellated during card spawn.
     /// Players see empty cards if these meshes are missing, even if overlays exist. This protects against
-    /// regressions in bake_front_face and bake_back_face integration.
+    /// regressions in `bake_front_face` and `bake_back_face` integration.
     #[test]
     fn when_spawn_visual_card_then_baked_front_mesh_is_nonempty() {
         // Arrange
@@ -447,7 +447,7 @@ mod tests {
         );
     }
 
-    /// @doc: Initial ColorMesh selection (front vs. back) depends on the face_up parameter.
+    /// @doc: Initial `ColorMesh` selection (front vs. back) depends on the `face_up` parameter.
     /// This test ensures the unified render system has the correct mesh from spawn, without waiting for the next sync.
     #[test]
     fn when_spawn_visual_card_face_down_then_color_mesh_matches_back() {
@@ -477,7 +477,7 @@ mod tests {
         );
     }
 
-    /// @doc: Spawning with face_up=true must immediately have the front mesh visible.
+    /// @doc: Spawning with `face_up=true` must immediately have the front mesh visible.
     /// Players see cards in hand face-up without delay, so the initial mesh selection is non-negotiable.
     #[test]
     fn when_spawn_visual_card_face_up_then_color_mesh_matches_front() {
@@ -558,7 +558,7 @@ mod tests {
         assert_eq!(card.signature, signature);
     }
 
-    /// @doc: spawn_visual_card must not create child entities. The baked card is a flat ECS entity,
+    /// @doc: `spawn_visual_card` must not create child entities. The baked card is a flat ECS entity,
     /// not a hierarchical scene. Child entities would break transform updates and physics.
     #[test]
     fn when_spawn_visual_card_then_no_child_entities_exist() {
@@ -853,7 +853,7 @@ mod tests {
         );
     }
 
-    /// @doc: Variant overlay uniforms must encode ArtRegionParams (32 bytes). If the size is wrong,
+    /// @doc: Variant overlay uniforms must encode `ArtRegionParams` (32 bytes). If the size is wrong,
     /// the shader's buffer access will read garbage or panic. This guards against unintended changes to struct layout.
     #[test]
     fn when_spawn_with_legendary_signature_then_variant_overlay_uniforms_are_sixteen_bytes() {

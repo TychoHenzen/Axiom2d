@@ -314,7 +314,7 @@ mod tests {
         assert!((pos.y - 7.0).abs() < 1e-4);
     }
 
-    /// @doc: Duplicate add_body must return false — idempotent guard prevents double-registration in rapier world
+    /// @doc: Duplicate `add_body` must return false — idempotent guard prevents double-registration in rapier world
     #[test]
     fn when_same_entity_added_twice_then_second_returns_false() {
         // Arrange
@@ -382,7 +382,7 @@ mod tests {
         assert!(polygon);
     }
 
-    /// @doc: add_collider on unregistered entity must return false — guard prevents orphan colliders without bodies
+    /// @doc: `add_collider` on unregistered entity must return false — guard prevents orphan colliders without bodies
     #[test]
     fn when_add_collider_for_unknown_entity_then_returns_false() {
         // Arrange
@@ -486,7 +486,7 @@ mod tests {
         );
     }
 
-    /// @doc: drain_collision_events must consume queue — calling drain twice produces empty second result
+    /// @doc: `drain_collision_events` must consume queue — calling drain twice produces empty second result
     #[test]
     fn when_drain_called_twice_without_step_then_second_is_empty() {
         // Arrange
@@ -524,7 +524,7 @@ mod tests {
         let _ = backend.drain_collision_events();
     }
 
-    /// @doc: remove_body on non-existent entity must return Err — prevents phantom cleanup in removal systems
+    /// @doc: `remove_body` on non-existent entity must return Err — prevents phantom cleanup in removal systems
     #[test]
     fn when_remove_body_for_unknown_entity_on_rapier_then_returns_err() {
         // Arrange
@@ -538,7 +538,7 @@ mod tests {
         assert!(result.is_err());
     }
 
-    /// @doc: add_force_at_point on unknown entity must return Err — prevents silent force loss in drag system
+    /// @doc: `add_force_at_point` on unknown entity must return Err — prevents silent force loss in drag system
     #[test]
     fn when_add_force_at_point_for_unknown_entity_then_returns_err() {
         // Arrange
@@ -552,7 +552,7 @@ mod tests {
         assert!(result.is_err());
     }
 
-    /// @doc: set_damping on unknown entity must return Err — prevents silent damping loss in physics setup
+    /// @doc: `set_damping` on unknown entity must return Err — prevents silent damping loss in physics setup
     #[test]
     fn when_set_damping_on_unknown_entity_then_returns_err() {
         // Arrange
@@ -794,7 +794,7 @@ mod tests {
         assert!(rot.abs() > 1e-5, "expected rotation from torque, got {rot}");
     }
 
-    /// @doc: body_linear_velocity must report exact set velocity — velocity query feeds drag calculation and feedback
+    /// @doc: `body_linear_velocity` must report exact set velocity — velocity query feeds drag calculation and feedback
     #[test]
     fn when_body_linear_velocity_queried_then_returns_current_velocity() {
         // Arrange
@@ -834,7 +834,7 @@ mod tests {
         assert!(vel.is_none());
     }
 
-    /// @doc: set_linear_velocity must immediately affect motion — velocity change feeds physics-based drag animation
+    /// @doc: `set_linear_velocity` must immediately affect motion — velocity change feeds physics-based drag animation
     #[test]
     fn when_set_linear_velocity_then_body_moves_accordingly() {
         // Arrange
@@ -855,7 +855,7 @@ mod tests {
         assert!(pos.x > 5.0, "expected body to move right, got x={}", pos.x);
     }
 
-    /// @doc: set_angular_velocity must cause rotation — wrong angular velocity breaks card rotation feedback
+    /// @doc: `set_angular_velocity` must cause rotation — wrong angular velocity breaks card rotation feedback
     #[test]
     fn when_set_angular_velocity_then_body_rotates() {
         // Arrange
@@ -874,7 +874,7 @@ mod tests {
         assert!(rot.abs() > 0.5, "expected body to rotate, got rot={rot}");
     }
 
-    /// @doc: body_point_to_world must apply rotation matrix correctly — wrong transform breaks offsets in torque/drag calculations
+    /// @doc: `body_point_to_world` must apply rotation matrix correctly — wrong transform breaks offsets in torque/drag calculations
     #[test]
     fn when_rapier_body_rotated_then_body_point_to_world_matches_manual_transform() {
         // Arrange
@@ -934,7 +934,7 @@ mod tests {
         assert!(angvel.is_none());
     }
 
-    /// @doc: body_angular_velocity must return exact set value — mismatch breaks spin feedback synchronization
+    /// @doc: `body_angular_velocity` must return exact set value — mismatch breaks spin feedback synchronization
     #[test]
     fn when_body_angular_velocity_after_set_then_returns_set_value() {
         // Arrange
@@ -975,7 +975,7 @@ mod tests {
         );
     }
 
-    /// @doc: set_collision_group on unknown entity must return Err — prevents silent filter application
+    /// @doc: `set_collision_group` on unknown entity must return Err — prevents silent filter application
     #[test]
     fn when_set_collision_group_on_unknown_entity_then_returns_err() {
         // Arrange

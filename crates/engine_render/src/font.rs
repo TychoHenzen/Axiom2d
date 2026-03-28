@@ -536,7 +536,7 @@ mod tests {
         assert_eq!(cache.len(), 2);
     }
 
-    /// @doc: First glyph x_offset must be zero — non-zero offset shifts text baseline and breaks alignment
+    /// @doc: First glyph `x_offset` must be zero — non-zero offset shifts text baseline and breaks alignment
     #[test]
     fn when_laying_out_single_char_then_x_offset_is_zero() {
         // Arrange
@@ -619,7 +619,7 @@ mod tests {
         (spy, shape_calls)
     }
 
-    /// @doc: Single character must produce exactly one draw_shape call — renderer invocation must match character count
+    /// @doc: Single character must produce exactly one `draw_shape` call — renderer invocation must match character count
     #[test]
     fn when_render_text_single_char_then_one_draw_shape_call() {
         // Arrange
@@ -642,7 +642,7 @@ mod tests {
         assert_eq!(calls.len(), 1);
     }
 
-    /// @doc: Character count must match draw_shape call count — missing calls mean unrendered glyphs
+    /// @doc: Character count must match `draw_shape` call count — missing calls mean unrendered glyphs
     #[test]
     fn when_render_text_three_chars_then_three_draw_shape_calls() {
         // Arrange
@@ -665,7 +665,7 @@ mod tests {
         assert_eq!(calls.len(), 3);
     }
 
-    /// @doc: Space character must not produce draw_shape calls — rendering spaces wastes GPU work and is invisible
+    /// @doc: Space character must not produce `draw_shape` calls — rendering spaces wastes GPU work and is invisible
     #[test]
     fn when_render_text_with_space_then_space_not_drawn() {
         // Arrange
@@ -717,7 +717,7 @@ mod tests {
         );
     }
 
-    /// @doc: Text color must propagate to all draw_shape calls — color mismatch renders wrong or monochrome text
+    /// @doc: Text color must propagate to all `draw_shape` calls — color mismatch renders wrong or monochrome text
     #[test]
     fn when_render_text_with_color_then_draw_shape_receives_color() {
         // Arrange
@@ -749,7 +749,7 @@ mod tests {
         assert_eq!(lines[0], "Hello");
     }
 
-    /// @doc: Text exceeding max_width must split at word boundaries — unbroken overflow causes render clipping
+    /// @doc: Text exceeding `max_width` must split at word boundaries — unbroken overflow causes render clipping
     #[test]
     fn when_wrap_text_exceeds_width_then_multiple_lines() {
         // Arrange

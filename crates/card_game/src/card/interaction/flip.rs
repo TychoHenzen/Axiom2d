@@ -126,7 +126,7 @@ mod tests {
         assert_eq!(anim.progress, 0.0);
     }
 
-    /// @doc: Flip animation targets toggled state—animates to opposite of current face_up value
+    /// @doc: Flip animation targets toggled state—animates to opposite of current `face_up` value
     #[test]
     fn when_right_click_hits_table_card_then_flip_animation_targets_face_up() {
         // Arrange

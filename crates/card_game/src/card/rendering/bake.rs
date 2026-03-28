@@ -210,7 +210,7 @@ mod tests {
     /// @doc: Art region separation is critical—art geometry must be rendered by the art shader,
     /// not the baked mesh. If art colors appear in baked vertices, the art shader will composite
     /// on top, double-rendering the art. This test ensures the baked mesh respects the
-    /// use_art_shader flag in FRONT_FACE_REGIONS.
+    /// `use_art_shader` flag in `FRONT_FACE_REGIONS`.
     #[test]
     fn when_bake_front_then_art_region_color_not_present() {
         // Arrange — the art area (region 2) has use_art_shader=true and should be

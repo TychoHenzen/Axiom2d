@@ -256,7 +256,7 @@ mod tests {
         }
     }
 
-    /// @doc: Confirms dominant_axis selects the highest-intensity element (strongest influence on card identity).
+    /// @doc: Confirms `dominant_axis` selects the highest-intensity element (strongest influence on card identity).
     /// Without this test, weaker axes could incorrectly dominate, breaking card personality consistency.
     #[test]
     fn when_one_axis_clearly_highest_then_dominant_is_that_element() {
@@ -428,7 +428,7 @@ mod tests {
         );
     }
 
-    /// @doc: SignatureProfile preserves rarity from the original CardSignature.
+    /// @doc: `SignatureProfile` preserves rarity from the original `CardSignature`.
     /// Rarity drives visual effects, card templates, and gameplay value, so loss here cascades downstream.
     #[test]
     fn when_signature_has_known_rarity_then_profile_stores_same_value() {

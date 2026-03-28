@@ -294,7 +294,7 @@ mod tests {
         assert!(!world.entity(entity).get::<Card>().unwrap().face_up);
     }
 
-    /// @doc: FlipAnimation removed at completion—prevent re-triggering same flip state twice
+    /// @doc: `FlipAnimation` removed at completion—prevent re-triggering same flip state twice
     #[test]
     fn when_animation_completes_then_component_removed() {
         // Arrange
