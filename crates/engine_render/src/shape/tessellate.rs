@@ -443,7 +443,7 @@ mod tests {
         assert!(wide.vertices.len() >= narrow.vertices.len());
     }
 
-    /// @doc: MoveTo with non-zero coordinates — incorrect state tracking can snap geometry to origin
+    /// @doc: `MoveTo` with non-zero coordinates — incorrect state tracking can snap geometry to origin
     #[test]
     fn when_path_moveto_nonorigin_then_vertices_are_near_moveto_point() {
         // Arrange — MoveTo to (50,50), then draw a triangle there.

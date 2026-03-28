@@ -273,7 +273,7 @@ mod tests {
         assert_eq!(count, 0);
     }
 
-    /// @doc: Shapes without Material default to AlphaBlend — unspecified blend must support transparency
+    /// @doc: Shapes without Material default to `AlphaBlend` — unspecified blend must support transparency
     #[test]
     fn when_shape_has_no_material_then_set_blend_mode_called_with_alpha() {
         // Arrange
@@ -311,7 +311,7 @@ mod tests {
         assert_eq!(calls.as_slice(), &[BlendMode::Additive]);
     }
 
-    /// @doc: SortOrder determines blend mode order — higher sort orders are drawn later with their own blend mode
+    /// @doc: `SortOrder` determines blend mode order — higher sort orders are drawn later with their own blend mode
     #[test]
     fn when_two_shapes_with_different_blend_modes_then_both_blend_modes_applied() {
         // Arrange
@@ -405,7 +405,7 @@ mod tests {
         assert_eq!(count, 2);
     }
 
-    /// @doc: RenderLayer::Background sorts before RenderLayer::World — layering prevents composition errors
+    /// @doc: `RenderLayer::Background` sorts before `RenderLayer::World` — layering prevents composition errors
     #[test]
     fn when_two_shapes_on_different_layers_then_background_drawn_before_world() {
         // Arrange
@@ -440,7 +440,7 @@ mod tests {
         assert_eq!(calls[1].2, red);
     }
 
-    /// @doc: SortOrder enables depth compositing — lower values render first (painter's algorithm)
+    /// @doc: `SortOrder` enables depth compositing — lower values render first (painter's algorithm)
     #[test]
     fn when_two_shapes_same_layer_different_sort_order_then_lower_drawn_first() {
         // Arrange
@@ -477,7 +477,7 @@ mod tests {
         assert_eq!(calls[1].2, red);
     }
 
-    /// @doc: Missing RenderLayer defaults to World layer — ensures correct sort order when component absent
+    /// @doc: Missing `RenderLayer` defaults to World layer — ensures correct sort order when component absent
     #[test]
     fn when_shape_has_no_render_layer_then_treated_as_world_layer() {
         // Arrange
@@ -801,7 +801,7 @@ mod tests {
         }
     }
 
-    /// @doc: SortOrder trumps shader differences — render order is always sort-order-then-layer, never by material
+    /// @doc: `SortOrder` trumps shader differences — render order is always sort-order-then-layer, never by material
     #[test]
     fn when_two_shapes_with_different_shaders_then_sort_order_controls_draw_order() {
         // Arrange
@@ -838,7 +838,7 @@ mod tests {
         assert_eq!(calls[1].2, red);
     }
 
-    /// @doc: Missing Camera2D disables culling — fallback ensures shapes render when camera not found
+    /// @doc: Missing `Camera2D` disables culling — fallback ensures shapes render when camera not found
     #[test]
     fn when_no_camera_entity_then_all_shapes_drawn_without_culling() {
         // Arrange

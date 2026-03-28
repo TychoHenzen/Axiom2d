@@ -607,7 +607,7 @@ mod tests {
         assert!(!log.lock().unwrap().contains(&"upload_atlas".to_string()));
     }
 
-    /// @doc: AtlasUploaded marker prevents re-uploading — GPU resource should only transfer once
+    /// @doc: `AtlasUploaded` marker prevents re-uploading — GPU resource should only transfer once
     #[test]
     fn when_system_runs_twice_then_upload_atlas_called_only_once() {
         // Arrange

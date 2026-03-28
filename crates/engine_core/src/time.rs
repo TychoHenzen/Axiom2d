@@ -147,7 +147,7 @@ mod tests {
         assert_eq!(clock.delta(), Seconds(0.016));
     }
 
-    /// @doc: Delta drains on read — calling delta() twice without advancing returns zero, preventing double-counting
+    /// @doc: Delta drains on read — calling `delta()` twice without advancing returns zero, preventing double-counting
     #[test]
     fn when_fake_clock_delta_called_twice_then_second_call_returns_zero() {
         // Arrange

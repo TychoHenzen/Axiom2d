@@ -224,7 +224,7 @@ mod tests {
         assert_eq!(result, Some((0, 2)));
     }
 
-    /// @doc: Column-major fill order — first_empty scans down columns then across, matching visual grid layout
+    /// @doc: Column-major fill order — `first_empty` scans down columns then across, matching visual grid layout
     #[test]
     fn when_first_column_full_then_first_empty_wraps_to_next_column() {
         // Arrange
@@ -257,7 +257,7 @@ mod tests {
         assert_eq!(result, None);
     }
 
-    /// @doc: Pages are independent — first_empty only scans the requested page, not the entire grid
+    /// @doc: Pages are independent — `first_empty` only scans the requested page, not the entire grid
     #[test]
     fn when_first_empty_on_second_page_then_ignores_first_page() {
         // Arrange

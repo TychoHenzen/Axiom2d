@@ -219,7 +219,7 @@ mod tests {
         assert_eq!(t.scale, Vec2::ONE);
     }
 
-    /// @doc: lock_x preserves horizontal scale during flip animation — only vertical axis participates in the squash
+    /// @doc: `lock_x` preserves horizontal scale during flip animation — only vertical axis participates in the squash
     #[test]
     fn when_lock_x_true_then_scale_y_springs_but_scale_x_unchanged() {
         // Arrange

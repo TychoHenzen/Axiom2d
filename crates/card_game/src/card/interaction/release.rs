@@ -711,7 +711,7 @@ mod tests {
         );
     }
 
-    /// @doc: HandSpring attached on hand pickup—card animates to its layout position
+    /// @doc: `HandSpring` attached on hand pickup—card animates to its layout position
     #[test]
     fn when_release_to_hand_then_handspring_inserted() {
         // Arrange
