@@ -1265,9 +1265,12 @@ fn when_card_enters_hand_then_physics_body_removed() {}";
         // Assert
         assert_eq!(
             result.get("when_card_enters_hand_then_physics_body_removed"),
-            Some(&"Cards entering the hand lose their physics body so they can't be \
+            Some(
+                &"Cards entering the hand lose their physics body so they can't be \
                    knocked around by table collisions. Without this, a card you've already \
-                   picked up could get launched off-screen.".to_string())
+                   picked up could get launched off-screen."
+                    .to_string()
+            )
         );
     }
 
