@@ -256,7 +256,7 @@ mod tests {
         assert_eq!(handle.uv_rect, [0.0, 0.0, 1.0, 1.0]);
     }
 
-    /// @doc: Each allocation must have unique TextureId — id collisions break texture lookups and render incorrect sprites
+    /// @doc: Each allocation must have unique `TextureId` — id collisions break texture lookups and render incorrect sprites
     #[test]
     fn when_adding_two_images_then_each_has_distinct_texture_id() {
         // Arrange
@@ -381,7 +381,7 @@ mod tests {
         assert!(matches!(result, Err(AtlasError::InvalidDimensions)));
     }
 
-    /// @doc: TextureAtlas::lookup must return exact handle.uv_rect from add_image — mismatch breaks sprite sampling
+    /// @doc: `TextureAtlas::lookup` must return exact `handle.uv_rect` from `add_image` — mismatch breaks sprite sampling
     #[test]
     fn when_looking_up_known_texture_id_then_returns_matching_uv_rect() {
         // Arrange
@@ -396,7 +396,7 @@ mod tests {
         assert_eq!(result, Some(handle.uv_rect));
     }
 
-    /// @doc: Lookup must return None for non-existent TextureId — catching invalid IDs prevents shader sampling garbage
+    /// @doc: Lookup must return None for non-existent `TextureId` — catching invalid IDs prevents shader sampling garbage
     #[test]
     fn when_looking_up_unknown_texture_id_then_returns_none() {
         // Arrange
@@ -587,7 +587,7 @@ mod tests {
         schedule.run(world);
     }
 
-    /// @doc: upload_atlas_system must invoke renderer when TextureAtlas resource exists — GPU upload won't happen without this call
+    /// @doc: `upload_atlas_system` must invoke renderer when `TextureAtlas` resource exists — GPU upload won't happen without this call
     #[test]
     fn when_atlas_present_then_upload_atlas_called() {
         // Arrange
@@ -602,7 +602,7 @@ mod tests {
         assert!(log.lock().unwrap().contains(&"upload_atlas".to_string()));
     }
 
-    /// @doc: upload_atlas_system must skip when no TextureAtlas resource — prevents spam calls and respects resource-missing contracts
+    /// @doc: `upload_atlas_system` must skip when no `TextureAtlas` resource — prevents spam calls and respects resource-missing contracts
     #[test]
     fn when_no_atlas_then_upload_atlas_not_called() {
         // Arrange
@@ -641,7 +641,7 @@ mod tests {
         assert_eq!(calls.len(), 1);
     }
 
-    /// @doc: AtlasUploaded marker presence must prevent re-upload — double-upload causes GPU resource leaks and redundant transfers
+    /// @doc: `AtlasUploaded` marker presence must prevent re-upload — double-upload causes GPU resource leaks and redundant transfers
     #[test]
     fn when_atlas_uploaded_marker_present_then_upload_atlas_not_called() {
         // Arrange

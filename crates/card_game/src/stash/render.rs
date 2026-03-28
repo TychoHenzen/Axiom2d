@@ -263,7 +263,7 @@ mod tests {
         assert_eq!(calls[1].2, expected_color);
     }
 
-    /// @doc: Column spacing must be precisely SLOT_STRIDE_W — grid visual layout alignment depends on correct X offsets.
+    /// @doc: Column spacing must be precisely `SLOT_STRIDE_W` — grid visual layout alignment depends on correct X offsets.
     #[test]
     fn when_visible_then_adjacent_columns_differ_by_slot_stride_in_x() {
         // Arrange
@@ -284,7 +284,7 @@ mod tests {
         );
     }
 
-    /// @doc: Row spacing must be precisely SLOT_STRIDE_H — ensures grid rows stack without overlap or gaps.
+    /// @doc: Row spacing must be precisely `SLOT_STRIDE_H` — ensures grid rows stack without overlap or gaps.
     #[test]
     fn when_visible_then_adjacent_rows_differ_by_slot_stride_in_y() {
         // Arrange

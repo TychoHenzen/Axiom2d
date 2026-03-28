@@ -156,7 +156,7 @@ mod tests {
         );
     }
 
-    /// @doc: Residual stats below MIN_DISPLAY_VALUE (1) after scaling are filtered out (filter_map).
+    /// @doc: Residual stats below `MIN_DISPLAY_VALUE` (1) after scaling are filtered out (`filter_map`).
     /// This prevents tiny fractional residuals from cluttering the description with "Deal 0 damage" noise.
     #[test]
     fn when_stat_too_small_to_display_then_omitted() {

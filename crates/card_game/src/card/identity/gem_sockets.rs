@@ -158,7 +158,7 @@ mod tests {
         assert_eq!(positions.len(), 8);
     }
 
-    /// @doc: All 8 gem border positions must lie within card bounds plus MAX_GEM_RADIUS margin.
+    /// @doc: All 8 gem border positions must lie within card bounds plus `MAX_GEM_RADIUS` margin.
     /// Out-of-bounds gems would render off-card, corrupting the visual frame and player experience.
     #[test]
     fn when_gem_positions_computed_then_all_within_card_border_band() {
@@ -340,7 +340,7 @@ mod tests {
         assert_eq!(radius, MAX_GEM_RADIUS);
     }
 
-    /// @doc: Gem radius scales linearly from MIN_GEM_RADIUS to MAX_GEM_RADIUS with intensity [0.0, 1.0].
+    /// @doc: Gem radius scales linearly from `MIN_GEM_RADIUS` to `MAX_GEM_RADIUS` with intensity [0.0, 1.0].
     /// Non-linearity would distort the visual feedback of element intensity on the card.
     #[test]
     fn when_gem_radius_at_mid_intensity_then_between_min_and_max() {

@@ -283,7 +283,7 @@ mod tests {
         app.add_plugin(NoOpPlugin).add_plugin(AnotherNoOpPlugin);
     }
 
-    /// @doc: plugin_count must accurately track registrations — count mismatch indicates missing plugins
+    /// @doc: `plugin_count` must accurately track registrations — count mismatch indicates missing plugins
     #[test]
     fn when_one_plugin_added_then_plugin_count_is_one() {
         // Arrange
@@ -335,7 +335,7 @@ mod tests {
         assert_eq!(counter.get(), 1);
     }
 
-    /// @doc: handle_redraw must invoke renderer.present() — missing present swallows drawn frames
+    /// @doc: `handle_redraw` must invoke `renderer.present()` — missing present swallows drawn frames
     #[test]
     fn when_handle_redraw_called_then_present_called_via_renderer_res() {
         // Arrange
@@ -352,7 +352,7 @@ mod tests {
         assert_eq!(log.lock().unwrap().as_slice(), &["present"]);
     }
 
-    /// @doc: handle_redraw must handle missing renderer gracefully — prevents panic during headless testing
+    /// @doc: `handle_redraw` must handle missing renderer gracefully — prevents panic during headless testing
     #[test]
     fn when_handle_redraw_called_without_renderer_res_then_does_not_panic() {
         // Arrange
@@ -362,7 +362,7 @@ mod tests {
         app.handle_redraw();
     }
 
-    /// @doc: Systems must run during handle_redraw — non-execution breaks game loop integration
+    /// @doc: Systems must run during `handle_redraw` — non-execution breaks game loop integration
     #[test]
     fn when_system_added_to_update_phase_then_runs_during_handle_redraw() {
         // Arrange
@@ -434,7 +434,7 @@ mod tests {
         );
     }
 
-    /// @doc: add_systems must support builder chaining — broken chaining breaks fluent configuration API
+    /// @doc: `add_systems` must support builder chaining — broken chaining breaks fluent configuration API
     #[test]
     fn when_add_systems_chained_then_builder_pattern_works() {
         fn noop() {}
@@ -497,7 +497,7 @@ mod tests {
         assert_eq!(log.lock().unwrap().as_slice(), &["present"]);
     }
 
-    /// @doc: Plugin-registered systems must run during handle_redraw — broken integration breaks plugin architecture
+    /// @doc: Plugin-registered systems must run during `handle_redraw` — broken integration breaks plugin architecture
     #[test]
     fn when_plugin_calls_add_systems_then_system_runs_during_handle_redraw() {
         struct CounterPlugin;
@@ -519,7 +519,7 @@ mod tests {
         assert_eq!(app.world().resource::<Counter>().0, 1);
     }
 
-    /// @doc: handle_resize must call renderer.resize() — missing resize breaks viewport on window change
+    /// @doc: `handle_resize` must call `renderer.resize()` — missing resize breaks viewport on window change
     #[test]
     fn when_handle_resize_called_then_renderer_resize_is_called() {
         // Arrange
@@ -588,7 +588,7 @@ mod tests {
         assert_eq!(captured.0, engine_core::types::Seconds(0.016));
     }
 
-    /// @doc: Keyboard press events must reach InputEventBuffer — missing event prevents key input recognition
+    /// @doc: Keyboard press events must reach `InputEventBuffer` — missing event prevents key input recognition
     #[test]
     fn when_app_receives_keyboard_press_then_event_pushed_to_buffer() {
         // Arrange
@@ -608,7 +608,7 @@ mod tests {
         assert_eq!(events[0], (KeyCode::ArrowLeft, ButtonState::Pressed));
     }
 
-    /// @doc: Keyboard release events must reach InputEventBuffer — missing releases trap keys pressed
+    /// @doc: Keyboard release events must reach `InputEventBuffer` — missing releases trap keys pressed
     #[test]
     fn when_app_receives_keyboard_release_then_release_event_pushed_to_buffer() {
         // Arrange
@@ -648,7 +648,7 @@ mod tests {
         assert_eq!(buffer.drain().count(), 0);
     }
 
-    /// @doc: Cursor moves must update MouseState.screen_pos — stale position breaks drag and hover feedback
+    /// @doc: Cursor moves must update `MouseState.screen_pos` — stale position breaks drag and hover feedback
     #[test]
     fn when_cursor_moved_event_received_by_app_then_screen_pos_updated() {
         // Arrange
@@ -664,7 +664,7 @@ mod tests {
         assert_eq!(mouse.screen_pos(), glam::Vec2::new(320.0, 240.0));
     }
 
-    /// @doc: Missing MouseState resource must not panic — handles optional mouse state gracefully
+    /// @doc: Missing `MouseState` resource must not panic — handles optional mouse state gracefully
     #[test]
     fn when_cursor_moved_without_mouse_state_resource_then_does_not_panic() {
         // Arrange
@@ -674,7 +674,7 @@ mod tests {
         app.handle_cursor_moved(glam::Vec2::new(100.0, 100.0));
     }
 
-    /// @doc: Mouse button events must reach MouseEventBuffer — missing events break click/drag input
+    /// @doc: Mouse button events must reach `MouseEventBuffer` — missing events break click/drag input
     #[test]
     fn when_mouse_button_event_received_by_app_then_event_pushed_to_buffer() {
         // Arrange
@@ -703,7 +703,7 @@ mod tests {
         );
     }
 
-    /// @doc: Missing MouseEventBuffer must not panic — handles optional input buffer gracefully
+    /// @doc: Missing `MouseEventBuffer` must not panic — handles optional input buffer gracefully
     #[test]
     fn when_mouse_button_event_received_without_buffer_resource_then_does_not_panic() {
         // Arrange
@@ -716,7 +716,7 @@ mod tests {
         );
     }
 
-    /// @doc: Scroll events must accumulate into MouseState.scroll_delta — stale scroll breaks wheel input
+    /// @doc: Scroll events must accumulate into `MouseState.scroll_delta` — stale scroll breaks wheel input
     #[test]
     fn when_scroll_event_received_by_app_then_mouse_state_scroll_delta_accumulated() {
         // Arrange
@@ -732,7 +732,7 @@ mod tests {
         assert_eq!(mouse.scroll_delta(), glam::Vec2::new(0.0, 3.0));
     }
 
-    /// @doc: set_window_config must update WindowSize resource — stale dimensions break layout calculations
+    /// @doc: `set_window_config` must update `WindowSize` resource — stale dimensions break layout calculations
     #[test]
     fn when_set_window_config_called_then_window_size_reflects_config() {
         // Arrange

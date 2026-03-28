@@ -179,7 +179,7 @@ mod tests {
         );
     }
 
-    /// @doc: Validates that art color deviates from element tint by at most COLOR_NOISE (0.05 per channel).
+    /// @doc: Validates that art color deviates from element tint by at most `COLOR_NOISE` (0.05 per channel).
     /// This noise prevents cards of the same element from looking identical while respecting visual coherence.
     #[test]
     fn when_generate_card_visuals_called_then_art_color_is_close_to_element_tint_within_noise() {
@@ -439,7 +439,7 @@ mod tests {
         assert_ne!(params_a.art_color, params_b.art_color);
     }
 
-    /// @doc: Pattern index selection must always be within [0, PATTERN_COUNT) to avoid out-of-bounds art lookups.
+    /// @doc: Pattern index selection must always be within [0, `PATTERN_COUNT`) to avoid out-of-bounds art lookups.
     /// Overflow here would panic or access wrong art textures at runtime.
     #[test]
     fn when_generate_card_visuals_called_then_pattern_index_is_within_bounds() {
@@ -458,7 +458,7 @@ mod tests {
         );
     }
 
-    /// @doc: Common rarity (all axes near 0) maps to no shader effects (ShaderVariant::None).
+    /// @doc: Common rarity (all axes near 0) maps to no shader effects (`ShaderVariant::None`).
     /// Rarity-driven visual feedback requires correct shader selection, otherwise all cards look identical.
     #[test]
     fn when_generate_card_visuals_called_with_common_signature_then_shader_variant_is_none() {
@@ -472,7 +472,7 @@ mod tests {
         assert_eq!(params.shader_variant, ShaderVariant::None);
     }
 
-    /// @doc: Legendary rarity (all axes at max) maps to ShaderVariant::Foil for premium visual effect.
+    /// @doc: Legendary rarity (all axes at max) maps to `ShaderVariant::Foil` for premium visual effect.
     /// Without this test, high-rarity cards would not visually distinguish themselves in gameplay.
     #[test]
     fn when_generate_card_visuals_called_with_legendary_signature_then_shader_variant_is_foil() {

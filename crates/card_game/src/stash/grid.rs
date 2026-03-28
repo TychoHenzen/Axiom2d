@@ -375,7 +375,7 @@ mod tests {
         assert_eq!(grid.get(1, 5, 5), Some(&entity_b));
     }
 
-    /// @doc: Cursor-to-grid mapping uses GRID_MARGIN offset and stride constants — ensures drag-and-drop hits the intended slot.
+    /// @doc: Cursor-to-grid mapping uses `GRID_MARGIN` offset and stride constants — ensures drag-and-drop hits the intended slot.
     #[test]
     fn when_cursor_at_slot_center_then_returns_correct_col_row() {
         // Arrange
