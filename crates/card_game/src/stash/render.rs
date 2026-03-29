@@ -768,7 +768,7 @@ mod tests {
     }
 
     /// @doc: The model matrix must scale the card's natural size (60×90) down to slot dimensions
-    /// (SLOT_WIDTH×SLOT_HEIGHT) so the miniature fits precisely. Without correct scaling, the card
+    /// (`SLOT_WIDTH×SLOT_HEIGHT`) so the miniature fits precisely. Without correct scaling, the card
     /// art would either overflow the slot bounds or appear as a tiny dot in the center.
     #[test]
     fn when_occupied_slot_rendered_then_model_scales_card_to_slot() {
