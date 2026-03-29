@@ -10,7 +10,7 @@ pub use crate::card::identity::definition::{
     rarity_border_color,
 };
 pub use crate::card::identity::gem_sockets::{
-    MAX_GEM_RADIUS, MIN_GEM_RADIUS, aspect_color, gem_border_positions, gem_radius,
+    MAX_GEM_RADIUS, MIN_GEM_RADIUS, aspect_color, gem_border_positions, gem_color, gem_radius,
 };
 pub use crate::card::identity::residual::{ModifierType, ResidualModifier, ResidualStats};
 pub use crate::card::identity::signature::{Aspect, CardSignature, Element};
@@ -33,8 +33,9 @@ pub use crate::card::interaction::pick::{
 };
 pub use crate::card::interaction::release::card_release_system;
 pub use crate::card::rendering::art_shader::{
-    CardArtShader, ConditionEffect, TierShaders, VariantShaders, register_card_art_shader,
-    register_tier_shaders, register_variant_shaders, shader_pointer_system,
+    CardArtShader, ConditionEffect, GemShader, TierShaders, VariantShaders,
+    register_card_art_shader, register_gem_shader, register_tier_shaders, register_variant_shaders,
+    shader_pointer_system,
 };
 pub use crate::card::rendering::baked_mesh::{BakedCardMesh, CardOverlays};
 pub use crate::card::rendering::baked_render::baked_card_sync_system;

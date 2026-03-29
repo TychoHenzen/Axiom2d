@@ -9,7 +9,9 @@ use crate::card::art::tessellate_art_shapes;
 use crate::card::art_selection::fit_art_mesh_to_region;
 use crate::card::component::CardLabel;
 use crate::card::identity::definition::rarity_border_color;
-use crate::card::identity::gem_sockets::{aspect_color, gem_desc_positions, gem_radius};
+use crate::card::identity::gem_sockets::{
+    MAX_GEM_RADIUS, gem_color, gem_desc_positions, octagon_vertices,
+};
 use crate::card::identity::signature::{CardSignature, Element};
 
 const TEXT_COLOR_ARRAY: [f32; 4] = [TEXT_COLOR.r, TEXT_COLOR.g, TEXT_COLOR.b, TEXT_COLOR.a];
@@ -108,9 +110,11 @@ pub fn bake_front_face(
     for (i, element) in Element::ALL.iter().enumerate() {
         let intensity = signature.intensity(*element);
         let aspect = signature.dominant_aspect(*element);
-        let gem_color = color_to_array(aspect_color(aspect));
-        let radius = gem_radius(intensity);
-        let variant = ShapeVariant::Circle { radius };
+        let gem_color = color_to_array(gem_color(aspect, intensity));
+        let radius = MAX_GEM_RADIUS;
+        let verts = octagon_vertices(radius);
+        let points: Vec<_> = verts.to_vec();
+        let variant = ShapeVariant::Polygon { points };
         if let Ok(tess) = tessellate(&variant) {
             let pos = positions[i];
             let offset: Vec<[f32; 2]> = tess
@@ -331,6 +335,47 @@ mod tests {
         // Assert
         assert_eq!(mesh_a.vertices.len(), mesh_b.vertices.len());
         assert_eq!(mesh_a.indices.len(), mesh_b.indices.len());
+    }
+
+    /// @doc: All gems render at fixed `MAX_GEM_RADIUS` regardless of intensity.
+    /// Gems must always be visible at full size so that the color gradient (not size)
+    /// communicates element intensity to the player.
+    #[test]
+    fn when_bake_front_with_zero_intensity_then_gems_at_max_radius() {
+        use crate::card::identity::gem_sockets::{MAX_GEM_RADIUS, gem_desc_positions};
+
+        // Arrange — all intensities at 0.0 → still max gem radius
+        let sig = CardSignature::new([0.0; 8]);
+        let card_size = Vec2::new(60.0, 90.0);
+        let label = CardLabel {
+            name: "Min Gems".to_owned(),
+            description: "Zero intensity".to_owned(),
+        };
+        let positions = gem_desc_positions(card_size);
+
+        // Act
+        let mesh = bake_front_face(&sig, card_size, &label, None);
+
+        // Assert — for each gem position, find nearby vertices and verify they
+        // are within MAX_GEM_RADIUS of that position (+ float tolerance)
+        let tolerance = MAX_GEM_RADIUS + 0.1;
+        for (gi, gem_pos) in positions.iter().enumerate() {
+            let nearby = mesh
+                .vertices
+                .iter()
+                .filter(|v| {
+                    let dx = v.position[0] - gem_pos.x;
+                    let dy = v.position[1] - gem_pos.y;
+                    (dx * dx + dy * dy).sqrt() < tolerance
+                })
+                .count();
+            assert!(
+                nearby > 0,
+                "no vertices found near gem {gi} at ({}, {})",
+                gem_pos.x,
+                gem_pos.y
+            );
+        }
     }
 
     /// @doc: UV coordinates distinguish art geometry from solid-color geometry in the unified render pass.

@@ -140,9 +140,9 @@ fn build_mesh_overlays(
         pointer_x: 0.0,
         pointer_y: 0.0,
         offset_y,
-        _pad0: 0.0,
-        _pad1: 0.0,
-        _pad2: 0.0,
+        extra0: 0.0,
+        extra1: 0.0,
+        extra2: 0.0,
     };
     let art_uniforms = bytemuck::bytes_of(&art_params).to_vec();
 
@@ -256,12 +256,12 @@ fn build_mesh_overlays(
             ],
             indices: vec![0, 1, 2, 0, 2, 3],
         };
-        // Write signature-derived seed into _pad0 so the tier shader gets a
+        // Write signature-derived seed into extra0 so the tier shader gets a
         // stable per-card seed that survives dragging and repositioning.
         let seed = crate::card::identity::visual_params::compute_seed(signature);
         let seed_f32 = (seed & 0xFFFF_FFFF) as f32;
         let mut tier_uniforms = art_uniforms.clone();
-        // _pad0 is at byte offset 20 (5th f32: half_w, half_h, pointer_x, pointer_y, offset_y, _pad0)
+        // extra0 is at byte offset 20 (6th f32: half_w, half_h, pointer_x, pointer_y, offset_y, extra0)
         tier_uniforms[20..24].copy_from_slice(&seed_f32.to_le_bytes());
         entries.push(OverlayEntry {
             mesh: tier_quad,
@@ -276,7 +276,93 @@ fn build_mesh_overlays(
         });
     }
 
+    // Gem facet overlays: one octagonal overlay per element gem
+    if let Some(gem_shader) = world
+        .get_resource::<crate::card::rendering::art_shader::GemShader>()
+        .map(|gs| gs.0)
+    {
+        use crate::card::identity::gem_sockets::{
+            MAX_GEM_RADIUS, gem_color, gem_desc_positions, gem_specular_intensity,
+        };
+        use crate::card::identity::signature::Element;
+
+        let positions = gem_desc_positions(card_size);
+        for (i, element) in Element::ALL.iter().enumerate() {
+            let intensity = signature.intensity(*element);
+            let aspect = signature.dominant_aspect(*element);
+            let color = gem_color(aspect, intensity);
+            let gem_color = [color.r, color.g, color.b, color.a];
+            let radius = MAX_GEM_RADIUS;
+            let specular = gem_specular_intensity(intensity);
+            let mut overlay =
+                build_gem_overlay(positions[i], radius, gem_color, specular, gem_shader);
+            overlay.visible = face_up;
+            entries.push(overlay);
+        }
+    }
+
     MeshOverlays(entries)
+}
+
+/// Build an overlay entry for a single faceted gem.
+/// The mesh is an octagon with normalized UVs so the gem shader can compute
+/// per-facet normals. Uses additive blending for specular highlights.
+pub(crate) fn build_gem_overlay(
+    center: glam::Vec2,
+    radius: f32,
+    color: [f32; 4],
+    specular_intensity: f32,
+    gem_shader: engine_render::prelude::ShaderHandle,
+) -> engine_render::shape::OverlayEntry {
+    use crate::card::identity::gem_sockets::{octagon_uvs, octagon_vertices};
+    use crate::card::rendering::art_shader::ArtRegionParams;
+    use engine_render::shape::{ColorVertex, OverlayEntry, TessellatedColorMesh};
+
+    let verts = octagon_vertices(radius);
+    let uvs = octagon_uvs(&verts);
+
+    let vertices: Vec<ColorVertex> = verts
+        .iter()
+        .zip(uvs.iter())
+        .map(|(v, uv)| ColorVertex {
+            position: [v.x + center.x, v.y + center.y],
+            color,
+            uv: *uv,
+        })
+        .collect();
+
+    // Fan triangulation for convex octagon: 6 triangles from vertex 0
+    let mut indices = Vec::with_capacity(18);
+    for i in 1..7u32 {
+        indices.push(0);
+        indices.push(i);
+        indices.push(i + 1);
+    }
+
+    let mesh = TessellatedColorMesh { vertices, indices };
+
+    let params = ArtRegionParams {
+        half_w: radius,
+        half_h: radius,
+        pointer_x: 0.0,
+        pointer_y: 0.0,
+        offset_y: center.y,
+        extra0: specular_intensity,
+        extra1: 0.0,
+        extra2: 0.0,
+    };
+
+    OverlayEntry {
+        mesh,
+        material: engine_render::material::Material2d {
+            shader: gem_shader,
+            uniforms: bytemuck::bytes_of(&params).to_vec(),
+            blend_mode: engine_render::material::BlendMode::Additive,
+            ..engine_render::material::Material2d::default()
+        },
+        visible: true,
+        front_only: true,
+    }
 }
 
 pub(crate) const TEXT_COLOR: engine_core::color::Color = engine_core::color::Color {
@@ -1311,6 +1397,123 @@ mod tests {
         assert!(
             !overlays.0[1].front_only,
             "tier overlay should not be front_only"
+        );
+    }
+
+    // --- gem overlay tests ---
+
+    fn make_gem_overlay() -> engine_render::shape::OverlayEntry {
+        let mut registry = engine_render::prelude::ShaderRegistry::default();
+        let gem = crate::card::rendering::art_shader::register_gem_shader(&mut registry);
+        build_gem_overlay(Vec2::new(10.0, 5.0), 2.0, [0.8, 0.3, 0.1, 1.0], 0.5, gem.0)
+    }
+
+    /// @doc: Gem overlays use additive blending so specular highlights accumulate on top
+    /// of the gem's base color without darkening edges. Alpha blending would mix the
+    /// overlay with the background, washing out the gem color and making highlights
+    /// look like semi-transparent white splotches rather than bright glints.
+    #[test]
+    fn when_building_gem_overlay_then_blend_mode_is_additive() {
+        // Act
+        let entry = make_gem_overlay();
+
+        // Assert
+        assert_eq!(
+            entry.material.blend_mode,
+            engine_render::material::BlendMode::Additive,
+        );
+    }
+
+    /// @doc: The gem overlay mesh must have exactly 8 vertices — one per octagon corner.
+    /// The gem shader identifies facets by UV position within this 8-vertex geometry;
+    /// extra or missing vertices would shift facet boundaries and break the specular
+    /// normal computation.
+    #[test]
+    fn when_building_gem_overlay_then_mesh_has_eight_vertices() {
+        // Act
+        let entry = make_gem_overlay();
+
+        // Assert
+        assert_eq!(entry.mesh.vertices.len(), 8);
+    }
+
+    /// @doc: Gem overlay UVs must span the full [0,1] range on both axes so the shader's
+    /// facet angle calculation (based on UV distance from center 0.5,0.5) covers all 8
+    /// sectors uniformly. Compressed UVs would cluster facets toward the center, making
+    /// edge facets invisible to the specular computation.
+    #[test]
+    fn when_building_gem_overlay_then_uvs_are_normalized_and_full_range() {
+        // Act
+        let entry = make_gem_overlay();
+
+        // Assert
+        let uvs: Vec<[f32; 2]> = entry.mesh.vertices.iter().map(|v| v.uv).collect();
+        for (i, uv) in uvs.iter().enumerate() {
+            assert!(
+                uv[0] >= -1e-5 && uv[0] <= 1.0 + 1e-5,
+                "vertex {i} u={} outside [0,1]",
+                uv[0]
+            );
+            assert!(
+                uv[1] >= -1e-5 && uv[1] <= 1.0 + 1e-5,
+                "vertex {i} v={} outside [0,1]",
+                uv[1]
+            );
+        }
+        let min_u = uvs.iter().map(|uv| uv[0]).fold(f32::INFINITY, f32::min);
+        let max_u = uvs.iter().map(|uv| uv[0]).fold(f32::NEG_INFINITY, f32::max);
+        let min_v = uvs.iter().map(|uv| uv[1]).fold(f32::INFINITY, f32::min);
+        let max_v = uvs.iter().map(|uv| uv[1]).fold(f32::NEG_INFINITY, f32::max);
+        assert!(min_u.abs() < 1e-5, "min U = {min_u} should be ~0.0");
+        assert!((max_u - 1.0).abs() < 1e-5, "max U = {max_u} should be ~1.0");
+        assert!(min_v.abs() < 1e-5, "min V = {min_v} should be ~0.0");
+        assert!((max_v - 1.0).abs() < 1e-5, "max V = {max_v} should be ~1.0");
+    }
+
+    #[test]
+    fn when_building_gem_overlay_then_uniforms_are_32_bytes() {
+        // Act
+        let entry = make_gem_overlay();
+
+        // Assert
+        assert_eq!(
+            entry.material.uniforms.len(),
+            32,
+            "uniforms must match ArtRegionParams size (32 bytes)"
+        );
+    }
+
+    /// @doc: Gem overlays are front-face-only because gems encode element identity
+    /// information that is meaningless on the card back. Rendering gem specular
+    /// highlights on the back face would confuse players and waste GPU cycles.
+    #[test]
+    fn when_building_gem_overlay_then_front_only_is_true() {
+        // Act
+        let entry = make_gem_overlay();
+
+        // Assert
+        assert!(entry.front_only, "gem overlay must be front_only");
+    }
+
+    /// @doc: The gem shader reads specular intensity from ArtRegionParams.extra0 (byte
+    /// offset 20) to scale highlights by tier. If this value is wrong, Dormant gems
+    /// would sparkle like Intense ones or vice versa, destroying the visual hierarchy
+    /// that communicates card power level.
+    #[test]
+    fn when_building_gem_overlay_with_intensity_thenextra0_encodes_specular_value() {
+        // Arrange
+        let mut registry = engine_render::prelude::ShaderRegistry::default();
+        let gem = crate::card::rendering::art_shader::register_gem_shader(&mut registry);
+        let specular = 0.75_f32;
+
+        // Act
+        let entry = build_gem_overlay(Vec2::ZERO, 2.0, [1.0; 4], specular, gem.0);
+
+        // Assert — extra0 is at byte offset 20 (5th f32)
+        let decoded = f32::from_le_bytes(entry.material.uniforms[20..24].try_into().unwrap());
+        assert!(
+            (decoded - specular).abs() < 1e-6,
+            "specular intensity at byte 20 = {decoded}, expected {specular}"
         );
     }
 }

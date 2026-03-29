@@ -51,11 +51,13 @@ fn resolve_drop_target(
             row: orow,
         } = *origin_zone
         {
-            return DropTarget::Stash {
-                page: op,
-                col: oc,
-                row: orow,
-            };
+            if grid.get(op, oc, orow).is_none() {
+                return DropTarget::Stash {
+                    page: op,
+                    col: oc,
+                    row: orow,
+                };
+            }
         }
         return DropTarget::TableSnapBack;
     }

@@ -1,3 +1,5 @@
+use std::f32::consts::TAU;
+
 use engine_core::color::Color;
 use glam::Vec2;
 
@@ -70,24 +72,87 @@ pub fn gem_desc_positions(card_size: Vec2) -> [Vec2; 8] {
     let outer_limit = card_half_w - MAX_GEM_RADIUS;
     let col_x = (desc_half_w + outer_limit) * 0.5;
 
-    let gem_count_per_col = 4;
-    let step = (desc_half_h * 2.0) / (gem_count_per_col as f32 + 1.0);
+    let step = (desc_half_h * 2.0) / (GEM_DESC_PER_COL as f32 + 1.0);
 
     let mut positions = [Vec2::ZERO; 8];
-    for i in 0..gem_count_per_col {
+    for i in 0..GEM_DESC_PER_COL {
         let y = desc_offset_y - desc_half_h + step * (i as f32 + 1.0);
         positions[i] = Vec2::new(-col_x, y);
-        positions[i + gem_count_per_col] = Vec2::new(col_x, y);
+        positions[i + GEM_DESC_PER_COL] = Vec2::new(col_x, y);
     }
     positions
 }
 
 pub const MIN_GEM_RADIUS: f32 = 1.0;
 pub const MAX_GEM_RADIUS: f32 = 3.5;
+/// Number of gem sockets per column flanking the description strip (4 left + 4 right = 8 total).
+pub const GEM_DESC_PER_COL: usize = 4;
 
 /// Maps element intensity (0.0..=1.0) to gem circle radius.
 pub fn gem_radius(intensity: f32) -> f32 {
     MIN_GEM_RADIUS + intensity * (MAX_GEM_RADIUS - MIN_GEM_RADIUS)
+}
+
+/// Returns the 8 vertices of a regular octagon centered at the origin.
+/// Vertices are ordered counter-clockwise starting at angle 0 (positive x-axis).
+pub fn octagon_vertices(radius: f32) -> [Vec2; 8] {
+    core::array::from_fn(|i| {
+        let angle = TAU * i as f32 / 8.0;
+        Vec2::new(radius * angle.cos(), radius * angle.sin())
+    })
+}
+
+/// Maps octagon vertices to normalized [0, 1]² UV coordinates via AABB normalization.
+/// The shader uses these UVs to determine per-facet surface normals.
+pub fn octagon_uvs(vertices: &[Vec2; 8]) -> [[f32; 2]; 8] {
+    let min_x = vertices.iter().map(|v| v.x).fold(f32::INFINITY, f32::min);
+    let max_x = vertices
+        .iter()
+        .map(|v| v.x)
+        .fold(f32::NEG_INFINITY, f32::max);
+    let min_y = vertices.iter().map(|v| v.y).fold(f32::INFINITY, f32::min);
+    let max_y = vertices
+        .iter()
+        .map(|v| v.y)
+        .fold(f32::NEG_INFINITY, f32::max);
+    let range_x = max_x - min_x;
+    let range_y = max_y - min_y;
+    core::array::from_fn(|i| {
+        [
+            (vertices[i].x - min_x) / range_x,
+            (vertices[i].y - min_y) / range_y,
+        ]
+    })
+}
+
+/// Neutral gray used for zero-intensity gems (faded/dormant).
+const NEUTRAL_GRAY: Color = Color {
+    r: 0.45,
+    g: 0.45,
+    b: 0.45,
+    a: 1.0,
+};
+
+/// Maps an aspect and intensity to a gradually-blended gem color.
+/// At intensity 0.0 the gem is neutral gray; at 1.0 it is the full aspect color.
+/// Because positive and negative aspects both converge to the same gray at
+/// low intensities, the hue transition across the sign boundary is smooth.
+pub fn gem_color(aspect: Aspect, intensity: f32) -> Color {
+    let full = aspect_color(aspect);
+    let t = intensity.clamp(0.0, 1.0);
+    Color::new(
+        NEUTRAL_GRAY.r + (full.r - NEUTRAL_GRAY.r) * t,
+        NEUTRAL_GRAY.g + (full.g - NEUTRAL_GRAY.g) * t,
+        NEUTRAL_GRAY.b + (full.b - NEUTRAL_GRAY.b) * t,
+        1.0,
+    )
+}
+
+/// Maps element intensity (0.0..=1.0) to a continuous specular multiplier.
+/// Ramps linearly from a dim frosted look (0.15) to full brilliance (1.0).
+pub fn gem_specular_intensity(intensity: f32) -> f32 {
+    let t = intensity.clamp(0.0, 1.0);
+    0.15 + t * 0.85
 }
 
 #[cfg(test)]
@@ -146,18 +211,6 @@ mod tests {
 
     // --- gem_border_positions tests ---
 
-    #[test]
-    fn when_gem_positions_computed_then_exactly_8_positions_returned() {
-        // Arrange
-        let card_size = Vec2::new(60.0, 90.0);
-
-        // Act
-        let positions = gem_border_positions(card_size);
-
-        // Assert
-        assert_eq!(positions.len(), 8);
-    }
-
     /// @doc: All 8 gem border positions must lie within card bounds plus `MAX_GEM_RADIUS` margin.
     /// Out-of-bounds gems would render off-card, corrupting the visual frame and player experience.
     #[test]
@@ -183,18 +236,6 @@ mod tests {
     }
 
     // --- gem_desc_positions tests ---
-
-    #[test]
-    fn when_gem_desc_positions_called_then_returns_eight_positions() {
-        // Arrange
-        let card_size = Vec2::new(60.0, 90.0);
-
-        // Act
-        let positions = gem_desc_positions(card_size);
-
-        // Assert
-        assert_eq!(positions.len(), 8);
-    }
 
     /// @doc: Description-flanking gems split evenly: 4 on left, 4 on right (symmetric layout).
     /// Asymmetric distribution would visually unbalance the card or collide with art.
@@ -316,6 +357,323 @@ mod tests {
                 "y-values too close: {} and {}",
                 window[0],
                 window[1]
+            );
+        }
+    }
+
+    // --- octagon_vertices tests ---
+
+    /// @doc: Every vertex of a regular polygon lies exactly on its circumscribed circle, so
+    /// `vertex.length()` must equal `radius` for all 8 vertices.  If a vertex drifts off this
+    /// circle the polygon is no longer regular: gem facets become unequal in length, distorting
+    /// the gem silhouette and breaking the per-face normal computation in the shader.
+    #[test]
+    fn when_octagon_vertices_generated_then_all_at_circumradius() {
+        // Arrange
+        let radius = 2.5_f32;
+
+        // Act
+        let vertices = octagon_vertices(radius);
+
+        // Assert
+        for (i, v) in vertices.iter().enumerate() {
+            assert!(
+                (v.length() - radius).abs() < 1e-5,
+                "vertex {i} distance from origin is {} (expected {})",
+                v.length(),
+                radius,
+            );
+        }
+    }
+
+    /// @doc: Gems are positioned by translating their mesh from the origin to a socket location.
+    /// A non-zero centroid means the mesh centre is displaced from its local origin, so every
+    /// translated gem would appear off-centre relative to its socket — visually misaligned and
+    /// inconsistent across different socket positions.
+    #[test]
+    fn when_octagon_vertices_generated_then_centroid_is_at_origin() {
+        // Arrange
+        let radius = 3.0_f32;
+
+        // Act
+        let vertices = octagon_vertices(radius);
+        let centroid = vertices.iter().copied().fold(Vec2::ZERO, |acc, v| acc + v) / 8.0;
+
+        // Assert
+        assert!(
+            centroid.length() < 1e-5,
+            "centroid ({}, {}) is not at origin",
+            centroid.x,
+            centroid.y,
+        );
+    }
+
+    /// @doc: Uniform 45-degree (PI/4) angular spacing is what makes the polygon regular.
+    /// Irregular spacing produces a skewed or stretched shape: some facets wider than others,
+    /// breaking visual symmetry and causing the gem to look like an unintentional blob rather
+    /// than a clean octagon.
+    #[test]
+    fn when_octagon_vertices_generated_then_angular_spacing_is_uniform() {
+        // Arrange
+        let radius = 2.0_f32;
+        let expected_gap = std::f32::consts::PI / 4.0;
+
+        // Act
+        let vertices = octagon_vertices(radius);
+        let angles: [f32; 8] = core::array::from_fn(|i| vertices[i].y.atan2(vertices[i].x));
+
+        // Assert — consecutive angular gaps must be ~PI/4 (with wrap-around on the last pair)
+        for i in 0..8 {
+            let a0 = angles[i];
+            let a1 = angles[(i + 1) % 8];
+            let mut gap = a1 - a0;
+            // Normalise into (-PI, PI] to handle the wrap from ~PI back to ~-PI
+            if gap <= -std::f32::consts::PI {
+                gap += std::f32::consts::TAU;
+            }
+            assert!(
+                (gap.abs() - expected_gap).abs() < 1e-5,
+                "angular gap between vertex {i} and {} is {} (expected {})",
+                (i + 1) % 8,
+                gap,
+                expected_gap,
+            );
+        }
+    }
+
+    /// @doc: An octagon is the highest-fidelity polygon that still reads as a distinct gem shape
+    /// at card scale; fewer sides look blocky, more sides are indistinguishable from circles.
+    /// The vertex count is a hard contract: rendering code indexes exactly 8 facets to compute
+    /// per-face normals, so deviating from 8 corrupts every gem drawn on screen.
+    #[test]
+    fn when_octagon_vertices_called_with_minimum_radius_then_produces_eight_points() {
+        // Arrange
+        let radius = MIN_GEM_RADIUS;
+
+        // Act
+        let vertices = octagon_vertices(radius);
+
+        // Assert
+        assert_eq!(
+            vertices.len(),
+            8,
+            "octagon_vertices must return 8 points regardless of radius (got {} at radius {})",
+            vertices.len(),
+            radius,
+        );
+    }
+
+    // --- octagon_uvs tests ---
+
+    /// @doc: The gem shader uses UV coordinates to identify which facet a fragment belongs to.
+    /// UVs outside [0,1] would cause the shader to miscalculate facet indices, producing wrong
+    /// normals and misplaced specular highlights.
+    #[test]
+    fn when_computing_octagon_uvs_then_all_in_zero_to_one_range() {
+        // Arrange
+        let vertices = octagon_vertices(2.0);
+
+        // Act
+        let uvs = octagon_uvs(&vertices);
+
+        // Assert
+        for (i, uv) in uvs.iter().enumerate() {
+            assert!(
+                uv[0] >= -1e-5 && uv[0] <= 1.0 + 1e-5,
+                "uv[{i}].u = {} is outside [0, 1]",
+                uv[0],
+            );
+            assert!(
+                uv[1] >= -1e-5 && uv[1] <= 1.0 + 1e-5,
+                "uv[{i}].v = {} is outside [0, 1]",
+                uv[1],
+            );
+        }
+    }
+
+    /// @doc: The UV normalization must use the full [0,1] span; a compressed range would make
+    /// the shader's facet boundary detection fail because it assumes edge UVs sit at 0.0 and 1.0.
+    #[test]
+    fn when_computing_octagon_uvs_then_full_range_used_on_both_axes() {
+        // Arrange
+        let vertices = octagon_vertices(2.0);
+
+        // Act
+        let uvs = octagon_uvs(&vertices);
+        let min_u = uvs.iter().map(|uv| uv[0]).fold(f32::INFINITY, f32::min);
+        let max_u = uvs.iter().map(|uv| uv[0]).fold(f32::NEG_INFINITY, f32::max);
+        let min_v = uvs.iter().map(|uv| uv[1]).fold(f32::INFINITY, f32::min);
+        let max_v = uvs.iter().map(|uv| uv[1]).fold(f32::NEG_INFINITY, f32::max);
+
+        // Assert
+        assert!(
+            min_u.abs() < 1e-5,
+            "min U = {min_u} (expected 0.0); normalization does not reach the lower bound"
+        );
+        assert!(
+            (max_u - 1.0).abs() < 1e-5,
+            "max U = {max_u} (expected 1.0); normalization does not reach the upper bound"
+        );
+        assert!(
+            min_v.abs() < 1e-5,
+            "min V = {min_v} (expected 0.0); normalization does not reach the lower bound"
+        );
+        assert!(
+            (max_v - 1.0).abs() < 1e-5,
+            "max V = {max_v} (expected 1.0); normalization does not reach the upper bound"
+        );
+    }
+
+    // --- octagon tessellation tests ---
+
+    /// @doc: The octagon vertices produced by `octagon_vertices` must form a valid polygon
+    /// for lyon's fill tessellator. If the vertices are colinear, self-intersecting, or have
+    /// fewer than 3 unique points, tessellation silently produces an empty mesh and the gem
+    /// becomes invisible — with no runtime error to catch the problem.
+    #[test]
+    fn when_tessellating_octagon_as_polygon_then_mesh_is_nonempty_with_valid_indices() {
+        use engine_render::shape::{ShapeVariant, tessellate};
+
+        // Arrange
+        let vertices = octagon_vertices(2.0);
+        let points: Vec<_> = vertices.to_vec();
+
+        // Act
+        let mesh = tessellate(&ShapeVariant::Polygon { points }).unwrap();
+
+        // Assert
+        assert!(
+            !mesh.vertices.is_empty(),
+            "tessellated mesh has no vertices"
+        );
+        assert!(
+            mesh.indices.len() % 3 == 0,
+            "index count {} is not a multiple of 3",
+            mesh.indices.len()
+        );
+        let vertex_count = mesh.vertices.len() as u32;
+        for (i, &idx) in mesh.indices.iter().enumerate() {
+            assert!(
+                idx < vertex_count,
+                "index [{i}] = {idx} is out of bounds (vertex count = {vertex_count})"
+            );
+        }
+    }
+
+    /// @doc: A convex polygon with N vertices triangulates into exactly N-2 triangles.
+    /// The gem shader assigns one surface normal per triangle (facet), so the facet count
+    /// must be stable at 6 for an octagon. Extra degenerate triangles from the tessellator
+    /// would create invisible facets that steal specular highlights from real ones.
+    #[test]
+    fn when_tessellating_octagon_then_produces_six_triangles() {
+        use engine_render::shape::{ShapeVariant, tessellate};
+
+        // Arrange
+        let vertices = octagon_vertices(2.0);
+        let points: Vec<_> = vertices.to_vec();
+
+        // Act
+        let mesh = tessellate(&ShapeVariant::Polygon { points }).unwrap();
+
+        // Assert — N-2 triangles for N=8 → 6 triangles → 18 indices
+        assert_eq!(
+            mesh.indices.len(),
+            18,
+            "octagon should produce 6 triangles (18 indices), got {} indices",
+            mesh.indices.len()
+        );
+    }
+
+    // --- gem_specular_intensity tests ---
+
+    /// @doc: Specular intensity ramps continuously from a dim floor at zero intensity
+    /// to full brilliance at maximum intensity. Higher intensity must always produce
+    /// brighter specular — any plateau or inversion would break the visual feedback
+    /// that communicates element strength to the player.
+    #[test]
+    fn when_specular_intensity_increases_then_output_strictly_increases() {
+        // Arrange
+        let samples = [0.0, 0.25, 0.5, 0.75, 1.0];
+
+        // Act
+        let values: Vec<f32> = samples.iter().map(|&i| gem_specular_intensity(i)).collect();
+
+        // Assert — strictly increasing
+        for w in values.windows(2) {
+            assert!(w[1] > w[0], "specular must increase: {} -> {}", w[0], w[1]);
+        }
+        assert!(values[0] > 0.0, "zero-intensity specular must be positive");
+        assert!(
+            (values[4] - 1.0).abs() < 1e-5,
+            "full-intensity specular must be 1.0"
+        );
+    }
+
+    // --- gem_color tests ---
+
+    /// @doc: At zero intensity, gem color must be neutral gray regardless of aspect.
+    /// This ensures the visual hierarchy: faded gems look dormant/empty, and the
+    /// positive-to-negative color transition is smooth through the neutral midpoint.
+    #[test]
+    fn when_gem_color_at_zero_intensity_then_neutral_gray() {
+        // Arrange / Act
+        let color = gem_color(Aspect::Heat, 0.0);
+
+        // Assert
+        assert!(
+            (color.r - NEUTRAL_GRAY.r).abs() < 1e-5
+                && (color.g - NEUTRAL_GRAY.g).abs() < 1e-5
+                && (color.b - NEUTRAL_GRAY.b).abs() < 1e-5,
+            "zero intensity should be neutral gray, got ({}, {}, {})",
+            color.r,
+            color.g,
+            color.b,
+        );
+    }
+
+    /// @doc: At full intensity, gem color must match the aspect's base color.
+    /// This is the ceiling of the visual range — max-intensity gems must be
+    /// fully saturated so the aspect identity is unmistakable.
+    #[test]
+    fn when_gem_color_at_full_intensity_then_matches_aspect_color() {
+        // Arrange
+        let aspect = Aspect::Heat;
+        let expected = aspect_color(aspect);
+
+        // Act
+        let color = gem_color(aspect, 1.0);
+
+        // Assert
+        assert!(
+            (color.r - expected.r).abs() < 1e-5
+                && (color.g - expected.g).abs() < 1e-5
+                && (color.b - expected.b).abs() < 1e-5,
+            "full intensity should match aspect color",
+        );
+    }
+
+    /// @doc: At mid intensity, gem color must be between neutral gray and aspect
+    /// color on all channels — verifying the lerp is actually blending.
+    #[test]
+    fn when_gem_color_at_mid_intensity_then_between_gray_and_aspect() {
+        // Arrange
+        let aspect = Aspect::Cold;
+        let full = aspect_color(aspect);
+
+        // Act
+        let color = gem_color(aspect, 0.5);
+
+        // Assert — each channel must be between gray and full
+        for (ch, gray, full_ch) in [
+            (color.r, NEUTRAL_GRAY.r, full.r),
+            (color.g, NEUTRAL_GRAY.g, full.g),
+            (color.b, NEUTRAL_GRAY.b, full.b),
+        ] {
+            let lo = gray.min(full_ch);
+            let hi = gray.max(full_ch);
+            assert!(
+                ch >= lo - 1e-5 && ch <= hi + 1e-5,
+                "channel {ch} not between {lo} and {hi}",
             );
         }
     }

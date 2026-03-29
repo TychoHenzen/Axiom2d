@@ -179,6 +179,12 @@ fn pick_from_card(
         );
     }
 
+    if let CardZone::Stash { page, col, row } = zone {
+        state.grid.take(page, col, row);
+        commands.entity(entity).insert(CardZone::Table);
+        commands.entity(entity).remove::<CardItemForm>();
+    }
+
     if matches!(zone, CardZone::Table) {
         state
             .physics

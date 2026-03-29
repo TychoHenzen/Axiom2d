@@ -12,9 +12,9 @@ struct ArtRegionParams {
     pointer_x: f32,
     pointer_y: f32,
     offset_y: f32,
-    _pad0: f32,
-    _pad1: f32,
-    _pad2: f32,
+    extra0: f32,
+    extra1: f32,
+    extra2: f32,
 };
 
 @group(0) @binding(0) var<uniform> camera: CameraUniform;
@@ -96,9 +96,9 @@ fn scratches(uv: vec2<f32>, seed_offset: vec2<f32>) -> f32 {
 
 @fragment
 fn fs_shape(in: VertexOutput) -> @location(0) vec4<f32> {
-    // Per-card seed from signature hash, written into _pad0 by the CPU.
+    // Per-card seed from signature hash, written into extra0 by the CPU.
     // Spread it into a 2D offset so each card gets unique scratch placement.
-    let seed = art_params._pad0;
+    let seed = art_params.extra0;
     let seed_offset = vec2<f32>(
         fract(sin(seed * 0.0001) * 43758.5453),
         fract(sin(seed * 0.0002) * 28461.7231),

@@ -13,6 +13,7 @@ pub const GLOSSY_WGSL: &str = include_str!("../../shaders/glossy.wgsl");
 pub const EMBOSSED_WGSL: &str = include_str!("../../shaders/embossed.wgsl");
 pub const FOIL_WGSL: &str = include_str!("../../shaders/foil.wgsl");
 pub const GLOW_WGSL: &str = include_str!("../../shaders/glow.wgsl");
+pub const GEM_WGSL: &str = include_str!("../../shaders/gem.wgsl");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShaderVariant {
@@ -57,16 +58,18 @@ pub struct CardArtShader(pub ShaderHandle);
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-#[allow(clippy::pub_underscore_fields)]
 pub struct ArtRegionParams {
     pub half_w: f32,
     pub half_h: f32,
     pub pointer_x: f32,
     pub pointer_y: f32,
     pub offset_y: f32,
-    pub _pad0: f32,
-    pub _pad1: f32,
-    pub _pad2: f32,
+    /// Shader-specific data slot. Usage varies by overlay:
+    /// - Tier shaders: per-card seed (deterministic hash)
+    /// - Gem shader: specular intensity (0.0–1.0)
+    pub extra0: f32,
+    pub extra1: f32,
+    pub extra2: f32,
 }
 
 pub fn shader_pointer_system(mouse: Res<MouseState>, mut overlays_query: Query<&mut MeshOverlays>) {
@@ -107,6 +110,13 @@ pub fn register_tier_shaders(registry: &mut ShaderRegistry) -> TierShaders {
         dormant: registry.register(DORMANT_WGSL),
         intense: registry.register(INTENSE_WGSL),
     }
+}
+
+#[derive(Resource, Debug, Clone, Copy)]
+pub struct GemShader(pub ShaderHandle);
+
+pub fn register_gem_shader(registry: &mut ShaderRegistry) -> GemShader {
+    GemShader(registry.register(GEM_WGSL))
 }
 
 pub fn register_variant_shaders(registry: &mut ShaderRegistry) -> VariantShaders {
@@ -319,9 +329,9 @@ mod tests {
             pointer_x: 0.0,
             pointer_y: 0.0,
             offset_y: 5.0,
-            _pad0: 0.0,
-            _pad1: 0.0,
-            _pad2: 0.0,
+            extra0: 0.0,
+            extra1: 0.0,
+            extra2: 0.0,
         };
 
         // Act
@@ -375,6 +385,73 @@ mod tests {
 
         // Assert
         assert_eq!(effect, ConditionEffect::Shiny);
+    }
+
+    // --- gem shader tests ---
+
+    /// @doc: The gem facet shader must parse without errors through naga (the WGSL validator
+    /// used by wgpu) and declare all three bind groups. A parse failure crashes the GPU pipeline
+    /// at startup; missing bind groups cause silent rendering failures for all gem overlays.
+    #[test]
+    fn when_gem_shader_parsed_and_inspected_then_valid_with_correct_bindings() {
+        assert_variant_shader_valid(GEM_WGSL, "gem");
+    }
+
+    #[test]
+    fn when_gem_shader_inspected_then_accepts_position_color_and_uv_vertex_inputs() {
+        // Assert
+        assert!(
+            GEM_WGSL.contains("@location(0)"),
+            "gem shader must accept position at @location(0)"
+        );
+        assert!(
+            GEM_WGSL.contains("@location(1)"),
+            "gem shader must accept color at @location(1)"
+        );
+        assert!(
+            GEM_WGSL.contains("@location(2)"),
+            "gem shader must accept uv at @location(2)"
+        );
+    }
+
+    /// @doc: The gem shader must implement Blinn-Phong specular highlights using a half-vector
+    /// between the light (pointer) and view directions. Without specular computation, the gem
+    /// would be a flat polygon with no light-catching effect — defeating the entire feature.
+    #[test]
+    fn when_gem_shader_inspected_then_contains_specular_computation() {
+        // Assert
+        assert!(
+            GEM_WGSL.contains("half_vec") || GEM_WGSL.contains("half_dir"),
+            "gem shader must compute a half-vector for Blinn-Phong specular"
+        );
+        assert!(
+            GEM_WGSL.contains("spec"),
+            "gem shader must compute a specular term"
+        );
+    }
+
+    /// @doc: The gem shader must compute per-facet normals rather than using continuous bevel
+    /// normals. Discrete facet normals create the characteristic flat-face glint pattern of a
+    /// cut gemstone; without them the gem looks like a smooth embossed button instead.
+    #[test]
+    fn when_gem_shader_inspected_then_contains_facet_normal_logic() {
+        // Assert
+        assert!(
+            GEM_WGSL.contains("facet") || GEM_WGSL.contains("normal"),
+            "gem shader must compute per-facet normals for the cut-gemstone look"
+        );
+    }
+
+    #[test]
+    fn when_registering_gem_shader_then_handle_is_retrievable() {
+        // Arrange
+        let mut registry = ShaderRegistry::default();
+
+        // Act
+        let gem = register_gem_shader(&mut registry);
+
+        // Assert
+        assert_eq!(registry.lookup(gem.0), Some(GEM_WGSL));
     }
 
     #[test]

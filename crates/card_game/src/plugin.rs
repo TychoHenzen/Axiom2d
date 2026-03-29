@@ -10,7 +10,7 @@ use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale
 use crate::card::interaction::pick::card_pick_system;
 use crate::card::interaction::release::card_release_system;
 use crate::card::rendering::art_shader::{
-    register_card_art_shader, register_tier_shaders, register_variant_shaders,
+    register_card_art_shader, register_gem_shader, register_tier_shaders, register_variant_shaders,
     shader_pointer_system,
 };
 use crate::card::rendering::baked_render::baked_card_sync_system;
@@ -64,16 +64,18 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(ShapeRenderDisabled);
 
         {
-            let (art_shader, variant_shaders, tier_shaders) = {
+            let (art_shader, variant_shaders, tier_shaders, gem_shader) = {
                 let mut shader_reg = world.resource_mut::<ShaderRegistry>();
                 let art = register_card_art_shader(&mut shader_reg);
                 let variants = register_variant_shaders(&mut shader_reg);
                 let tiers = register_tier_shaders(&mut shader_reg);
-                (art, variants, tiers)
+                let gem = register_gem_shader(&mut shader_reg);
+                (art, variants, tiers, gem)
             };
             world.insert_resource(art_shader);
             world.insert_resource(variant_shaders);
             world.insert_resource(tier_shaders);
+            world.insert_resource(gem_shader);
         }
 
         register_systems(app);
