@@ -217,7 +217,7 @@ mod tests {
     /// @doc: The sync system must re-zero `ColorMesh` every frame for stash cards,
     /// not just on the frame `CardItemForm` is inserted. Without per-frame enforcement,
     /// a change-detection gap between Update (where `CardItemForm` is inserted via commands)
-    /// and PostUpdate (where the sync runs) can leave the mesh populated, causing the
+    /// and `PostUpdate` (where the sync runs) can leave the mesh populated, causing the
     /// full card to visibly render behind the stash grid — even when the stash is closed.
     #[test]
     fn when_item_form_present_and_mesh_repopulated_then_sync_re_zeros_every_frame() {
