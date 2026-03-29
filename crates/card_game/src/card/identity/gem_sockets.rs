@@ -547,7 +547,7 @@ mod tests {
             "tessellated mesh has no vertices"
         );
         assert!(
-            mesh.indices.len() % 3 == 0,
+            mesh.indices.len().is_multiple_of(3),
             "index count {} is not a multiple of 3",
             mesh.indices.len()
         );
