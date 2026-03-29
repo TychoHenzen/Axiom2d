@@ -280,7 +280,7 @@ mod tests {
     /// @doc: Cards loaded in a reader have no physics body, so applying damping
     /// would query a non-existent body. The damping system must skip Reader-zone
     /// cards just as it skips Hand and Stash cards. Without this, adding a
-    /// CardReader to the game would cause panics on every damping frame.
+    /// `CardReader` to the game would cause panics on every damping frame.
     #[test]
     fn when_card_in_reader_zone_then_set_damping_not_called() {
         // Arrange

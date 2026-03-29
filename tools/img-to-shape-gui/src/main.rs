@@ -812,12 +812,11 @@ impl App {
                                 ui.ctx().data_mut(|d| {
                                     d.remove_temp::<egui::Pos2>(cat_drag_id);
                                 });
-                            } else if let Some(origin) = drag_origin {
-                                if let Some(pos) = ui.ctx().input(|i| i.pointer.latest_pos()) {
-                                    if (pos - origin).length() > 5.0 {
-                                        egui::DragAndDrop::set_payload(ui.ctx(), cat_name.clone());
-                                    }
-                                }
+                            } else if let Some(origin) = drag_origin
+                                && let Some(pos) = ui.ctx().input(|i| i.pointer.latest_pos())
+                                && (pos - origin).length() > 5.0
+                            {
+                                egui::DragAndDrop::set_payload(ui.ctx(), cat_name.clone());
                             }
 
                             if over_header {
@@ -849,18 +848,16 @@ impl App {
                                     if has_cat_dnd {
                                         if let Some(src) =
                                             egui::DragAndDrop::take_payload::<String>(ui.ctx())
+                                            && *src != *cat_name
                                         {
-                                            if *src != *cat_name {
-                                                pending_cat_reorder =
-                                                    Some(((*src).clone(), cat_name.clone()));
-                                            }
+                                            pending_cat_reorder =
+                                                Some(((*src).clone(), cat_name.clone()));
                                         }
-                                    } else if has_entry_dnd {
-                                        if let Some(source) =
+                                    } else if has_entry_dnd
+                                        && let Some(source) =
                                             egui::DragAndDrop::take_payload::<usize>(ui.ctx())
-                                        {
-                                            pending_cat = Some((*source, cat_name.clone()));
-                                        }
+                                    {
+                                        pending_cat = Some((*source, cat_name.clone()));
                                     }
                                 }
                             }
@@ -888,36 +885,36 @@ impl App {
         }
 
         // Apply pending reorder.
-        if let Some((from, to)) = pending_move {
-            if from != to {
-                let entry = self.manifest.entries.remove(from);
-                let insert_at = if to > from { to - 1 } else { to };
-                self.manifest.entries.insert(insert_at, entry);
-                // Adjust selection to follow the moved entry.
-                if self.selected_entry == Some(from) {
-                    self.selected_entry = Some(insert_at);
-                    new_selection = Some(insert_at);
-                } else if let Some(sel) = self.selected_entry {
-                    let new_sel = if from < sel && sel <= insert_at {
-                        sel - 1
-                    } else if insert_at <= sel && sel < from {
-                        sel + 1
-                    } else {
-                        sel
-                    };
-                    self.selected_entry = Some(new_sel);
-                    new_selection = Some(new_sel);
-                }
-                self.auto_save("reordered entry");
+        if let Some((from, to)) = pending_move
+            && from != to
+        {
+            let entry = self.manifest.entries.remove(from);
+            let insert_at = if to > from { to - 1 } else { to };
+            self.manifest.entries.insert(insert_at, entry);
+            // Adjust selection to follow the moved entry.
+            if self.selected_entry == Some(from) {
+                self.selected_entry = Some(insert_at);
+                new_selection = Some(insert_at);
+            } else if let Some(sel) = self.selected_entry {
+                let new_sel = if from < sel && sel <= insert_at {
+                    sel - 1
+                } else if insert_at <= sel && sel < from {
+                    sel + 1
+                } else {
+                    sel
+                };
+                self.selected_entry = Some(new_sel);
+                new_selection = Some(new_sel);
             }
+            self.auto_save("reordered entry");
         }
 
         // Apply pending category change.
-        if let Some((idx, cat)) = pending_cat {
-            if self.manifest.entries[idx].category != cat {
-                self.manifest.entries[idx].category = cat;
-                self.auto_save("changed category");
-            }
+        if let Some((idx, cat)) = pending_cat
+            && self.manifest.entries[idx].category != cat
+        {
+            self.manifest.entries[idx].category = cat;
+            self.auto_save("changed category");
         }
 
         // Apply pending category reorder.

@@ -413,7 +413,7 @@ mod tests {
         );
     }
 
-    /// @doc: The rotation lock must only affect CardReader entities — if it
+    /// @doc: The rotation lock must only affect `CardReader` entities — if it
     /// accidentally queried all physics bodies, every card on the table would
     /// stop spinning, breaking the flick-to-spin interaction.
     #[test]
@@ -456,7 +456,7 @@ mod tests {
     }
 
     /// @doc: Inserted cards scale down to 60% to visually fit within the reader's
-    /// frame, distinguishing them from free table cards. The ScaleSpring component
+    /// frame, distinguishing them from free table cards. The `ScaleSpring` component
     /// provides smooth animation. Without scaling, inserted cards would overlap the
     /// reader borders and obscure adjacent UI elements.
     #[test]
@@ -530,7 +530,7 @@ mod tests {
 
     /// @doc: The reader tracks the loaded card entity so the ejection system can
     /// look it up directly without scanning all cards. This also lets the
-    /// full-reader guard (is_some check) reject additional card drops.
+    /// full-reader guard (`is_some` check) reject additional card drops.
     #[test]
     fn when_card_released_over_reader_then_reader_loaded_stores_card() {
         // Arrange
@@ -572,8 +572,8 @@ mod tests {
         );
     }
 
-    /// @doc: DragState must be cleared after insertion so the card isn't still
-    /// considered "being dragged" on the next frame. A stale DragState would
+    /// @doc: `DragState` must be cleared after insertion so the card isn't still
+    /// considered "being dragged" on the next frame. A stale `DragState` would
     /// cause the drag system to apply velocity to a card that no longer has
     /// a physics body, triggering a panic.
     #[test]
@@ -851,7 +851,7 @@ mod tests {
     }
 
     /// @doc: Ejected cards animate back to full size via ScaleSpring(1.0), matching
-    /// the convention used by drop_on_table in the release system. Without this,
+    /// the convention used by `drop_on_table` in the release system. Without this,
     /// the card would remain at 60% size on the table, looking broken.
     #[test]
     fn when_card_picked_from_reader_then_scale_spring_restores_full_size() {
