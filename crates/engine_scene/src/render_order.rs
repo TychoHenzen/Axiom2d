@@ -13,7 +13,25 @@ pub enum RenderLayer {
 #[derive(
     Component, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize,
 )]
-pub struct SortOrder(pub i32);
+pub struct SortOrder(i32);
+
+impl SortOrder {
+    /// Construct a `SortOrder`. Prefer `LocalSortOrder` to control render
+    /// ordering — `hierarchy_sort_system` overwrites `SortOrder` every frame.
+    #[must_use]
+    pub const fn new(value: i32) -> Self {
+        Self(value)
+    }
+
+    #[must_use]
+    pub const fn value(self) -> i32 {
+        self.0
+    }
+
+    pub(crate) fn set(&mut self, value: i32) {
+        self.0 = value;
+    }
+}
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
@@ -38,7 +56,7 @@ mod tests {
     #[test]
     fn when_sort_order_serialized_to_ron_then_deserializes_to_equal_value() {
         // Arrange
-        let order = SortOrder(-42);
+        let order = SortOrder::new(-42);
 
         // Act
         let ron = ron::to_string(&order).unwrap();
@@ -59,18 +77,18 @@ mod tests {
 
     #[test]
     fn when_sort_order_values_compared_then_lower_i32_value_sorts_before_higher() {
-        assert!(SortOrder(-1) < SortOrder(1));
-        assert!(SortOrder(i32::MIN) < SortOrder(i32::MAX));
+        assert!(SortOrder::new(-1) < SortOrder::new(1));
+        assert!(SortOrder::new(i32::MIN) < SortOrder::new(i32::MAX));
     }
 
     #[test]
     fn when_entities_sorted_by_render_layer_and_sort_order_then_order_is_deterministic() {
         // Arrange
         let mut items = vec![
-            (RenderLayer::World, SortOrder(1)),
-            (RenderLayer::Background, SortOrder(0)),
-            (RenderLayer::World, SortOrder(0)),
-            (RenderLayer::UI, SortOrder(-1)),
+            (RenderLayer::World, SortOrder::new(1)),
+            (RenderLayer::Background, SortOrder::new(0)),
+            (RenderLayer::World, SortOrder::new(0)),
+            (RenderLayer::UI, SortOrder::new(-1)),
         ];
 
         // Act
@@ -80,10 +98,10 @@ mod tests {
         assert_eq!(
             items,
             vec![
-                (RenderLayer::Background, SortOrder(0)),
-                (RenderLayer::World, SortOrder(0)),
-                (RenderLayer::World, SortOrder(1)),
-                (RenderLayer::UI, SortOrder(-1)),
+                (RenderLayer::Background, SortOrder::new(0)),
+                (RenderLayer::World, SortOrder::new(0)),
+                (RenderLayer::World, SortOrder::new(1)),
+                (RenderLayer::UI, SortOrder::new(-1)),
             ]
         );
     }

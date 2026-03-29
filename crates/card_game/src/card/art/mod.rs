@@ -1,16 +1,14 @@
 //! Card art modules and tessellation utilities.
+//!
+//! The `generated/` subdirectory is cleared and rebuilt by the
+//! img-to-shape batch build.  Do not put hand-written code there.
 
+pub mod card_back;
 pub mod hydrate;
 pub mod repository;
 
-pub mod armor1;
-pub mod barbarian_icons_01_t;
-pub mod barbarian_icons_02_t;
-pub mod barbarian_icons_03_t;
-pub mod barbarian_icons_04_t;
-pub mod barbarian_icons_05_t;
-pub mod barbarian_icons_06_t;
-pub mod card_back;
+pub mod generated;
+pub use generated::*;
 
 use engine_render::prelude::tessellate;
 use engine_render::shape::{Shape, TessellatedColorMesh};

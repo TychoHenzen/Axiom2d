@@ -58,6 +58,9 @@ pub struct ShapeManifestEntry {
     /// Optional human-readable description of the image / art piece.
     #[serde(default)]
     pub description: String,
+    /// Category for grouping entries in the manifest panel.
+    #[serde(default)]
+    pub category: String,
 }
 
 /// A collection of shape entries that can be batch-processed.
@@ -169,11 +172,25 @@ pub fn batch_build(manifest: &ShapeManifest, base_dir: &Path) -> BatchBuildRepor
 }
 
 /// Same as `batch_build` but updates a shared progress handle.
+///
+/// Art files are always written into a `generated/` subfolder next to the
+/// entries' output directory.  That folder is cleared before each build so
+/// stale files from removed manifest entries don't linger.  Hand-written
+/// files in the parent (e.g. `art/mod.rs`) are never touched.
 pub fn batch_build_with_progress(
     manifest: &ShapeManifest,
     base_dir: &Path,
     progress: Option<&BatchProgress>,
 ) -> BatchBuildReport {
+    // Clear the generated/ output directory before building.
+    if let Some(first_entry) = manifest.entries.first() {
+        let generated_dir = resolve_generated_dir(base_dir, &first_entry.output_path);
+        if generated_dir.exists() {
+            let _ = std::fs::remove_dir_all(&generated_dir);
+        }
+        let _ = std::fs::create_dir_all(&generated_dir);
+    }
+
     let results: Vec<EntryBuildResult> = manifest
         .entries
         .iter()
@@ -210,23 +227,54 @@ pub fn batch_build_with_progress(
             })
             .collect();
 
-        // Determine the output directory from the first successful entry's output_path.
-        if let Some(first_output) = successful_entries
-            .first()
-            .map(|(e, _)| base_dir.join(&e.output_path))
-            && let Some(art_dir) = first_output.parent()
-        {
-            let _ = std::fs::create_dir_all(art_dir);
-            let _ = std::fs::write(art_dir.join("hydrate.rs"), generate_hydrate_module());
+        // generated/ dir holds individual art .rs files + its own mod.rs.
+        // Support files (hydrate, repository) go one level up in art/.
+        if let Some(first_entry) = successful_entries.first().map(|(e, _)| e) {
+            let generated_dir = resolve_generated_dir(base_dir, &first_entry.output_path);
+            let _ = std::fs::create_dir_all(&generated_dir);
+            // mod.rs for the generated/ directory — art module declarations only.
             let _ = std::fs::write(
-                art_dir.join("repository.rs"),
-                generate_repository_module(&repo_entries),
+                generated_dir.join("mod.rs"),
+                generate_art_mod(&successful_names),
             );
-            let _ = std::fs::write(art_dir.join("mod.rs"), generate_art_mod(&successful_names));
+            // Support files go to the parent (art/) directory.
+            if let Some(art_dir) = generated_dir.parent() {
+                let _ = std::fs::write(art_dir.join("hydrate.rs"), generate_hydrate_module());
+                let _ = std::fs::write(
+                    art_dir.join("repository.rs"),
+                    generate_repository_module(&repo_entries),
+                );
+            }
         }
     }
 
     BatchBuildReport { results }
+}
+
+/// Given an entry's `output_path`, return the `generated/` directory it
+/// should live in.  If the path already contains a `generated/` level,
+/// return that directory; otherwise insert one.
+fn resolve_generated_dir(base_dir: &Path, output_path: &str) -> std::path::PathBuf {
+    let full = base_dir.join(output_path);
+    let parent = full.parent().unwrap_or(base_dir);
+    if parent.file_name().is_some_and(|n| n == "generated") {
+        parent.to_path_buf()
+    } else {
+        parent.join("generated")
+    }
+}
+
+/// Resolve a single entry's output file path, ensuring it lands inside a
+/// `generated/` subfolder even if the manifest entry omits it.
+fn resolve_generated_path(base_dir: &Path, output_path: &str) -> std::path::PathBuf {
+    let full = base_dir.join(output_path);
+    let parent = full.parent().unwrap_or(base_dir);
+    let file_name = full.file_name().unwrap_or_default();
+    if parent.file_name().is_some_and(|n| n == "generated") {
+        full
+    } else {
+        parent.join("generated").join(file_name)
+    }
 }
 
 fn build_entry(
@@ -235,7 +283,7 @@ fn build_entry(
     progress: Option<&BatchProgress>,
 ) -> EntryBuildResult {
     let image_path = base_dir.join(&entry.image_path);
-    let output_path = base_dir.join(&entry.output_path);
+    let output_path = resolve_generated_path(base_dir, &entry.output_path);
 
     let result = (|| -> Result<(), ManifestError> {
         // Load and decode image.
@@ -330,6 +378,7 @@ mod tests {
             signature_axes: [0.0; 8],
             compact_encoding: true,
             description: String::new(),
+            category: String::new(),
         }
     }
 
@@ -418,7 +467,7 @@ mod tests {
         let manifest = ShapeManifest {
             entries: vec![ShapeManifestEntry {
                 image_path: "red.png".to_string(),
-                output_path: "art/red_art.rs".to_string(),
+                output_path: "art/generated/red_art.rs".to_string(),
                 fn_name: "red_art".to_string(),
                 config: ConvertConfig {
                     color_threshold: 0.1,
@@ -437,6 +486,7 @@ mod tests {
                 signature_axes: [0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                 compact_encoding: true,
                 description: String::new(),
+                category: String::new(),
             }],
         };
 

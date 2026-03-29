@@ -1,37 +1,6 @@
 {
   "entries": [
     {
-      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_16_t.PNG",
-      "output_path": "crates/card_game/src/card/art\\armor1.rs",
-      "fn_name": "armor1",
-      "config": {
-        "color_threshold": 0.08,
-        "alpha_threshold": 128,
-        "rdp_epsilon": 1.5,
-        "bezier_error": 1.5,
-        "min_area": 4,
-        "max_dimension": 128,
-        "resize_method": "Scale2x",
-        "use_bezier": true,
-        "merge_below": 5,
-        "max_shapes": 0
-      },
-      "element_index": 0,
-      "aspect_pole": 0,
-      "signature_axes": [
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0
-      ],
-      "compact_encoding": true,
-      "description": "plain metal armor"
-    },
-    {
       "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_01_t.PNG",
       "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_01_t.rs",
       "fn_name": "barbarian_icons_01_t",
@@ -60,7 +29,8 @@
         0.0
       ],
       "compact_encoding": true,
-      "description": "basic sword"
+      "description": "basic sword",
+      "category": "Sword"
     },
     {
       "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_02_t.PNG",
@@ -91,7 +61,8 @@
         0.0
       ],
       "compact_encoding": true,
-      "description": ""
+      "description": "",
+      "category": "Sword"
     },
     {
       "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_03_t.PNG",
@@ -122,7 +93,8 @@
         0.0
       ],
       "compact_encoding": true,
-      "description": ""
+      "description": "",
+      "category": "Sword"
     },
     {
       "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_04_t.PNG",
@@ -153,7 +125,8 @@
         0.0
       ],
       "compact_encoding": true,
-      "description": ""
+      "description": "",
+      "category": "Clubs"
     },
     {
       "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_05_t.PNG",
@@ -184,7 +157,8 @@
         0.0
       ],
       "compact_encoding": true,
-      "description": ""
+      "description": "",
+      "category": "Rings"
     },
     {
       "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_06_t.PNG",
@@ -215,7 +189,744 @@
         0.0
       ],
       "compact_encoding": true,
-      "description": ""
+      "description": "",
+      "category": "Clubs"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_07_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_07_t.rs",
+      "fn_name": "barbarian_icons_07_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Sword"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_08_t.png",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_08_t.rs",
+      "fn_name": "barbarian_icons_08_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Sword"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_09_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_09_t.rs",
+      "fn_name": "barbarian_icons_09_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Herbs"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_10_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_10_t.rs",
+      "fn_name": "barbarian_icons_10_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Gloves"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_11_t.png",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_11_t.rs",
+      "fn_name": "barbarian_icons_11_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Axes"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_12_t.png",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_12_t.rs",
+      "fn_name": "barbarian_icons_12_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Helmets"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_13_t.png",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_13_t.rs",
+      "fn_name": "barbarian_icons_13_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Clubs"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_15_t.png",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_15_t.rs",
+      "fn_name": "barbarian_icons_15_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Bows"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_17_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_17_t.rs",
+      "fn_name": "barbarian_icons_17_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Herbs"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_14_t.png",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_14_t.rs",
+      "fn_name": "barbarian_icons_14_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Herbs"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_16_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_16_t.rs",
+      "fn_name": "barbarian_icons_16_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Armor"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_18_t.png",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_18_t.rs",
+      "fn_name": "barbarian_icons_18_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Shields"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_19_t.png",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_19_t.rs",
+      "fn_name": "barbarian_icons_19_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Bows"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_20_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_20_t.rs",
+      "fn_name": "barbarian_icons_20_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Herbs"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_21_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_21_t.rs",
+      "fn_name": "barbarian_icons_21_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Clubs"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_22_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_22_t.rs",
+      "fn_name": "barbarian_icons_22_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Sword"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_23_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_23_t.rs",
+      "fn_name": "barbarian_icons_23_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Herbs"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_24_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_24_t.rs",
+      "fn_name": "barbarian_icons_24_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Rings"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_25_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_25_t.rs",
+      "fn_name": "barbarian_icons_25_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Shields"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_26_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_26_t.rs",
+      "fn_name": "barbarian_icons_26_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Sword"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_27_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_27_t.rs",
+      "fn_name": "barbarian_icons_27_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Helmets"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_28_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_28_t.rs",
+      "fn_name": "barbarian_icons_28_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Axes"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_29_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art\\barbarian_icons_29_t.rs",
+      "fn_name": "barbarian_icons_29_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": "Shields"
     }
   ]
 }

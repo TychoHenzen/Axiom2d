@@ -277,6 +277,37 @@ mod tests {
         assert!(entities.contains(&e3));
     }
 
+    /// @doc: Cards loaded in a reader have no physics body, so applying damping
+    /// would query a non-existent body. The damping system must skip Reader-zone
+    /// cards just as it skips Hand and Stash cards. Without this, adding a
+    /// CardReader to the game would cause panics on every damping frame.
+    #[test]
+    fn when_card_in_reader_zone_then_set_damping_not_called() {
+        // Arrange
+        let damping_log: DampingLog = Arc::new(Mutex::new(Vec::new()));
+        let mut world = World::new();
+        let table_entity = world
+            .spawn((Card::face_down(TextureId(0), TextureId(0)), CardZone::Table))
+            .id();
+        let reader_entity = world.spawn_empty().id();
+        world.spawn((
+            Card::face_down(TextureId(0), TextureId(0)),
+            CardZone::Reader(reader_entity),
+        ));
+        let spy = SpyPhysicsBackend::new()
+            .with_damping_log(damping_log.clone())
+            .with_angular_velocity(table_entity, 0.0);
+        world.insert_resource(PhysicsRes::new(Box::new(spy)));
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = damping_log.lock().unwrap();
+        assert_eq!(calls.len(), 1, "only the Table card should get damping");
+        assert_eq!(calls[0].0, table_entity);
+    }
+
     /// @doc: Hand cards skip damping—they're never physics-driven and don't have bodies
     #[test]
     fn when_card_in_hand_then_set_damping_not_called() {

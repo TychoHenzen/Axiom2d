@@ -263,7 +263,7 @@ mod tests {
                 color: Color::RED,
             },
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         world.spawn((
             Text {
@@ -273,7 +273,7 @@ mod tests {
                 max_width: None,
             },
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(1),
+            SortOrder::new(1),
         ));
 
         // Act
@@ -300,7 +300,7 @@ mod tests {
                 color: Color::RED,
             },
             GlobalTransform2D(Affine2::from_translation(Vec2::new(0.0, shape_y))),
-            SortOrder(5),
+            SortOrder::new(5),
             RenderLayer::World,
         ));
         world.spawn((
@@ -311,7 +311,7 @@ mod tests {
                 max_width: None,
             },
             GlobalTransform2D(Affine2::from_translation(Vec2::new(0.0, text_y))),
-            SortOrder(1),
+            SortOrder::new(1),
             RenderLayer::World,
         ));
 
@@ -360,7 +360,7 @@ mod tests {
         world.spawn((
             ColorMesh(mesh),
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
 
         // Act
@@ -382,7 +382,7 @@ mod tests {
                 color: Color::RED,
             },
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(0),
+            SortOrder::new(0),
             EffectiveVisibility(false),
         ));
         world.spawn((
@@ -393,7 +393,7 @@ mod tests {
                 max_width: None,
             },
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(1),
+            SortOrder::new(1),
             EffectiveVisibility(false),
         ));
 
@@ -427,7 +427,7 @@ mod tests {
                 color: Color::WHITE,
             },
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(0),
+            SortOrder::new(0),
             cached,
         ));
 
@@ -460,7 +460,7 @@ mod tests {
                 color: Color::WHITE,
             },
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
 
         // Act

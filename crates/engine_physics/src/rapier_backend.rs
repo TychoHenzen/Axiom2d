@@ -255,6 +255,19 @@ impl PhysicsBackend for RapierBackend {
         Ok(())
     }
 
+    fn set_body_position(&mut self, entity: Entity, position: Vec2) -> Result<(), PhysicsError> {
+        let &handle = self.entity_to_handle.get(&entity).ok_or_else(|| {
+            tracing::warn!(?entity, "set_body_position: entity not found");
+            PhysicsError::EntityNotFound(entity)
+        })?;
+        let body = self
+            .bodies
+            .get_mut(handle)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        body.set_next_kinematic_position(Isometry::translation(position.x, position.y));
+        Ok(())
+    }
+
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
         let mut events = Vec::new();
         while let Ok(rapier_event) = self.collision_recv.try_recv() {

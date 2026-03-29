@@ -141,7 +141,7 @@ pub(crate) fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
         },
         Visible(true),
         RenderLayer::UI,
-        SortOrder(SPLASH_BG_ORDER),
+        SortOrder::new(SPLASH_BG_ORDER),
     ));
 
     let vanishing_point = Vec2::new(-60.0, -10.0);
@@ -200,7 +200,7 @@ pub(crate) fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
                     },
                     Visible(true),
                     RenderLayer::UI,
-                    SortOrder(SPLASH_SIDE_BASE + i as i32),
+                    SortOrder::new(SPLASH_SIDE_BASE + i as i32),
                 ));
             }
         }
@@ -221,7 +221,7 @@ pub(crate) fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
             },
             Visible(true),
             RenderLayer::UI,
-            SortOrder(SPLASH_LETTER_ORDER),
+            SortOrder::new(SPLASH_LETTER_ORDER),
         ));
     }
 
@@ -262,7 +262,7 @@ pub(crate) fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
         },
         Visible(true),
         RenderLayer::UI,
-        SortOrder(SPLASH_ACCENT_ORDER),
+        SortOrder::new(SPLASH_ACCENT_ORDER),
     ));
 
     world.spawn((
@@ -277,7 +277,7 @@ pub(crate) fn spawn_splash_entities(world: &mut bevy_ecs::world::World) {
         },
         Visible(true),
         RenderLayer::UI,
-        SortOrder(SPLASH_ACCENT_ORDER),
+        SortOrder::new(SPLASH_ACCENT_ORDER),
     ));
 }
 
@@ -587,8 +587,8 @@ mod tests {
             .iter(&world)
             .filter(|(_, shape, order)| {
                 matches!(shape.variant, ShapeVariant::Path { .. })
-                    && order.0 >= SPLASH_SIDE_BASE
-                    && order.0 < SPLASH_LETTER_ORDER
+                    && order.value() >= SPLASH_SIDE_BASE
+                    && order.value() < SPLASH_LETTER_ORDER
             })
             .count();
 
@@ -607,8 +607,8 @@ mod tests {
             .iter(&world)
             .filter(|(_, shape, order)| {
                 matches!(shape.variant, ShapeVariant::Path { .. })
-                    && order.0 >= SPLASH_SIDE_BASE
-                    && order.0 < SPLASH_LETTER_ORDER
+                    && order.value() >= SPLASH_SIDE_BASE
+                    && order.value() < SPLASH_LETTER_ORDER
             })
             .all(|(_, shape, _)| {
                 shape.color.r < LOGO_COLOR.r
@@ -634,8 +634,8 @@ mod tests {
             .iter(&world)
             .filter(|(_, shape, order)| {
                 matches!(shape.variant, ShapeVariant::Path { .. })
-                    && order.0 >= SPLASH_SIDE_BASE
-                    && order.0 < SPLASH_LETTER_ORDER
+                    && order.value() >= SPLASH_SIDE_BASE
+                    && order.value() < SPLASH_LETTER_ORDER
             })
             .map(|(_, shape, _)| {
                 (
@@ -666,7 +666,8 @@ mod tests {
             .query::<(&SplashEntity, &Shape, &SortOrder)>()
             .iter(&world)
             .filter(|(_, shape, order)| {
-                matches!(shape.variant, ShapeVariant::Path { .. }) && order.0 == SPLASH_LETTER_ORDER
+                matches!(shape.variant, ShapeVariant::Path { .. })
+                    && order.value() == SPLASH_LETTER_ORDER
             })
             .count();
 
@@ -685,7 +686,8 @@ mod tests {
             .query::<(&SplashEntity, &Transform2D, &Shape, &SortOrder)>()
             .iter(&world)
             .filter(|(_, _, shape, order)| {
-                matches!(shape.variant, ShapeVariant::Path { .. }) && order.0 == SPLASH_LETTER_ORDER
+                matches!(shape.variant, ShapeVariant::Path { .. })
+                    && order.value() == SPLASH_LETTER_ORDER
             })
             .map(|(_, t, _, _)| t.position.x)
             .collect();
@@ -1307,7 +1309,7 @@ mod tests {
         let accent_positions: Vec<Vec2> = world
             .query::<(&SplashEntity, &Transform2D, &Shape, &SortOrder)>()
             .iter(&world)
-            .filter(|(_, _, _, order)| order.0 == SPLASH_ACCENT_ORDER)
+            .filter(|(_, _, _, order)| order.value() == SPLASH_ACCENT_ORDER)
             .map(|(_, t, _, _)| t.position)
             .collect();
         assert!(
@@ -1326,7 +1328,7 @@ mod tests {
         let accent_positions: Vec<Vec2> = world
             .query::<(&SplashEntity, &Transform2D, &Shape, &SortOrder)>()
             .iter(&world)
-            .filter(|(_, _, _, order)| order.0 == SPLASH_ACCENT_ORDER)
+            .filter(|(_, _, _, order)| order.value() == SPLASH_ACCENT_ORDER)
             .map(|(_, t, _, _)| t.position)
             .collect();
         assert!(
@@ -1346,7 +1348,9 @@ mod tests {
         let side_xs: Vec<f32> = world
             .query::<(&SplashEntity, &Transform2D, &SortOrder)>()
             .iter(&world)
-            .filter(|(_, _, order)| order.0 >= SPLASH_SIDE_BASE && order.0 < SPLASH_LETTER_ORDER)
+            .filter(|(_, _, order)| {
+                order.value() >= SPLASH_SIDE_BASE && order.value() < SPLASH_LETTER_ORDER
+            })
             .map(|(_, t, _)| t.position.x)
             .collect();
         let unique_xs: std::collections::HashSet<u32> =

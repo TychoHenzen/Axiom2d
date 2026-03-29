@@ -43,7 +43,7 @@ pub fn card_flip_system(
             let cursor_local = transform.0.inverse().transform_point2(cursor);
             local_space_hit(cursor_local, half)
         })
-        .max_by_key(|(_, _, _, _, _, sort, _)| sort.0)
+        .max_by_key(|(_, _, _, _, _, sort, _)| sort.value())
         .map(|(entity, card, _, _, _, _, _)| (entity, card.face_up));
 
     if let Some((entity, face_up)) = best {
@@ -91,7 +91,7 @@ mod tests {
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(pos)),
-                SortOrder(sort),
+                SortOrder::new(sort),
             ))
             .id()
     }
@@ -191,7 +191,7 @@ mod tests {
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         setup_mouse_right_click(&mut world, Vec2::ZERO);
@@ -280,7 +280,7 @@ mod tests {
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         setup_mouse_right_click(&mut world, Vec2::ZERO);

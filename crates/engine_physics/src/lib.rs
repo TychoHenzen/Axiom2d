@@ -124,5 +124,8 @@ pub(crate) mod test_helpers {
         fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) -> Result<(), PhysicsError> {
             Ok(())
         }
+        fn set_body_position(&mut self, _: Entity, _: Vec2) -> Result<(), PhysicsError> {
+            Ok(())
+        }
     }
 }

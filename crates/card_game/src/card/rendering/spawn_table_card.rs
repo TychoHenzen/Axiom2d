@@ -78,7 +78,7 @@ pub fn spawn_visual_card(
             RigidBody::Dynamic,
             Collider::Aabb(half),
             RenderLayer::World,
-            SortOrder(0),
+            SortOrder::default(),
         ))
         .id();
 

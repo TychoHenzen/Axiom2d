@@ -51,6 +51,8 @@ pub trait PhysicsBackend: Send + Sync {
         filter: u32,
     ) -> Result<(), PhysicsError>;
 
+    fn set_body_position(&mut self, entity: Entity, position: Vec2) -> Result<(), PhysicsError>;
+
     fn body_point_to_world(&self, entity: Entity, local_point: Vec2) -> Option<Vec2> {
         let pos = self.body_position(entity)?;
         let rot = self.body_rotation(entity)?;
@@ -155,6 +157,10 @@ impl PhysicsBackend for NullPhysicsBackend {
         _membership: u32,
         _filter: u32,
     ) -> Result<(), PhysicsError> {
+        Ok(())
+    }
+
+    fn set_body_position(&mut self, _entity: Entity, _position: Vec2) -> Result<(), PhysicsError> {
         Ok(())
     }
 }

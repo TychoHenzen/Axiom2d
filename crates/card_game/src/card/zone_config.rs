@@ -37,6 +37,11 @@ impl ZoneConfig {
                 render_layer: RenderLayer::UI,
                 has_item_form: true,
             },
+            CardZone::Reader(_) => Self {
+                has_physics: false,
+                render_layer: RenderLayer::World,
+                has_item_form: false,
+            },
         }
     }
 }

@@ -282,7 +282,7 @@ mod tests {
             },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
-            SortOrder(10),
+            SortOrder::new(10),
         ));
         world.spawn((
             Sprite {
@@ -291,7 +291,7 @@ mod tests {
             },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
-            SortOrder(1),
+            SortOrder::new(1),
         ));
 
         // Act
@@ -351,7 +351,7 @@ mod tests {
             },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
-            SortOrder(-1),
+            SortOrder::new(-1),
         ));
         world.spawn((
             Sprite {
@@ -525,7 +525,7 @@ mod tests {
         world.spawn((
             default_sprite(),
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(1),
+            SortOrder::new(1),
             Material2d {
                 blend_mode: BlendMode::Additive,
                 ..Material2d::default()
@@ -534,7 +534,7 @@ mod tests {
         world.spawn((
             default_sprite(),
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
 
         // Act
@@ -661,14 +661,14 @@ mod tests {
             colored_sprite(red),
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
-            SortOrder(10),
+            SortOrder::new(10),
             additive.clone(),
         ));
         world.spawn((
             colored_sprite(blue),
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
-            SortOrder(1),
+            SortOrder::new(1),
             additive,
         ));
 
@@ -1016,7 +1016,7 @@ mod tests {
         world.spawn((
             colored_sprite(red),
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(1),
+            SortOrder::new(1),
             Material2d {
                 shader: ShaderHandle(1),
                 ..Material2d::default()
@@ -1025,7 +1025,7 @@ mod tests {
         world.spawn((
             colored_sprite(blue),
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(0),
+            SortOrder::new(0),
             Material2d {
                 shader: ShaderHandle(0),
                 blend_mode: BlendMode::Additive,
@@ -1050,7 +1050,7 @@ mod tests {
         world.spawn((
             default_sprite(),
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(1),
+            SortOrder::new(1),
             Material2d {
                 shader: ShaderHandle(0),
                 blend_mode: BlendMode::Additive,
@@ -1060,7 +1060,7 @@ mod tests {
         world.spawn((
             default_sprite(),
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(0),
+            SortOrder::new(0),
             Material2d {
                 shader: ShaderHandle(0),
                 blend_mode: BlendMode::Alpha,

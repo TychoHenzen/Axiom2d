@@ -2,7 +2,7 @@ use bevy_ecs::prelude::{Commands, Entity, Query, Res};
 use engine_input::prelude::{MouseButton, MouseState};
 use engine_physics::hit_test::{collider_half_extents, local_space_hit};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
-use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
+use engine_scene::prelude::{GlobalTransform2D, LocalSortOrder, RenderLayer, SortOrder};
 use glam::Vec2;
 
 use crate::card::component::Card;
@@ -11,6 +11,7 @@ use crate::card::component::CardZone;
 use crate::card::interaction::drag_state::{DragInfo, DragState};
 use crate::card::interaction::game_state_param::CardGameState;
 use crate::card::interaction::physics_helpers::activate_physics_body;
+use crate::card::reader::ReaderDragState;
 use crate::hand::cards::Hand;
 use crate::hand::layout::HandSpring;
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
@@ -80,6 +81,7 @@ fn identify_pick_source(
 pub fn card_pick_system(
     mouse: Res<MouseState>,
     mut state: CardGameState,
+    reader_drag: Res<ReaderDragState>,
     mut commands: Commands,
     mut query: Query<(
         Entity,
@@ -90,7 +92,7 @@ pub fn card_pick_system(
         &mut SortOrder,
     )>,
 ) {
-    if state.drag_state.dragging.is_some() {
+    if state.drag_state.dragging.is_some() || reader_drag.dragging.is_some() {
         return;
     }
     if !mouse.just_pressed(MouseButton::Left) {
@@ -203,9 +205,7 @@ fn pick_from_card(
         stash_cursor_follow: false,
         origin_position,
     });
-    if let Ok((_, _, _, _, _, mut sort)) = query.get_mut(entity) {
-        sort.0 = max_sort + 1;
-    }
+    commands.entity(entity).insert(LocalSortOrder(max_sort + 1));
     commands.entity(entity).insert(ScaleSpring::new(DRAG_SCALE));
 }
 
@@ -222,7 +222,7 @@ fn max_table_sort_order(
     query
         .iter()
         .filter(|(_, _, zone, _, _, _)| **zone == CardZone::Table)
-        .map(|(_, _, _, _, _, sort)| sort.0)
+        .map(|(_, _, _, _, _, sort)| sort.value())
         .max()
         .unwrap_or(0)
 }
@@ -247,7 +247,7 @@ fn find_card_under_cursor(
             let cursor_local = transform.0.inverse().transform_point2(cursor);
             local_space_hit(cursor_local, half)
         })
-        .max_by_key(|(_, _, _, _, _, sort)| sort.0)
+        .max_by_key(|(_, _, _, _, _, sort)| sort.value())
         .map(|(entity, _, zone, transform, collider, _)| {
             let cursor_delta = cursor - transform.0.translation;
             let local_grab_offset = transform.0.matrix2.inverse().mul_vec2(cursor_delta);
@@ -298,13 +298,14 @@ mod tests {
     use engine_core::prelude::TextureId;
     use engine_input::prelude::{MouseButton, MouseState};
     use engine_physics::prelude::{Collider, NullPhysicsBackend, PhysicsBackend, PhysicsRes};
-    use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
+    use engine_scene::prelude::{GlobalTransform2D, LocalSortOrder, RenderLayer, SortOrder};
     use glam::{Affine2, Vec2};
 
     use super::{DRAG_SCALE, card_pick_system};
     use crate::card::component::Card;
     use crate::card::component::CardZone;
     use crate::card::interaction::drag_state::DragState;
+    use crate::card::reader::ReaderDragState;
     use crate::hand::cards::Hand;
     use crate::hand::layout::HandSpring;
     use crate::test_helpers::{AddBodyLog, ColliderLog, DampingLog, SpyPhysicsBackend};
@@ -321,12 +322,14 @@ mod tests {
     }
 
     fn insert_pick_resources(world: &mut World) {
+        use crate::card::reader::ReaderDragState;
         use crate::stash::grid::StashGrid;
         use crate::stash::toggle::StashVisible;
         world.insert_resource(Hand::new(10));
         world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
         world.insert_resource(StashGrid::new(10, 10, 1));
         world.insert_resource(StashVisible(false));
+        world.insert_resource(ReaderDragState::default());
     }
 
     #[test]
@@ -339,7 +342,7 @@ mod tests {
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut mouse = MouseState::default();
@@ -347,6 +350,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -366,13 +370,14 @@ mod tests {
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::new(100.0, 50.0))),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_world_pos(Vec2::new(100.0, 50.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -391,13 +396,14 @@ mod tests {
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -417,13 +423,14 @@ mod tests {
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_world_pos(Vec2::new(200.0, 200.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -442,6 +449,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -462,7 +470,7 @@ mod tests {
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let card_b = world
@@ -471,7 +479,7 @@ mod tests {
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(5),
+                SortOrder::new(5),
             ))
             .id();
         let mut mouse = MouseState::default();
@@ -479,6 +487,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -500,7 +509,7 @@ mod tests {
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         world.spawn((
@@ -508,23 +517,29 @@ mod tests {
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::new(200.0, 0.0))),
-            SortOrder(7),
+            SortOrder::new(7),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
         run_system(&mut world);
+        world.flush();
 
-        // Assert
-        let picked_sort = world.entity(card_a).get::<SortOrder>().unwrap().0;
+        // Assert — pick system inserts LocalSortOrder above max table sort
+        let local = world
+            .entity(card_a)
+            .get::<LocalSortOrder>()
+            .expect("picked card should have LocalSortOrder");
         assert!(
-            picked_sort > 7,
-            "picked card sort {picked_sort} should be > 7"
+            local.0 > 7,
+            "picked card LocalSortOrder {} should be > 7",
+            local.0
         );
     }
 
@@ -538,7 +553,7 @@ mod tests {
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
@@ -576,13 +591,14 @@ mod tests {
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(transform),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_world_pos(Vec2::new(110.0, 50.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -617,13 +633,14 @@ mod tests {
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::new(100.0, 50.0))),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_world_pos(Vec2::new(100.0, 50.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -650,13 +667,14 @@ mod tests {
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_world_pos(Vec2::new(30.0, 0.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -681,13 +699,14 @@ mod tests {
                 angle,
                 Vec2::ZERO,
             )),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_world_pos(Vec2::new(20.0, 20.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -711,13 +730,14 @@ mod tests {
                 angle,
                 Vec2::ZERO,
             )),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_world_pos(Vec2::new(50.0, 0.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -753,7 +773,7 @@ mod tests {
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut hand = Hand::new(10);
@@ -766,6 +786,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
         world.insert_resource(crate::stash::toggle::StashVisible(false));
 
@@ -787,7 +808,7 @@ mod tests {
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut hand = Hand::new(10);
@@ -800,6 +821,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
         world.insert_resource(crate::stash::toggle::StashVisible(false));
 
@@ -821,7 +843,7 @@ mod tests {
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::new(50.0, 200.0))),
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut hand = Hand::new(10);
@@ -834,6 +856,7 @@ mod tests {
         mouse.set_world_pos(Vec2::new(50.0, 200.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
         world.insert_resource(crate::stash::toggle::StashVisible(false));
 
@@ -859,7 +882,7 @@ mod tests {
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
                 RenderLayer::UI,
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut hand = Hand::new(10);
@@ -872,6 +895,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
         world.insert_resource(crate::stash::toggle::StashVisible(false));
 
@@ -894,7 +918,7 @@ mod tests {
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(3),
+                SortOrder::new(3),
             ))
             .id();
         let hand_card = world
@@ -903,7 +927,7 @@ mod tests {
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(10),
+                SortOrder::new(10),
             ))
             .id();
         let mut hand = Hand::new(10);
@@ -916,6 +940,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
         world.insert_resource(crate::stash::toggle::StashVisible(false));
 
@@ -937,7 +962,7 @@ mod tests {
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut hand = Hand::new(10);
@@ -950,6 +975,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
         world.insert_resource(crate::stash::toggle::StashVisible(false));
 
@@ -972,7 +998,7 @@ mod tests {
                 CardZone::Hand(0),
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(0),
+                SortOrder::new(0),
                 HandSpring::new(),
             ))
             .id();
@@ -986,6 +1012,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(crate::stash::grid::StashGrid::new(10, 10, 1));
         world.insert_resource(crate::stash::toggle::StashVisible(false));
 
@@ -1009,7 +1036,7 @@ mod tests {
                 CardZone::Table,
                 default_collider(),
                 GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut mouse = MouseState::default();
@@ -1017,6 +1044,7 @@ mod tests {
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -1048,7 +1076,7 @@ mod tests {
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
                 GlobalTransform2D(Affine2::IDENTITY),
                 RenderLayer::UI,
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut grid = StashGrid::new(4, 5, 1);
@@ -1056,6 +1084,7 @@ mod tests {
         world.insert_resource(grid);
         world.insert_resource(StashVisible(true));
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(Hand::new(10));
         world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
         let mut mouse = MouseState::default();
@@ -1103,7 +1132,7 @@ mod tests {
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
                 GlobalTransform2D(Affine2::IDENTITY),
                 RenderLayer::UI,
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut grid = StashGrid::new(4, 5, 1);
@@ -1111,6 +1140,7 @@ mod tests {
         world.insert_resource(grid);
         world.insert_resource(StashVisible(true));
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(Hand::new(10));
         let (spy, bodies, _, _) = make_spy_physics();
         world.insert_resource(PhysicsRes::new(spy));
@@ -1155,7 +1185,7 @@ mod tests {
                 // the existing world-space hit test cannot pick this card
                 GlobalTransform2D(Affine2::from_translation(Vec2::new(500.0, 500.0))),
                 RenderLayer::UI,
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut grid = StashGrid::new(4, 5, 1);
@@ -1163,6 +1193,7 @@ mod tests {
         world.insert_resource(grid);
         world.insert_resource(StashVisible(false));
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(Hand::new(10));
         world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
         let mut mouse = MouseState::default();
@@ -1199,7 +1230,7 @@ mod tests {
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
                 GlobalTransform2D(Affine2::IDENTITY),
                 RenderLayer::UI,
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut grid = StashGrid::new(10, 10, 1);
@@ -1207,6 +1238,7 @@ mod tests {
         world.insert_resource(grid);
         world.insert_resource(StashVisible(true));
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(Hand::new(10));
         world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
         let mut mouse = MouseState::default();
@@ -1243,7 +1275,7 @@ mod tests {
                 Collider::Aabb(Vec2::new(30.0, 45.0)),
                 GlobalTransform2D(Affine2::IDENTITY),
                 RenderLayer::UI,
-                SortOrder(0),
+                SortOrder::new(0),
             ))
             .id();
         let mut grid = StashGrid::new(10, 10, 1);
@@ -1251,6 +1283,7 @@ mod tests {
         world.insert_resource(grid);
         world.insert_resource(StashVisible(true));
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(Hand::new(10));
         world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
         let mut mouse = MouseState::default();
@@ -1277,13 +1310,14 @@ mod tests {
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_world_pos(Vec2::ZERO);
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act
@@ -1306,13 +1340,14 @@ mod tests {
             CardZone::Table,
             default_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::new(100.0, 200.0))),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
         let mut mouse = MouseState::default();
         mouse.press(MouseButton::Left);
         mouse.set_world_pos(Vec2::new(100.0, 200.0));
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         insert_pick_resources(&mut world);
 
         // Act

@@ -13,19 +13,21 @@ use img_to_shape_gui::state::AppState;
 
 /// Resolve the card art output directory relative to the executable's
 /// location within the workspace (the exe lives in `target/debug/`).
+/// Generated art goes into a `generated/` subfolder that is cleared
+/// before each batch build.
 fn art_output_dir() -> PathBuf {
     // Walk up from the exe dir to find the workspace root (has Cargo.toml).
     if let Ok(exe) = std::env::current_exe() {
         let mut dir = exe.parent().map(Path::to_path_buf);
         while let Some(d) = dir {
             if d.join("Cargo.toml").exists() && d.join("crates").exists() {
-                return d.join("crates/card_game/src/card/art");
+                return d.join("crates/card_game/src/card/art/generated");
             }
             dir = d.parent().map(Path::to_path_buf);
         }
     }
     // Fallback: try current working directory as workspace root.
-    PathBuf::from("crates/card_game/src/card/art")
+    PathBuf::from("crates/card_game/src/card/art/generated")
 }
 
 fn main() -> eframe::Result {
@@ -194,6 +196,17 @@ impl App {
                 self.pixel_texture = Some(ctx.load_texture("pixel_preview", image, options));
             }
         }
+    }
+
+    /// Upload the raw (unconverted) source image as the pixel preview texture.
+    fn upload_raw_texture(&mut self, ctx: &egui::Context) {
+        let Some(img) = &self.state.image else { return };
+        let color_image = egui::ColorImage::from_rgba_unmultiplied(
+            [img.width as usize, img.height as usize],
+            &img.rgba,
+        );
+        self.pixel_texture =
+            Some(ctx.load_texture("pixel_preview", color_image, egui::TextureOptions::NEAREST));
     }
 
     fn show_controls(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
@@ -565,6 +578,7 @@ impl App {
             signature_axes: self.state.signature_axes,
             compact_encoding: self.state.compact_encoding,
             description: self.state.description.clone(),
+            category: String::new(),
         }
     }
 
@@ -577,6 +591,25 @@ impl App {
         entry.fn_name.clone_into(&mut self.state.fn_name);
         self.state.compact_encoding = entry.compact_encoding;
         entry.description.clone_into(&mut self.state.description);
+    }
+
+    /// Save the manifest to disk if a path is set. Clears the dirty flag on
+    /// success, sets it on failure (or when no path is configured).
+    fn auto_save(&mut self, context: &str) {
+        if self.manifest_path.is_empty() {
+            self.dirty = true;
+            return;
+        }
+        match save_manifest(&self.manifest, Path::new(&self.manifest_path)) {
+            Ok(()) => {
+                self.dirty = false;
+                self.status = format!("Auto-saved ({context})");
+            }
+            Err(e) => {
+                self.dirty = true;
+                self.status = format!("Auto-save error: {e}");
+            }
+        }
     }
 
     /// Build the image path string for a new manifest entry, relative to
@@ -681,45 +714,258 @@ impl App {
 
         ui.separator();
 
-        // Entry list — compact scroll view with fixed height.
+        // Entry list — categorized scroll view with drag-to-reorder.
         let entry_count = self.manifest.entries.len();
+        // Snapshot owned data so the scroll closure doesn't borrow self.
+        let entry_labels: Vec<String> = self
+            .manifest
+            .entries
+            .iter()
+            .map(|e| {
+                if e.fn_name.is_empty() {
+                    "(unnamed)".to_string()
+                } else {
+                    e.fn_name.clone()
+                }
+            })
+            .collect();
+        let entry_cats: Vec<String> = self
+            .manifest
+            .entries
+            .iter()
+            .map(|e| e.category.clone())
+            .collect();
+        let groups = build_category_groups(&self.manifest.entries);
+        let has_categories = groups.len() > 1 || groups.first().is_some_and(|(c, _)| !c.is_empty());
+        let cur_selection = self.selected_entry;
+        let mut new_selection = cur_selection;
+        let mut pending_move: Option<(usize, usize)> = None;
+        let mut pending_cat: Option<(usize, String)> = None;
+        let mut pending_cat_reorder: Option<(String, String)> = None;
+
         ui.label(format!("Entries ({entry_count}):"));
         if entry_count > 0 {
             egui::ScrollArea::vertical()
                 .id_salt("manifest_entries")
-                .max_height(120.0)
+                .max_height(200.0)
+                .drag_to_scroll(false)
                 .show(ui, |ui| {
-                    let mut new_selection = self.selected_entry;
-                    for (i, entry) in self.manifest.entries.iter().enumerate() {
-                        let label = if entry.fn_name.is_empty() {
-                            format!("[{i}] (unnamed)")
-                        } else {
-                            format!("[{i}] {}", entry.fn_name)
-                        };
-                        let selected = self.selected_entry == Some(i);
-                        if ui.selectable_label(selected, &label).clicked() {
-                            new_selection = Some(i);
-                        }
-                    }
-                    if new_selection != self.selected_entry {
-                        self.selected_entry = new_selection;
-                        if let Some(idx) = new_selection {
-                            let entry = self.manifest.entries[idx].clone();
-                            // Load image first (sets fn_name from filename),
-                            // then restore entry state to override with saved values.
-                            let base = Path::new(&self.manifest_path)
-                                .parent()
-                                .unwrap_or(Path::new("."));
-                            let img_path = base.join(&entry.image_path);
-                            if img_path.exists() {
-                                self.load_file(&img_path);
+                    if has_categories {
+                        for (cat_name, indices) in &groups {
+                            let display = if cat_name.is_empty() {
+                                "Uncategorized"
+                            } else {
+                                cat_name.as_str()
+                            };
+                            let resp = egui::CollapsingHeader::new(format!(
+                                "{display} ({})",
+                                indices.len()
+                            ))
+                            .id_salt(format!("cat_{cat_name}"))
+                            .default_open(true)
+                            .show(ui, |ui| {
+                                for &idx in indices {
+                                    let (clicked, dropped) = entry_row_ui(
+                                        ui,
+                                        idx,
+                                        &entry_labels[idx],
+                                        cur_selection == Some(idx),
+                                    );
+                                    if clicked {
+                                        new_selection = Some(idx);
+                                    }
+                                    if let Some(source) = dropped {
+                                        if entry_cats[source] == entry_cats[idx] {
+                                            // Same category — reorder within it.
+                                            pending_move = Some((source, idx));
+                                        } else {
+                                            // Cross-category — assign to this category.
+                                            pending_cat = Some((source, cat_name.clone()));
+                                        }
+                                    }
+                                }
+                            });
+
+                            // Category header: drag source (reorder) + drop target.
+                            // Use pointer_latest_pos — pointer_hover_pos returns None
+                            // while the pointer is captured by another widget's drag.
+                            let header_rect = resp.header_response.rect;
+                            let over_header = ui
+                                .ctx()
+                                .input(|i| i.pointer.latest_pos())
+                                .is_some_and(|p| header_rect.contains(p));
+                            let released = ui.ctx().input(|i| i.pointer.any_released());
+
+                            // Manual drag detection — avoids ui.interact() which
+                            // would steal clicks from the CollapsingHeader.
+                            let cat_drag_id = egui::Id::new(("cat_drag", cat_name.as_str()));
+                            let drag_origin: Option<egui::Pos2> =
+                                ui.ctx().data(|d| d.get_temp(cat_drag_id));
+                            let ptr_pressed = ui.ctx().input(|i| i.pointer.primary_pressed());
+                            let ptr_down = ui.ctx().input(|i| i.pointer.primary_down());
+
+                            if ptr_pressed && over_header {
+                                if let Some(pos) = ui.ctx().input(|i| i.pointer.latest_pos()) {
+                                    ui.ctx().data_mut(|d| d.insert_temp(cat_drag_id, pos));
+                                }
+                            } else if !ptr_down {
+                                ui.ctx().data_mut(|d| {
+                                    d.remove_temp::<egui::Pos2>(cat_drag_id);
+                                });
+                            } else if let Some(origin) = drag_origin {
+                                if let Some(pos) = ui.ctx().input(|i| i.pointer.latest_pos()) {
+                                    if (pos - origin).length() > 5.0 {
+                                        egui::DragAndDrop::set_payload(ui.ctx(), cat_name.clone());
+                                    }
+                                }
                             }
-                            self.entry_to_state(&entry);
+
+                            if over_header {
+                                let has_cat_dnd =
+                                    egui::DragAndDrop::has_payload_of_type::<String>(ui.ctx());
+                                let has_entry_dnd =
+                                    egui::DragAndDrop::has_payload_of_type::<usize>(ui.ctx());
+
+                                // Visual feedback.
+                                if has_cat_dnd {
+                                    let stroke =
+                                        egui::Stroke::new(3.0, ui.visuals().selection.stroke.color);
+                                    ui.painter().hline(
+                                        header_rect.x_range(),
+                                        header_rect.top(),
+                                        stroke,
+                                    );
+                                } else if has_entry_dnd {
+                                    ui.painter().rect_stroke(
+                                        header_rect,
+                                        2.0,
+                                        egui::Stroke::new(2.0, ui.visuals().selection.stroke.color),
+                                        egui::epaint::StrokeKind::Middle,
+                                    );
+                                }
+
+                                // Drop — type-check before consuming payload.
+                                if released {
+                                    if has_cat_dnd {
+                                        if let Some(src) =
+                                            egui::DragAndDrop::take_payload::<String>(ui.ctx())
+                                        {
+                                            if *src != *cat_name {
+                                                pending_cat_reorder =
+                                                    Some(((*src).clone(), cat_name.clone()));
+                                            }
+                                        }
+                                    } else if has_entry_dnd {
+                                        if let Some(source) =
+                                            egui::DragAndDrop::take_payload::<usize>(ui.ctx())
+                                        {
+                                            pending_cat = Some((*source, cat_name.clone()));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // Flat list (no categories).
+                        for idx in 0..entry_labels.len() {
+                            let (clicked, dropped) = entry_row_ui(
+                                ui,
+                                idx,
+                                &entry_labels[idx],
+                                cur_selection == Some(idx),
+                            );
+                            if clicked {
+                                new_selection = Some(idx);
+                            }
+                            if let Some(source) = dropped {
+                                pending_move = Some((source, idx));
+                            }
                         }
                     }
                 });
         } else {
             ui.label("No entries. Add one below.");
+        }
+
+        // Apply pending reorder.
+        if let Some((from, to)) = pending_move {
+            if from != to {
+                let entry = self.manifest.entries.remove(from);
+                let insert_at = if to > from { to - 1 } else { to };
+                self.manifest.entries.insert(insert_at, entry);
+                // Adjust selection to follow the moved entry.
+                if self.selected_entry == Some(from) {
+                    self.selected_entry = Some(insert_at);
+                    new_selection = Some(insert_at);
+                } else if let Some(sel) = self.selected_entry {
+                    let new_sel = if from < sel && sel <= insert_at {
+                        sel - 1
+                    } else if insert_at <= sel && sel < from {
+                        sel + 1
+                    } else {
+                        sel
+                    };
+                    self.selected_entry = Some(new_sel);
+                    new_selection = Some(new_sel);
+                }
+                self.auto_save("reordered entry");
+            }
+        }
+
+        // Apply pending category change.
+        if let Some((idx, cat)) = pending_cat {
+            if self.manifest.entries[idx].category != cat {
+                self.manifest.entries[idx].category = cat;
+                self.auto_save("changed category");
+            }
+        }
+
+        // Apply pending category reorder.
+        if let Some((source_cat, target_cat)) = pending_cat_reorder {
+            let source_indices: Vec<usize> = self
+                .manifest
+                .entries
+                .iter()
+                .enumerate()
+                .filter(|(_, e)| e.category == source_cat)
+                .map(|(i, _)| i)
+                .collect();
+            let mut extracted: Vec<ShapeManifestEntry> = source_indices
+                .iter()
+                .rev()
+                .map(|&i| self.manifest.entries.remove(i))
+                .collect();
+            extracted.reverse();
+            let insert_at = self
+                .manifest
+                .entries
+                .iter()
+                .position(|e| e.category == target_cat)
+                .unwrap_or(self.manifest.entries.len());
+            for (i, entry) in extracted.into_iter().enumerate() {
+                self.manifest.entries.insert(insert_at + i, entry);
+            }
+            self.selected_entry = None;
+            self.auto_save("reordered categories");
+        }
+
+        // Handle entry selection change — load raw image for preview.
+        if new_selection != cur_selection {
+            self.selected_entry = new_selection;
+            self.pixel_texture = None;
+            self.export_code = None;
+            if let Some(idx) = new_selection {
+                let entry = self.manifest.entries[idx].clone();
+                let base = Path::new(&self.manifest_path)
+                    .parent()
+                    .unwrap_or(Path::new("."));
+                let img_path = base.join(&entry.image_path);
+                if img_path.exists() {
+                    self.load_file(&img_path);
+                    self.upload_raw_texture(ui.ctx());
+                }
+                self.entry_to_state(&entry);
+            }
         }
 
         // Entry action buttons — packed horizontal.
@@ -732,22 +978,16 @@ impl App {
                 let entry = self.state_to_entry(&img_path);
                 self.manifest.entries.push(entry);
                 self.selected_entry = Some(self.manifest.entries.len() - 1);
-                self.dirty = true;
+                self.auto_save("added entry");
             }
             if let Some(idx) = self.selected_entry {
                 if ui.button("Update").clicked() {
+                    let category = self.manifest.entries[idx].category.clone();
                     let img_path = self.resolve_image_path_for_entry();
-                    self.manifest.entries[idx] = self.state_to_entry(&img_path);
-                    // Auto-save to disk.
-                    if !self.manifest_path.is_empty() {
-                        match save_manifest(&self.manifest, Path::new(&self.manifest_path)) {
-                            Ok(()) => {
-                                self.status = format!("Updated & saved entry [{idx}]");
-                                self.dirty = false;
-                            }
-                            Err(e) => self.status = format!("Save error: {e}"),
-                        }
-                    }
+                    let mut entry = self.state_to_entry(&img_path);
+                    entry.category = category;
+                    self.manifest.entries[idx] = entry;
+                    self.auto_save(&format!("updated entry [{idx}]"));
                 }
                 if ui.button("Remove").clicked() {
                     self.manifest.entries.remove(idx);
@@ -756,7 +996,7 @@ impl App {
                     } else {
                         Some(idx.min(self.manifest.entries.len() - 1))
                     };
-                    self.dirty = true;
+                    self.auto_save("removed entry");
                 }
             }
         });
@@ -765,13 +1005,14 @@ impl App {
         if let Some(idx) = self.selected_entry
             && idx < self.manifest.entries.len()
         {
+            let mut field_changed = false;
             ui.horizontal(|ui| {
                 ui.label("Image:");
                 if ui
                     .text_edit_singleline(&mut self.manifest.entries[idx].image_path)
                     .changed()
                 {
-                    self.dirty = true;
+                    field_changed = true;
                 }
             });
             ui.horizontal(|ui| {
@@ -780,7 +1021,7 @@ impl App {
                     .text_edit_singleline(&mut self.manifest.entries[idx].output_path)
                     .changed()
                 {
-                    self.dirty = true;
+                    field_changed = true;
                 }
             });
             ui.horizontal(|ui| {
@@ -789,9 +1030,21 @@ impl App {
                     .text_edit_singleline(&mut self.manifest.entries[idx].description)
                     .changed()
                 {
-                    self.dirty = true;
+                    field_changed = true;
                 }
             });
+            ui.horizontal(|ui| {
+                ui.label("Category:");
+                if ui
+                    .text_edit_singleline(&mut self.manifest.entries[idx].category)
+                    .changed()
+                {
+                    field_changed = true;
+                }
+            });
+            if field_changed {
+                self.auto_save("edited field");
+            }
         }
 
         ui.separator();
@@ -972,6 +1225,76 @@ impl eframe::App for App {
 
         self.handle_dropped_files(ctx);
     }
+}
+
+/// Group manifest entry indices by category, preserving first-appearance order.
+fn build_category_groups(entries: &[ShapeManifestEntry]) -> Vec<(String, Vec<usize>)> {
+    let mut groups: Vec<(String, Vec<usize>)> = Vec::new();
+    for (i, entry) in entries.iter().enumerate() {
+        if let Some(group) = groups.iter_mut().find(|(name, _)| *name == entry.category) {
+            group.1.push(i);
+        } else {
+            groups.push((entry.category.clone(), vec![i]));
+        }
+    }
+    groups
+}
+
+/// Draw a single draggable entry row. Returns `(clicked, dropped_source_index)`.
+fn entry_row_ui(
+    ui: &mut egui::Ui,
+    idx: usize,
+    label: &str,
+    selected: bool,
+) -> (bool, Option<usize>) {
+    let row_height = ui.spacing().interact_size.y;
+    let desired_size = egui::vec2(ui.available_width(), row_height);
+    let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click_and_drag());
+
+    let dragging_this = response.dragged();
+
+    // Background.
+    if selected && !dragging_this {
+        ui.painter()
+            .rect_filled(rect, 2.0, ui.visuals().selection.bg_fill);
+    } else if response.hovered() && !dragging_this {
+        ui.painter()
+            .rect_filled(rect, 2.0, ui.visuals().widgets.hovered.bg_fill);
+    }
+
+    // Text.
+    let text_color = if selected {
+        ui.visuals().selection.stroke.color
+    } else {
+        ui.visuals().text_color()
+    };
+    let text_color = if dragging_this {
+        let c = text_color;
+        egui::Color32::from_rgba_unmultiplied(c.r(), c.g(), c.b(), c.a() / 3)
+    } else {
+        text_color
+    };
+    ui.painter().text(
+        egui::pos2(rect.left() + 4.0, rect.center().y),
+        egui::Align2::LEFT_CENTER,
+        label,
+        egui::TextStyle::Body.resolve(ui.style()),
+        text_color,
+    );
+
+    // Drag payload.
+    response.dnd_set_drag_payload(idx);
+
+    // Drop indicator — horizontal line above this row.
+    if response.dnd_hover_payload::<usize>().is_some() && !dragging_this {
+        let stroke = egui::Stroke::new(2.0, ui.visuals().selection.stroke.color);
+        ui.painter().hline(rect.x_range(), rect.top(), stroke);
+    }
+
+    // Drop detection.
+    let dropped = response.dnd_release_payload::<usize>().map(|arc| *arc);
+
+    (response.clicked() && !dragging_this, dropped)
 }
 
 /// Derive a valid Rust identifier from a file path's stem.

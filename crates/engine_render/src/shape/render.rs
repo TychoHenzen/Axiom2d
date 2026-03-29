@@ -326,7 +326,7 @@ mod tests {
         world.spawn((
             default_shape(),
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(1),
+            SortOrder::new(1),
             Material2d {
                 blend_mode: BlendMode::Multiply,
                 ..Material2d::default()
@@ -335,7 +335,7 @@ mod tests {
         world.spawn((
             default_shape(),
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(0),
+            SortOrder::new(0),
         ));
 
         // Act
@@ -461,7 +461,7 @@ mod tests {
             },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
-            SortOrder(10),
+            SortOrder::new(10),
         ));
         world.spawn((
             Shape {
@@ -470,7 +470,7 @@ mod tests {
             },
             GlobalTransform2D(Affine2::IDENTITY),
             RenderLayer::World,
-            SortOrder(1),
+            SortOrder::new(1),
         ));
 
         // Act
@@ -818,7 +818,7 @@ mod tests {
         world.spawn((
             colored_shape(red),
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(1),
+            SortOrder::new(1),
             Material2d {
                 shader: ShaderHandle(1),
                 ..Material2d::default()
@@ -827,7 +827,7 @@ mod tests {
         world.spawn((
             colored_shape(blue),
             GlobalTransform2D(Affine2::IDENTITY),
-            SortOrder(0),
+            SortOrder::new(0),
             Material2d {
                 shader: ShaderHandle(0),
                 blend_mode: BlendMode::Additive,

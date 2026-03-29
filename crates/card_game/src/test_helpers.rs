@@ -24,6 +24,7 @@ pub(crate) type DampingLog = Arc<Mutex<Vec<(Entity, f32, f32)>>>;
 pub(crate) type VelocityLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
 pub(crate) type AngularVelocityLog = Arc<Mutex<Vec<(Entity, f32)>>>;
 pub(crate) type CollisionGroupLog = Arc<Mutex<Vec<(Entity, u32, u32)>>>;
+pub(crate) type PositionLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
 
 /// Configurable spy for `PhysicsBackend` used across all `card_game` tests.
 ///
@@ -40,6 +41,7 @@ pub(crate) struct SpyPhysicsBackend {
     pub velocity_log: VelocityLog,
     pub angular_velocity_log: AngularVelocityLog,
     pub collision_group_log: CollisionGroupLog,
+    pub position_log: PositionLog,
 }
 
 impl SpyPhysicsBackend {
@@ -55,6 +57,7 @@ impl SpyPhysicsBackend {
             velocity_log: Arc::new(Mutex::new(Vec::new())),
             angular_velocity_log: Arc::new(Mutex::new(Vec::new())),
             collision_group_log: Arc::new(Mutex::new(Vec::new())),
+            position_log: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -96,6 +99,11 @@ impl SpyPhysicsBackend {
 
     pub fn with_angular_velocity_log(mut self, log: AngularVelocityLog) -> Self {
         self.angular_velocity_log = log;
+        self
+    }
+
+    pub fn with_position_log(mut self, log: PositionLog) -> Self {
+        self.position_log = log;
         self
     }
 }
@@ -170,6 +178,10 @@ impl PhysicsBackend for SpyPhysicsBackend {
             .lock()
             .unwrap()
             .push((entity, membership, filter));
+        Ok(())
+    }
+    fn set_body_position(&mut self, entity: Entity, position: Vec2) -> Result<(), PhysicsError> {
+        self.position_log.lock().unwrap().push((entity, position));
         Ok(())
     }
 }

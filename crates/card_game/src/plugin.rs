@@ -9,6 +9,10 @@ use crate::card::interaction::flip::card_flip_system;
 use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
 use crate::card::interaction::pick::card_pick_system;
 use crate::card::interaction::release::card_release_system;
+use crate::card::reader::{
+    ReaderDragState, card_reader_eject_system, card_reader_insert_system, reader_drag_system,
+    reader_pick_system, reader_release_system, reader_rotation_lock_system,
+};
 use crate::card::rendering::art_shader::{
     register_card_art_shader, register_gem_shader, register_tier_shaders, register_variant_shaders,
     shader_pointer_system,
@@ -51,6 +55,7 @@ impl Plugin for CardGamePlugin {
             a: 1.0,
         }));
         world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
         world.insert_resource(CameraDragState::default());
         world.insert_resource(StashVisible::default());
         world.insert_resource(Hand::new(10));
@@ -85,15 +90,23 @@ impl Plugin for CardGamePlugin {
 fn register_systems(app: &mut App) {
     app.add_systems(
         Phase::PreUpdate,
-        card_damping_system.after(physics_sync_system),
+        (
+            card_damping_system.after(physics_sync_system),
+            reader_rotation_lock_system.after(physics_sync_system),
+        ),
     )
     .add_systems(
         Phase::Update,
         (
             card_pick_system,
+            reader_pick_system,
+            card_reader_eject_system,
             card_drag_system,
+            reader_drag_system,
             stash_boundary_system,
+            card_reader_insert_system,
             card_release_system,
+            reader_release_system,
             card_flip_system,
             flip_animation_system,
         )

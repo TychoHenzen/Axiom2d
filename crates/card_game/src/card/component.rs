@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::Component;
+use bevy_ecs::prelude::{Component, Entity};
 use engine_core::prelude::TextureId;
 use serde::{Deserialize, Serialize};
 
@@ -44,5 +44,11 @@ pub struct CardLabel {
 pub enum CardZone {
     Table,
     Hand(usize),
-    Stash { page: u8, col: u8, row: u8 },
+    Stash {
+        page: u8,
+        col: u8,
+        row: u8,
+    },
+    #[serde(skip)]
+    Reader(Entity),
 }

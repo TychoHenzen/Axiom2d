@@ -9,13 +9,35 @@ use engine_render::shape::Shape;
 
 use crate::card::identity::signature::{Aspect, CardSignature, Element};
 
-use super::armor1;
 use super::barbarian_icons_01_t;
 use super::barbarian_icons_02_t;
 use super::barbarian_icons_03_t;
 use super::barbarian_icons_04_t;
 use super::barbarian_icons_05_t;
 use super::barbarian_icons_06_t;
+use super::barbarian_icons_07_t;
+use super::barbarian_icons_08_t;
+use super::barbarian_icons_09_t;
+use super::barbarian_icons_10_t;
+use super::barbarian_icons_11_t;
+use super::barbarian_icons_12_t;
+use super::barbarian_icons_13_t;
+use super::barbarian_icons_14_t;
+use super::barbarian_icons_15_t;
+use super::barbarian_icons_16_t;
+use super::barbarian_icons_17_t;
+use super::barbarian_icons_18_t;
+use super::barbarian_icons_19_t;
+use super::barbarian_icons_20_t;
+use super::barbarian_icons_21_t;
+use super::barbarian_icons_22_t;
+use super::barbarian_icons_23_t;
+use super::barbarian_icons_24_t;
+use super::barbarian_icons_25_t;
+use super::barbarian_icons_26_t;
+use super::barbarian_icons_27_t;
+use super::barbarian_icons_28_t;
+use super::barbarian_icons_29_t;
 
 /// A resolved art entry binding a shape list to its card identity metadata.
 pub struct ArtEntry {
@@ -86,15 +108,6 @@ impl ShapeRepository {
     /// Hydrate all registered art shapes and store them in the cache.
     pub fn hydrate_all(&mut self) {
         self.cache.insert(
-            "armor1",
-            ArtEntry::new(
-                armor1::armor1(),
-                Element::Solidum,
-                Aspect::Solid,
-                CardSignature::new([0.14, 0.59, 0.69, -0.92, -0.25, 0.58, 0.93, -0.64]),
-            ),
-        );
-        self.cache.insert(
             "barbarian_icons_01_t",
             ArtEntry::new(
                 barbarian_icons_01_t::barbarian_icons_01_t(),
@@ -146,6 +159,213 @@ impl ShapeRepository {
                 Element::Solidum,
                 Aspect::Solid,
                 CardSignature::new([-0.04, -0.86, 0.71, -0.79, -0.83, -0.61, 0.04, 0.86]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_07_t",
+            ArtEntry::new(
+                barbarian_icons_07_t::barbarian_icons_07_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([-0.11, -0.77, 0.65, -0.74, -0.91, -0.52, -0.04, 0.92]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_08_t",
+            ArtEntry::new(
+                barbarian_icons_08_t::barbarian_icons_08_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([-0.72, -0.98, -0.23, 0.79, -0.97, -0.19, -0.38, 0.99]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_09_t",
+            ArtEntry::new(
+                barbarian_icons_09_t::barbarian_icons_09_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([-0.79, -0.92, -0.31, 0.87, 0.97, -0.13, -0.44, -0.93]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_10_t",
+            ArtEntry::new(
+                barbarian_icons_10_t::barbarian_icons_10_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.39, 0.8, 0.9, 0.76, 0.15, 0.01, 0.74, -0.14]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_11_t",
+            ArtEntry::new(
+                barbarian_icons_11_t::barbarian_icons_11_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.46, 0.75, 0.95, 0.68, 0.21, -0.05, 0.83, -0.19]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_12_t",
+            ArtEntry::new(
+                barbarian_icons_12_t::barbarian_icons_12_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.54, 0.95, 0.75, 0.62, 0.3, 0.15, 0.62, -0.26]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_13_t",
+            ArtEntry::new(
+                barbarian_icons_13_t::barbarian_icons_13_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.6, 0.88, 0.81, 0.56, 0.35, 0.09, 0.68, -0.34]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_15_t",
+            ArtEntry::new(
+                barbarian_icons_15_t::barbarian_icons_15_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.73, -1.0, 0.69, 0.42, -0.04, -0.31, -0.92, 0.08]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_17_t",
+            ArtEntry::new(
+                barbarian_icons_17_t::barbarian_icons_17_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.88, -0.86, 0.56, 0.28, 0.09, -0.19, 0.96, -0.06]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_14_t",
+            ArtEntry::new(
+                barbarian_icons_14_t::barbarian_icons_14_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.68, -0.92, 0.62, 0.47, -0.13, -0.25, -0.98, 0.14]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_16_t",
+            ArtEntry::new(
+                barbarian_icons_16_t::barbarian_icons_16_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.8, -0.78, 0.5, 0.34, 0.01, -0.11, 0.88, -0.0]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_18_t",
+            ArtEntry::new(
+                barbarian_icons_18_t::barbarian_icons_18_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([-0.13, -0.66, -0.57, 0.22, -0.38, 0.57, 0.21, 0.42]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_19_t",
+            ArtEntry::new(
+                barbarian_icons_19_t::barbarian_icons_19_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([-0.08, -0.71, -0.51, 0.14, -0.33, 0.49, 0.28, 0.34]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_20_t",
+            ArtEntry::new(
+                barbarian_icons_20_t::barbarian_icons_20_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.49, 0.73, 0.15, -0.0, -0.44, 0.6, -0.01, 0.61]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_21_t",
+            ArtEntry::new(
+                barbarian_icons_21_t::barbarian_icons_21_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.41, 0.79, 0.06, 0.06, -0.5, 0.66, -0.07, 0.7]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_22_t",
+            ArtEntry::new(
+                barbarian_icons_22_t::barbarian_icons_22_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.61, 0.85, -0.0, -0.14, -0.3, 0.74, -0.13, 0.49]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_23_t",
+            ArtEntry::new(
+                barbarian_icons_23_t::barbarian_icons_23_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.55, 0.94, -0.06, -0.06, -0.35, 0.79, -0.21, 0.56]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_24_t",
+            ArtEntry::new(
+                barbarian_icons_24_t::barbarian_icons_24_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.74, 0.99, 0.4, 0.28, -0.69, 0.32, -0.26, 0.36]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_25_t",
+            ArtEntry::new(
+                barbarian_icons_25_t::barbarian_icons_25_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.69, -0.93, 0.34, 0.34, -0.76, 0.41, -0.35, 0.41]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_26_t",
+            ArtEntry::new(
+                barbarian_icons_26_t::barbarian_icons_26_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.89, -0.87, 0.28, 0.14, -0.56, 0.46, -0.41, 0.21]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_27_t",
+            ArtEntry::new(
+                barbarian_icons_27_t::barbarian_icons_27_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.83, -0.81, 0.2, 0.19, -0.64, 0.54, -0.47, 0.28]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_28_t",
+            ArtEntry::new(
+                barbarian_icons_28_t::barbarian_icons_28_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([-0.97, 0.2, 0.68, 0.53, 0.12, 0.07, 0.55, -0.83]),
+            ),
+        );
+        self.cache.insert(
+            "barbarian_icons_29_t",
+            ArtEntry::new(
+                barbarian_icons_29_t::barbarian_icons_29_t(),
+                Element::Solidum,
+                Aspect::Solid,
+                CardSignature::new([0.95, 0.26, 0.62, 0.62, 0.04, 0.12, 0.46, -0.77]),
             ),
         );
     }

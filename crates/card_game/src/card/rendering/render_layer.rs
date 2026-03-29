@@ -54,14 +54,14 @@ mod tests {
     fn spawn_card_with_face(world: &mut World, parent_layer: RenderLayer) -> (Entity, Entity) {
         let card = crate::test_helpers::make_test_card();
         let root = world
-            .spawn((card, parent_layer, engine_scene::prelude::SortOrder(0)))
+            .spawn((card, parent_layer, engine_scene::prelude::SortOrder::new(0)))
             .id();
         let face = world
             .spawn((
                 ChildOf(root),
                 CardFaceSide::Front,
                 RenderLayer::World,
-                engine_scene::prelude::SortOrder(0),
+                engine_scene::prelude::SortOrder::new(0),
             ))
             .id();
         (root, face)
@@ -124,14 +124,14 @@ mod tests {
             .spawn((
                 card,
                 RenderLayer::World,
-                engine_scene::prelude::SortOrder(0),
+                engine_scene::prelude::SortOrder::new(0),
             ))
             .id();
         let non_face = world
             .spawn((
                 ChildOf(root),
                 RenderLayer::UI,
-                engine_scene::prelude::SortOrder(0),
+                engine_scene::prelude::SortOrder::new(0),
             ))
             .id();
 
