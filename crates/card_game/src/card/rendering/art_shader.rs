@@ -274,11 +274,11 @@ mod tests {
     }
 
     #[test]
-    fn when_foil_shader_source_inspected_then_uses_in_uv_for_spatial_phase() {
-        // Assert — foil uses per-shape UV for spatial phase variation
+    fn when_foil_shader_source_inspected_then_uses_in_uv_for_surface_detail() {
+        // Assert — foil uses per-shape UV for micro-detail surface variation
         assert!(
             FOIL_WGSL.contains("in.uv"),
-            "foil shader must reference in.uv for geometry-aware spatial phase"
+            "foil shader must reference in.uv for per-fragment surface detail"
         );
     }
 
@@ -288,11 +288,11 @@ mod tests {
     }
 
     #[test]
-    fn when_glow_shader_inspected_then_uses_chromatic_shift() {
-        // Assert — glow shader uses thin-film chromatic color shift
+    fn when_glow_shader_inspected_then_uses_per_cell_phase() {
+        // Assert — glow shader uses hashed cell phase for sparkle orientation
         assert!(
             GLOW_WGSL.contains("phase"),
-            "glow shader should use phase-based color shifting"
+            "glow shader should use phase for per-cell sparkle orientation"
         );
     }
 

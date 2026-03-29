@@ -45,46 +45,53 @@ fn vs_shape(
     return out;
 }
 
+// Integer-based hash for cell orientation — avoids sin() precision issues
+fn hash21(p: vec2<f32>) -> f32 {
+    var n = u32(p.x * 73.0 + p.y * 157.0);
+    n = n ^ (n >> 13u);
+    n = n * 0x5bd1e995u;
+    n = n ^ (n >> 15u);
+    return f32(n & 0xFFFFu) / 65535.0;
+}
+
 @fragment
 fn fs_shape(in: VertexOutput) -> @location(0) vec4<f32> {
-    // Only render on art fragments
+    // Only render on art fragments (UV guard)
     if in.uv.x + in.uv.y < 0.001 {
         return vec4<f32>(0.0, 0.0, 0.0, 0.0);
     }
 
-    // Pointer direction relative to this fragment
+    // Sparkle point field: UV divided into grid cells, each with a random facet normal.
+    // Pointer acts as a point light — different cells catch the light at different angles,
+    // producing scattered glinting like glitter or confetti foil.
+    let scale = 7.0;
+    let cell = floor(in.uv * scale);
+    let cell_frac = fract(in.uv * scale);
+
+    // Per-cell random facet orientation from integer hash
+    let phase = hash21(cell);
+    let cell_angle = phase * 6.28318;
+    let facet_n = normalize(vec3<f32>(cos(cell_angle) * 0.45, sin(cell_angle) * 0.45, 1.0));
+
+    // Light direction from pointer
     let pointer = vec2<f32>(art_params.pointer_x, art_params.pointer_y);
     let delta = pointer - in.world_pos;
     let dist = length(delta);
-    let dir_norm = delta / max(dist, 1.0);
+    let light_xy = delta / max(dist, 1.0);
+    let light_dir = normalize(vec3<f32>(light_xy * 0.8, 0.6));
 
-    // Thin-film interference: phase varies across UV surface based on pointer angle
-    let angle = atan2(dir_norm.y, dir_norm.x);
-    let phase = dot(in.uv, vec2<f32>(cos(angle), sin(angle)));
+    // Blinn-Phong specular per cell
+    let view_dir = vec3<f32>(0.0, 0.0, 1.0);
+    let half_vec = normalize(light_dir + view_dir);
+    let spec = pow(max(dot(facet_n, half_vec), 0.0), 80.0);
 
-    // Subtle hue rotation — shift the base color through a small chromatic range
-    let shift = sin(phase * 6.2832) * 0.15;
-    let shifted = vec3<f32>(
-        in.color.r + shift,
-        in.color.g + shift * 0.7,
-        in.color.b - shift,
-    );
+    // Circular mask: sparkle visible only near cell center (round dot, not square)
+    let to_center = cell_frac - vec2<f32>(0.5);
+    let spot = smoothstep(0.45, 0.2, length(to_center));
 
-    // Edge iridescence: stronger color shift near UV boundaries
-    let edge_dist = min(min(in.uv.x, 1.0 - in.uv.x), min(in.uv.y, 1.0 - in.uv.y));
-    let edge_boost = 1.0 - smoothstep(0.0, 0.25, edge_dist);
-    let edge_shift = sin((phase + 0.5) * 6.2832) * 0.2 * edge_boost;
-
-    let result = vec3<f32>(
-        shifted.r + edge_shift * 0.8,
-        shifted.g - edge_shift * 0.3,
-        shifted.b + edge_shift,
-    );
-
-    // Proximity boost — effect intensifies when pointer is close
+    // Proximity boost — sparkles brighter when pointer is close
     let proximity = 1.0 / (1.0 + dist * 0.005);
-    let strength = 0.4 + proximity * 0.6;
 
-    let final_color = mix(in.color.rgb, result, strength);
-    return vec4<f32>(final_color, 0.55);
+    let sparkle = spec * spot * proximity;
+    return vec4<f32>(1.0, 1.0, 1.0, clamp(sparkle * 0.9, 0.0, 0.9));
 }
