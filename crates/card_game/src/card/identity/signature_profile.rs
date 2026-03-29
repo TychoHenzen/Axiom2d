@@ -573,8 +573,8 @@ mod tests {
 
     // ===== card-level tier integration =====
 
-    /// @doc: The card-level tier field in SignatureProfile must match
-    /// CardSignature::card_tier(). If these diverge, downstream systems
+    /// @doc: The card-level tier field in `SignatureProfile` must match
+    /// `CardSignature::card_tier()`. If these diverge, downstream systems
     /// (name generation, visual params) would use inconsistent tier data.
     #[test]
     fn when_signature_profile_built_then_card_level_tier_equals_card_tier_from_signature() {
@@ -618,7 +618,7 @@ mod tests {
         }
     }
 
-    /// @doc: Profile rarity comes from the hash-based CardSignature::rarity(),
+    /// @doc: Profile rarity comes from the hash-based `CardSignature::rarity()`,
     /// not from magnitude. This test verifies the profile correctly propagates
     /// the hash-derived rarity.
     #[test]

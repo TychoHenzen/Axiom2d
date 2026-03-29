@@ -595,8 +595,8 @@ mod tests {
 
     // ===== geometric_level =====
 
-    /// @doc: advance_rate=0.0 is the degenerate case — no value is ever below 0.0,
-    /// so the advance condition (value < advance_rate) is never satisfied and every
+    /// @doc: `advance_rate=0.0` is the degenerate case — no value is ever below 0.0,
+    /// so the advance condition (value < `advance_rate`) is never satisfied and every
     /// input stays at level 0.
     #[test]
     fn when_geometric_level_called_with_rate_zero_then_always_returns_first_level() {
@@ -610,7 +610,7 @@ mod tests {
         }
     }
 
-    /// @doc: advance_rate=1.0 means every value in [0,1) satisfies value < 1.0,
+    /// @doc: `advance_rate=1.0` means every value in [0,1) satisfies value < 1.0,
     /// so each stage always advances — every input reaches the maximum level.
     #[test]
     fn when_geometric_level_called_with_rate_one_then_always_returns_max_level() {
@@ -630,7 +630,7 @@ mod tests {
         }
     }
 
-    /// @doc: With advance_rate=0.3, a value of 0.15 is below the threshold and
+    /// @doc: With `advance_rate=0.3`, a value of 0.15 is below the threshold and
     /// qualifies to advance — it must reach at least level 1.
     #[test]
     fn when_geometric_level_called_with_value_below_rate_then_advances_past_first_level() {
@@ -645,7 +645,7 @@ mod tests {
         assert!(level >= 1, "expected level >= 1, got {level}");
     }
 
-    /// @doc: With advance_rate=0.3, a value of 0.85 is above the threshold —
+    /// @doc: With `advance_rate=0.3`, a value of 0.85 is above the threshold —
     /// the advance condition is not met and the card stays at level 0.
     #[test]
     fn when_geometric_level_called_with_value_above_rate_then_stays_at_level_zero() {
@@ -780,7 +780,7 @@ mod tests {
         }
     }
 
-    /// @doc: With advance_rate=0.3 and a uniform hash distribution, Common is the most probable
+    /// @doc: With `advance_rate=0.3` and a uniform hash distribution, Common is the most probable
     /// outcome (probability 0.7) and each subsequent tier is rarer by factor 0.3.  Verifying the
     /// ordering over 1 000 seeded samples guards against an accidentally inverted level mapping.
     #[test]
@@ -834,7 +834,7 @@ mod tests {
     }
 
     /// @doc: A higher `rarity_advance_rate` widens the advance window at each level, so a larger
-    /// fraction of hashes reach Rare or above. rarity_with_config() must expose this knob so
+    /// fraction of hashes reach Rare or above. `rarity_with_config()` must expose this knob so
     /// designers can tune pool composition without touching source code.
     #[test]
     fn when_rarity_computed_with_higher_advance_rate_then_rare_or_above_frequency_increases() {
@@ -904,13 +904,11 @@ mod tests {
         // Assert
         assert!(
             valid.contains(&rarity_pos),
-            "+0.5 signature produced invalid rarity {:?}",
-            rarity_pos
+            "+0.5 signature produced invalid rarity {rarity_pos:?}"
         );
         assert!(
             valid.contains(&rarity_neg),
-            "-0.5 signature produced invalid rarity {:?}",
-            rarity_neg
+            "-0.5 signature produced invalid rarity {rarity_neg:?}"
         );
     }
 
@@ -958,7 +956,7 @@ mod tests {
         }
     }
 
-    /// @doc: With advance_rate=0.3, Dormant should be most frequent (~70%), Active next (~21%),
+    /// @doc: With `advance_rate=0.3`, Dormant should be most frequent (~70%), Active next (~21%),
     /// and Intense rarest (~9%). This guards against an inverted level mapping that would make
     /// most cards Intense.
     #[test]
