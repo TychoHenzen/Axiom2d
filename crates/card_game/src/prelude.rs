@@ -13,7 +13,9 @@ pub use crate::card::identity::gem_sockets::{
     MAX_GEM_RADIUS, MIN_GEM_RADIUS, aspect_color, gem_border_positions, gem_color, gem_radius,
 };
 pub use crate::card::identity::residual::{ModifierType, ResidualModifier, ResidualStats};
-pub use crate::card::identity::signature::{Aspect, CardSignature, Element};
+pub use crate::card::identity::signature::{
+    Aspect, CardSignature, Element, RarityTierConfig, compute_seed, geometric_level,
+};
 pub use crate::card::identity::signature_profile::{SignatureProfile, Tier};
 pub use crate::card::identity::visual_params::{
     CardVisualParams, PATTERN_COUNT, generate_card_visuals,

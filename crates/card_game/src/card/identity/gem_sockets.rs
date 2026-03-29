@@ -93,18 +93,18 @@ pub fn gem_radius(intensity: f32) -> f32 {
     MIN_GEM_RADIUS + intensity * (MAX_GEM_RADIUS - MIN_GEM_RADIUS)
 }
 
-/// Returns the 8 vertices of a regular octagon centered at the origin.
+/// Returns the 6 vertices of a regular hexagon centered at the origin.
 /// Vertices are ordered counter-clockwise starting at angle 0 (positive x-axis).
-pub fn octagon_vertices(radius: f32) -> [Vec2; 8] {
+pub fn hexagon_vertices(radius: f32) -> [Vec2; 6] {
     core::array::from_fn(|i| {
-        let angle = TAU * i as f32 / 8.0;
+        let angle = TAU * i as f32 / 6.0;
         Vec2::new(radius * angle.cos(), radius * angle.sin())
     })
 }
 
-/// Maps octagon vertices to normalized [0, 1]² UV coordinates via AABB normalization.
+/// Maps hexagon vertices to normalized [0, 1]² UV coordinates via AABB normalization.
 /// The shader uses these UVs to determine per-facet surface normals.
-pub fn octagon_uvs(vertices: &[Vec2; 8]) -> [[f32; 2]; 8] {
+pub fn hexagon_uvs(vertices: &[Vec2; 6]) -> [[f32; 2]; 6] {
     let min_x = vertices.iter().map(|v| v.x).fold(f32::INFINITY, f32::min);
     let max_x = vertices
         .iter()
@@ -361,19 +361,19 @@ mod tests {
         }
     }
 
-    // --- octagon_vertices tests ---
+    // --- hexagon_vertices tests ---
 
     /// @doc: Every vertex of a regular polygon lies exactly on its circumscribed circle, so
-    /// `vertex.length()` must equal `radius` for all 8 vertices.  If a vertex drifts off this
+    /// `vertex.length()` must equal `radius` for all 6 vertices.  If a vertex drifts off this
     /// circle the polygon is no longer regular: gem facets become unequal in length, distorting
     /// the gem silhouette and breaking the per-face normal computation in the shader.
     #[test]
-    fn when_octagon_vertices_generated_then_all_at_circumradius() {
+    fn when_hexagon_vertices_generated_then_all_at_circumradius() {
         // Arrange
         let radius = 2.5_f32;
 
         // Act
-        let vertices = octagon_vertices(radius);
+        let vertices = hexagon_vertices(radius);
 
         // Assert
         for (i, v) in vertices.iter().enumerate() {
@@ -391,13 +391,13 @@ mod tests {
     /// translated gem would appear off-centre relative to its socket — visually misaligned and
     /// inconsistent across different socket positions.
     #[test]
-    fn when_octagon_vertices_generated_then_centroid_is_at_origin() {
+    fn when_hexagon_vertices_generated_then_centroid_is_at_origin() {
         // Arrange
         let radius = 3.0_f32;
 
         // Act
-        let vertices = octagon_vertices(radius);
-        let centroid = vertices.iter().copied().fold(Vec2::ZERO, |acc, v| acc + v) / 8.0;
+        let vertices = hexagon_vertices(radius);
+        let centroid = vertices.iter().copied().fold(Vec2::ZERO, |acc, v| acc + v) / 6.0;
 
         // Assert
         assert!(
@@ -408,24 +408,24 @@ mod tests {
         );
     }
 
-    /// @doc: Uniform 45-degree (PI/4) angular spacing is what makes the polygon regular.
+    /// @doc: Uniform 60-degree (PI/3) angular spacing is what makes the polygon regular.
     /// Irregular spacing produces a skewed or stretched shape: some facets wider than others,
     /// breaking visual symmetry and causing the gem to look like an unintentional blob rather
-    /// than a clean octagon.
+    /// than a clean hexagon.
     #[test]
-    fn when_octagon_vertices_generated_then_angular_spacing_is_uniform() {
+    fn when_hexagon_vertices_generated_then_angular_spacing_is_uniform() {
         // Arrange
         let radius = 2.0_f32;
-        let expected_gap = std::f32::consts::PI / 4.0;
+        let expected_gap = std::f32::consts::PI / 3.0;
 
         // Act
-        let vertices = octagon_vertices(radius);
-        let angles: [f32; 8] = core::array::from_fn(|i| vertices[i].y.atan2(vertices[i].x));
+        let vertices = hexagon_vertices(radius);
+        let angles: [f32; 6] = core::array::from_fn(|i| vertices[i].y.atan2(vertices[i].x));
 
-        // Assert — consecutive angular gaps must be ~PI/4 (with wrap-around on the last pair)
-        for i in 0..8 {
+        // Assert — consecutive angular gaps must be ~PI/3 (with wrap-around on the last pair)
+        for i in 0..6 {
             let a0 = angles[i];
-            let a1 = angles[(i + 1) % 8];
+            let a1 = angles[(i + 1) % 6];
             let mut gap = a1 - a0;
             // Normalise into (-PI, PI] to handle the wrap from ~PI back to ~-PI
             if gap <= -std::f32::consts::PI {
@@ -434,47 +434,47 @@ mod tests {
             assert!(
                 (gap.abs() - expected_gap).abs() < 1e-5,
                 "angular gap between vertex {i} and {} is {} (expected {})",
-                (i + 1) % 8,
+                (i + 1) % 6,
                 gap,
                 expected_gap,
             );
         }
     }
 
-    /// @doc: An octagon is the highest-fidelity polygon that still reads as a distinct gem shape
-    /// at card scale; fewer sides look blocky, more sides are indistinguishable from circles.
-    /// The vertex count is a hard contract: rendering code indexes exactly 8 facets to compute
-    /// per-face normals, so deviating from 8 corrupts every gem drawn on screen.
+    /// @doc: A hexagon gives gems a distinct crystalline silhouette at card scale without
+    /// overlapping neighbors. The vertex count is a hard contract: rendering code indexes
+    /// exactly 6 facets to compute per-face normals, so deviating from 6 corrupts every
+    /// gem drawn on screen.
     #[test]
-    fn when_octagon_vertices_called_with_minimum_radius_then_produces_eight_points() {
+    fn when_hexagon_vertices_called_with_minimum_radius_then_produces_six_points() {
         // Arrange
         let radius = MIN_GEM_RADIUS;
 
         // Act
-        let vertices = octagon_vertices(radius);
+        let vertices = hexagon_vertices(radius);
 
         // Assert
         assert_eq!(
             vertices.len(),
-            8,
-            "octagon_vertices must return 8 points regardless of radius (got {} at radius {})",
+            6,
+            "hexagon_vertices must return 6 points regardless of radius (got {} at radius {})",
             vertices.len(),
             radius,
         );
     }
 
-    // --- octagon_uvs tests ---
+    // --- hexagon_uvs tests ---
 
     /// @doc: The gem shader uses UV coordinates to identify which facet a fragment belongs to.
     /// UVs outside [0,1] would cause the shader to miscalculate facet indices, producing wrong
     /// normals and misplaced specular highlights.
     #[test]
-    fn when_computing_octagon_uvs_then_all_in_zero_to_one_range() {
+    fn when_computing_hexagon_uvs_then_all_in_zero_to_one_range() {
         // Arrange
-        let vertices = octagon_vertices(2.0);
+        let vertices = hexagon_vertices(2.0);
 
         // Act
-        let uvs = octagon_uvs(&vertices);
+        let uvs = hexagon_uvs(&vertices);
 
         // Assert
         for (i, uv) in uvs.iter().enumerate() {
@@ -494,12 +494,12 @@ mod tests {
     /// @doc: The UV normalization must use the full [0,1] span; a compressed range would make
     /// the shader's facet boundary detection fail because it assumes edge UVs sit at 0.0 and 1.0.
     #[test]
-    fn when_computing_octagon_uvs_then_full_range_used_on_both_axes() {
+    fn when_computing_hexagon_uvs_then_full_range_used_on_both_axes() {
         // Arrange
-        let vertices = octagon_vertices(2.0);
+        let vertices = hexagon_vertices(2.0);
 
         // Act
-        let uvs = octagon_uvs(&vertices);
+        let uvs = hexagon_uvs(&vertices);
         let min_u = uvs.iter().map(|uv| uv[0]).fold(f32::INFINITY, f32::min);
         let max_u = uvs.iter().map(|uv| uv[0]).fold(f32::NEG_INFINITY, f32::max);
         let min_v = uvs.iter().map(|uv| uv[1]).fold(f32::INFINITY, f32::min);
@@ -524,18 +524,18 @@ mod tests {
         );
     }
 
-    // --- octagon tessellation tests ---
+    // --- hexagon tessellation tests ---
 
-    /// @doc: The octagon vertices produced by `octagon_vertices` must form a valid polygon
+    /// @doc: The hexagon vertices produced by `hexagon_vertices` must form a valid polygon
     /// for lyon's fill tessellator. If the vertices are colinear, self-intersecting, or have
     /// fewer than 3 unique points, tessellation silently produces an empty mesh and the gem
     /// becomes invisible — with no runtime error to catch the problem.
     #[test]
-    fn when_tessellating_octagon_as_polygon_then_mesh_is_nonempty_with_valid_indices() {
+    fn when_tessellating_hexagon_as_polygon_then_mesh_is_nonempty_with_valid_indices() {
         use engine_render::shape::{ShapeVariant, tessellate};
 
         // Arrange
-        let vertices = octagon_vertices(2.0);
+        let vertices = hexagon_vertices(2.0);
         let points: Vec<_> = vertices.to_vec();
 
         // Act
@@ -562,24 +562,24 @@ mod tests {
 
     /// @doc: A convex polygon with N vertices triangulates into exactly N-2 triangles.
     /// The gem shader assigns one surface normal per triangle (facet), so the facet count
-    /// must be stable at 6 for an octagon. Extra degenerate triangles from the tessellator
+    /// must be stable at 4 for a hexagon. Extra degenerate triangles from the tessellator
     /// would create invisible facets that steal specular highlights from real ones.
     #[test]
-    fn when_tessellating_octagon_then_produces_six_triangles() {
+    fn when_tessellating_hexagon_then_produces_four_triangles() {
         use engine_render::shape::{ShapeVariant, tessellate};
 
         // Arrange
-        let vertices = octagon_vertices(2.0);
+        let vertices = hexagon_vertices(2.0);
         let points: Vec<_> = vertices.to_vec();
 
         // Act
         let mesh = tessellate(&ShapeVariant::Polygon { points }).unwrap();
 
-        // Assert — N-2 triangles for N=8 → 6 triangles → 18 indices
+        // Assert — N-2 triangles for N=6 → 4 triangles → 12 indices
         assert_eq!(
             mesh.indices.len(),
-            18,
-            "octagon should produce 6 triangles (18 indices), got {} indices",
+            12,
+            "hexagon should produce 4 triangles (12 indices), got {} indices",
             mesh.indices.len()
         );
     }

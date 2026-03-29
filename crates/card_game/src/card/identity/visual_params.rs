@@ -1,24 +1,10 @@
-use crate::card::identity::signature::{CardSignature, Element};
+use crate::card::identity::signature::{CardSignature, Element, compute_seed};
 use crate::card::identity::signature_profile::{SignatureProfile, Tier};
 use crate::card::rendering::art_shader::ShaderVariant;
 use engine_core::color::Color;
 use rand::Rng;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
-
-pub fn compute_seed(signature: &CardSignature) -> u64 {
-    signature
-        .axes()
-        .iter()
-        .enumerate()
-        .fold(0u64, |acc, (i, &v)| {
-            let bits = u64::from(v.to_bits());
-            let mixed = bits
-                .wrapping_add(0x9e37_79b9_7f4a_7c15)
-                .wrapping_mul(i as u64 + 1);
-            acc ^ mixed.rotate_left(17).wrapping_mul(0x94d0_49bb_1331_11eb)
-        })
-}
 
 #[derive(Debug, PartialEq)]
 pub struct CardVisualParams {
@@ -64,10 +50,8 @@ pub fn generate_card_visuals(
         1.0,
     );
     let pattern_index = rng.gen_range(0..PATTERN_COUNT);
-    let shader_variant = ShaderVariant::from_rarity(signature.rarity());
-    let tier_detail = profile
-        .dominant_axis
-        .map_or(Tier::Dormant, |e| profile.tiers[e as usize]);
+    let shader_variant = ShaderVariant::from_rarity(profile.rarity);
+    let tier_detail = profile.tier;
 
     CardVisualParams {
         art_color,
@@ -82,8 +66,6 @@ pub fn generate_card_visuals(
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::card::identity::signature_profile::{SignatureProfile, Tier};
-    use crate::card::rendering::art_shader::ShaderVariant;
 
     /// @doc: Ensures all 8 elements map to visually distinct base colors.
     /// Without this test, two elements could accidentally share a color, breaking visual uniqueness on the card.
@@ -212,49 +194,20 @@ mod tests {
         );
     }
 
-    /// @doc: Maps signature intensity to tier detail (Dormant < 0.3). Card artwork complexity scales with tier.
-    /// This ensures weak signatures get minimal visual detail, preventing overstated power representation.
+    /// @doc: Tier detail in visuals comes from the card-level hash-based tier,
+    /// not axis magnitude. This decouples visual power representation from
+    /// the signature's type identity.
     #[test]
-    fn when_dominant_axis_is_dormant_then_tier_detail_is_dormant() {
-        // Arrange — Solidum at 0.1 (below 0.3 threshold = Dormant)
-        let sig = CardSignature::new([0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    fn when_generate_card_visuals_called_then_tier_detail_matches_profile_card_tier() {
+        // Arrange
+        let sig = CardSignature::new([0.5, -0.3, 0.8, -0.1, 0.6, -0.4, 0.2, -0.9]);
         let profile = SignatureProfile::without_archetype(&sig);
 
         // Act
         let params = generate_card_visuals(&sig, &profile);
 
         // Assert
-        assert_eq!(params.tier_detail, Tier::Dormant);
-    }
-
-    /// @doc: Maps Active tier for signatures in [0.3, 0.7) range.
-    /// Without this test, tier threshold logic could drift and misrepresent card intensity.
-    #[test]
-    fn when_dominant_axis_is_active_then_tier_detail_is_active() {
-        // Arrange — Solidum at 0.5 (0.3..0.7 = Active)
-        let sig = CardSignature::new([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-        let profile = SignatureProfile::without_archetype(&sig);
-
-        // Act
-        let params = generate_card_visuals(&sig, &profile);
-
-        // Assert
-        assert_eq!(params.tier_detail, Tier::Active);
-    }
-
-    /// @doc: Maps Intense tier for signatures >= 0.7 (high power/rarity cards).
-    /// Tier detail drives art complexity shaders, so incorrect mapping breaks visual hierarchy.
-    #[test]
-    fn when_dominant_axis_is_intense_then_tier_detail_is_intense() {
-        // Arrange — Solidum at 0.8 (>= 0.7 = Intense)
-        let sig = CardSignature::new([0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-        let profile = SignatureProfile::without_archetype(&sig);
-
-        // Act
-        let params = generate_card_visuals(&sig, &profile);
-
-        // Assert
-        assert_eq!(params.tier_detail, Tier::Intense);
+        assert_eq!(params.tier_detail, profile.tier);
     }
 
     /// @doc: Element identity must be visually distinct in the tint color, not just metadata.
@@ -458,29 +411,33 @@ mod tests {
         );
     }
 
-    /// @doc: Common rarity (all axes near 0) maps to no shader effects (`ShaderVariant::None`).
+    /// @doc: Common rarity maps to no shader effects (`ShaderVariant::None`).
     /// Rarity-driven visual feedback requires correct shader selection, otherwise all cards look identical.
     #[test]
-    fn when_generate_card_visuals_called_with_common_signature_then_shader_variant_is_none() {
+    fn when_generate_card_visuals_called_with_common_rarity_then_shader_variant_is_none() {
         // Arrange
         let sig = CardSignature::new([0.0; 8]);
+        let mut profile = SignatureProfile::without_archetype(&sig);
+        profile.rarity = crate::card::identity::signature::Rarity::Common;
 
         // Act
-        let params = generate_card_visuals(&sig, &SignatureProfile::without_archetype(&sig));
+        let params = generate_card_visuals(&sig, &profile);
 
         // Assert
         assert_eq!(params.shader_variant, ShaderVariant::None);
     }
 
-    /// @doc: Legendary rarity (all axes at max) maps to `ShaderVariant::Foil` for premium visual effect.
+    /// @doc: Legendary rarity maps to `ShaderVariant::Foil` for premium visual effect.
     /// Without this test, high-rarity cards would not visually distinguish themselves in gameplay.
     #[test]
-    fn when_generate_card_visuals_called_with_legendary_signature_then_shader_variant_is_foil() {
+    fn when_generate_card_visuals_called_with_legendary_rarity_then_shader_variant_is_foil() {
         // Arrange
         let sig = CardSignature::new([1.0; 8]);
+        let mut profile = SignatureProfile::without_archetype(&sig);
+        profile.rarity = crate::card::identity::signature::Rarity::Legendary;
 
         // Act
-        let params = generate_card_visuals(&sig, &SignatureProfile::without_archetype(&sig));
+        let params = generate_card_visuals(&sig, &profile);
 
         // Assert
         assert_eq!(params.shader_variant, ShaderVariant::Foil);

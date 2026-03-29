@@ -129,8 +129,6 @@ pub fn subtitle_phrase(tier: Tier, cluster: AspectCluster) -> &'static str {
 mod tests {
     use super::*;
     use crate::card::identity::base_type::BaseCardTypeRegistry;
-    use crate::card::identity::signature::CardSignature;
-    use crate::card::identity::signature_profile::SignatureProfile;
 
     fn make_registry() -> BaseCardTypeRegistry {
         let mut registry = BaseCardTypeRegistry::default();
@@ -294,8 +292,8 @@ mod tests {
     fn when_rarity_is_common_then_title_matches_one_of_four_templates() {
         // Arrange
         let sig = CardSignature::new([0.0; 8]);
-        let profile = SignatureProfile::without_archetype(&sig);
-        assert_eq!(profile.rarity, Rarity::Common);
+        let mut profile = SignatureProfile::without_archetype(&sig);
+        profile.rarity = Rarity::Common;
 
         // Act
         let name = generate_card_name(&profile, &sig);
@@ -312,8 +310,8 @@ mod tests {
     fn when_rarity_is_uncommon_then_title_matches_one_of_four_templates() {
         // Arrange
         let sig = CardSignature::new([0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-        let profile = SignatureProfile::without_archetype(&sig);
-        assert_eq!(profile.rarity, Rarity::Uncommon);
+        let mut profile = SignatureProfile::without_archetype(&sig);
+        profile.rarity = Rarity::Uncommon;
 
         // Act
         let name = generate_card_name(&profile, &sig);
@@ -330,8 +328,8 @@ mod tests {
     fn when_rarity_is_rare_then_title_matches_one_of_five_templates() {
         // Arrange
         let sig = CardSignature::new([0.6, 0.6, 0.6, 0.6, 0.0, 0.0, 0.0, 0.0]);
-        let profile = SignatureProfile::without_archetype(&sig);
-        assert_eq!(profile.rarity, Rarity::Rare);
+        let mut profile = SignatureProfile::without_archetype(&sig);
+        profile.rarity = Rarity::Rare;
 
         // Act
         let name = generate_card_name(&profile, &sig);
@@ -348,8 +346,8 @@ mod tests {
     fn when_rarity_is_epic_then_title_matches_one_of_five_templates() {
         // Arrange
         let sig = CardSignature::new([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.0, 0.0]);
-        let profile = SignatureProfile::without_archetype(&sig);
-        assert_eq!(profile.rarity, Rarity::Epic);
+        let mut profile = SignatureProfile::without_archetype(&sig);
+        profile.rarity = Rarity::Epic;
 
         // Act
         let name = generate_card_name(&profile, &sig);
@@ -366,8 +364,8 @@ mod tests {
     fn when_rarity_is_legendary_then_title_matches_one_of_two_templates() {
         // Arrange
         let sig = CardSignature::new([1.0; 8]);
-        let profile = SignatureProfile::without_archetype(&sig);
-        assert_eq!(profile.rarity, Rarity::Legendary);
+        let mut profile = SignatureProfile::without_archetype(&sig);
+        profile.rarity = Rarity::Legendary;
 
         // Act
         let name = generate_card_name(&profile, &sig);
@@ -554,12 +552,8 @@ mod tests {
 
         for axes in &rare_sigs {
             let sig = CardSignature::new(*axes);
-            let profile = SignatureProfile::without_archetype(&sig);
-            assert_eq!(
-                profile.rarity,
-                Rarity::Rare,
-                "fixture {axes:?} must be Rare"
-            );
+            let mut profile = SignatureProfile::without_archetype(&sig);
+            profile.rarity = Rarity::Rare;
 
             // Act
             let name = generate_card_name(&profile, &sig);
@@ -586,12 +580,8 @@ mod tests {
 
         for axes in &legendary_sigs {
             let sig = CardSignature::new(*axes);
-            let profile = SignatureProfile::without_archetype(&sig);
-            assert_eq!(
-                profile.rarity,
-                Rarity::Legendary,
-                "fixture {axes:?} must be Legendary"
-            );
+            let mut profile = SignatureProfile::without_archetype(&sig);
+            profile.rarity = Rarity::Legendary;
 
             // Act
             let name = generate_card_name(&profile, &sig);

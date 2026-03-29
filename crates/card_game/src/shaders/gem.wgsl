@@ -46,16 +46,16 @@ fn vs_shape(
 }
 
 // Compute a discrete facet normal from UV position.
-// The octagon is divided into 8 sectors radiating from center (0.5, 0.5).
+// The hexagon is divided into 6 sectors radiating from center (0.5, 0.5).
 // Each sector gets a constant outward-tilted normal, creating flat facet faces
 // that catch light at distinct angles — the hallmark of a cut gemstone.
 fn facet_normal(uv: vec2<f32>) -> vec3<f32> {
     let centered = uv - vec2<f32>(0.5, 0.5);
     let angle = atan2(centered.y, centered.x);
 
-    // Quantize into one of 8 sectors (each 45 degrees / PI/4 radians)
-    let sector = floor((angle + 3.14159265) / (3.14159265 / 4.0));
-    let sector_angle = -3.14159265 + (sector + 0.5) * (3.14159265 / 4.0);
+    // Quantize into one of 6 sectors (each 60 degrees / PI/3 radians)
+    let sector = floor((angle + 3.14159265) / (3.14159265 / 3.0));
+    let sector_angle = -3.14159265 + (sector + 0.5) * (3.14159265 / 3.0);
 
     // Each facet tilts outward from center at a fixed angle
     let tilt = 0.35;

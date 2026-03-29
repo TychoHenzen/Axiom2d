@@ -12,6 +12,7 @@ pub enum Tier {
 
 #[derive(Component, Debug, Clone, PartialEq)]
 pub struct SignatureProfile {
+    pub tier: Tier,
     pub tiers: [Tier; 8],
     pub aspects: [Aspect; 8],
     pub dominant_axis: Option<Element>,
@@ -51,6 +52,7 @@ impl SignatureProfile {
         };
 
         Self {
+            tier: signature.card_tier(),
             tiers,
             aspects,
             dominant_axis,
@@ -432,7 +434,7 @@ mod tests {
     /// Rarity drives visual effects, card templates, and gameplay value, so loss here cascades downstream.
     #[test]
     fn when_signature_has_known_rarity_then_profile_stores_same_value() {
-        // Arrange — all axes at 1.0 should produce Legendary
+        // Arrange
         let sig = CardSignature::new([1.0; 8]);
 
         // Act
@@ -529,7 +531,7 @@ mod tests {
         );
     }
 
-    /// @doc: Integration test: all 6 profile fields (tiers, aspects, dominant, secondary, rarity, archetype) are set.
+    /// @doc: Integration test: all 7 profile fields (tier, tiers, aspects, dominant, secondary, rarity, archetype) are set.
     /// Ensures the profile construction pipeline produces a complete, usable card identity.
     #[test]
     fn when_profile_constructed_then_all_fields_are_populated() {
@@ -541,12 +543,15 @@ mod tests {
         // Act
         let profile = SignatureProfile::new(&sig, &registry);
 
-        // Assert — tiers
+        // Assert — per-element tiers
         assert_eq!(profile.tiers[0], Tier::Intense, "Solidum 0.8 → Intense");
         assert_eq!(profile.tiers[1], Tier::Active, "Febris 0.6 → Active");
         for i in 2..8 {
             assert_eq!(profile.tiers[i], Tier::Dormant, "axis {i} at 0.1 → Dormant");
         }
+
+        // Assert — card-level tier
+        assert_eq!(profile.tier, sig.card_tier());
 
         // Assert — aspects (all positive)
         assert_eq!(profile.aspects[0], Aspect::Solid);
@@ -563,6 +568,72 @@ mod tests {
         assert!(
             profile.archetype.is_some(),
             "should match a registered archetype"
+        );
+    }
+
+    // ===== card-level tier integration =====
+
+    /// @doc: The card-level tier field in SignatureProfile must match
+    /// CardSignature::card_tier(). If these diverge, downstream systems
+    /// (name generation, visual params) would use inconsistent tier data.
+    #[test]
+    fn when_signature_profile_built_then_card_level_tier_equals_card_tier_from_signature() {
+        // Arrange
+        let sig = CardSignature::new([0.3, -0.7, 0.5, -0.1, 0.9, -0.2, 0.4, -0.8]);
+
+        // Act
+        let profile = profile_of(&sig);
+
+        // Assert
+        assert_eq!(
+            profile.tier,
+            sig.card_tier(),
+            "profile.tier should match CardSignature::card_tier()"
+        );
+    }
+
+    /// @doc: Per-element tiers remain intensity-based after adding the card-level
+    /// hash-based tier. This regression guard ensures the refactor didn't accidentally
+    /// wire the per-element tiers to the new hash path.
+    #[test]
+    fn when_signature_profile_built_then_per_element_tiers_are_still_intensity_based() {
+        // Arrange — Solidum at 0.8 (Intense), all others at 0.1 (Dormant)
+        let sig = CardSignature::new([0.8, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]);
+
+        // Act
+        let profile = profile_of(&sig);
+
+        // Assert
+        assert_eq!(
+            profile.tiers[0],
+            Tier::Intense,
+            "Solidum 0.8 should be Intense"
+        );
+        for i in 1..8 {
+            assert_eq!(
+                profile.tiers[i],
+                Tier::Dormant,
+                "axis {i} at 0.1 should be Dormant"
+            );
+        }
+    }
+
+    /// @doc: Profile rarity comes from the hash-based CardSignature::rarity(),
+    /// not from magnitude. This test verifies the profile correctly propagates
+    /// the hash-derived rarity.
+    #[test]
+    fn when_signature_profile_built_then_rarity_matches_hash_based_signature_rarity() {
+        // Arrange
+        let sig = CardSignature::new([0.5, -0.3, 0.8, -0.1, 0.6, -0.4, 0.2, -0.9]);
+
+        // Act
+        let profile = profile_of(&sig);
+
+        // Assert
+        assert_eq!(
+            profile.rarity,
+            sig.rarity(),
+            "profile rarity should match hash-based CardSignature::rarity()"
         );
     }
 }

@@ -16,7 +16,9 @@ use crate::card::identity::card_name::generate_card_name;
 use crate::card::identity::definition::CardDefinition;
 use crate::card::identity::residual::ResidualStats;
 use crate::card::identity::signature::CardSignature;
+use crate::card::identity::signature::compute_seed;
 use crate::card::identity::signature_profile::SignatureProfile;
+use crate::card::identity::visual_params::generate_card_visuals;
 use crate::card::interaction::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card::rendering::art_shader::CardArtShader;
 use crate::card::rendering::bake::{bake_back_face, bake_front_face};
@@ -128,9 +130,8 @@ fn build_mesh_overlays(
     use engine_render::shape::{ColorVertex, MeshOverlays, OverlayEntry, TessellatedColorMesh};
 
     let mut entries = Vec::new();
-    let profile =
-        crate::card::identity::signature_profile::SignatureProfile::without_archetype(signature);
-    let visuals = crate::card::identity::visual_params::generate_card_visuals(signature, &profile);
+    let profile = SignatureProfile::without_archetype(signature);
+    let visuals = generate_card_visuals(signature, &profile);
 
     let art_region = &FRONT_FACE_REGIONS[2];
     let (half_w, half_h, offset_y) = art_region.resolve(card_size.x, card_size.y);
@@ -258,7 +259,7 @@ fn build_mesh_overlays(
         };
         // Write signature-derived seed into extra0 so the tier shader gets a
         // stable per-card seed that survives dragging and repositioning.
-        let seed = crate::card::identity::visual_params::compute_seed(signature);
+        let seed = compute_seed(signature);
         let seed_f32 = (seed & 0xFFFF_FFFF) as f32;
         let mut tier_uniforms = art_uniforms.clone();
         // extra0 is at byte offset 20 (6th f32: half_w, half_h, pointer_x, pointer_y, offset_y, extra0)
@@ -276,7 +277,7 @@ fn build_mesh_overlays(
         });
     }
 
-    // Gem facet overlays: one octagonal overlay per element gem
+    // Gem facet overlays: one hexagonal overlay per element gem
     if let Some(gem_shader) = world
         .get_resource::<crate::card::rendering::art_shader::GemShader>()
         .map(|gs| gs.0)
@@ -305,7 +306,7 @@ fn build_mesh_overlays(
 }
 
 /// Build an overlay entry for a single faceted gem.
-/// The mesh is an octagon with normalized UVs so the gem shader can compute
+/// The mesh is a hexagon with normalized UVs so the gem shader can compute
 /// per-facet normals. Uses additive blending for specular highlights.
 pub(crate) fn build_gem_overlay(
     center: glam::Vec2,
@@ -314,12 +315,12 @@ pub(crate) fn build_gem_overlay(
     specular_intensity: f32,
     gem_shader: engine_render::prelude::ShaderHandle,
 ) -> engine_render::shape::OverlayEntry {
-    use crate::card::identity::gem_sockets::{octagon_uvs, octagon_vertices};
+    use crate::card::identity::gem_sockets::{hexagon_uvs, hexagon_vertices};
     use crate::card::rendering::art_shader::ArtRegionParams;
     use engine_render::shape::{ColorVertex, OverlayEntry, TessellatedColorMesh};
 
-    let verts = octagon_vertices(radius);
-    let uvs = octagon_uvs(&verts);
+    let verts = hexagon_vertices(radius);
+    let uvs = hexagon_uvs(&verts);
 
     let vertices: Vec<ColorVertex> = verts
         .iter()
@@ -331,9 +332,9 @@ pub(crate) fn build_gem_overlay(
         })
         .collect();
 
-    // Fan triangulation for convex octagon: 6 triangles from vertex 0
-    let mut indices = Vec::with_capacity(18);
-    for i in 1..7u32 {
+    // Fan triangulation for convex hexagon: 4 triangles from vertex 0
+    let mut indices = Vec::with_capacity(12);
+    for i in 1..5u32 {
         indices.push(0);
         indices.push(i);
         indices.push(i + 1);
@@ -929,7 +930,17 @@ mod tests {
         // Arrange
         let mut world = setup_world_with_all_shaders();
         let def = make_test_def();
-        let legendary_sig = CardSignature::new([1.0; 8]);
+        // Signature that hashes to Legendary rarity
+        let legendary_sig = CardSignature::new([
+            0.7669016,
+            0.9484111,
+            0.74143535,
+            0.92948,
+            -0.9276102,
+            -0.82101953,
+            0.85763896,
+            -0.951836,
+        ]);
 
         // Act
         let root = spawn_visual_card(
@@ -959,7 +970,17 @@ mod tests {
         // Arrange
         let mut world = setup_world_with_all_shaders();
         let def = make_test_def();
-        let common_sig = CardSignature::new([0.0; 8]);
+        // Signature that hashes to Common rarity
+        let common_sig = CardSignature::new([
+            0.25628817,
+            0.54249763,
+            0.6507323,
+            -0.5228295,
+            0.072937846,
+            0.013733745,
+            -0.24290907,
+            0.8036065,
+        ]);
 
         // Act
         let root = spawn_visual_card(
@@ -992,7 +1013,17 @@ mod tests {
         // Arrange
         let mut world = setup_world_with_all_shaders();
         let def = make_test_def();
-        let legendary_sig = CardSignature::new([1.0; 8]);
+        // Signature that hashes to Legendary rarity
+        let legendary_sig = CardSignature::new([
+            0.7669016,
+            0.9484111,
+            0.74143535,
+            0.92948,
+            -0.9276102,
+            -0.82101953,
+            0.85763896,
+            -0.951836,
+        ]);
 
         // Act
         let root = spawn_visual_card(
@@ -1027,7 +1058,16 @@ mod tests {
         // Arrange
         let mut world = setup_world_with_all_shaders();
         let def = make_test_def();
-        let legendary_sig = CardSignature::new([1.0; 8]);
+        let legendary_sig = CardSignature::new([
+            0.7669016,
+            0.9484111,
+            0.74143535,
+            0.92948,
+            -0.9276102,
+            -0.82101953,
+            0.85763896,
+            -0.951836,
+        ]);
 
         // Act
         let root = spawn_visual_card(
@@ -1059,7 +1099,16 @@ mod tests {
         // Arrange
         let mut world = setup_world_with_all_shaders();
         let def = make_test_def();
-        let legendary_sig = CardSignature::new([1.0; 8]);
+        let legendary_sig = CardSignature::new([
+            0.7669016,
+            0.9484111,
+            0.74143535,
+            0.92948,
+            -0.9276102,
+            -0.82101953,
+            0.85763896,
+            -0.951836,
+        ]);
 
         // Act
         let root = spawn_visual_card(
@@ -1183,7 +1232,17 @@ mod tests {
         // Arrange
         let mut world = setup_world_with_all_shaders();
         let def = make_test_def();
-        let rare_sig = CardSignature::new([0.35, -0.35, 0.35, -0.35, 0.35, -0.35, 0.35, -0.35]);
+        // Signature that hashes to Rare rarity
+        let rare_sig = CardSignature::new([
+            -0.17559588,
+            0.8599839,
+            -0.4562556,
+            -0.0023616552,
+            -0.0016959906,
+            0.766793,
+            -0.15155804,
+            0.15561616,
+        ]);
 
         // Act
         let root = spawn_visual_card(
@@ -1217,7 +1276,16 @@ mod tests {
         // Arrange — no ShapeRepository, so no art shapes
         let mut world = setup_world_with_all_shaders();
         let def = make_test_def();
-        let rare_sig = CardSignature::new([0.35, -0.35, 0.35, -0.35, 0.35, -0.35, 0.35, -0.35]);
+        let rare_sig = CardSignature::new([
+            -0.17559588,
+            0.8599839,
+            -0.4562556,
+            -0.0023616552,
+            -0.0016959906,
+            0.766793,
+            -0.15155804,
+            0.15561616,
+        ]);
 
         // Act
         let root = spawn_visual_card(
@@ -1254,10 +1322,19 @@ mod tests {
         use crate::card::rendering::art_shader::TierShaders;
         use engine_render::shape::MeshOverlays;
 
-        // Arrange — all-zero signature = Common rarity + Dormant tier
+        // Arrange — Dormant card-level tier + Common rarity (both hash-based)
         let mut world = setup_world_with_all_shaders_and_tiers();
         let def = make_test_def();
-        let dormant_sig = CardSignature::new([0.0; 8]);
+        let dormant_sig = CardSignature::new([
+            0.44654524,
+            0.73940444,
+            0.5614276,
+            -0.21283162,
+            -0.6634345,
+            -0.1518842,
+            0.7765765,
+            -0.75107336,
+        ]);
 
         // Act
         let root = spawn_visual_card(
@@ -1295,10 +1372,19 @@ mod tests {
     fn when_spawn_active_tier_common_with_tier_shaders_then_no_tier_overlay() {
         use engine_render::shape::MeshOverlays;
 
-        // Arrange — signature with 0.5 on one axis = Active tier, Common rarity
+        // Arrange — Active card-level tier + Common rarity (both hash-based)
         let mut world = setup_world_with_all_shaders_and_tiers();
         let def = make_test_def();
-        let active_sig = CardSignature::new([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        let active_sig = CardSignature::new([
+            0.44356883,
+            0.13636649,
+            0.7909734,
+            0.4403118,
+            0.61432266,
+            0.015345693,
+            -0.5324175,
+            0.12884033,
+        ]);
 
         // Act
         let root = spawn_visual_card(
@@ -1329,10 +1415,19 @@ mod tests {
         use crate::card::rendering::art_shader::TierShaders;
         use engine_render::shape::MeshOverlays;
 
-        // Arrange — all-1.0 = Legendary rarity + Intense tier
+        // Arrange — Intense card-level tier + Legendary rarity (both hash-based)
         let mut world = setup_world_with_all_shaders_and_tiers();
         let def = make_test_def();
-        let intense_sig = CardSignature::new([1.0; 8]);
+        let intense_sig = CardSignature::new([
+            -0.8589847,
+            0.2778691,
+            0.018823981,
+            0.68338156,
+            0.19329798,
+            0.46955168,
+            -0.7978437,
+            -0.64191556,
+        ]);
 
         // Act
         let root = spawn_visual_card(
@@ -1370,10 +1465,19 @@ mod tests {
     fn when_spawn_dormant_face_down_with_tier_shaders_then_tier_overlay_visible() {
         use engine_render::shape::MeshOverlays;
 
-        // Arrange
+        // Arrange — Dormant tier + Common rarity (by hash)
         let mut world = setup_world_with_all_shaders_and_tiers();
         let def = make_test_def();
-        let dormant_sig = CardSignature::new([0.0; 8]);
+        let dormant_sig = CardSignature::new([
+            0.44654524,
+            0.73940444,
+            0.5614276,
+            -0.21283162,
+            -0.6634345,
+            -0.1518842,
+            0.7765765,
+            -0.75107336,
+        ]);
 
         // Act
         let root = spawn_visual_card(
@@ -1424,17 +1528,17 @@ mod tests {
         );
     }
 
-    /// @doc: The gem overlay mesh must have exactly 8 vertices — one per octagon corner.
-    /// The gem shader identifies facets by UV position within this 8-vertex geometry;
+    /// @doc: The gem overlay mesh must have exactly 6 vertices — one per hexagon corner.
+    /// The gem shader identifies facets by UV position within this 6-vertex geometry;
     /// extra or missing vertices would shift facet boundaries and break the specular
     /// normal computation.
     #[test]
-    fn when_building_gem_overlay_then_mesh_has_eight_vertices() {
+    fn when_building_gem_overlay_then_mesh_has_six_vertices() {
         // Act
         let entry = make_gem_overlay();
 
         // Assert
-        assert_eq!(entry.mesh.vertices.len(), 8);
+        assert_eq!(entry.mesh.vertices.len(), 6);
     }
 
     /// @doc: Gem overlay UVs must span the full [0,1] range on both axes so the shader's

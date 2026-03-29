@@ -1,5 +1,20 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct RarityTierConfig {
+    pub rarity_advance_rate: f32,
+    pub tier_advance_rate: f32,
+}
+
+impl Default for RarityTierConfig {
+    fn default() -> Self {
+        Self {
+            rarity_advance_rate: 0.3,
+            tier_advance_rate: 0.3,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Rarity {
     Common,
@@ -148,16 +163,71 @@ impl CardSignature {
     }
 
     pub fn rarity(&self) -> Rarity {
-        let raw_score: f32 = self.axes.iter().map(|v| v.abs()).sum();
-        let normalized = raw_score.ln_1p() / 8.0_f32.ln_1p();
-        match normalized {
-            n if n >= 0.85 => Rarity::Legendary,
-            n if n >= 0.70 => Rarity::Epic,
-            n if n >= 0.50 => Rarity::Rare,
-            n if n >= 0.30 => Rarity::Uncommon,
-            _ => Rarity::Common,
+        self.rarity_with_config(&RarityTierConfig::default())
+    }
+
+    pub fn card_tier(&self) -> crate::card::identity::signature_profile::Tier {
+        self.card_tier_with_config(&RarityTierConfig::default())
+    }
+
+    pub fn card_tier_with_config(
+        &self,
+        config: &RarityTierConfig,
+    ) -> crate::card::identity::signature_profile::Tier {
+        use crate::card::identity::signature_profile::Tier;
+        let seed = compute_seed(self);
+        // Use high 32 bits (rarity uses low 32) for independence
+        let value = (seed >> 32) as f32 / u32::MAX as f32;
+        let level = geometric_level(value, config.tier_advance_rate, 3);
+        match level {
+            0 => Tier::Dormant,
+            1 => Tier::Active,
+            _ => Tier::Intense,
         }
     }
+
+    pub fn rarity_with_config(&self, config: &RarityTierConfig) -> Rarity {
+        let seed = compute_seed(self);
+        let value = (seed & 0xFFFF_FFFF) as f32 / u32::MAX as f32;
+        let level = geometric_level(value, config.rarity_advance_rate, 5);
+        match level {
+            0 => Rarity::Common,
+            1 => Rarity::Uncommon,
+            2 => Rarity::Rare,
+            3 => Rarity::Epic,
+            _ => Rarity::Legendary,
+        }
+    }
+}
+
+/// Hash a `CardSignature` into a stable 64-bit seed.
+///
+/// Used by rarity/tier assignment (different bit ranges for independence) and by visual parameter
+/// generation. Placing this here avoids a circular dependency between `signature` and
+/// `visual_params`.
+pub fn compute_seed(signature: &CardSignature) -> u64 {
+    signature
+        .axes()
+        .iter()
+        .enumerate()
+        .fold(0u64, |acc, (i, &v)| {
+            let bits = u64::from(v.to_bits());
+            let mixed = bits
+                .wrapping_add(0x9e37_79b9_7f4a_7c15)
+                .wrapping_mul(i as u64 + 1);
+            acc ^ mixed.rotate_left(17).wrapping_mul(0x94d0_49bb_1331_11eb)
+        })
+}
+
+pub fn geometric_level(value: f32, advance_rate: f32, max_levels: usize) -> usize {
+    let mut remaining = value;
+    for level in 0..max_levels - 1 {
+        if remaining >= advance_rate {
+            return level;
+        }
+        remaining /= advance_rate;
+    }
+    max_levels - 1
 }
 
 impl std::ops::Index<Element> for CardSignature {
@@ -172,6 +242,7 @@ impl std::ops::Index<Element> for CardSignature {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::card::identity::signature_profile::Tier;
 
     /// @doc: Signature axes are clamped to [-1, 1] — prevents runaway values from signature arithmetic
     #[test]
@@ -502,35 +573,123 @@ mod tests {
         assert_eq!(sig.axes(), input);
     }
 
+    // ===== config =====
+
+    /// @doc: The 70/30 geometric split is load-bearing for distribution balance.
+    /// If either advance rate drifts from 0.3, the probability of graduating from
+    /// Common to Uncommon (and from any tier to the next) changes, silently skewing
+    /// the entire card-pool distribution. The default is the contract; this test
+    /// pins it so any accidental change is caught at CI rather than in playtesting.
+    #[test]
+    fn when_default_rarity_tier_config_constructed_then_advance_rates_are_0_point_3() {
+        // Arrange
+        // (no preconditions beyond the type existing)
+
+        // Act
+        let config = RarityTierConfig::default();
+
+        // Assert
+        assert_eq!(config.rarity_advance_rate, 0.3_f32);
+        assert_eq!(config.tier_advance_rate, 0.3_f32);
+    }
+
+    // ===== geometric_level =====
+
+    /// @doc: advance_rate=0.0 is the degenerate case — no value is ever below 0.0,
+    /// so the advance condition (value < advance_rate) is never satisfied and every
+    /// input stays at level 0.
+    #[test]
+    fn when_geometric_level_called_with_rate_zero_then_always_returns_first_level() {
+        // Arrange
+        let values = [0.0_f32, 0.1, 0.5, 0.9, 0.99];
+
+        // Act & Assert
+        for v in values {
+            let level = geometric_level(v, 0.0, 5);
+            assert_eq!(level, 0, "value={v}: expected level 0, got {level}");
+        }
+    }
+
+    /// @doc: advance_rate=1.0 means every value in [0,1) satisfies value < 1.0,
+    /// so each stage always advances — every input reaches the maximum level.
+    #[test]
+    fn when_geometric_level_called_with_rate_one_then_always_returns_max_level() {
+        // Arrange
+        let values = [0.0_f32, 0.1, 0.5, 0.9, 0.99];
+        let max_levels: usize = 5;
+
+        // Act & Assert
+        for v in values {
+            let level = geometric_level(v, 1.0, max_levels);
+            assert_eq!(
+                level,
+                max_levels - 1,
+                "value={v}: expected level {}, got {level}",
+                max_levels - 1
+            );
+        }
+    }
+
+    /// @doc: With advance_rate=0.3, a value of 0.15 is below the threshold and
+    /// qualifies to advance — it must reach at least level 1.
+    #[test]
+    fn when_geometric_level_called_with_value_below_rate_then_advances_past_first_level() {
+        // Arrange
+        let value = 0.15_f32;
+        let advance_rate = 0.3_f32;
+
+        // Act
+        let level = geometric_level(value, advance_rate, 5);
+
+        // Assert
+        assert!(level >= 1, "expected level >= 1, got {level}");
+    }
+
+    /// @doc: With advance_rate=0.3, a value of 0.85 is above the threshold —
+    /// the advance condition is not met and the card stays at level 0.
+    #[test]
+    fn when_geometric_level_called_with_value_above_rate_then_stays_at_level_zero() {
+        // Arrange
+        let value = 0.85_f32;
+        let advance_rate = 0.3_f32;
+
+        // Act
+        let level = geometric_level(value, advance_rate, 5);
+
+        // Assert
+        assert_eq!(level, 0, "expected level 0, got {level}");
+    }
+
+    /// @doc: Because lower values advance and higher values stay, the level sequence
+    /// over increasing input values must be non-increasing — a larger draw value must
+    /// never yield a higher level than a smaller one.
+    #[test]
+    fn when_geometric_level_called_across_full_range_then_levels_are_monotonically_non_increasing()
+    {
+        // Arrange
+        let values: Vec<f32> = (0..20).map(|i| i as f32 * 0.05).collect();
+        let advance_rate = 0.3_f32;
+
+        // Act
+        let levels: Vec<usize> = values
+            .iter()
+            .map(|&v| geometric_level(v, advance_rate, 5))
+            .collect();
+
+        // Assert
+        for i in 1..levels.len() {
+            assert!(
+                levels[i] <= levels[i - 1],
+                "non-monotone at index {i}: level[{}]={} < level[{}]={}",
+                i - 1,
+                levels[i - 1],
+                i,
+                levels[i]
+            );
+        }
+    }
+
     // ===== rarity =====
-
-    #[test]
-    fn when_all_axes_zero_then_rarity_is_common() {
-        // Arrange
-        let sig = CardSignature::new([0.0; 8]);
-
-        // Act / Assert
-        assert_eq!(sig.rarity(), Rarity::Common);
-    }
-
-    #[test]
-    fn when_all_axes_at_max_then_rarity_is_legendary() {
-        // Arrange
-        let sig = CardSignature::new([1.0; 8]);
-
-        // Act / Assert
-        assert_eq!(sig.rarity(), Rarity::Legendary);
-    }
-
-    /// @doc: Rarity uses absolute magnitude — a fully negative signature is just as extreme as fully positive
-    #[test]
-    fn when_all_axes_at_negative_max_then_rarity_is_legendary() {
-        // Arrange
-        let sig = CardSignature::new([-1.0; 8]);
-
-        // Act / Assert
-        assert_eq!(sig.rarity(), Rarity::Legendary);
-    }
 
     #[test]
     fn when_rarity_called_twice_then_result_is_identical() {
@@ -541,26 +700,380 @@ mod tests {
         assert_eq!(sig.rarity(), sig.rarity());
     }
 
-    /// @doc: Rarity is monotonic with extremity — more extreme signatures never downgrade in rarity tier
+    /// @doc: Hash-based rarity is deterministic — two independently constructed signatures
+    /// with identical axes must produce the same Rarity, so cards are reproducible across
+    /// save/load and multiplayer sync.
     #[test]
-    fn when_more_extreme_signature_then_rarity_is_equal_or_higher() {
+    fn when_two_identical_signatures_compute_rarity_then_results_are_equal() {
         // Arrange
-        let low = CardSignature::new([0.1; 8]);
-        let mid = CardSignature::new([0.5; 8]);
-        let high = CardSignature::new([0.9; 8]);
+        let axes = [0.3, -0.7, 0.5, -0.1, 0.9, -0.2, 0.4, -0.8];
+        let sig_a = CardSignature::new(axes);
+        let sig_b = CardSignature::new(axes);
+
+        // Act
+        let rarity_a = sig_a.rarity();
+        let rarity_b = sig_b.rarity();
 
         // Assert
-        assert!((low.rarity() as u8) <= (mid.rarity() as u8));
-        assert!((mid.rarity() as u8) <= (high.rarity() as u8));
+        assert_eq!(rarity_a, rarity_b);
     }
 
+    /// @doc: Rarity must vary across distinct signatures — if the hash collapsed all inputs
+    /// to the same value every card would share a rarity, breaking the rarity system entirely.
+    /// We sample 10 diverse signatures; at least two must produce different rarities.
     #[test]
-    fn when_moderate_extremity_then_rarity_is_between_common_and_legendary() {
+    fn when_many_different_signatures_compute_rarity_then_not_all_the_same() {
         // Arrange
-        let sig = CardSignature::new([0.4, -0.3, 0.2, -0.5, 0.1, -0.2, 0.3, -0.4]);
+        let sigs = [
+            CardSignature::new([0.0; 8]),
+            CardSignature::new([1.0; 8]),
+            CardSignature::new([-1.0; 8]),
+            CardSignature::new([0.5; 8]),
+            CardSignature::new([-0.5; 8]),
+            CardSignature::new([0.1, -0.9, 0.3, -0.7, 0.5, -0.3, 0.8, -0.2]),
+            CardSignature::new([0.9, -0.1, 0.7, -0.3, 0.5, -0.5, 0.2, -0.8]),
+            CardSignature::new([0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]),
+            CardSignature::new([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]),
+            CardSignature::new([0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3]),
+        ];
 
-        // Act / Assert
-        assert_ne!(sig.rarity(), Rarity::Legendary);
-        assert_ne!(sig.rarity(), Rarity::Common);
+        // Act
+        let rarities: Vec<Rarity> = sigs.iter().map(CardSignature::rarity).collect();
+
+        // Assert — not all the same
+        let first = rarities[0];
+        assert!(
+            rarities.iter().any(|&r| r != first),
+            "all 10 signatures produced the same rarity {first:?} — hash is not discriminating"
+        );
+    }
+
+    /// @doc: Every possible rarity output must be a recognised Rarity variant — the level-to-enum
+    /// mapping must be exhaustive and never produce an out-of-range index.
+    #[test]
+    fn when_rarity_computed_with_default_config_then_result_is_one_of_five_valid_variants() {
+        // Arrange
+        let valid = [
+            Rarity::Common,
+            Rarity::Uncommon,
+            Rarity::Rare,
+            Rarity::Epic,
+            Rarity::Legendary,
+        ];
+        let sigs = [
+            CardSignature::new([0.0; 8]),
+            CardSignature::new([0.5; 8]),
+            CardSignature::new([-0.5; 8]),
+            CardSignature::new([1.0; 8]),
+            CardSignature::new([0.1, -0.9, 0.3, -0.7, 0.5, -0.3, 0.8, -0.2]),
+        ];
+
+        // Act & Assert
+        for sig in &sigs {
+            let r = sig.rarity();
+            assert!(
+                valid.contains(&r),
+                "signature {:?} produced invalid rarity {:?}",
+                sig.axes(),
+                r
+            );
+        }
+    }
+
+    /// @doc: With advance_rate=0.3 and a uniform hash distribution, Common is the most probable
+    /// outcome (probability 0.7) and each subsequent tier is rarer by factor 0.3.  Verifying the
+    /// ordering over 1 000 seeded samples guards against an accidentally inverted level mapping.
+    #[test]
+    fn when_many_random_signatures_compute_rarity_then_common_is_most_frequent() {
+        // Arrange
+        use rand::SeedableRng;
+        use rand_chacha::ChaCha8Rng;
+        let mut rng = ChaCha8Rng::seed_from_u64(0xdead_beef);
+        let sigs: Vec<CardSignature> = (0..1_000)
+            .map(|_| CardSignature::random(&mut rng))
+            .collect();
+
+        // Act
+        let mut counts = [0usize; 5]; // indexed by Rarity discriminant
+        for sig in &sigs {
+            let idx = match sig.rarity() {
+                Rarity::Common => 0,
+                Rarity::Uncommon => 1,
+                Rarity::Rare => 2,
+                Rarity::Epic => 3,
+                Rarity::Legendary => 4,
+            };
+            counts[idx] += 1;
+        }
+
+        // Assert — each tier must be strictly less frequent than the one before it
+        assert!(
+            counts[0] > counts[1],
+            "Common ({}) should outnumber Uncommon ({})",
+            counts[0],
+            counts[1]
+        );
+        assert!(
+            counts[1] > counts[2],
+            "Uncommon ({}) should outnumber Rare ({})",
+            counts[1],
+            counts[2]
+        );
+        assert!(
+            counts[2] > counts[3],
+            "Rare ({}) should outnumber Epic ({})",
+            counts[2],
+            counts[3]
+        );
+        assert!(
+            counts[3] > counts[4],
+            "Epic ({}) should outnumber Legendary ({})",
+            counts[3],
+            counts[4]
+        );
+    }
+
+    /// @doc: A higher `rarity_advance_rate` widens the advance window at each level, so a larger
+    /// fraction of hashes reach Rare or above. rarity_with_config() must expose this knob so
+    /// designers can tune pool composition without touching source code.
+    #[test]
+    fn when_rarity_computed_with_higher_advance_rate_then_rare_or_above_frequency_increases() {
+        // Arrange
+        use rand::SeedableRng;
+        use rand_chacha::ChaCha8Rng;
+        let mut rng = ChaCha8Rng::seed_from_u64(0xcafe_f00d);
+        let sigs: Vec<CardSignature> = (0..500).map(|_| CardSignature::random(&mut rng)).collect();
+
+        let default_config = RarityTierConfig::default(); // advance_rate = 0.3
+        let high_config = RarityTierConfig {
+            rarity_advance_rate: 0.7,
+            ..RarityTierConfig::default()
+        };
+
+        // Act
+        let rare_above_default = sigs
+            .iter()
+            .filter(|s| {
+                matches!(
+                    s.rarity_with_config(&default_config),
+                    Rarity::Rare | Rarity::Epic | Rarity::Legendary
+                )
+            })
+            .count();
+
+        let rare_above_high = sigs
+            .iter()
+            .filter(|s| {
+                matches!(
+                    s.rarity_with_config(&high_config),
+                    Rarity::Rare | Rarity::Epic | Rarity::Legendary
+                )
+            })
+            .count();
+
+        // Assert
+        assert!(
+            rare_above_high > rare_above_default,
+            "high advance_rate ({}) should produce more Rare+ cards than default ({}) — got {} vs {}",
+            high_config.rarity_advance_rate,
+            default_config.rarity_advance_rate,
+            rare_above_high,
+            rare_above_default
+        );
+    }
+
+    /// @doc: Sign-opposite signatures are fundamentally different cards (Heat vs Cold, etc.) and
+    /// must each resolve to a valid rarity without panicking or producing garbage.
+    #[test]
+    fn when_sign_opposite_signatures_compute_rarity_then_both_have_valid_rarity() {
+        // Arrange
+        let sig_pos = CardSignature::new([0.5; 8]);
+        let sig_neg = CardSignature::new([-0.5; 8]);
+        let valid = [
+            Rarity::Common,
+            Rarity::Uncommon,
+            Rarity::Rare,
+            Rarity::Epic,
+            Rarity::Legendary,
+        ];
+
+        // Act
+        let rarity_pos = sig_pos.rarity();
+        let rarity_neg = sig_neg.rarity();
+
+        // Assert
+        assert!(
+            valid.contains(&rarity_pos),
+            "+0.5 signature produced invalid rarity {:?}",
+            rarity_pos
+        );
+        assert!(
+            valid.contains(&rarity_neg),
+            "-0.5 signature produced invalid rarity {:?}",
+            rarity_neg
+        );
+    }
+
+    // ===== card_tier =====
+
+    /// @doc: Card-level tier is deterministic via hash — the same signature always produces
+    /// the same tier. Without this, a card's visual treatment (worn/shiny) would flicker
+    /// on reload or across multiplayer clients.
+    #[test]
+    fn when_card_tier_computed_twice_then_results_are_identical() {
+        // Arrange
+        let sig = CardSignature::new([0.3, -0.7, 0.5, -0.1, 0.9, -0.2, 0.4, -0.8]);
+
+        // Act
+        let tier_a = sig.card_tier();
+        let tier_b = sig.card_tier();
+
+        // Assert
+        assert_eq!(tier_a, tier_b);
+    }
+
+    /// @doc: Card-level tier must resolve to one of the three defined variants for any
+    /// valid signature. An unmapped geometric level would panic or produce undefined behavior.
+    #[test]
+    fn when_card_tier_computed_then_result_is_one_of_three_valid_variants() {
+        // Arrange
+        let valid = [Tier::Dormant, Tier::Active, Tier::Intense];
+        let sigs = [
+            CardSignature::new([0.0; 8]),
+            CardSignature::new([1.0; 8]),
+            CardSignature::new([-1.0; 8]),
+            CardSignature::new([0.5; 8]),
+            CardSignature::new([0.1, -0.9, 0.3, -0.7, 0.5, -0.3, 0.8, -0.2]),
+        ];
+
+        // Act & Assert
+        for sig in &sigs {
+            let t = sig.card_tier();
+            assert!(
+                valid.contains(&t),
+                "signature {:?} produced invalid tier {:?}",
+                sig.axes(),
+                t
+            );
+        }
+    }
+
+    /// @doc: With advance_rate=0.3, Dormant should be most frequent (~70%), Active next (~21%),
+    /// and Intense rarest (~9%). This guards against an inverted level mapping that would make
+    /// most cards Intense.
+    #[test]
+    fn when_many_random_signatures_compute_card_tier_then_dormant_is_most_frequent() {
+        // Arrange
+        use rand::SeedableRng;
+        use rand_chacha::ChaCha8Rng;
+        let mut rng = ChaCha8Rng::seed_from_u64(0xdead_beef);
+        let sigs: Vec<CardSignature> = (0..1_000)
+            .map(|_| CardSignature::random(&mut rng))
+            .collect();
+
+        // Act
+        let mut counts = [0usize; 3];
+        for sig in &sigs {
+            let idx = match sig.card_tier() {
+                Tier::Dormant => 0,
+                Tier::Active => 1,
+                Tier::Intense => 2,
+            };
+            counts[idx] += 1;
+        }
+
+        // Assert
+        assert!(
+            counts[0] > counts[1],
+            "Dormant ({}) should outnumber Active ({})",
+            counts[0],
+            counts[1]
+        );
+        assert!(
+            counts[1] > counts[2],
+            "Active ({}) should outnumber Intense ({})",
+            counts[1],
+            counts[2]
+        );
+    }
+
+    /// @doc: Rarity and card-level tier use different hash bits, so they are independent
+    /// variables. At least one signature must exist where the two classifications diverge
+    /// (e.g., Common rarity but Active/Intense tier). Without independence, rarity and tier
+    /// would be redundant, wasting a design axis.
+    #[test]
+    fn when_rarity_and_card_tier_computed_for_same_signature_then_they_can_differ() {
+        // Arrange
+        use rand::SeedableRng;
+        use rand_chacha::ChaCha8Rng;
+        let mut rng = ChaCha8Rng::seed_from_u64(42);
+
+        // Act — find any signature where rarity is Common but tier is not Dormant
+        let found = (0..1_000).any(|_| {
+            let sig = CardSignature::random(&mut rng);
+            sig.rarity() == Rarity::Common && sig.card_tier() != Tier::Dormant
+        });
+
+        // Assert
+        assert!(
+            found,
+            "among 1000 signatures, should find at least one where rarity and tier diverge"
+        );
+    }
+
+    proptest::proptest! {
+        /// @doc: Card-level tier must never panic for any valid signature input.
+        /// The 3-level geometric distribution should always map to a valid Tier variant.
+        #[test]
+        fn when_any_valid_signature_computes_card_tier_then_always_returns_valid_tier(
+            a0 in -1.0_f32..=1.0, a1 in -1.0_f32..=1.0,
+            a2 in -1.0_f32..=1.0, a3 in -1.0_f32..=1.0,
+            a4 in -1.0_f32..=1.0, a5 in -1.0_f32..=1.0,
+            a6 in -1.0_f32..=1.0, a7 in -1.0_f32..=1.0,
+        ) {
+            let sig = CardSignature::new([a0, a1, a2, a3, a4, a5, a6, a7]);
+            let t = sig.card_tier();
+            let valid = [Tier::Dormant, Tier::Active, Tier::Intense];
+            proptest::prop_assert!(
+                valid.contains(&t),
+                "signature axes {:?} produced invalid tier {:?}",
+                sig.axes(),
+                t
+            );
+        }
+    }
+
+    proptest::proptest! {
+        /// @doc: Rarity must always be one of the five defined variants for any valid signature.
+        /// An unmapped hash level (e.g., level 5 when only 0..=4 are handled) would be a panic
+        /// or undefined behaviour — this property test exercises the full f32 input space.
+        #[test]
+        fn when_any_valid_signature_computes_rarity_then_always_returns_valid_rarity(
+            a0 in -1.0_f32..=1.0, a1 in -1.0_f32..=1.0,
+            a2 in -1.0_f32..=1.0, a3 in -1.0_f32..=1.0,
+            a4 in -1.0_f32..=1.0, a5 in -1.0_f32..=1.0,
+            a6 in -1.0_f32..=1.0, a7 in -1.0_f32..=1.0,
+        ) {
+            // Arrange
+            let sig = CardSignature::new([a0, a1, a2, a3, a4, a5, a6, a7]);
+
+            // Act
+            let r = sig.rarity();
+
+            // Assert
+            let valid = [
+                Rarity::Common,
+                Rarity::Uncommon,
+                Rarity::Rare,
+                Rarity::Epic,
+                Rarity::Legendary,
+            ];
+            proptest::prop_assert!(
+                valid.contains(&r),
+                "signature axes {:?} produced invalid rarity {:?}",
+                sig.axes(),
+                r
+            );
+        }
     }
 }

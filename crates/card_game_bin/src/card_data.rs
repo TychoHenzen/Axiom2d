@@ -9,13 +9,26 @@ pub struct StarterCard {
     pub signature: CardSignature,
 }
 
-/// Spacing constants for the 3×5 card grid layout.
+/// Spacing constants for the 5×3 card grid layout.
 const COL_SPACING: f32 = 80.0;
 const ROW_SPACING: f32 = 130.0;
 const START_X: f32 = -160.0;
 const DORMANT_Y: f32 = ROW_SPACING;
 const ACTIVE_Y: f32 = 0.0;
 const INTENSE_Y: f32 = -ROW_SPACING;
+
+const RARITIES: [Rarity; 5] = [
+    Rarity::Common,
+    Rarity::Uncommon,
+    Rarity::Rare,
+    Rarity::Epic,
+    Rarity::Legendary,
+];
+
+use card_game::card::identity::signature_profile::Tier;
+
+const TIERS: [Tier; 3] = [Tier::Dormant, Tier::Active, Tier::Intense];
+const TIER_YS: [f32; 3] = [DORMANT_Y, ACTIVE_Y, INTENSE_Y];
 
 fn make_def(card_type: CardType) -> CardDefinition {
     CardDefinition {
@@ -30,7 +43,24 @@ fn make_def(card_type: CardType) -> CardDefinition {
     }
 }
 
-pub fn starter_deck(_rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
+/// Search for a signature whose hash-based rarity and card-level tier match the targets.
+fn find_signature_for(rng: &mut ChaCha8Rng, rarity: Rarity, tier: Tier) -> CardSignature {
+    for _ in 0..100_000 {
+        let sig = CardSignature::random(rng);
+        if sig.rarity() == rarity && sig.card_tier() == tier {
+            return sig;
+        }
+    }
+    // Fallback: accept rarity match alone (extremely rare tier combos)
+    loop {
+        let sig = CardSignature::random(rng);
+        if sig.rarity() == rarity {
+            return sig;
+        }
+    }
+}
+
+pub fn starter_deck(rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
     let types = [
         CardType::Spell,
         CardType::Artifact,
@@ -39,66 +69,16 @@ pub fn starter_deck(_rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
         CardType::Artifact,
     ];
 
-    // Each row: 5 cards across rarities. Signatures crafted to hit target tier + rarity.
-    // Tier = max(abs(axes)), Rarity = ln(1 + sum(abs(axes))) / ln(9)
-    //
-    // Dormant: dominant < 0.3 (max rarity = Rare since sum capped at ~2.3)
-    let dormant_sigs: [[f32; 8]; 5] = [
-        // Common: raw=0.8, dominant=0.1
-        [0.1, -0.1, 0.1, -0.1, 0.1, -0.1, 0.1, -0.1],
-        // Uncommon: raw=1.6, dominant=0.2
-        [0.2, -0.2, 0.2, -0.2, 0.2, -0.2, 0.2, -0.2],
-        // Rare: raw=2.32, dominant=0.29
-        [0.29, -0.29, 0.29, -0.29, 0.29, -0.29, 0.29, -0.29],
-        // Uncommon variant: raw=1.2, dominant=0.25
-        [0.25, -0.15, 0.2, -0.1, 0.15, -0.1, 0.15, -0.1],
-        // Common variant: raw=0.56, dominant=0.15
-        [0.15, -0.07, 0.1, -0.06, 0.05, -0.05, 0.04, -0.04],
-    ];
-
-    // Active: dominant 0.3–0.69
-    let active_sigs: [[f32; 8]; 5] = [
-        // Common: raw=0.5, dominant=0.5
-        [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        // Uncommon: raw=1.6, dominant=0.5
-        [0.5, -0.2, 0.2, -0.2, 0.2, -0.15, 0.1, -0.05],
-        // Rare: raw=2.8, dominant=0.5
-        [0.5, -0.35, 0.35, -0.35, 0.35, -0.35, 0.3, -0.25],
-        // Epic: raw=4.5, dominant=0.69
-        [0.69, -0.65, 0.65, -0.6, 0.55, -0.5, 0.45, -0.41],
-        // Legendary: raw=5.52, dominant=0.69
-        [0.69, -0.69, 0.69, -0.69, 0.69, -0.69, 0.69, -0.69],
-    ];
-
-    // Intense: dominant >= 0.7
-    let intense_sigs: [[f32; 8]; 5] = [
-        // Common: raw=0.7, dominant=0.7
-        [0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        // Uncommon: raw=1.7, dominant=0.7
-        [0.7, -0.2, 0.15, -0.15, 0.15, -0.1, 0.1, -0.15],
-        // Rare: raw=2.8, dominant=0.7
-        [0.7, -0.35, 0.35, -0.35, 0.35, -0.35, 0.2, -0.15],
-        // Epic: raw=4.4, dominant=0.8
-        [0.8, -0.55, 0.55, -0.55, 0.55, -0.55, 0.55, -0.3],
-        // Legendary: raw=6.4, dominant=0.8
-        [0.8, -0.8, 0.8, -0.8, 0.8, -0.8, 0.8, -0.8],
-    ];
-
-    let rows: [(&[[f32; 8]; 5], f32); 3] = [
-        (&dormant_sigs, DORMANT_Y),
-        (&active_sigs, ACTIVE_Y),
-        (&intense_sigs, INTENSE_Y),
-    ];
-
     let mut cards = Vec::with_capacity(15);
-    for (sigs, y) in &rows {
-        for (col, axes) in sigs.iter().enumerate() {
+    for (row, (&tier, &y)) in TIERS.iter().zip(TIER_YS.iter()).enumerate() {
+        for (col, &rarity) in RARITIES.iter().enumerate() {
             let x = START_X + col as f32 * COL_SPACING;
+            let signature = find_signature_for(rng, rarity, tier);
             cards.push(StarterCard {
                 definition: make_def(types[col]),
-                position: Vec2::new(x, *y),
-                face_up: true,
-                signature: CardSignature::new(*axes),
+                position: Vec2::new(x, y),
+                face_up: row != 0 || col != 0, // first card face-down for variety
+                signature,
             });
         }
     }
@@ -109,7 +89,6 @@ pub fn starter_deck(_rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use card_game::card::identity::signature_profile::{SignatureProfile, Tier};
     use rand::SeedableRng;
 
     #[test]
@@ -124,8 +103,10 @@ mod tests {
         assert_eq!(deck.len(), 15);
     }
 
+    /// @doc: The starter deck must cover all 15 rarity×tier combinations so
+    /// every visual treatment is visible on the table at game start.
     #[test]
-    fn when_starter_deck_built_then_all_cards_are_face_up() {
+    fn when_starter_deck_built_then_all_rarity_tier_combinations_present() {
         // Arrange
         let mut rng = ChaCha8Rng::seed_from_u64(0);
 
@@ -133,13 +114,22 @@ mod tests {
         let deck = starter_deck(&mut rng);
 
         // Assert
-        for card in &deck {
-            assert!(card.face_up);
-        }
+        let mut pairs: Vec<(Rarity, Tier)> = deck
+            .iter()
+            .map(|c| (c.signature.rarity(), c.signature.card_tier()))
+            .collect();
+        pairs.sort_by_key(|(r, t)| (*r as u8, *t as u8));
+        pairs.dedup();
+        assert_eq!(
+            pairs.len(),
+            15,
+            "expected 15 unique rarity×tier combinations, got {}: {pairs:?}",
+            pairs.len()
+        );
     }
 
     #[test]
-    fn when_starter_deck_built_then_dormant_row_has_all_dormant_tiers() {
+    fn when_starter_deck_built_then_dormant_row_has_correct_card_tier() {
         // Arrange
         let mut rng = ChaCha8Rng::seed_from_u64(0);
 
@@ -148,21 +138,17 @@ mod tests {
 
         // Assert — first 5 cards are the dormant row
         for card in &deck[..5] {
-            let profile = SignatureProfile::without_archetype(&card.signature);
-            let tier = profile
-                .dominant_axis
-                .map_or(Tier::Dormant, |e| profile.tiers[e as usize]);
             assert_eq!(
-                tier,
+                card.signature.card_tier(),
                 Tier::Dormant,
-                "dormant row card at {:?} has tier {tier:?}",
+                "dormant row card at {:?} has wrong card_tier",
                 card.position
             );
         }
     }
 
     #[test]
-    fn when_starter_deck_built_then_active_row_has_all_active_tiers() {
+    fn when_starter_deck_built_then_active_row_has_correct_card_tier() {
         // Arrange
         let mut rng = ChaCha8Rng::seed_from_u64(0);
 
@@ -171,21 +157,17 @@ mod tests {
 
         // Assert — cards 5..10 are the active row
         for card in &deck[5..10] {
-            let profile = SignatureProfile::without_archetype(&card.signature);
-            let tier = profile
-                .dominant_axis
-                .map_or(Tier::Active, |e| profile.tiers[e as usize]);
             assert_eq!(
-                tier,
+                card.signature.card_tier(),
                 Tier::Active,
-                "active row card at {:?} has tier {tier:?}",
+                "active row card at {:?} has wrong card_tier",
                 card.position
             );
         }
     }
 
     #[test]
-    fn when_starter_deck_built_then_intense_row_has_all_intense_tiers() {
+    fn when_starter_deck_built_then_intense_row_has_correct_card_tier() {
         // Arrange
         let mut rng = ChaCha8Rng::seed_from_u64(0);
 
@@ -194,14 +176,10 @@ mod tests {
 
         // Assert — cards 10..15 are the intense row
         for card in &deck[10..15] {
-            let profile = SignatureProfile::without_archetype(&card.signature);
-            let tier = profile
-                .dominant_axis
-                .map_or(Tier::Intense, |e| profile.tiers[e as usize]);
             assert_eq!(
-                tier,
+                card.signature.card_tier(),
                 Tier::Intense,
-                "intense row card at {:?} has tier {tier:?}",
+                "intense row card at {:?} has wrong card_tier",
                 card.position
             );
         }

@@ -10,7 +10,7 @@ use crate::card::art_selection::fit_art_mesh_to_region;
 use crate::card::component::CardLabel;
 use crate::card::identity::definition::rarity_border_color;
 use crate::card::identity::gem_sockets::{
-    MAX_GEM_RADIUS, gem_color, gem_desc_positions, octagon_vertices,
+    MAX_GEM_RADIUS, gem_color, gem_desc_positions, hexagon_vertices,
 };
 use crate::card::identity::signature::{CardSignature, Element};
 
@@ -112,7 +112,7 @@ pub fn bake_front_face(
         let aspect = signature.dominant_aspect(*element);
         let gem_color = color_to_array(gem_color(aspect, intensity));
         let radius = MAX_GEM_RADIUS;
-        let verts = octagon_vertices(radius);
+        let verts = hexagon_vertices(radius);
         let points: Vec<_> = verts.to_vec();
         let variant = ShapeVariant::Polygon { points };
         if let Ok(tess) = tessellate(&variant) {
@@ -169,8 +169,6 @@ pub fn bake_back_face(card_size: Vec2) -> TessellatedColorMesh {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::card::component::CardLabel;
-    use crate::card::identity::signature::CardSignature;
 
     #[test]
     fn when_bake_front_then_mesh_has_vertices_and_valid_indices() {
