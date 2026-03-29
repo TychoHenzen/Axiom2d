@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::{Changed, Or, Query};
+use bevy_ecs::prelude::Query;
 use engine_render::shape::{ColorMesh, MeshOverlays, TessellatedColorMesh};
 
 use super::baked_mesh::BakedCardMesh;
@@ -7,20 +7,18 @@ use crate::card::component::CardItemForm;
 
 /// Syncs `BakedCardMesh` → `ColorMesh` based on `card.face_up`.
 /// Also hides/shows `MeshOverlays` (art shader) — overlays only render face-up.
-/// Runs when `Card` or `BakedCardMesh` changes so the unified render system
-/// always has the correct face mesh to draw.
+/// Runs every frame so that cards with `CardItemForm` always have their mesh
+/// zeroed — a change-detection filter would miss cards whose `CardItemForm`
+/// was inserted via deferred commands in a prior phase.
 #[allow(clippy::type_complexity)]
 pub fn baked_card_sync_system(
-    mut query: Query<
-        (
-            &BakedCardMesh,
-            &Card,
-            &mut ColorMesh,
-            Option<&mut MeshOverlays>,
-            Option<&CardItemForm>,
-        ),
-        Or<(Changed<Card>, Changed<BakedCardMesh>)>,
-    >,
+    mut query: Query<(
+        &BakedCardMesh,
+        &Card,
+        &mut ColorMesh,
+        Option<&mut MeshOverlays>,
+        Option<&CardItemForm>,
+    )>,
 ) {
     for (baked, card, mut mesh, overlays, item_form) in &mut query {
         if item_form.is_some() {
@@ -202,9 +200,8 @@ mod tests {
         let mut q = world.query::<&ColorMesh>();
         assert!(q.get(&world, entity).unwrap().is_empty());
 
-        // Act — remove ItemForm and touch Card to trigger change detection
+        // Act — remove ItemForm (no need to touch Card — system runs every frame)
         world.entity_mut(entity).remove::<CardItemForm>();
-        world.entity_mut(entity).get_mut::<Card>().unwrap().face_up = true;
         run(&mut world);
 
         // Assert
@@ -214,6 +211,43 @@ mod tests {
             mesh.vertices.len(),
             expected_len,
             "mesh must be restored after leaving stash"
+        );
+    }
+
+    /// @doc: The sync system must re-zero `ColorMesh` every frame for stash cards,
+    /// not just on the frame `CardItemForm` is inserted. Without per-frame enforcement,
+    /// a change-detection gap between Update (where `CardItemForm` is inserted via commands)
+    /// and PostUpdate (where the sync runs) can leave the mesh populated, causing the
+    /// full card to visibly render behind the stash grid — even when the stash is closed.
+    #[test]
+    fn when_item_form_present_and_mesh_repopulated_then_sync_re_zeros_every_frame() {
+        // Arrange — persistent schedule simulating real game loop (reused across frames)
+        let mut world = World::new();
+        let mut schedule = Schedule::default();
+        schedule.add_systems(baked_card_sync_system);
+
+        let baked = make_baked();
+        let front_clone = baked.front.clone();
+        let entity = world
+            .spawn((baked, make_card(true), ColorMesh::default(), CardItemForm))
+            .id();
+        schedule.run(&mut world); // frame 1: zeros mesh, advances change ticks
+
+        // Simulate another system repopulating the mesh (or a change detection gap)
+        world.get_mut::<ColorMesh>(entity).unwrap().0 = front_clone;
+        assert!(
+            !world.get::<ColorMesh>(entity).unwrap().is_empty(),
+            "precondition: mesh must be non-empty before re-sync"
+        );
+
+        // Act — re-run the SAME schedule (same system state, advanced ticks)
+        schedule.run(&mut world);
+
+        // Assert
+        let mesh = world.get::<ColorMesh>(entity).unwrap();
+        assert!(
+            mesh.is_empty(),
+            "ColorMesh must be re-zeroed every frame while CardItemForm is present"
         );
     }
 

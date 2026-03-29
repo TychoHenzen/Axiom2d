@@ -1,4 +1,5 @@
-use bevy_ecs::prelude::{Entity, Query, Res, ResMut, Resource};
+use bevy_ecs::prelude::{Entity, Local, Query, Res, ResMut, Resource};
+use engine_core::prelude::DeltaTime;
 use engine_input::prelude::{InputState, KeyCode, MouseState};
 use engine_render::prelude::{Camera2D, RendererRes, resolve_viewport_camera, screen_to_world};
 use glam::Vec2;
@@ -11,6 +12,22 @@ use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::toggle::StashVisible;
 use engine_render::material::apply_material;
 use engine_render::shape::MeshOverlays;
+
+const ORBIT_PERIOD_X: f32 = 3.8;
+const ORBIT_PERIOD_Y: f32 = 4.0;
+const ORBIT_AMPLITUDE: f32 = 0.8;
+
+/// Lissajous curve offset for the fake shader cursor on the hover preview.
+/// X oscillates at 3.8s, Y at 4.0s — the 19:20 ratio creates a slowly
+/// morphing pattern that cycles through N, V, and O-like shapes.
+fn lissajous_offset(time: f32, half_w: f32, half_h: f32) -> Vec2 {
+    let omega_x = std::f32::consts::TAU / ORBIT_PERIOD_X;
+    let omega_y = std::f32::consts::TAU / ORBIT_PERIOD_Y;
+    Vec2::new(
+        half_w * ORBIT_AMPLITUDE * (omega_x * time).sin(),
+        half_h * ORBIT_AMPLITUDE * (omega_y * time).sin(),
+    )
+}
 
 #[derive(Resource, Debug, Default)]
 pub struct StashHoverPreview {
@@ -39,13 +56,19 @@ pub fn stash_hover_preview_system(
 }
 
 /// Renders a scaled preview of a hovered stash card using its baked front mesh.
+/// Shader overlays receive a fake Lissajous cursor that slowly orbits the preview,
+/// animating pointer-reactive effects (glossy glint, foil rainbow, embossed bevel).
 pub fn stash_hover_preview_render_system(
     hover_preview: Res<StashHoverPreview>,
     grid: Res<StashGrid>,
+    dt: Res<DeltaTime>,
     camera_query: Query<&Camera2D>,
     baked_query: Query<(&BakedCardMesh, Option<&MeshOverlays>)>,
     mut renderer: ResMut<RendererRes>,
+    mut elapsed: Local<f32>,
 ) {
+    *elapsed += dt.0.0;
+
     let Some(hovered_entity) = hover_preview.hovered_entity else {
         return;
     };
@@ -80,8 +103,19 @@ pub fn stash_hover_preview_render_system(
         renderer.set_shader(engine_render::prelude::ShaderHandle(0));
         renderer.draw_colored_mesh(&baked.front.vertices, &baked.front.indices, model);
         if let Some(overlays) = overlays {
+            let half_w_world = preview_screen_w / (2.0 * camera.zoom);
+            let half_h_world = preview_screen_h / (2.0 * camera.zoom);
+            let orbit = lissajous_offset(*elapsed, half_w_world, half_h_world);
+            let fake_ptr = preview_center + orbit;
+
             for entry in &overlays.0 {
                 apply_material(&mut **renderer, Some(&entry.material), &mut None, &mut None);
+                if entry.material.uniforms.len() >= 16 {
+                    let mut uniforms = entry.material.uniforms.clone();
+                    uniforms[8..12].copy_from_slice(&fake_ptr.x.to_le_bytes());
+                    uniforms[12..16].copy_from_slice(&fake_ptr.y.to_le_bytes());
+                    renderer.set_material_uniforms(&uniforms);
+                }
                 renderer.draw_colored_mesh(&entry.mesh.vertices, &entry.mesh.indices, model);
             }
             renderer.set_shader(engine_render::prelude::ShaderHandle(0));
@@ -118,6 +152,8 @@ mod tests {
     }
 
     fn make_world_with_occupied_slot() -> (World, Entity) {
+        use engine_core::prelude::{DeltaTime, Seconds};
+
         let mut world = World::new();
 
         let card_entity = world.spawn_empty().id();
@@ -135,11 +171,14 @@ mod tests {
         world.insert_resource(grid);
         world.insert_resource(DragState::default());
         world.insert_resource(StashHoverPreview::default());
+        world.insert_resource(DeltaTime(Seconds(0.016)));
 
         (world, card_entity)
     }
 
     fn make_world_with_spy(grid: StashGrid) -> (World, ColoredMeshCallLog) {
+        use engine_core::prelude::{DeltaTime, Seconds};
+
         let mut world = World::new();
         let mesh_log: ColoredMeshCallLog = Arc::new(Mutex::new(Vec::new()));
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -154,6 +193,7 @@ mod tests {
         world.insert_resource(grid);
         world.insert_resource(DragState::default());
         world.insert_resource(StashHoverPreview::default());
+        world.insert_resource(DeltaTime(Seconds(0.016)));
         (world, mesh_log)
     }
 
@@ -417,6 +457,8 @@ mod tests {
 
     #[test]
     fn when_viewport_zero_then_no_mesh_drawn() {
+        use engine_core::prelude::{DeltaTime, Seconds};
+
         // Arrange
         let mut world = World::new();
         let log = Arc::new(Mutex::new(Vec::new()));
@@ -428,6 +470,7 @@ mod tests {
         world.spawn(Camera2D::default());
         world.insert_resource(StashGrid::new(10, 10, 1));
         world.insert_resource(DragState::default());
+        world.insert_resource(DeltaTime(Seconds(0.016)));
         let card = spawn_card_in_world(&mut world);
         world.insert_resource(StashHoverPreview {
             hovered_entity: Some(card),
@@ -439,5 +482,39 @@ mod tests {
         // Assert
         let calls = mesh_log.lock().unwrap();
         assert!(calls.is_empty());
+    }
+
+    /// @doc: The Lissajous orbit must return zero at t=0 so the fake cursor starts at
+    /// the card center, and must stay within the card's half-extents scaled by the
+    /// amplitude factor — preventing the shader highlight from drifting off-card.
+    #[test]
+    fn when_lissajous_at_time_zero_then_offset_is_zero() {
+        // Act
+        let offset = super::lissajous_offset(0.0, 100.0, 150.0);
+
+        // Assert
+        assert!(
+            offset.x.abs() < 1e-6 && offset.y.abs() < 1e-6,
+            "Lissajous must start at origin, got {offset:?}"
+        );
+    }
+
+    #[test]
+    fn when_lissajous_at_any_time_then_within_amplitude_bounds() {
+        // Arrange — sample many time points
+        let half_w = 100.0;
+        let half_h = 150.0;
+        let max_x = half_w * super::ORBIT_AMPLITUDE;
+        let max_y = half_h * super::ORBIT_AMPLITUDE;
+
+        // Act + Assert
+        for i in 0..1000 {
+            let t = i as f32 * 0.01;
+            let offset = super::lissajous_offset(t, half_w, half_h);
+            assert!(
+                offset.x.abs() <= max_x + 1e-4 && offset.y.abs() <= max_y + 1e-4,
+                "Lissajous out of bounds at t={t}: {offset:?}, max=({max_x}, {max_y})"
+            );
+        }
     }
 }

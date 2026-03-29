@@ -12,7 +12,10 @@ use glam::Vec2;
 use crate::card::component::Card;
 use crate::card::identity::signature_profile::SignatureProfile;
 use crate::card::identity::visual_params::generate_card_visuals;
-use crate::card::rendering::geometry::{ART_QUAD, art_quad_model};
+use crate::card::rendering::baked_mesh::BakedCardMesh;
+use crate::card::rendering::geometry::{
+    ART_QUAD, TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH, art_quad_model,
+};
 use crate::stash::constants::{
     BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_HIGHLIGHT_COLOR,
     SLOT_STRIDE_H, SLOT_STRIDE_W, SLOT_WIDTH,
@@ -35,9 +38,20 @@ pub(crate) fn reset_default_shader(renderer: &mut dyn engine_render::prelude::Re
     renderer.set_blend_mode(BlendMode::Alpha);
 }
 
+fn miniature_card_model(zoom: f32, center_x: f32, center_y: f32) -> [[f32; 4]; 4] {
+    let scale_x = (SLOT_WIDTH / zoom) / TABLE_CARD_WIDTH;
+    let scale_y = (SLOT_HEIGHT / zoom) / TABLE_CARD_HEIGHT;
+    [
+        [scale_x, 0.0, 0.0, 0.0],
+        [0.0, scale_y, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [center_x, center_y, 0.0, 1.0],
+    ]
+}
+
 pub fn stash_render_system(
     params: StashRenderParams,
-    card_query: Query<(Entity, &Card)>,
+    card_query: Query<(Entity, &Card, Option<&BakedCardMesh>)>,
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
 ) {
@@ -72,13 +86,18 @@ pub fn stash_render_system(
 
     let icon_colors: HashMap<Entity, Color> = card_query
         .iter()
-        .map(|(entity, card)| {
+        .map(|(entity, card, _baked)| {
             let profile = SignatureProfile::without_archetype(&card.signature);
             (
                 entity,
                 generate_card_visuals(&card.signature, &profile).art_color,
             )
         })
+        .collect();
+
+    let baked_meshes: HashMap<Entity, &BakedCardMesh> = card_query
+        .iter()
+        .filter_map(|(entity, _card, baked)| baked.map(|b| (entity, b)))
         .collect();
 
     let page = params.grid.current_page();
@@ -105,16 +124,22 @@ pub fn stash_render_system(
             );
 
             if let Some(&entity) = params.grid.get(page, col, row) {
-                let color = icon_colors.get(&entity).copied().unwrap_or(SLOT_COLOR);
-                if let Some(art) = renderer_art_shader {
-                    renderer.set_shader(art);
-                    let model = art_quad_model(world_slot_w, world_slot_h, center.x, center.y);
-                    renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, color, model);
+                if let Some(baked) = baked_meshes.get(&entity) {
+                    let model = miniature_card_model(camera.zoom, center.x, center.y);
+                    renderer.set_shader(ShaderHandle(0));
+                    renderer.draw_colored_mesh(&baked.front.vertices, &baked.front.indices, model);
                 } else {
-                    let model = unit_quad_model(world_slot_w, world_slot_h, center.x, center.y);
-                    renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, color, model);
+                    let color = icon_colors.get(&entity).copied().unwrap_or(SLOT_COLOR);
+                    if let Some(art) = renderer_art_shader {
+                        renderer.set_shader(art);
+                        let model = art_quad_model(world_slot_w, world_slot_h, center.x, center.y);
+                        renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, color, model);
+                    } else {
+                        let model = unit_quad_model(world_slot_w, world_slot_h, center.x, center.y);
+                        renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, color, model);
+                    }
+                    renderer.set_shader(ShaderHandle(0));
                 }
-                renderer.set_shader(ShaderHandle(0));
             } else {
                 let slot_color = if highlight_slot == Some((col, row)) {
                     SLOT_HIGHLIGHT_COLOR
@@ -138,19 +163,25 @@ pub fn stash_render_system(
             && screen.y < bg_y_max;
 
         if over_stash_area {
-            let color = icon_colors.get(&info.entity).copied().unwrap_or(SLOT_COLOR);
             let cursor_world = params.mouse.world_pos();
-            if let Some(art) = renderer_art_shader {
-                renderer.set_shader(art);
-                let model =
-                    art_quad_model(world_slot_w, world_slot_h, cursor_world.x, cursor_world.y);
-                renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, color, model);
+            if let Some(baked) = baked_meshes.get(&info.entity) {
+                let model = miniature_card_model(camera.zoom, cursor_world.x, cursor_world.y);
+                renderer.set_shader(ShaderHandle(0));
+                renderer.draw_colored_mesh(&baked.front.vertices, &baked.front.indices, model);
             } else {
-                let model =
-                    unit_quad_model(world_slot_w, world_slot_h, cursor_world.x, cursor_world.y);
-                renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, color, model);
+                let color = icon_colors.get(&info.entity).copied().unwrap_or(SLOT_COLOR);
+                if let Some(art) = renderer_art_shader {
+                    renderer.set_shader(art);
+                    let model =
+                        art_quad_model(world_slot_w, world_slot_h, cursor_world.x, cursor_world.y);
+                    renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, color, model);
+                } else {
+                    let model =
+                        unit_quad_model(world_slot_w, world_slot_h, cursor_world.x, cursor_world.y);
+                    renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, color, model);
+                }
+                renderer.set_shader(ShaderHandle(0));
             }
-            renderer.set_shader(ShaderHandle(0));
         }
     }
 }
@@ -600,6 +631,476 @@ mod tests {
         // Assert — slot (0,0) should use normal SLOT_COLOR, not highlight
         let calls = shape_calls.lock().unwrap();
         assert_eq!(calls[1].2, SLOT_COLOR);
+    }
+
+    /// @doc: When a stash slot holds a card with baked geometry, the system must submit
+    /// that pre-tessellated mesh via `draw_colored_mesh` rather than a flat colored quad.
+    /// This lets the player see a miniature thumbnail of the card's actual art — border,
+    /// gems, and name strip — instead of an opaque colored rectangle that conveys no
+    /// card identity at a glance.
+    #[test]
+    fn when_occupied_slot_has_baked_mesh_then_drawn_via_colored_mesh_not_shape() {
+        use engine_render::testing::ColoredMeshCallLog;
+
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
+        world.insert_resource(engine_input::prelude::MouseState::default());
+
+        let sig = crate::card::identity::signature::CardSignature::default();
+        let label = crate::card::component::CardLabel {
+            name: "Test".to_owned(),
+            description: "Desc".to_owned(),
+        };
+        let size = glam::Vec2::new(60.0, 90.0);
+        let baked = crate::card::rendering::baked_mesh::BakedCardMesh {
+            front: crate::card::rendering::bake::bake_front_face(&sig, size, &label, None),
+            back: crate::card::rendering::bake::bake_back_face(size),
+        };
+        let card_entity = world
+            .spawn((
+                crate::card::component::Card {
+                    face_texture: engine_core::prelude::TextureId(0),
+                    back_texture: engine_core::prelude::TextureId(0),
+                    face_up: true,
+                    signature: sig,
+                },
+                baked,
+            ))
+            .id();
+
+        let mut grid = StashGrid::new(1, 1, 1);
+        grid.place(0, 0, 0, card_entity).unwrap();
+        world.insert_resource(grid);
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let colored_mesh_calls: ColoredMeshCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_shape_capture(shape_calls.clone())
+            .with_colored_mesh_capture(colored_mesh_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — occupied slot must use draw_colored_mesh, not draw_shape
+        assert!(
+            !colored_mesh_calls.lock().unwrap().is_empty(),
+            "expected draw_colored_mesh for occupied slot with BakedCardMesh, got none"
+        );
+        assert_eq!(
+            shape_calls.lock().unwrap().len(),
+            1,
+            "expected exactly 1 draw_shape (background only); occupied slot must not draw a flat quad"
+        );
+    }
+
+    /// @doc: The miniature must use the card's actual baked front-face geometry — not a
+    /// stand-in four-vertex quad — so that the player sees real card art (border, gems, name strip)
+    /// in the stash grid. A vertex count mismatch would mean the system substituted a generic shape.
+    #[test]
+    fn when_occupied_slot_rendered_then_vertices_match_baked_front() {
+        use engine_render::testing::ColoredMeshCallLog;
+
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
+        world.insert_resource(engine_input::prelude::MouseState::default());
+
+        let sig = crate::card::identity::signature::CardSignature::default();
+        let label = crate::card::component::CardLabel {
+            name: "Test".to_owned(),
+            description: "Desc".to_owned(),
+        };
+        let size = glam::Vec2::new(60.0, 90.0);
+        let front_mesh = crate::card::rendering::bake::bake_front_face(&sig, size, &label, None);
+        let expected_vertex_count = front_mesh.vertices.len();
+        let baked = crate::card::rendering::baked_mesh::BakedCardMesh {
+            front: front_mesh,
+            back: crate::card::rendering::bake::bake_back_face(size),
+        };
+        let card_entity = world
+            .spawn((
+                crate::card::component::Card {
+                    face_texture: engine_core::prelude::TextureId(0),
+                    back_texture: engine_core::prelude::TextureId(0),
+                    face_up: true,
+                    signature: sig,
+                },
+                baked,
+            ))
+            .id();
+
+        let mut grid = StashGrid::new(1, 1, 1);
+        grid.place(0, 0, 0, card_entity).unwrap();
+        world.insert_resource(grid);
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let colored_mesh_calls: ColoredMeshCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_colored_mesh_capture(colored_mesh_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert
+        let calls = colored_mesh_calls.lock().unwrap();
+        assert_eq!(
+            calls[0].0.len(),
+            expected_vertex_count,
+            "expected front-face vertex count {expected_vertex_count}, got {}",
+            calls[0].0.len()
+        );
+    }
+
+    /// @doc: The model matrix must scale the card's natural size (60×90) down to slot dimensions
+    /// (SLOT_WIDTH×SLOT_HEIGHT) so the miniature fits precisely. Without correct scaling, the card
+    /// art would either overflow the slot bounds or appear as a tiny dot in the center.
+    #[test]
+    fn when_occupied_slot_rendered_then_model_scales_card_to_slot() {
+        use engine_render::testing::ColoredMeshCallLog;
+
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
+        world.insert_resource(engine_input::prelude::MouseState::default());
+
+        let sig = crate::card::identity::signature::CardSignature::default();
+        let label = crate::card::component::CardLabel {
+            name: "Test".to_owned(),
+            description: "Desc".to_owned(),
+        };
+        let size = glam::Vec2::new(60.0, 90.0);
+        let baked = crate::card::rendering::baked_mesh::BakedCardMesh {
+            front: crate::card::rendering::bake::bake_front_face(&sig, size, &label, None),
+            back: crate::card::rendering::bake::bake_back_face(size),
+        };
+        let card_entity = world
+            .spawn((
+                crate::card::component::Card {
+                    face_texture: engine_core::prelude::TextureId(0),
+                    back_texture: engine_core::prelude::TextureId(0),
+                    face_up: true,
+                    signature: sig,
+                },
+                baked,
+            ))
+            .id();
+
+        let mut grid = StashGrid::new(1, 1, 1);
+        grid.place(0, 0, 0, card_entity).unwrap();
+        world.insert_resource(grid);
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let colored_mesh_calls: ColoredMeshCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_colored_mesh_capture(colored_mesh_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — scale factors: SLOT_WIDTH / TABLE_CARD_WIDTH and SLOT_HEIGHT / TABLE_CARD_HEIGHT
+        let calls = colored_mesh_calls.lock().unwrap();
+        let model = &calls[0].2;
+        let expected_sx = SLOT_WIDTH / TABLE_CARD_WIDTH;
+        let expected_sy = SLOT_HEIGHT / TABLE_CARD_HEIGHT;
+        assert!(
+            (model[0][0] - expected_sx).abs() < 1e-4,
+            "scale x: got {}, expected {expected_sx}",
+            model[0][0]
+        );
+        assert!(
+            (model[1][1] - expected_sy).abs() < 1e-4,
+            "scale y: got {}, expected {expected_sy}",
+            model[1][1]
+        );
+    }
+
+    /// @doc: The miniature model translation must place the card art at the slot center in world
+    /// coords. Without correct translation, miniatures would cluster at the world origin instead
+    /// of appearing inside their grid cells.
+    #[test]
+    fn when_occupied_slot_rendered_then_model_translates_to_slot_center() {
+        use engine_render::testing::ColoredMeshCallLog;
+
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
+        world.insert_resource(engine_input::prelude::MouseState::default());
+
+        let sig = crate::card::identity::signature::CardSignature::default();
+        let label = crate::card::component::CardLabel {
+            name: "Test".to_owned(),
+            description: "Desc".to_owned(),
+        };
+        let size = glam::Vec2::new(60.0, 90.0);
+        let baked = crate::card::rendering::baked_mesh::BakedCardMesh {
+            front: crate::card::rendering::bake::bake_front_face(&sig, size, &label, None),
+            back: crate::card::rendering::bake::bake_back_face(size),
+        };
+        let card_entity = world
+            .spawn((
+                crate::card::component::Card {
+                    face_texture: engine_core::prelude::TextureId(0),
+                    back_texture: engine_core::prelude::TextureId(0),
+                    face_up: true,
+                    signature: sig,
+                },
+                baked,
+            ))
+            .id();
+
+        let mut grid = StashGrid::new(1, 1, 1);
+        grid.place(0, 0, 0, card_entity).unwrap();
+        world.insert_resource(grid);
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let colored_mesh_calls: ColoredMeshCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_colored_mesh_capture(colored_mesh_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — slot (0,0) center in screen space → world coords
+        let expected = screen_to_world(
+            Vec2::new(
+                GRID_MARGIN + SLOT_WIDTH * 0.5,
+                GRID_MARGIN + SLOT_HEIGHT * 0.5,
+            ),
+            &Camera2D::default(),
+            1024.0,
+            768.0,
+        );
+        let calls = colored_mesh_calls.lock().unwrap();
+        let model = &calls[0].2;
+        assert!(
+            (model[3][0] - expected.x).abs() < 0.01,
+            "tx: got {}, expected {}",
+            model[3][0],
+            expected.x
+        );
+        assert!(
+            (model[3][1] - expected.y).abs() < 0.01,
+            "ty: got {}, expected {}",
+            model[3][1],
+            expected.y
+        );
+    }
+
+    /// @doc: Camera zoom must inversely scale the miniature model matrix, matching how empty
+    /// slots already scale. Without zoom adjustment, miniatures would appear at different sizes
+    /// than their surrounding slot borders when the player zooms in/out.
+    #[test]
+    fn when_occupied_slot_at_zoom2_then_scale_halved() {
+        use engine_render::testing::ColoredMeshCallLog;
+
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
+        world.insert_resource(engine_input::prelude::MouseState::default());
+
+        let sig = crate::card::identity::signature::CardSignature::default();
+        let label = crate::card::component::CardLabel {
+            name: "Test".to_owned(),
+            description: "Desc".to_owned(),
+        };
+        let size = glam::Vec2::new(60.0, 90.0);
+        let baked = crate::card::rendering::baked_mesh::BakedCardMesh {
+            front: crate::card::rendering::bake::bake_front_face(&sig, size, &label, None),
+            back: crate::card::rendering::bake::bake_back_face(size),
+        };
+        let card_entity = world
+            .spawn((
+                crate::card::component::Card {
+                    face_texture: engine_core::prelude::TextureId(0),
+                    back_texture: engine_core::prelude::TextureId(0),
+                    face_up: true,
+                    signature: sig,
+                },
+                baked,
+            ))
+            .id();
+
+        let mut grid = StashGrid::new(1, 1, 1);
+        grid.place(0, 0, 0, card_entity).unwrap();
+        world.insert_resource(grid);
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let colored_mesh_calls: ColoredMeshCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_colored_mesh_capture(colored_mesh_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 2.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — at zoom=2, scale is halved
+        let calls = colored_mesh_calls.lock().unwrap();
+        let model = &calls[0].2;
+        let expected_sx = (SLOT_WIDTH / TABLE_CARD_WIDTH) / 2.0;
+        let expected_sy = (SLOT_HEIGHT / TABLE_CARD_HEIGHT) / 2.0;
+        assert!(
+            (model[0][0] - expected_sx).abs() < 1e-4,
+            "scale x at zoom=2: got {}, expected {expected_sx}",
+            model[0][0]
+        );
+        assert!(
+            (model[1][1] - expected_sy).abs() < 1e-4,
+            "scale y at zoom=2: got {}, expected {expected_sy}",
+            model[1][1]
+        );
+    }
+
+    /// @doc: Empty stash slots must continue using `draw_shape` with `SLOT_COLOR` — the miniature
+    /// card art path only applies to occupied slots. Without this separation, empty slots would
+    /// either crash (no `BakedCardMesh` to draw) or render invisible.
+    #[test]
+    fn when_empty_slots_rendered_then_still_draw_shape_with_slot_color() {
+        use engine_render::testing::ColoredMeshCallLog;
+
+        // Arrange — 2x2 grid, all slots empty
+        let mut world = World::new();
+        world.insert_resource(StashGrid::new(2, 2, 1));
+        world.insert_resource(StashVisible(true));
+        world.insert_resource(crate::card::interaction::drag_state::DragState::default());
+        world.insert_resource(engine_input::prelude::MouseState::default());
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
+        let colored_mesh_calls: ColoredMeshCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_shape_capture(shape_calls.clone())
+            .with_colored_mesh_capture(colored_mesh_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — 1 background + 4 empty slots = 5 shape calls, 0 colored mesh calls
+        assert_eq!(shape_calls.lock().unwrap().len(), 5);
+        assert!(
+            colored_mesh_calls.lock().unwrap().is_empty(),
+            "empty slots must not use draw_colored_mesh"
+        );
+    }
+
+    /// @doc: The drag preview ghost that follows the cursor over the stash must also render the
+    /// card's baked front mesh, not a flat colored quad. Without this, the preview looks like a
+    /// featureless square while the slots show detailed miniatures — an inconsistency that breaks
+    /// the player's visual expectation of what the dragged card looks like.
+    #[test]
+    fn when_dragged_card_with_baked_mesh_over_stash_then_preview_uses_colored_mesh() {
+        use engine_render::testing::ColoredMeshCallLog;
+
+        // Arrange
+        let mut world = World::new();
+        world.insert_resource(StashGrid::new(2, 2, 1));
+        world.insert_resource(StashVisible(true));
+
+        let sig = crate::card::identity::signature::CardSignature::default();
+        let label = crate::card::component::CardLabel {
+            name: "Test".to_owned(),
+            description: "Desc".to_owned(),
+        };
+        let size = glam::Vec2::new(60.0, 90.0);
+        let front_mesh = crate::card::rendering::bake::bake_front_face(&sig, size, &label, None);
+        let expected_vertex_count = front_mesh.vertices.len();
+        let baked = crate::card::rendering::baked_mesh::BakedCardMesh {
+            front: front_mesh,
+            back: crate::card::rendering::bake::bake_back_face(size),
+        };
+        let entity = world
+            .spawn((
+                crate::card::component::Card {
+                    face_texture: engine_core::prelude::TextureId(0),
+                    back_texture: engine_core::prelude::TextureId(0),
+                    face_up: true,
+                    signature: sig,
+                },
+                baked,
+            ))
+            .id();
+        let drag_info = crate::card::interaction::drag_state::DragInfo {
+            entity,
+            local_grab_offset: Vec2::ZERO,
+            origin_zone: crate::card::component::CardZone::Table,
+            stash_cursor_follow: false,
+            origin_position: Vec2::ZERO,
+        };
+        world.insert_resource(crate::card::interaction::drag_state::DragState {
+            dragging: Some(drag_info),
+        });
+
+        let mut mouse = engine_input::prelude::MouseState::default();
+        mouse.set_screen_pos(Vec2::new(GRID_MARGIN + 10.0, GRID_MARGIN + 10.0));
+        world.insert_resource(mouse);
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let colored_mesh_calls: ColoredMeshCallLog = Arc::new(Mutex::new(Vec::new()));
+        let spy = SpyRenderer::new(log)
+            .with_colored_mesh_capture(colored_mesh_calls.clone())
+            .with_viewport(1024, 768);
+        world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.spawn(Camera2D {
+            position: Vec2::ZERO,
+            zoom: 1.0,
+        });
+
+        // Act
+        run_system(&mut world);
+
+        // Assert — at least one colored mesh call for the drag preview
+        let calls = colored_mesh_calls.lock().unwrap();
+        assert!(
+            !calls.is_empty(),
+            "drag preview must use draw_colored_mesh when card has BakedCardMesh"
+        );
+        let last = calls.last().unwrap();
+        assert_eq!(
+            last.0.len(),
+            expected_vertex_count,
+            "drag preview must use front-face vertices"
+        );
     }
 
     #[test]
