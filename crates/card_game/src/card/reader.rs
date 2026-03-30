@@ -1025,8 +1025,8 @@ mod tests {
 
     // --- Drag-then-eject tests ---
 
-    /// @doc: Verifies the end-to-end drag-then-eject chain: reader_drag_system must
-    /// sync the card's Transform2D.position before card_reader_eject_system reads it
+    /// @doc: Verifies the end-to-end drag-then-eject chain: `reader_drag_system` must
+    /// sync the card's Transform2D.position before `card_reader_eject_system` reads it
     /// to place the restored physics body. Without this synchronisation, a reader
     /// dragged to (300, 200) would eject its card back at the original insert position
     /// (100, 100), causing the card to teleport visibly across the table.

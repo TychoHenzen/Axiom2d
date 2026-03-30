@@ -157,7 +157,7 @@ mod tests {
     /// @doc: The spatial audio system mutates events in place (stamping spatial
     /// gains) before a later system drains them. `iter_mut` provides mutable
     /// access without consuming the events — if it drained instead, the
-    /// downstream play_sound_system would see an empty bus and never hear
+    /// downstream `play_sound_system` would see an empty bus and never hear
     /// the spatially-processed sounds.
     #[test]
     fn when_iter_mut_called_then_events_mutated_in_place_without_draining() {
@@ -167,7 +167,7 @@ mod tests {
         bus.push(TestEvent(2));
 
         // Act
-        for event in bus.iter_mut() {
+        for event in &mut bus {
             event.0 += 10;
         }
 
@@ -180,7 +180,7 @@ mod tests {
     /// @doc: The `for event in &mut bus` pattern (via `IntoIterator`) is
     /// syntactic sugar for `iter_mut()` used by systems that annotate events
     /// in place. If this impl were missing, the idiomatic `for cmd in &mut *bus`
-    /// pattern in spatial_audio_system would fail to compile.
+    /// pattern in `spatial_audio_system` would fail to compile.
     #[test]
     fn when_into_iterator_for_mut_ref_then_all_events_yielded_as_mutable() {
         // Arrange
@@ -209,7 +209,7 @@ mod tests {
     fn when_two_buses_used_then_push_to_one_does_not_affect_other() {
         // Arrange
         let mut bus_a = EventBus::<TestEvent>::default();
-        let mut bus_b = EventBus::<TestEvent>::default();
+        let bus_b = EventBus::<TestEvent>::default();
 
         // Act
         bus_a.push(TestEvent(99));
