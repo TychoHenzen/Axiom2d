@@ -7,6 +7,8 @@ use glam::Vec2;
 use crate::card::component::{Card, CardZone};
 use crate::card::identity::signature::CardSignature;
 use crate::card::interaction::drag_state::DragState;
+use crate::card::interaction::physics_helpers::activate_physics_body;
+use crate::card::interaction::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
 
 pub const READER_CARD_SCALE: f32 = 0.6;
 pub const READER_COLLISION_GROUP: u32 = 0b0010;
@@ -196,13 +198,17 @@ pub fn card_reader_eject_system(
         .insert(ScaleSpring::new(1.0))
         .insert(RigidBody::Dynamic);
 
-    // Re-add physics body (guard against duplicate if body was never removed)
-    if let Ok(transform) = transforms.get(card_entity)
-        && physics.body_position(card_entity).is_none()
-    {
-        physics.add_body(card_entity, &RigidBody::Dynamic, transform.position);
+    // Re-add physics body with correct collision groups
+    if let Ok(transform) = transforms.get(card_entity) {
         if let Ok(collider) = colliders.get(card_entity) {
-            physics.add_collider(card_entity, collider);
+            activate_physics_body(
+                card_entity,
+                transform.position,
+                collider,
+                &mut physics,
+                CARD_COLLISION_GROUP,
+                CARD_COLLISION_FILTER,
+            );
         }
     }
 

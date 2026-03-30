@@ -5,7 +5,7 @@ use glam::Vec2;
 use crate::card::interaction::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 
 /// Register a dynamic rigid body in the physics backend with base damping
-/// and the given collision group.
+/// and the given collision group. No-ops if the entity already has a body.
 pub(crate) fn activate_physics_body(
     entity: Entity,
     position: Vec2,
@@ -14,6 +14,9 @@ pub(crate) fn activate_physics_body(
     membership: u32,
     filter: u32,
 ) {
+    if physics.body_position(entity).is_some() {
+        return;
+    }
     physics.add_body(entity, &RigidBody::Dynamic, position);
     physics.add_collider(entity, collider);
     physics
