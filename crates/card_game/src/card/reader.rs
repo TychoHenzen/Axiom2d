@@ -199,17 +199,17 @@ pub fn card_reader_eject_system(
         .insert(RigidBody::Dynamic);
 
     // Re-add physics body with correct collision groups
-    if let Ok(transform) = transforms.get(card_entity) {
-        if let Ok(collider) = colliders.get(card_entity) {
-            activate_physics_body(
-                card_entity,
-                transform.position,
-                collider,
-                &mut physics,
-                CARD_COLLISION_GROUP,
-                CARD_COLLISION_FILTER,
-            );
-        }
+    if let Ok(transform) = transforms.get(card_entity)
+        && let Ok(collider) = colliders.get(card_entity)
+    {
+        activate_physics_body(
+            card_entity,
+            transform.position,
+            collider,
+            &mut physics,
+            CARD_COLLISION_GROUP,
+            CARD_COLLISION_FILTER,
+        );
     }
 
     // Clear reader
