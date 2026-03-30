@@ -84,16 +84,19 @@ mod tests {
 
     /// Queue a left-mouse-press event at the given screen position.
     ///
-    /// Events go through `MouseEventBuffer` so that `mouse_input_system` (`Phase::Input`)
-    /// sets `just_pressed` properly — direct `MouseState` mutation would be cleared
-    /// before the Update systems see it.
+    /// Events go through `EventBus<MouseInputEvent>` so that `mouse_input_system`
+    /// (`Phase::Input`) sets `just_pressed` properly — direct `MouseState` mutation
+    /// would be cleared before the Update systems see it.
     fn simulate_mouse_press(app: &mut App, screen_pos: Vec2) {
         app.world_mut()
             .resource_mut::<MouseState>()
             .set_screen_pos(screen_pos);
         app.world_mut()
-            .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Left, ButtonState::Pressed);
+            .resource_mut::<engine_core::prelude::EventBus<MouseInputEvent>>()
+            .push(MouseInputEvent {
+                button: MouseButton::Left,
+                state: ButtonState::Pressed,
+            });
     }
 
     /// Queue a left-mouse-release event at the given screen position.
@@ -102,8 +105,11 @@ mod tests {
             .resource_mut::<MouseState>()
             .set_screen_pos(screen_pos);
         app.world_mut()
-            .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Left, ButtonState::Released);
+            .resource_mut::<engine_core::prelude::EventBus<MouseInputEvent>>()
+            .push(MouseInputEvent {
+                button: MouseButton::Left,
+                state: ButtonState::Released,
+            });
     }
 
     // ── Tests ────────────────────────────────────────────────────────

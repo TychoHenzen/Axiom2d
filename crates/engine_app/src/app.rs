@@ -10,11 +10,12 @@ use engine_input::button_state::ButtonState;
 use engine_input::key_code::KeyCode;
 use engine_input::mouse_button::MouseButton;
 
+use engine_core::prelude::EventBus;
 use engine_core::types::Pixels;
 use engine_ecs::prelude::{
     IntoScheduleConfigs, PHASE_COUNT, Phase, Schedule, ScheduleSystem, World,
 };
-use engine_input::prelude::{InputEventBuffer, MouseEventBuffer, MouseState};
+use engine_input::prelude::{KeyInputEvent, MouseInputEvent, MouseState};
 use engine_render::prelude::RendererRes;
 use engine_render::window::WindowConfig;
 
@@ -97,9 +98,12 @@ impl App {
         state: winit::event::ElementState,
     ) {
         if let PhysicalKey::Code(winit_key) = physical_key
-            && let Some(mut buffer) = self.world.get_resource_mut::<InputEventBuffer>()
+            && let Some(mut bus) = self.world.get_resource_mut::<EventBus<KeyInputEvent>>()
         {
-            buffer.push(KeyCode::from(winit_key), ButtonState::from(state));
+            bus.push(KeyInputEvent {
+                key: KeyCode::from(winit_key),
+                state: ButtonState::from(state),
+            });
         }
     }
 
@@ -114,8 +118,11 @@ impl App {
         button: winit::event::MouseButton,
         state: winit::event::ElementState,
     ) {
-        if let Some(mut buffer) = self.world.get_resource_mut::<MouseEventBuffer>() {
-            buffer.push(MouseButton::from(button), ButtonState::from(state));
+        if let Some(mut bus) = self.world.get_resource_mut::<EventBus<MouseInputEvent>>() {
+            bus.push(MouseInputEvent {
+                button: MouseButton::from(button),
+                state: ButtonState::from(state),
+            });
         }
     }
 
@@ -254,7 +261,7 @@ mod tests {
     use engine_render::testing::SpyRenderer;
 
     use crate::window_size::WindowSize;
-    use engine_input::prelude::{ButtonState, InputEventBuffer, KeyCode};
+    use engine_input::prelude::{ButtonState, KeyCode, KeyInputEvent};
 
     #[derive(Resource)]
     struct Counter(u32);
@@ -588,12 +595,13 @@ mod tests {
         assert_eq!(captured.0, engine_core::types::Seconds(0.016));
     }
 
-    /// @doc: Keyboard press events must reach `InputEventBuffer` — missing event prevents key input recognition
+    /// @doc: Keyboard press events must reach `EventBus<KeyInputEvent>` — missing event prevents key input recognition
     #[test]
-    fn when_app_receives_keyboard_press_then_event_pushed_to_buffer() {
+    fn when_app_receives_keyboard_press_then_event_pushed_to_bus() {
         // Arrange
         let mut app = App::new();
-        app.world_mut().insert_resource(InputEventBuffer::default());
+        app.world_mut()
+            .insert_resource(engine_core::prelude::EventBus::<KeyInputEvent>::default());
 
         // Act
         app.handle_key_event(
@@ -602,18 +610,28 @@ mod tests {
         );
 
         // Assert
-        let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
-        let events: Vec<_> = buffer.drain().collect();
+        let events: Vec<_> = app
+            .world_mut()
+            .resource_mut::<engine_core::prelude::EventBus<KeyInputEvent>>()
+            .drain()
+            .collect();
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0], (KeyCode::ArrowLeft, ButtonState::Pressed));
+        assert_eq!(
+            events[0],
+            KeyInputEvent {
+                key: KeyCode::ArrowLeft,
+                state: ButtonState::Pressed,
+            }
+        );
     }
 
-    /// @doc: Keyboard release events must reach `InputEventBuffer` — missing releases trap keys pressed
+    /// @doc: Keyboard release events must reach `EventBus<KeyInputEvent>` — missing releases trap keys pressed
     #[test]
-    fn when_app_receives_keyboard_release_then_release_event_pushed_to_buffer() {
+    fn when_app_receives_keyboard_release_then_release_event_pushed_to_bus() {
         // Arrange
         let mut app = App::new();
-        app.world_mut().insert_resource(InputEventBuffer::default());
+        app.world_mut()
+            .insert_resource(engine_core::prelude::EventBus::<KeyInputEvent>::default());
 
         // Act
         app.handle_key_event(
@@ -622,20 +640,30 @@ mod tests {
         );
 
         // Assert
-        let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
-        let events: Vec<_> = buffer.drain().collect();
+        let events: Vec<_> = app
+            .world_mut()
+            .resource_mut::<engine_core::prelude::EventBus<KeyInputEvent>>()
+            .drain()
+            .collect();
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0], (KeyCode::ArrowLeft, ButtonState::Released));
+        assert_eq!(
+            events[0],
+            KeyInputEvent {
+                key: KeyCode::ArrowLeft,
+                state: ButtonState::Released,
+            }
+        );
     }
 
     /// @doc: Unidentified keys must not create events — unidentified key events would confuse input consumers
     #[test]
-    fn when_app_receives_unidentified_physical_key_then_buffer_remains_empty() {
+    fn when_app_receives_unidentified_physical_key_then_bus_remains_empty() {
         use winit::keyboard::NativeKeyCode;
 
         // Arrange
         let mut app = App::new();
-        app.world_mut().insert_resource(InputEventBuffer::default());
+        app.world_mut()
+            .insert_resource(engine_core::prelude::EventBus::<KeyInputEvent>::default());
 
         // Act
         app.handle_key_event(
@@ -644,8 +672,11 @@ mod tests {
         );
 
         // Assert
-        let mut buffer = app.world_mut().resource_mut::<InputEventBuffer>();
-        assert_eq!(buffer.drain().count(), 0);
+        assert!(
+            app.world()
+                .resource::<engine_core::prelude::EventBus<KeyInputEvent>>()
+                .is_empty()
+        );
     }
 
     /// @doc: Cursor moves must update `MouseState.screen_pos` — stale position breaks drag and hover feedback
@@ -674,13 +705,15 @@ mod tests {
         app.handle_cursor_moved(glam::Vec2::new(100.0, 100.0));
     }
 
-    /// @doc: Mouse button events must reach `MouseEventBuffer` — missing events break click/drag input
+    /// @doc: Mouse button events must reach `EventBus<MouseInputEvent>` — missing events break click/drag input
     #[test]
-    fn when_mouse_button_event_received_by_app_then_event_pushed_to_buffer() {
+    fn when_mouse_button_event_received_by_app_then_event_pushed_to_bus() {
         // Arrange
         let mut app = App::new();
         app.world_mut()
-            .insert_resource(engine_input::prelude::MouseEventBuffer::default());
+            .insert_resource(engine_core::prelude::EventBus::<
+                engine_input::prelude::MouseInputEvent,
+            >::default());
 
         // Act
         app.handle_mouse_button(
@@ -689,23 +722,25 @@ mod tests {
         );
 
         // Assert
-        let mut buffer = app
+        let events: Vec<_> = app
             .world_mut()
-            .resource_mut::<engine_input::prelude::MouseEventBuffer>();
-        let events: Vec<_> = buffer.drain().collect();
+            .resource_mut::<engine_core::prelude::EventBus<engine_input::prelude::MouseInputEvent>>(
+            )
+            .drain()
+            .collect();
         assert_eq!(events.len(), 1);
         assert_eq!(
             events[0],
-            (
-                engine_input::prelude::MouseButton::Right,
-                ButtonState::Pressed
-            )
+            engine_input::prelude::MouseInputEvent {
+                button: engine_input::prelude::MouseButton::Right,
+                state: ButtonState::Pressed,
+            }
         );
     }
 
-    /// @doc: Missing `MouseEventBuffer` must not panic — handles optional input buffer gracefully
+    /// @doc: Missing `EventBus<MouseInputEvent>` must not panic — handles optional input bus gracefully
     #[test]
-    fn when_mouse_button_event_received_without_buffer_resource_then_does_not_panic() {
+    fn when_mouse_button_event_received_without_bus_resource_then_does_not_panic() {
         // Arrange
         let mut app = App::new();
 

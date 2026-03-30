@@ -1,14 +1,17 @@
 use bevy_ecs::prelude::ResMut;
+use engine_core::prelude::EventBus;
 
+use super::buffer::MouseInputEvent;
+use super::state::MouseState;
 use crate::button_state::ButtonState;
 
-use super::buffer::MouseEventBuffer;
-use super::state::MouseState;
-
-pub fn mouse_input_system(mut buffer: ResMut<MouseEventBuffer>, mut state: ResMut<MouseState>) {
+pub fn mouse_input_system(
+    mut bus: ResMut<EventBus<MouseInputEvent>>,
+    mut state: ResMut<MouseState>,
+) {
     state.clear_frame_state();
-    for (button, button_state) in buffer.drain() {
-        match button_state {
+    for MouseInputEvent { button, state: bs } in bus.drain() {
+        match bs {
             ButtonState::Pressed => state.press(button),
             ButtonState::Released => state.release(button),
         }
@@ -28,15 +31,12 @@ mod tests {
     use crate::button_state::ButtonState;
     use crate::mouse_button::MouseButton;
 
-    use crate::mouse::MouseEventBuffer;
-    use crate::mouse::MouseState;
-
     use super::*;
 
     fn setup_world() -> World {
         let mut world = World::new();
         world.insert_resource(MouseState::default());
-        world.insert_resource(MouseEventBuffer::default());
+        world.insert_resource(EventBus::<MouseInputEvent>::default());
         world
     }
 
@@ -47,12 +47,15 @@ mod tests {
     }
 
     #[test]
-    fn when_press_event_in_buffer_then_mouse_input_system_sets_button_pressed() {
+    fn when_press_event_in_bus_then_mouse_input_system_sets_button_pressed() {
         // Arrange
         let mut world = setup_world();
         world
-            .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Left, ButtonState::Pressed);
+            .resource_mut::<EventBus<MouseInputEvent>>()
+            .push(MouseInputEvent {
+                button: MouseButton::Left,
+                state: ButtonState::Pressed,
+            });
 
         // Act
         run_mouse_system(&mut world);
@@ -62,12 +65,15 @@ mod tests {
     }
 
     #[test]
-    fn when_press_event_in_buffer_then_mouse_input_system_sets_just_pressed() {
+    fn when_press_event_in_bus_then_mouse_input_system_sets_just_pressed() {
         // Arrange
         let mut world = setup_world();
         world
-            .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Right, ButtonState::Pressed);
+            .resource_mut::<EventBus<MouseInputEvent>>()
+            .push(MouseInputEvent {
+                button: MouseButton::Right,
+                state: ButtonState::Pressed,
+            });
 
         // Act
         run_mouse_system(&mut world);
@@ -81,14 +87,17 @@ mod tests {
     }
 
     #[test]
-    fn when_release_event_in_buffer_then_mouse_input_system_sets_just_released() {
+    fn when_release_event_in_bus_then_mouse_input_system_sets_just_released() {
         // Arrange
         let mut world = setup_world();
         world.resource_mut::<MouseState>().press(MouseButton::Left);
         world.resource_mut::<MouseState>().clear_frame_state();
         world
-            .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Left, ButtonState::Released);
+            .resource_mut::<EventBus<MouseInputEvent>>()
+            .push(MouseInputEvent {
+                button: MouseButton::Left,
+                state: ButtonState::Released,
+            });
 
         // Act
         run_mouse_system(&mut world);
@@ -100,18 +109,21 @@ mod tests {
     }
 
     #[test]
-    fn when_mouse_input_system_runs_then_buffer_is_drained() {
+    fn when_mouse_input_system_runs_then_bus_is_drained() {
         // Arrange
         let mut world = setup_world();
         world
-            .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Left, ButtonState::Pressed);
+            .resource_mut::<EventBus<MouseInputEvent>>()
+            .push(MouseInputEvent {
+                button: MouseButton::Left,
+                state: ButtonState::Pressed,
+            });
 
         // Act
         run_mouse_system(&mut world);
 
         // Assert
-        assert_eq!(world.resource_mut::<MouseEventBuffer>().drain().count(), 0);
+        assert!(world.resource::<EventBus<MouseInputEvent>>().is_empty());
     }
 
     #[test]
@@ -139,8 +151,11 @@ mod tests {
         // Arrange
         let mut world = setup_world();
         world
-            .resource_mut::<MouseEventBuffer>()
-            .push(MouseButton::Left, ButtonState::Pressed);
+            .resource_mut::<EventBus<MouseInputEvent>>()
+            .push(MouseInputEvent {
+                button: MouseButton::Left,
+                state: ButtonState::Pressed,
+            });
         run_mouse_system(&mut world);
 
         // Act

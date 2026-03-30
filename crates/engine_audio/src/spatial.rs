@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use engine_scene::prelude::GlobalTransform2D;
 
-use crate::playback::PlaySoundBuffer;
+use crate::playback::PlaySound;
+use engine_core::prelude::EventBus;
 
 /// Linear distance attenuation: 1.0 at distance 0, 0.0 at `max_distance`, clamped.
 #[must_use]
@@ -69,14 +70,14 @@ pub fn compute_spatial_gains(
 pub fn spatial_audio_system(
     listener_q: Query<&GlobalTransform2D, With<AudioListener>>,
     emitter_q: Query<(&AudioEmitter, &GlobalTransform2D), Without<AudioListener>>,
-    mut buffer: ResMut<PlaySoundBuffer>,
+    mut bus: ResMut<EventBus<PlaySound>>,
 ) {
     let Ok(listener_transform) = listener_q.single() else {
         return;
     };
     let listener_pos = listener_transform.0.translation;
 
-    for cmd in &mut *buffer {
+    for cmd in &mut *bus {
         if cmd.spatial_gains.is_some() {
             continue;
         }
@@ -108,8 +109,6 @@ mod tests {
     };
     use glam::Affine2;
 
-    use crate::playback::{PlaySound, PlaySoundBuffer};
-
     use super::*;
 
     #[test]
@@ -130,7 +129,7 @@ mod tests {
 
     fn setup_world() -> World {
         let mut world = World::new();
-        world.insert_resource(PlaySoundBuffer::default());
+        world.insert_resource(EventBus::<PlaySound>::default());
         world
     }
 
@@ -393,14 +392,17 @@ mod tests {
         spawn_listener(&mut world, 0.0, 0.0);
         let emitter = spawn_emitter(&mut world, 50.0, 0.0, 1.0, 100.0);
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::at_emitter("beep", emitter));
 
         // Act
         run_spatial_system(&mut world);
 
         // Assert
-        let cmds: Vec<_> = world.resource_mut::<PlaySoundBuffer>().drain().collect();
+        let cmds: Vec<_> = world
+            .resource_mut::<EventBus<PlaySound>>()
+            .drain()
+            .collect();
         assert_eq!(cmds.len(), 1);
         let gains = cmds[0].spatial_gains.expect("should have spatial gains");
         assert!(
@@ -424,14 +426,17 @@ mod tests {
         let mut world = setup_world();
         let emitter = spawn_emitter(&mut world, 50.0, 0.0, 1.0, 100.0);
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::at_emitter("beep", emitter));
 
         // Act
         run_spatial_system(&mut world);
 
         // Assert
-        let cmds: Vec<_> = world.resource_mut::<PlaySoundBuffer>().drain().collect();
+        let cmds: Vec<_> = world
+            .resource_mut::<EventBus<PlaySound>>()
+            .drain()
+            .collect();
         assert_eq!(cmds.len(), 1);
         assert!(cmds[0].spatial_gains.is_none());
     }
@@ -444,14 +449,17 @@ mod tests {
         spawn_listener(&mut world, 0.0, 0.0);
         let emitter = spawn_emitter(&mut world, 200.0, 0.0, 1.0, 100.0);
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::at_emitter("beep", emitter));
 
         // Act
         run_spatial_system(&mut world);
 
         // Assert
-        let cmds: Vec<_> = world.resource_mut::<PlaySoundBuffer>().drain().collect();
+        let cmds: Vec<_> = world
+            .resource_mut::<EventBus<PlaySound>>()
+            .drain()
+            .collect();
         let gains = cmds[0].spatial_gains.expect("should have spatial gains");
         assert!(gains.left.abs() < f32::EPSILON);
         assert!(gains.right.abs() < f32::EPSILON);
@@ -532,14 +540,17 @@ mod tests {
         let mut world = setup_world();
         spawn_listener(&mut world, 0.0, 0.0);
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::new("beep"));
 
         // Act
         run_spatial_system(&mut world);
 
         // Assert
-        let cmds: Vec<_> = world.resource_mut::<PlaySoundBuffer>().drain().collect();
+        let cmds: Vec<_> = world
+            .resource_mut::<EventBus<PlaySound>>()
+            .drain()
+            .collect();
         assert_eq!(cmds.len(), 1);
         assert!(cmds[0].spatial_gains.is_none());
     }
@@ -584,14 +595,17 @@ mod tests {
         spawn_listener(&mut world, 0.0, 0.0);
         let child = spawn_child_emitter(&mut world, 80.0);
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::at_emitter("beep", child));
 
         // Act
         run_hierarchy_and_spatial_system(&mut world);
 
         // Assert — emitter at world (80, 0), listener at (0, 0): right-panned with attenuation
-        let cmds: Vec<_> = world.resource_mut::<PlaySoundBuffer>().drain().collect();
+        let cmds: Vec<_> = world
+            .resource_mut::<EventBus<PlaySound>>()
+            .drain()
+            .collect();
         assert_eq!(cmds.len(), 1);
         let gains = cmds[0].spatial_gains.expect("should have spatial gains");
         assert!(gains.right > gains.left, "should be right-panned");

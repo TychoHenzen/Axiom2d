@@ -474,7 +474,7 @@ mod tests {
         assert!(events.is_empty());
     }
 
-    /// @doc: Collision events flow: rapier `ChannelEventCollector` → drain → `CollisionEventBuffer` with entity resolution
+    /// @doc: Collision events flow: rapier `ChannelEventCollector` → drain → `EventBus<CollisionEvent>` with entity resolution
     #[test]
     fn when_two_overlapping_circles_step_then_started_event_with_correct_entities() {
         // Arrange

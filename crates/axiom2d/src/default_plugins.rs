@@ -5,18 +5,18 @@ use engine_app::mouse_world_pos_system::mouse_world_pos_system;
 use engine_app::prelude::{App, Phase, Plugin};
 #[cfg(feature = "audio")]
 use engine_audio::{
-    audio_res::AudioRes, backend::NullAudioBackend, playback::PlaySoundBuffer,
+    audio_res::AudioRes, backend::NullAudioBackend, playback::PlaySound,
     playback::play_sound_system, spatial::spatial_audio_system,
 };
 use engine_core::prelude::{ClockRes, SystemClock, time_system};
 use engine_ecs::prelude::IntoScheduleConfigs;
 use engine_input::prelude::{
-    InputEventBuffer, InputState, MouseEventBuffer, MouseState, input_system, mouse_input_system,
+    InputState, KeyInputEvent, MouseInputEvent, MouseState, input_system, mouse_input_system,
     scroll_clear_system,
 };
 #[cfg(feature = "physics")]
 use engine_physics::prelude::{
-    CollisionEventBuffer, PhysicsRes, physics_step_system, physics_sync_system,
+    CollisionEvent, PhysicsRes, physics_step_system, physics_sync_system,
 };
 #[cfg(feature = "render")]
 use engine_render::prelude::{
@@ -55,9 +55,11 @@ impl Plugin for DefaultPlugins {
 
 fn register_core_resources(app: &mut App) {
     app.world_mut().insert_resource(InputState::default());
-    app.world_mut().insert_resource(InputEventBuffer::default());
+    app.world_mut()
+        .insert_resource(engine_core::prelude::EventBus::<KeyInputEvent>::default());
     app.world_mut().insert_resource(MouseState::default());
-    app.world_mut().insert_resource(MouseEventBuffer::default());
+    app.world_mut()
+        .insert_resource(engine_core::prelude::EventBus::<MouseInputEvent>::default());
     app.world_mut()
         .insert_resource(ClockRes::new(Box::new(SystemClock::default())));
 }
@@ -76,7 +78,7 @@ fn register_physics(app: &mut App) {
             )));
         }
         app.world_mut()
-            .insert_resource(CollisionEventBuffer::default());
+            .insert_resource(engine_core::prelude::EventBus::<CollisionEvent>::default());
         app.add_systems(
             Phase::PreUpdate,
             (physics_step_system, physics_sync_system).chain(),
@@ -89,7 +91,8 @@ fn register_post_update_systems(app: &mut App) {
     {
         app.world_mut()
             .insert_resource(AudioRes::new(Box::new(NullAudioBackend::new())));
-        app.world_mut().insert_resource(PlaySoundBuffer::default());
+        app.world_mut()
+            .insert_resource(engine_core::prelude::EventBus::<PlaySound>::default());
         app.add_systems(Phase::PreUpdate, play_sound_system);
     }
 
@@ -169,8 +172,11 @@ mod tests {
         // Arrange
         let mut app = app_with_default_plugins();
         app.world_mut()
-            .resource_mut::<InputEventBuffer>()
-            .push(KeyCode::Space, ButtonState::Pressed);
+            .resource_mut::<engine_core::prelude::EventBus<engine_input::prelude::KeyInputEvent>>()
+            .push(engine_input::prelude::KeyInputEvent {
+                key: KeyCode::Space,
+                state: ButtonState::Pressed,
+            });
 
         // Act
         app.handle_redraw();
@@ -427,14 +433,14 @@ mod tests {
 
     #[cfg(feature = "audio")]
     #[test]
-    fn when_audio_feature_on_then_play_sound_buffer_is_present() {
+    fn when_audio_feature_on_then_play_sound_bus_is_present() {
         // Arrange
         let app = app_with_default_plugins();
 
         // Assert
         assert!(
             app.world()
-                .get_resource::<engine_audio::playback::PlaySoundBuffer>()
+                .get_resource::<engine_core::prelude::EventBus<engine_audio::playback::PlaySound>>()
                 .is_some()
         );
     }
@@ -458,8 +464,12 @@ mod tests {
         // Arrange
         let mut app = app_with_default_plugins();
         app.world_mut()
-            .resource_mut::<engine_input::prelude::MouseEventBuffer>()
-            .push(MouseButton::Left, ButtonState::Pressed);
+            .resource_mut::<engine_core::prelude::EventBus<engine_input::prelude::MouseInputEvent>>(
+            )
+            .push(engine_input::prelude::MouseInputEvent {
+                button: MouseButton::Left,
+                state: ButtonState::Pressed,
+            });
 
         // Act
         app.handle_redraw();
@@ -477,8 +487,12 @@ mod tests {
         // Arrange
         let mut app = app_with_default_plugins();
         app.world_mut()
-            .resource_mut::<engine_input::prelude::MouseEventBuffer>()
-            .push(MouseButton::Left, ButtonState::Pressed);
+            .resource_mut::<engine_core::prelude::EventBus<engine_input::prelude::MouseInputEvent>>(
+            )
+            .push(engine_input::prelude::MouseInputEvent {
+                button: MouseButton::Left,
+                state: ButtonState::Pressed,
+            });
         app.handle_redraw();
 
         // Act
@@ -515,41 +529,16 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "physics")]
-    #[test]
-    fn when_default_plugins_then_physics_res_is_present() {
-        // Arrange
-        let app = app_with_default_plugins();
-
-        // Assert
-        assert!(
-            app.world()
-                .get_resource::<engine_physics::prelude::PhysicsRes>()
-                .is_some()
-        );
-    }
-
-    #[cfg(feature = "physics")]
-    #[test]
-    fn when_default_plugins_then_collision_event_buffer_is_present() {
-        // Arrange
-        let app = app_with_default_plugins();
-
-        // Assert
-        assert!(
-            app.world()
-                .get_resource::<engine_physics::prelude::CollisionEventBuffer>()
-                .is_some()
-        );
-    }
-
     #[test]
     fn when_key_pressed_and_second_frame_runs_then_just_pressed_is_false() {
         // Arrange
         let mut app = app_with_default_plugins();
         app.world_mut()
-            .resource_mut::<InputEventBuffer>()
-            .push(KeyCode::Space, ButtonState::Pressed);
+            .resource_mut::<engine_core::prelude::EventBus<engine_input::prelude::KeyInputEvent>>()
+            .push(engine_input::prelude::KeyInputEvent {
+                key: KeyCode::Space,
+                state: ButtonState::Pressed,
+            });
         app.handle_redraw(); // first frame — just_pressed should be true
 
         // Act

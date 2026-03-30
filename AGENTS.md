@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## Project Overview
 
@@ -29,7 +29,7 @@ When modifying engine crates (e.g. `engine_physics`), keep the engine's test sui
 
 ## Development Environment
 
-This project is developed with **RustRover on Windows** while **Claude Code runs in WSL2 (Ubuntu 24.04)**. The repo lives on the Windows filesystem at `/mnt/c/Users/siriu/RustroverProjects/Axiom2d`.
+This project is developed with **RustRover on Windows** while **Codex runs in WSL2 (Ubuntu 24.04)**. The repo lives on the Windows filesystem at `/mnt/c/Users/siriu/RustroverProjects/Axiom2d`.
 
 **Rust is installed on the Windows side only** (stable-x86_64-pc-windows-msvc). There is no WSL-native Rust toolchain. To run cargo commands from WSL:
 
@@ -51,7 +51,7 @@ The project uses Rust edition 2024. Dependencies are declared at the workspace l
 - **Filesystem performance**: The project is on a `/mnt/c` drvfs mount. File I/O from WSL is slower than native. Build artifacts in `target/` are written through this mount.
 - **Line endings**: Git and editors should be configured for consistent line endings. RustRover on Windows may default to CRLF; ensure `.gitattributes` or git config handles this.
 - **Path formats**: WSL sees `/mnt/c/...` paths; Windows/RustRover sees `C:\...` paths. Cargo and rustc invoked via `.exe` will interpret paths as Windows paths. When passing paths to `cargo.exe`, use Windows-style paths or rely on the working directory.
-- **File locking**: Both RustRover (Windows) and Claude Code (WSL) access the same files. Avoid concurrent builds — RustRover's build and `cargo.exe` from WSL share the same `target/` directory and lock file.
+- **File locking**: Both RustRover (Windows) and Codex (WSL) access the same files. Avoid concurrent builds — RustRover's build and `cargo.exe` from WSL share the same `target/` directory and lock file.
 - **Target triple**: The Windows toolchain compiles for `x86_64-pc-windows-msvc` by default. Any platform-specific code or dependencies should target Windows, not Linux.
 - **Snapshot testing (insta)**: `INSTA_UPDATE=always` does not propagate from WSL env vars to Windows `cargo.exe`. To accept new snapshots, rename `.snap.new` → `.snap` manually (e.g., `for f in $(find crates -name "*.snap.new"); do mv "$f" "${f%.new}"; done`).
 
@@ -65,7 +65,7 @@ Two GitHub Actions workflows in `.github/workflows/`:
 - **`ci.yml`** (every push/PR to master): autofix (clippy --fix + fmt, pushes fixes back) → build + test — fast gate for every commit.
 - **`quality.yml`** (daily at 06:00 UTC + manual `workflow_dispatch`): clippy, audit, docs, coverage, udeps, shader validation, dead code, duplicate detection — expensive checks run on a schedule to conserve Actions minutes.
 
-Mutation testing (`cargo-mutants`) is run locally via the `/mutant-hunt` skill in Claude Code — too slow for CI.
+Mutation testing (`cargo-mutants`) is run locally via the `/mutant-hunt` skill in Codex — too slow for CI.
 
 ## Architecture
 
@@ -94,7 +94,6 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 - Enums over magic numbers for constrained states (e.g., `BlendMode`, `RenderLayer`)
 - Limit trait indirection to 2 levels max
 - Each crate exports a `prelude` module
-- Events use `EventBus<T>` (generic, in `engine_core`) — implement the `Event` marker trait on a struct, insert `EventBus::<MyEvent>` as a resource. Do NOT create per-type buffer structs (e.g., `FooEventBuffer`); the generic bus replaced all of those.
 
 ## Testing Strategy
 

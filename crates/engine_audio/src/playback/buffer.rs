@@ -1,7 +1,5 @@
-use std::vec::Drain;
-
 use bevy_ecs::entity::Entity;
-use bevy_ecs::resource::Resource;
+use engine_core::prelude::Event;
 
 use crate::mixer::MixerTrack;
 use crate::spatial::SpatialGains;
@@ -13,6 +11,8 @@ pub struct PlaySound {
     pub emitter: Option<Entity>,
     pub spatial_gains: Option<SpatialGains>,
 }
+
+impl Event for PlaySound {}
 
 impl PlaySound {
     pub fn new(name: impl Into<String>) -> Self {
@@ -40,68 +40,5 @@ impl PlaySound {
             emitter: Some(emitter),
             spatial_gains: None,
         }
-    }
-}
-
-#[derive(Resource, Debug, Default)]
-pub struct PlaySoundBuffer {
-    commands: Vec<PlaySound>,
-}
-
-impl PlaySoundBuffer {
-    pub fn push(&mut self, cmd: PlaySound) {
-        self.commands.push(cmd);
-    }
-
-    pub fn drain(&mut self) -> Drain<'_, PlaySound> {
-        self.commands.drain(..)
-    }
-
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, PlaySound> {
-        self.commands.iter_mut()
-    }
-}
-
-impl<'a> IntoIterator for &'a mut PlaySoundBuffer {
-    type Item = &'a mut PlaySound;
-    type IntoIter = std::slice::IterMut<'a, PlaySound>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter_mut()
-    }
-}
-
-#[cfg(test)]
-#[allow(clippy::unwrap_used)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn when_push_and_drain_then_returns_one_command() {
-        // Arrange
-        let mut buffer = PlaySoundBuffer::default();
-        buffer.push(PlaySound::new("beep"));
-
-        // Act
-        let commands: Vec<_> = buffer.drain().collect();
-
-        // Assert
-        assert_eq!(commands.len(), 1);
-        assert_eq!(commands[0].name, "beep");
-    }
-
-    #[test]
-    fn when_drained_then_buffer_is_empty() {
-        // Arrange
-        let mut buffer = PlaySoundBuffer::default();
-        buffer.push(PlaySound::new("a"));
-        buffer.push(PlaySound::new("b"));
-
-        // Act
-        let _ = buffer.drain().count();
-        let remaining: Vec<_> = buffer.drain().collect();
-
-        // Assert
-        assert!(remaining.is_empty());
     }
 }

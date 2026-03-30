@@ -1,6 +1,7 @@
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::prelude::{Query, Res, ResMut, Resource};
+use engine_core::prelude::EventBus;
 use engine_input::mouse::MouseState;
 use engine_input::prelude::MouseButton;
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D};
@@ -8,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::is_hidden;
 use crate::layout::anchor_offset;
-use crate::ui_event::{UiEvent, UiEventBuffer};
+use crate::ui_event::UiEvent;
 use crate::widget::{Button, UiNode};
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -36,7 +37,7 @@ type InteractionQuery<'w> = (
 pub fn ui_interaction_system(
     mouse: Res<MouseState>,
     mut query: Query<InteractionQuery>,
-    mut events: ResMut<UiEventBuffer>,
+    mut events: ResMut<EventBus<UiEvent>>,
     mut focus: ResMut<FocusState>,
 ) {
     let pos = mouse.world_pos();
@@ -79,7 +80,7 @@ fn compute_interaction(mouse: &MouseState) -> Interaction {
     }
 }
 
-fn update_focus(entity: Entity, focus: &mut FocusState, events: &mut UiEventBuffer) {
+fn update_focus(entity: Entity, focus: &mut FocusState, events: &mut EventBus<UiEvent>) {
     let old = focus.focused;
     if old != Some(entity) {
         if let Some(prev) = old {
@@ -99,7 +100,6 @@ mod tests {
     use glam::{Affine2, Vec2};
 
     use crate::layout::Anchor;
-    use crate::ui_event::{UiEvent, UiEventBuffer};
     use crate::widget::UiNode;
 
     fn setup_world(world_pos: Vec2) -> World {
@@ -107,7 +107,7 @@ mod tests {
         let mut mouse = MouseState::default();
         mouse.set_world_pos(world_pos);
         world.insert_resource(mouse);
-        world.insert_resource(UiEventBuffer::default());
+        world.insert_resource(EventBus::<UiEvent>::default());
         world.insert_resource(FocusState::default());
         world
     }
@@ -395,7 +395,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let events: Vec<UiEvent> = world.resource_mut::<UiEventBuffer>().drain().collect();
+        let events: Vec<UiEvent> = world.resource_mut::<EventBus<UiEvent>>().drain().collect();
         assert!(events.contains(&UiEvent::Clicked(entity)));
     }
 
@@ -420,7 +420,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let events: Vec<UiEvent> = world.resource_mut::<UiEventBuffer>().drain().collect();
+        let events: Vec<UiEvent> = world.resource_mut::<EventBus<UiEvent>>().drain().collect();
         assert!(events.contains(&UiEvent::HoverEnter(entity)));
     }
 
@@ -442,7 +442,7 @@ mod tests {
             .id();
 
         run_system(&mut world);
-        let _ = world.resource_mut::<UiEventBuffer>().drain().count();
+        let _ = world.resource_mut::<EventBus<UiEvent>>().drain().count();
 
         // Act
         world
@@ -451,7 +451,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert
-        let events: Vec<UiEvent> = world.resource_mut::<UiEventBuffer>().drain().collect();
+        let events: Vec<UiEvent> = world.resource_mut::<EventBus<UiEvent>>().drain().collect();
         assert!(events.contains(&UiEvent::HoverExit(entity)));
     }
 
@@ -480,7 +480,7 @@ mod tests {
         // Assert
         let focus = world.resource::<FocusState>();
         assert_eq!(focus.focused, Some(entity));
-        let events: Vec<UiEvent> = world.resource_mut::<UiEventBuffer>().drain().collect();
+        let events: Vec<UiEvent> = world.resource_mut::<EventBus<UiEvent>>().drain().collect();
         assert!(events.contains(&UiEvent::FocusGained(entity)));
     }
 
@@ -516,7 +516,7 @@ mod tests {
 
         run_system(&mut world);
         assert_eq!(world.resource::<FocusState>().focused, Some(entity_a));
-        let _ = world.resource_mut::<UiEventBuffer>().drain().count();
+        let _ = world.resource_mut::<EventBus<UiEvent>>().drain().count();
 
         // Act — move cursor to entity_b and click
         {
@@ -530,7 +530,7 @@ mod tests {
         // Assert
         let focus = world.resource::<FocusState>();
         assert_ne!(focus.focused, Some(entity_a));
-        let events: Vec<UiEvent> = world.resource_mut::<UiEventBuffer>().drain().collect();
+        let events: Vec<UiEvent> = world.resource_mut::<EventBus<UiEvent>>().drain().collect();
         assert!(events.contains(&UiEvent::FocusLost(entity_a)));
     }
 
@@ -625,7 +625,7 @@ mod tests {
         run_system(&mut world);
 
         // Assert — no HoverExit because prev was already None
-        let events: Vec<UiEvent> = world.resource_mut::<UiEventBuffer>().drain().collect();
+        let events: Vec<UiEvent> = world.resource_mut::<EventBus<UiEvent>>().drain().collect();
         assert!(
             !events.iter().any(|e| matches!(e, UiEvent::HoverExit(_))),
             "should not emit HoverExit when prev=None, got {events:?}"

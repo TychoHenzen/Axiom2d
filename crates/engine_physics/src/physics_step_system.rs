@@ -1,13 +1,13 @@
 use bevy_ecs::prelude::{Res, ResMut};
-use engine_core::prelude::DeltaTime;
+use engine_core::prelude::{DeltaTime, EventBus};
 
-use crate::collision_event::CollisionEventBuffer;
+use crate::collision_event::CollisionEvent;
 use crate::physics_res::PhysicsRes;
 
 pub fn physics_step_system(
     dt: Res<DeltaTime>,
     mut physics: ResMut<PhysicsRes>,
-    mut events: ResMut<CollisionEventBuffer>,
+    mut events: ResMut<EventBus<CollisionEvent>>,
 ) {
     physics.step(dt.0);
     for event in physics.drain_collision_events() {
@@ -35,7 +35,7 @@ mod tests {
         world.insert_resource(PhysicsRes::new(Box::new(
             SpyPhysicsBackend::new().with_step_count(Arc::clone(&step_count)),
         )));
-        world.insert_resource(CollisionEventBuffer::default());
+        world.insert_resource(EventBus::<CollisionEvent>::default());
         world.insert_resource(DeltaTime(Seconds(0.016)));
         world
     }
@@ -67,8 +67,8 @@ mod tests {
         schedule.run(&mut world);
 
         // Assert
-        let mut buffer = world.resource_mut::<CollisionEventBuffer>();
-        let events: Vec<_> = buffer.drain().collect();
+        let mut bus = world.resource_mut::<EventBus<CollisionEvent>>();
+        let events: Vec<_> = bus.drain().collect();
         assert!(events.is_empty());
     }
 
@@ -104,7 +104,7 @@ mod tests {
                 .with_step_count(Arc::clone(&step_count))
                 .with_events(vec![event]),
         )));
-        world.insert_resource(CollisionEventBuffer::default());
+        world.insert_resource(EventBus::<CollisionEvent>::default());
         world.insert_resource(DeltaTime(Seconds(0.016)));
         let mut schedule = Schedule::default();
         schedule.add_systems(physics_step_system);
@@ -113,8 +113,8 @@ mod tests {
         schedule.run(&mut world);
 
         // Assert
-        let mut buffer = world.resource_mut::<CollisionEventBuffer>();
-        let events: Vec<_> = buffer.drain().collect();
+        let mut bus = world.resource_mut::<EventBus<CollisionEvent>>();
+        let events: Vec<_> = bus.drain().collect();
         assert_eq!(events.len(), 1);
         assert_eq!(events[0], event);
     }

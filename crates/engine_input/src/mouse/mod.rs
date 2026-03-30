@@ -2,7 +2,7 @@ mod buffer;
 mod state;
 mod system;
 
-pub use buffer::MouseEventBuffer;
+pub use buffer::MouseInputEvent;
 pub use state::MouseState;
 
 pub use crate::mouse_button::MouseButton;

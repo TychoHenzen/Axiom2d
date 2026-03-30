@@ -1,5 +1,5 @@
 pub use crate::collider::Collider;
-pub use crate::collision_event::{CollisionEvent, CollisionEventBuffer, CollisionKind};
+pub use crate::collision_event::{CollisionEvent, CollisionKind};
 pub use crate::physics_backend::{NullPhysicsBackend, PhysicsBackend, PhysicsError};
 pub use crate::physics_res::PhysicsRes;
 pub use crate::physics_step_system::physics_step_system;

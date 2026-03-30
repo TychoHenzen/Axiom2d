@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::{Res, ResMut};
+use engine_core::prelude::EventBus;
 
-use super::buffer::PlaySoundBuffer;
+use super::buffer::PlaySound;
 use crate::audio_res::AudioRes;
 use crate::mixer::MixerState;
 use crate::sound::SoundData;
@@ -11,14 +12,14 @@ const DEFAULT_SAMPLE_RATE: u32 = 44_100;
 const DEFAULT_DURATION: f32 = 0.5;
 
 pub fn play_sound_system(
-    mut buffer: ResMut<PlaySoundBuffer>,
+    mut bus: ResMut<EventBus<PlaySound>>,
     library: Option<Res<SoundLibrary>>,
     mixer: Option<Res<MixerState>>,
     mut audio: ResMut<AudioRes>,
 ) {
     let Some(library) = library else {
-        // Drain buffer even when no library to avoid unbounded growth.
-        buffer.drain().for_each(drop);
+        // Drain bus even when no library to avoid unbounded growth.
+        bus.drain().for_each(drop);
         return;
     };
 
@@ -28,7 +29,7 @@ pub fn play_sound_system(
         }
     }
 
-    for cmd in buffer.drain() {
+    for cmd in bus.drain() {
         if let Some(effect) = library.get(&cmd.name) {
             let sound = effect.synthesize(DEFAULT_SAMPLE_RATE, DEFAULT_DURATION);
             let sound = if let Some(gains) = cmd.spatial_gains {
@@ -78,7 +79,7 @@ mod tests {
 
     use crate::backend::AudioBackend;
     use crate::mixer::{MixerState, MixerTrack};
-    use crate::playback::{PlaySound, PlaybackId};
+    use crate::playback::PlaybackId;
     use crate::sound::{SoundData, SoundEffect};
 
     use super::*;
@@ -140,7 +141,7 @@ mod tests {
 
     fn setup_world(play_count: &Arc<Mutex<u32>>) -> World {
         let mut world = World::new();
-        world.insert_resource(PlaySoundBuffer::default());
+        world.insert_resource(EventBus::<PlaySound>::default());
         world.insert_resource(AudioRes::new(Box::new(SpyAudioBackend::new(Arc::clone(
             play_count,
         )))));
@@ -162,7 +163,7 @@ mod tests {
         library.register("beep", test_effect());
         world.insert_resource(library);
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::new("beep"));
 
         // Act
@@ -173,7 +174,7 @@ mod tests {
     }
 
     #[test]
-    fn when_known_sound_then_buffer_is_drained() {
+    fn when_known_sound_then_bus_is_drained() {
         // Arrange
         let play_count = Arc::new(Mutex::new(0u32));
         let mut world = setup_world(&play_count);
@@ -181,14 +182,17 @@ mod tests {
         library.register("beep", test_effect());
         world.insert_resource(library);
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::new("beep"));
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let remaining: Vec<_> = world.resource_mut::<PlaySoundBuffer>().drain().collect();
+        let remaining: Vec<_> = world
+            .resource_mut::<EventBus<PlaySound>>()
+            .drain()
+            .collect();
         assert!(remaining.is_empty());
     }
 
@@ -199,7 +203,7 @@ mod tests {
         let mut world = setup_world(&play_count);
         // No SoundLibrary inserted
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::new("beep"));
 
         // Act
@@ -218,7 +222,7 @@ mod tests {
         library.register("beep", test_effect());
         world.insert_resource(library);
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::new("missing"));
 
         // Act
@@ -235,7 +239,7 @@ mod tests {
         let played_tracks = Arc::new(Mutex::new(Vec::new()));
         let track_volume_calls = Arc::new(Mutex::new(Vec::new()));
         let mut world = World::new();
-        world.insert_resource(PlaySoundBuffer::default());
+        world.insert_resource(EventBus::<PlaySound>::default());
         world.insert_resource(AudioRes::new(Box::new(
             SpyAudioBackend::with_track_captures(
                 Arc::clone(&play_count),
@@ -250,7 +254,7 @@ mod tests {
         mixer.set_track_volume(MixerTrack::Music, 0.3);
         world.insert_resource(mixer);
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::on_track("bgm", MixerTrack::Music));
 
         // Act
@@ -275,7 +279,7 @@ mod tests {
         world.insert_resource(library);
         // No MixerState inserted
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::new("beep"));
 
         // Act
@@ -286,7 +290,7 @@ mod tests {
     }
 
     #[test]
-    fn when_unknown_sound_name_then_buffer_is_still_drained() {
+    fn when_unknown_sound_name_then_bus_is_still_drained() {
         // Arrange
         let play_count = Arc::new(Mutex::new(0u32));
         let mut world = setup_world(&play_count);
@@ -294,14 +298,17 @@ mod tests {
         library.register("beep", test_effect());
         world.insert_resource(library);
         world
-            .resource_mut::<PlaySoundBuffer>()
+            .resource_mut::<EventBus<PlaySound>>()
             .push(PlaySound::new("missing"));
 
         // Act
         run_system(&mut world);
 
         // Assert
-        let remaining: Vec<_> = world.resource_mut::<PlaySoundBuffer>().drain().collect();
+        let remaining: Vec<_> = world
+            .resource_mut::<EventBus<PlaySound>>()
+            .drain()
+            .collect();
         assert!(remaining.is_empty());
     }
 
@@ -319,7 +326,7 @@ mod tests {
             left: 0.3,
             right: 0.9,
         });
-        world.resource_mut::<PlaySoundBuffer>().push(cmd);
+        world.resource_mut::<EventBus<PlaySound>>().push(cmd);
 
         // Act
         run_system(&mut world);
@@ -394,7 +401,7 @@ mod tests {
             left: 0.0,
             right: 0.5,
         });
-        world.resource_mut::<PlaySoundBuffer>().push(cmd);
+        world.resource_mut::<EventBus<PlaySound>>().push(cmd);
 
         // Act
         run_system(&mut world);
@@ -421,7 +428,7 @@ mod tests {
             left: 0.0,
             right: 0.0,
         });
-        world.resource_mut::<PlaySoundBuffer>().push(cmd);
+        world.resource_mut::<EventBus<PlaySound>>().push(cmd);
 
         // Act
         run_system(&mut world);
@@ -444,7 +451,7 @@ mod tests {
             left: 0.0,
             right: f32::EPSILON,
         });
-        world.resource_mut::<PlaySoundBuffer>().push(cmd);
+        world.resource_mut::<EventBus<PlaySound>>().push(cmd);
 
         // Act
         run_system(&mut world);
@@ -471,7 +478,7 @@ mod tests {
             left: f32::EPSILON,
             right: 0.0,
         });
-        world.resource_mut::<PlaySoundBuffer>().push(cmd);
+        world.resource_mut::<EventBus<PlaySound>>().push(cmd);
 
         // Act
         run_system(&mut world);

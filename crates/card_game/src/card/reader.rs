@@ -81,7 +81,9 @@ pub fn reader_pick_system(
 pub fn reader_drag_system(
     mouse: Res<MouseState>,
     reader_drag: Res<ReaderDragState>,
-    mut transforms: Query<&mut Transform2D>,
+    mut reader_transforms: Query<&mut Transform2D, With<CardReader>>,
+    mut card_transforms: Query<&mut Transform2D, Without<CardReader>>,
+    readers: Query<&CardReader>,
     mut physics: ResMut<PhysicsRes>,
 ) {
     use engine_input::mouse_button::MouseButton;
@@ -93,10 +95,16 @@ pub fn reader_drag_system(
         return;
     }
     let target = mouse.world_pos() - info.grab_offset;
-    if let Ok(mut transform) = transforms.get_mut(info.entity) {
+    if let Ok(mut transform) = reader_transforms.get_mut(info.entity) {
         transform.position = target;
     }
     let _ = physics.set_body_position(info.entity, target);
+    if let Ok(reader) = readers.get(info.entity)
+        && let Some(card_entity) = reader.loaded
+        && let Ok(mut card_transform) = card_transforms.get_mut(card_entity)
+    {
+        card_transform.position = target;
+    }
 }
 
 pub fn reader_release_system(mouse: Res<MouseState>, mut reader_drag: ResMut<ReaderDragState>) {
@@ -139,31 +147,24 @@ pub fn card_reader_insert_system(
             continue;
         }
 
-        // Snap card to reader position and zero rotation
         card_transform.position = reader_transform.position;
         card_transform.rotation = 0.0;
 
-        // Scale down
         commands
             .entity(card_entity)
             .insert(ScaleSpring::new(READER_CARD_SCALE));
 
-        // Remove physics body
         let _ = physics.remove_body(card_entity);
         commands.entity(card_entity).remove::<RigidBody>();
 
-        // Update zone
         *card_zone = CardZone::Reader(reader_entity);
 
-        // Store in reader
         reader.loaded = Some(card_entity);
 
-        // Update output jack
         if let Ok(mut jack) = jacks.get_mut(reader.jack_entity) {
             jack.data = Some(card.signature);
         }
 
-        // Clear drag
         drag_state.dragging = None;
         return;
     }
@@ -191,14 +192,12 @@ pub fn card_reader_eject_system(
         return;
     };
 
-    // Restore card to table
     *card_zone = CardZone::Table;
     commands
         .entity(card_entity)
         .insert(ScaleSpring::new(1.0))
         .insert(RigidBody::Dynamic);
 
-    // Re-add physics body with correct collision groups
     if let Ok(transform) = transforms.get(card_entity)
         && let Ok(collider) = colliders.get(card_entity)
     {
@@ -212,7 +211,6 @@ pub fn card_reader_eject_system(
         );
     }
 
-    // Clear reader
     if let Ok(mut reader) = readers.get_mut(reader_entity) {
         reader.loaded = None;
         if let Ok(mut jack) = jacks.get_mut(reader.jack_entity) {
@@ -237,7 +235,9 @@ mod tests {
     use crate::card::component::{Card, CardZone};
     use crate::card::identity::signature::CardSignature;
     use crate::card::interaction::drag_state::{DragInfo, DragState};
-    use crate::test_helpers::{AngularVelocityLog, RemoveBodyLog, SpyPhysicsBackend, spawn_entity};
+    use crate::test_helpers::{
+        AddBodyLog, AngularVelocityLog, RemoveBodyLog, SpyPhysicsBackend, spawn_entity,
+    };
 
     fn run_rotation_lock(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -437,7 +437,7 @@ mod tests {
         assert!(ang_log.lock().unwrap().is_empty());
     }
 
-    // --- Insertion tests (TC009-TC015) ---
+    // --- Insertion tests ---
 
     /// @doc: When a dragged card is released over a reader, it snaps to the reader's
     /// exact position. This provides clear visual feedback that the card is "locked in"
@@ -493,7 +493,6 @@ mod tests {
         let mut world = World::new();
         let remove_log: RemoveBodyLog = Arc::new(Mutex::new(Vec::new()));
         let setup = setup_insert_scenario(&mut world);
-        // Re-insert physics with remove log
         let spy = SpyPhysicsBackend::new().with_remove_body_log(remove_log.clone());
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
 
@@ -733,7 +732,138 @@ mod tests {
         assert_eq!(*zone, CardZone::Table, "second card should remain on table");
     }
 
-    // --- Ejection tests (TC018-TC021) ---
+    // --- Reader drag tests ---
+
+    fn run_reader_drag(world: &mut World) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems(reader_drag_system);
+        schedule.run(world);
+    }
+
+    /// @doc: A card inside a reader must move by exactly the same displacement as the
+    /// reader each frame it is dragged. This invariant holds regardless of where on
+    /// the table the reader started — the card is rigidly attached to the reader's
+    /// frame. Without it, repeated drags accumulate positional drift until the card
+    /// is no longer visible inside the reader slot.
+    #[test]
+    fn when_reader_dragged_then_loaded_card_moves_by_same_delta() {
+        // Arrange
+        let mut world = World::new();
+        let initial_pos = Vec2::new(50.0, 80.0);
+        let target_pos = Vec2::new(250.0, 180.0);
+
+        let card_entity = world
+            .spawn((
+                Card::face_down(
+                    engine_core::prelude::TextureId(0),
+                    engine_core::prelude::TextureId(0),
+                ),
+                Transform2D {
+                    position: initial_pos,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+            ))
+            .id();
+
+        let jack_entity = world.spawn(OutputJack { data: None }).id();
+
+        let reader_entity = world
+            .spawn((
+                CardReader {
+                    loaded: Some(card_entity),
+                    half_extents: Vec2::new(40.0, 60.0),
+                    jack_entity,
+                },
+                Transform2D {
+                    position: initial_pos,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+            ))
+            .id();
+
+        world
+            .entity_mut(card_entity)
+            .insert(CardZone::Reader(reader_entity));
+
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(target_pos);
+        world.insert_resource(mouse);
+
+        world.insert_resource(ReaderDragState {
+            dragging: Some(ReaderDragInfo {
+                entity: reader_entity,
+                grab_offset: Vec2::ZERO,
+            }),
+        });
+
+        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+
+        // Act
+        run_reader_drag(&mut world);
+
+        // Assert
+        let reader_pos = world.get::<Transform2D>(reader_entity).unwrap().position;
+        let card_pos = world.get::<Transform2D>(card_entity).unwrap().position;
+        assert_eq!(
+            card_pos, reader_pos,
+            "loaded card position {card_pos} must equal reader position {reader_pos} after drag"
+        );
+    }
+
+    /// @doc: Dragging an empty reader must not panic or error when the card-sync
+    /// code finds no loaded card to update. This guards against an unwrap on
+    /// `CardReader.loaded` — if the Option is None, the system should simply
+    /// skip the card position update and move only the reader.
+    #[test]
+    fn when_empty_reader_dragged_then_no_panic() {
+        // Arrange
+        let mut world = World::new();
+        let jack_entity = world.spawn(OutputJack { data: None }).id();
+        let reader_entity = world
+            .spawn((
+                CardReader {
+                    loaded: None,
+                    half_extents: Vec2::new(40.0, 60.0),
+                    jack_entity,
+                },
+                Transform2D {
+                    position: Vec2::new(100.0, 100.0),
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+            ))
+            .id();
+
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::new(200.0, 200.0));
+        world.insert_resource(mouse);
+
+        world.insert_resource(ReaderDragState {
+            dragging: Some(ReaderDragInfo {
+                entity: reader_entity,
+                grab_offset: Vec2::ZERO,
+            }),
+        });
+
+        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+
+        // Act
+        run_reader_drag(&mut world);
+
+        // Assert
+        let reader_pos = world.get::<Transform2D>(reader_entity).unwrap().position;
+        assert_eq!(
+            reader_pos,
+            Vec2::new(200.0, 200.0),
+            "empty reader should still move normally"
+        );
+    }
+
+    // --- Ejection tests ---
 
     fn run_eject(world: &mut World) {
         let mut schedule = Schedule::default();
@@ -784,7 +914,6 @@ mod tests {
             ))
             .id();
 
-        // Card is in Reader zone
         world
             .entity_mut(card_entity)
             .insert(CardZone::Reader(reader_entity));
@@ -894,6 +1023,101 @@ mod tests {
         assert!(jack.data.is_none(), "output jack data should be cleared");
     }
 
+    // --- Drag-then-eject tests ---
+
+    /// @doc: Verifies the end-to-end drag-then-eject chain: reader_drag_system must
+    /// sync the card's Transform2D.position before card_reader_eject_system reads it
+    /// to place the restored physics body. Without this synchronisation, a reader
+    /// dragged to (300, 200) would eject its card back at the original insert position
+    /// (100, 100), causing the card to teleport visibly across the table.
+    #[test]
+    fn when_reader_dragged_then_ejected_card_physics_body_placed_at_new_position() {
+        // Arrange
+        let mut world = World::new();
+        let add_log: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
+        let sig = CardSignature::new([0.1, 0.2, 0.3, 0.4, -0.1, -0.2, -0.3, -0.4]);
+        let jack_entity = world.spawn(OutputJack { data: Some(sig) }).id();
+        let reader_start = Vec2::new(100.0, 100.0);
+        let reader_dest = Vec2::new(300.0, 200.0);
+
+        let card_entity = world
+            .spawn((
+                Card {
+                    face_texture: engine_core::prelude::TextureId(0),
+                    back_texture: engine_core::prelude::TextureId(0),
+                    face_up: true,
+                    signature: sig,
+                },
+                Transform2D {
+                    position: reader_start,
+                    rotation: 0.0,
+                    scale: Vec2::splat(READER_CARD_SCALE),
+                },
+                engine_physics::prelude::Collider::Aabb(Vec2::new(27.0, 22.5)),
+            ))
+            .id();
+
+        let reader_entity = world
+            .spawn((
+                CardReader {
+                    loaded: Some(card_entity),
+                    half_extents: Vec2::new(40.0, 60.0),
+                    jack_entity,
+                },
+                Transform2D {
+                    position: reader_start,
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+            ))
+            .id();
+
+        world
+            .entity_mut(card_entity)
+            .insert(CardZone::Reader(reader_entity));
+
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(reader_dest);
+        world.insert_resource(mouse);
+
+        world.insert_resource(ReaderDragState {
+            dragging: Some(ReaderDragInfo {
+                entity: reader_entity,
+                grab_offset: Vec2::ZERO,
+            }),
+        });
+
+        world.insert_resource(DragState {
+            dragging: Some(DragInfo {
+                entity: card_entity,
+                local_grab_offset: Vec2::ZERO,
+                origin_zone: CardZone::Reader(reader_entity),
+                stash_cursor_follow: false,
+                origin_position: reader_start,
+            }),
+        });
+
+        let spy = SpyPhysicsBackend::new().with_add_body_log(add_log.clone());
+        world.insert_resource(PhysicsRes::new(Box::new(spy)));
+
+        // Act
+        run_reader_drag(&mut world);
+        run_eject(&mut world);
+
+        // Assert
+        let calls = add_log.lock().unwrap();
+        let body_pos = calls
+            .iter()
+            .find(|(e, _)| *e == card_entity)
+            .map(|(_, pos)| *pos)
+            .expect("add_body should have been called for the card entity");
+        assert_eq!(
+            body_pos, reader_dest,
+            "physics body placed at {body_pos}, expected reader destination {reader_dest}"
+        );
+    }
+
     // --- Edge case tests ---
 
     /// @doc: When two readers overlap and a card is dropped in the shared area,
@@ -969,7 +1193,7 @@ mod tests {
         // Act
         run_insert(&mut world);
 
-        // Assert — exactly one reader should have the card
+        // Assert
         let a_loaded = world.get::<CardReader>(reader_a).unwrap().loaded;
         let b_loaded = world.get::<CardReader>(reader_b).unwrap().loaded;
         let total_loaded = a_loaded.iter().count() + b_loaded.iter().count();
@@ -978,7 +1202,6 @@ mod tests {
             "exactly one reader should claim the card, got a={a_loaded:?} b={b_loaded:?}"
         );
 
-        // Card should be in exactly one reader zone
         let zone = world.get::<CardZone>(card_entity).unwrap();
         assert!(
             matches!(zone, CardZone::Reader(_)),

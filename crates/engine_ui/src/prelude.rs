@@ -6,7 +6,7 @@ pub use crate::layout::{
 pub use crate::render::ui_render_system;
 pub use crate::text_render::text_render_system;
 pub use crate::theme::UiTheme;
-pub use crate::ui_event::{UiEvent, UiEventBuffer};
+pub use crate::ui_event::UiEvent;
 pub use crate::widget::{
     Button, Panel, ProgressBar, Text, UiNode, button_render_system, panel_render_system,
     progress_bar_render_system,
