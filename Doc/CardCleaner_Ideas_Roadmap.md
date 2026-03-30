@@ -3,6 +3,9 @@
 Ideas mined from [CardCleaner](https://github.com/TychoHenzen/CardCleaner) for Axiom2d's card game.
 Not a porting guide — these are conceptual adaptations for our 2D physics-based card engine.
 
+> Archived reference. The active backlog now lives in `Doc/Work_Backlog.md`.
+> Keep this file for design notes and source inspiration only.
+
 Tech debt items from `Doc/Technical_Debt_Audit.md` are interleaved where they matter — either as prerequisites for upcoming features or as standalone hardening steps.
 
 ---

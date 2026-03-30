@@ -5,7 +5,7 @@ use engine_scene::prelude::{GlobalTransform2D, RenderLayer};
 
 use crate::card::component::CardItemForm;
 use crate::card::interaction::drag_state::DragState;
-use crate::card::interaction::physics_helpers::activate_physics_body;
+use crate::card::interaction::physics_helpers::{activate_physics_body, warn_on_physics_result};
 use crate::card::interaction::pick::{
     DRAG_SCALE, DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP,
 };
@@ -55,7 +55,7 @@ pub fn stash_boundary_system(
         });
     } else if !info.stash_cursor_follow && over_stash {
         // Enter stash: remove physics body, switch to cursor-follow
-        let _ = physics.remove_body(info.entity); // ok to fail: hand cards have no physics body
+        warn_on_physics_result("remove_body", info.entity, physics.remove_body(info.entity));
         commands
             .entity(info.entity)
             .remove::<RigidBody>()

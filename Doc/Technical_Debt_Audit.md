@@ -1,5 +1,8 @@
 # Technical Debt Audit — Axiom2d
 
+> Archived reference. The active backlog now lives in `Doc/Work_Backlog.md`.
+> Keep this file for historical context and debt analysis, not for day-to-day task tracking.
+
 **Date:** 2026-03-21 (refreshed)
 **Previous audit:** 2026-03-14 (commit `d9b9327`, 740 tests)
 **Current baseline:** ~1,230 tests across 16 crates (12 engine + axiom2d + card_game + card_game_bin + demo + living_docs)

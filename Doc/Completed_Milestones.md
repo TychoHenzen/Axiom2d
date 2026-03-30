@@ -1,6 +1,6 @@
 # Completed Milestones
 
-Reference of completed implementation work. For active future work, see `CardCleaner_Ideas_Roadmap.md`.
+Reference of completed implementation work. For active future work, see `Doc/Work_Backlog.md`.
 
 ---
 
@@ -43,6 +43,9 @@ All 8 phases complete. Implementation details formerly tracked in `Card_Game_Roa
 | H | Integration | CardGamePlugin (all systems wired), drag visual feedback (ScaleSpring, highlight, snap-back) |
 
 ### Post-completion additions
+
+- **TD-032** â€” end-to-end `CardGamePlugin` schedule tests now cover multi-frame input sequences and zone transitions.
+- **TD-031** â€” silent physics failures in card interaction/spawn paths now emit tracing warnings instead of being discarded.
 
 - **Unified render system** — DFS-based hierarchy_sort_system replaced sort_propagation_system; unified_render_system in engine_ui draws shapes+text in sort order
 - **Vector text rendering** — ttf-parser + lyon tessellation through shape pipeline (card labels)

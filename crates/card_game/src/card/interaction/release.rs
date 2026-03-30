@@ -11,7 +11,7 @@ use crate::card::component::CardItemForm;
 use crate::card::component::CardZone;
 use crate::card::interaction::flip_animation::FlipAnimation;
 use crate::card::interaction::game_state_param::CardGameState;
-use crate::card::interaction::physics_helpers::activate_physics_body;
+use crate::card::interaction::physics_helpers::{activate_physics_body, warn_on_physics_result};
 use crate::card::interaction::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
 use crate::card::rendering::drop_zone_glow::HAND_DROP_ZONE_HEIGHT;
 use crate::hand::cards::Hand;
@@ -154,7 +154,7 @@ fn drop_on_hand(
     physics: &mut PhysicsRes,
     commands: &mut Commands,
 ) {
-    let _ = physics.remove_body(entity); // ok to fail: stash/hand cards have no physics body
+    warn_on_physics_result("remove_body", entity, physics.remove_body(entity));
     let zone = if let Ok(index) = hand.add(entity) {
         CardZone::Hand(index)
     } else {
@@ -186,7 +186,7 @@ fn drop_on_stash(
     physics: &mut PhysicsRes,
     commands: &mut Commands,
 ) {
-    let _ = physics.remove_body(entity); // ok to fail: stash/hand cards have no physics body
+    warn_on_physics_result("remove_body", entity, physics.remove_body(entity));
     grid.place(page, col, row, entity)
         .expect("slot should be empty: guarded by is_none check above");
     let mut ec = commands.entity(entity);

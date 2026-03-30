@@ -88,9 +88,7 @@ mod tests {
     /// (`Phase::Input`) sets `just_pressed` properly — direct `MouseState` mutation
     /// would be cleared before the Update systems see it.
     fn simulate_mouse_press(app: &mut App, screen_pos: Vec2) {
-        app.world_mut()
-            .resource_mut::<MouseState>()
-            .set_screen_pos(screen_pos);
+        set_mouse_position(app, screen_pos);
         app.world_mut()
             .resource_mut::<engine_core::prelude::EventBus<MouseInputEvent>>()
             .push(MouseInputEvent {
@@ -101,15 +99,24 @@ mod tests {
 
     /// Queue a left-mouse-release event at the given screen position.
     fn simulate_mouse_release(app: &mut App, screen_pos: Vec2) {
-        app.world_mut()
-            .resource_mut::<MouseState>()
-            .set_screen_pos(screen_pos);
+        set_mouse_position(app, screen_pos);
         app.world_mut()
             .resource_mut::<engine_core::prelude::EventBus<MouseInputEvent>>()
             .push(MouseInputEvent {
                 button: MouseButton::Left,
                 state: ButtonState::Released,
             });
+    }
+
+    fn simulate_mouse_move(app: &mut App, screen_pos: Vec2) {
+        set_mouse_position(app, screen_pos);
+    }
+
+    fn set_mouse_position(app: &mut App, screen_pos: Vec2) {
+        let world_pos = screen_pos - Vec2::new(400.0, 300.0);
+        let mut mouse = app.world_mut().resource_mut::<MouseState>();
+        mouse.set_screen_pos(screen_pos);
+        mouse.set_world_pos(world_pos);
     }
 
     // ── Tests ────────────────────────────────────────────────────────
@@ -491,6 +498,86 @@ mod tests {
         assert!(
             app.world().get::<FlipAnimation>(entity).is_none(),
             "FlipAnimation component must be removed once progress >= 1.0"
+        );
+    }
+
+    /// @doc: A held drag can cross the stash boundary across multiple frames and still resolve on the final release frame.
+    #[test]
+    fn when_table_card_crosses_stash_boundary_over_multiple_frames_then_release_uses_current_zone()
+    {
+        // Arrange
+        let mut app = make_game_app();
+        let def = make_test_definition();
+        let entity = spawn_visual_card(
+            app.world_mut(),
+            &def,
+            Vec2::ZERO,
+            Vec2::new(60.0, 90.0),
+            false,
+            CardSignature::default(),
+        );
+        app.world_mut().resource_mut::<StashVisible>().0 = true;
+        tick(&mut app);
+
+        // Act - press on the table card.
+        simulate_mouse_press(&mut app, Vec2::new(400.0, 300.0));
+        tick(&mut app);
+
+        assert!(
+            app.world().resource::<DragState>().dragging.is_some(),
+            "card should enter drag state on the press frame"
+        );
+
+        // Act - move into the stash while still holding the mouse button.
+        simulate_mouse_move(&mut app, Vec2::new(45.0, 57.0));
+        tick(&mut app);
+        tick(&mut app);
+
+        assert!(
+            app.world().get::<CardItemForm>(entity).is_some(),
+            "card should switch into stash cursor-follow mode while held over the stash"
+        );
+        assert!(
+            app.world().get::<RigidBody>(entity).is_none(),
+            "stash-follow cards should not keep a physics body while held over the stash"
+        );
+
+        // Act - move back out to the table area before releasing.
+        simulate_mouse_move(&mut app, Vec2::new(650.0, 100.0));
+        tick(&mut app);
+        tick(&mut app);
+
+        assert!(
+            app.world().get::<RigidBody>(entity).is_some(),
+            "moving back out of the stash should restore the physics body before release"
+        );
+        assert!(
+            app.world().get::<CardItemForm>(entity).is_none(),
+            "leaving the stash boundary should remove the item-form component"
+        );
+
+        // Act - release over the hand zone on the final frame.
+        simulate_mouse_release(&mut app, Vec2::new(600.0, 550.0));
+        tick(&mut app);
+        tick(&mut app);
+
+        // Assert
+        let hand = app.world().resource::<Hand>();
+        let zone = *app.world().get::<CardZone>(entity).unwrap();
+        let drag_state = app.world().resource::<DragState>().dragging;
+        assert!(
+            hand.cards().contains(&entity),
+            "card should end in the Hand resource after the final release frame; zone={zone:?}, hand={:?}, drag_state={drag_state:?}",
+            hand.cards()
+        );
+        assert_eq!(
+            zone,
+            CardZone::Hand(0),
+            "CardZone should reflect the final hand drop target"
+        );
+        assert!(
+            app.world().resource::<DragState>().dragging.is_none(),
+            "drag state should clear after the release frame"
         );
     }
 }

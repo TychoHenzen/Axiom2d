@@ -20,6 +20,7 @@ use crate::card::identity::signature::compute_seed;
 use crate::card::identity::signature_profile::SignatureProfile;
 use crate::card::identity::visual_params::generate_card_visuals;
 use crate::card::interaction::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
+use crate::card::interaction::physics_helpers::warn_on_physics_bool;
 use crate::card::rendering::art_shader::CardArtShader;
 use crate::card::rendering::bake::{bake_back_face, bake_front_face};
 use crate::card::rendering::baked_mesh::BakedCardMesh;
@@ -83,8 +84,16 @@ pub fn spawn_visual_card(
         .id();
 
     if let Some(mut physics) = world.get_resource_mut::<PhysicsRes>() {
-        physics.add_body(root, &RigidBody::Dynamic, position);
-        physics.add_collider(root, &Collider::Aabb(half));
+        warn_on_physics_bool(
+            "add_body",
+            root,
+            physics.add_body(root, &RigidBody::Dynamic, position),
+        );
+        warn_on_physics_bool(
+            "add_collider",
+            root,
+            physics.add_collider(root, &Collider::Aabb(half)),
+        );
         physics
             .set_damping(root, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG)
             .expect("freshly spawned card should have physics body");

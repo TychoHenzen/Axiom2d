@@ -7,7 +7,7 @@ use glam::Vec2;
 use crate::card::component::{Card, CardZone};
 use crate::card::identity::signature::CardSignature;
 use crate::card::interaction::drag_state::DragState;
-use crate::card::interaction::physics_helpers::activate_physics_body;
+use crate::card::interaction::physics_helpers::{activate_physics_body, warn_on_physics_result};
 use crate::card::interaction::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
 
 pub const READER_CARD_SCALE: f32 = 0.6;
@@ -47,7 +47,11 @@ pub fn reader_rotation_lock_system(
     mut physics: ResMut<PhysicsRes>,
 ) {
     for entity in &query {
-        let _ = physics.set_angular_velocity(entity, 0.0);
+        warn_on_physics_result(
+            "set_angular_velocity",
+            entity,
+            physics.set_angular_velocity(entity, 0.0),
+        );
     }
 }
 
@@ -98,7 +102,11 @@ pub fn reader_drag_system(
     if let Ok(mut transform) = reader_transforms.get_mut(info.entity) {
         transform.position = target;
     }
-    let _ = physics.set_body_position(info.entity, target);
+    warn_on_physics_result(
+        "set_body_position",
+        info.entity,
+        physics.set_body_position(info.entity, target),
+    );
     if let Ok(reader) = readers.get(info.entity)
         && let Some(card_entity) = reader.loaded
         && let Ok(mut card_transform) = card_transforms.get_mut(card_entity)
@@ -154,7 +162,7 @@ pub fn card_reader_insert_system(
             .entity(card_entity)
             .insert(ScaleSpring::new(READER_CARD_SCALE));
 
-        let _ = physics.remove_body(card_entity);
+        warn_on_physics_result("remove_body", card_entity, physics.remove_body(card_entity));
         commands.entity(card_entity).remove::<RigidBody>();
 
         *card_zone = CardZone::Reader(reader_entity);

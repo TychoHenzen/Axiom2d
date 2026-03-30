@@ -11,3 +11,7 @@ Regenerate with:
 ```bash
 cargo.exe run -p living-docs
 ```
+
+## Active Backlog
+
+Current work is tracked in [Doc/Work_Backlog.md](Doc/Work_Backlog.md).
