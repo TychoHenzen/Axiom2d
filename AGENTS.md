@@ -121,6 +121,7 @@ Only test **behavior you wrote**, not language or framework guarantees. The foll
 - **Serde roundtrip tests on derived impls**: Don't test that `Serialize`/`Deserialize` roundtrips work on types that only use `#[derive(Serialize, Deserialize)]`. Serde's derive macros are not broken. Only test serialization when there is a custom `Serialize`/`Deserialize` impl or when the serialized format is part of a public contract (e.g., save files, network protocol).
 - **PartialEq tests on derived impls**: Don't test that `PartialEq` correctly distinguishes enum variants or struct fields when using `#[derive(PartialEq)]`. Rust's derive macros are not broken.
 - **Constructor-echo tests**: Don't test that `Foo::new(10, 10, 3)` produces `width=10, height=10, pages=3`. If the constructor stores its arguments, that's a language guarantee. Only test constructors that compute or validate.
+- **Compile-fail tests**: Don't add tests or doctests that are expected to fail compilation, including `compile_fail` examples. We are not testing the compiler.
 
 **Do test**: Custom logic (arithmetic operators, conversion functions like `from_u8`), system behavior (clear_system, time_system, input_system), non-trivial algorithms (FixedTimestep.tick accumulator math), and design constraints (no-clamping on Rect values).
 

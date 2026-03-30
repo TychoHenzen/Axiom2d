@@ -7,7 +7,7 @@ use crate::renderer::Renderer;
 use crate::shader::ShaderHandle;
 
 use super::gpu_init::create_shape_pipeline_set;
-use super::renderer::{ShapeDrawRecord, WgpuRenderer};
+use super::renderer::{ShapeDrawRecord, WgpuRenderer, pack_material_bindings};
 use super::types::{
     BloomParamsUniform, FullscreenBuffers, FullscreenPass, QUAD_INDICES, ShapeVertex, TextureData,
     compute_batch_ranges, create_texture_bind_group, rect_to_instance, run_fullscreen_pass,
@@ -114,12 +114,13 @@ impl WgpuRenderer {
         self.shape_draws
             .iter()
             .map(|draw| {
-                if draw.material_uniforms.is_empty() {
+                let contents = pack_material_bindings(
+                    &draw.material_uniforms,
+                    &draw.material_textures,
+                    &self.texture_lookups,
+                );
+                if contents.len() == 32 && contents.iter().all(|&b| b == 0) {
                     return self.default_material_bind_group.clone();
-                }
-                let mut contents = draw.material_uniforms.clone();
-                if contents.len() < 32 {
-                    contents.resize(32, 0);
                 }
                 let buffer = self
                     .device
@@ -176,6 +177,7 @@ impl WgpuRenderer {
         pass.set_bind_group(0, &self.camera_bind_group, &[]);
         pass.set_vertex_buffer(0, vb.slice(..));
         pass.set_index_buffer(ib.slice(..), wgpu::IndexFormat::Uint32);
+        pass.set_bind_group(3, &self.texture_bind_group, &[]);
         self.issue_shape_draw_calls(pass, &model_bg, &material_bgs, aligned_entry);
     }
 
@@ -349,13 +351,15 @@ impl Renderer for WgpuRenderer {
         model: [[f32; 4]; 4],
     ) {
         #[allow(clippy::cast_possible_truncation)]
-        let material_uniforms = std::mem::take(&mut self.pending_material_uniforms);
+        let material_uniforms = self.pending_material.take_uniforms();
+        let material_textures = self.pending_material.take_textures();
         self.shape_draws.push(ShapeDrawRecord {
             blend_mode: self.current_blend_mode,
             shader_handle: self.active_shader,
             index_offset: self.shape_batch.index_count() as u32,
             model,
             material_uniforms,
+            material_textures,
         });
         self.shape_batch.push(vertices, indices, color);
     }
@@ -367,13 +371,15 @@ impl Renderer for WgpuRenderer {
         model: [[f32; 4]; 4],
     ) {
         #[allow(clippy::cast_possible_truncation)]
-        let material_uniforms = std::mem::take(&mut self.pending_material_uniforms);
+        let material_uniforms = self.pending_material.take_uniforms();
+        let material_textures = self.pending_material.take_textures();
         self.shape_draws.push(ShapeDrawRecord {
             blend_mode: self.current_blend_mode,
             shader_handle: self.active_shader,
             index_offset: self.shape_batch.index_count() as u32,
             model,
             material_uniforms,
+            material_textures,
         });
         let shape_verts: &[ShapeVertex] = bytemuck::cast_slice(vertices);
         self.shape_batch.push_colored(shape_verts, indices);
@@ -394,10 +400,12 @@ impl Renderer for WgpuRenderer {
     }
 
     fn set_material_uniforms(&mut self, data: &[u8]) {
-        self.pending_material_uniforms = data.to_vec();
+        self.pending_material.set_uniforms(data);
     }
 
-    fn bind_material_texture(&mut self, _texture: engine_core::types::TextureId, _binding: u32) {}
+    fn bind_material_texture(&mut self, texture: engine_core::types::TextureId, binding: u32) {
+        self.pending_material.bind_texture(texture, binding);
+    }
 
     fn compile_shader(
         &mut self,
@@ -428,6 +436,7 @@ impl Renderer for WgpuRenderer {
         &mut self,
         atlas: &crate::atlas::TextureAtlas,
     ) -> Result<(), crate::renderer::RenderError> {
+        self.texture_lookups = atlas.lookups.clone();
         self.texture_bind_group = create_texture_bind_group(
             &self.device,
             &self.queue,

@@ -8,31 +8,70 @@ use crate::hierarchy::{ChildOf, Children};
 pub struct GlobalTransform2D(pub Affine2);
 
 pub fn transform_propagation_system(
-    roots: Query<(Entity, &Transform2D), Without<ChildOf>>,
+    roots: Query<(Entity, &Transform2D, Option<&GlobalTransform2D>), Without<ChildOf>>,
     children_query: Query<&Children>,
     transforms: Query<&Transform2D>,
+    dirty_transforms: Query<&Transform2D, Or<(Added<Transform2D>, Changed<Transform2D>)>>,
+    globals: Query<&GlobalTransform2D>,
     mut commands: Commands,
 ) {
-    for (entity, transform) in &roots {
-        let global = GlobalTransform2D(transform.to_affine2());
-        commands.entity(entity).insert(global);
-        propagate_to_children(entity, &global, &children_query, &transforms, &mut commands);
+    for (entity, transform, existing_global) in &roots {
+        let root_dirty = dirty_transforms.get(entity).is_ok() || existing_global.is_none();
+        let global = if root_dirty {
+            let global = GlobalTransform2D(transform.to_affine2());
+            commands.entity(entity).insert(global);
+            global
+        } else {
+            *existing_global.expect("clean root must already have GlobalTransform2D")
+        };
+        propagate_to_children(
+            entity,
+            &global,
+            root_dirty,
+            &children_query,
+            &transforms,
+            &dirty_transforms,
+            &globals,
+            &mut commands,
+        );
     }
 }
 
 fn propagate_to_children(
     parent: Entity,
     parent_global: &GlobalTransform2D,
+    ancestor_dirty: bool,
     children_query: &Query<&Children>,
     transforms: &Query<&Transform2D>,
+    dirty_transforms: &Query<&Transform2D, Or<(Added<Transform2D>, Changed<Transform2D>)>>,
+    globals: &Query<&GlobalTransform2D>,
     commands: &mut Commands,
 ) {
     if let Ok(children) = children_query.get(parent) {
         for &child in &children.0 {
             if let Ok(local) = transforms.get(child) {
-                let global = GlobalTransform2D(parent_global.0 * local.to_affine2());
-                commands.entity(child).insert(global);
-                propagate_to_children(child, &global, children_query, transforms, commands);
+                let child_dirty = ancestor_dirty
+                    || dirty_transforms.get(child).is_ok()
+                    || globals.get(child).is_err();
+                let global = if child_dirty {
+                    let global = GlobalTransform2D(parent_global.0 * local.to_affine2());
+                    commands.entity(child).insert(global);
+                    global
+                } else {
+                    *globals
+                        .get(child)
+                        .expect("clean child must already have GlobalTransform2D")
+                };
+                propagate_to_children(
+                    child,
+                    &global,
+                    child_dirty,
+                    children_query,
+                    transforms,
+                    dirty_transforms,
+                    globals,
+                    commands,
+                );
             }
         }
     }
@@ -43,11 +82,22 @@ fn propagate_to_children(
 mod tests {
     use super::*;
     use crate::test_helpers::run_transform_system;
+    use bevy_ecs::schedule::IntoScheduleConfigs;
     use engine_core::prelude::Transform2D;
 
     use crate::hierarchy::{ChildOf, Children};
     use crate::test_helpers::run_hierarchy_system;
     use glam::Vec2;
+
+    #[derive(Resource, Default)]
+    struct ChangedGlobalTransformCapture(usize);
+
+    fn capture_changed_global_transforms(
+        mut capture: ResMut<ChangedGlobalTransformCapture>,
+        query: Query<Entity, Changed<GlobalTransform2D>>,
+    ) {
+        capture.0 = query.iter().count();
+    }
 
     #[test]
     fn when_root_entity_has_transform2d_then_propagation_system_inserts_global_transform() {
@@ -351,5 +401,53 @@ mod tests {
         // Assert
         let global = world.get::<GlobalTransform2D>(entity).unwrap();
         assert!((global.0.translation.x - 99.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn when_transform_system_reruns_without_changes_then_global_transform_is_not_marked_changed() {
+        // Arrange
+        let mut world = World::new();
+        let parent = world
+            .spawn(Transform2D {
+                position: Vec2::new(10.0, 0.0),
+                ..Transform2D::default()
+            })
+            .id();
+        let child = world
+            .spawn((
+                Transform2D {
+                    position: Vec2::new(5.0, 0.0),
+                    ..Transform2D::default()
+                },
+                ChildOf(parent),
+            ))
+            .id();
+        run_hierarchy_system(&mut world);
+        world.insert_resource(ChangedGlobalTransformCapture::default());
+
+        let mut schedule = Schedule::default();
+        schedule.add_systems(
+            (
+                transform_propagation_system,
+                capture_changed_global_transforms,
+            )
+                .chain(),
+        );
+        schedule.run(&mut world);
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        let changed = world.resource::<ChangedGlobalTransformCapture>().0;
+        assert!(
+            changed == 0,
+            "unchanged hierarchy should not rewrite GlobalTransform2D, but {changed} entities were marked changed"
+        );
+
+        let parent_global = world.get::<GlobalTransform2D>(parent).unwrap();
+        assert!((parent_global.0.translation.x - 10.0).abs() < 1e-6);
+        let child_global = world.get::<GlobalTransform2D>(child).unwrap();
+        assert!((child_global.0.translation.x - 15.0).abs() < 1e-6);
     }
 }

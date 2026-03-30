@@ -101,11 +101,6 @@ impl SpyPhysicsBackend {
         self.angular_velocity_log = log;
         self
     }
-
-    pub fn with_position_log(mut self, log: PositionLog) -> Self {
-        self.position_log = log;
-        self
-    }
 }
 
 #[allow(clippy::unwrap_used)]

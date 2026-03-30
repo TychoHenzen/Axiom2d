@@ -358,6 +358,7 @@ fn material_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
 pub(super) fn create_shape_resources(
     device: &wgpu::Device,
     camera_layout: &wgpu::BindGroupLayout,
+    texture_layout: &wgpu::BindGroupLayout,
     format: wgpu::TextureFormat,
     sample_count: u32,
 ) -> ShapeResources {
@@ -370,7 +371,7 @@ pub(super) fn create_shape_resources(
     let model_uniform_align = device.limits().min_uniform_buffer_offset_alignment;
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
-        bind_group_layouts: &[camera_layout, &mbl, &mat_bl],
+        bind_group_layouts: &[camera_layout, &mbl, &mat_bl, texture_layout],
         push_constant_ranges: &[],
     });
     let pipelines = create_shape_pipeline_set(
@@ -455,7 +456,13 @@ pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -
             data: &[255; 4],
         },
     );
-    let shape = create_shape_resources(&gpu.device, &cam_layout, gpu.format, sample_count);
+    let shape = create_shape_resources(
+        &gpu.device,
+        &cam_layout,
+        &tex_layout,
+        gpu.format,
+        sample_count,
+    );
     let fmt = gpu.format;
     RendererParts {
         gpu,

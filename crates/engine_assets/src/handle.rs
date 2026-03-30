@@ -1,14 +1,7 @@
 use std::marker::PhantomData;
 
 /// Type-safe asset handle. The phantom type parameter prevents mixing handles
-/// across asset types.
-///
-/// ```compile_fail
-/// use engine_assets::handle::Handle;
-/// fn takes_string(_h: Handle<String>) {}
-/// let h: Handle<u32> = Handle { id: 0, _marker: std::marker::PhantomData };
-/// takes_string(h); // ERROR: expected Handle<String>, found Handle<u32>
-/// ```
+/// across asset types at compile time.
 pub struct Handle<T> {
     pub id: u32,
     _marker: PhantomData<fn() -> T>,

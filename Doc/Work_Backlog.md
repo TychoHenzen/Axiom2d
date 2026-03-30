@@ -18,8 +18,8 @@ Status legend:
 - `TD-032` (`Completed`): Add real end-to-end schedule tests through the full `CardGamePlugin` schedule, including multi-frame input sequences and zone transitions.
 - `TD-004` (`Open`): Add cached mesh storage so shapes are tessellated once on change and reused by render systems.
 - `TD-031` (`Completed`): Make silent hardware failures visible with tracing or `Result`-based APIs.
-- `TD-001/002/003` (`Open`): Add change detection to transform propagation, hierarchy maintenance, and visibility propagation.
-- `TD-005` (`Open`): Implement the GPU-side material pipeline in `WgpuRenderer`, including textures and uniforms.
+- `TD-001/002/003` (`In progress`): Add change detection to transform propagation, hierarchy maintenance, and visibility propagation.
+- `TD-005` (`Completed`): Implement the GPU-side material pipeline in `WgpuRenderer`, including textures and uniforms.
 
 ## Engine Gaps
 
