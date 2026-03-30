@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res, ResMut, Resource, With, Without};
-use engine_core::prelude::{ScaleSpring, Transform2D};
+use engine_core::prelude::{Event, EventBus, ScaleSpring, Transform2D};
 use engine_input::prelude::MouseState;
 use engine_physics::prelude::{PhysicsRes, RigidBody};
 use glam::Vec2;
@@ -36,11 +36,40 @@ pub struct ReaderDragState {
     pub dragging: Option<ReaderDragInfo>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ReaderDragInfo {
     pub entity: Entity,
     pub grab_offset: Vec2,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReaderPickIntent {
+    entity: Entity,
+    grab_offset: Vec2,
+}
+
+impl Event for ReaderPickIntent {}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ReaderReleaseIntent;
+
+impl Event for ReaderReleaseIntent {}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CardReaderInsertIntent {
+    card_entity: Entity,
+    reader_entity: Entity,
+}
+
+impl Event for CardReaderInsertIntent {}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CardReaderEjectIntent {
+    card_entity: Entity,
+    reader_entity: Entity,
+}
+
+impl Event for CardReaderEjectIntent {}
 
 pub fn reader_rotation_lock_system(
     query: Query<Entity, With<CardReader>>,
@@ -55,11 +84,12 @@ pub fn reader_rotation_lock_system(
     }
 }
 
-pub fn reader_pick_system(
+pub fn reader_pick_intent_system(
     mouse: Res<MouseState>,
     drag_state: Res<DragState>,
-    mut reader_drag: ResMut<ReaderDragState>,
+    reader_drag: Res<ReaderDragState>,
     readers: Query<(Entity, &Transform2D, &CardReader)>,
+    mut intents: ResMut<EventBus<ReaderPickIntent>>,
 ) {
     use engine_input::mouse_button::MouseButton;
 
@@ -73,12 +103,30 @@ pub fn reader_pick_system(
     for (entity, transform, reader) in &readers {
         let delta = (cursor - transform.position).abs();
         if delta.x <= reader.half_extents.x && delta.y <= reader.half_extents.y {
-            reader_drag.dragging = Some(ReaderDragInfo {
+            intents.push(ReaderPickIntent {
                 entity,
                 grab_offset: cursor - transform.position,
             });
             return;
         }
+    }
+}
+
+pub fn apply_reader_pick_intents_system(
+    drag_state: Res<DragState>,
+    mut reader_drag: ResMut<ReaderDragState>,
+    mut intents: ResMut<EventBus<ReaderPickIntent>>,
+) {
+    if drag_state.dragging.is_some() || reader_drag.dragging.is_some() {
+        intents.drain();
+        return;
+    }
+
+    if let Some(intent) = intents.drain().next() {
+        reader_drag.dragging = Some(ReaderDragInfo {
+            entity: intent.entity,
+            grab_offset: intent.grab_offset,
+        });
     }
 }
 
@@ -115,22 +163,33 @@ pub fn reader_drag_system(
     }
 }
 
-pub fn reader_release_system(mouse: Res<MouseState>, mut reader_drag: ResMut<ReaderDragState>) {
+pub fn reader_release_intent_system(
+    mouse: Res<MouseState>,
+    reader_drag: Res<ReaderDragState>,
+    mut intents: ResMut<EventBus<ReaderReleaseIntent>>,
+) {
     use engine_input::mouse_button::MouseButton;
 
     if reader_drag.dragging.is_some() && !mouse.pressed(MouseButton::Left) {
+        intents.push(ReaderReleaseIntent);
+    }
+}
+
+pub fn apply_reader_release_intents_system(
+    mut reader_drag: ResMut<ReaderDragState>,
+    mut intents: ResMut<EventBus<ReaderReleaseIntent>>,
+) {
+    if intents.drain().next().is_some() {
         reader_drag.dragging = None;
     }
 }
 
-pub fn card_reader_insert_system(
+pub fn card_reader_insert_intent_system(
     mouse: Res<MouseState>,
-    mut drag_state: ResMut<DragState>,
-    mut readers: Query<(Entity, &Transform2D, &mut CardReader)>,
-    mut cards: Query<(&mut Transform2D, &Card, &mut CardZone), Without<CardReader>>,
-    mut jacks: Query<&mut OutputJack>,
-    mut physics: ResMut<PhysicsRes>,
-    mut commands: Commands,
+    drag_state: Res<DragState>,
+    readers: Query<(Entity, &Transform2D, &CardReader)>,
+    cards: Query<&Transform2D, (With<Card>, Without<CardReader>)>,
+    mut intents: ResMut<EventBus<CardReaderInsertIntent>>,
 ) {
     use engine_input::mouse_button::MouseButton;
 
@@ -142,12 +201,12 @@ pub fn card_reader_insert_system(
     };
     let card_entity = drag_info.entity;
 
-    let Ok((mut card_transform, card, mut card_zone)) = cards.get_mut(card_entity) else {
+    let Ok(card_transform) = cards.get(card_entity) else {
         return;
     };
     let card_pos = card_transform.position;
 
-    for (reader_entity, reader_transform, mut reader) in &mut readers {
+    for (reader_entity, reader_transform, reader) in &readers {
         if reader.loaded.is_some() {
             continue;
         }
@@ -155,74 +214,145 @@ pub fn card_reader_insert_system(
             continue;
         }
 
+        intents.push(CardReaderInsertIntent {
+            card_entity,
+            reader_entity,
+        });
+        return;
+    }
+}
+
+pub fn apply_card_reader_insert_intents_system(
+    mut drag_state: ResMut<DragState>,
+    mut readers: Query<(Entity, &Transform2D, &mut CardReader)>,
+    mut cards: Query<(&mut Transform2D, &Card, &mut CardZone), Without<CardReader>>,
+    mut jacks: Query<&mut OutputJack>,
+    mut physics: ResMut<PhysicsRes>,
+    mut intents: ResMut<EventBus<CardReaderInsertIntent>>,
+    mut commands: Commands,
+) {
+    for intent in intents.drain() {
+        let Some(drag_info) = drag_state.dragging.as_ref() else {
+            continue;
+        };
+        if drag_info.entity != intent.card_entity {
+            continue;
+        }
+
+        let Ok((reader_entity, reader_transform, mut reader)) =
+            readers.get_mut(intent.reader_entity)
+        else {
+            continue;
+        };
+        if reader_entity != intent.reader_entity || reader.loaded.is_some() {
+            continue;
+        }
+
+        let Ok((mut card_transform, card, mut card_zone)) = cards.get_mut(intent.card_entity)
+        else {
+            continue;
+        };
+        if !card_overlaps_reader(
+            card_transform.position,
+            reader_transform.position,
+            reader.half_extents,
+        ) {
+            continue;
+        }
+
         card_transform.position = reader_transform.position;
         card_transform.rotation = 0.0;
 
         commands
-            .entity(card_entity)
+            .entity(intent.card_entity)
             .insert(ScaleSpring::new(READER_CARD_SCALE));
 
-        warn_on_physics_result("remove_body", card_entity, physics.remove_body(card_entity));
-        commands.entity(card_entity).remove::<RigidBody>();
+        warn_on_physics_result(
+            "remove_body",
+            intent.card_entity,
+            physics.remove_body(intent.card_entity),
+        );
+        commands.entity(intent.card_entity).remove::<RigidBody>();
 
-        *card_zone = CardZone::Reader(reader_entity);
-
-        reader.loaded = Some(card_entity);
+        *card_zone = CardZone::Reader(intent.reader_entity);
+        reader.loaded = Some(intent.card_entity);
 
         if let Ok(mut jack) = jacks.get_mut(reader.jack_entity) {
             jack.data = Some(card.signature);
         }
 
         drag_state.dragging = None;
-        return;
     }
 }
 
-pub fn card_reader_eject_system(
+pub fn card_reader_eject_intent_system(
     drag_state: Res<DragState>,
-    mut readers: Query<&mut CardReader>,
-    mut cards: Query<&mut CardZone, With<Card>>,
-    mut jacks: Query<&mut OutputJack>,
-    mut physics: ResMut<PhysicsRes>,
-    transforms: Query<&Transform2D>,
-    colliders: Query<&engine_physics::prelude::Collider>,
-    mut commands: Commands,
+    cards: Query<&CardZone, With<Card>>,
+    mut intents: ResMut<EventBus<CardReaderEjectIntent>>,
 ) {
     let Some(drag_info) = drag_state.dragging.as_ref() else {
         return;
     };
     let card_entity = drag_info.entity;
 
-    let Ok(mut card_zone) = cards.get_mut(card_entity) else {
+    let Ok(card_zone) = cards.get(card_entity) else {
         return;
     };
     let CardZone::Reader(reader_entity) = *card_zone else {
         return;
     };
 
-    *card_zone = CardZone::Table;
-    commands
-        .entity(card_entity)
-        .insert(ScaleSpring::new(1.0))
-        .insert(RigidBody::Dynamic);
+    intents.push(CardReaderEjectIntent {
+        card_entity,
+        reader_entity,
+    });
+}
 
-    if let Ok(transform) = transforms.get(card_entity)
-        && let Ok(collider) = colliders.get(card_entity)
-    {
-        activate_physics_body(
-            card_entity,
-            transform.position,
-            collider,
-            &mut physics,
-            CARD_COLLISION_GROUP,
-            CARD_COLLISION_FILTER,
-        );
-    }
+pub fn apply_card_reader_eject_intents_system(
+    mut readers: Query<&mut CardReader>,
+    mut cards: Query<&mut CardZone, With<Card>>,
+    mut jacks: Query<&mut OutputJack>,
+    mut physics: ResMut<PhysicsRes>,
+    transforms: Query<&Transform2D>,
+    colliders: Query<&engine_physics::prelude::Collider>,
+    mut intents: ResMut<EventBus<CardReaderEjectIntent>>,
+    mut commands: Commands,
+) {
+    for intent in intents.drain() {
+        let Ok(mut card_zone) = cards.get_mut(intent.card_entity) else {
+            continue;
+        };
+        let CardZone::Reader(reader_entity) = *card_zone else {
+            continue;
+        };
+        if reader_entity != intent.reader_entity {
+            continue;
+        }
 
-    if let Ok(mut reader) = readers.get_mut(reader_entity) {
-        reader.loaded = None;
-        if let Ok(mut jack) = jacks.get_mut(reader.jack_entity) {
-            jack.data = None;
+        *card_zone = CardZone::Table;
+        commands
+            .entity(intent.card_entity)
+            .insert(ScaleSpring::new(1.0))
+            .insert(RigidBody::Dynamic);
+
+        if let Ok(transform) = transforms.get(intent.card_entity)
+            && let Ok(collider) = colliders.get(intent.card_entity)
+        {
+            activate_physics_body(
+                intent.card_entity,
+                transform.position,
+                collider,
+                &mut physics,
+                CARD_COLLISION_GROUP,
+                CARD_COLLISION_FILTER,
+            );
+        }
+
+        if let Ok(mut reader) = readers.get_mut(reader_entity) {
+            reader.loaded = None;
+            if let Ok(mut jack) = jacks.get_mut(reader.jack_entity) {
+                jack.data = None;
+            }
         }
     }
 }
@@ -233,7 +363,8 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::*;
-    use engine_core::prelude::{ScaleSpring, Transform2D};
+    use bevy_ecs::schedule::IntoScheduleConfigs;
+    use engine_core::prelude::{EventBus, ScaleSpring, Transform2D};
     use engine_input::mouse_button::MouseButton;
     use engine_input::prelude::MouseState;
     use engine_physics::prelude::{PhysicsRes, RigidBody};
@@ -253,10 +384,187 @@ mod tests {
         schedule.run(world);
     }
 
+    fn run_reader_pick(world: &mut World) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems((reader_pick_intent_system, apply_reader_pick_intents_system).chain());
+        schedule.run(world);
+    }
+
+    fn run_reader_pick_intent(world: &mut World) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems(reader_pick_intent_system);
+        schedule.run(world);
+    }
+
+    fn run_reader_release(world: &mut World) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems(
+            (
+                reader_release_intent_system,
+                apply_reader_release_intents_system,
+            )
+                .chain(),
+        );
+        schedule.run(world);
+    }
+
+    fn run_reader_release_intent(world: &mut World) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems(reader_release_intent_system);
+        schedule.run(world);
+    }
+
     fn run_insert(world: &mut World) {
         let mut schedule = Schedule::default();
-        schedule.add_systems(card_reader_insert_system);
+        schedule.add_systems(
+            (
+                card_reader_insert_intent_system,
+                apply_card_reader_insert_intents_system,
+            )
+                .chain(),
+        );
         schedule.run(world);
+    }
+
+    fn run_insert_intent(world: &mut World) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems(card_reader_insert_intent_system);
+        schedule.run(world);
+    }
+
+    #[test]
+    fn when_reader_clicked_then_pick_intent_emitted_before_apply() {
+        // Arrange
+        let mut world = World::new();
+        let jack = world.spawn(OutputJack { data: None }).id();
+        let reader = world
+            .spawn((
+                CardReader {
+                    loaded: None,
+                    half_extents: Vec2::new(40.0, 60.0),
+                    jack_entity: jack,
+                },
+                Transform2D {
+                    position: Vec2::new(100.0, 100.0),
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+            ))
+            .id();
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::new(110.0, 95.0));
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
+        world.insert_resource(EventBus::<ReaderPickIntent>::default());
+
+        // Act
+        run_reader_pick_intent(&mut world);
+
+        // Assert
+        assert!(world.resource::<ReaderDragState>().dragging.is_none());
+        let mut intents = world.resource_mut::<EventBus<ReaderPickIntent>>();
+        let events: Vec<ReaderPickIntent> = intents.drain().collect();
+        assert_eq!(
+            events,
+            vec![ReaderPickIntent {
+                entity: reader,
+                grab_offset: Vec2::new(10.0, -5.0),
+            }]
+        );
+    }
+
+    #[test]
+    fn when_reader_clicked_then_apply_starts_reader_drag() {
+        // Arrange
+        let mut world = World::new();
+        let jack = world.spawn(OutputJack { data: None }).id();
+        let reader = world
+            .spawn((
+                CardReader {
+                    loaded: None,
+                    half_extents: Vec2::new(40.0, 60.0),
+                    jack_entity: jack,
+                },
+                Transform2D {
+                    position: Vec2::new(100.0, 100.0),
+                    rotation: 0.0,
+                    scale: Vec2::ONE,
+                },
+            ))
+            .id();
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.set_world_pos(Vec2::new(110.0, 95.0));
+        world.insert_resource(mouse);
+        world.insert_resource(DragState::default());
+        world.insert_resource(ReaderDragState::default());
+        world.insert_resource(EventBus::<ReaderPickIntent>::default());
+
+        // Act
+        run_reader_pick(&mut world);
+
+        // Assert
+        let dragging = world.resource::<ReaderDragState>().dragging.clone();
+        assert_eq!(
+            dragging,
+            Some(ReaderDragInfo {
+                entity: reader,
+                grab_offset: Vec2::new(10.0, -5.0),
+            })
+        );
+    }
+
+    #[test]
+    fn when_mouse_released_while_reader_dragging_then_release_intent_emitted_before_apply() {
+        // Arrange
+        let mut world = World::new();
+        let reader = world.spawn_empty().id();
+        world.insert_resource(ReaderDragState {
+            dragging: Some(ReaderDragInfo {
+                entity: reader,
+                grab_offset: Vec2::new(2.0, 3.0),
+            }),
+        });
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.release(MouseButton::Left);
+        world.insert_resource(mouse);
+        world.insert_resource(EventBus::<ReaderReleaseIntent>::default());
+
+        // Act
+        run_reader_release_intent(&mut world);
+
+        // Assert
+        assert!(world.resource::<ReaderDragState>().dragging.is_some());
+        let mut intents = world.resource_mut::<EventBus<ReaderReleaseIntent>>();
+        let events: Vec<ReaderReleaseIntent> = intents.drain().collect();
+        assert_eq!(events, vec![ReaderReleaseIntent]);
+    }
+
+    #[test]
+    fn when_mouse_released_while_reader_dragging_then_apply_clears_reader_drag() {
+        // Arrange
+        let mut world = World::new();
+        let reader = world.spawn_empty().id();
+        world.insert_resource(ReaderDragState {
+            dragging: Some(ReaderDragInfo {
+                entity: reader,
+                grab_offset: Vec2::new(2.0, 3.0),
+            }),
+        });
+        let mut mouse = MouseState::default();
+        mouse.press(MouseButton::Left);
+        mouse.release(MouseButton::Left);
+        world.insert_resource(mouse);
+        world.insert_resource(EventBus::<ReaderReleaseIntent>::default());
+
+        // Act
+        run_reader_release(&mut world);
+
+        // Assert
+        assert!(world.resource::<ReaderDragState>().dragging.is_none());
     }
 
     struct InsertTestSetup {
@@ -320,6 +628,7 @@ mod tests {
 
         let spy = SpyPhysicsBackend::new();
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
+        world.insert_resource(EventBus::<CardReaderInsertIntent>::default());
 
         InsertTestSetup {
             card_entity,
@@ -451,6 +760,28 @@ mod tests {
     /// exact position. This provides clear visual feedback that the card is "locked in"
     /// rather than floating loosely near the reader. Without snapping, players couldn't
     /// tell whether a card was properly inserted or just happened to land nearby.
+    #[test]
+    fn when_card_released_over_reader_then_insert_intent_emitted_before_apply() {
+        // Arrange
+        let mut world = World::new();
+        let setup = setup_insert_scenario(&mut world);
+
+        // Act
+        run_insert_intent(&mut world);
+
+        // Assert
+        assert!(world.resource::<DragState>().dragging.is_some());
+        let mut intents = world.resource_mut::<EventBus<CardReaderInsertIntent>>();
+        let events: Vec<CardReaderInsertIntent> = intents.drain().collect();
+        assert_eq!(
+            events,
+            vec![CardReaderInsertIntent {
+                card_entity: setup.card_entity,
+                reader_entity: setup.reader_entity,
+            }]
+        );
+    }
+
     #[test]
     fn when_card_released_over_reader_then_snaps_to_reader_position() {
         // Arrange
@@ -656,6 +987,7 @@ mod tests {
             }),
         });
         world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+        world.insert_resource(EventBus::<CardReaderInsertIntent>::default());
 
         // Act
         run_insert(&mut world);
@@ -725,6 +1057,7 @@ mod tests {
             }),
         });
         world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+        world.insert_resource(EventBus::<CardReaderInsertIntent>::default());
 
         // Act
         run_insert(&mut world);
@@ -875,7 +1208,19 @@ mod tests {
 
     fn run_eject(world: &mut World) {
         let mut schedule = Schedule::default();
-        schedule.add_systems(card_reader_eject_system);
+        schedule.add_systems(
+            (
+                card_reader_eject_intent_system,
+                apply_card_reader_eject_intents_system,
+            )
+                .chain(),
+        );
+        schedule.run(world);
+    }
+
+    fn run_eject_intent(world: &mut World) {
+        let mut schedule = Schedule::default();
+        schedule.add_systems(card_reader_eject_intent_system);
         schedule.run(world);
     }
 
@@ -938,6 +1283,7 @@ mod tests {
         });
 
         world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+        world.insert_resource(EventBus::<CardReaderEjectIntent>::default());
 
         EjectTestSetup {
             card_entity,
@@ -950,6 +1296,31 @@ mod tests {
     /// Table zone and the reader must clear its loaded slot. Without this, the card
     /// would remain in Reader zone forever — invisible to the hand/stash systems
     /// and impossible to re-drop into a different reader.
+    #[test]
+    fn when_card_picked_from_reader_then_eject_intent_emitted_before_apply() {
+        // Arrange
+        let mut world = World::new();
+        let setup = setup_eject_scenario(&mut world);
+
+        // Act
+        run_eject_intent(&mut world);
+
+        // Assert
+        assert_eq!(
+            *world.get::<CardZone>(setup.card_entity).unwrap(),
+            CardZone::Reader(setup.reader_entity)
+        );
+        let mut intents = world.resource_mut::<EventBus<CardReaderEjectIntent>>();
+        let events: Vec<CardReaderEjectIntent> = intents.drain().collect();
+        assert_eq!(
+            events,
+            vec![CardReaderEjectIntent {
+                card_entity: setup.card_entity,
+                reader_entity: setup.reader_entity,
+            }]
+        );
+    }
+
     #[test]
     fn when_card_picked_from_reader_then_zone_restored_and_reader_cleared() {
         // Arrange
@@ -1108,6 +1479,7 @@ mod tests {
 
         let spy = SpyPhysicsBackend::new().with_add_body_log(add_log.clone());
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
+        world.insert_resource(EventBus::<CardReaderEjectIntent>::default());
 
         // Act
         run_reader_drag(&mut world);

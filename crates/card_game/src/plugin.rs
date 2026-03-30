@@ -7,11 +7,15 @@ use crate::card::interaction::drag::card_drag_system;
 use crate::card::interaction::drag_state::DragState;
 use crate::card::interaction::flip::card_flip_system;
 use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
-use crate::card::interaction::pick::card_pick_system;
-use crate::card::interaction::release::card_release_system;
+use crate::card::interaction::pick::{apply_card_pick_intents_system, card_pick_intent_system};
+use crate::card::interaction::release::{apply_card_drop_intents_system, card_drop_intent_system};
 use crate::card::reader::{
-    ReaderDragState, card_reader_eject_system, card_reader_insert_system, reader_drag_system,
-    reader_pick_system, reader_release_system, reader_rotation_lock_system,
+    CardReaderEjectIntent, CardReaderInsertIntent, ReaderDragState, ReaderPickIntent,
+    ReaderReleaseIntent, apply_card_reader_eject_intents_system,
+    apply_card_reader_insert_intents_system, apply_reader_pick_intents_system,
+    apply_reader_release_intents_system, card_reader_eject_intent_system,
+    card_reader_insert_intent_system, reader_drag_system, reader_pick_intent_system,
+    reader_release_intent_system, reader_rotation_lock_system,
 };
 use crate::card::rendering::art_shader::{
     register_card_art_shader, register_gem_shader, register_tier_shaders, register_variant_shaders,
@@ -34,7 +38,7 @@ use crate::stash::render::stash_render_system;
 use crate::stash::toggle::{StashVisible, stash_toggle_system};
 use bevy_ecs::schedule::IntoScheduleConfigs;
 use engine_app::prelude::{App, Phase, Plugin};
-use engine_core::prelude::Color;
+use engine_core::prelude::{Color, EventBus};
 use engine_core::scale_spring::scale_spring_system;
 use engine_physics::prelude::physics_sync_system;
 use engine_render::prelude::{
@@ -57,6 +61,15 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(DragState::default());
         world.insert_resource(ReaderDragState::default());
         world.insert_resource(CameraDragState::default());
+        world
+            .insert_resource(EventBus::<crate::card::interaction::pick::CardPickIntent>::default());
+        world.insert_resource(
+            EventBus::<crate::card::interaction::release::CardDropIntent>::default(),
+        );
+        world.insert_resource(EventBus::<ReaderPickIntent>::default());
+        world.insert_resource(EventBus::<ReaderReleaseIntent>::default());
+        world.insert_resource(EventBus::<CardReaderInsertIntent>::default());
+        world.insert_resource(EventBus::<CardReaderEjectIntent>::default());
         world.insert_resource(StashVisible::default());
         world.insert_resource(Hand::new(10));
         world.insert_resource(StashGrid::new(10, 10, 3));
@@ -98,15 +111,21 @@ fn register_systems(app: &mut App) {
     .add_systems(
         Phase::Update,
         (
-            card_pick_system,
-            reader_pick_system,
-            card_reader_eject_system,
+            card_pick_intent_system,
+            apply_card_pick_intents_system,
+            reader_pick_intent_system,
+            apply_reader_pick_intents_system,
+            card_reader_eject_intent_system,
+            apply_card_reader_eject_intents_system,
             card_drag_system,
             reader_drag_system,
             stash_boundary_system,
-            card_reader_insert_system,
-            card_release_system,
-            reader_release_system,
+            card_reader_insert_intent_system,
+            apply_card_reader_insert_intents_system,
+            card_drop_intent_system,
+            apply_card_drop_intents_system,
+            reader_release_intent_system,
+            apply_reader_release_intents_system,
             card_flip_system,
             flip_animation_system,
         )

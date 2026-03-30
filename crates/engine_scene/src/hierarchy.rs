@@ -12,9 +12,18 @@ pub struct Children(pub Vec<Entity>);
 pub fn hierarchy_maintenance_system(
     child_query: Query<(Entity, &ChildOf)>,
     parent_query: Query<Entity, With<Children>>,
+    dirty_children: Query<Entity, Or<(Added<ChildOf>, Changed<ChildOf>)>>,
+    mut removed_children: RemovedComponents<ChildOf>,
     mut commands: Commands,
     mut cache: Local<HashMap<Entity, Vec<Entity>>>,
+    mut initialized: Local<bool>,
 ) {
+    let has_changes = !dirty_children.is_empty() || removed_children.read().next().is_some();
+    if *initialized && !has_changes {
+        return;
+    }
+    *initialized = true;
+
     cache.clear();
     for (child, child_of) in &child_query {
         cache.entry(child_of.0).or_default().push(child);
@@ -36,6 +45,17 @@ pub fn hierarchy_maintenance_system(
 mod tests {
     use super::*;
     use crate::test_helpers::run_hierarchy_system;
+    use bevy_ecs::schedule::IntoScheduleConfigs;
+
+    #[derive(Resource, Default)]
+    struct ChangedChildrenCapture(usize);
+
+    fn capture_changed_children(
+        mut capture: ResMut<ChangedChildrenCapture>,
+        query: Query<Entity, Changed<Children>>,
+    ) {
+        capture.0 = query.iter().count();
+    }
 
     #[test]
     fn when_entity_has_child_of_then_hierarchy_system_adds_it_to_parent_children() {
@@ -245,5 +265,59 @@ mod tests {
 
         // Assert
         assert!(world.get::<Children>(parent).is_none());
+    }
+
+    #[test]
+    fn when_child_is_reparented_then_old_parent_loses_child_and_new_parent_gains_it() {
+        // Arrange
+        let mut world = World::new();
+        let old_parent = world.spawn_empty().id();
+        let new_parent = world.spawn_empty().id();
+        let child = world.spawn(ChildOf(old_parent)).id();
+        run_hierarchy_system(&mut world);
+        world.entity_mut(child).insert(ChildOf(new_parent));
+
+        // Act
+        run_hierarchy_system(&mut world);
+
+        // Assert
+        assert!(world.get::<Children>(old_parent).is_none());
+        let new_children = world
+            .get::<Children>(new_parent)
+            .expect("new parent should have Children");
+        assert_eq!(new_children.0, vec![child]);
+    }
+
+    #[test]
+    fn when_hierarchy_system_reruns_without_changes_then_children_are_not_marked_changed() {
+        // Arrange
+        let mut world = World::new();
+        let parent = world.spawn_empty().id();
+        let child = world.spawn(ChildOf(parent)).id();
+        world.insert_resource(ChangedChildrenCapture::default());
+
+        let mut schedule = Schedule::default();
+        schedule.add_systems((hierarchy_maintenance_system, capture_changed_children).chain());
+
+        schedule.run(&mut world);
+        assert_eq!(
+            world.resource::<ChangedChildrenCapture>().0,
+            1,
+            "initial hierarchy build should mark Children as changed"
+        );
+
+        // Act
+        schedule.run(&mut world);
+
+        // Assert
+        let changed = world.resource::<ChangedChildrenCapture>().0;
+        assert_eq!(
+            changed, 0,
+            "unchanged hierarchy should not rewrite Children, but {changed} entities were marked changed"
+        );
+        let children = world
+            .get::<Children>(parent)
+            .expect("parent should still have Children");
+        assert_eq!(children.0, vec![child]);
     }
 }

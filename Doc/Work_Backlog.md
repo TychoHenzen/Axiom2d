@@ -16,13 +16,18 @@ Status legend:
 ## Priority Blockers
 
 - `TD-032` (`Completed`): Add real end-to-end schedule tests through the full `CardGamePlugin` schedule, including multi-frame input sequences and zone transitions.
-- `TD-004` (`Open`): Add cached mesh storage so shapes are tessellated once on change and reused by render systems.
+- `TD-004` (`Completed`): Add cached mesh storage so shapes are tessellated once on change and reused by render systems.
 - `TD-031` (`Completed`): Make silent hardware failures visible with tracing or `Result`-based APIs.
-- `TD-001/002/003` (`In progress`): Add change detection to transform propagation, hierarchy maintenance, and visibility propagation.
+- `TD-001/002/003` (`Completed`): Add change detection to transform propagation, hierarchy maintenance, and visibility propagation.
 - `TD-005` (`Completed`): Implement the GPU-side material pipeline in `WgpuRenderer`, including textures and uniforms.
 
 ## Engine Gaps
 
+- `TD-033` (`Open`): Replace the card game's long chained interaction pipeline with explicit interaction intents/events and a smaller number of authoritative applier systems.
+- `TD-034` (`Open`): Centralize physics ownership behind a command/reconcile layer so gameplay systems stop mutating `PhysicsRes` ad hoc.
+- `TD-035` (`Open`): Replace preload/post-splash `FnMut(&mut World)` hook queues with typed startup schedules/phases registered like normal ECS systems.
+- `TD-036` (`Open`): Normalize all raw platform input through a single event ingestion path, including cursor movement and wheel input, before deriving frame state resources.
+- `TD-037` (`Open`): Add a render extraction phase and cached per-frame draw lists to reduce duplicated sorting, re-querying, and ad hoc render-time data rebuilding.
 - `TD-018` (`Open`): Add physics interpolation so rendering can smooth between fixed physics steps.
 - `TD-015` (`Open`): Add a color grading post-process pass.
 - `TD-010` (`Open`): Add hot reload support for assets.

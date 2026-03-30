@@ -31,9 +31,12 @@ pub use crate::card::interaction::flip_animation::{
     flip_animation_system, sync_scale_spring_lock_x,
 };
 pub use crate::card::interaction::pick::{
-    CARD_COLLISION_FILTER, CARD_COLLISION_GROUP, card_pick_system,
+    CARD_COLLISION_FILTER, CARD_COLLISION_GROUP, apply_card_pick_intents_system,
+    card_pick_intent_system,
 };
-pub use crate::card::interaction::release::card_release_system;
+pub use crate::card::interaction::release::{
+    apply_card_drop_intents_system, card_drop_intent_system,
+};
 pub use crate::card::rendering::art_shader::{
     CardArtShader, ConditionEffect, GemShader, TierShaders, VariantShaders,
     register_card_art_shader, register_gem_shader, register_tier_shaders, register_variant_shaders,
