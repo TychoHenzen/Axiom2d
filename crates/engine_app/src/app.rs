@@ -96,7 +96,12 @@ impl App {
         &mut self,
         physical_key: PhysicalKey,
         state: winit::event::ElementState,
+        is_synthetic: bool,
     ) {
+        if is_synthetic {
+            return;
+        }
+
         if let PhysicalKey::Code(winit_key) = physical_key
             && let Some(mut bus) = self.world.get_resource_mut::<EventBus<KeyInputEvent>>()
         {
@@ -217,8 +222,12 @@ impl ApplicationHandler for App {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => self.handle_resize(size.width, size.height),
             WindowEvent::RedrawRequested => self.handle_redraw(),
-            WindowEvent::KeyboardInput { event, .. } => {
-                self.handle_key_event(event.physical_key, event.state);
+            WindowEvent::KeyboardInput {
+                event,
+                is_synthetic,
+                ..
+            } => {
+                self.handle_key_event(event.physical_key, event.state, is_synthetic);
             }
             WindowEvent::CursorMoved { position, .. } => {
                 self.handle_cursor_moved(glam::Vec2::new(position.x as f32, position.y as f32));
@@ -607,6 +616,7 @@ mod tests {
         app.handle_key_event(
             winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::ArrowLeft),
             winit::event::ElementState::Pressed,
+            false,
         );
 
         // Assert
@@ -637,6 +647,7 @@ mod tests {
         app.handle_key_event(
             winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::ArrowLeft),
             winit::event::ElementState::Released,
+            false,
         );
 
         // Assert
@@ -669,6 +680,32 @@ mod tests {
         app.handle_key_event(
             winit::keyboard::PhysicalKey::Unidentified(NativeKeyCode::Unidentified),
             winit::event::ElementState::Pressed,
+            false,
+        );
+
+        // Assert
+        assert!(
+            app.world()
+                .resource::<engine_core::prelude::EventBus<KeyInputEvent>>()
+                .is_empty()
+        );
+    }
+
+    /// @doc: Synthetic keyboard events must be ignored — winit emits them when
+    /// a window gains focus, and treating them like real input can trigger
+    /// phantom hotkeys on startup.
+    #[test]
+    fn when_app_receives_synthetic_keyboard_press_then_bus_remains_empty() {
+        // Arrange
+        let mut app = App::new();
+        app.world_mut()
+            .insert_resource(engine_core::prelude::EventBus::<KeyInputEvent>::default());
+
+        // Act
+        app.handle_key_event(
+            winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::Digit2),
+            winit::event::ElementState::Pressed,
+            true,
         );
 
         // Assert

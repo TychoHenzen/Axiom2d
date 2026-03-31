@@ -4,8 +4,8 @@ use bevy_ecs::prelude::{Entity, Query, Res, ResMut};
 use bevy_ecs::system::SystemParam;
 use engine_core::color::Color;
 use engine_render::prelude::{
-    BlendMode, Camera2D, QUAD_INDICES, RendererRes, ShaderHandle, UNIT_QUAD, rect_vertices,
-    screen_to_world, unit_quad_model,
+    Camera2D, QUAD_INDICES, RendererRes, ShaderHandle, UNIT_QUAD, rect_vertices, screen_to_world,
+    unit_quad_model,
 };
 use glam::Vec2;
 
@@ -13,9 +13,7 @@ use crate::card::component::Card;
 use crate::card::identity::signature_profile::SignatureProfile;
 use crate::card::identity::visual_params::generate_card_visuals;
 use crate::card::rendering::baked_mesh::BakedCardMesh;
-use crate::card::rendering::geometry::{
-    ART_QUAD, TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH, art_quad_model,
-};
+use crate::card::rendering::geometry::{ART_QUAD, art_quad_model};
 use crate::stash::constants::{
     BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_HIGHLIGHT_COLOR,
     SLOT_STRIDE_H, SLOT_STRIDE_W, SLOT_WIDTH,
@@ -23,6 +21,9 @@ use crate::stash::constants::{
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::toggle::StashVisible;
 use engine_render::prelude::resolve_viewport_camera;
+
+mod helpers;
+mod models;
 
 #[derive(SystemParam)]
 pub struct StashRenderParams<'w> {
@@ -33,21 +34,8 @@ pub struct StashRenderParams<'w> {
     art_shader: Option<Res<'w, crate::card::rendering::art_shader::CardArtShader>>,
 }
 
-pub(crate) fn reset_default_shader(renderer: &mut dyn engine_render::prelude::Renderer) {
-    renderer.set_shader(ShaderHandle(0));
-    renderer.set_blend_mode(BlendMode::Alpha);
-}
-
-fn miniature_card_model(zoom: f32, center_x: f32, center_y: f32) -> [[f32; 4]; 4] {
-    let scale_x = (SLOT_WIDTH / zoom) / TABLE_CARD_WIDTH;
-    let scale_y = (SLOT_HEIGHT / zoom) / TABLE_CARD_HEIGHT;
-    [
-        [scale_x, 0.0, 0.0, 0.0],
-        [0.0, scale_y, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0],
-        [center_x, center_y, 0.0, 1.0],
-    ]
-}
+pub(crate) use helpers::reset_default_shader;
+use models::miniature_card_model;
 
 pub fn stash_render_system(
     params: StashRenderParams,
@@ -190,6 +178,7 @@ pub fn stash_render_system(
 #[allow(clippy::unwrap_used, clippy::float_cmp)]
 mod tests {
     use super::*;
+    use crate::card::rendering::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
     use bevy_ecs::prelude::{Schedule, World};
     use engine_render::testing::{ShapeCallLog, SpyRenderer};
     use std::sync::{Arc, Mutex};

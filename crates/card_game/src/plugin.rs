@@ -74,11 +74,11 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(Hand::new(10));
         world.insert_resource(StashGrid::new(10, 10, 3));
         world.insert_resource(StashHoverPreview::default());
+        world.insert_resource(DebugSpawnRng::default());
         let mut registry = BaseCardTypeRegistry::new();
         populate_default_types(&mut registry);
         world.insert_resource(registry);
 
-        world.insert_resource(DebugSpawnRng::default());
         world.insert_resource(ShapeRenderDisabled);
 
         {
@@ -97,6 +97,7 @@ impl Plugin for CardGamePlugin {
         }
 
         register_systems(app);
+        app.add_systems(Phase::Update, debug_spawn_system);
     }
 }
 
@@ -133,7 +134,6 @@ fn register_systems(app: &mut App) {
     )
     .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system))
     .add_systems(Phase::Update, (stash_toggle_system, stash_tab_click_system))
-    .add_systems(Phase::Update, debug_spawn_system)
     .add_systems(Phase::Update, stash_hover_preview_system)
     .add_systems(
         Phase::PostUpdate,

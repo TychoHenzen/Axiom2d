@@ -1,7 +1,6 @@
 use bevy_ecs::prelude::{Commands, Entity, Query, Res, ResMut};
 use engine_core::prelude::{Event, EventBus};
 use engine_input::prelude::{MouseButton, MouseState};
-use engine_physics::hit_test::{collider_half_extents, local_space_hit};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
 use engine_scene::prelude::{GlobalTransform2D, LocalSortOrder, RenderLayer, SortOrder};
 use glam::Vec2;
@@ -15,9 +14,12 @@ use crate::card::interaction::physics_helpers::activate_physics_body;
 use crate::card::reader::ReaderDragState;
 use crate::hand::cards::Hand;
 use crate::hand::layout::HandSpring;
-use crate::stash::grid::{StashGrid, find_stash_slot_at};
+use crate::stash::grid::StashGrid;
 use crate::stash::toggle::StashVisible;
 use engine_core::scale_spring::ScaleSpring;
+
+mod hit_test;
+mod source;
 
 pub const CARD_COLLISION_GROUP: u32 = 0b0001;
 pub const CARD_COLLISION_FILTER: u32 = 0b0010;
@@ -30,60 +32,7 @@ pub struct CardPickIntent(PickSource);
 
 impl Event for CardPickIntent {}
 
-#[derive(Debug, Clone, PartialEq)]
-enum PickSource {
-    Stash {
-        entity: Entity,
-        page: u8,
-        col: u8,
-        row: u8,
-    },
-    Card {
-        entity: Entity,
-        zone: CardZone,
-        collider: Collider,
-        grab_offset: Vec2,
-    },
-}
-
-fn identify_pick_source(
-    mouse: &MouseState,
-    stash_visible: &StashVisible,
-    grid: &mut StashGrid,
-    query: &Query<(
-        Entity,
-        &Card,
-        &CardZone,
-        &GlobalTransform2D,
-        &Collider,
-        &SortOrder,
-    )>,
-) -> Option<PickSource> {
-    if stash_visible.0 {
-        let screen = mouse.screen_pos();
-        if let Some((col, row)) = find_stash_slot_at(screen, grid.width(), grid.height()) {
-            let page = grid.current_page();
-            if let Some(entity) = grid.get(page, col, row) {
-                return Some(PickSource::Stash {
-                    entity: *entity,
-                    page,
-                    col,
-                    row,
-                });
-            }
-        }
-    }
-
-    let cursor = mouse.world_pos();
-    find_card_under_cursor(query, cursor).map(|(entity, zone, grab_offset, collider)| {
-        PickSource::Card {
-            entity,
-            zone,
-            collider,
-            grab_offset,
-        }
-    })
-}
+pub(crate) use source::PickSource;
 
 pub fn card_pick_intent_system(
     mouse: Res<MouseState>,
@@ -108,7 +57,8 @@ pub fn card_pick_intent_system(
         return;
     }
 
-    let Some(source) = identify_pick_source(&mouse, &stash_visible, &mut grid, &query) else {
+    let Some(source) = source::identify_pick_source(&mouse, &stash_visible, &mut grid, &query)
+    else {
         return;
     };
 
@@ -262,34 +212,6 @@ fn max_table_sort_order(
         .unwrap_or(0)
 }
 
-fn find_card_under_cursor(
-    query: &Query<(
-        Entity,
-        &Card,
-        &CardZone,
-        &GlobalTransform2D,
-        &Collider,
-        &SortOrder,
-    )>,
-    cursor: Vec2,
-) -> Option<(Entity, CardZone, Vec2, Collider)> {
-    query
-        .iter()
-        .filter(|(_, _, _, transform, collider, _)| {
-            let Some(half) = collider_half_extents(collider) else {
-                return false;
-            };
-            let cursor_local = transform.0.inverse().transform_point2(cursor);
-            local_space_hit(cursor_local, half)
-        })
-        .max_by_key(|(_, _, _, _, _, sort)| sort.value())
-        .map(|(entity, _, zone, transform, collider, _)| {
-            let cursor_delta = cursor - transform.0.translation;
-            let local_grab_offset = transform.0.matrix2.inverse().mul_vec2(cursor_delta);
-            (entity, *zone, local_grab_offset, collider.clone())
-        })
-}
-
 fn transition_hand_to_table(
     entity: Entity,
     hand: &mut Hand,
@@ -350,12 +272,18 @@ mod tests {
     use engine_core::scale_spring::ScaleSpring;
 
     fn run_system(world: &mut World) {
+        if world.get_resource::<EventBus<CardPickIntent>>().is_none() {
+            world.insert_resource(EventBus::<CardPickIntent>::default());
+        }
         let mut schedule = Schedule::default();
         schedule.add_systems((card_pick_intent_system, apply_card_pick_intents_system).chain());
         schedule.run(world);
     }
 
     fn run_intent_system(world: &mut World) {
+        if world.get_resource::<EventBus<CardPickIntent>>().is_none() {
+            world.insert_resource(EventBus::<CardPickIntent>::default());
+        }
         let mut schedule = Schedule::default();
         schedule.add_systems(card_pick_intent_system);
         schedule.run(world);
