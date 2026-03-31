@@ -14,8 +14,8 @@ use crate::card::reader::{
     ReaderReleaseIntent, apply_card_reader_eject_intents_system,
     apply_card_reader_insert_intents_system, apply_reader_pick_intents_system,
     apply_reader_release_intents_system, card_reader_eject_intent_system,
-    card_reader_insert_intent_system, reader_drag_system, reader_pick_intent_system,
-    reader_release_intent_system, reader_rotation_lock_system,
+    card_reader_insert_intent_system, reader_drag_system, reader_glow_system,
+    reader_pick_intent_system, reader_release_intent_system, reader_rotation_lock_system,
 };
 use crate::card::rendering::art_shader::{
     register_card_art_shader, register_gem_shader, register_tier_shaders, register_variant_shaders,
@@ -144,6 +144,7 @@ fn register_systems(app: &mut App) {
             hierarchy_sort_system,
             card_render_layer_system,
             hand_layout_system,
+            reader_glow_system,
         ),
     )
     .add_systems(

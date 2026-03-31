@@ -1,9 +1,11 @@
 mod components;
 mod drag;
 mod eject;
+pub mod glow;
 mod insert;
 mod pick;
 mod rotation_lock;
+pub mod spawn;
 
 pub use components::{
     CardReader, CardReaderEjectIntent, CardReaderInsertIntent, OutputJack, READER_CARD_SCALE,
@@ -14,9 +16,11 @@ pub use drag::{
     apply_reader_release_intents_system, reader_drag_system, reader_release_intent_system,
 };
 pub use eject::{apply_card_reader_eject_intents_system, card_reader_eject_intent_system};
+pub use glow::{ReaderAccent, ReaderRecess, ReaderRune, reader_glow_system};
 pub use insert::{apply_card_reader_insert_intents_system, card_reader_insert_intent_system};
 pub use pick::{apply_reader_pick_intents_system, reader_pick_intent_system};
 pub use rotation_lock::reader_rotation_lock_system;
+pub use spawn::{reader_half_extents, spawn_reader};
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]

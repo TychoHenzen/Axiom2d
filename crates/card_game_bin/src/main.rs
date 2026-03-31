@@ -3,7 +3,7 @@ mod card_data;
 use axiom2d::prelude::*;
 use card_game::card::art::ShapeRepository;
 use card_game::card::reader::{
-    CardReader, OutputJack, READER_COLLISION_FILTER, READER_COLLISION_GROUP,
+    READER_COLLISION_FILTER, READER_COLLISION_GROUP, reader_half_extents, spawn_reader,
 };
 use card_game::prelude::*;
 use rand::SeedableRng;
@@ -58,47 +58,11 @@ fn spawn_scene(world: &mut World) {
         card_entities.push(entity);
     }
 
-    // Spawn a card reader with a kinematic physics body.
-    // Kinematic body pushes cards but is not affected by them.
-    let reader_half = Vec2::new(35.0, 50.0);
+    // Spawn a card reader altar with child visual entities.
     let reader_pos = Vec2::new(300.0, 0.0);
-    let jack_entity = world.spawn(OutputJack { data: None }).id();
-    let reader_entity = world
-        .spawn((
-            CardReader {
-                loaded: None,
-                half_extents: reader_half,
-                jack_entity,
-            },
-            Transform2D {
-                position: reader_pos,
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            RigidBody::Kinematic,
-            Collider::Aabb(reader_half),
-            Shape {
-                variant: ShapeVariant::Polygon {
-                    points: vec![
-                        Vec2::new(-reader_half.x, -reader_half.y),
-                        Vec2::new(reader_half.x, -reader_half.y),
-                        Vec2::new(reader_half.x, reader_half.y),
-                        Vec2::new(-reader_half.x, reader_half.y),
-                    ],
-                },
-                color: Color {
-                    r: 0.3,
-                    g: 0.3,
-                    b: 0.35,
-                    a: 1.0,
-                },
-            },
-            RenderLayer::World,
-            SortOrder::default(),
-            LocalSortOrder(-1),
-        ))
-        .id();
+    let (reader_entity, _jack_entity) = spawn_reader(world, reader_pos);
 
+    let reader_half = reader_half_extents();
     let mut physics = world.resource_mut::<PhysicsRes>();
     physics.add_body(reader_entity, &RigidBody::Kinematic, reader_pos);
     physics.add_collider(reader_entity, &Collider::Aabb(reader_half));

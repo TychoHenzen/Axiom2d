@@ -35,6 +35,9 @@ mutants.out.old/
 # Worktrees
 .worktrees/
 
+# Superpowers brainstorming
+.superpowers/
+
 # Serena
 .serena/
 .gitnexus
