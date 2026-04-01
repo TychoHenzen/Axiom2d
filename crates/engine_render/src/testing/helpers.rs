@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::atlas::TextureAtlas;
 
-pub(crate) fn minimal_atlas() -> TextureAtlas {
+pub fn minimal_atlas() -> TextureAtlas {
     TextureAtlas {
         data: vec![255; 4],
         width: 1,

@@ -1,5 +1,4 @@
-#[cfg(test)]
-pub(crate) mod helpers;
+pub mod helpers;
 pub mod visual_regression;
 
 pub use visual_regression::*;

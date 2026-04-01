@@ -16,11 +16,11 @@ use super::types::{Instance, ShapeBatch};
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-struct PackedTextureBinding {
-    texture_id: u32,
-    binding: u32,
-    uv_rect: [f32; 4],
-    _pad: [u32; 2],
+pub struct PackedTextureBinding {
+    pub texture_id: u32,
+    pub binding: u32,
+    pub uv_rect: [f32; 4],
+    pub _pad: [u32; 2],
 }
 
 pub(super) struct ShapeDrawRecord {
@@ -34,7 +34,7 @@ pub(super) struct ShapeDrawRecord {
 }
 
 #[derive(Default)]
-pub(super) struct PendingMaterialBindings {
+pub struct PendingMaterialBindings {
     uniforms: Vec<u8>,
     textures: Vec<(TextureId, u32)>,
 }
@@ -45,19 +45,19 @@ impl PendingMaterialBindings {
         self.textures.clear();
     }
 
-    pub(super) fn set_uniforms(&mut self, data: &[u8]) {
+    pub fn set_uniforms(&mut self, data: &[u8]) {
         self.uniforms = data.to_vec();
     }
 
-    pub(super) fn bind_texture(&mut self, texture: TextureId, binding: u32) {
+    pub fn bind_texture(&mut self, texture: TextureId, binding: u32) {
         self.textures.push((texture, binding));
     }
 
-    pub(super) fn take_uniforms(&mut self) -> Vec<u8> {
+    pub fn take_uniforms(&mut self) -> Vec<u8> {
         std::mem::take(&mut self.uniforms)
     }
 
-    pub(super) fn take_textures(&mut self) -> Vec<(TextureId, u32)> {
+    pub fn take_textures(&mut self) -> Vec<(TextureId, u32)> {
         std::mem::take(&mut self.textures)
     }
 }
@@ -223,7 +223,7 @@ impl WgpuRenderer {
     }
 }
 
-pub(super) fn pack_material_bindings(
+pub fn pack_material_bindings(
     uniforms: &[u8],
     textures: &[(TextureId, u32)],
     lookups: &HashMap<TextureId, [f32; 4]>,
@@ -242,51 +242,4 @@ pub(super) fn pack_material_bindings(
         packed.extend_from_slice(bytemuck::bytes_of(&binding_data));
     }
     packed
-}
-
-#[cfg(test)]
-#[allow(clippy::unwrap_used)]
-mod tests {
-    use super::{PackedTextureBinding, PendingMaterialBindings, pack_material_bindings};
-    use engine_core::types::TextureId;
-    use std::collections::HashMap;
-
-    #[test]
-    fn when_material_bindings_recorded_then_take_returns_uniforms_and_textures_in_order() {
-        let mut pending = PendingMaterialBindings::default();
-        pending.set_uniforms(&[1, 2, 3]);
-        pending.bind_texture(TextureId(7), 0);
-        pending.bind_texture(TextureId(9), 2);
-
-        let uniforms = pending.take_uniforms();
-        let textures = pending.take_textures();
-
-        assert_eq!(uniforms, vec![1, 2, 3]);
-        assert_eq!(textures, vec![(TextureId(7), 0), (TextureId(9), 2)]);
-    }
-
-    #[test]
-    fn when_material_bindings_taken_then_subsequent_take_is_empty() {
-        let mut pending = PendingMaterialBindings::default();
-        pending.set_uniforms(&[4, 5]);
-        pending.bind_texture(TextureId(11), 1);
-
-        let _ = pending.take_uniforms();
-        let _ = pending.take_textures();
-
-        assert!(pending.take_uniforms().is_empty());
-        assert!(pending.take_textures().is_empty());
-    }
-
-    #[test]
-    fn when_material_bindings_packed_then_texture_lookup_data_appended_after_uniforms() {
-        let mut lookups = HashMap::new();
-        lookups.insert(TextureId(7), [0.1, 0.2, 0.3, 0.4]);
-        let packed = pack_material_bindings(&[9, 8, 7], &[(TextureId(7), 2)], &lookups);
-
-        let tex = bytemuck::from_bytes::<PackedTextureBinding>(&packed[32..64]);
-        assert_eq!(tex.texture_id, 7);
-        assert_eq!(tex.binding, 2);
-        assert_eq!(tex.uv_rect, [0.1, 0.2, 0.3, 0.4]);
-    }
 }

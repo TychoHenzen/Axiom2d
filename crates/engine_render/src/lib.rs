@@ -16,7 +16,7 @@ pub mod sprite;
 pub mod testing;
 pub mod window;
 
-mod wgpu_renderer;
+pub mod wgpu_renderer;
 
 use std::sync::Arc;
 use winit::window::Window;

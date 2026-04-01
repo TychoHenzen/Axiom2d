@@ -1,6 +1,6 @@
 mod bloom;
 mod gpu_init;
-mod renderer;
+pub mod renderer;
 mod renderer_trait;
 mod shaders;
 mod types;

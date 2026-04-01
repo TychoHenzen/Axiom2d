@@ -28,6 +28,7 @@ ttf-parser = { workspace = true }
 image-compare = { workspace = true, optional = true }
 
 [dev-dependencies]
+engine_render = { path = ".", features = ["testing"] }
 image-compare = { workspace = true }
 insta = { workspace = true }
 naga = { workspace = true }

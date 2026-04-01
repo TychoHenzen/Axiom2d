@@ -1593,6 +1593,7 @@ dependencies = [
  "bevy_ecs",
  "bytemuck",
  "engine_core",
+ "engine_render",
  "engine_scene",
  "glam 0.29.3",
  "guillotiere",

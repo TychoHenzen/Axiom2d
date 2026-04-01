@@ -6,31 +6,31 @@ use engine_core::prelude::Seconds;
 use engine_physics::prelude::{Collider, CollisionEvent, PhysicsBackend, PhysicsError, RigidBody};
 use glam::Vec2;
 
-pub(crate) fn spawn_entity() -> Entity {
+pub fn spawn_entity() -> Entity {
     World::new().spawn_empty().id()
 }
 
-pub(crate) fn make_test_card() -> crate::card::component::Card {
+pub fn make_test_card() -> crate::card::component::Card {
     crate::card::component::Card::face_down(
         engine_core::prelude::TextureId(1),
         engine_core::prelude::TextureId(2),
     )
 }
 
-pub(crate) type AddBodyLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
-pub(crate) type ColliderLog = Arc<Mutex<Vec<Entity>>>;
-pub(crate) type RemoveBodyLog = Arc<Mutex<Vec<Entity>>>;
-pub(crate) type DampingLog = Arc<Mutex<Vec<(Entity, f32, f32)>>>;
-pub(crate) type VelocityLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
-pub(crate) type AngularVelocityLog = Arc<Mutex<Vec<(Entity, f32)>>>;
-pub(crate) type CollisionGroupLog = Arc<Mutex<Vec<(Entity, u32, u32)>>>;
-pub(crate) type PositionLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
+pub type AddBodyLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
+pub type ColliderLog = Arc<Mutex<Vec<Entity>>>;
+pub type RemoveBodyLog = Arc<Mutex<Vec<Entity>>>;
+pub type DampingLog = Arc<Mutex<Vec<(Entity, f32, f32)>>>;
+pub type VelocityLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
+pub type AngularVelocityLog = Arc<Mutex<Vec<(Entity, f32)>>>;
+pub type CollisionGroupLog = Arc<Mutex<Vec<(Entity, u32, u32)>>>;
+pub type PositionLog = Arc<Mutex<Vec<(Entity, Vec2)>>>;
 
 /// Configurable spy for `PhysicsBackend` used across all `card_game` tests.
 ///
 /// Pre-configure return data via builder methods (`with_body`, `with_angular_velocity`).
 /// Capture calls via `Arc<Mutex<Vec<_>>>` fields passed in via builder methods.
-pub(crate) struct SpyPhysicsBackend {
+pub struct SpyPhysicsBackend {
     pub positions: HashMap<Entity, Vec2>,
     pub rotations: HashMap<Entity, f32>,
     pub angular_velocities: HashMap<Entity, f32>,

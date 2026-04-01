@@ -57,7 +57,7 @@ The project uses Rust edition 2024. Dependencies are declared at the workspace l
 
 ### Clippy Configuration
 
-Workspace-level clippy lints are configured in the root `Cargo.toml` under `[workspace.lints.clippy]`. All crates inherit via `[lints] workspace = true`. The `pedantic` group is enabled as warnings with selective allows for noisy lints (cast lints, `module_name_repetitions`, `must_use_candidate`, etc.). `unwrap_used` is promoted to warn — use `.expect("reason")` in production code. Test modules use `#[allow(clippy::unwrap_used)]` at the module level.
+Workspace-level clippy lints are configured in the root `Cargo.toml` under `[workspace.lints.clippy]`. All crates inherit via `[lints] workspace = true`. The `pedantic` group is enabled as warnings with selective allows for noisy lints (cast lints, `module_name_repetitions`, `must_use_candidate`, etc.). `unwrap_used` is promoted to warn — use `.expect("reason")` in production code. Test files in `tests/` directories use `#![allow(clippy::unwrap_used)]` at the crate level.
 
 ### CI Workflows
 
@@ -100,7 +100,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 
 - Test naming: `when_action_then_outcome` hybrid style (skip `given_` when precondition is obvious)
 - Test body structure: `// Arrange` / `// Act` / `// Assert` section markers
-- Inline `#[cfg(test)] mod tests` in each source file — no separate test files
+- Tests live in crate-level `tests/` directories (Rust integration test convention), not inline `#[cfg(test)]` modules. Each test file is named with underscored source paths: `src/card/interaction/pick.rs` → `tests/card_interaction_pick.rs`. Tests only access `pub` API — do not test private/`pub(crate)` items. When migrating existing inline tests, move the `mod tests` block to a `tests/` file and delete it from the source.
 - Deterministic game loop: fixed timestep, injectable mock time, seeded RNG (`ChaCha8Rng`)
 - Use `BTreeMap` or fixed-seed `ahash` instead of `HashMap` where iteration order matters
 - Property-based testing with `proptest` for physics invariants, serialization roundtrips, ECS invariants
