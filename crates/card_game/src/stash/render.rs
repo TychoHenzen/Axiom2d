@@ -3,27 +3,24 @@ use std::collections::HashMap;
 use bevy_ecs::prelude::{Entity, Query, Res, ResMut};
 use bevy_ecs::system::SystemParam;
 use engine_core::color::Color;
-use engine_render::prelude::{
-    Camera2D, QUAD_INDICES, RendererRes, ShaderHandle, UNIT_QUAD, rect_vertices, screen_to_world,
-    unit_quad_model,
-};
+use engine_render::prelude::{Camera2D, QUAD_INDICES, RendererRes, rect_vertices, screen_to_world};
 use glam::Vec2;
 
 use crate::card::component::Card;
 use crate::card::identity::signature_profile::SignatureProfile;
 use crate::card::identity::visual_params::generate_card_visuals;
 use crate::card::rendering::baked_mesh::BakedCardMesh;
-use crate::card::rendering::geometry::{ART_QUAD, art_quad_model};
 use crate::stash::constants::{
-    BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_HIGHLIGHT_COLOR,
-    SLOT_STRIDE_H, SLOT_STRIDE_W, SLOT_WIDTH,
+    BACKGROUND_COLOR, GRID_MARGIN, SLOT_GAP, SLOT_STRIDE_H, SLOT_STRIDE_W,
 };
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::toggle::StashVisible;
 use engine_render::prelude::resolve_viewport_camera;
 
+mod drag_preview;
 mod helpers;
 mod models;
+mod slots;
 
 #[derive(SystemParam)]
 pub struct StashRenderParams<'w> {
@@ -35,7 +32,6 @@ pub struct StashRenderParams<'w> {
 }
 
 pub(crate) use helpers::reset_default_shader;
-use models::miniature_card_model;
 
 pub fn stash_render_system(
     params: StashRenderParams,
@@ -53,8 +49,6 @@ pub fn stash_render_system(
     };
 
     reset_default_shader(&mut **renderer);
-    let world_slot_w = SLOT_WIDTH / camera.zoom;
-    let world_slot_h = SLOT_HEIGHT / camera.zoom;
 
     let bg_screen_w = f32::from(params.grid.width()) * SLOT_STRIDE_W - SLOT_GAP;
     let bg_screen_h = f32::from(params.grid.height()) * SLOT_STRIDE_H - SLOT_GAP;
@@ -100,77 +94,32 @@ pub fn stash_render_system(
         None
     };
 
-    for col in 0..params.grid.width() {
-        for row in 0..params.grid.height() {
-            let screen_x = GRID_MARGIN + f32::from(col) * SLOT_STRIDE_W;
-            let screen_y = GRID_MARGIN + f32::from(row) * SLOT_STRIDE_H;
-            let center = screen_to_world(
-                Vec2::new(screen_x + SLOT_WIDTH * 0.5, screen_y + SLOT_HEIGHT * 0.5),
-                &camera,
-                vw,
-                vh,
-            );
-
-            if let Some(&entity) = params.grid.get(page, col, row) {
-                if let Some(baked) = baked_meshes.get(&entity) {
-                    let model = miniature_card_model(camera.zoom, center.x, center.y);
-                    renderer.set_shader(ShaderHandle(0));
-                    renderer.draw_colored_mesh(&baked.front.vertices, &baked.front.indices, model);
-                } else {
-                    let color = icon_colors.get(&entity).copied().unwrap_or(SLOT_COLOR);
-                    if let Some(art) = renderer_art_shader {
-                        renderer.set_shader(art);
-                        let model = art_quad_model(world_slot_w, world_slot_h, center.x, center.y);
-                        renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, color, model);
-                    } else {
-                        let model = unit_quad_model(world_slot_w, world_slot_h, center.x, center.y);
-                        renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, color, model);
-                    }
-                    renderer.set_shader(ShaderHandle(0));
-                }
-            } else {
-                let slot_color = if highlight_slot == Some((col, row)) {
-                    SLOT_HIGHLIGHT_COLOR
-                } else {
-                    SLOT_COLOR
-                };
-                let model = unit_quad_model(world_slot_w, world_slot_h, center.x, center.y);
-                renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, slot_color, model);
-            }
-        }
-    }
+    slots::draw_slots(
+        &mut **renderer,
+        &camera,
+        vw,
+        vh,
+        &params.grid,
+        page,
+        &icon_colors,
+        &baked_meshes,
+        highlight_slot,
+        renderer_art_shader,
+    );
 
     // Draw the dragged card's icon on top of the stash grid at the cursor position
     if let Some(info) = params.drag_state.dragging {
-        let screen = params.mouse.screen_pos();
-        let bg_x_max = GRID_MARGIN + f32::from(params.grid.width()) * SLOT_STRIDE_W - SLOT_GAP;
-        let bg_y_max = GRID_MARGIN + f32::from(params.grid.height()) * SLOT_STRIDE_H - SLOT_GAP;
-        let over_stash_area = screen.x >= GRID_MARGIN
-            && screen.x < bg_x_max
-            && screen.y >= GRID_MARGIN
-            && screen.y < bg_y_max;
-
-        if over_stash_area {
-            let cursor_world = params.mouse.world_pos();
-            if let Some(baked) = baked_meshes.get(&info.entity) {
-                let model = miniature_card_model(camera.zoom, cursor_world.x, cursor_world.y);
-                renderer.set_shader(ShaderHandle(0));
-                renderer.draw_colored_mesh(&baked.front.vertices, &baked.front.indices, model);
-            } else {
-                let color = icon_colors.get(&info.entity).copied().unwrap_or(SLOT_COLOR);
-                if let Some(art) = renderer_art_shader {
-                    renderer.set_shader(art);
-                    let model =
-                        art_quad_model(world_slot_w, world_slot_h, cursor_world.x, cursor_world.y);
-                    renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, color, model);
-                } else {
-                    let model =
-                        unit_quad_model(world_slot_w, world_slot_h, cursor_world.x, cursor_world.y);
-                    renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, color, model);
-                }
-                renderer.set_shader(ShaderHandle(0));
-            }
-        }
+        drag_preview::draw_drag_preview(
+            &mut **renderer,
+            &camera,
+            &params.grid,
+            info,
+            params.mouse.screen_pos(),
+            params.mouse.world_pos(),
+            &icon_colors,
+            &baked_meshes,
+            renderer_art_shader,
+        );
     }
 }
 
@@ -179,6 +128,7 @@ pub fn stash_render_system(
 mod tests {
     use super::*;
     use crate::card::rendering::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
+    use crate::stash::constants::{SLOT_COLOR, SLOT_HEIGHT, SLOT_HIGHLIGHT_COLOR, SLOT_WIDTH};
     use bevy_ecs::prelude::{Schedule, World};
     use engine_render::testing::{ShapeCallLog, SpyRenderer};
     use std::sync::{Arc, Mutex};
