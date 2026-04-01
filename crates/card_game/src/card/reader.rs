@@ -8,19 +8,16 @@ mod rotation_lock;
 pub mod spawn;
 
 pub use components::{
-    CardReader, CardReaderEjectIntent, CardReaderInsertIntent, OutputJack, READER_CARD_SCALE,
-    READER_COLLISION_FILTER, READER_COLLISION_GROUP, ReaderDragInfo, ReaderDragState,
-    ReaderPickIntent, ReaderReleaseIntent, card_overlaps_reader,
+    CardReader, OutputJack, READER_CARD_SCALE, READER_COLLISION_FILTER, READER_COLLISION_GROUP,
+    ReaderDragInfo, ReaderDragState, card_overlaps_reader,
 };
-pub use drag::{
-    apply_reader_release_intents_system, reader_drag_system, reader_release_intent_system,
-};
-pub use eject::{apply_card_reader_eject_intents_system, card_reader_eject_intent_system};
+pub use drag::{reader_drag_system, reader_release_system};
+pub use eject::card_reader_eject_system;
 pub use glow::{ReaderAccent, ReaderRecess, ReaderRune, reader_glow_system};
-pub use insert::{apply_card_reader_insert_intents_system, card_reader_insert_intent_system};
-pub use pick::{apply_reader_pick_intents_system, reader_pick_intent_system};
+pub use insert::card_reader_insert_system;
+pub use pick::reader_pick_system;
 pub use rotation_lock::reader_rotation_lock_system;
-pub use spawn::{reader_half_extents, spawn_reader};
+pub use spawn::{READER_HALF_EXTENTS, spawn_reader};
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
@@ -28,8 +25,8 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::*;
-    use bevy_ecs::schedule::IntoScheduleConfigs;
-    use engine_core::prelude::{EventBus, ScaleSpring, Transform2D};
+    use engine_core::prelude::Transform2D;
+    use engine_core::scale_spring::ScaleSpring;
     use engine_input::mouse_button::MouseButton;
     use engine_input::prelude::MouseState;
     use engine_physics::prelude::{PhysicsRes, RigidBody};
@@ -51,66 +48,24 @@ mod tests {
 
     fn run_reader_pick(world: &mut World) {
         let mut schedule = Schedule::default();
-        schedule.add_systems((reader_pick_intent_system, apply_reader_pick_intents_system).chain());
-        schedule.run(world);
-    }
-
-    fn run_reader_pick_intent(world: &mut World) {
-        let mut schedule = Schedule::default();
-        schedule.add_systems(reader_pick_intent_system);
+        schedule.add_systems(reader_pick_system);
         schedule.run(world);
     }
 
     fn run_reader_release(world: &mut World) {
         let mut schedule = Schedule::default();
-        schedule.add_systems(
-            (
-                reader_release_intent_system,
-                apply_reader_release_intents_system,
-            )
-                .chain(),
-        );
-        schedule.run(world);
-    }
-
-    fn run_reader_release_intent(world: &mut World) {
-        let mut schedule = Schedule::default();
-        schedule.add_systems(reader_release_intent_system);
+        schedule.add_systems(reader_release_system);
         schedule.run(world);
     }
 
     fn run_insert(world: &mut World) {
-        if world
-            .get_resource::<EventBus<CardReaderInsertIntent>>()
-            .is_none()
-        {
-            world.insert_resource(EventBus::<CardReaderInsertIntent>::default());
-        }
         let mut schedule = Schedule::default();
-        schedule.add_systems(
-            (
-                card_reader_insert_intent_system,
-                apply_card_reader_insert_intents_system,
-            )
-                .chain(),
-        );
-        schedule.run(world);
-    }
-
-    fn run_insert_intent(world: &mut World) {
-        if world
-            .get_resource::<EventBus<CardReaderInsertIntent>>()
-            .is_none()
-        {
-            world.insert_resource(EventBus::<CardReaderInsertIntent>::default());
-        }
-        let mut schedule = Schedule::default();
-        schedule.add_systems(card_reader_insert_intent_system);
+        schedule.add_systems(card_reader_insert_system);
         schedule.run(world);
     }
 
     #[test]
-    fn when_reader_clicked_then_pick_intent_emitted_before_apply() {
+    fn when_reader_clicked_then_starts_reader_drag() {
         // Arrange
         let mut world = World::new();
         let jack = world.spawn(OutputJack { data: None }).id();
@@ -134,50 +89,6 @@ mod tests {
         world.insert_resource(mouse);
         world.insert_resource(DragState::default());
         world.insert_resource(ReaderDragState::default());
-        world.insert_resource(EventBus::<ReaderPickIntent>::default());
-
-        // Act
-        run_reader_pick_intent(&mut world);
-
-        // Assert
-        assert!(world.resource::<ReaderDragState>().dragging.is_none());
-        let mut intents = world.resource_mut::<EventBus<ReaderPickIntent>>();
-        let events: Vec<ReaderPickIntent> = intents.drain().collect();
-        assert_eq!(
-            events,
-            vec![ReaderPickIntent {
-                entity: reader,
-                grab_offset: Vec2::new(10.0, -5.0),
-            }]
-        );
-    }
-
-    #[test]
-    fn when_reader_clicked_then_apply_starts_reader_drag() {
-        // Arrange
-        let mut world = World::new();
-        let jack = world.spawn(OutputJack { data: None }).id();
-        let reader = world
-            .spawn((
-                CardReader {
-                    loaded: None,
-                    half_extents: Vec2::new(40.0, 60.0),
-                    jack_entity: jack,
-                },
-                Transform2D {
-                    position: Vec2::new(100.0, 100.0),
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-            ))
-            .id();
-        let mut mouse = MouseState::default();
-        mouse.press(MouseButton::Left);
-        mouse.set_world_pos(Vec2::new(110.0, 95.0));
-        world.insert_resource(mouse);
-        world.insert_resource(DragState::default());
-        world.insert_resource(ReaderDragState::default());
-        world.insert_resource(EventBus::<ReaderPickIntent>::default());
 
         // Act
         run_reader_pick(&mut world);
@@ -194,7 +105,7 @@ mod tests {
     }
 
     #[test]
-    fn when_mouse_released_while_reader_dragging_then_release_intent_emitted_before_apply() {
+    fn when_mouse_released_while_reader_dragging_then_clears_reader_drag() {
         // Arrange
         let mut world = World::new();
         let reader = world.spawn_empty().id();
@@ -208,34 +119,6 @@ mod tests {
         mouse.press(MouseButton::Left);
         mouse.release(MouseButton::Left);
         world.insert_resource(mouse);
-        world.insert_resource(EventBus::<ReaderReleaseIntent>::default());
-
-        // Act
-        run_reader_release_intent(&mut world);
-
-        // Assert
-        assert!(world.resource::<ReaderDragState>().dragging.is_some());
-        let mut intents = world.resource_mut::<EventBus<ReaderReleaseIntent>>();
-        let events: Vec<ReaderReleaseIntent> = intents.drain().collect();
-        assert_eq!(events, vec![ReaderReleaseIntent]);
-    }
-
-    #[test]
-    fn when_mouse_released_while_reader_dragging_then_apply_clears_reader_drag() {
-        // Arrange
-        let mut world = World::new();
-        let reader = world.spawn_empty().id();
-        world.insert_resource(ReaderDragState {
-            dragging: Some(ReaderDragInfo {
-                entity: reader,
-                grab_offset: Vec2::new(2.0, 3.0),
-            }),
-        });
-        let mut mouse = MouseState::default();
-        mouse.press(MouseButton::Left);
-        mouse.release(MouseButton::Left);
-        world.insert_resource(mouse);
-        world.insert_resource(EventBus::<ReaderReleaseIntent>::default());
 
         // Act
         run_reader_release(&mut world);
@@ -305,7 +188,6 @@ mod tests {
 
         let spy = SpyPhysicsBackend::new();
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
-        world.insert_resource(EventBus::<CardReaderInsertIntent>::default());
 
         InsertTestSetup {
             card_entity,
@@ -313,8 +195,6 @@ mod tests {
             jack_entity,
         }
     }
-
-    // --- Overlap function tests ---
 
     /// @doc: Cards positioned outside the reader's bounding box must be rejected.
     /// A false positive here would cause cards dropped far from a reader to
@@ -355,10 +235,9 @@ mod tests {
         assert!(result, "card exactly on boundary should be accepted");
     }
 
-    /// @doc: Verifies the basic hit case: a card whose center lies strictly inside the
-    /// reader's AABB is detected as overlapping. Without this, a reader would never
-    /// trigger even when a card is positioned directly over it, breaking the core
-    /// card-scanning mechanic entirely.
+    /// @doc: A card whose center lies inside the reader's AABB must be detected as
+    /// overlapping. Without this, a reader would never trigger insertion even when a
+    /// card is positioned directly over it, breaking the core card-scanning mechanic.
     #[test]
     fn when_card_inside_reader_aabb_then_returns_true() {
         // Arrange
@@ -375,8 +254,6 @@ mod tests {
             "card at {card_pos} should overlap reader at {reader_pos} ± {reader_half}"
         );
     }
-
-    // --- Rotation lock tests ---
 
     /// @doc: Readers must stay axis-aligned on the table so their card slot and
     /// jack positions remain predictable. The physics engine has no rotation-lock
@@ -429,34 +306,6 @@ mod tests {
 
         // Assert
         assert!(ang_log.lock().unwrap().is_empty());
-    }
-
-    // --- Insertion tests ---
-
-    /// @doc: When a dragged card is released over a reader, it snaps to the reader's
-    /// exact position. This provides clear visual feedback that the card is "locked in"
-    /// rather than floating loosely near the reader. Without snapping, players couldn't
-    /// tell whether a card was properly inserted or just happened to land nearby.
-    #[test]
-    fn when_card_released_over_reader_then_insert_intent_emitted_before_apply() {
-        // Arrange
-        let mut world = World::new();
-        let setup = setup_insert_scenario(&mut world);
-
-        // Act
-        run_insert_intent(&mut world);
-
-        // Assert
-        assert!(world.resource::<DragState>().dragging.is_some());
-        let mut intents = world.resource_mut::<EventBus<CardReaderInsertIntent>>();
-        let events: Vec<CardReaderInsertIntent> = intents.drain().collect();
-        assert_eq!(
-            events,
-            vec![CardReaderInsertIntent {
-                card_entity: setup.card_entity,
-                reader_entity: setup.reader_entity,
-            }]
-        );
     }
 
     #[test]
@@ -664,7 +513,6 @@ mod tests {
             }),
         });
         world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
-        world.insert_resource(EventBus::<CardReaderInsertIntent>::default());
 
         // Act
         run_insert(&mut world);
@@ -734,7 +582,6 @@ mod tests {
             }),
         });
         world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
-        world.insert_resource(EventBus::<CardReaderInsertIntent>::default());
 
         // Act
         run_insert(&mut world);
@@ -881,35 +728,9 @@ mod tests {
         );
     }
 
-    // --- Ejection tests ---
-
     fn run_eject(world: &mut World) {
-        if world
-            .get_resource::<EventBus<CardReaderEjectIntent>>()
-            .is_none()
-        {
-            world.insert_resource(EventBus::<CardReaderEjectIntent>::default());
-        }
         let mut schedule = Schedule::default();
-        schedule.add_systems(
-            (
-                card_reader_eject_intent_system,
-                apply_card_reader_eject_intents_system,
-            )
-                .chain(),
-        );
-        schedule.run(world);
-    }
-
-    fn run_eject_intent(world: &mut World) {
-        if world
-            .get_resource::<EventBus<CardReaderEjectIntent>>()
-            .is_none()
-        {
-            world.insert_resource(EventBus::<CardReaderEjectIntent>::default());
-        }
-        let mut schedule = Schedule::default();
-        schedule.add_systems(card_reader_eject_intent_system);
+        schedule.add_systems(card_reader_eject_system);
         schedule.run(world);
     }
 
@@ -972,7 +793,6 @@ mod tests {
         });
 
         world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
-        world.insert_resource(EventBus::<CardReaderEjectIntent>::default());
 
         EjectTestSetup {
             card_entity,
@@ -985,31 +805,6 @@ mod tests {
     /// Table zone and the reader must clear its loaded slot. Without this, the card
     /// would remain in Reader zone forever — invisible to the hand/stash systems
     /// and impossible to re-drop into a different reader.
-    #[test]
-    fn when_card_picked_from_reader_then_eject_intent_emitted_before_apply() {
-        // Arrange
-        let mut world = World::new();
-        let setup = setup_eject_scenario(&mut world);
-
-        // Act
-        run_eject_intent(&mut world);
-
-        // Assert
-        assert_eq!(
-            *world.get::<CardZone>(setup.card_entity).unwrap(),
-            CardZone::Reader(setup.reader_entity)
-        );
-        let mut intents = world.resource_mut::<EventBus<CardReaderEjectIntent>>();
-        let events: Vec<CardReaderEjectIntent> = intents.drain().collect();
-        assert_eq!(
-            events,
-            vec![CardReaderEjectIntent {
-                card_entity: setup.card_entity,
-                reader_entity: setup.reader_entity,
-            }]
-        );
-    }
-
     #[test]
     fn when_card_picked_from_reader_then_zone_restored_and_reader_cleared() {
         // Arrange
@@ -1168,7 +963,6 @@ mod tests {
 
         let spy = SpyPhysicsBackend::new().with_add_body_log(add_log.clone());
         world.insert_resource(PhysicsRes::new(Box::new(spy)));
-        world.insert_resource(EventBus::<CardReaderEjectIntent>::default());
 
         // Act
         run_reader_drag(&mut world);

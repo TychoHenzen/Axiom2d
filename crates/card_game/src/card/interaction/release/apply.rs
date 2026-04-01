@@ -1,15 +1,12 @@
-use bevy_ecs::prelude::{Commands, Entity, Query, ResMut};
-use engine_core::prelude::{Event, EventBus, Transform2D};
+use bevy_ecs::prelude::{Commands, Entity, Query};
+use engine_core::prelude::Transform2D;
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
-use engine_scene::prelude::RenderLayer;
+use engine_scene::render_order::RenderLayer;
 use glam::Vec2;
 
-use super::target::DropTarget;
-use crate::card::component::Card;
 use crate::card::component::CardItemForm;
 use crate::card::component::CardZone;
 use crate::card::interaction::flip_animation::FlipAnimation;
-use crate::card::interaction::game_state_param::CardGameState;
 use crate::card::interaction::physics_helpers::{activate_physics_body, warn_on_physics_result};
 use crate::card::interaction::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
 use crate::hand::cards::Hand;
@@ -17,83 +14,7 @@ use crate::hand::layout::HandSpring;
 use crate::stash::grid::StashGrid;
 use engine_core::scale_spring::ScaleSpring;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct CardDropIntent {
-    pub(crate) entity: Entity,
-    pub(crate) target: DropTarget,
-    pub(crate) origin_position: Vec2,
-}
-
-impl Event for CardDropIntent {}
-
-pub fn apply_card_drop_intents_system(
-    mut intents: ResMut<EventBus<CardDropIntent>>,
-    mut state: CardGameState,
-    mut commands: Commands,
-    transform_query: Query<(&Transform2D, &Collider)>,
-    card_query: Query<&Card>,
-) {
-    for intent in intents.drain() {
-        let Some(info) = state.drag_state.dragging else {
-            continue;
-        };
-        if info.entity != intent.entity {
-            continue;
-        }
-
-        match intent.target {
-            DropTarget::Stash { page, col, row } => {
-                let current_pos = transform_query
-                    .get(intent.entity)
-                    .ok()
-                    .map(|(t, _)| t.position);
-                drop_on_stash(
-                    intent.entity,
-                    page,
-                    col,
-                    row,
-                    current_pos,
-                    &mut state.grid,
-                    &mut state.physics,
-                    &mut commands,
-                );
-            }
-            DropTarget::Hand => {
-                let face_up = card_query.get(intent.entity).is_ok_and(|c| c.face_up);
-                drop_on_hand(
-                    intent.entity,
-                    face_up,
-                    intent.origin_position,
-                    &mut state.hand,
-                    &mut state.physics,
-                    &mut commands,
-                );
-            }
-            DropTarget::Table => {
-                drop_on_table(
-                    intent.entity,
-                    None,
-                    &mut state.physics,
-                    &mut commands,
-                    &transform_query,
-                );
-            }
-            DropTarget::TableSnapBack => {
-                drop_on_table(
-                    intent.entity,
-                    Some(intent.origin_position),
-                    &mut state.physics,
-                    &mut commands,
-                    &transform_query,
-                );
-            }
-        }
-
-        state.drag_state.dragging = None;
-    }
-}
-
-fn drop_on_hand(
+pub(super) fn drop_on_hand(
     entity: Entity,
     face_up: bool,
     origin_position: Vec2,
@@ -123,7 +44,7 @@ fn drop_on_hand(
     }
 }
 
-fn drop_on_stash(
+pub(super) fn drop_on_stash(
     entity: Entity,
     page: u8,
     col: u8,
@@ -150,23 +71,20 @@ fn drop_on_stash(
     }
 }
 
-fn drop_on_table(
+pub(super) fn drop_on_table(
     entity: Entity,
     snap_back: Option<Vec2>,
     physics: &mut PhysicsRes,
     commands: &mut Commands,
     transform_query: &Query<(&Transform2D, &Collider)>,
 ) {
-    let position = if let Some(origin) = snap_back {
-        origin
+    let (position, collider) = if let Ok((t, c)) = transform_query.get(entity) {
+        (snap_back.unwrap_or(t.position), Some(c))
     } else {
-        transform_query
-            .get(entity)
-            .map(|(t, _)| t.position)
-            .unwrap_or(Vec2::ZERO)
+        (snap_back.unwrap_or(Vec2::ZERO), None)
     };
 
-    if let Ok((_, collider)) = transform_query.get(entity) {
+    if let Some(collider) = collider {
         activate_physics_body(
             entity,
             position,

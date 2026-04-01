@@ -1,5 +1,4 @@
-use bevy_ecs::prelude::{Commands, Entity, Query, Res, ResMut};
-use engine_core::prelude::{Event, EventBus};
+use bevy_ecs::prelude::{Commands, Entity, Query, Res};
 use engine_input::prelude::{MouseButton, MouseState};
 use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
 use engine_scene::prelude::{GlobalTransform2D, LocalSortOrder, RenderLayer, SortOrder};
@@ -14,8 +13,6 @@ use crate::card::interaction::physics_helpers::activate_physics_body;
 use crate::card::reader::ReaderDragState;
 use crate::hand::cards::Hand;
 use crate::hand::layout::HandSpring;
-use crate::stash::grid::StashGrid;
-use crate::stash::toggle::StashVisible;
 use engine_core::scale_spring::ScaleSpring;
 
 mod hit_test;
@@ -27,46 +24,10 @@ pub(crate) const DRAGGED_COLLISION_GROUP: u32 = 0;
 pub(crate) const DRAGGED_COLLISION_FILTER: u32 = 0;
 pub(crate) const DRAG_SCALE: f32 = 1.05;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct CardPickIntent(PickSource);
-
-impl Event for CardPickIntent {}
-
 pub(crate) use source::PickSource;
 
-pub fn card_pick_intent_system(
+pub fn card_pick_system(
     mouse: Res<MouseState>,
-    drag_state: Res<DragState>,
-    stash_visible: Res<StashVisible>,
-    mut grid: ResMut<StashGrid>,
-    reader_drag: Res<ReaderDragState>,
-    mut intents: ResMut<EventBus<CardPickIntent>>,
-    query: Query<(
-        Entity,
-        &Card,
-        &CardZone,
-        &GlobalTransform2D,
-        &Collider,
-        &SortOrder,
-    )>,
-) {
-    if drag_state.dragging.is_some() || reader_drag.dragging.is_some() {
-        return;
-    }
-    if !mouse.just_pressed(MouseButton::Left) {
-        return;
-    }
-
-    let Some(source) = source::identify_pick_source(&mouse, &stash_visible, &mut grid, &query)
-    else {
-        return;
-    };
-
-    intents.push(CardPickIntent(source));
-}
-
-pub fn apply_card_pick_intents_system(
-    mut intents: ResMut<EventBus<CardPickIntent>>,
     mut state: CardGameState,
     reader_drag: Res<ReaderDragState>,
     mut commands: Commands,
@@ -79,40 +40,44 @@ pub fn apply_card_pick_intents_system(
         &SortOrder,
     )>,
 ) {
-    for CardPickIntent(source) in intents.drain() {
-        if state.drag_state.dragging.is_some() || reader_drag.dragging.is_some() {
-            break;
-        }
+    if state.drag_state.dragging.is_some() || reader_drag.dragging.is_some() {
+        return;
+    }
+    if !mouse.just_pressed(MouseButton::Left) {
+        return;
+    }
 
-        match source {
-            PickSource::Stash {
-                entity,
-                page,
-                col,
-                row,
-            } => {
-                if state.grid.get(page, col, row) != Some(&entity) {
-                    continue;
-                }
-                state.grid.take(page, col, row);
-                pick_from_stash(entity, page, col, row, &mut state.drag_state, &mut commands);
-            }
-            PickSource::Card {
+    let Some(source) =
+        source::identify_pick_source(&mouse, &state.stash_visible, &mut state.grid, &query)
+    else {
+        return;
+    };
+
+    match source {
+        PickSource::Stash {
+            entity,
+            page,
+            col,
+            row,
+        } => {
+            state.grid.take(page, col, row);
+            pick_from_stash(entity, page, col, row, &mut state.drag_state, &mut commands);
+        }
+        PickSource::Card {
+            entity,
+            zone,
+            collider,
+            grab_offset,
+        } => {
+            pick_from_card(
                 entity,
                 zone,
                 collider,
                 grab_offset,
-            } => {
-                pick_from_card(
-                    entity,
-                    zone,
-                    collider,
-                    grab_offset,
-                    &mut state,
-                    &mut commands,
-                    &mut query,
-                );
-            }
+                &mut state,
+                &mut commands,
+                &mut query,
+            );
         }
     }
 }
@@ -252,16 +217,14 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::*;
-    use bevy_ecs::schedule::IntoScheduleConfigs;
-    use engine_core::prelude::{EventBus, TextureId};
     use engine_input::prelude::{MouseButton, MouseState};
     use engine_physics::prelude::{Collider, NullPhysicsBackend, PhysicsBackend, PhysicsRes};
     use engine_scene::prelude::{GlobalTransform2D, LocalSortOrder, RenderLayer, SortOrder};
     use glam::{Affine2, Vec2};
 
-    use super::{
-        CardPickIntent, DRAG_SCALE, apply_card_pick_intents_system, card_pick_intent_system,
-    };
+    use engine_core::prelude::TextureId;
+
+    use super::{DRAG_SCALE, card_pick_system};
     use crate::card::component::Card;
     use crate::card::component::CardZone;
     use crate::card::interaction::drag_state::DragState;
@@ -272,20 +235,8 @@ mod tests {
     use engine_core::scale_spring::ScaleSpring;
 
     fn run_system(world: &mut World) {
-        if world.get_resource::<EventBus<CardPickIntent>>().is_none() {
-            world.insert_resource(EventBus::<CardPickIntent>::default());
-        }
         let mut schedule = Schedule::default();
-        schedule.add_systems((card_pick_intent_system, apply_card_pick_intents_system).chain());
-        schedule.run(world);
-    }
-
-    fn run_intent_system(world: &mut World) {
-        if world.get_resource::<EventBus<CardPickIntent>>().is_none() {
-            world.insert_resource(EventBus::<CardPickIntent>::default());
-        }
-        let mut schedule = Schedule::default();
-        schedule.add_systems(card_pick_intent_system);
+        schedule.add_systems(card_pick_system);
         schedule.run(world);
     }
 
@@ -302,46 +253,6 @@ mod tests {
         world.insert_resource(StashGrid::new(10, 10, 1));
         world.insert_resource(StashVisible(false));
         world.insert_resource(ReaderDragState::default());
-        world.insert_resource(EventBus::<CardPickIntent>::default());
-    }
-
-    #[test]
-    fn when_left_click_on_table_card_then_pick_intent_emitted_before_apply() {
-        // Arrange
-        let mut world = World::new();
-        let card_entity = world
-            .spawn((
-                crate::test_helpers::make_test_card(),
-                CardZone::Table,
-                default_collider(),
-                GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-                SortOrder::new(0),
-            ))
-            .id();
-        let mut mouse = MouseState::default();
-        mouse.press(MouseButton::Left);
-        mouse.set_world_pos(Vec2::ZERO);
-        world.insert_resource(mouse);
-        world.insert_resource(DragState::default());
-        insert_pick_resources(&mut world);
-
-        // Act
-        run_intent_system(&mut world);
-
-        // Assert
-        assert!(world.resource::<DragState>().dragging.is_none());
-        let mut intents = world.resource_mut::<EventBus<CardPickIntent>>();
-        let events: Vec<CardPickIntent> = intents.drain().collect();
-        assert_eq!(events.len(), 1);
-        assert_eq!(
-            events[0],
-            CardPickIntent(super::PickSource::Card {
-                entity: card_entity,
-                zone: CardZone::Table,
-                collider: default_collider(),
-                grab_offset: Vec2::ZERO,
-            })
-        );
     }
 
     #[test]

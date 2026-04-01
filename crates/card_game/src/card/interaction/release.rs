@@ -1,10 +1,7 @@
 mod apply;
 mod target;
 
-pub use apply::{CardDropIntent, apply_card_drop_intents_system};
-#[cfg(test)]
-pub(crate) use target::DropTarget;
-pub use target::card_drop_intent_system;
+pub use target::card_release_system;
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::struct_excessive_bools)]
@@ -12,8 +9,7 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::*;
-    use bevy_ecs::schedule::IntoScheduleConfigs;
-    use engine_core::prelude::{EventBus, Transform2D};
+    use engine_core::prelude::Transform2D;
     use engine_input::prelude::{MouseButton, MouseState};
     use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
     use engine_render::prelude::RendererRes;
@@ -21,9 +17,7 @@ mod tests {
     use engine_scene::prelude::RenderLayer;
     use glam::Vec2;
 
-    use super::{
-        CardDropIntent, DropTarget, apply_card_drop_intents_system, card_drop_intent_system,
-    };
+    use super::card_release_system;
     use crate::card::component::CardItemForm;
     use crate::card::component::CardZone;
     use crate::card::interaction::drag_state::{DragInfo, DragState};
@@ -35,13 +29,7 @@ mod tests {
 
     fn run_system(world: &mut World) {
         let mut schedule = Schedule::default();
-        schedule.add_systems((card_drop_intent_system, apply_card_drop_intents_system).chain());
-        schedule.run(world);
-    }
-
-    fn run_intent_system(world: &mut World) {
-        let mut schedule = Schedule::default();
-        schedule.add_systems(card_drop_intent_system);
+        schedule.add_systems(card_release_system);
         schedule.run(world);
     }
 
@@ -201,8 +189,6 @@ mod tests {
             let log = Arc::new(Mutex::new(Vec::new()));
             let spy = SpyRenderer::new(log).with_viewport(800, self.viewport_h);
             world.insert_resource(RendererRes::new(Box::new(spy)));
-            world.insert_resource(EventBus::<CardDropIntent>::default());
-
             let mut mouse = MouseState::default();
             mouse.press(MouseButton::Left);
             mouse.release(MouseButton::Left);
@@ -263,32 +249,6 @@ mod tests {
     }
 
     #[test]
-    fn when_mouse_released_while_dragging_then_drop_intent_emitted_before_apply() {
-        // Arrange
-        let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table().build();
-
-        // Act
-        run_intent_system(&mut world);
-
-        // Assert
-        let drag = world.resource::<DragState>().dragging;
-        assert!(
-            drag.is_some(),
-            "intent detection should not clear drag state"
-        );
-        let mut intents = world.resource_mut::<EventBus<CardDropIntent>>();
-        let events: Vec<CardDropIntent> = intents.drain().collect();
-        assert_eq!(
-            events,
-            vec![CardDropIntent {
-                entity,
-                target: DropTarget::Table,
-                origin_position: Vec2::ZERO,
-            }]
-        );
-    }
-
-    #[test]
     fn when_mouse_released_while_not_dragging_then_no_panic_and_stays_none() {
         // Arrange
         let (mut world, _, _, _) = ReleaseTestBuilder::card_on_table().build();
@@ -327,7 +287,6 @@ mod tests {
         world.insert_resource(RendererRes::new(Box::new(spy)));
         world.insert_resource(StashGrid::new(10, 10, 1));
         world.insert_resource(crate::stash::toggle::StashVisible(false));
-        world.insert_resource(EventBus::<CardDropIntent>::default());
 
         // Act
         run_system(&mut world);
@@ -401,8 +360,9 @@ mod tests {
         assert_eq!(calls[0].1, Vec2::new(50.0, 50.0));
     }
 
-    /// @doc: Face-down cards auto-flip to face-up on hand entry—reveal card on pickup
-    /// @doc: Face-down cards auto-flip to face-up on hand entry—reveal card on pickup
+    /// @doc: Face-down cards auto-flip to face-up on hand entry so the player can see
+    /// what they picked up. Without this, hand cards would stay face-down and the player
+    /// would have to manually flip each one to read it.
     #[test]
     fn when_face_down_card_released_into_hand_then_flip_animation_inserted() {
         // Arrange

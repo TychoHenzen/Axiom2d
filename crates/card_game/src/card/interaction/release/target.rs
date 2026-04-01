@@ -1,19 +1,20 @@
-use bevy_ecs::prelude::{Res, ResMut};
-use engine_core::prelude::EventBus;
+use bevy_ecs::prelude::{Commands, Query, Res};
+use engine_core::prelude::Transform2D;
 use engine_input::prelude::{MouseButton, MouseState};
+use engine_physics::prelude::Collider;
 use engine_render::prelude::RendererRes;
 use glam::Vec2;
 
-use crate::card::component::CardZone;
-use crate::card::interaction::drag_state::DragState;
+use crate::card::component::{Card, CardZone};
+use crate::card::interaction::game_state_param::CardGameState;
 use crate::card::rendering::drop_zone_glow::HAND_DROP_ZONE_HEIGHT;
 use crate::stash::grid::StashGrid;
 use crate::stash::grid::find_stash_slot_at;
 
-use super::apply::CardDropIntent;
+use super::apply::{drop_on_hand, drop_on_stash, drop_on_table};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) enum DropTarget {
+enum DropTarget {
     Stash { page: u8, col: u8, row: u8 },
     Hand,
     Table,
@@ -61,15 +62,15 @@ fn resolve_drop_target(
     }
 }
 
-pub fn card_drop_intent_system(
+pub fn card_release_system(
     mouse: Res<MouseState>,
-    drag_state: Res<DragState>,
-    stash_visible: Res<crate::stash::toggle::StashVisible>,
-    grid: Res<StashGrid>,
+    mut state: CardGameState,
     renderer: Res<RendererRes>,
-    mut intents: ResMut<EventBus<CardDropIntent>>,
+    mut commands: Commands,
+    transform_query: Query<(&Transform2D, &Collider)>,
+    card_query: Query<&Card>,
 ) {
-    let Some(info) = drag_state.dragging else {
+    let Some(info) = state.drag_state.dragging else {
         return;
     };
     if !mouse.just_released(MouseButton::Left) {
@@ -80,11 +81,61 @@ pub fn card_drop_intent_system(
     let (_, vh) = renderer.viewport_size();
     let vh = vh as f32;
 
-    let target = resolve_drop_target(screen_pos, vh, stash_visible.0, &grid, &info.origin_zone);
+    let target = resolve_drop_target(
+        screen_pos,
+        vh,
+        state.stash_visible.0,
+        &state.grid,
+        &info.origin_zone,
+    );
 
-    intents.push(CardDropIntent {
-        entity: info.entity,
-        target,
-        origin_position: info.origin_position,
-    });
+    match target {
+        DropTarget::Stash { page, col, row } => {
+            let current_pos = transform_query
+                .get(info.entity)
+                .ok()
+                .map(|(t, _)| t.position);
+            drop_on_stash(
+                info.entity,
+                page,
+                col,
+                row,
+                current_pos,
+                &mut state.grid,
+                &mut state.physics,
+                &mut commands,
+            );
+        }
+        DropTarget::Hand => {
+            let face_up = card_query.get(info.entity).is_ok_and(|c| c.face_up);
+            drop_on_hand(
+                info.entity,
+                face_up,
+                info.origin_position,
+                &mut state.hand,
+                &mut state.physics,
+                &mut commands,
+            );
+        }
+        DropTarget::Table => {
+            drop_on_table(
+                info.entity,
+                None,
+                &mut state.physics,
+                &mut commands,
+                &transform_query,
+            );
+        }
+        DropTarget::TableSnapBack => {
+            drop_on_table(
+                info.entity,
+                Some(info.origin_position),
+                &mut state.physics,
+                &mut commands,
+                &transform_query,
+            );
+        }
+    }
+
+    state.drag_state.dragging = None;
 }

@@ -1,5 +1,4 @@
 use bevy_ecs::prelude::{Component, Entity, Resource};
-use engine_core::prelude::Event;
 use glam::Vec2;
 
 use crate::card::identity::signature::CardSignature;
@@ -35,32 +34,3 @@ pub struct ReaderDragInfo {
     pub entity: Entity,
     pub grab_offset: Vec2,
 }
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ReaderPickIntent {
-    pub(crate) entity: Entity,
-    pub(crate) grab_offset: Vec2,
-}
-
-impl Event for ReaderPickIntent {}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ReaderReleaseIntent;
-
-impl Event for ReaderReleaseIntent {}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct CardReaderInsertIntent {
-    pub(crate) card_entity: Entity,
-    pub(crate) reader_entity: Entity,
-}
-
-impl Event for CardReaderInsertIntent {}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct CardReaderEjectIntent {
-    pub(crate) card_entity: Entity,
-    pub(crate) reader_entity: Entity,
-}
-
-impl Event for CardReaderEjectIntent {}

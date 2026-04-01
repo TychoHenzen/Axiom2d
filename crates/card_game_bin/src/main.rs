@@ -3,7 +3,7 @@ mod card_data;
 use axiom2d::prelude::*;
 use card_game::card::art::ShapeRepository;
 use card_game::card::reader::{
-    READER_COLLISION_FILTER, READER_COLLISION_GROUP, reader_half_extents, spawn_reader,
+    READER_COLLISION_FILTER, READER_COLLISION_GROUP, READER_HALF_EXTENTS, spawn_reader,
 };
 use card_game::prelude::*;
 use rand::SeedableRng;
@@ -62,10 +62,9 @@ fn spawn_scene(world: &mut World) {
     let reader_pos = Vec2::new(300.0, 0.0);
     let (reader_entity, _jack_entity) = spawn_reader(world, reader_pos);
 
-    let reader_half = reader_half_extents();
     let mut physics = world.resource_mut::<PhysicsRes>();
     physics.add_body(reader_entity, &RigidBody::Kinematic, reader_pos);
-    physics.add_collider(reader_entity, &Collider::Aabb(reader_half));
+    physics.add_collider(reader_entity, &Collider::Aabb(READER_HALF_EXTENTS));
     physics
         .set_collision_group(
             reader_entity,

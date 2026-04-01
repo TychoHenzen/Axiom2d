@@ -10,15 +10,15 @@ The main problem is not just line count. These files combine public API, interna
     - Called from `card_game_bin`, stash hover, debug spawn, and integration tests.
     - Internal seam already visible: `build_mesh_overlays`.
 - [crates/card_game/src/card/reader.rs](/mnt/c/Users/siriu/RustroverProjects/Axiom2d/crates/card_game/src/card/reader.rs)
-    - Mixed concerns: components/resources, overlap helper, 8 systems, intent types, and tests.
+    - Mixed concerns: components/resources, overlap helper, components/resources, overlap helper, 6 systems, and tests.
     - Coupled to drag state, physics helpers, collision constants from `pick`, and `CardZone`.
     - Highest orchestration density among the listed files.
 - [crates/card_game/src/card/interaction/pick.rs](/mnt/c/Users/siriu/RustroverProjects/Axiom2d/crates/card_game/src/card/interaction/pick.rs)
-    - Public surface is `card_pick_intent_system` and `apply_card_pick_intents_system`.
+    - Public surface is `card_pick_system`.
     - Internal seams: source identification, stash pick path, table/hand pick path, hit testing, hand-to-table transition.
     - Shared constants consumed by `reader` and `release`.
 - [crates/card_game/src/card/interaction/release.rs](/mnt/c/Users/siriu/RustroverProjects/Axiom2d/crates/card_game/src/card/interaction/release.rs)
-    - Public surface is `card_drop_intent_system` and `apply_card_drop_intents_system`.
+    - Public surface is `card_release_system`.
     - Internal seams: drop target resolution, hand drop, stash drop, table drop.
     - Coupled to drag state, physics helpers, stash grid, hand, item form, flip animation.
 - [crates/card_game/src/card/identity/signature.rs](/mnt/c/Users/siriu/RustroverProjects/Axiom2d/crates/card_game/src/card/identity/signature.rs)

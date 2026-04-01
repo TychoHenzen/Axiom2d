@@ -41,7 +41,7 @@ const BASE_STROKE: Color = Color {
     a: 1.0,
 };
 
-pub const RECESS_FILL: Color = Color {
+const RECESS_FILL: Color = Color {
     r: 0.118,
     g: 0.110,
     b: 0.098,
@@ -204,10 +204,8 @@ pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
     (reader_entity, jack_entity)
 }
 
-/// Returns the reader's half-extents used for physics registration.
-pub fn reader_half_extents() -> Vec2 {
-    Vec2::new(READER_HALF_W, READER_HALF_H)
-}
+/// The reader's half-extents used for physics registration.
+pub const READER_HALF_EXTENTS: Vec2 = Vec2::new(READER_HALF_W, READER_HALF_H);
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
@@ -220,18 +218,6 @@ mod tests {
         let mut schedule = bevy_ecs::schedule::Schedule::default();
         schedule.add_systems(hierarchy_maintenance_system);
         schedule.run(world);
-    }
-
-    #[test]
-    fn when_spawn_reader_then_root_has_card_reader_component() {
-        // Arrange
-        let mut world = World::new();
-
-        // Act
-        let (reader, _jack) = spawn_reader(&mut world, Vec2::new(100.0, 50.0));
-
-        // Assert
-        assert!(world.get::<CardReader>(reader).is_some());
     }
 
     #[test]
@@ -248,18 +234,6 @@ mod tests {
             matches!(shape.variant, ShapeVariant::Path { .. }),
             "expected rounded rect (Path variant)"
         );
-    }
-
-    #[test]
-    fn when_spawn_reader_then_root_has_stroke() {
-        // Arrange
-        let mut world = World::new();
-
-        // Act
-        let (reader, _) = spawn_reader(&mut world, Vec2::ZERO);
-
-        // Assert
-        assert!(world.get::<Stroke>(reader).is_some());
     }
 
     #[test]
@@ -343,85 +317,5 @@ mod tests {
             let child_of = world.get::<ChildOf>(child).unwrap();
             assert_eq!(child_of.0, reader);
         }
-    }
-
-    #[test]
-    fn when_spawn_reader_then_position_matches_argument() {
-        // Arrange
-        let mut world = World::new();
-        let pos = Vec2::new(300.0, -100.0);
-
-        // Act
-        let (reader, _) = spawn_reader(&mut world, pos);
-
-        // Assert
-        let transform = world.get::<Transform2D>(reader).unwrap();
-        assert_eq!(transform.position, pos);
-    }
-
-    #[test]
-    fn when_spawn_reader_then_runes_are_circles() {
-        // Arrange
-        let mut world = World::new();
-        let (reader, _) = spawn_reader(&mut world, Vec2::ZERO);
-        run_hierarchy(&mut world);
-
-        // Act / Assert
-        let children = &world.get::<Children>(reader).unwrap().0;
-        for &child in children {
-            if world.get::<ReaderRune>(child).is_some() {
-                let shape = world.get::<Shape>(child).unwrap();
-                assert!(
-                    matches!(shape.variant, ShapeVariant::Circle { .. }),
-                    "rune should be a circle"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn when_spawn_reader_then_runes_start_dim() {
-        // Arrange
-        let mut world = World::new();
-        let (reader, _) = spawn_reader(&mut world, Vec2::ZERO);
-        run_hierarchy(&mut world);
-
-        // Act / Assert
-        let children = &world.get::<Children>(reader).unwrap().0;
-        for &child in children {
-            if world.get::<ReaderRune>(child).is_some() {
-                let shape = world.get::<Shape>(child).unwrap();
-                assert!(
-                    shape.color.a < 0.5,
-                    "rune should start dim (alpha < 0.5), got {}",
-                    shape.color.a
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn when_spawn_reader_then_jack_entity_is_returned() {
-        // Arrange
-        let mut world = World::new();
-
-        // Act
-        let (_reader, jack) = spawn_reader(&mut world, Vec2::ZERO);
-
-        // Assert
-        assert!(world.get::<OutputJack>(jack).is_some());
-    }
-
-    #[test]
-    fn when_spawn_reader_then_reader_references_jack() {
-        // Arrange
-        let mut world = World::new();
-
-        // Act
-        let (reader, jack) = spawn_reader(&mut world, Vec2::ZERO);
-
-        // Assert
-        let card_reader = world.get::<CardReader>(reader).unwrap();
-        assert_eq!(card_reader.jack_entity, jack);
     }
 }

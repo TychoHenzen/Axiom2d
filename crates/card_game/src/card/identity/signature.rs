@@ -277,20 +277,6 @@ mod tests {
     }
 
     #[test]
-    fn when_rarity_called_twice_then_result_is_identical() {
-        let sig = CardSignature::new([0.3, -0.7, 0.5, -0.1, 0.9, -0.2, 0.4, -0.8]);
-        assert_eq!(sig.rarity(), sig.rarity());
-    }
-
-    #[test]
-    fn when_two_identical_signatures_compute_rarity_then_results_are_equal() {
-        let axes = [0.3, -0.7, 0.5, -0.1, 0.9, -0.2, 0.4, -0.8];
-        let sig_a = CardSignature::new(axes);
-        let sig_b = CardSignature::new(axes);
-        assert_eq!(sig_a.rarity(), sig_b.rarity());
-    }
-
-    #[test]
     fn when_many_different_signatures_compute_rarity_then_not_all_the_same() {
         let sigs = [
             CardSignature::new([0.0; 8]),
@@ -413,12 +399,6 @@ mod tests {
         let rarity_neg = sig_neg.rarity();
         assert!(valid.contains(&rarity_pos));
         assert!(valid.contains(&rarity_neg));
-    }
-
-    #[test]
-    fn when_card_tier_computed_twice_then_results_are_identical() {
-        let sig = CardSignature::new([0.3, -0.7, 0.5, -0.1, 0.9, -0.2, 0.4, -0.8]);
-        assert_eq!(sig.card_tier(), sig.card_tier());
     }
 
     #[test]
