@@ -44,6 +44,12 @@ pub struct SpyPhysicsBackend {
     pub position_log: PositionLog,
 }
 
+impl Default for SpyPhysicsBackend {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SpyPhysicsBackend {
     pub fn new() -> Self {
         Self {

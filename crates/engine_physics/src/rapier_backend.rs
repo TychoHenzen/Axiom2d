@@ -33,11 +33,11 @@ impl RapierBackend {
     /// Reset accumulated forces and torques on a body (test infrastructure).
     #[doc(hidden)]
     pub fn reset_body_forces(&mut self, entity: Entity) {
-        if let Some(&handle) = self.entity_to_handle.get(&entity) {
-            if let Some(body) = self.bodies.get_mut(handle) {
-                body.reset_forces(false);
-                body.reset_torques(false);
-            }
+        if let Some(&handle) = self.entity_to_handle.get(&entity)
+            && let Some(body) = self.bodies.get_mut(handle)
+        {
+            body.reset_forces(false);
+            body.reset_torques(false);
         }
     }
 
