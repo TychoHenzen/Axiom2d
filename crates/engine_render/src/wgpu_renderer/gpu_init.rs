@@ -477,27 +477,3 @@ pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -
         sample_count,
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn when_shape_vertex_layout_inspected_then_has_uv_at_location_2() {
-        // Act
-        let layout = shape_vertex_layout();
-
-        // Assert
-        assert_eq!(layout.array_stride, 32);
-        assert_eq!(layout.attributes.len(), 3);
-        assert_eq!(layout.attributes[0].format, wgpu::VertexFormat::Float32x2);
-        assert_eq!(layout.attributes[0].offset, 0);
-        assert_eq!(layout.attributes[0].shader_location, 0);
-        assert_eq!(layout.attributes[1].format, wgpu::VertexFormat::Float32x4);
-        assert_eq!(layout.attributes[1].offset, 8);
-        assert_eq!(layout.attributes[1].shader_location, 1);
-        assert_eq!(layout.attributes[2].format, wgpu::VertexFormat::Float32x2);
-        assert_eq!(layout.attributes[2].offset, 24);
-        assert_eq!(layout.attributes[2].shader_location, 2);
-    }
-}

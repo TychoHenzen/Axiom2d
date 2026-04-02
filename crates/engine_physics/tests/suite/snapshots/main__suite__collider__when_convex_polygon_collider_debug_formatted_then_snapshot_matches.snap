@@ -1,6 +1,6 @@
 ---
-source: crates/engine_physics/src/collider.rs
-assertion_line: 32
+source: crates/engine_physics/tests/suite/collider.rs
+assertion_line: 19
 expression: debug
 ---
 ConvexPolygon(

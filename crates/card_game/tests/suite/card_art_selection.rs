@@ -1,3 +1,209 @@
 #![allow(clippy::unwrap_used)]
 
-// TODO: migrate inline tests from src/card/art/selection.rs
+use card_game::card::art::repository::{ArtEntry, ShapeRepository};
+use card_game::card::art_selection::{
+    art_bounding_box, fit_art_mesh_to_region, select_art_for_signature,
+};
+use card_game::card::identity::signature::{Aspect, CardSignature, Element};
+use engine_render::shape::TessellatedColorMesh;
+
+fn make_entry(element: Element, aspect: Aspect) -> ArtEntry {
+    ArtEntry::new(vec![], element, aspect, CardSignature::default())
+}
+
+// --- select_art_for_signature ---
+
+/// @doc: Art selection matches the card's dominant element — the axis with
+/// the largest absolute value determines which art set to use. Negative
+/// axes map to the same element as positive, so a deeply cold card still
+/// gets the Ordinem art rather than falling back to a random entry.
+#[test]
+fn when_selecting_art_with_negative_dominant_axis_then_returns_entry_for_that_element() {
+    // Arrange
+    let mut repo = ShapeRepository::new();
+    repo.insert("solidum", make_entry(Element::Solidum, Aspect::Solid));
+    repo.insert("febris", make_entry(Element::Febris, Aspect::Heat));
+    repo.insert("ordinem", make_entry(Element::Ordinem, Aspect::Order));
+    repo.insert("lumines", make_entry(Element::Lumines, Aspect::Light));
+    repo.insert("varias", make_entry(Element::Varias, Aspect::Change));
+    repo.insert("inertiae", make_entry(Element::Inertiae, Aspect::Force));
+    repo.insert("subsidium", make_entry(Element::Subsidium, Aspect::Growth));
+    repo.insert("spatium", make_entry(Element::Spatium, Aspect::Expansion));
+    let signature = CardSignature::new([0.1, 0.2, -0.95, 0.3, 0.0, 0.1, 0.2, 0.1]);
+
+    // Act
+    let result = select_art_for_signature(&signature, &repo);
+
+    // Assert
+    let entry = result.expect("expected Some for dominant negative Ordinem");
+    assert_eq!(entry.element(), Element::Ordinem);
+}
+
+#[test]
+fn when_selecting_art_from_empty_repository_then_returns_none() {
+    // Arrange
+    let repo = ShapeRepository::new();
+    let signature = CardSignature::new([0.0, 0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+
+    // Act
+    let result = select_art_for_signature(&signature, &repo);
+
+    // Assert
+    assert!(result.is_none());
+}
+
+/// @doc: When the repository lacks art for the dominant element, selection
+/// falls back to the closest entry by signature distance. This ensures every
+/// card gets some art even with a partially populated repository, avoiding
+/// blank card faces during early development or modding.
+#[test]
+fn when_no_element_match_then_falls_back_to_closest_by_signature() {
+    // Arrange
+    let mut repo = ShapeRepository::new();
+    repo.insert("febris", make_entry(Element::Febris, Aspect::Heat));
+    let signature = CardSignature::new([0.9, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+
+    // Act
+    let result = select_art_for_signature(&signature, &repo);
+
+    // Assert
+    let entry = result.expect("expected Some when repo is non-empty");
+    assert_eq!(entry.element(), Element::Febris);
+}
+
+// --- art_bounding_box ---
+
+#[test]
+fn when_computing_bbox_from_empty_mesh_then_returns_none() {
+    // Arrange
+    let mesh = TessellatedColorMesh::new();
+
+    // Act
+    let result = art_bounding_box(&mesh);
+
+    // Assert
+    assert!(result.is_none());
+}
+
+#[test]
+fn when_computing_bbox_with_multiple_batches_then_spans_all() {
+    // Arrange
+    let mut mesh = TessellatedColorMesh::new();
+    mesh.push_vertices(
+        &[[-50.0, 20.0], [-10.0, 20.0], [-10.0, 50.0]],
+        &[0, 1, 2],
+        [1.0, 0.0, 0.0, 1.0],
+    );
+    mesh.push_vertices(
+        &[[0.0, 30.0], [100.0, 30.0], [100.0, 80.0]],
+        &[0, 1, 2],
+        [0.0, 1.0, 0.0, 1.0],
+    );
+
+    // Act
+    let result = art_bounding_box(&mesh);
+
+    // Assert
+    let (min, max) = result.expect("non-empty mesh");
+    assert_eq!(min, [-50.0, 20.0]);
+    assert_eq!(max, [100.0, 80.0]);
+}
+
+// --- fit_art_mesh_to_region ---
+
+/// @doc: Art fitting must constrain all vertices to the card's art region.
+/// Vertices outside the region would bleed into the card border or title
+/// area, breaking the visual layout. The fit uses uniform scale + center
+/// offset to preserve the original art proportions.
+#[test]
+fn when_fitting_art_into_region_then_all_vertices_within_bounds() {
+    // Arrange
+    let mut mesh = TessellatedColorMesh::new();
+    mesh.push_vertices(
+        &[
+            [-100.0, -100.0],
+            [100.0, -100.0],
+            [100.0, 100.0],
+            [-100.0, 100.0],
+        ],
+        &[0, 1, 2, 0, 2, 3],
+        [1.0, 0.0, 0.0, 1.0],
+    );
+    let half_w = 24.0_f32;
+    let half_h = 16.65_f32;
+    let center_y = -7.2_f32;
+
+    // Act
+    let result = fit_art_mesh_to_region(&mesh, half_w, half_h, center_y);
+
+    // Assert
+    for v in &result.vertices {
+        let [x, y] = v.position;
+        assert!(
+            x >= -half_w && x <= half_w,
+            "x={x} outside [-{half_w}, {half_w}]"
+        );
+        assert!(
+            y >= center_y - half_h && y <= center_y + half_h,
+            "y={y} outside [{}, {}]",
+            center_y - half_h,
+            center_y + half_h
+        );
+    }
+}
+
+/// @doc: Art fitting preserves aspect ratio via uniform scaling — a 2:1
+/// landscape art piece must stay 2:1 on the card. Non-uniform scaling would
+/// squash or stretch the vector art, making it look distorted.
+#[test]
+fn when_fitting_art_with_nonsquare_input_then_aspect_ratio_preserved() {
+    // Arrange
+    let mut mesh = TessellatedColorMesh::new();
+    mesh.push_vertices(
+        &[
+            [-200.0, -100.0],
+            [200.0, -100.0],
+            [200.0, 100.0],
+            [-200.0, 100.0],
+        ],
+        &[0, 1, 2, 0, 2, 3],
+        [1.0, 1.0, 1.0, 1.0],
+    );
+    let half = 20.0_f32;
+
+    // Act
+    let result = fit_art_mesh_to_region(&mesh, half, half, 0.0);
+
+    // Assert
+    let (min, max) = art_bounding_box(&result).unwrap();
+    let out_w = max[0] - min[0];
+    let out_h = max[1] - min[1];
+    let ratio = out_w / out_h;
+    assert!(
+        (ratio - 2.0).abs() < 0.01,
+        "expected 2:1 aspect ratio, got {ratio:.4}"
+    );
+}
+
+#[test]
+fn when_fitting_art_then_indices_preserved_unchanged() {
+    // Arrange
+    let mut mesh = TessellatedColorMesh::new();
+    mesh.push_vertices(
+        &[[-50.0, -50.0], [50.0, -50.0], [50.0, 50.0]],
+        &[0, 1, 2],
+        [1.0, 0.0, 0.0, 1.0],
+    );
+    mesh.push_vertices(
+        &[[10.0, 10.0], [60.0, 10.0], [60.0, 60.0]],
+        &[0, 1, 2],
+        [0.0, 1.0, 0.0, 1.0],
+    );
+    let original_indices = mesh.indices.clone();
+
+    // Act
+    let result = fit_art_mesh_to_region(&mesh, 20.0, 20.0, 0.0);
+
+    // Assert
+    assert_eq!(result.indices, original_indices);
+}

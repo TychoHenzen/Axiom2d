@@ -9,8 +9,8 @@ pub mod prelude;
 pub mod rapier_backend;
 pub mod rigid_body;
 
-#[cfg(test)]
-pub(crate) mod test_helpers {
+#[doc(hidden)]
+pub mod test_helpers {
     use std::collections::HashMap;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicU32, Ordering};
@@ -24,11 +24,11 @@ pub(crate) mod test_helpers {
     use crate::physics_backend::{PhysicsBackend, PhysicsError};
     use crate::rigid_body::RigidBody;
 
-    pub(crate) fn spawn_entity() -> Entity {
+    pub fn spawn_entity() -> Entity {
         World::new().spawn(()).id()
     }
 
-    pub(crate) fn spawn_entities(count: usize) -> Vec<Entity> {
+    pub fn spawn_entities(count: usize) -> Vec<Entity> {
         let mut world = World::new();
         (0..count).map(|_| world.spawn(()).id()).collect()
     }
@@ -37,7 +37,7 @@ pub(crate) mod test_helpers {
     ///
     /// Tracks calls via `Arc<Mutex<..>>` / `Arc<AtomicU32>` fields and returns
     /// pre-configured data for position/rotation/events queries.
-    pub(crate) struct SpyPhysicsBackend {
+    pub struct SpyPhysicsBackend {
         pub positions: HashMap<Entity, Vec2>,
         pub rotations: HashMap<Entity, f32>,
         pub step_count: Arc<AtomicU32>,

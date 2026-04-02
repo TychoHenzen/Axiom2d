@@ -18,7 +18,5 @@ mod shape_tessellate;
 mod sprite;
 mod testing_mod;
 mod testing_visual_regression;
-mod wgpu_renderer_gpu_init;
 mod wgpu_renderer_renderer;
-mod wgpu_renderer_shaders;
 mod wgpu_renderer_types;

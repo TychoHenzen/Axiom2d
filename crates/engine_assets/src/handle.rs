@@ -8,7 +8,7 @@ pub struct Handle<T> {
 }
 
 impl<T> Handle<T> {
-    pub(crate) fn new(id: u32) -> Self {
+    pub fn new(id: u32) -> Self {
         Self {
             id,
             _marker: PhantomData,

@@ -1,7 +1,7 @@
 mod adjectives;
-mod compound_parts;
+pub mod compound_parts;
 mod nouns;
-mod syllables;
+pub mod syllables;
 pub mod templates;
 
 use crate::card::identity::signature::Aspect;

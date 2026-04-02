@@ -927,6 +927,102 @@
       "compact_encoding": true,
       "description": "",
       "category": "Shields"
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_30_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art/generated\\barbarian_icons_30_t.rs",
+      "fn_name": "barbarian_icons_30_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": ""
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_31_t.png",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art/generated\\barbarian_icons_31_t.rs",
+      "fn_name": "barbarian_icons_31_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": ""
+    },
+    {
+      "image_path": "C:\\Development\\Projects\\cardcleaner\\Graphics\\CardSorted\\CardArt\\Barbarian_icons_32_t.PNG",
+      "output_path": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d\\crates/card_game/src/card/art/generated\\barbarian_icons_32_t.rs",
+      "fn_name": "barbarian_icons_32_t",
+      "config": {
+        "color_threshold": 0.1,
+        "alpha_threshold": 128,
+        "rdp_epsilon": 1.5,
+        "bezier_error": 1.5,
+        "min_area": 4,
+        "max_dimension": 128,
+        "resize_method": "Scale2x",
+        "use_bezier": true,
+        "merge_below": 5,
+        "max_shapes": 0
+      },
+      "element_index": 0,
+      "aspect_pole": 0,
+      "signature_axes": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compact_encoding": true,
+      "description": "",
+      "category": ""
     }
   ]
 }
