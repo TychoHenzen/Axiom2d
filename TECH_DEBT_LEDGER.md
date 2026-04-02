@@ -2,11 +2,11 @@
 
 **Project:** Axiom2d
 **Total files tracked:** 351 (235 prod, 116 test) — excludes 29 codegen files in `art/generated/`, `card_back.rs`, `repository.rs`, and 4 `.superpowers/` files
-**Total files scanned:** 28
-**Average combined score:** 13.92 (structural: 13.91 + semantic: 0.01)
-**Production avg:** 13.92 | **Test avg:** N/A
-**Total combined score:** 389.72
-**Last run:** 2026-04-01
+**Total files scanned:** 38
+**Average combined score:** 10.74 (structural: 10.66 + semantic: 0.08)
+**Production avg:** 10.74 | **Test avg:** N/A
+**Total combined score:** 408.05
+**Last run:** 2026-04-02
 
 ## Excluded Paths
 
@@ -48,7 +48,17 @@ These paths are excluded from scanning (codegen output, not hand-written):
 | crates/card_game/src/card/identity/residual.rs | prod | 1.95 | 0 | 1.95 | magic_literals | 2026-04-01 | ↓ |
 | crates/axiom2d/src/splash/animation.rs | prod | 30.39 | 0 | 30.39 | duplicate_blocks (33) | 2026-04-01 | ↓ |
 | crates/engine_render/src/shape/tessellate.rs | prod | 13.84 | 0 | 13.84 | duplicate_blocks (18) | 2026-04-01 | — |
+| crates/card_game/src/stash/hover.rs | prod | 4.70 | 0.3 | 5.00 | max_function_length | 2026-04-02 | ↓ |
+| crates/card_game/src/stash/pages.rs | prod | 4.17 | 0 | 4.17 | magic_literals | 2026-04-02 | ↓ |
+| crates/card_game/src/card/interaction/camera_drag.rs | prod | 2.53 | 0 | 2.53 | max_nesting_depth | 2026-04-02 | ↓ |
 | crates/engine_render/src/font.rs | prod | 13.33 | 0.3 | 13.63 | long_param_methods (10) | 2026-04-01 | — |
+| crates/engine_render/src/bloom.rs | prod | 1.93 | 0 | 1.93 | magic_literals | 2026-04-02 | ↓ |
+| crates/engine_audio/src/mixer_engine.rs | prod | 9.22 | 0 | 9.22 | magic_literals (42); inline tests (pub(crate) — can't migrate) | 2026-04-02 | — |
+| crates/card_game/src/card/rendering/baked_render.rs | prod | 3.20 | 0 | 3.20 | duplicate_blocks | 2026-04-02 | ↓ |
+| crates/card_game/src/hand/cards.rs | prod | 1.55 | 0 | 1.55 | file_length | 2026-04-02 | ↓ |
+| crates/engine_app/src/app.rs | prod | 7.27 | 0 | 7.27 | long_param_methods (4) | 2026-04-02 | — |
+| crates/card_game/src/card/reader/spawn.rs | prod | 6.75 | 0.3 | 7.05 | magic_literals (34 — named consts, largely false positive) | 2026-04-02 | — |
+| crates/card_game/src/card/rendering/art_shader.rs | prod | 2.73 | 0.3 | 3.03 | max_nesting_depth | 2026-04-02 | ↓ |
 
 **Structural** = deterministic score from the script. **Semantic** = LLM review of bugs in meaning. **Combined** = Structural + Semantic (sorted worst first).
 
@@ -57,10 +67,11 @@ These paths are excluded from scanning (codegen output, not hand-written):
 ### Note
 - **crates/engine_render/src/font.rs:80** — `font_size.round() as u16` silently truncates font sizes >= 65536; no runtime impact at current game scales but technically lossy
 - **crates/axiom2d/src/splash/render.rs**, **crates/engine_render/src/shape/render.rs**, **crates/engine_render/src/wgpu_renderer/types.rs** — inline test modules remain; tests access private internals that can't be migrated to external files
+- **crates/card_game/src/card/rendering/art_shader.rs:82**, **crates/card_game/src/stash/hover.rs:113** — uniform byte offsets `[8..12]`, `[12..16]` hardcoded to match `ArtRegionParams` struct layout; will silently break if struct fields are reordered
 
 ## Splits Performed
 
-Test code extracted from production files during this run.
+Test code extracted from production files during prior runs.
 
 | Source File | Extracted | New Test File | Status |
 |------------|-----------|---------------|--------|
@@ -80,18 +91,33 @@ Test code extracted from production files during this run.
 | crates/card_game/src/card/identity/definition.rs | 11 tests | crates/card_game/tests/card_identity_definition.rs | Created |
 | crates/demo/src/scene.rs | 26 tests | crates/demo/tests/scene.rs | Created |
 | crates/demo/src/main.rs | 5 tests | crates/demo/tests/main.rs | Created |
+| crates/engine_render/src/bloom.rs | 8 tests | crates/engine_render/tests/suite/bloom.rs | Merged (2026-04-02) |
+| crates/card_game/src/hand/cards.rs | 10 tests | crates/card_game/tests/suite/hand_cards.rs | Merged (2026-04-02) |
+| crates/card_game/src/card/rendering/baked_render.rs | 7 tests | crates/card_game/tests/suite/card_rendering_baked_render.rs | Created (2026-04-02) |
+| crates/card_game/src/card/interaction/camera_drag.rs | 16 tests | crates/card_game/tests/suite/card_interaction_camera_drag.rs | Created (2026-04-02) |
+| crates/card_game/src/card/rendering/art_shader.rs | 28 tests | crates/card_game/tests/suite/card_rendering_art_shader.rs | Created (2026-04-02) |
+| crates/card_game/src/stash/hover.rs | 13 tests | crates/card_game/tests/suite/stash_hover.rs | Merged (2026-04-02) |
+| crates/card_game/src/stash/pages.rs | 21 tests | crates/card_game/tests/suite/stash_pages.rs | Merged (2026-04-02) |
 | **NOT migrated** | | | |
 | crates/axiom2d/src/splash/render.rs | — | — | Tests use private internals of `pub(crate)` module |
 | crates/engine_render/src/shape/render.rs | — | — | Tests use private modules (components, render) |
 | crates/engine_render/src/wgpu_renderer/types.rs | — | — | Tests use private functions (rect_to_instance, blend_mode_to_blend_state, etc.) |
 
+### Pending Splits
+
+| Source File | Reason |
+|------------|--------|
+| crates/engine_audio/src/mixer_engine.rs | All items `pub(crate)` — can't access from external tests |
+
 ## Metric False Positives
 
 - **adjectives.rs** (33.61): function_length inflated — file is a pure data table (`match` returning `&[&str]`), not a complex function
+- **hand/cards.rs** (7.78): max_function_length 164 — script counts `impl` block as a function, not a real complexity issue
+- **reader/spawn.rs** (6.75): magic_literals 34 — most are named constants (`READER_HALF_W`, color values), not unnamed magic numbers
 
 ## Unscanned Files
 
-### Production (207 remaining)
+### Production (197 remaining)
 
 - crates/axiom2d/src/lib.rs
 - crates/axiom2d/src/prelude.rs
@@ -113,7 +139,6 @@ Test code extracted from production files during this run.
 - crates/card_game/src/card/identity/signature.rs
 - crates/card_game/src/card/identity/signature/algorithms.rs
 - crates/card_game/src/card/identity/signature/types.rs
-- crates/card_game/src/card/interaction/camera_drag.rs
 - crates/card_game/src/card/interaction/damping.rs
 - crates/card_game/src/card/interaction/drag.rs
 - crates/card_game/src/card/interaction/drag_state.rs
@@ -137,11 +162,8 @@ Test code extracted from production files during this run.
 - crates/card_game/src/card/reader/insert.rs
 - crates/card_game/src/card/reader/pick.rs
 - crates/card_game/src/card/reader/rotation_lock.rs
-- crates/card_game/src/card/reader/spawn.rs
-- crates/card_game/src/card/rendering/art_shader.rs
 - crates/card_game/src/card/rendering/bake.rs
 - crates/card_game/src/card/rendering/baked_mesh.rs
-- crates/card_game/src/card/rendering/baked_render.rs
 - crates/card_game/src/card/rendering/debug_spawn.rs
 - crates/card_game/src/card/rendering/drop_zone_glow.rs
 - crates/card_game/src/card/rendering/face_layout.rs
@@ -151,7 +173,6 @@ Test code extracted from production files during this run.
 - crates/card_game/src/card/rendering/spawn_table_card/overlay.rs
 - crates/card_game/src/card/rendering/spawn_table_card/text.rs
 - crates/card_game/src/card/zone_config.rs
-- crates/card_game/src/hand/cards.rs
 - crates/card_game/src/hand/layout.rs
 - crates/card_game/src/hand/mod.rs
 - crates/card_game/src/lib.rs
@@ -160,9 +181,7 @@ Test code extracted from production files during this run.
 - crates/card_game/src/stash/boundary.rs
 - crates/card_game/src/stash/constants.rs
 - crates/card_game/src/stash/grid.rs
-- crates/card_game/src/stash/hover.rs
 - crates/card_game/src/stash/mod.rs
-- crates/card_game/src/stash/pages.rs
 - crates/card_game/src/stash/render.rs
 - crates/card_game/src/stash/render/drag_preview.rs
 - crates/card_game/src/stash/render/helpers.rs
@@ -174,7 +193,6 @@ Test code extracted from production files during this run.
 - crates/demo/src/main.rs
 - crates/demo/src/systems.rs
 - crates/demo/src/types.rs
-- crates/engine_app/src/app.rs
 - crates/engine_app/src/lib.rs
 - crates/engine_app/src/mouse_world_pos_system.rs
 - crates/engine_app/src/prelude.rs
@@ -183,17 +201,17 @@ Test code extracted from production files during this run.
 - crates/engine_assets/src/handle.rs
 - crates/engine_assets/src/lib.rs
 - crates/engine_assets/src/prelude.rs
-- crates/engine_audio/src/**/*.rs (17 files)
+- crates/engine_audio/src/**/*.rs (16 remaining — mixer_engine scanned)
 - crates/engine_core/src/*.rs (8 files)
 - crates/engine_ecs/src/*.rs (3 files)
 - crates/engine_input/src/**/*.rs (14 files)
-- crates/engine_physics/src/*.rs (8 remaining: collider, collision_event, hit_test, lib, physics_backend, physics_res, physics_step_system, physics_sync_system)
-- crates/engine_render/src/*.rs (19 remaining: atlas, bloom, clear, culling, image_data, lib, material, prelude, rect, renderer, shader, shape/cache, shape/components, shape/geometry, shape/mod, shape/path, testing/mod, testing/helpers, window)
-- crates/engine_render/src/wgpu_renderer/*.rs (4 remaining: bloom, gpu_init, mod, renderer, renderer_trait, shaders)
+- crates/engine_physics/src/*.rs (8 remaining)
+- crates/engine_render/src/*.rs (18 remaining — bloom scanned)
+- crates/engine_render/src/wgpu_renderer/*.rs (6 remaining)
 - crates/engine_scene/src/*.rs (7 files)
 - crates/engine_ui/src/**/*.rs (12 remaining)
-- tools/img-to-shape/src/*.rs (5 remaining: bezier_fit, boundary_graph, manifest, scale2x, segment, simplify)
-- tools/img-to-shape-gui/src/*.rs (4 remaining: lib, loader, preview, state)
+- tools/img-to-shape/src/*.rs (5 remaining)
+- tools/img-to-shape-gui/src/*.rs (4 remaining)
 - tools/living-docs/src/main.rs
 
 ### Test (116 files)
@@ -213,3 +231,5 @@ All `tests/*.rs` and `test_helpers.rs` files across all crates — not yet scann
 | 2026-04-01 | img-to-shape/lib.rs (133.04), sprite.rs (54.95), living-docs/lib.rs (52.71), codegen.rs (44.46), visual_regression.rs (39.01), adjectives.rs (33.61), interaction.rs (27.12), img-to-shape-gui/main.rs (25.72), wgpu_renderer/types.rs (21.35), scene.rs (21.34) | batch avg: 45.33 |
 | 2026-04-01 | **Test migration**: img-to-shape/lib.rs 133.04→22.34, sprite.rs 54.95→2.96, interaction.rs 27.12→3.02 | total debt reduced by 186.15 |
 | 2026-04-01 | **Test migration batch 2**: 15 files migrated, 3 kept inline (private internals). living-docs 52.71→9.89, codegen 44.46→25.89, visual_regression 39.01→22.37, spawn_table_card 55.99→2.99, default_plugins 23.99→5.00, visual_params 22.63→3.80, gem_sockets 24.03→9.75, layout 22.51→2.73, signature_profile 21.32→2.50, camera 21.15→3.89, card_name 19.99→3.85, unified_render 19.88→10.70, residual 17.89→1.95, definition 9.29→6.75, scene 21.34→14.14 | total debt reduced by 326.94 |
+| 2026-04-02 | hover.rs (19.34), pages.rs (15.27), camera_drag.rs (15.04), bloom.rs (10.16), mixer_engine.rs (9.22), baked_render.rs (8.20), cards.rs (7.78), app.rs (7.27), reader/spawn.rs (7.05), art_shader.rs (4.86) | batch avg: 10.42; 7/10 have inline tests needing split |
+| 2026-04-02 | **Test migration batch 3**: 7 files migrated, 1 kept inline (pub(crate)). hover 19.04→4.70, pages 15.27→4.17, camera_drag 15.04→2.53, bloom 10.16→1.93, baked_render 8.20→3.20, cards 7.78→1.55, art_shader 4.56→2.73 | total debt reduced by 59.24 |
