@@ -195,15 +195,7 @@ impl WgpuRenderer {
         let material_bgs = self.create_material_bind_groups();
         pass.set_bind_group(0, &self.camera_bind_group, &[]);
         pass.set_bind_group(3, &self.texture_bind_group, &[]);
-        let batched_buffers = if !self.shape_batch.is_empty() {
-            Some(self.create_shape_buffers())
-        } else {
-            None
-        };
-        if let Some((vb, ib)) = &batched_buffers {
-            pass.set_vertex_buffer(0, vb.slice(..));
-            pass.set_index_buffer(ib.slice(..), wgpu::IndexFormat::Uint32);
-        }
+        let batched_buffers = (!self.shape_batch.is_empty()).then(|| self.create_shape_buffers());
         self.issue_shape_draw_calls(
             pass,
             &model_bg,
