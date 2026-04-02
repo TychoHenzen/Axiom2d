@@ -7,7 +7,9 @@ use crate::renderer::Renderer;
 use crate::shader::ShaderHandle;
 
 use super::gpu_init::create_shape_pipeline_set;
-use super::renderer::{MeshSource, PersistentMesh, ShapeDrawRecord, WgpuRenderer, pack_material_bindings};
+use super::renderer::{
+    MeshSource, PersistentMesh, ShapeDrawRecord, WgpuRenderer, pack_material_bindings,
+};
 use super::types::{
     BloomParamsUniform, FullscreenBuffers, FullscreenPass, QUAD_INDICES, ShapeVertex, TextureData,
     compute_batch_ranges, create_texture_bind_group, rect_to_instance, run_fullscreen_pass,
@@ -164,7 +166,10 @@ impl WgpuRenderer {
             pass.set_bind_group(2, &material_bgs[i], &[]);
 
             match &draw.source {
-                MeshSource::Batched { index_start, index_count } => {
+                MeshSource::Batched {
+                    index_start,
+                    index_count,
+                } => {
                     if !batched_bound {
                         if let Some((vb, ib)) = batched_buffers {
                             pass.set_vertex_buffer(0, vb.slice(..));
@@ -384,7 +389,10 @@ impl Renderer for WgpuRenderer {
         self.shape_draws.push(ShapeDrawRecord {
             blend_mode: self.current_blend_mode,
             shader_handle: self.active_shader,
-            source: MeshSource::Batched { index_start, index_count },
+            source: MeshSource::Batched {
+                index_start,
+                index_count,
+            },
             model,
             material_uniforms,
             material_textures,
@@ -408,7 +416,10 @@ impl Renderer for WgpuRenderer {
         self.shape_draws.push(ShapeDrawRecord {
             blend_mode: self.current_blend_mode,
             shader_handle: self.active_shader,
-            source: MeshSource::Batched { index_start, index_count },
+            source: MeshSource::Batched {
+                index_start,
+                index_count,
+            },
             model,
             material_uniforms,
             material_textures,
@@ -424,20 +435,20 @@ impl Renderer for WgpuRenderer {
         let handle = crate::renderer::GpuMeshHandle(self.next_persistent_id);
         self.next_persistent_id += 1;
         let shape_verts: &[ShapeVertex] = bytemuck::cast_slice(vertices);
-        let vertex_buffer =
-            self.device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(shape_verts),
-                    usage: wgpu::BufferUsages::VERTEX,
-                });
-        let index_buffer =
-            self.device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(indices),
-                    usage: wgpu::BufferUsages::INDEX,
-                });
+        let vertex_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(shape_verts),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+        let index_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(indices),
+                usage: wgpu::BufferUsages::INDEX,
+            });
         #[allow(clippy::cast_possible_truncation)]
         self.persistent_meshes.insert(
             handle,

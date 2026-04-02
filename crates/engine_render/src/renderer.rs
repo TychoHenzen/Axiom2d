@@ -57,11 +57,7 @@ pub trait Renderer {
 
     /// Record a draw call that reads from a previously uploaded persistent mesh.
     /// No vertex copy occurs; the GPU reads from the persistent buffer directly.
-    fn draw_persistent_colored_mesh(
-        &mut self,
-        handle: GpuMeshHandle,
-        model: [[f32; 4]; 4],
-    );
+    fn draw_persistent_colored_mesh(&mut self, handle: GpuMeshHandle, model: [[f32; 4]; 4]);
 
     /// Release a persistent GPU mesh buffer. Safe to call with an already-freed or
     /// invalid handle (no-op). Does not affect in-flight draw calls.

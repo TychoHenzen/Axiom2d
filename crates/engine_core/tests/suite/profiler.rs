@@ -51,7 +51,10 @@ fn when_end_frame_reaches_flush_interval_then_csv_written() {
 
     // Assert
     let content = std::fs::read_to_string(&path).unwrap();
-    assert!(content.contains("frame,scope,duration_us"), "missing header");
+    assert!(
+        content.contains("frame,scope,duration_us"),
+        "missing header"
+    );
     assert!(content.contains("0,Input,100"), "missing Input record");
     assert!(content.contains("0,Update,200"), "missing Update record");
 
@@ -117,7 +120,10 @@ fn when_second_flush_appends_to_existing_file_without_duplicate_header() {
     let content = std::fs::read_to_string(&path).unwrap();
     let header_count = content.matches("frame,scope,duration_us").count();
     assert_eq!(header_count, 1, "header must appear exactly once");
-    assert!(content.contains("1,Update,200"), "second flush records frame 1");
+    assert!(
+        content.contains("1,Update,200"),
+        "second flush records frame 1"
+    );
 
     let _ = std::fs::remove_file(&path);
 }

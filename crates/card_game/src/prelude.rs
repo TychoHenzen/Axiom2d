@@ -40,7 +40,6 @@ pub use crate::card::rendering::art_shader::{
     shader_pointer_system,
 };
 pub use crate::card::rendering::baked_mesh::{BakedCardMesh, CardOverlays};
-pub use crate::card::rendering::baked_render::baked_card_sync_system;
 pub use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
 pub use crate::card::rendering::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
 pub use crate::card::rendering::render_layer::card_render_layer_system;

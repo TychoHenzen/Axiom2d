@@ -548,9 +548,11 @@ fn when_handle_redraw_called_with_profiler_then_five_phase_records_buffered() {
 
     // Arrange
     let mut app = App::new();
-    app.world_mut().insert_resource(
-        engine_core::profiler::FrameProfiler::new(9999, PathBuf::from("unused.csv")),
-    );
+    app.world_mut()
+        .insert_resource(engine_core::profiler::FrameProfiler::new(
+            9999,
+            PathBuf::from("unused.csv"),
+        ));
 
     // Act
     app.handle_redraw();

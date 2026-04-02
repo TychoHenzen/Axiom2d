@@ -22,7 +22,6 @@ mod card_reader_glow;
 mod card_reader_spawn;
 mod card_rendering_art_shader;
 mod card_rendering_bake;
-mod card_rendering_baked_render;
 mod card_rendering_debug_spawn;
 mod card_rendering_drop_zone_glow;
 mod card_rendering_gpu_card_mesh;
