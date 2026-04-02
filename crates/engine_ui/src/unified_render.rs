@@ -1,4 +1,5 @@
 use bevy_ecs::prelude::{Entity, Local, Query, ResMut};
+use engine_core::profiler::FrameProfiler;
 use engine_render::camera::Camera2D;
 use engine_render::culling::compute_view_rect;
 use engine_render::font::{GlyphCache, measure_text, render_text_transformed, wrap_text};
@@ -117,9 +118,15 @@ pub fn unified_render_system(
     camera_query: Query<&Camera2D>,
     mut renderer: ResMut<RendererRes>,
     mut cache: Local<GlyphCache>,
+    mut profiler: Option<ResMut<FrameProfiler>>,
 ) {
     let view_rect = compute_view_rect(&camera_query, &renderer);
+
+    let t_sort = std::time::Instant::now();
     let items = collect_draw_items(&shape_query, &text_query, &color_mesh_query);
+    let sort_us = t_sort.elapsed().as_micros() as u64;
+
+    let t_draw = std::time::Instant::now();
 
     let mut last_shader = None;
     let mut last_blend_mode = None;
@@ -190,6 +197,13 @@ pub fn unified_render_system(
                 }
             }
         }
+    }
+
+    let draw_us = t_draw.elapsed().as_micros() as u64;
+
+    if let Some(p) = profiler.as_deref_mut() {
+        p.record_phase("render_sort", sort_us);
+        p.record_phase("render_draw", draw_us);
     }
 }
 
