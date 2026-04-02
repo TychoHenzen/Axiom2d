@@ -541,6 +541,27 @@ fn when_scroll_event_received_by_app_then_mouse_state_scroll_delta_accumulated()
     assert_eq!(mouse.scroll_delta(), glam::Vec2::new(0.0, 3.0));
 }
 
+/// @doc: Phase timing records five entries per frame — one per schedule phase
+#[test]
+fn when_handle_redraw_called_with_profiler_then_five_phase_records_buffered() {
+    use std::path::PathBuf;
+
+    // Arrange
+    let mut app = App::new();
+    app.world_mut().insert_resource(
+        engine_core::profiler::FrameProfiler::new(9999, PathBuf::from("unused.csv")),
+    );
+
+    // Act
+    app.handle_redraw();
+
+    // Assert — one record per phase (flush_interval 9999 keeps them in memory)
+    let profiler = app
+        .world()
+        .resource::<engine_core::profiler::FrameProfiler>();
+    assert_eq!(profiler.record_count(), 5);
+}
+
 /// @doc: `set_window_config` must update `WindowSize` resource — stale dimensions break layout calculations
 #[test]
 fn when_set_window_config_called_then_window_size_reflects_config() {

@@ -11,6 +11,7 @@ use engine_input::key_code::KeyCode;
 use engine_input::mouse_button::MouseButton;
 
 use engine_core::prelude::EventBus;
+use engine_core::profiler::FrameProfiler;
 use engine_core::types::Pixels;
 use engine_ecs::prelude::{
     IntoScheduleConfigs, PHASE_COUNT, Phase, Schedule, ScheduleSystem, World,
@@ -157,11 +158,19 @@ impl App {
     }
 
     pub fn handle_redraw(&mut self) {
-        for schedule in &mut self.schedules {
+        for (i, schedule) in self.schedules.iter_mut().enumerate() {
+            let start = std::time::Instant::now();
             schedule.run(&mut self.world);
+            let elapsed_us = start.elapsed().as_micros() as u64;
+            if let Some(mut profiler) = self.world.get_resource_mut::<FrameProfiler>() {
+                profiler.record_phase(Phase::ALL[i].name(), elapsed_us);
+            }
         }
         if let Some(mut renderer) = self.world.get_resource_mut::<RendererRes>() {
             renderer.present();
+        }
+        if let Some(mut profiler) = self.world.get_resource_mut::<FrameProfiler>() {
+            profiler.end_frame();
         }
     }
 
