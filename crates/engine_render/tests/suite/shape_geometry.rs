@@ -1,8 +1,8 @@
 #![allow(clippy::unwrap_used, clippy::float_cmp)]
 
 use engine_render::shape::{
-    PathCommand, QUAD_INDICES, ShapeVariant, UNIT_QUAD, rect_polygon, rect_vertices,
-    rounded_rect_path, sample_quadratic, unit_quad_model,
+    PathCommand, ShapeVariant, UNIT_QUAD, rect_polygon, rect_vertices, rounded_rect_path,
+    sample_quadratic, unit_quad_model,
 };
 use glam::Vec2;
 

@@ -44,6 +44,12 @@ pub mod test_helpers {
         pub events: Vec<CollisionEvent>,
     }
 
+    impl Default for SpyPhysicsBackend {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl SpyPhysicsBackend {
         pub fn new() -> Self {
             Self {

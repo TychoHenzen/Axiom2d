@@ -2,7 +2,7 @@
 
 use axiom2d::prelude::*;
 use demo::systems::{camera_pan_system, camera_zoom_system, orbit_system};
-use demo::types::{CAMERA_PAN_SPEED, CAMERA_ZOOM_SPEED, OrbitalSpeed, ZOOM_MIN, action};
+use demo::types::{CAMERA_PAN_SPEED, OrbitalSpeed, ZOOM_MIN, action};
 
 fn setup_camera_world(bindings: &[(&str, Vec<KeyCode>)], camera: Camera2D) -> World {
     let mut action_map = ActionMap::default();
