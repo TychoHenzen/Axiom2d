@@ -27,6 +27,7 @@ pub type TextureBindCapture = Arc<Mutex<Vec<(TextureId, u32)>>>;
 pub type CompileShaderCapture = Arc<Mutex<Vec<(ShaderHandle, String)>>>;
 pub type TextCallLog = Arc<Mutex<Vec<(String, f32, f32, f32, Color)>>>;
 pub type ColoredMeshCallLog = Arc<Mutex<Vec<(Vec<ColorVertex>, Vec<u32>, [[f32; 4]; 4])>>>;
+pub type PersistentMeshCallLog = Arc<Mutex<Vec<(crate::renderer::GpuMeshHandle, [[f32; 4]; 4])>>>;
 
 pub struct SpyRenderer {
     log: Arc<Mutex<Vec<String>>>,
@@ -42,6 +43,8 @@ pub struct SpyRenderer {
     compile_shader_calls: Option<CompileShaderCapture>,
     text_calls: Option<TextCallLog>,
     colored_mesh_calls: Option<ColoredMeshCallLog>,
+    persistent_mesh_calls: Option<PersistentMeshCallLog>,
+    next_persistent_id: u32,
     viewport: (u32, u32),
 }
 
@@ -61,6 +64,8 @@ impl SpyRenderer {
             compile_shader_calls: None,
             text_calls: None,
             colored_mesh_calls: None,
+            persistent_mesh_calls: None,
+            next_persistent_id: 1,
             viewport: (0, 0),
         }
     }
@@ -125,6 +130,14 @@ impl SpyRenderer {
 
     pub fn with_colored_mesh_capture(mut self, calls: ColoredMeshCallLog) -> Self {
         self.colored_mesh_calls = Some(calls);
+        self
+    }
+
+    pub fn with_persistent_mesh_capture(
+        mut self,
+        persistent_mesh_calls: PersistentMeshCallLog,
+    ) -> Self {
+        self.persistent_mesh_calls = Some(persistent_mesh_calls);
         self
     }
 
@@ -297,21 +310,26 @@ impl Renderer for SpyRenderer {
         _vertices: &[ColorVertex],
         _indices: &[u32],
     ) -> crate::renderer::GpuMeshHandle {
-        self.log_call("upload_persistent_colored_mesh");
-        crate::renderer::GpuMeshHandle(0)
+        let handle = crate::renderer::GpuMeshHandle(self.next_persistent_id);
+        self.next_persistent_id += 1;
+        handle
     }
 
     fn draw_persistent_colored_mesh(
         &mut self,
-        _handle: crate::renderer::GpuMeshHandle,
-        _model: [[f32; 4]; 4],
+        handle: crate::renderer::GpuMeshHandle,
+        model: [[f32; 4]; 4],
     ) {
         self.log_call("draw_persistent_colored_mesh");
+        if let Some(capture) = &self.persistent_mesh_calls {
+            capture
+                .lock()
+                .expect("persistent mesh capture poisoned")
+                .push((handle, model));
+        }
     }
 
-    fn free_persistent_colored_mesh(&mut self, _handle: crate::renderer::GpuMeshHandle) {
-        self.log_call("free_persistent_colored_mesh");
-    }
+    fn free_persistent_colored_mesh(&mut self, _handle: crate::renderer::GpuMeshHandle) {}
 }
 
 pub fn insert_spy(world: &mut World) -> Arc<Mutex<Vec<String>>> {
