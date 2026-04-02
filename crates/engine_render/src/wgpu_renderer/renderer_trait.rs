@@ -7,7 +7,7 @@ use crate::renderer::Renderer;
 use crate::shader::ShaderHandle;
 
 use super::gpu_init::create_shape_pipeline_set;
-use super::renderer::{ShapeDrawRecord, WgpuRenderer, pack_material_bindings};
+use super::renderer::{MeshSource, PersistentMesh, ShapeDrawRecord, WgpuRenderer, pack_material_bindings};
 use super::types::{
     BloomParamsUniform, FullscreenBuffers, FullscreenPass, QUAD_INDICES, ShapeVertex, TextureData,
     compute_batch_ranges, create_texture_bind_group, rect_to_instance, run_fullscreen_pass,
@@ -148,9 +148,11 @@ impl WgpuRenderer {
         model_bg: &wgpu::BindGroup,
         material_bgs: &[wgpu::BindGroup],
         aligned_entry: usize,
+        batched_buffers: Option<&(wgpu::Buffer, wgpu::Buffer)>,
     ) {
-        let total_indices = self.shape_batch.index_count() as u32;
         let mut last_key: Option<(ShaderHandle, crate::material::BlendMode)> = None;
+        let mut batched_bound = false;
+
         for (i, draw) in self.shape_draws.iter().enumerate() {
             let key = (draw.shader_handle, draw.blend_mode);
             if last_key != Some(key) {
@@ -160,25 +162,55 @@ impl WgpuRenderer {
             let dyn_offset = (i * aligned_entry) as u32;
             pass.set_bind_group(1, model_bg, &[dyn_offset]);
             pass.set_bind_group(2, &material_bgs[i], &[]);
-            let idx_start = draw.index_offset;
-            let idx_end = self
-                .shape_draws
-                .get(i + 1)
-                .map_or(total_indices, |d| d.index_offset);
-            pass.draw_indexed(idx_start..idx_end, 0, 0..1);
+
+            match &draw.source {
+                MeshSource::Batched { index_start, index_count } => {
+                    if !batched_bound {
+                        if let Some((vb, ib)) = batched_buffers {
+                            pass.set_vertex_buffer(0, vb.slice(..));
+                            pass.set_index_buffer(ib.slice(..), wgpu::IndexFormat::Uint32);
+                        }
+                        batched_bound = true;
+                    }
+                    pass.draw_indexed(*index_start..*index_start + *index_count, 0, 0..1);
+                }
+                MeshSource::Persistent { handle } => {
+                    if let Some(mesh) = self.persistent_meshes.get(handle) {
+                        pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+                        pass.set_index_buffer(
+                            mesh.index_buffer.slice(..),
+                            wgpu::IndexFormat::Uint32,
+                        );
+                        batched_bound = false;
+                        pass.draw_indexed(0..mesh.index_count, 0, 0..1);
+                    }
+                }
+            }
         }
     }
 
     fn draw_shape_batches(&self, pass: &mut wgpu::RenderPass) {
-        let (vb, ib) = self.create_shape_buffers();
         let aligned_entry = (self.model_uniform_align as usize).max(64);
         let model_bg = self.create_model_bind_group(aligned_entry);
         let material_bgs = self.create_material_bind_groups();
         pass.set_bind_group(0, &self.camera_bind_group, &[]);
-        pass.set_vertex_buffer(0, vb.slice(..));
-        pass.set_index_buffer(ib.slice(..), wgpu::IndexFormat::Uint32);
         pass.set_bind_group(3, &self.texture_bind_group, &[]);
-        self.issue_shape_draw_calls(pass, &model_bg, &material_bgs, aligned_entry);
+        let batched_buffers = if !self.shape_batch.is_empty() {
+            Some(self.create_shape_buffers())
+        } else {
+            None
+        };
+        if let Some((vb, ib)) = &batched_buffers {
+            pass.set_vertex_buffer(0, vb.slice(..));
+            pass.set_index_buffer(ib.slice(..), wgpu::IndexFormat::Uint32);
+        }
+        self.issue_shape_draw_calls(
+            pass,
+            &model_bg,
+            &material_bgs,
+            aligned_entry,
+            batched_buffers.as_ref(),
+        );
     }
 
     pub(super) fn draw_scene_to(
@@ -196,7 +228,7 @@ impl WgpuRenderer {
         if !self.pending_instances.is_empty() {
             self.draw_quad_instances(&mut pass);
         }
-        if !self.shape_batch.is_empty() {
+        if !self.shape_draws.is_empty() {
             self.draw_shape_batches(&mut pass);
         }
     }
@@ -350,18 +382,21 @@ impl Renderer for WgpuRenderer {
         color: Color,
         model: [[f32; 4]; 4],
     ) {
-        #[allow(clippy::cast_possible_truncation)]
         let material_uniforms = self.pending_material.take_uniforms();
         let material_textures = self.pending_material.take_textures();
+        #[allow(clippy::cast_possible_truncation)]
+        let index_start = self.shape_batch.index_count() as u32;
+        self.shape_batch.push(vertices, indices, color);
+        #[allow(clippy::cast_possible_truncation)]
+        let index_count = (self.shape_batch.index_count() as u32) - index_start;
         self.shape_draws.push(ShapeDrawRecord {
             blend_mode: self.current_blend_mode,
             shader_handle: self.active_shader,
-            index_offset: self.shape_batch.index_count() as u32,
+            source: MeshSource::Batched { index_start, index_count },
             model,
             material_uniforms,
             material_textures,
         });
-        self.shape_batch.push(vertices, indices, color);
     }
 
     fn draw_colored_mesh(
@@ -370,19 +405,78 @@ impl Renderer for WgpuRenderer {
         indices: &[u32],
         model: [[f32; 4]; 4],
     ) {
+        let material_uniforms = self.pending_material.take_uniforms();
+        let material_textures = self.pending_material.take_textures();
         #[allow(clippy::cast_possible_truncation)]
+        let index_start = self.shape_batch.index_count() as u32;
+        let shape_verts: &[ShapeVertex] = bytemuck::cast_slice(vertices);
+        self.shape_batch.push_colored(shape_verts, indices);
+        #[allow(clippy::cast_possible_truncation)]
+        let index_count = (self.shape_batch.index_count() as u32) - index_start;
+        self.shape_draws.push(ShapeDrawRecord {
+            blend_mode: self.current_blend_mode,
+            shader_handle: self.active_shader,
+            source: MeshSource::Batched { index_start, index_count },
+            model,
+            material_uniforms,
+            material_textures,
+        });
+    }
+
+    fn upload_persistent_colored_mesh(
+        &mut self,
+        vertices: &[crate::shape::ColorVertex],
+        indices: &[u32],
+    ) -> crate::renderer::GpuMeshHandle {
+        use wgpu::util::DeviceExt;
+        let handle = crate::renderer::GpuMeshHandle(self.next_persistent_id);
+        self.next_persistent_id += 1;
+        let shape_verts: &[ShapeVertex] = bytemuck::cast_slice(vertices);
+        let vertex_buffer =
+            self.device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: bytemuck::cast_slice(shape_verts),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
+        let index_buffer =
+            self.device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: bytemuck::cast_slice(indices),
+                    usage: wgpu::BufferUsages::INDEX,
+                });
+        #[allow(clippy::cast_possible_truncation)]
+        self.persistent_meshes.insert(
+            handle,
+            PersistentMesh {
+                vertex_buffer,
+                index_buffer,
+                index_count: indices.len() as u32,
+            },
+        );
+        handle
+    }
+
+    fn draw_persistent_colored_mesh(
+        &mut self,
+        handle: crate::renderer::GpuMeshHandle,
+        model: [[f32; 4]; 4],
+    ) {
         let material_uniforms = self.pending_material.take_uniforms();
         let material_textures = self.pending_material.take_textures();
         self.shape_draws.push(ShapeDrawRecord {
             blend_mode: self.current_blend_mode,
             shader_handle: self.active_shader,
-            index_offset: self.shape_batch.index_count() as u32,
+            source: MeshSource::Persistent { handle },
             model,
             material_uniforms,
             material_textures,
         });
-        let shape_verts: &[ShapeVertex] = bytemuck::cast_slice(vertices);
-        self.shape_batch.push_colored(shape_verts, indices);
+    }
+
+    fn free_persistent_colored_mesh(&mut self, handle: crate::renderer::GpuMeshHandle) {
+        self.persistent_meshes.remove(&handle);
     }
 
     fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color) {

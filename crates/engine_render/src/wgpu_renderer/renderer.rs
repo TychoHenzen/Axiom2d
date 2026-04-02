@@ -7,6 +7,7 @@ use winit::window::Window;
 use engine_core::color::Color;
 use engine_core::types::TextureId;
 
+use crate::renderer::GpuMeshHandle;
 use crate::shader::ShaderHandle;
 use crate::window::WindowConfig;
 
@@ -23,10 +24,21 @@ pub struct PackedTextureBinding {
     pub _pad: [u32; 2],
 }
 
+pub(super) struct PersistentMesh {
+    pub(super) vertex_buffer: wgpu::Buffer,
+    pub(super) index_buffer: wgpu::Buffer,
+    pub(super) index_count: u32,
+}
+
+pub(super) enum MeshSource {
+    Batched { index_start: u32, index_count: u32 },
+    Persistent { handle: GpuMeshHandle },
+}
+
 pub(super) struct ShapeDrawRecord {
     pub(super) blend_mode: crate::material::BlendMode,
     pub(super) shader_handle: ShaderHandle,
-    pub(super) index_offset: u32,
+    pub(super) source: MeshSource,
     pub(super) model: [[f32; 4]; 4],
     pub(super) material_uniforms: Vec<u8>,
     #[allow(dead_code)]
@@ -81,6 +93,8 @@ pub struct WgpuRenderer {
     pub(super) current_blend_mode: crate::material::BlendMode,
     pub(super) shape_batch: ShapeBatch,
     pub(super) shape_draws: Vec<ShapeDrawRecord>,
+    pub(super) persistent_meshes: std::collections::HashMap<GpuMeshHandle, PersistentMesh>,
+    pub(super) next_persistent_id: u32,
     pub(super) shape_pipelines: [wgpu::RenderPipeline; 3],
     pub(super) shape_pipeline_layout: wgpu::PipelineLayout,
     pub(super) model_bind_group_layout: wgpu::BindGroupLayout,
@@ -180,6 +194,8 @@ impl WgpuRenderer {
             current_blend_mode: crate::material::BlendMode::Alpha,
             shape_batch: ShapeBatch::new(),
             shape_draws: Vec::new(),
+            persistent_meshes: std::collections::HashMap::new(),
+            next_persistent_id: 1,
             shader_cache: HashMap::new(),
             active_shader: ShaderHandle(0),
             pending_material: PendingMaterialBindings::default(),
