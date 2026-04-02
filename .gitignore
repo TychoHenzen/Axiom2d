@@ -24,6 +24,7 @@ Desktop.ini
 # Profiling / debugging
 perf.data
 perf.data.old
+perf_log.csv
 flamegraph.svg
 callgrind.out.*
 *.pdb
