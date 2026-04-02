@@ -28,6 +28,7 @@ pub struct FrameProfiler {
     flush_interval: u64,
     records: Vec<Record>,
     output_path: PathBuf,
+    header_written: bool,
 }
 
 impl FrameProfiler {
@@ -39,6 +40,7 @@ impl FrameProfiler {
             flush_interval,
             records: Vec::new(),
             output_path,
+            header_written: false,
         }
     }
 
@@ -68,7 +70,7 @@ impl FrameProfiler {
     /// Call once per frame, after all schedules have run.
     pub fn end_frame(&mut self) {
         self.frame += 1;
-        if self.frame % self.flush_interval == 0 {
+        if self.frame.is_multiple_of(self.flush_interval) {
             self.flush();
         }
     }
@@ -85,14 +87,15 @@ impl FrameProfiler {
         self.records.clear();
     }
 
-    fn write_records(&self) -> std::io::Result<()> {
+    fn write_records(&mut self) -> std::io::Result<()> {
         let mut file = OpenOptions::new()
             .create(true)
             .append(true)
             .open(&self.output_path)?;
 
-        if file.metadata()?.len() == 0 {
+        if !self.header_written {
             writeln!(file, "frame,scope,duration_us")?;
+            self.header_written = true;
         }
 
         for r in &self.records {

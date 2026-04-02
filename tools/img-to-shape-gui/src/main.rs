@@ -977,6 +977,37 @@ impl App {
                 self.selected_entry = Some(self.manifest.entries.len() - 1);
                 self.auto_save("added entry");
             }
+            if ui.button("Load Multiple...").clicked()
+                && let Some(paths) = rfd::FileDialog::new()
+                    .add_filter("Images", &["png", "jpg", "jpeg", "bmp"])
+                    .pick_files()
+            {
+                let count = paths.len();
+                for path in &paths {
+                    // Load the image to get dimensions and source path.
+                    let Ok(bytes) = std::fs::read(path) else {
+                        continue;
+                    };
+                    let Ok((rgba, w, h)) = load_image_from_bytes(&bytes) else {
+                        continue;
+                    };
+                    // Temporarily load into state so state_to_entry/resolve work.
+                    self.state.load_image(rgba, w, h, Some(path.clone()));
+                    self.state.fn_name = dedup_fn_name(&sanitize_fn_name(path), &self.manifest);
+                    let img_path = self.resolve_image_path_for_entry();
+                    let entry = self.state_to_entry(&img_path);
+                    self.manifest.entries.push(entry);
+                }
+                if count > 0 {
+                    self.selected_entry = Some(self.manifest.entries.len() - 1);
+                    self.auto_save(&format!("added {count} entries"));
+                    // Load the last image for preview.
+                    if let Some(last) = paths.last() {
+                        self.load_file(last);
+                        self.upload_raw_texture(ui.ctx());
+                    }
+                }
+            }
             if let Some(idx) = self.selected_entry {
                 if ui.button("Update").clicked() {
                     let category = self.manifest.entries[idx].category.clone();
@@ -1310,7 +1341,13 @@ fn sanitize_fn_name(path: &Path) -> String {
             name.push('_');
         }
     }
-    name.trim_matches('_').to_string()
+    let name = name.trim_matches('_').to_string();
+    // Rust identifiers can't start with a digit — prefix if needed.
+    if name.starts_with(|c: char| c.is_ascii_digit()) {
+        format!("img_{name}")
+    } else {
+        name
+    }
 }
 
 /// If `base_name` already exists in `manifest`, append/increment a trailing
