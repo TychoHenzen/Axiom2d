@@ -1,9 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
-use bevy_ecs::prelude::{Query, Res, ResMut, Schedule, World};
-use card_game::stash::constants::{
-    BACKGROUND_COLOR, GRID_MARGIN, SLOT_GAP, SLOT_STRIDE_H, SLOT_STRIDE_W,
-};
+use bevy_ecs::prelude::{Schedule, World};
+use card_game::stash::constants::{GRID_MARGIN, SLOT_GAP, SLOT_STRIDE_W};
 use card_game::stash::grid::StashGrid;
 use card_game::stash::pages::{
     TAB_ACTIVE, TAB_GAP, TAB_HEIGHT, TAB_INACTIVE, TAB_WIDTH, stash_tab_click_system,
