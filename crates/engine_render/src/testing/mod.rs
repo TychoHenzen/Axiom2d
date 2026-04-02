@@ -291,6 +291,27 @@ impl Renderer for SpyRenderer {
     fn resize(&mut self, _width: u32, _height: u32) {
         self.log_call("resize");
     }
+
+    fn upload_persistent_colored_mesh(
+        &mut self,
+        _vertices: &[ColorVertex],
+        _indices: &[u32],
+    ) -> crate::renderer::GpuMeshHandle {
+        self.log_call("upload_persistent_colored_mesh");
+        crate::renderer::GpuMeshHandle(0)
+    }
+
+    fn draw_persistent_colored_mesh(
+        &mut self,
+        _handle: crate::renderer::GpuMeshHandle,
+        _model: [[f32; 4]; 4],
+    ) {
+        self.log_call("draw_persistent_colored_mesh");
+    }
+
+    fn free_persistent_colored_mesh(&mut self, _handle: crate::renderer::GpuMeshHandle) {
+        self.log_call("free_persistent_colored_mesh");
+    }
 }
 
 pub fn insert_spy(world: &mut World) -> Arc<Mutex<Vec<String>>> {

@@ -742,6 +742,23 @@ impl Renderer for HeadlessRenderer {
     fn present(&mut self) {}
 
     fn resize(&mut self, _width: u32, _height: u32) {}
+
+    fn upload_persistent_colored_mesh(
+        &mut self,
+        _vertices: &[crate::shape::ColorVertex],
+        _indices: &[u32],
+    ) -> crate::renderer::GpuMeshHandle {
+        crate::renderer::GpuMeshHandle(0)
+    }
+
+    fn draw_persistent_colored_mesh(
+        &mut self,
+        _handle: crate::renderer::GpuMeshHandle,
+        _model: [[f32; 4]; 4],
+    ) {
+    }
+
+    fn free_persistent_colored_mesh(&mut self, _handle: crate::renderer::GpuMeshHandle) {}
 }
 
 #[derive(Debug, thiserror::Error)]

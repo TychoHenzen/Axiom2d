@@ -14,7 +14,7 @@ pub use crate::material::{
     effective_shader_handle,
 };
 pub use crate::rect::Rect;
-pub use crate::renderer::{IDENTITY_MODEL, NullRenderer, RenderError, Renderer, RendererRes};
+pub use crate::renderer::{GpuMeshHandle, IDENTITY_MODEL, NullRenderer, RenderError, Renderer, RendererRes};
 pub use crate::shader::{ShaderHandle, ShaderRegistry, preprocess, shader_prepare_system};
 pub use crate::shape::{
     ColorMesh, ColorVertex, PathCommand, QUAD_INDICES, Shape, ShapeRenderDisabled, ShapeVariant,
