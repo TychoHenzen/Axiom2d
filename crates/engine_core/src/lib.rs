@@ -2,6 +2,7 @@ pub mod color;
 pub mod error;
 pub mod event_bus;
 pub mod prelude;
+pub mod profiler;
 pub mod scale_spring;
 pub mod spring;
 pub mod time;

@@ -1,5 +1,6 @@
 mod color;
 mod event_bus;
+mod profiler;
 mod scale_spring;
 mod spring;
 mod time;
