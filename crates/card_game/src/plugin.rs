@@ -17,7 +17,7 @@ use crate::card::rendering::art_shader::{
     register_card_art_shader, register_gem_shader, register_tier_shaders, register_variant_shaders,
     shader_pointer_system,
 };
-use crate::card::rendering::baked_render::baked_card_sync_system;
+use crate::card::rendering::baked_render::{baked_card_render_system, baked_card_sync_system};
 use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
 use crate::card::rendering::drop_zone_glow::hand_drop_zone_render_system;
 use crate::card::rendering::render_layer::card_render_layer_system;
@@ -143,6 +143,10 @@ fn register_systems(app: &mut App) {
     .add_systems(
         Phase::Render,
         unified_render_system.after(shape_render_system),
+    )
+    .add_systems(
+        Phase::Render,
+        baked_card_render_system.after(unified_render_system),
     )
     .add_systems(
         Phase::Render,
