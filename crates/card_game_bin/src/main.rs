@@ -86,6 +86,7 @@ fn setup(app: &mut App) {
 
     app.add_plugin(DefaultPlugins);
     app.add_plugin(CardGamePlugin);
+    app.add_plugin(FrameProfilerPlugin::default());
 
     app.set_window_config(WindowConfig {
         title: "Card Game",
