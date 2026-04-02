@@ -1,4 +1,5 @@
-use bevy_ecs::prelude::{Component, Entity, Query, With, Without};
+use bevy_ecs::prelude::{Component, Entity, Query, ResMut, With, Without};
+use engine_core::profiler::FrameProfiler;
 use serde::{Deserialize, Serialize};
 
 use crate::hierarchy::{ChildOf, Children};
@@ -17,7 +18,9 @@ pub fn hierarchy_sort_system(
     children_query: Query<&Children>,
     local_sort_query: Query<Option<&LocalSortOrder>>,
     mut sort_query: Query<&mut SortOrder>,
+    mut profiler: Option<ResMut<FrameProfiler>>,
 ) {
+    let _span = profiler.as_deref_mut().map(|p| p.span("hierarchy_sort"));
     let mut root_list: Vec<_> = roots.iter().collect();
     root_list.sort_by_key(|(_, local)| local.map_or(0, |l| l.0));
 

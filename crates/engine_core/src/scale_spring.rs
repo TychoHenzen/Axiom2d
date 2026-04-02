@@ -1,6 +1,7 @@
-use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res};
+use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res, ResMut};
 use serde::{Deserialize, Serialize};
 
+use crate::profiler::FrameProfiler;
 use crate::spring::spring_step;
 use crate::time::DeltaTime;
 use crate::transform::Transform2D;
@@ -38,7 +39,9 @@ pub fn scale_spring_system(
     dt: Res<DeltaTime>,
     mut query: Query<(Entity, &mut Transform2D, &mut ScaleSpring)>,
     mut commands: Commands,
+    mut profiler: Option<ResMut<FrameProfiler>>,
 ) {
+    let _span = profiler.as_deref_mut().map(|p| p.span("scale_spring"));
     let Seconds(dt_secs) = dt.0;
 
     for (entity, mut transform, mut spring) in &mut query {

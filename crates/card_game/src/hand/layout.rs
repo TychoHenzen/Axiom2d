@@ -1,6 +1,7 @@
-use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res};
+use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res, ResMut};
 use bevy_ecs::system::SystemParam;
 use engine_core::prelude::{DeltaTime, Seconds, Transform2D};
+use engine_core::profiler::FrameProfiler;
 use engine_core::spring::spring_step;
 use engine_render::prelude::{Camera2D, RendererRes, screen_to_world};
 use glam::Vec2;
@@ -74,7 +75,9 @@ pub fn hand_layout_system(
     camera_query: Query<&Camera2D>,
     mut cards: Query<(Entity, &mut Transform2D, Option<&mut HandSpring>)>,
     mut commands: Commands,
+    mut profiler: Option<ResMut<FrameProfiler>>,
 ) {
+    let _span = profiler.as_deref_mut().map(|p| p.span("hand_layout"));
     if params.hand.is_empty() {
         return;
     }

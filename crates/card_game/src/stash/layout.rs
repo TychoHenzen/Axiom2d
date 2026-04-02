@@ -1,5 +1,6 @@
-use bevy_ecs::prelude::{Query, Res};
+use bevy_ecs::prelude::{Query, Res, ResMut};
 use engine_core::prelude::Transform2D;
+use engine_core::profiler::FrameProfiler;
 use engine_render::prelude::{Camera2D, RendererRes, screen_to_world};
 use glam::Vec2;
 
@@ -13,7 +14,9 @@ pub fn stash_layout_system(
     camera_query: Query<&Camera2D>,
     renderer: Res<RendererRes>,
     mut card_query: Query<(&CardZone, &mut Transform2D)>,
+    mut profiler: Option<ResMut<FrameProfiler>>,
 ) {
+    let _span = profiler.as_deref_mut().map(|p| p.span("stash_layout"));
     let Some((vw, vh, camera)) = resolve_viewport_camera(&renderer, &camera_query) else {
         return;
     };
