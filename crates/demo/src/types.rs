@@ -1,29 +1,29 @@
 use axiom2d::prelude::*;
 
 #[derive(Resource, Default)]
-pub(crate) struct FrameCount(pub u64);
+pub struct FrameCount(pub u64);
 
 #[derive(Component)]
-pub(crate) struct Sun;
+pub struct Sun;
 
 #[derive(Component)]
-pub(crate) struct Moon;
+pub struct Moon;
 
 #[derive(Component)]
-pub(crate) struct OrbitalSpeed(pub f32);
+pub struct OrbitalSpeed(pub f32);
 
-pub(crate) const SUN_POSITION: Vec2 = Vec2::ZERO;
-pub(crate) const SUN_COLOR: Color = Color {
+pub const SUN_POSITION: Vec2 = Vec2::ZERO;
+pub const SUN_COLOR: Color = Color {
     r: 1.0,
     g: 0.85,
     b: 0.0,
     a: 1.0,
 };
-pub(crate) const CAMERA_PAN_SPEED: f32 = 300.0;
-pub(crate) const CAMERA_ZOOM_SPEED: f32 = 1.0;
-pub(crate) const ZOOM_MIN: f32 = 0.1;
+pub const CAMERA_PAN_SPEED: f32 = 300.0;
+pub const CAMERA_ZOOM_SPEED: f32 = 1.0;
+pub const ZOOM_MIN: f32 = 0.1;
 
-pub(crate) mod action {
+pub mod action {
     pub const MOVE_RIGHT: &str = "move_right";
     pub const MOVE_LEFT: &str = "move_left";
     pub const MOVE_UP: &str = "move_up";
@@ -32,7 +32,7 @@ pub(crate) mod action {
     pub const ZOOM_OUT: &str = "zoom_out";
 }
 
-pub(crate) struct CelestialDef {
+pub struct CelestialDef {
     pub orbit_radius: f32,
     pub speed: f32,
     pub color: Color,
@@ -40,7 +40,7 @@ pub(crate) struct CelestialDef {
     pub moon: Option<MoonDef>,
 }
 
-pub(crate) struct MoonDef {
+pub struct MoonDef {
     pub orbit_radius: f32,
     pub speed: f32,
     pub color: Color,

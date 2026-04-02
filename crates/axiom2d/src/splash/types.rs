@@ -18,7 +18,7 @@ impl SplashScreen {
     }
 }
 
-pub(crate) const SPLASH_DURATION: f32 = 2.5;
+pub const SPLASH_DURATION: f32 = 2.5;
 pub(crate) const SPLASH_BG_ORDER: i32 = 10_000;
 pub(crate) const SPLASH_SIDE_BASE: i32 = 10_001;
 pub(crate) const SPLASH_LETTER_ORDER: i32 = 11_000;
@@ -45,7 +45,7 @@ pub(crate) type PreloadHook = Box<dyn FnMut(&mut World) + Send + Sync>;
 #[derive(Resource)]
 pub struct PreloadHooks {
     pub(crate) hooks: Vec<PreloadHook>,
-    pub(crate) executed: bool,
+    pub executed: bool,
 }
 
 impl PreloadHooks {
@@ -72,7 +72,7 @@ pub(crate) type PostSplashHook = Box<dyn FnMut(&mut World) + Send + Sync>;
 #[derive(Resource)]
 pub struct PostSplashSetup {
     pub(crate) hooks: Vec<PostSplashHook>,
-    pub(crate) executed: bool,
+    pub executed: bool,
 }
 
 impl PostSplashSetup {

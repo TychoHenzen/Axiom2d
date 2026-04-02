@@ -4,11 +4,11 @@ use crate::types::{
     CAMERA_PAN_SPEED, CAMERA_ZOOM_SPEED, FrameCount, OrbitalSpeed, ZOOM_MIN, action,
 };
 
-pub(crate) fn count_frames(mut count: ResMut<FrameCount>) {
+pub fn count_frames(mut count: ResMut<FrameCount>) {
     count.0 += 1;
 }
 
-pub(crate) fn camera_pan_system(
+pub fn camera_pan_system(
     mut query: Query<&mut Camera2D>,
     input: Res<InputState>,
     action_map: Res<ActionMap>,
@@ -35,7 +35,7 @@ pub(crate) fn camera_pan_system(
     }
 }
 
-pub(crate) fn camera_zoom_system(
+pub fn camera_zoom_system(
     mut query: Query<&mut Camera2D>,
     input: Res<InputState>,
     action_map: Res<ActionMap>,
@@ -54,10 +54,7 @@ pub(crate) fn camera_zoom_system(
     }
 }
 
-pub(crate) fn orbit_system(
-    mut query: Query<(&mut Transform2D, &OrbitalSpeed)>,
-    dt: Res<DeltaTime>,
-) {
+pub fn orbit_system(mut query: Query<(&mut Transform2D, &OrbitalSpeed)>, dt: Res<DeltaTime>) {
     for (mut transform, speed) in &mut query {
         transform.rotation += speed.0 * dt.0.0;
     }
