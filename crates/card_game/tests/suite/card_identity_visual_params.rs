@@ -3,7 +3,7 @@
 use card_game::card::identity::signature::{CardSignature, Element, Rarity, compute_seed};
 use card_game::card::identity::signature_profile::SignatureProfile;
 use card_game::card::identity::visual_params::{
-    CardVisualParams, PATTERN_COUNT, element_base_color, generate_card_visuals,
+    PATTERN_COUNT, element_base_color, generate_card_visuals,
 };
 use card_game::card::rendering::art_shader::ShaderVariant;
 use engine_core::color::Color;

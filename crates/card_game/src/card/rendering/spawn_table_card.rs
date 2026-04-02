@@ -27,8 +27,6 @@ pub(crate) const CARD_CORNER_RADIUS: f32 = 5.0;
 mod overlay;
 mod text;
 
-#[cfg(test)]
-pub(crate) use overlay::build_gem_overlay;
 pub(crate) use text::{TEXT_COLOR, fit_name_font_size};
 
 pub fn spawn_visual_card(

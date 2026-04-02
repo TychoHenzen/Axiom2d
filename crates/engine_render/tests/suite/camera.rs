@@ -5,7 +5,6 @@ use std::sync::{Arc, Mutex};
 use engine_render::camera::{
     Camera2D, CameraUniform, camera_prepare_system, screen_to_world, world_to_screen,
 };
-use engine_render::prelude::*;
 use engine_render::renderer::RendererRes;
 use engine_render::testing::{SpyRenderer, insert_spy_with_viewport};
 

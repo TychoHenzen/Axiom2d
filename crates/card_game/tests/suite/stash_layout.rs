@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
-use bevy_ecs::prelude::{Query, Res, Schedule, World};
+use bevy_ecs::prelude::{Schedule, World};
 use card_game::card::component::CardZone;
 use card_game::stash::constants::{
     GRID_MARGIN, SLOT_HEIGHT, SLOT_STRIDE_H, SLOT_STRIDE_W, SLOT_WIDTH,

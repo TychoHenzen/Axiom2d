@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
-use card_game::card::identity::card_name::{CardName, generate_card_name, subtitle_phrase};
+use card_game::card::identity::card_name::{generate_card_name, subtitle_phrase};
 use card_game::card::identity::name_pools::{
     AspectCluster, adjective_pool, aspect_cluster, noun_pool,
 };

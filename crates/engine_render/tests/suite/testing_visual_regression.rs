@@ -1,7 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
 use engine_core::types::Pixels;
-use engine_render::prelude::*;
 use engine_render::rect::Rect;
 use engine_render::renderer::Renderer;
 use engine_render::testing::visual_regression::{
