@@ -25,6 +25,7 @@ mod card_rendering_bake;
 mod card_rendering_baked_render;
 mod card_rendering_debug_spawn;
 mod card_rendering_drop_zone_glow;
+mod card_rendering_gpu_card_mesh;
 mod card_rendering_render_layer;
 mod card_rendering_spawn_table_card;
 mod card_zone_config;

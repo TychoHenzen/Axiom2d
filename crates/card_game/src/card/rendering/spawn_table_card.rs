@@ -21,6 +21,8 @@ use crate::card::interaction::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card::interaction::physics_helpers::warn_on_physics_bool;
 use crate::card::rendering::bake::{bake_back_face, bake_front_face};
 use crate::card::rendering::baked_mesh::BakedCardMesh;
+use crate::card::rendering::gpu_card_mesh::GpuCardMesh;
+use engine_render::prelude::RendererRes;
 
 pub(crate) const CARD_CORNER_RADIUS: f32 = 5.0;
 
@@ -120,9 +122,19 @@ pub fn spawn_visual_card(
     };
     let mesh_overlays =
         overlay::build_mesh_overlays(world, card_size, &card.signature, face_up, &baked.front);
-    world
-        .entity_mut(root)
-        .insert((baked, mesh_overlays, ColorMesh(initial_mesh)));
+    let gpu_mesh = world
+        .get_resource_mut::<RendererRes>()
+        .map(|mut renderer| GpuCardMesh {
+            front: renderer
+                .upload_persistent_colored_mesh(&baked.front.vertices, &baked.front.indices),
+            back: renderer
+                .upload_persistent_colored_mesh(&baked.back.vertices, &baked.back.indices),
+        });
+    let mut entity_mut = world.entity_mut(root);
+    entity_mut.insert((baked, mesh_overlays, ColorMesh(initial_mesh)));
+    if let Some(gpu) = gpu_mesh {
+        entity_mut.insert(gpu);
+    }
 
     root
 }

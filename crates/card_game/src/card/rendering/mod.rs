@@ -6,5 +6,6 @@ pub mod debug_spawn;
 pub mod drop_zone_glow;
 pub mod face_layout;
 pub mod geometry;
+pub mod gpu_card_mesh;
 pub mod render_layer;
 pub mod spawn_table_card;
