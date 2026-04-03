@@ -50,8 +50,8 @@ fn make_screen_world(jack_data: Option<SignatureSpace>) -> (World, ShapeCallLog)
 // TC010 / TC011 — axis-pair extraction
 // ---------------------------------------------------------------------------
 
-/// @doc: Display 0 of the ScreenDevice maps to the Solidum/Febris element pair — the first two
-/// dimensions of the 8D signature space. If display_axes returned the wrong pair (e.g. indices 2
+/// @doc: Display 0 of the `ScreenDevice` maps to the Solidum/Febris element pair — the first two
+/// dimensions of the 8D signature space. If `display_axes` returned the wrong pair (e.g. indices 2
 /// and 3), a card hovering near the origin in Solidum/Febris space would appear on the wrong
 /// panel, breaking the visual correspondence between the card's elemental identity and the display
 /// that lights up. Verifying exact f32 values against the named Element variants catches any
@@ -100,7 +100,7 @@ fn when_display_index_is_three_then_axes_map_to_subsidium_and_spatium() {
 // TC012 — no draws when input jack has None
 // ---------------------------------------------------------------------------
 
-/// @doc: A ScreenDevice whose input jack carries `None` must produce zero draw calls.
+/// @doc: A `ScreenDevice` whose input jack carries `None` must produce zero draw calls.
 /// Without this gate, a device with a disconnected cable would emit phantom dots onto
 /// the display — shapes that represent a signature nobody actually played. Clean silence
 /// when there is no signal is the "off" state that every other display test depends on.
@@ -125,7 +125,7 @@ fn given_input_jack_data_is_none_when_screen_render_system_runs_then_no_shapes_a
 // TC013 — 4 draws when input jack has Some(SignatureSpace)
 // ---------------------------------------------------------------------------
 
-/// @doc: When a SignatureSpace arrives on the input jack, screen_render_system must draw
+/// @doc: When a `SignatureSpace` arrives on the input jack, `screen_render_system` must draw
 /// exactly 4 dots — one per element-pair display panel (Solidum/Febris, Ordinem/Lumines,
 /// Varias/Inertiae, Subsidium/Spatium). Fewer than 4 would leave panels dark that should
 /// show the card's position in that dimension; more than 4 would invent phantom panels or
@@ -159,7 +159,7 @@ fn given_input_jack_has_signature_space_when_screen_render_system_runs_then_draw
 
 /// @doc: This integration test validates the complete wiring chain from card insertion
 /// to screen display: a card dropped into a reader populates the reader's output jack with
-/// a SignatureSpace, the cable propagation system transfers that data to the screen's input
+/// a `SignatureSpace`, the cable propagation system transfers that data to the screen's input
 /// jack, and the screen render system draws the correct number of signal dots. If any link
 /// in this chain is missing — the insert system doesn't write the jack, the propagation
 /// system doesn't copy it, or the render system doesn't read it — the player sees a blank

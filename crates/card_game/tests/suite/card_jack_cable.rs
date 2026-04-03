@@ -31,7 +31,7 @@ fn make_space(center_values: [f32; 8]) -> SignatureSpace {
 }
 
 /// @doc: The cable propagation system is the signal backbone of the wiring layer: without
-/// it, a SignatureSpace emitted by an output jack never reaches the input jack it is
+/// it, a `SignatureSpace` emitted by an output jack never reaches the input jack it is
 /// connected to, so downstream devices remain blind to the card's identity. This test
 /// verifies the core contract — a `Cable` carries a `SignatureSpace` from the output jack's
 /// `data` field to the input jack's `data` field in a single schedule tick. If this transfer
@@ -147,7 +147,7 @@ fn make_cable_render_world() -> (World, ShapeCallLog) {
     (world, shape_calls)
 }
 
-/// @doc: cable_render_system must draw a line shape between the world positions of the
+/// @doc: `cable_render_system` must draw a line shape between the world positions of the
 /// source and destination jack entities connected by a Cable. Without this visual, cables
 /// are invisible — a player dropping a card into a reader has no feedback that it is
 /// connected to a screen device, making the wiring system opaque and unplayable.
@@ -187,7 +187,7 @@ fn when_cable_connects_two_positioned_entities_then_one_line_shape_is_drawn() {
     );
 }
 
-/// @doc: cable_render_system must be a no-op when there are no Cable entities in the
+/// @doc: `cable_render_system` must be a no-op when there are no Cable entities in the
 /// world. Drawing zero shapes when zero cables exist is the correct "empty scene" behaviour:
 /// any accidental phantom draw here would appear as a stray line floating on the table,
 /// which would be confusing since it corresponds to no connection the player made.
@@ -213,10 +213,10 @@ fn when_no_cables_exist_then_no_shapes_are_drawn() {
 // Original TC (SignatureSpace identity axiom — pre-existing, do not remove)
 // ---------------------------------------------------------------------------
 
-/// @doc: A SignatureSpace centered on a given CardSignature must report that its own
+/// @doc: A `SignatureSpace` centered on a given `CardSignature` must report that its own
 /// center point is contained within itself. This is the irreducible identity axiom for
 /// any radius-based inclusion test: if the center is not "in range" of itself (distance
-/// zero, which is always <= radius), the contains() boundary check is fundamentally
+/// zero, which is always <= radius), the `contains()` boundary check is fundamentally
 /// broken and the wiring system would reject valid same-point signature matches,
 /// making it impossible for a card reader to recognize a card whose signature exactly
 /// matches its emission zone center.

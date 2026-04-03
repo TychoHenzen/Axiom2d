@@ -420,9 +420,9 @@ fn when_card_released_over_reader_then_reader_loaded_stores_card() {
     );
 }
 
-/// @doc: The reader's output jack must emit a SignatureSpace — a spherical region in
+/// @doc: The reader's output jack must emit a `SignatureSpace` — a spherical region in
 /// 8D signature space centered on the inserted card's signature with radius 0.2 — rather
-/// than a raw CardSignature. This allows downstream cable-connected devices to reason
+/// than a raw `CardSignature`. This allows downstream cable-connected devices to reason
 /// about a zone of signatures rather than a single point, enabling signature-matching
 /// logic that can tolerate slight variations between cards.
 #[test]
