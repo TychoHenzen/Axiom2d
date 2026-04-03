@@ -182,8 +182,7 @@ fn build_palette(samples: &[PaletteSample], palette_size: usize) -> Vec<Color> {
                 .partial_cmp(&b.weight)
                 .unwrap_or(std::cmp::Ordering::Equal)
         })
-        .map(|sample| sample.color)
-        .unwrap_or(Color::WHITE);
+        .map_or(Color::WHITE, |sample| sample.color);
     centroids.push(first);
 
     while centroids.len() < target {
