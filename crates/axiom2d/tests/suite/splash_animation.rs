@@ -3,6 +3,8 @@
 use axiom2d::prelude::*;
 use axiom2d::splash::{post_splash_setup_system, preload_system, splash_tick_system};
 
+const FLOAT_EPSILON: f32 = 1e-6;
+
 fn world_with_splash(elapsed: f32, duration: f32, done: bool, dt: f32) -> (World, Schedule) {
     let mut world = World::new();
     world.insert_resource(SplashScreen {
@@ -16,6 +18,13 @@ fn world_with_splash(elapsed: f32, duration: f32, done: bool, dt: f32) -> (World
     (world, schedule)
 }
 
+fn assert_close(actual: f32, expected: f32) {
+    assert!(
+        (actual - expected).abs() <= FLOAT_EPSILON,
+        "expected {expected} +/- {FLOAT_EPSILON}, got {actual}"
+    );
+}
+
 #[test]
 fn when_splash_tick_runs_then_elapsed_increases_by_delta() {
     // Arrange
@@ -26,7 +35,7 @@ fn when_splash_tick_runs_then_elapsed_increases_by_delta() {
 
     // Assert
     let splash = world.resource::<SplashScreen>();
-    assert!((splash.elapsed - 0.016).abs() < f32::EPSILON);
+    assert_close(splash.elapsed, 0.016);
 }
 
 #[test]
@@ -51,7 +60,7 @@ fn when_done_already_true_then_elapsed_stops() {
 
     // Assert
     let splash = world.resource::<SplashScreen>();
-    assert!((splash.elapsed - 2.5).abs() < f32::EPSILON);
+    assert_close(splash.elapsed, 2.5);
 }
 
 #[test]
@@ -106,8 +115,8 @@ fn when_splash_plugin_built_then_resource_present_with_defaults() {
 
     // Assert
     let splash = app.world().resource::<SplashScreen>();
-    assert!((splash.duration - SPLASH_DURATION).abs() < f32::EPSILON);
-    assert!((splash.elapsed - 0.0).abs() < f32::EPSILON);
+    assert_close(splash.duration, SPLASH_DURATION);
+    assert_close(splash.elapsed, 0.0);
     assert!(!splash.done);
 }
 
@@ -153,7 +162,7 @@ fn when_preload_system_runs_during_splash_then_hooks_are_executed() {
     schedule.run(&mut world);
 
     // Assert
-    assert!((world.resource::<DeltaTime>().0.0 - 42.0).abs() < f32::EPSILON);
+    assert_close(world.resource::<DeltaTime>().0.0, 42.0);
     assert!(world.resource::<PreloadHooks>().executed);
 }
 
@@ -245,7 +254,7 @@ fn when_splash_done_then_post_splash_hooks_run() {
     schedule.run(&mut world);
 
     // Assert
-    assert!((world.resource::<DeltaTime>().0.0 - 99.0).abs() < f32::EPSILON);
+    assert_close(world.resource::<DeltaTime>().0.0, 99.0);
     assert!(world.resource::<PostSplashSetup>().executed);
 }
 
@@ -295,7 +304,7 @@ fn when_no_splash_screen_resource_then_post_splash_hooks_run_immediately() {
     schedule.run(&mut world);
 
     // Assert
-    assert!((world.resource::<DeltaTime>().0.0 - 42.0).abs() < f32::EPSILON);
+    assert_close(world.resource::<DeltaTime>().0.0, 42.0);
     assert!(world.resource::<PostSplashSetup>().executed);
 }
 
@@ -468,5 +477,5 @@ fn when_splash_not_done_then_post_splash_hooks_do_not_run() {
     schedule.run(&mut world);
 
     // Assert
-    assert!((world.resource::<DeltaTime>().0.0).abs() < f32::EPSILON);
+    assert_close(world.resource::<DeltaTime>().0.0, 0.0);
 }

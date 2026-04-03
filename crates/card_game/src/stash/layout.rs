@@ -21,7 +21,9 @@ pub fn stash_layout_system(
         return;
     };
 
-    let page = grid.current_page();
+    let Some(page) = grid.current_storage_page() else {
+        return;
+    };
     for (zone, mut transform) in &mut card_query {
         if let CardZone::Stash {
             page: card_page,

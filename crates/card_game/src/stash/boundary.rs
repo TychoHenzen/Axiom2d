@@ -29,6 +29,7 @@ pub fn stash_boundary_system(
     };
 
     let over_stash = stash_visible.0
+        && !grid.is_store_page()
         && find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height()).is_some();
 
     if info.stash_cursor_follow && !over_stash {

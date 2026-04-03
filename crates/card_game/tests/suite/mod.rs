@@ -42,3 +42,4 @@ mod stash_layout;
 mod stash_pages;
 mod stash_render;
 mod stash_toggle;
+mod store;

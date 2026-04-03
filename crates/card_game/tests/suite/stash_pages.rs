@@ -4,13 +4,15 @@ use bevy_ecs::prelude::{Schedule, World};
 use card_game::stash::constants::{GRID_MARGIN, SLOT_GAP, SLOT_STRIDE_W};
 use card_game::stash::grid::StashGrid;
 use card_game::stash::pages::{
-    TAB_ACTIVE, TAB_GAP, TAB_HEIGHT, TAB_INACTIVE, TAB_WIDTH, stash_tab_click_system,
+    TAB_ACTION, TAB_ACTIVE, TAB_GAP, TAB_HEIGHT, TAB_INACTIVE, TAB_WIDTH, stash_tab_click_system,
     stash_tab_render_system, tab_left_x, tab_row_top_y,
 };
+use card_game::stash::store::StoreWallet;
 use card_game::stash::toggle::StashVisible;
 use engine_input::prelude::MouseButton;
-use engine_render::prelude::{Camera2D, RendererRes};
-use engine_render::testing::{ShapeCallLog, SpyRenderer};
+use engine_render::font::measure_text;
+use engine_render::prelude::{Camera2D, RendererRes, world_to_screen};
+use engine_render::testing::{ShapeCallLog, SpyRenderer, TextCallLog};
 use glam::Vec2;
 use std::sync::{Arc, Mutex};
 
@@ -19,6 +21,7 @@ fn make_click_world(page_count: u8, visible: bool) -> World {
     world.insert_resource(StashGrid::new(5, 5, page_count));
     world.insert_resource(StashVisible(visible));
     world.insert_resource(engine_input::prelude::MouseState::default());
+    world.insert_resource(StoreWallet::default());
     world
 }
 
@@ -39,8 +42,9 @@ fn click_at(world: &mut World, x: f32, y: f32) {
     world.insert_resource(mouse);
 }
 
-fn tab_center(tab_index: u8, page_count: u8) -> (f32, f32) {
-    let left = tab_left_x(GRID_W, page_count, tab_index);
+fn tab_center(tab_index: u8, storage_tab_count: u8) -> (f32, f32) {
+    let tab_count = storage_tab_count + 2;
+    let left = tab_left_x(GRID_W, tab_count, tab_index);
     let top = tab_row_top_y(GRID_H);
     (left + TAB_WIDTH / 2.0, top + TAB_HEIGHT / 2.0)
 }
@@ -92,7 +96,8 @@ fn when_click_on_first_tab_then_stays_on_page_zero() {
 fn when_click_between_tabs_then_page_unchanged() {
     // Arrange
     let mut world = make_click_world(3, true);
-    let left0 = tab_left_x(GRID_W, 3, 0);
+    let tab_count = 3 + 2;
+    let left0 = tab_left_x(GRID_W, tab_count, 0);
     let top = tab_row_top_y(GRID_H);
     click_at(
         &mut world,
@@ -104,14 +109,14 @@ fn when_click_between_tabs_then_page_unchanged() {
     run_click_system(&mut world);
 
     // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 0);
+    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
 }
 
 #[test]
 fn when_click_above_tabs_then_page_unchanged() {
     // Arrange
     let mut world = make_click_world(3, true);
-    let left = tab_left_x(GRID_W, 3, 1);
+    let left = tab_left_x(GRID_W, 3 + 2, 1);
     let top = tab_row_top_y(GRID_H);
     click_at(&mut world, left + TAB_WIDTH / 2.0, top - 2.0);
 
@@ -119,14 +124,14 @@ fn when_click_above_tabs_then_page_unchanged() {
     run_click_system(&mut world);
 
     // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 0);
+    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
 }
 
 #[test]
 fn when_click_below_tabs_then_page_unchanged() {
     // Arrange
     let mut world = make_click_world(3, true);
-    let left = tab_left_x(GRID_W, 3, 1);
+    let left = tab_left_x(GRID_W, 3 + 2, 1);
     let top = tab_row_top_y(GRID_H);
     click_at(&mut world, left + TAB_WIDTH / 2.0, top + TAB_HEIGHT + 2.0);
 
@@ -134,7 +139,7 @@ fn when_click_below_tabs_then_page_unchanged() {
     run_click_system(&mut world);
 
     // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 0);
+    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
 }
 
 /// @doc: Hidden stash blocks tab clicks — prevents page switching when UI is not visible.
@@ -149,7 +154,7 @@ fn when_stash_hidden_and_click_on_tab_then_page_unchanged() {
     run_click_system(&mut world);
 
     // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 0);
+    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
 }
 
 #[test]
@@ -179,7 +184,7 @@ fn when_right_click_on_tab_then_page_unchanged() {
     run_click_system(&mut world);
 
     // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 0);
+    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
 }
 
 fn make_render_world(
@@ -204,6 +209,30 @@ fn make_render_world(
     });
 
     (world, shape_calls)
+}
+
+fn make_render_world_with_text(
+    grid: StashGrid,
+    visible: bool,
+    viewport: (u32, u32),
+) -> (World, TextCallLog) {
+    let mut world = World::new();
+    world.insert_resource(grid);
+    world.insert_resource(StashVisible(visible));
+
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let text_calls: TextCallLog = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log)
+        .with_text_capture(text_calls.clone())
+        .with_viewport(viewport.0, viewport.1);
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+
+    world.spawn(Camera2D {
+        position: Vec2::ZERO,
+        zoom: 1.0,
+    });
+
+    (world, text_calls)
 }
 
 fn run_render_system(world: &mut World) {
@@ -245,7 +274,7 @@ fn when_three_pages_then_three_tab_shapes_drawn() {
     run_render_system(&mut world);
 
     // Assert
-    assert_eq!(shape_calls.lock().unwrap().len(), 3);
+    assert_eq!(shape_calls.lock().unwrap().len(), 5);
 }
 
 #[test]
@@ -257,14 +286,15 @@ fn when_single_page_then_one_tab_shape_drawn() {
     run_render_system(&mut world);
 
     // Assert
-    assert_eq!(shape_calls.lock().unwrap().len(), 1);
+    assert_eq!(shape_calls.lock().unwrap().len(), 3);
 }
 
 /// @doc: Active tab visually distinct from inactive — users see which page they're on.
 #[test]
-fn when_on_page_zero_then_first_tab_is_active_color() {
+fn when_on_store_page_then_store_tab_is_active_color() {
     // Arrange
     let (mut world, shape_calls) = make_render_world(StashGrid::new(5, 5, 3), true, (1024, 768));
+    world.resource_mut::<StashGrid>().set_current_page(0);
 
     // Act
     run_render_system(&mut world);
@@ -274,6 +304,8 @@ fn when_on_page_zero_then_first_tab_is_active_color() {
     assert_eq!(calls[0].2, TAB_ACTIVE);
     assert_eq!(calls[1].2, TAB_INACTIVE);
     assert_eq!(calls[2].2, TAB_INACTIVE);
+    assert_eq!(calls[3].2, TAB_INACTIVE);
+    assert_eq!(calls[4].2, TAB_ACTION);
 }
 
 #[test]
@@ -291,13 +323,15 @@ fn when_on_page_one_then_middle_tab_is_active_color() {
     assert_eq!(calls[0].2, TAB_INACTIVE);
     assert_eq!(calls[1].2, TAB_ACTIVE);
     assert_eq!(calls[2].2, TAB_INACTIVE);
+    assert_eq!(calls[3].2, TAB_INACTIVE);
+    assert_eq!(calls[4].2, TAB_ACTION);
 }
 
 #[test]
 fn when_on_last_page_then_last_tab_is_active_color() {
     // Arrange
     let mut grid = StashGrid::new(5, 5, 3);
-    grid.set_current_page(2);
+    grid.set_current_page(3);
     let (mut world, shape_calls) = make_render_world(grid, true, (1024, 768));
 
     // Act
@@ -307,7 +341,9 @@ fn when_on_last_page_then_last_tab_is_active_color() {
     let calls = shape_calls.lock().unwrap();
     assert_eq!(calls[0].2, TAB_INACTIVE);
     assert_eq!(calls[1].2, TAB_INACTIVE);
-    assert_eq!(calls[2].2, TAB_ACTIVE);
+    assert_eq!(calls[2].2, TAB_INACTIVE);
+    assert_eq!(calls[3].2, TAB_ACTIVE);
+    assert_eq!(calls[4].2, TAB_ACTION);
 }
 
 #[test]
@@ -360,7 +396,7 @@ fn when_tabs_rendered_then_centered_under_grid() {
         768.0,
     );
     let last_screen = engine_render::prelude::world_to_screen(
-        Vec2::new(calls[2].0[0][0], calls[2].0[0][1]),
+        Vec2::new(calls[4].0[0][0], calls[4].0[0][1]),
         &camera,
         1024.0,
         768.0,
@@ -392,4 +428,51 @@ fn when_tabs_rendered_then_adjacent_tabs_evenly_spaced() {
         (dx01 - dx12).abs() < 0.01,
         "spacing should be uniform: dx01={dx01}, dx12={dx12}"
     );
+}
+
+#[test]
+fn when_tabs_rendered_then_labels_land_on_their_tabs() {
+    // Arrange
+    let (mut world, text_calls) =
+        make_render_world_with_text(StashGrid::new(5, 5, 3), true, (1024, 768));
+
+    // Act
+    run_render_system(&mut world);
+
+    // Assert
+    let calls = text_calls.lock().unwrap();
+    assert_eq!(calls.len(), 5);
+
+    let camera = Camera2D::default();
+    let tab_count = 3 + 2;
+    for (index, (text, x, y, _, _)) in calls.iter().enumerate() {
+        let expected_label = match index {
+            0 => "$",
+            1 => "1",
+            2 => "2",
+            3 => "3",
+            4 => "+",
+            _ => unreachable!("unexpected tab label index"),
+        };
+        assert_eq!(text, expected_label);
+
+        let expected_left = tab_left_x(GRID_W, tab_count, index as u8);
+        let expected_screen = Vec2::new(
+            expected_left + TAB_WIDTH * 0.5 - measure_text(text, 12.0) * 0.5,
+            tab_row_top_y(GRID_H) + TAB_HEIGHT * 0.5 - 12.0 * 0.45,
+        );
+        let actual_screen = world_to_screen(Vec2::new(*x, *y), &camera, 1024.0, 768.0);
+        assert!(
+            (actual_screen.x - expected_screen.x).abs() < 1.0,
+            "tab {index} x={} expected near {}",
+            actual_screen.x,
+            expected_screen.x
+        );
+        assert!(
+            (actual_screen.y - expected_screen.y).abs() < 1.0,
+            "tab {index} y={} expected near {}",
+            actual_screen.y,
+            expected_screen.y
+        );
+    }
 }

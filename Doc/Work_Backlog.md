@@ -13,6 +13,19 @@ Status legend:
 - `In progress` = actively underway
 - `Deferred` = intentionally not next
 
+Order matters:
+
+- Finish the architecture unification items below before starting new feature work.
+- See `Doc/Asymmetry_Duplication_Resolution_Plan.md` for the rationale and migration rules.
+
+## Architecture Unification First
+
+- `TD-035` (`Open`): Replace preload/post-splash `FnMut(&mut World)` hook queues with typed startup schedules/phases registered like normal ECS systems.
+- `TD-036` (`Open`): Normalize all raw platform input through a single event ingestion path, including cursor movement and wheel input, before deriving frame state resources.
+- `TD-034` (`Open`): Centralize physics ownership behind a command/reconcile layer so gameplay systems stop mutating `PhysicsRes` ad hoc.
+- `TD-033` (`Open`): Replace the card game's long chained interaction pipeline with explicit interaction intents/events and a smaller number of authoritative applier systems.
+- `TD-037` (`Open`): Add a render extraction phase and cached per-frame draw lists to reduce duplicated sorting, re-querying, and ad hoc render-time data rebuilding.
+
 ## Priority Blockers
 
 - `TD-032` (`Completed`): Add real end-to-end schedule tests through the full `CardGamePlugin` schedule, including multi-frame input sequences and zone transitions.
@@ -21,13 +34,8 @@ Status legend:
 - `TD-001/002/003` (`Completed`): Add change detection to transform propagation, hierarchy maintenance, and visibility propagation.
 - `TD-005` (`Completed`): Implement the GPU-side material pipeline in `WgpuRenderer`, including textures and uniforms.
 
-## Engine Gaps
+## Engine Gaps After Unification
 
-- `TD-033` (`Open`): Replace the card game's long chained interaction pipeline with explicit interaction intents/events and a smaller number of authoritative applier systems.
-- `TD-034` (`Open`): Centralize physics ownership behind a command/reconcile layer so gameplay systems stop mutating `PhysicsRes` ad hoc.
-- `TD-035` (`Open`): Replace preload/post-splash `FnMut(&mut World)` hook queues with typed startup schedules/phases registered like normal ECS systems.
-- `TD-036` (`Open`): Normalize all raw platform input through a single event ingestion path, including cursor movement and wheel input, before deriving frame state resources.
-- `TD-037` (`Open`): Add a render extraction phase and cached per-frame draw lists to reduce duplicated sorting, re-querying, and ad hoc render-time data rebuilding.
 - `TD-018` (`Open`): Add physics interpolation so rendering can smooth between fixed physics steps.
 - `TD-015` (`Open`): Add a color grading post-process pass.
 - `TD-010` (`Open`): Add hot reload support for assets.

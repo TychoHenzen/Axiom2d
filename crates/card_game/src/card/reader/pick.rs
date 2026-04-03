@@ -7,6 +7,8 @@ use crate::card::interaction::drag_state::DragState;
 use crate::card::jack_socket::PendingCable;
 use crate::card::reader::components::{CardReader, ReaderDragInfo, ReaderDragState};
 use crate::card::screen_device::ScreenDragState;
+use crate::stash::grid::StashGrid;
+use crate::stash::toggle::StashVisible;
 
 pub fn reader_pick_system(
     mouse: Res<MouseState>,
@@ -14,6 +16,8 @@ pub fn reader_pick_system(
     mut reader_drag: ResMut<ReaderDragState>,
     screen_drag: Res<ScreenDragState>,
     pending: Res<PendingCable>,
+    stash_visible: Option<Res<StashVisible>>,
+    grid: Option<Res<StashGrid>>,
     readers: Query<(Entity, &Transform2D, &CardReader)>,
 ) {
     if drag_state.dragging.is_some()
@@ -24,6 +28,12 @@ pub fn reader_pick_system(
         return;
     }
     if !mouse.just_pressed(MouseButton::Left) {
+        return;
+    }
+    if let (Some(stash_visible), Some(grid)) = (stash_visible, grid)
+        && stash_visible.0
+        && crate::stash::pages::stash_ui_contains(mouse.screen_pos(), &grid)
+    {
         return;
     }
     let cursor = mouse.world_pos();

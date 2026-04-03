@@ -54,6 +54,10 @@ pub use crate::stash::hover::{
 pub use crate::stash::layout::stash_layout_system;
 pub use crate::stash::pages::{stash_tab_click_system, stash_tab_render_system};
 pub use crate::stash::render::stash_render_system;
+pub use crate::stash::store::{
+    StoreCatalog, StoreItemKind, StoreWallet, storage_tab_purchase_cost, store_buy_system,
+    store_render_system, store_sell_system,
+};
 pub use crate::stash::toggle::{StashVisible, stash_toggle_system};
 
 pub use crate::plugin::CardGamePlugin;

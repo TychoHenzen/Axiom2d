@@ -49,8 +49,12 @@ pub fn stash_hover_preview_system(
         .then_some(())
         .filter(|()| ctrl_held)
         .filter(|()| drag_state.dragging.is_none())
+        .filter(|()| grid.current_storage_page().is_some())
         .and_then(|()| find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height()))
-        .and_then(|(col, row)| grid.get(grid.current_page(), col, row).copied());
+        .and_then(|(col, row)| {
+            grid.get(grid.current_storage_page().unwrap_or(0), col, row)
+                .copied()
+        });
 
     hover_preview.hovered_entity = hovered;
 }

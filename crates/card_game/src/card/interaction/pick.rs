@@ -7,6 +7,7 @@ use crate::card::component::Card;
 use crate::card::component::CardZone;
 use crate::card::interaction::game_state_param::CardGameState;
 use crate::card::reader::ReaderDragState;
+use crate::card::screen_device::ScreenDragState;
 
 mod apply;
 mod hit_test;
@@ -24,6 +25,7 @@ pub fn card_pick_system(
     mouse: Res<MouseState>,
     mut state: CardGameState,
     reader_drag: Res<ReaderDragState>,
+    screen_drag: Option<Res<ScreenDragState>>,
     mut commands: Commands,
     mut query: Query<(
         Entity,
@@ -34,7 +36,10 @@ pub fn card_pick_system(
         &SortOrder,
     )>,
 ) {
-    if state.drag_state.dragging.is_some() || reader_drag.dragging.is_some() {
+    if state.drag_state.dragging.is_some()
+        || reader_drag.dragging.is_some()
+        || screen_drag.is_some_and(|drag| drag.dragging.is_some())
+    {
         return;
     }
     if !mouse.just_pressed(MouseButton::Left) {

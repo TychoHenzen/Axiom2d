@@ -17,6 +17,8 @@ use crate::card::jack_cable::{
 use crate::card::reader::ReaderDragState;
 use crate::card::reader::SignatureSpace;
 use crate::card::screen_device::ScreenDragState;
+use crate::stash::grid::StashGrid;
+use crate::stash::toggle::StashVisible;
 
 const SOCKET_LOCAL_SORT: i32 = 1;
 const PREVIEW_LOCAL_SORT: i32 = 3;
@@ -103,6 +105,8 @@ pub fn jack_socket_pick_system(
     reader_drag: Res<ReaderDragState>,
     screen_drag: Res<ScreenDragState>,
     mut pending: ResMut<PendingCable>,
+    stash_visible: Option<Res<StashVisible>>,
+    grid: Option<Res<StashGrid>>,
     sockets: Query<(Entity, &JackSocket, &Transform2D)>,
 ) {
     if drag_state.dragging.is_some()
@@ -113,6 +117,12 @@ pub fn jack_socket_pick_system(
         return;
     }
     if !mouse.just_pressed(MouseButton::Left) {
+        return;
+    }
+    if let (Some(stash_visible), Some(grid)) = (stash_visible, grid)
+        && stash_visible.0
+        && crate::stash::pages::stash_ui_contains(mouse.screen_pos(), &grid)
+    {
         return;
     }
     let cursor = mouse.world_pos();

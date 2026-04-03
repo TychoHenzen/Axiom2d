@@ -40,6 +40,7 @@ use crate::stash::hover::{
 use crate::stash::layout::stash_layout_system;
 use crate::stash::pages::{stash_tab_click_system, stash_tab_render_system};
 use crate::stash::render::stash_render_system;
+use crate::stash::store::{StoreCatalog, StoreWallet, store_buy_system, store_sell_system};
 use crate::stash::toggle::{StashVisible, stash_toggle_system};
 use bevy_ecs::schedule::IntoScheduleConfigs;
 use engine_app::prelude::{App, Phase, Plugin};
@@ -70,6 +71,8 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(Hand::new(10));
         world.insert_resource(StashGrid::new(10, 10, 3));
         world.insert_resource(StashHoverPreview::default());
+        world.insert_resource(StoreWallet::default());
+        world.insert_resource(StoreCatalog::default());
         world.insert_resource(DebugSpawnRng::default());
         world.insert_resource(PendingCable::default());
         world.insert_resource(ScreenDragState::default());
@@ -111,6 +114,7 @@ fn register_systems(app: &mut App) {
     .add_systems(
         Phase::Update,
         (
+            store_buy_system,
             card_pick_system,
             reader_pick_system,
             screen_pick_system,
@@ -119,6 +123,7 @@ fn register_systems(app: &mut App) {
             card_drag_system,
             reader_drag_system,
             screen_drag_system,
+            store_sell_system,
             stash_boundary_system,
             card_reader_insert_system,
             card_release_system,

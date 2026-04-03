@@ -14,6 +14,7 @@ use crate::stash::constants::{
     BACKGROUND_COLOR, GRID_MARGIN, SLOT_GAP, SLOT_STRIDE_H, SLOT_STRIDE_W,
 };
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
+use crate::stash::store::{StoreCatalog, StoreWallet, render_store_page};
 use crate::stash::toggle::StashVisible;
 use engine_render::prelude::resolve_viewport_camera;
 
@@ -29,6 +30,8 @@ pub struct StashRenderParams<'w> {
     drag_state: Res<'w, crate::card::interaction::drag_state::DragState>,
     mouse: Res<'w, engine_input::prelude::MouseState>,
     art_shader: Option<Res<'w, crate::card::rendering::art_shader::CardArtShader>>,
+    wallet: Option<Res<'w, StoreWallet>>,
+    catalog: Option<Res<'w, StoreCatalog>>,
 }
 
 pub(crate) use helpers::reset_default_shader;
@@ -66,6 +69,21 @@ pub fn stash_render_system(
         engine_render::prelude::IDENTITY_MODEL,
     );
 
+    if params.grid.is_store_page() {
+        if let (Some(wallet), Some(catalog)) = (params.wallet, params.catalog) {
+            render_store_page(
+                &mut **renderer,
+                &camera,
+                vw,
+                vh,
+                &params.grid,
+                &wallet,
+                &catalog,
+            );
+        }
+        return;
+    }
+
     let icon_colors: HashMap<Entity, Color> = card_query
         .iter()
         .map(|(entity, card, _baked)| {
@@ -82,7 +100,7 @@ pub fn stash_render_system(
         .filter_map(|(entity, _card, baked)| baked.map(|b| (entity, b)))
         .collect();
 
-    let page = params.grid.current_page();
+    let page = params.grid.current_storage_page().unwrap_or(0);
 
     let highlight_slot = if params.drag_state.dragging.is_some() {
         find_stash_slot_at(

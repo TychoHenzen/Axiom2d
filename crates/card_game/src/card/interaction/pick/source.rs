@@ -42,16 +42,21 @@ pub(crate) fn identify_pick_source(
 ) -> Option<PickSource> {
     if stash_visible.0 {
         let screen = mouse.screen_pos();
-        if let Some((col, row)) = find_stash_slot_at(screen, grid.width(), grid.height()) {
-            let page = grid.current_page();
-            if let Some(entity) = grid.get(page, col, row) {
-                return Some(PickSource::Stash {
-                    entity: *entity,
-                    page,
-                    col,
-                    row,
-                });
+        if crate::stash::pages::stash_ui_contains(screen, grid) {
+            if !grid.is_store_page()
+                && let Some((col, row)) = find_stash_slot_at(screen, grid.width(), grid.height())
+            {
+                let page = grid.current_storage_page().unwrap_or(0);
+                if let Some(entity) = grid.get(page, col, row) {
+                    return Some(PickSource::Stash {
+                        entity: *entity,
+                        page,
+                        col,
+                        row,
+                    });
+                }
             }
+            return None;
         }
     }
 

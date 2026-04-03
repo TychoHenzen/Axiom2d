@@ -5,4 +5,5 @@ pub mod hover;
 pub mod layout;
 pub mod pages;
 pub mod render;
+pub mod store;
 pub mod toggle;

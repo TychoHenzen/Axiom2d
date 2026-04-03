@@ -32,27 +32,32 @@ fn resolve_drop_target(
     grid: &StashGrid,
     origin_zone: &CardZone,
 ) -> DropTarget {
-    if stash_visible
-        && let Some((col, row)) = find_stash_slot_at(screen_pos, grid.width(), grid.height())
-    {
-        let page = grid.current_page();
-        if grid.get(page, col, row).is_none() {
-            return DropTarget::Stash { page, col, row };
+    if stash_visible {
+        if grid.is_store_page() && crate::stash::pages::stash_ui_contains(screen_pos, grid) {
+            return DropTarget::TableSnapBack;
         }
-        if let CardZone::Stash {
-            page: op,
-            col: oc,
-            row: orow,
-        } = *origin_zone
-            && grid.get(op, oc, orow).is_none()
+        if !grid.is_store_page()
+            && let Some((col, row)) = find_stash_slot_at(screen_pos, grid.width(), grid.height())
         {
-            return DropTarget::Stash {
+            let page = grid.current_storage_page().unwrap_or(0);
+            if grid.get(page, col, row).is_none() {
+                return DropTarget::Stash { page, col, row };
+            }
+            if let CardZone::Stash {
                 page: op,
                 col: oc,
                 row: orow,
-            };
+            } = *origin_zone
+                && grid.get(op, oc, orow).is_none()
+            {
+                return DropTarget::Stash {
+                    page: op,
+                    col: oc,
+                    row: orow,
+                };
+            }
+            return DropTarget::TableSnapBack;
         }
-        return DropTarget::TableSnapBack;
     }
 
     if viewport_height > 0.0 && is_hand_drop_zone(screen_pos.y, viewport_height) {

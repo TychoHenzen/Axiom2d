@@ -30,8 +30,8 @@ impl StashGrid {
             slots: HashMap::new(),
             width,
             height,
-            page_count,
-            current_page: 0,
+            page_count: page_count.max(1),
+            current_page: 1,
         }
     }
 
@@ -66,7 +66,16 @@ impl StashGrid {
     }
 
     pub fn set_current_page(&mut self, page: u8) {
-        self.current_page = page.min(self.page_count.saturating_sub(1));
+        self.current_page = page.min(self.page_count);
+    }
+
+    /// Returns the zero-based storage page currently selected, or `None` on the store page.
+    pub fn current_storage_page(&self) -> Option<u8> {
+        self.current_page.checked_sub(1)
+    }
+
+    pub fn is_store_page(&self) -> bool {
+        self.current_page == 0
     }
 
     pub fn width(&self) -> u8 {
@@ -78,6 +87,15 @@ impl StashGrid {
     }
 
     pub fn page_count(&self) -> u8 {
+        self.page_count
+    }
+
+    pub fn tab_count(&self) -> u8 {
+        self.page_count.saturating_add(2)
+    }
+
+    pub fn add_storage_tab(&mut self) -> u8 {
+        self.page_count = self.page_count.saturating_add(1);
         self.page_count
     }
 

@@ -2,6 +2,7 @@
 
 > Archived reference. The active backlog now lives in `Doc/Work_Backlog.md`.
 > Keep this file for historical context and debt analysis, not for day-to-day task tracking.
+> For the current asymmetry/duplication remediation plan, see `Doc/Asymmetry_Duplication_Resolution_Plan.md`.
 
 **Date:** 2026-03-21 (refreshed)
 **Previous audit:** 2026-03-14 (commit `d9b9327`, 740 tests)
