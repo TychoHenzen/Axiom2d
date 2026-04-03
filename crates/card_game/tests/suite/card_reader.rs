@@ -13,10 +13,11 @@ use glam::Vec2;
 use card_game::card::component::{Card, CardZone};
 use card_game::card::identity::signature::CardSignature;
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
+use card_game::card::jack_cable::{Jack, JackDirection};
 use card_game::card::reader::{
-    CardReader, OutputJack, READER_CARD_SCALE, ReaderDragInfo, ReaderDragState,
-    card_overlaps_reader, card_reader_eject_system, card_reader_insert_system, reader_drag_system,
-    reader_pick_system, reader_release_system, reader_rotation_lock_system,
+    CardReader, READER_CARD_SCALE, ReaderDragInfo, ReaderDragState, SIGNATURE_SPACE_RADIUS,
+    SignatureSpace, card_overlaps_reader, card_reader_eject_system, card_reader_insert_system,
+    reader_drag_system, reader_pick_system, reader_release_system, reader_rotation_lock_system,
 };
 use card_game::test_helpers::{
     AddBodyLog, AngularVelocityLog, RemoveBodyLog, SpyPhysicsBackend, spawn_entity,
@@ -50,7 +51,12 @@ fn run_insert(world: &mut World) {
 fn when_reader_clicked_then_starts_reader_drag() {
     // Arrange
     let mut world = World::new();
-    let jack = world.spawn(OutputJack { data: None }).id();
+    let jack = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: None,
+        })
+        .id();
     let reader = world
         .spawn((
             CardReader {
@@ -109,6 +115,10 @@ fn when_mouse_released_while_reader_dragging_then_clears_reader_drag() {
     assert!(world.resource::<ReaderDragState>().dragging.is_none());
 }
 
+// Canonical signature used in insert/eject scenario helpers — shared so
+// assertion-level comparisons (e.g. SignatureSpace::center) stay in sync.
+const INSERT_SCENARIO_SIG: [f32; 8] = [0.5, -0.3, 0.8, 0.1, -0.6, 0.2, 0.4, -0.1];
+
 struct InsertTestSetup {
     card_entity: Entity,
     reader_entity: Entity,
@@ -116,7 +126,7 @@ struct InsertTestSetup {
 }
 
 fn setup_insert_scenario(world: &mut World) -> InsertTestSetup {
-    let sig = CardSignature::new([0.5, -0.3, 0.8, 0.1, -0.6, 0.2, 0.4, -0.1]);
+    let sig = CardSignature::new(INSERT_SCENARIO_SIG);
     let card_entity = world
         .spawn((
             Card {
@@ -135,7 +145,12 @@ fn setup_insert_scenario(world: &mut World) -> InsertTestSetup {
         ))
         .id();
 
-    let jack_entity = world.spawn(OutputJack { data: None }).id();
+    let jack_entity = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: None,
+        })
+        .id();
 
     let reader_entity = world
         .spawn((
@@ -290,6 +305,10 @@ fn when_no_readers_then_no_angular_velocity_calls() {
     assert!(ang_log.lock().unwrap().is_empty());
 }
 
+/// @doc: Cards must teleport to the reader's center on insertion so their
+/// visual position matches the slot. A card left at its drop position would
+/// appear offset inside the reader frame, breaking the visual affordance that
+/// the card is locked into place.
 #[test]
 fn when_card_released_over_reader_then_snaps_to_reader_position() {
     // Arrange
@@ -401,12 +420,13 @@ fn when_card_released_over_reader_then_reader_loaded_stores_card() {
     );
 }
 
-/// @doc: The output jack immediately reflects the loaded card's signature so
-/// downstream consumers (future cable connections) get data as soon as a card
-/// is inserted. A stale or empty jack after insertion would break any device
-/// chain that depends on the reader's output.
+/// @doc: The reader's output jack must emit a SignatureSpace — a spherical region in
+/// 8D signature space centered on the inserted card's signature with radius 0.2 — rather
+/// than a raw CardSignature. This allows downstream cable-connected devices to reason
+/// about a zone of signatures rather than a single point, enabling signature-matching
+/// logic that can tolerate slight variations between cards.
 #[test]
-fn when_card_released_over_reader_then_jack_has_signature() {
+fn when_card_inserted_then_jack_emits_signature_space() {
     // Arrange
     let mut world = World::new();
     let setup = setup_insert_scenario(&mut world);
@@ -415,12 +435,16 @@ fn when_card_released_over_reader_then_jack_has_signature() {
     run_insert(&mut world);
 
     // Assert
-    let jack = world.get::<OutputJack>(setup.jack_entity).unwrap();
-    let expected = CardSignature::new([0.5, -0.3, 0.8, 0.1, -0.6, 0.2, 0.4, -0.1]);
+    let jack = world
+        .get::<Jack<SignatureSpace>>(setup.jack_entity)
+        .unwrap();
     assert_eq!(
         jack.data,
-        Some(expected),
-        "output jack should contain card signature"
+        Some(SignatureSpace {
+            center: CardSignature::new(INSERT_SCENARIO_SIG),
+            radius: SIGNATURE_SPACE_RADIUS,
+        }),
+        "jack must emit SignatureSpace centered on the inserted card's signature"
     );
 }
 
@@ -465,7 +489,12 @@ fn when_card_released_not_over_reader_then_no_insertion() {
             RigidBody::Dynamic,
         ))
         .id();
-    let jack_entity = world.spawn(OutputJack { data: None }).id();
+    let jack_entity = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: None,
+        })
+        .id();
     let reader_entity = world
         .spawn((
             CardReader {
@@ -519,7 +548,12 @@ fn when_reader_full_then_second_card_not_inserted() {
     // Arrange
     let mut world = World::new();
     let existing_card = world.spawn_empty().id();
-    let jack_entity = world.spawn(OutputJack { data: None }).id();
+    let jack_entity = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: None,
+        })
+        .id();
     let reader_entity = world
         .spawn((
             CardReader {
@@ -613,7 +647,12 @@ fn when_reader_dragged_then_loaded_card_moves_by_same_delta() {
         ))
         .id();
 
-    let jack_entity = world.spawn(OutputJack { data: None }).id();
+    let jack_entity = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: None,
+        })
+        .id();
 
     let reader_entity = world
         .spawn((
@@ -668,7 +707,12 @@ fn when_reader_dragged_then_loaded_card_moves_by_same_delta() {
 fn when_empty_reader_dragged_then_no_panic() {
     // Arrange
     let mut world = World::new();
-    let jack_entity = world.spawn(OutputJack { data: None }).id();
+    let jack_entity = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: None,
+        })
+        .id();
     let reader_entity = world
         .spawn((
             CardReader {
@@ -723,9 +767,17 @@ struct EjectTestSetup {
 }
 
 fn setup_eject_scenario(world: &mut World) -> EjectTestSetup {
-    let sig = CardSignature::new([0.5, -0.3, 0.8, 0.1, -0.6, 0.2, 0.4, -0.1]);
+    let sig = CardSignature::new(INSERT_SCENARIO_SIG);
 
-    let jack_entity = world.spawn(OutputJack { data: Some(sig) }).id();
+    let jack_entity = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: Some(SignatureSpace {
+                center: sig,
+                radius: SIGNATURE_SPACE_RADIUS,
+            }),
+        })
+        .id();
 
     let card_entity = world
         .spawn((
@@ -864,7 +916,9 @@ fn when_card_picked_from_reader_then_jack_data_cleared() {
     run_eject(&mut world);
 
     // Assert
-    let jack = world.get::<OutputJack>(setup.jack_entity).unwrap();
+    let jack = world
+        .get::<Jack<SignatureSpace>>(setup.jack_entity)
+        .unwrap();
     assert!(jack.data.is_none(), "output jack data should be cleared");
 }
 
@@ -881,7 +935,15 @@ fn when_reader_dragged_then_ejected_card_physics_body_placed_at_new_position() {
     let mut world = World::new();
     let add_log: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
     let sig = CardSignature::new([0.1, 0.2, 0.3, 0.4, -0.1, -0.2, -0.3, -0.4]);
-    let jack_entity = world.spawn(OutputJack { data: Some(sig) }).id();
+    let jack_entity = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: Some(SignatureSpace {
+                center: sig,
+                radius: SIGNATURE_SPACE_RADIUS,
+            }),
+        })
+        .id();
     let reader_start = Vec2::new(100.0, 100.0);
     let reader_dest = Vec2::new(300.0, 200.0);
 
@@ -989,7 +1051,12 @@ fn when_card_over_two_overlapping_readers_then_only_one_claims_it() {
             RigidBody::Dynamic,
         ))
         .id();
-    let jack_a = world.spawn(OutputJack { data: None }).id();
+    let jack_a = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: None,
+        })
+        .id();
     let reader_a = world
         .spawn((
             CardReader {
@@ -1004,7 +1071,12 @@ fn when_card_over_two_overlapping_readers_then_only_one_claims_it() {
             },
         ))
         .id();
-    let jack_b = world.spawn(OutputJack { data: None }).id();
+    let jack_b = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: None,
+        })
+        .id();
     let reader_b = world
         .spawn((
             CardReader {

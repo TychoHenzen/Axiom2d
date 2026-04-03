@@ -7,16 +7,16 @@ use engine_physics::prelude::{PhysicsRes, RigidBody};
 use crate::card::component::{Card, CardZone};
 use crate::card::interaction::drag_state::DragState;
 use crate::card::interaction::physics_helpers::warn_on_physics_result;
-use crate::card::reader::components::{
-    CardReader, OutputJack, READER_CARD_SCALE, card_overlaps_reader,
-};
+use crate::card::jack_cable::Jack;
+use crate::card::reader::components::{CardReader, READER_CARD_SCALE, card_overlaps_reader};
+use crate::card::reader::signature_space::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
 
 pub fn card_reader_insert_system(
     mouse: Res<MouseState>,
     mut drag_state: ResMut<DragState>,
     mut readers: Query<(Entity, &Transform2D, &mut CardReader)>,
     mut cards: Query<(&mut Transform2D, &Card, &mut CardZone), Without<CardReader>>,
-    mut jacks: Query<&mut OutputJack>,
+    mut jacks: Query<&mut Jack<SignatureSpace>>,
     mut physics: ResMut<PhysicsRes>,
     mut commands: Commands,
 ) {
@@ -57,7 +57,10 @@ pub fn card_reader_insert_system(
         reader.loaded = Some(card_entity);
 
         if let Ok(mut jack) = jacks.get_mut(reader.jack_entity) {
-            jack.data = Some(card.signature);
+            jack.data = Some(SignatureSpace {
+                center: card.signature,
+                radius: SIGNATURE_SPACE_RADIUS,
+            });
         }
 
         drag_state.dragging = None;

@@ -9,6 +9,7 @@ use crate::card::interaction::flip::card_flip_system;
 use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
 use crate::card::interaction::pick::card_pick_system;
 use crate::card::interaction::release::card_release_system;
+use crate::card::jack_cable::{cable_render_system, signature_space_propagation_system};
 use crate::card::reader::{
     ReaderDragState, card_reader_eject_system, card_reader_insert_system, reader_drag_system,
     reader_glow_system, reader_pick_system, reader_release_system, reader_rotation_lock_system,
@@ -21,6 +22,7 @@ use crate::card::rendering::baked_render::baked_card_render_system;
 use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
 use crate::card::rendering::drop_zone_glow::hand_drop_zone_render_system;
 use crate::card::rendering::render_layer::card_render_layer_system;
+use crate::card::screen_device::screen_render_system;
 use crate::hand::Hand;
 use crate::hand::layout::hand_layout_system;
 use crate::stash::boundary::stash_boundary_system;
@@ -116,6 +118,7 @@ fn register_systems(app: &mut App) {
     .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system))
     .add_systems(Phase::Update, (stash_toggle_system, stash_tab_click_system))
     .add_systems(Phase::Update, stash_hover_preview_system)
+    .add_systems(Phase::Update, signature_space_propagation_system)
     .add_systems(
         Phase::PostUpdate,
         (
@@ -150,5 +153,9 @@ fn register_systems(app: &mut App) {
     .add_systems(
         Phase::Render,
         hand_drop_zone_render_system.after(shape_render_system),
+    )
+    .add_systems(
+        Phase::Render,
+        (cable_render_system, screen_render_system).after(shape_render_system),
     );
 }

@@ -6,8 +6,10 @@ use engine_scene::prelude::{LocalSortOrder, SpawnChildExt};
 use engine_scene::render_order::{RenderLayer, SortOrder};
 use glam::Vec2;
 
-use super::components::{CardReader, OutputJack};
+use crate::card::jack_cable::{Jack, JackDirection};
+use crate::card::reader::components::CardReader;
 use crate::card::reader::glow::{ReaderAccent, ReaderRecess, ReaderRune};
+use crate::card::reader::signature_space::SignatureSpace;
 
 // --- Dimensions -----------------------------------------------------------
 
@@ -95,7 +97,12 @@ pub const ACCENT_COLOR_LIT: Color = Color {
 /// Returns `(reader_entity, jack_entity)`. The caller is responsible for
 /// registering the reader's physics body and collider via `PhysicsRes`.
 pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
-    let jack_entity = world.spawn(OutputJack { data: None }).id();
+    let jack_entity = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: None,
+        })
+        .id();
 
     let half = Vec2::new(READER_HALF_W, READER_HALF_H);
 

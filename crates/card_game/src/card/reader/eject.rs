@@ -6,13 +6,15 @@ use crate::card::component::{Card, CardZone};
 use crate::card::interaction::drag_state::DragState;
 use crate::card::interaction::physics_helpers::activate_physics_body;
 use crate::card::interaction::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
-use crate::card::reader::components::{CardReader, OutputJack};
+use crate::card::jack_cable::Jack;
+use crate::card::reader::components::CardReader;
+use crate::card::reader::signature_space::SignatureSpace;
 
 pub fn card_reader_eject_system(
     drag_state: Res<DragState>,
     mut readers: Query<&mut CardReader>,
     mut cards: Query<&mut CardZone, With<Card>>,
-    mut jacks: Query<&mut OutputJack>,
+    mut jacks: Query<&mut Jack<SignatureSpace>>,
     mut physics: ResMut<PhysicsRes>,
     transforms: Query<&Transform2D>,
     colliders: Query<&engine_physics::prelude::Collider>,
