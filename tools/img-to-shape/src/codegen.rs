@@ -1,13 +1,284 @@
+use std::collections::BTreeMap;
 use std::fmt::Write;
 
 use engine_core::color::Color;
 use engine_render::shape::{PathCommand, Shape, ShapeVariant};
+use glam::Vec2;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 /// Metadata describing which card signature affinity this art represents.
 pub struct ArtMetadata<'a> {
     pub element: &'a str,
     pub aspect: &'a str,
     pub signature_axes: [f32; 8],
+}
+
+/// Optional lossy export/preview optimizations applied after vectorization.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExportOptimizationConfig {
+    /// Decimal places to keep for geometry coordinates.
+    /// The converter already emits at most 2 decimal places, so values above 2
+    /// are treated as 2.
+    #[serde(default = "default_coordinate_decimals")]
+    pub coordinate_decimals: u8,
+    /// Target shared palette size for compact manifest exports.
+    /// `0` keeps per-shape RGB bytes.
+    #[serde(default)]
+    pub palette_size: usize,
+}
+
+const fn default_coordinate_decimals() -> u8 {
+    2
+}
+
+impl Default for ExportOptimizationConfig {
+    fn default() -> Self {
+        Self {
+            coordinate_decimals: default_coordinate_decimals(),
+            palette_size: 0,
+        }
+    }
+}
+
+/// Errors from compact integer encoding.
+#[derive(Debug, Error)]
+pub enum CompactEncodingError {
+    #[error("compact i16 encoding overflow for {field}: {value}")]
+    I16Overflow { field: &'static str, value: f32 },
+    #[error("shared palette was empty for indexed compact encoding")]
+    EmptySharedPalette,
+    #[error("shared palette exceeds u8 index capacity: {size}")]
+    SharedPaletteTooLarge { size: usize },
+}
+
+/// Encoded compact shape payload.
+#[derive(Debug)]
+pub struct CompactShapeData {
+    pub colors: Vec<u8>,
+    pub data: Vec<i16>,
+}
+
+/// Encoded compact shape payload using shared palette indexes.
+#[derive(Debug)]
+pub struct IndexedCompactShapeData {
+    pub color_indexes: Vec<u8>,
+    pub data: Vec<i16>,
+}
+
+/// Apply post-vectorization export optimizations to a shape list.
+pub fn optimize_shapes_for_export(
+    shapes: &[Shape],
+    config: &ExportOptimizationConfig,
+) -> Vec<Shape> {
+    if shapes.is_empty() {
+        return Vec::new();
+    }
+
+    let mut optimized = shapes.to_vec();
+
+    if clamp_coordinate_decimals(config.coordinate_decimals) < 2 {
+        quantize_shapes_geometry(&mut optimized, config.coordinate_decimals);
+    }
+
+    optimized
+}
+
+/// Count distinct RGB colors used by a shape list.
+pub fn unique_shape_color_count(shapes: &[Shape]) -> usize {
+    let mut unique: Vec<Color> = Vec::new();
+    for shape in shapes {
+        if unique.iter().all(|color| !same_rgb(*color, shape.color)) {
+            unique.push(shape.color);
+        }
+    }
+    unique.len()
+}
+
+fn quantize_shapes_geometry(shapes: &mut [Shape], coordinate_decimals: u8) {
+    let places = clamp_coordinate_decimals(coordinate_decimals);
+    for shape in shapes {
+        match &mut shape.variant {
+            ShapeVariant::Circle { radius } => {
+                *radius = round_to_places(*radius, places);
+            }
+            ShapeVariant::Polygon { points } => {
+                for point in points {
+                    quantize_vec2(point, places);
+                }
+            }
+            ShapeVariant::Path { commands } => {
+                for command in commands {
+                    match command {
+                        PathCommand::MoveTo(point) | PathCommand::LineTo(point) => {
+                            quantize_vec2(point, places);
+                        }
+                        PathCommand::QuadraticTo { control, to } => {
+                            quantize_vec2(control, places);
+                            quantize_vec2(to, places);
+                        }
+                        PathCommand::CubicTo {
+                            control1,
+                            control2,
+                            to,
+                        } => {
+                            quantize_vec2(control1, places);
+                            quantize_vec2(control2, places);
+                            quantize_vec2(to, places);
+                        }
+                        PathCommand::Close | PathCommand::Reverse => {}
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct PaletteSample {
+    color: Color,
+    weight: f32,
+}
+
+/// Build one shared palette across multiple compact-export shape sets.
+pub fn build_shared_palette(shape_sets: &[&[Shape]], palette_size: usize) -> Vec<Color> {
+    if palette_size == 0 {
+        return Vec::new();
+    }
+
+    let mut samples_by_color: BTreeMap<(u32, u32, u32), PaletteSample> = BTreeMap::new();
+    for shapes in shape_sets {
+        for shape in *shapes {
+            if encodable_path_commands(shape).is_none() {
+                continue;
+            }
+            let key = palette_key(shape.color);
+            samples_by_color
+                .entry(key)
+                .and_modify(|sample| sample.weight += 1.0)
+                .or_insert(PaletteSample {
+                    color: shape.color,
+                    weight: 1.0,
+                });
+        }
+    }
+
+    let samples: Vec<PaletteSample> = samples_by_color.into_values().collect();
+    if samples.is_empty() {
+        return Vec::new();
+    }
+
+    build_palette(&samples, palette_size.min(usize::from(u8::MAX) + 1))
+}
+
+fn build_palette(samples: &[PaletteSample], palette_size: usize) -> Vec<Color> {
+    let target = palette_size.min(samples.len());
+    let mut centroids = Vec::with_capacity(target);
+
+    let first = samples
+        .iter()
+        .max_by(|a, b| {
+            a.weight
+                .partial_cmp(&b.weight)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|sample| sample.color)
+        .unwrap_or(Color::WHITE);
+    centroids.push(first);
+
+    while centroids.len() < target {
+        let mut best_color = samples[0].color;
+        let mut best_score = f32::NEG_INFINITY;
+        for sample in samples {
+            let score = sample.weight * nearest_distance_sq(sample.color, &centroids);
+            if score > best_score {
+                best_score = score;
+                best_color = sample.color;
+            }
+        }
+        centroids.push(best_color);
+    }
+
+    for _ in 0..8 {
+        let mut sum_r = vec![0.0; target];
+        let mut sum_g = vec![0.0; target];
+        let mut sum_b = vec![0.0; target];
+        let mut weight_sum = vec![0.0; target];
+
+        for sample in samples {
+            let idx = nearest_palette_index(sample.color, &centroids);
+            sum_r[idx] += sample.color.r * sample.weight;
+            sum_g[idx] += sample.color.g * sample.weight;
+            sum_b[idx] += sample.color.b * sample.weight;
+            weight_sum[idx] += sample.weight;
+        }
+
+        for idx in 0..target {
+            if weight_sum[idx] > 0.0 {
+                centroids[idx] = Color::new(
+                    sum_r[idx] / weight_sum[idx],
+                    sum_g[idx] / weight_sum[idx],
+                    sum_b[idx] / weight_sum[idx],
+                    1.0,
+                );
+            }
+        }
+    }
+
+    centroids
+}
+
+fn nearest_palette_index(color: Color, palette: &[Color]) -> usize {
+    let mut best_index = 0;
+    let mut best_distance = f32::INFINITY;
+
+    for (idx, candidate) in palette.iter().enumerate() {
+        let distance = color_distance_sq_rgb(color, *candidate);
+        if distance < best_distance {
+            best_distance = distance;
+            best_index = idx;
+        }
+    }
+
+    best_index
+}
+
+fn nearest_distance_sq(color: Color, palette: &[Color]) -> f32 {
+    palette
+        .iter()
+        .map(|candidate| color_distance_sq_rgb(color, *candidate))
+        .fold(f32::INFINITY, f32::min)
+}
+
+fn color_distance_sq_rgb(a: Color, b: Color) -> f32 {
+    let dr = a.r - b.r;
+    let dg = a.g - b.g;
+    let db = a.b - b.b;
+    dr * dr + dg * dg + db * db
+}
+
+fn same_rgb(a: Color, b: Color) -> bool {
+    a.r.to_bits() == b.r.to_bits()
+        && a.g.to_bits() == b.g.to_bits()
+        && a.b.to_bits() == b.b.to_bits()
+}
+
+fn palette_key(color: Color) -> (u32, u32, u32) {
+    (color.r.to_bits(), color.g.to_bits(), color.b.to_bits())
+}
+
+fn quantize_vec2(point: &mut Vec2, places: u8) {
+    point.x = round_to_places(point.x, places);
+    point.y = round_to_places(point.y, places);
+}
+
+fn round_to_places(v: f32, places: u8) -> f32 {
+    let scale = 10_f32.powi(i32::from(places));
+    (v * scale).round() / scale
+}
+
+fn clamp_coordinate_decimals(places: u8) -> u8 {
+    places.min(2)
 }
 
 /// Generate a complete `.rs` source file containing a `pub fn` that returns
@@ -198,26 +469,110 @@ fn write_color(out: &mut String, color: &Color) {
 
 // --- Compact encoding ---
 //
-// Tags (encoded as f32 in the data array):
-// 0.0 = MoveTo  → 2 floats (x, y)
-// 1.0 = LineTo  → 2 floats (x, y)
-// 2.0 = CubicTo → 6 floats (c1x, c1y, c2x, c2y, x, y)
-// 3.0 = Close   → 0 floats
-// 4.0 = shape   → 4 floats (r, g, b, a) — starts a new shape
+// Exact delta codec optimized for the final binary layout.
+//
+// Colors are stored separately as RGB bytes (`&[u8]`).
+//
+// Tags in the geometry stream (`&[i16]`, scaled by 100):
+// 1 = LineTo  → 2 values (dx, dy) from previous endpoint
+// 2 = CubicTo → 6 values relative to previous endpoint
+//               (dc1x, dc1y, dc2x, dc2y, dx, dy)
+// 4 = shape   → 2 values absolute MoveTo (x, y)
 
-const TAG_MOVE_TO: f32 = 0.0;
-const TAG_LINE_TO: f32 = 1.0;
-const TAG_CUBIC_TO: f32 = 2.0;
-const TAG_CLOSE: f32 = 3.0;
-const TAG_SHAPE: f32 = 4.0;
+const TAG_LINE_TO: i16 = 1;
+const TAG_CUBIC_TO: i16 = 2;
+const TAG_SHAPE: i16 = 4;
+const GEOMETRY_SCALE: f32 = 100.0;
 
-/// Generate a compact `.rs` file that stores shapes as a flat `&[f32]` array
-/// with a hydration function that builds `Vec<Shape>` at load time.
+/// Generate a compact `.rs` file that stores colors as `u8` and geometry as
+/// exact fixed-point `i16` deltas, then hydrates to `Vec<Shape>` at load time.
+fn write_u8_array(out: &mut String, name: &str, values: &[u8]) {
+    let _ = writeln!(out, "const {name}: &[u8] = &[");
+    for (i, &v) in values.iter().enumerate() {
+        if i % 16 == 0 {
+            out.push_str("    ");
+        }
+        let _ = write!(out, "{v},");
+        if i % 16 == 15 || i == values.len() - 1 {
+            out.push('\n');
+        } else {
+            out.push(' ');
+        }
+    }
+    out.push_str("];\n\n");
+}
+
+fn write_i16_array(out: &mut String, name: &str, values: &[i16]) {
+    let _ = writeln!(out, "const {name}: &[i16] = &[");
+    for (i, &v) in values.iter().enumerate() {
+        if i % 12 == 0 {
+            out.push_str("    ");
+        }
+        let _ = write!(out, "{v},");
+        if i % 12 == 11 || i == values.len() - 1 {
+            out.push('\n');
+        } else {
+            out.push(' ');
+        }
+    }
+    out.push_str("];\n\n");
+}
+
+fn encodable_path_commands(shape: &Shape) -> Option<&[PathCommand]> {
+    let ShapeVariant::Path { commands } = &shape.variant else {
+        return None;
+    };
+    matches!(commands.first(), Some(PathCommand::MoveTo(_))).then_some(commands.as_slice())
+}
+
+fn encode_path_commands_to_compact_geometry(
+    commands: &[PathCommand],
+    data: &mut Vec<i16>,
+) -> Result<(), CompactEncodingError> {
+    let Some(PathCommand::MoveTo(start)) = commands.first() else {
+        return Ok(());
+    };
+
+    data.push(TAG_SHAPE);
+    push_i16_scaled(data, start.x, "shape start x")?;
+    push_i16_scaled(data, start.y, "shape start y")?;
+
+    let mut previous = *start;
+    for cmd in &commands[1..] {
+        match cmd {
+            PathCommand::LineTo(to) => {
+                data.push(TAG_LINE_TO);
+                push_i16_scaled(data, to.x - previous.x, "line dx")?;
+                push_i16_scaled(data, to.y - previous.y, "line dy")?;
+                previous = *to;
+            }
+            PathCommand::CubicTo {
+                control1,
+                control2,
+                to,
+            } => {
+                data.push(TAG_CUBIC_TO);
+                push_i16_scaled(data, control1.x - previous.x, "cubic control1 dx")?;
+                push_i16_scaled(data, control1.y - previous.y, "cubic control1 dy")?;
+                push_i16_scaled(data, control2.x - previous.x, "cubic control2 dx")?;
+                push_i16_scaled(data, control2.y - previous.y, "cubic control2 dy")?;
+                push_i16_scaled(data, to.x - previous.x, "cubic to dx")?;
+                push_i16_scaled(data, to.y - previous.y, "cubic to dy")?;
+                previous = *to;
+            }
+            PathCommand::Close | PathCommand::Reverse | PathCommand::MoveTo(_) => {}
+            PathCommand::QuadraticTo { .. } => {}
+        }
+    }
+
+    Ok(())
+}
+
 pub fn shapes_to_compact_art_file(
     shapes: &[Shape],
     metadata: &ArtMetadata<'_>,
     fn_name: &str,
-) -> String {
+) -> Result<String, CompactEncodingError> {
     let name = if fn_name.is_empty() {
         "art_mesh"
     } else {
@@ -229,7 +584,7 @@ pub fn shapes_to_compact_art_file(
     // Imports — use the shared hydrate module instead of inlining.
     out.push_str(
         "use engine_render::shape::Shape;\n\n\
-         use super::hydrate::hydrate_shapes;\n\n",
+         use super::hydrate::hydrate_shapes_compact;\n\n",
     );
 
     // Metadata doc comment
@@ -244,94 +599,285 @@ pub fn shapes_to_compact_art_file(
     }
     out.push_str("]\n");
 
-    // Encode shapes into flat f32 data.
-    let data = encode_shapes_to_floats(shapes);
+    // Encode shapes into compact integer data.
+    let compact = encode_shapes_to_compact_data(shapes)?;
 
-    // Data array
-    let _ = writeln!(out, "const DATA: &[f32] = &[");
-    // Write 10 floats per line for compactness.
-    for (i, &v) in data.iter().enumerate() {
-        if i % 10 == 0 {
-            out.push_str("    ");
-        }
-        let _ = write!(out, "{},", fmt_f32(v));
-        if i % 10 == 9 || i == data.len() - 1 {
-            out.push('\n');
-        } else {
-            out.push(' ');
-        }
-    }
-    out.push_str("];\n\n");
+    write_u8_array(&mut out, "COLORS", &compact.colors);
+    write_i16_array(&mut out, "DATA", &compact.data);
 
     // Hydration function
     let _ = writeln!(out, "pub fn {name}() -> Vec<Shape> {{");
-    out.push_str("    hydrate_shapes(DATA)\n");
+    out.push_str("    hydrate_shapes_compact(COLORS, DATA)\n");
     out.push_str("}\n");
 
-    out
+    Ok(out)
 }
 
-/// Encode a slice of shapes into a flat f32 array using the compact tag format.
-pub fn encode_shapes_to_floats(shapes: &[Shape]) -> Vec<f32> {
+/// Generate a compact `.rs` file that stores one `u8` shared-palette index per
+/// shape plus fixed-point `i16` geometry, with the shared palette defined in
+/// the generated `hydrate.rs`.
+pub fn shapes_to_compact_art_file_with_shared_palette(
+    shapes: &[Shape],
+    metadata: &ArtMetadata<'_>,
+    fn_name: &str,
+    shared_palette: &[Color],
+) -> Result<String, CompactEncodingError> {
+    let name = if fn_name.is_empty() {
+        "art_mesh"
+    } else {
+        fn_name
+    };
+
+    let mut out = String::new();
+
+    out.push_str(
+        "use engine_render::shape::Shape;\n\n\
+         use super::hydrate::hydrate_shapes_compact_indexed;\n\n",
+    );
+
+    let _ = writeln!(out, "/// Element: {}", metadata.element);
+    let _ = writeln!(out, "/// Aspect: {}", metadata.aspect);
+    let _ = write!(out, "/// Signature: [");
+    for (i, &v) in metadata.signature_axes.iter().enumerate() {
+        if i > 0 {
+            out.push_str(", ");
+        }
+        let _ = write!(out, "{}", fmt_f32(v));
+    }
+    out.push_str("]\n");
+
+    let compact = encode_shapes_to_compact_data_with_shared_palette(shapes, shared_palette)?;
+
+    write_u8_array(&mut out, "COLOR_INDEXES", &compact.color_indexes);
+    write_i16_array(&mut out, "DATA", &compact.data);
+
+    let _ = writeln!(out, "pub fn {name}() -> Vec<Shape> {{");
+    out.push_str("    hydrate_shapes_compact_indexed(COLOR_INDEXES, DATA)\n");
+    out.push_str("}\n");
+
+    Ok(out)
+}
+
+/// Encode a slice of shapes into compact integer color/geometry arrays.
+pub fn encode_shapes_to_compact_data(
+    shapes: &[Shape],
+) -> Result<CompactShapeData, CompactEncodingError> {
+    let mut colors = Vec::new();
     let mut data = Vec::new();
     for shape in shapes {
-        data.push(TAG_SHAPE);
-        push_f32_rounded(&mut data, shape.color.r);
-        push_f32_rounded(&mut data, shape.color.g);
-        push_f32_rounded(&mut data, shape.color.b);
-        push_f32_rounded(&mut data, shape.color.a);
+        let Some(commands) = encodable_path_commands(shape) else {
+            continue;
+        };
 
-        if let ShapeVariant::Path { commands } = &shape.variant {
-            for cmd in commands {
-                match cmd {
-                    PathCommand::MoveTo(v) => {
-                        data.push(TAG_MOVE_TO);
-                        push_f32_rounded(&mut data, v.x);
-                        push_f32_rounded(&mut data, v.y);
+        colors.push(color_channel_to_u8(shape.color.r));
+        colors.push(color_channel_to_u8(shape.color.g));
+        colors.push(color_channel_to_u8(shape.color.b));
+        encode_path_commands_to_compact_geometry(commands, &mut data)?;
+    }
+    Ok(CompactShapeData { colors, data })
+}
+
+/// Encode a slice of shapes into shared-palette indexes plus compact geometry.
+pub fn encode_shapes_to_compact_data_with_shared_palette(
+    shapes: &[Shape],
+    shared_palette: &[Color],
+) -> Result<IndexedCompactShapeData, CompactEncodingError> {
+    if shared_palette.len() > usize::from(u8::MAX) + 1 {
+        return Err(CompactEncodingError::SharedPaletteTooLarge {
+            size: shared_palette.len(),
+        });
+    }
+
+    if shared_palette.is_empty()
+        && shapes
+            .iter()
+            .any(|shape| encodable_path_commands(shape).is_some())
+    {
+        return Err(CompactEncodingError::EmptySharedPalette);
+    }
+
+    let mut color_indexes = Vec::new();
+    let mut data = Vec::new();
+    for shape in shapes {
+        let Some(commands) = encodable_path_commands(shape) else {
+            continue;
+        };
+
+        color_indexes.push(nearest_palette_index(shape.color, shared_palette) as u8);
+        encode_path_commands_to_compact_geometry(commands, &mut data)?;
+    }
+
+    Ok(IndexedCompactShapeData {
+        color_indexes,
+        data,
+    })
+}
+
+/// Decode shapes from the exact compact integer format.
+pub fn decode_shapes_from_compact_data(colors: &[u8], data: &[i16]) -> Vec<Shape> {
+    decode_shapes_from_compact_impl(data, |shape_index| {
+        let base = shape_index.checked_mul(3)?;
+        Some(Color::from_u8(
+            *colors.get(base)?,
+            *colors.get(base + 1)?,
+            *colors.get(base + 2)?,
+            u8::MAX,
+        ))
+    })
+}
+
+/// Decode shapes from compact geometry plus shared palette indexes.
+pub fn decode_shapes_from_compact_palette_data(
+    shared_palette: &[Color],
+    color_indexes: &[u8],
+    data: &[i16],
+) -> Vec<Shape> {
+    decode_shapes_from_compact_impl(data, |shape_index| {
+        let palette_index = usize::from(*color_indexes.get(shape_index)?);
+        shared_palette.get(palette_index).copied()
+    })
+}
+
+fn decode_shapes_from_compact_impl<F>(data: &[i16], mut color_for_shape: F) -> Vec<Shape>
+where
+    F: FnMut(usize) -> Option<Color>,
+{
+    let mut shapes = Vec::new();
+    let mut i = 0;
+    let mut shape_index = 0;
+
+    while i < data.len() {
+        let tag = data[i];
+        i += 1;
+        if tag != TAG_SHAPE || i + 1 >= data.len() {
+            break;
+        }
+
+        let Some(color) = color_for_shape(shape_index) else {
+            break;
+        };
+        shape_index += 1;
+
+        let start = Vec2::new(
+            f32::from(data[i]) / GEOMETRY_SCALE,
+            f32::from(data[i + 1]) / GEOMETRY_SCALE,
+        );
+        i += 2;
+        let mut previous = start;
+        let mut commands = vec![PathCommand::MoveTo(start)];
+
+        while i < data.len() && data[i] != TAG_SHAPE {
+            let cmd_tag = data[i];
+            i += 1;
+            match cmd_tag {
+                TAG_LINE_TO => {
+                    if i + 1 >= data.len() {
+                        break;
                     }
-                    PathCommand::LineTo(v) => {
-                        data.push(TAG_LINE_TO);
-                        push_f32_rounded(&mut data, v.x);
-                        push_f32_rounded(&mut data, v.y);
+                    let to = Vec2::new(
+                        previous.x + f32::from(data[i]) / GEOMETRY_SCALE,
+                        previous.y + f32::from(data[i + 1]) / GEOMETRY_SCALE,
+                    );
+                    i += 2;
+                    commands.push(PathCommand::LineTo(to));
+                    previous = to;
+                }
+                TAG_CUBIC_TO => {
+                    if i + 5 >= data.len() {
+                        break;
                     }
-                    PathCommand::CubicTo {
+                    let control1 = Vec2::new(
+                        previous.x + f32::from(data[i]) / GEOMETRY_SCALE,
+                        previous.y + f32::from(data[i + 1]) / GEOMETRY_SCALE,
+                    );
+                    let control2 = Vec2::new(
+                        previous.x + f32::from(data[i + 2]) / GEOMETRY_SCALE,
+                        previous.y + f32::from(data[i + 3]) / GEOMETRY_SCALE,
+                    );
+                    let to = Vec2::new(
+                        previous.x + f32::from(data[i + 4]) / GEOMETRY_SCALE,
+                        previous.y + f32::from(data[i + 5]) / GEOMETRY_SCALE,
+                    );
+                    i += 6;
+                    commands.push(PathCommand::CubicTo {
                         control1,
                         control2,
                         to,
-                    } => {
-                        data.push(TAG_CUBIC_TO);
-                        push_f32_rounded(&mut data, control1.x);
-                        push_f32_rounded(&mut data, control1.y);
-                        push_f32_rounded(&mut data, control2.x);
-                        push_f32_rounded(&mut data, control2.y);
-                        push_f32_rounded(&mut data, to.x);
-                        push_f32_rounded(&mut data, to.y);
-                    }
-                    PathCommand::Close => {
-                        data.push(TAG_CLOSE);
-                    }
-                    _ => {}
+                    });
+                    previous = to;
                 }
+                _ => break,
             }
         }
+
+        commands.push(PathCommand::Close);
+        shapes.push(Shape {
+            variant: ShapeVariant::Path { commands },
+            color,
+        });
     }
-    data
+
+    shapes
 }
 
-fn push_f32_rounded(data: &mut Vec<f32>, v: f32) {
-    data.push((v * 100.0).round() / 100.0);
+fn push_i16_scaled(
+    data: &mut Vec<i16>,
+    v: f32,
+    field: &'static str,
+) -> Result<(), CompactEncodingError> {
+    data.push(scale_to_i16(v, field)?);
+    Ok(())
+}
+
+fn scale_to_i16(v: f32, field: &'static str) -> Result<i16, CompactEncodingError> {
+    let rounded = round_to_places(v, 2);
+    let scaled = (rounded * GEOMETRY_SCALE).round();
+    if scaled < f32::from(i16::MIN) || scaled > f32::from(i16::MAX) {
+        return Err(CompactEncodingError::I16Overflow {
+            field,
+            value: rounded,
+        });
+    }
+    Ok(scaled as i16)
+}
+
+fn color_channel_to_u8(channel: f32) -> u8 {
+    let scaled = (channel.clamp(0.0, 1.0) * f32::from(u8::MAX)).round();
+    scaled as u8
+}
+
+fn palette_bytes_from_colors(colors: &[Color]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(colors.len() * 3);
+    for color in colors {
+        bytes.push(color_channel_to_u8(color.r));
+        bytes.push(color_channel_to_u8(color.g));
+        bytes.push(color_channel_to_u8(color.b));
+    }
+    bytes
 }
 
 /// Generate the `hydrate.rs` module source — a standalone file containing the
-/// shared `hydrate_shapes` function. Placed alongside art files so there is no
+/// shared hydration functions. Placed alongside art files so there is no
 /// cross-crate dependency on `img-to-shape`.
 pub fn generate_hydrate_module() -> String {
-    format!(
-        "//! Shared hydration function for compact f32-encoded shape data.\n\
+    generate_hydrate_module_with_shared_palette(&[])
+}
+
+/// Generate the `hydrate.rs` module source with an embedded shared palette for
+/// indexed compact exports.
+pub fn generate_hydrate_module_with_shared_palette(shared_palette: &[Color]) -> String {
+    let mut out = String::from(
+        "//! Shared hydration functions for compact generated shape data.\n\
          //!\n\
          //! Auto-generated by img-to-shape — do not edit by hand.\n\n\
-         {HYDRATE_MODULE_FN}"
-    )
+         use engine_core::color::Color;\n\
+         use engine_render::shape::{PathCommand, Shape, ShapeVariant};\n\
+         use glam::Vec2;\n\n",
+    );
+    let palette_bytes = palette_bytes_from_colors(shared_palette);
+    write_u8_array(&mut out, "SHARED_PALETTE", &palette_bytes);
+    out.push_str(HYDRATE_MODULE_FN);
+    out
 }
 
 /// Input describing a single art entry for repository codegen.
@@ -577,12 +1123,8 @@ pub fn generate_art_mod(fn_names: &[&str]) -> String {
     out
 }
 
-/// The hydration module source code — standalone file with imports.
+/// The hydration module source code — standalone file body after imports.
 const HYDRATE_MODULE_FN: &str = "\
-use engine_core::color::Color;
-use engine_render::shape::{PathCommand, Shape, ShapeVariant};
-use glam::Vec2;
-
 pub fn hydrate_shapes(data: &[f32]) -> Vec<Shape> {
     let mut shapes = Vec::new();
     let mut i = 0;
@@ -624,6 +1166,165 @@ pub fn hydrate_shapes(data: &[f32]) -> Vec<Shape> {
                 color,
             });
         }
+    }
+    shapes
+}
+
+pub fn hydrate_shapes_compact(colors: &[u8], data: &[i16]) -> Vec<Shape> {
+    let mut shapes = Vec::new();
+    let mut i = 0;
+    let mut color_index = 0;
+    while i < data.len() {
+        let tag = data[i];
+        i += 1;
+        if tag != 4 || i + 1 >= data.len() || color_index + 2 >= colors.len() {
+            break;
+        }
+
+        let color = Color::from_u8(
+            colors[color_index],
+            colors[color_index + 1],
+            colors[color_index + 2],
+            u8::MAX,
+        );
+        color_index += 3;
+        let start = Vec2::new(f32::from(data[i]) / 100.0, f32::from(data[i + 1]) / 100.0);
+        i += 2;
+
+        let mut previous = start;
+        let mut commands = vec![PathCommand::MoveTo(start)];
+
+        while i < data.len() && data[i] != 4 {
+            let cmd_tag = data[i];
+            i += 1;
+            match cmd_tag {
+                1 => {
+                    if i + 1 >= data.len() {
+                        break;
+                    }
+                    let to = Vec2::new(
+                        previous.x + f32::from(data[i]) / 100.0,
+                        previous.y + f32::from(data[i + 1]) / 100.0,
+                    );
+                    i += 2;
+                    commands.push(PathCommand::LineTo(to));
+                    previous = to;
+                }
+                2 => {
+                    if i + 5 >= data.len() {
+                        break;
+                    }
+                    let control1 = Vec2::new(
+                        previous.x + f32::from(data[i]) / 100.0,
+                        previous.y + f32::from(data[i + 1]) / 100.0,
+                    );
+                    let control2 = Vec2::new(
+                        previous.x + f32::from(data[i + 2]) / 100.0,
+                        previous.y + f32::from(data[i + 3]) / 100.0,
+                    );
+                    let to = Vec2::new(
+                        previous.x + f32::from(data[i + 4]) / 100.0,
+                        previous.y + f32::from(data[i + 5]) / 100.0,
+                    );
+                    i += 6;
+                    commands.push(PathCommand::CubicTo {
+                        control1,
+                        control2,
+                        to,
+                    });
+                    previous = to;
+                }
+                _ => break,
+            }
+        }
+
+        commands.push(PathCommand::Close);
+        shapes.push(Shape {
+            variant: ShapeVariant::Path { commands },
+            color,
+        });
+    }
+    shapes
+}
+
+pub fn hydrate_shapes_compact_indexed(color_indexes: &[u8], data: &[i16]) -> Vec<Shape> {
+    let mut shapes = Vec::new();
+    let mut i = 0;
+    let mut shape_index = 0;
+    while i < data.len() {
+        let tag = data[i];
+        i += 1;
+        if tag != 4 || i + 1 >= data.len() || shape_index >= color_indexes.len() {
+            break;
+        }
+
+        let palette_base = usize::from(color_indexes[shape_index]) * 3;
+        shape_index += 1;
+        if palette_base + 2 >= SHARED_PALETTE.len() {
+            break;
+        }
+
+        let color = Color::from_u8(
+            SHARED_PALETTE[palette_base],
+            SHARED_PALETTE[palette_base + 1],
+            SHARED_PALETTE[palette_base + 2],
+            u8::MAX,
+        );
+        let start = Vec2::new(f32::from(data[i]) / 100.0, f32::from(data[i + 1]) / 100.0);
+        i += 2;
+
+        let mut previous = start;
+        let mut commands = vec![PathCommand::MoveTo(start)];
+
+        while i < data.len() && data[i] != 4 {
+            let cmd_tag = data[i];
+            i += 1;
+            match cmd_tag {
+                1 => {
+                    if i + 1 >= data.len() {
+                        break;
+                    }
+                    let to = Vec2::new(
+                        previous.x + f32::from(data[i]) / 100.0,
+                        previous.y + f32::from(data[i + 1]) / 100.0,
+                    );
+                    i += 2;
+                    commands.push(PathCommand::LineTo(to));
+                    previous = to;
+                }
+                2 => {
+                    if i + 5 >= data.len() {
+                        break;
+                    }
+                    let control1 = Vec2::new(
+                        previous.x + f32::from(data[i]) / 100.0,
+                        previous.y + f32::from(data[i + 1]) / 100.0,
+                    );
+                    let control2 = Vec2::new(
+                        previous.x + f32::from(data[i + 2]) / 100.0,
+                        previous.y + f32::from(data[i + 3]) / 100.0,
+                    );
+                    let to = Vec2::new(
+                        previous.x + f32::from(data[i + 4]) / 100.0,
+                        previous.y + f32::from(data[i + 5]) / 100.0,
+                    );
+                    i += 6;
+                    commands.push(PathCommand::CubicTo {
+                        control1,
+                        control2,
+                        to,
+                    });
+                    previous = to;
+                }
+                _ => break,
+            }
+        }
+
+        commands.push(PathCommand::Close);
+        shapes.push(Shape {
+            variant: ShapeVariant::Path { commands },
+            color,
+        });
     }
     shapes
 }

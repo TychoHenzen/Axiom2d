@@ -4,9 +4,12 @@ use engine_core::color::Color;
 use engine_render::shape::{PathCommand, Shape, ShapeVariant};
 use glam::Vec2;
 use img_to_shape::codegen::{
-    ArtMetadata, RepositoryEntry, encode_shapes_to_floats, generate_art_mod,
-    generate_hydrate_module, generate_repository_module, shapes_to_art_file,
-    shapes_to_compact_art_file, shapes_to_vec_literal,
+    ArtMetadata, ExportOptimizationConfig, RepositoryEntry, build_shared_palette,
+    decode_shapes_from_compact_data, decode_shapes_from_compact_palette_data,
+    encode_shapes_to_compact_data, encode_shapes_to_compact_data_with_shared_palette,
+    generate_art_mod, generate_hydrate_module, generate_repository_module,
+    optimize_shapes_for_export, shapes_to_art_file, shapes_to_compact_art_file,
+    shapes_to_compact_art_file_with_shared_palette, shapes_to_vec_literal,
 };
 
 fn default_metadata() -> ArtMetadata<'static> {
@@ -232,19 +235,23 @@ fn when_compact_encoding_then_output_contains_data_array_and_hydrate_import() {
     let meta = default_metadata();
 
     // Act
-    let code = shapes_to_compact_art_file(&shapes, &meta, "test_art");
+    let code = shapes_to_compact_art_file(&shapes, &meta, "test_art").unwrap();
 
     // Assert
     assert!(
-        code.contains("const DATA: &[f32]"),
+        code.contains("const DATA: &[i16]"),
         "missing DATA array:\n{code}"
     );
     assert!(
-        code.contains("use super::hydrate::hydrate_shapes"),
+        code.contains("const COLORS: &[u8]"),
+        "missing COLORS array:\n{code}"
+    );
+    assert!(
+        code.contains("use super::hydrate::hydrate_shapes_compact"),
         "missing hydrate import:\n{code}"
     );
     assert!(
-        code.contains("hydrate_shapes(DATA)"),
+        code.contains("hydrate_shapes_compact(COLORS, DATA)"),
         "missing hydrate call:\n{code}"
     );
     assert!(code.contains("pub fn test_art"), "missing pub fn:\n{code}");
@@ -256,36 +263,102 @@ fn when_compact_encoding_then_data_contains_shape_tag() {
     let shapes = vec![triangle_shape(Color::RED)];
 
     // Act
-    let data = encode_shapes_to_floats(&shapes);
+    let compact = encode_shapes_to_compact_data(&shapes).unwrap();
 
-    // Assert — first float should be TAG_SHAPE (4.0)
-    assert!(
-        (data[0] - 4.0).abs() < f32::EPSILON,
-        "first tag should be 4.0 (shape)"
-    );
-    // Then 4 color floats (r=1.0, g=0.0, b=0.0, a=1.0)
-    assert!((data[1] - 1.0).abs() < f32::EPSILON, "r should be 1.0");
-    assert!((data[2]).abs() < f32::EPSILON, "g should be 0.0");
-    assert!((data[3]).abs() < f32::EPSILON, "b should be 0.0");
-    assert!((data[4] - 1.0).abs() < f32::EPSILON, "a should be 1.0");
+    // Assert
+    assert_eq!(compact.colors[0], u8::MAX, "r should be 255");
+    assert_eq!(compact.colors[1], 0, "g should be 0");
+    assert_eq!(compact.colors[2], 0, "b should be 0");
+    assert_eq!(compact.data[0], 4, "first tag should be 4");
+    assert_eq!(compact.data[1], 0, "start x should be 0");
+    assert_eq!(compact.data[2], 0, "start y should be 0");
 }
 
 #[test]
-fn when_compact_encoding_roundtripped_then_shape_count_matches() {
-    // Arrange — encode then paste the data into a quick decode check
+fn when_compact_encoding_roundtripped_then_shapes_match() {
+    // Arrange
     let shapes = vec![triangle_shape(Color::RED), triangle_shape(Color::BLUE)];
 
     // Act
-    let data = encode_shapes_to_floats(&shapes);
+    let compact = encode_shapes_to_compact_data(&shapes).unwrap();
+    let decoded = decode_shapes_from_compact_data(&compact.colors, &compact.data);
 
-    // Assert — count shape tags (4.0 values at positions where a tag is expected)
-    let shape_tags = data
-        .iter()
-        .filter(|&&v| (v - 4.0).abs() < f32::EPSILON)
-        .count();
-    // There should be at least 2 shape tags (could be more if a float happens to be 4.0,
-    // but with our test colors that won't happen)
-    assert_eq!(shape_tags, 2, "expected 2 shape tags in data");
+    // Assert
+    assert_eq!(decoded, shapes);
+}
+
+#[test]
+fn when_shared_palette_compact_encoding_then_shapes_roundtrip_via_indexes() {
+    // Arrange
+    let shapes = vec![triangle_shape(Color::RED), triangle_shape(Color::BLUE)];
+    let shape_sets = vec![shapes.as_slice()];
+    let shared_palette = build_shared_palette(&shape_sets, 2);
+
+    // Act
+    let compact =
+        encode_shapes_to_compact_data_with_shared_palette(&shapes, &shared_palette).unwrap();
+    let decoded = decode_shapes_from_compact_palette_data(
+        &shared_palette,
+        &compact.color_indexes,
+        &compact.data,
+    );
+
+    // Assert
+    assert_eq!(decoded, shapes);
+}
+
+#[test]
+fn when_shared_palette_compact_art_generated_then_output_uses_color_indexes() {
+    // Arrange
+    let shapes = vec![triangle_shape(Color::RED), triangle_shape(Color::BLUE)];
+    let meta = default_metadata();
+    let shape_sets = vec![shapes.as_slice()];
+    let shared_palette = build_shared_palette(&shape_sets, 2);
+
+    // Act
+    let code =
+        shapes_to_compact_art_file_with_shared_palette(&shapes, &meta, "test_art", &shared_palette)
+            .unwrap();
+
+    // Assert
+    assert!(
+        code.contains("const COLOR_INDEXES: &[u8]"),
+        "missing COLOR_INDEXES array:\n{code}"
+    );
+    assert!(
+        code.contains("use super::hydrate::hydrate_shapes_compact_indexed"),
+        "missing indexed hydrate import:\n{code}"
+    );
+    assert!(
+        code.contains("hydrate_shapes_compact_indexed(COLOR_INDEXES, DATA)"),
+        "missing indexed hydrate call:\n{code}"
+    );
+}
+
+#[test]
+fn when_compact_encoding_overflows_i16_then_encoding_fails() {
+    // Arrange
+    let shapes = vec![Shape {
+        variant: ShapeVariant::Path {
+            commands: vec![
+                PathCommand::MoveTo(Vec2::new(400.0, 0.0)),
+                PathCommand::LineTo(Vec2::new(401.0, 1.0)),
+                PathCommand::Close,
+            ],
+        },
+        color: Color::WHITE,
+    }];
+
+    // Act
+    let error = encode_shapes_to_compact_data(&shapes).unwrap_err();
+
+    // Assert
+    assert!(
+        error
+            .to_string()
+            .contains("compact i16 encoding overflow for shape start x"),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
@@ -303,7 +376,7 @@ fn when_compact_encoding_with_many_commands_then_fewer_lines_than_verbose() {
 
     // Act
     let verbose = shapes_to_art_file(&shapes, &meta, "test");
-    let compact = shapes_to_compact_art_file(&shapes, &meta, "test");
+    let compact = shapes_to_compact_art_file(&shapes, &meta, "test").unwrap();
 
     // Assert — compact should have fewer lines once data volume exceeds hydrate fn overhead
     let verbose_lines = verbose.lines().count();
@@ -327,6 +400,18 @@ fn when_hydrate_module_generated_then_contains_pub_fn_and_imports() {
         "missing pub fn:\n{code}"
     );
     assert!(
+        code.contains("pub fn hydrate_shapes_compact"),
+        "missing compact hydrate fn:\n{code}"
+    );
+    assert!(
+        code.contains("pub fn hydrate_shapes_compact_indexed"),
+        "missing indexed hydrate fn:\n{code}"
+    );
+    assert!(
+        code.contains("const SHARED_PALETTE: &[u8]"),
+        "missing shared palette const:\n{code}"
+    );
+    assert!(
         code.contains("use engine_core::color::Color"),
         "missing Color import:\n{code}"
     );
@@ -334,6 +419,59 @@ fn when_hydrate_module_generated_then_contains_pub_fn_and_imports() {
         code.contains("use engine_render::shape"),
         "missing shape import:\n{code}"
     );
+}
+
+#[test]
+fn when_coordinate_decimals_reduced_then_geometry_rounds_for_preview_export() {
+    // Arrange
+    let shapes = vec![Shape {
+        variant: ShapeVariant::Path {
+            commands: vec![
+                PathCommand::MoveTo(Vec2::new(0.04, 0.06)),
+                PathCommand::LineTo(Vec2::new(10.06, 0.04)),
+                PathCommand::CubicTo {
+                    control1: Vec2::new(4.44, 3.36),
+                    control2: Vec2::new(6.61, 7.78),
+                    to: Vec2::new(5.06, 10.04),
+                },
+                PathCommand::Close,
+            ],
+        },
+        color: Color::WHITE,
+    }];
+
+    // Act
+    let optimized = optimize_shapes_for_export(
+        &shapes,
+        &ExportOptimizationConfig {
+            coordinate_decimals: 1,
+            palette_size: 0,
+        },
+    );
+
+    // Assert
+    let ShapeVariant::Path { commands } = &optimized[0].variant else {
+        panic!("expected path shape");
+    };
+    assert_eq!(commands[0], PathCommand::MoveTo(Vec2::new(0.0, 0.1)));
+    assert_eq!(commands[1], PathCommand::LineTo(Vec2::new(10.1, 0.0)));
+}
+
+#[test]
+fn when_shared_palette_built_then_target_size_respected() {
+    // Arrange
+    let first = vec![
+        triangle_shape(Color::new(1.0, 0.0, 0.0, 1.0)),
+        triangle_shape(Color::new(0.9, 0.1, 0.0, 1.0)),
+    ];
+    let second = vec![triangle_shape(Color::new(0.0, 0.0, 1.0, 1.0))];
+    let shape_sets = vec![first.as_slice(), second.as_slice()];
+
+    // Act
+    let palette = build_shared_palette(&shape_sets, 2);
+
+    // Assert
+    assert_eq!(palette.len(), 2);
 }
 
 #[test]

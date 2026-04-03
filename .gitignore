@@ -28,6 +28,8 @@ perf_log.csv
 flamegraph.svg
 callgrind.out.*
 *.pdb
+profile.json
+profile.json.gz
 
 # Mutation testing
 mutants.out/

@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 
 use eframe::egui;
+use img_to_shape::codegen::generate_hydrate_module;
 use img_to_shape::manifest::{
     ASPECTS, BatchBuildReport, BatchProgress, ELEMENTS, ShapeManifest, ShapeManifestEntry,
     batch_build_with_progress, load_manifest, save_manifest,
@@ -28,6 +29,27 @@ fn art_output_dir() -> PathBuf {
     }
     // Fallback: try current working directory as workspace root.
     PathBuf::from("crates/card_game/src/card/art/generated")
+}
+
+fn refresh_compact_support_file(output_path: &Path, compact_encoding: bool) -> std::io::Result<()> {
+    if !compact_encoding {
+        return Ok(());
+    }
+
+    let Some(parent) = output_path.parent() else {
+        return Ok(());
+    };
+
+    if parent.file_name().is_some_and(|name| name == "generated")
+        && let Some(art_dir) = parent.parent()
+    {
+        let hydrate_path = art_dir.join("hydrate.rs");
+        if !hydrate_path.exists() {
+            std::fs::write(hydrate_path, generate_hydrate_module())?;
+        }
+    }
+
+    Ok(())
 }
 
 fn main() -> eframe::Result {
@@ -267,12 +289,7 @@ impl App {
         if let Some(rx) = &self.convert_rx
             && let Ok(result) = rx.try_recv()
         {
-            self.state.background = result.background;
-            self.state.shapes = result.shapes;
-            self.state.resized_rgba = result.rgba;
-            self.state.shape_width = result.width;
-            self.state.shape_height = result.height;
-            self.state.estimate = Some(result.estimate);
+            self.state.apply_conversion_result(result);
             let count = self.state.shapes.len();
             self.status = format!("Converted: {count} shapes");
             self.upload_pixel_texture(ctx);
@@ -331,6 +348,44 @@ impl App {
         ui.checkbox(&mut self.state.config.use_bezier, "Bezier curves");
         ui.separator();
 
+        ui.heading("Preview / Export");
+        let mut refresh_preview = false;
+        let mut coordinate_decimals =
+            u32::from(self.state.export_optimizations.coordinate_decimals);
+        if ui
+            .add(egui::Slider::new(&mut coordinate_decimals, 0..=2).text("Coordinate decimals"))
+            .changed()
+        {
+            self.state.export_optimizations.coordinate_decimals = coordinate_decimals as u8;
+            refresh_preview = true;
+        }
+        let mut palette_size = self.manifest.shared_palette_size as u32;
+        if ui
+            .add(egui::Slider::new(&mut palette_size, 0..=256).text("Shared palette (batch build)"))
+            .changed()
+        {
+            self.manifest.shared_palette_size = palette_size as usize;
+            self.dirty = true;
+            self.export_code = None;
+        }
+        if refresh_preview {
+            self.state.refresh_preview_shapes();
+            self.export_code = None;
+        }
+        if !self.state.raw_shapes.is_empty() {
+            ui.label(format!(
+                "Unique colors in current image: {}",
+                self.state.raw_unique_color_count()
+            ));
+        }
+        if self.manifest.shared_palette_size > 0 {
+            ui.label(format!(
+                "Manifest batch build will use one shared {}-color palette.",
+                self.manifest.shared_palette_size
+            ));
+        }
+        ui.separator();
+
         ui.heading("Output Size");
         let mut merge_below = self.state.config.merge_below as f32;
         if ui
@@ -356,7 +411,7 @@ impl App {
                     est.command_count, est.line_to_count, est.cubic_to_count
                 ));
                 ui.label(format!("Est. LoC: ~{}", est.estimated_loc));
-                ui.label(format!("Est. floats: ~{}", est.estimated_floats));
+                ui.label(format!("Est. scalar values: ~{}", est.estimated_floats));
             });
         }
         ui.separator();
@@ -411,13 +466,22 @@ impl App {
             .add_enabled(has_shapes, egui::Button::new(&auto_save_label))
             .clicked()
         {
-            let code = self.state.generate_art_file();
+            let code = match self.state.generate_art_file() {
+                Ok(code) => code,
+                Err(error) => {
+                    self.status = format!("Export error: {error}");
+                    return;
+                }
+            };
             let path = art_dir.join(self.state.art_filename());
             match std::fs::write(&path, &code) {
-                Ok(()) => {
-                    self.status = format!("Saved to {}", path.display());
-                    self.export_code = Some(code);
-                }
+                Ok(()) => match refresh_compact_support_file(&path, self.state.compact_encoding) {
+                    Ok(()) => {
+                        self.status = format!("Saved to {}", path.display());
+                        self.export_code = Some(code);
+                    }
+                    Err(e) => self.status = format!("Support file error: {e}"),
+                },
                 Err(e) => self.status = format!("Save error: {e}"),
             }
         }
@@ -426,7 +490,13 @@ impl App {
             .add_enabled(has_shapes, egui::Button::new("Save to File..."))
             .clicked()
         {
-            let code = self.state.generate_art_file();
+            let code = match self.state.generate_art_file() {
+                Ok(code) => code,
+                Err(error) => {
+                    self.status = format!("Export error: {error}");
+                    return;
+                }
+            };
             let dialog = rfd::FileDialog::new()
                 .add_filter("Rust", &["rs"])
                 .set_file_name(self.state.art_filename());
@@ -437,7 +507,12 @@ impl App {
             };
             if let Some(path) = dialog.save_file() {
                 match std::fs::write(&path, &code) {
-                    Ok(()) => self.status = format!("Saved to {}", path.display()),
+                    Ok(()) => {
+                        match refresh_compact_support_file(&path, self.state.compact_encoding) {
+                            Ok(()) => self.status = format!("Saved to {}", path.display()),
+                            Err(e) => self.status = format!("Support file error: {e}"),
+                        }
+                    }
                     Err(e) => self.status = format!("Save error: {e}"),
                 }
             }
@@ -568,6 +643,8 @@ impl App {
             .join(self.state.art_filename())
             .to_string_lossy()
             .to_string();
+        let mut export_optimizations = self.state.export_optimizations;
+        export_optimizations.palette_size = 0;
         ShapeManifestEntry {
             image_path: image_path.to_string(),
             output_path: output,
@@ -577,6 +654,7 @@ impl App {
             aspect_pole: self.state.aspect_pole,
             signature_axes: self.state.signature_axes,
             compact_encoding: self.state.compact_encoding,
+            export_optimizations,
             description: self.state.description.clone(),
             category: String::new(),
         }
@@ -590,7 +668,10 @@ impl App {
         self.state.signature_axes = entry.signature_axes;
         entry.fn_name.clone_into(&mut self.state.fn_name);
         self.state.compact_encoding = entry.compact_encoding;
+        self.state.export_optimizations = entry.export_optimizations;
+        self.state.export_optimizations.palette_size = 0;
         entry.description.clone_into(&mut self.state.description);
+        self.state.refresh_preview_shapes();
     }
 
     /// Save the manifest to disk if a path is set. Clears the dirty flag on

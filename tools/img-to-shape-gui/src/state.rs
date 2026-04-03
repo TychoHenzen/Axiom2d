@@ -1,9 +1,10 @@
 use engine_render::shape::Shape;
 use img_to_shape::codegen::{
-    ArtMetadata, shapes_to_art_file, shapes_to_compact_art_file, shapes_to_vec_literal,
+    ArtMetadata, ExportOptimizationConfig, optimize_shapes_for_export, shapes_to_art_file,
+    shapes_to_compact_art_file, shapes_to_vec_literal, unique_shape_color_count,
 };
 use img_to_shape::manifest::{ASPECTS, ELEMENTS};
-use img_to_shape::{ConvertConfig, OutputEstimate, ResizeMethod};
+use img_to_shape::{ConvertConfig, ConvertResult, OutputEstimate, ResizeMethod, compute_estimate};
 
 /// Loaded image data: raw RGBA bytes + dimensions.
 pub struct LoadedImage {
@@ -18,6 +19,8 @@ pub struct LoadedImage {
 pub struct AppState {
     pub image: Option<LoadedImage>,
     pub config: ConvertConfig,
+    /// Raw conversion output before preview/export optimizations.
+    pub raw_shapes: Vec<Shape>,
     pub shapes: Vec<Shape>,
     /// Magenta background rectangle for preview (shows coverage gaps).
     /// Stored separately so it is never exported.
@@ -38,8 +41,10 @@ pub struct AppState {
     pub fn_name: String,
     /// Output size estimate from the last conversion.
     pub estimate: Option<OutputEstimate>,
-    /// Use compact float-array encoding for generated files.
+    /// Use compact integer encoding for generated files.
     pub compact_encoding: bool,
+    /// Optional preview/export optimizations applied after vectorization.
+    pub export_optimizations: ExportOptimizationConfig,
     /// Human-readable description of the image / art piece.
     pub description: String,
 }
@@ -66,6 +71,7 @@ impl AppState {
                 merge_below: 5,
                 max_shapes: 0,
             },
+            raw_shapes: Vec::new(),
             shapes: Vec::new(),
             background: None,
             resized_rgba: Vec::new(),
@@ -77,6 +83,7 @@ impl AppState {
             fn_name: String::new(),
             estimate: None,
             compact_encoding: true,
+            export_optimizations: ExportOptimizationConfig::default(),
             description: String::new(),
         }
     }
@@ -95,11 +102,13 @@ impl AppState {
             height,
             source_path,
         });
+        self.raw_shapes.clear();
         self.shapes.clear();
         self.background = None;
         self.resized_rgba.clear();
         self.shape_width = 0;
         self.shape_height = 0;
+        self.estimate = None;
     }
 
     /// Run the conversion pipeline on the loaded image with current config.
@@ -107,17 +116,32 @@ impl AppState {
     pub fn run_conversion(&mut self) {
         let Some(img) = &self.image else { return };
         let result = img_to_shape::image_to_shapes(&img.rgba, img.width, img.height, &self.config);
-        self.background = result.background;
-        self.shapes = result.shapes;
-        self.resized_rgba = result.rgba;
-        self.shape_width = result.width;
-        self.shape_height = result.height;
-        self.estimate = Some(result.estimate);
+        self.apply_conversion_result(result);
     }
 
     /// Update the conversion config. Does NOT auto-recompute shapes.
     pub fn set_config(&mut self, config: ConvertConfig) {
         self.config = config;
+    }
+
+    /// Replace the current conversion result and rebuild preview/export shapes.
+    pub fn apply_conversion_result(&mut self, result: ConvertResult) {
+        self.background = result.background;
+        self.raw_shapes = result.shapes;
+        self.resized_rgba = result.rgba;
+        self.shape_width = result.width;
+        self.shape_height = result.height;
+        self.refresh_preview_shapes();
+    }
+
+    /// Rebuild preview/export shapes from the raw conversion output.
+    pub fn refresh_preview_shapes(&mut self) {
+        self.shapes = optimize_shapes_for_export(&self.raw_shapes, &self.export_optimizations);
+        self.estimate = Some(compute_estimate(&self.shapes));
+    }
+
+    pub fn raw_unique_color_count(&self) -> usize {
+        unique_shape_color_count(&self.raw_shapes)
     }
 
     /// Generate Rust source code for the current shapes (legacy vec literal).
@@ -126,7 +150,7 @@ impl AppState {
     }
 
     /// Generate a complete `.rs` file with shape data.
-    pub fn generate_art_file(&self) -> String {
+    pub fn generate_art_file(&self) -> Result<String, String> {
         let metadata = ArtMetadata {
             element: ELEMENTS[self.element_index],
             aspect: ASPECTS[self.element_index][self.aspect_pole],
@@ -134,8 +158,9 @@ impl AppState {
         };
         if self.compact_encoding {
             shapes_to_compact_art_file(&self.shapes, &metadata, &self.fn_name)
+                .map_err(|error| error.to_string())
         } else {
-            shapes_to_art_file(&self.shapes, &metadata, &self.fn_name)
+            Ok(shapes_to_art_file(&self.shapes, &metadata, &self.fn_name))
         }
     }
 
@@ -154,6 +179,9 @@ impl AppState {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use engine_core::color::Color;
+    use engine_render::shape::{PathCommand, ShapeVariant};
+    use glam::Vec2;
 
     fn make_3x3_single_pixel_image() -> (Vec<u8>, u32, u32) {
         // 4x4 image with a 2x2 red block (4 pixels, meets default min_area=4)
@@ -223,6 +251,36 @@ mod tests {
 
         // Assert
         assert!(state.shapes.is_empty());
+    }
+
+    #[test]
+    fn when_export_optimizations_changed_then_preview_shapes_rebuilt_from_raw_shapes() {
+        // Arrange
+        let mut state = AppState::new();
+        state.raw_shapes = vec![Shape {
+            variant: ShapeVariant::Path {
+                commands: vec![
+                    PathCommand::MoveTo(Vec2::new(0.04, 0.06)),
+                    PathCommand::LineTo(Vec2::new(1.06, 0.04)),
+                    PathCommand::LineTo(Vec2::new(0.04, 1.06)),
+                    PathCommand::Close,
+                ],
+            },
+            color: Color::RED,
+        }];
+        state.refresh_preview_shapes();
+
+        // Act
+        state.export_optimizations.coordinate_decimals = 1;
+        state.refresh_preview_shapes();
+
+        // Assert
+        assert_eq!(state.raw_unique_color_count(), 1);
+        let ShapeVariant::Path { commands } = &state.shapes[0].variant else {
+            panic!("expected path shape");
+        };
+        assert_eq!(commands[0], PathCommand::MoveTo(Vec2::new(0.0, 0.1)));
+        assert_eq!(commands[1], PathCommand::LineTo(Vec2::new(1.1, 0.0)));
     }
 
     // TC025
@@ -297,7 +355,7 @@ mod tests {
         state.fn_name = "test_art".to_string();
 
         // Act
-        let code = state.generate_art_file();
+        let code = state.generate_art_file().unwrap();
 
         // Assert
         assert!(code.contains("pub fn test_art"), "missing pub fn:\n{code}");
@@ -323,6 +381,10 @@ mod tests {
         assert!(
             state.shapes.is_empty(),
             "old shapes should be cleared on new image load"
+        );
+        assert!(
+            state.raw_shapes.is_empty(),
+            "raw shapes should also be cleared"
         );
     }
 }
