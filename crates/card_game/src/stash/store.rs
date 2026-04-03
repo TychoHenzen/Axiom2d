@@ -183,7 +183,7 @@ impl StoreCatalog {
 }
 
 pub fn storage_tab_purchase_cost(storage_tab_count: u8) -> u32 {
-    let exponent = storage_tab_count.saturating_sub(1).min(30) as u32;
+    let exponent = u32::from(storage_tab_count.saturating_sub(1).min(30));
     STORE_TAB_BASE_COST.saturating_mul(1u32 << exponent)
 }
 
@@ -206,8 +206,8 @@ fn store_item_layout(grid_width: u8, item_count: usize, index: usize) -> (f32, f
     let grid_w = f32::from(grid_width) * SLOT_STRIDE_W - SLOT_GAP;
     let start_x = GRID_MARGIN + (grid_w - total_w).max(0.0) * 0.5;
     let start_y = GRID_MARGIN + STORE_HEADER_HEIGHT;
-    let col = (index as u8 % columns) as f32;
-    let row = (index as u8 / columns) as f32;
+    let col = f32::from(index as u8 % columns);
+    let row = f32::from(index as u8 / columns);
     let left = start_x + col * (STORE_ITEM_WIDTH + STORE_ITEM_GAP_X);
     let top = start_y + row * (STORE_ITEM_HEIGHT + STORE_ITEM_GAP_Y);
     (left, top)
@@ -430,10 +430,10 @@ fn draw_store_item(
 
     match item {
         StoreItemKind::Reader => {
-            draw_reader_preview(renderer, camera, viewport_w, viewport_h, left, top)
+            draw_reader_preview(renderer, camera, viewport_w, viewport_h, left, top);
         }
         StoreItemKind::Screen => {
-            draw_screen_preview(renderer, camera, viewport_w, viewport_h, left, top)
+            draw_screen_preview(renderer, camera, viewport_w, viewport_h, left, top);
         }
     }
 
@@ -726,8 +726,7 @@ fn sell_reader(world: &mut World, entity: Entity) {
     if let Some(card_entity) = loaded_card {
         let reader_pos = world
             .get::<Transform2D>(entity)
-            .map(|t| t.position)
-            .unwrap_or(Vec2::ZERO);
+            .map_or(Vec2::ZERO, |t| t.position);
         if let Some(mut zone) = world.get_mut::<CardZone>(card_entity) {
             *zone = CardZone::Table;
         }
@@ -741,12 +740,12 @@ fn sell_reader(world: &mut World, entity: Entity) {
             .insert(RigidBody::Dynamic)
             .insert(RenderLayer::World)
             .insert(ScaleSpring::new(1.0));
-        if let Some(collider) = world.get::<Collider>(card_entity).cloned() {
-            if let Some(mut physics) = world.get_resource_mut::<PhysicsRes>() {
-                let _ = physics.remove_body(card_entity);
-                physics.add_body(card_entity, &RigidBody::Dynamic, reader_pos);
-                physics.add_collider(card_entity, &collider);
-            }
+        if let Some(collider) = world.get::<Collider>(card_entity).cloned()
+            && let Some(mut physics) = world.get_resource_mut::<PhysicsRes>()
+        {
+            let _ = physics.remove_body(card_entity);
+            physics.add_body(card_entity, &RigidBody::Dynamic, reader_pos);
+            physics.add_collider(card_entity, &collider);
         }
     }
 
