@@ -1,8 +1,9 @@
 #![allow(clippy::float_cmp)]
 
 use axiom2d::prelude::*;
-use demo::systems::{camera_pan_system, camera_zoom_system, orbit_system};
-use demo::types::{CAMERA_PAN_SPEED, OrbitalSpeed, ZOOM_MIN, action};
+use demo::setup;
+use demo::systems::{camera_pan_system, camera_zoom_system, orbit_system, synodic_camera_system};
+use demo::types::{CAMERA_PAN_SPEED, Earth, Moon, OrbitalSpeed, Sun, ZOOM_MIN, action};
 
 fn setup_camera_world(bindings: &[(&str, Vec<KeyCode>)], camera: Camera2D) -> World {
     let mut action_map = ActionMap::default();
@@ -324,4 +325,106 @@ fn when_multiple_pivots_then_each_rotates_at_own_speed() {
     // Assert
     assert_eq!(world.get::<Transform2D>(a).unwrap().rotation, 1.0);
     assert_eq!(world.get::<Transform2D>(b).unwrap().rotation, 3.0);
+}
+
+#[test]
+fn when_synodic_frame_and_orbits_run_then_earth_and_moon_stay_centered() {
+    // Arrange
+    let mut app = App::new();
+    setup(&mut app);
+    let world = app.world_mut();
+    let earth = world.query::<(Entity, &Earth)>().single(world).unwrap().0;
+    let moon = world.query::<(Entity, &Moon)>().single(world).unwrap().0;
+    let sun = world.query::<(Entity, &Sun)>().single(world).unwrap().0;
+    let mut schedule = Schedule::default();
+    schedule.add_systems(
+        (
+            orbit_system,
+            hierarchy_maintenance_system,
+            transform_propagation_system,
+            synodic_camera_system,
+        )
+            .chain(),
+    );
+
+    world.insert_resource(DeltaTime(Seconds(0.5)));
+
+    // Act
+    schedule.run(world);
+    let camera_first = *world.query::<&Camera2D>().single(world).unwrap();
+    let camera_rotation_first = world.query::<&CameraRotation>().single(world).unwrap().0;
+    let earth_first = world.get::<GlobalTransform2D>(earth).unwrap().0.translation;
+    let moon_first = world.get::<GlobalTransform2D>(moon).unwrap().0.translation;
+    let sun_first = world.get::<GlobalTransform2D>(sun).unwrap().0.translation;
+    let moon_rotation_first = world
+        .get::<GlobalTransform2D>(moon)
+        .unwrap()
+        .0
+        .to_scale_angle_translation()
+        .1;
+    let earth_screen_first = world_to_screen_with_rotation(
+        earth_first,
+        &camera_first,
+        camera_rotation_first,
+        800.0,
+        600.0,
+    );
+    let moon_screen_first = world_to_screen_with_rotation(
+        moon_first,
+        &camera_first,
+        camera_rotation_first,
+        800.0,
+        600.0,
+    );
+    let sun_screen_first = world_to_screen_with_rotation(
+        sun_first,
+        &camera_first,
+        camera_rotation_first,
+        800.0,
+        600.0,
+    );
+
+    world.insert_resource(DeltaTime(Seconds(0.5)));
+    schedule.run(world);
+    let camera_second = *world.query::<&Camera2D>().single(world).unwrap();
+    let camera_rotation_second = world.query::<&CameraRotation>().single(world).unwrap().0;
+    let earth_second = world.get::<GlobalTransform2D>(earth).unwrap().0.translation;
+    let moon_second = world.get::<GlobalTransform2D>(moon).unwrap().0.translation;
+    let sun_second = world.get::<GlobalTransform2D>(sun).unwrap().0.translation;
+    let moon_rotation_second = world
+        .get::<GlobalTransform2D>(moon)
+        .unwrap()
+        .0
+        .to_scale_angle_translation()
+        .1;
+    let earth_screen_second = world_to_screen_with_rotation(
+        earth_second,
+        &camera_second,
+        camera_rotation_second,
+        800.0,
+        600.0,
+    );
+    let moon_screen_second = world_to_screen_with_rotation(
+        moon_second,
+        &camera_second,
+        camera_rotation_second,
+        800.0,
+        600.0,
+    );
+    let sun_screen_second = world_to_screen_with_rotation(
+        sun_second,
+        &camera_second,
+        camera_rotation_second,
+        800.0,
+        600.0,
+    );
+
+    // Assert
+    assert_eq!(earth_screen_first, Vec2::new(400.0, 300.0));
+    assert_eq!(earth_screen_second, Vec2::new(400.0, 300.0));
+    assert!((earth_screen_first - earth_screen_second).length() < 1e-4);
+    assert!((moon_screen_first - moon_screen_second).length() < 1e-4);
+    assert!((sun_screen_first - sun_screen_second).length() > 1e-4);
+    assert!((camera_rotation_first - moon_rotation_first).abs() < 1e-4);
+    assert!((camera_rotation_second - moon_rotation_second).abs() < 1e-4);
 }

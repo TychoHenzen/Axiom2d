@@ -14,11 +14,13 @@ use card_game::card::component::{Card, CardZone};
 use card_game::card::identity::signature::CardSignature;
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
 use card_game::card::jack_cable::{Jack, JackDirection};
+use card_game::card::jack_socket::PendingCable;
 use card_game::card::reader::{
     CardReader, READER_CARD_SCALE, ReaderDragInfo, ReaderDragState, SIGNATURE_SPACE_RADIUS,
     SignatureSpace, card_overlaps_reader, card_reader_eject_system, card_reader_insert_system,
     reader_drag_system, reader_pick_system, reader_release_system, reader_rotation_lock_system,
 };
+use card_game::card::screen_device::ScreenDragState;
 use card_game::test_helpers::{
     AddBodyLog, AngularVelocityLog, RemoveBodyLog, SpyPhysicsBackend, spawn_entity,
 };
@@ -77,6 +79,8 @@ fn when_reader_clicked_then_starts_reader_drag() {
     world.insert_resource(mouse);
     world.insert_resource(DragState::default());
     world.insert_resource(ReaderDragState::default());
+    world.insert_resource(ScreenDragState::default());
+    world.insert_resource(PendingCable::default());
 
     // Act
     run_reader_pick(&mut world);

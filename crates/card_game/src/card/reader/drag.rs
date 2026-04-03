@@ -6,6 +6,7 @@ use engine_physics::prelude::PhysicsRes;
 
 use crate::card::interaction::physics_helpers::warn_on_physics_result;
 use crate::card::reader::components::{CardReader, ReaderDragState};
+use crate::card::reader::spawn::READER_JACK_OFFSET;
 
 pub fn reader_drag_system(
     mouse: Res<MouseState>,
@@ -30,11 +31,15 @@ pub fn reader_drag_system(
         info.entity,
         physics.set_body_position(info.entity, target),
     );
-    if let Ok(reader) = readers.get(info.entity)
-        && let Some(card_entity) = reader.loaded
-        && let Ok(mut card_transform) = card_transforms.get_mut(card_entity)
-    {
-        card_transform.position = target;
+    if let Ok(reader) = readers.get(info.entity) {
+        if let Ok(mut jack_t) = card_transforms.get_mut(reader.jack_entity) {
+            jack_t.position = target + READER_JACK_OFFSET;
+        }
+        if let Some(card_entity) = reader.loaded
+            && let Ok(mut card_transform) = card_transforms.get_mut(card_entity)
+        {
+            card_transform.position = target;
+        }
     }
 }
 

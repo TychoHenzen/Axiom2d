@@ -18,6 +18,7 @@ mod card_interaction_flip_animation;
 mod card_interaction_pick;
 mod card_interaction_release;
 mod card_jack_cable;
+mod card_jack_socket;
 mod card_reader;
 mod card_reader_glow;
 mod card_reader_spawn;

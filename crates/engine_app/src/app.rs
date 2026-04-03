@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -158,8 +159,9 @@ impl App {
     }
 
     pub fn handle_redraw(&mut self) {
+        let frame_start = Instant::now();
         for (i, schedule) in self.schedules.iter_mut().enumerate() {
-            let start = std::time::Instant::now();
+            let start = Instant::now();
             schedule.run(&mut self.world);
             let elapsed_us = start.elapsed().as_micros() as u64;
             if let Some(mut profiler) = self.world.get_resource_mut::<FrameProfiler>() {
@@ -171,6 +173,12 @@ impl App {
         }
         if let Some(mut profiler) = self.world.get_resource_mut::<FrameProfiler>() {
             profiler.end_frame();
+        }
+        if let Some(window) = &self.window {
+            window.set_title(&format_window_title(
+                self.window_config.title,
+                frame_start.elapsed(),
+            ));
         }
     }
 
@@ -267,4 +275,13 @@ impl ApplicationHandler for App {
             window.request_redraw();
         }
     }
+}
+
+pub fn format_window_title(base_title: &str, frame_time: Duration) -> String {
+    let fps = if frame_time.is_zero() {
+        0.0
+    } else {
+        1.0 / frame_time.as_secs_f64()
+    };
+    format!("{base_title} - {fps:.0} FPS")
 }

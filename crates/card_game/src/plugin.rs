@@ -10,6 +10,10 @@ use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale
 use crate::card::interaction::pick::card_pick_system;
 use crate::card::interaction::release::card_release_system;
 use crate::card::jack_cable::{cable_render_system, signature_space_propagation_system};
+use crate::card::jack_socket::{
+    PendingCable, jack_socket_pick_system, jack_socket_release_system, jack_socket_render_system,
+    pending_cable_drag_system, spawn_pending_cable_preview,
+};
 use crate::card::reader::{
     ReaderDragState, card_reader_eject_system, card_reader_insert_system, reader_drag_system,
     reader_glow_system, reader_pick_system, reader_release_system, reader_rotation_lock_system,
@@ -22,7 +26,10 @@ use crate::card::rendering::baked_render::baked_card_render_system;
 use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
 use crate::card::rendering::drop_zone_glow::hand_drop_zone_render_system;
 use crate::card::rendering::render_layer::card_render_layer_system;
-use crate::card::screen_device::screen_render_system;
+use crate::card::screen_device::{
+    ScreenDragState, screen_drag_system, screen_pick_system, screen_release_system,
+    screen_render_system,
+};
 use crate::hand::Hand;
 use crate::hand::layout::hand_layout_system;
 use crate::stash::boundary::stash_boundary_system;
@@ -64,6 +71,9 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(StashGrid::new(10, 10, 3));
         world.insert_resource(StashHoverPreview::default());
         world.insert_resource(DebugSpawnRng::default());
+        world.insert_resource(PendingCable::default());
+        world.insert_resource(ScreenDragState::default());
+        spawn_pending_cable_preview(world);
         let mut registry = BaseCardTypeRegistry::new();
         populate_default_types(&mut registry);
         world.insert_resource(registry);
@@ -103,22 +113,38 @@ fn register_systems(app: &mut App) {
         (
             card_pick_system,
             reader_pick_system,
+            screen_pick_system,
+            jack_socket_pick_system,
             card_reader_eject_system,
             card_drag_system,
             reader_drag_system,
+            screen_drag_system,
             stash_boundary_system,
             card_reader_insert_system,
             card_release_system,
             reader_release_system,
+            screen_release_system,
+            jack_socket_release_system,
             card_flip_system,
             flip_animation_system,
         )
             .chain(),
     )
+    .add_systems(
+        Phase::Update,
+        (
+            signature_space_propagation_system,
+            jack_socket_render_system,
+            cable_render_system,
+            screen_render_system,
+            pending_cable_drag_system,
+        )
+            .chain()
+            .after(jack_socket_release_system),
+    )
     .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system))
     .add_systems(Phase::Update, (stash_toggle_system, stash_tab_click_system))
     .add_systems(Phase::Update, stash_hover_preview_system)
-    .add_systems(Phase::Update, signature_space_propagation_system)
     .add_systems(
         Phase::PostUpdate,
         (
@@ -153,9 +179,5 @@ fn register_systems(app: &mut App) {
     .add_systems(
         Phase::Render,
         hand_drop_zone_render_system.after(shape_render_system),
-    )
-    .add_systems(
-        Phase::Render,
-        (cable_render_system, screen_render_system).after(shape_render_system),
     );
 }

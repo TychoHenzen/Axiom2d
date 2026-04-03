@@ -7,6 +7,7 @@ use engine_scene::render_order::{RenderLayer, SortOrder};
 use glam::Vec2;
 
 use crate::card::jack_cable::{Jack, JackDirection};
+use crate::card::jack_socket::JackSocket;
 use crate::card::reader::components::CardReader;
 use crate::card::reader::glow::{ReaderAccent, ReaderRecess, ReaderRune};
 use crate::card::reader::signature_space::SignatureSpace;
@@ -22,6 +23,17 @@ const RECESS_HALF_H: f32 = 42.0;
 const RECESS_CORNER_RADIUS: f32 = 2.0;
 
 const RUNE_RADIUS: f32 = 4.0;
+
+const READER_SOCKET_RADIUS: f32 = 8.0;
+const READER_SOCKET_COLOR: Color = Color {
+    r: 0.7,
+    g: 0.6,
+    b: 0.3,
+    a: 1.0,
+};
+const READER_SOCKET_LOCAL_SORT: i32 = 1;
+pub(crate) const READER_JACK_OFFSET: Vec2 =
+    Vec2::new(READER_HALF_W + READER_SOCKET_RADIUS + 4.0, 0.0);
 
 const ACCENT_HALF_W: f32 = 25.0;
 const ACCENT_THICKNESS: f32 = 2.0;
@@ -98,10 +110,30 @@ pub const ACCENT_COLOR_LIT: Color = Color {
 /// registering the reader's physics body and collider via `PhysicsRes`.
 pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
     let jack_entity = world
-        .spawn(Jack::<SignatureSpace> {
-            direction: JackDirection::Output,
-            data: None,
-        })
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Output,
+                data: None,
+            },
+            JackSocket {
+                radius: READER_SOCKET_RADIUS,
+                color: READER_SOCKET_COLOR,
+            },
+            Transform2D {
+                position: position + READER_JACK_OFFSET,
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            Shape {
+                variant: ShapeVariant::Circle {
+                    radius: READER_SOCKET_RADIUS,
+                },
+                color: READER_SOCKET_COLOR,
+            },
+            RenderLayer::World,
+            SortOrder::default(),
+            LocalSortOrder(READER_SOCKET_LOCAL_SORT),
+        ))
         .id();
 
     let half = Vec2::new(READER_HALF_W, READER_HALF_H);

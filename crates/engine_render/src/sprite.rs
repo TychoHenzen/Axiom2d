@@ -5,7 +5,7 @@ use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer,
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
-use crate::camera::Camera2D;
+use crate::camera::{Camera2D, CameraRotation};
 use crate::culling::{aabb_intersects_view_rect, compute_view_rect};
 use crate::material::{Material2d, apply_material};
 use crate::rect::Rect;
@@ -39,7 +39,7 @@ pub fn sprite_render_system(
         Option<&EffectiveVisibility>,
         Option<&Material2d>,
     )>,
-    camera_query: Query<&Camera2D>,
+    camera_query: Query<(&Camera2D, Option<&CameraRotation>)>,
     mut renderer: ResMut<RendererRes>,
 ) {
     let view_rect = compute_view_rect(&camera_query, &renderer);

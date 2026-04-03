@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::{Entity, Local, Query, ResMut};
 use engine_core::profiler::FrameProfiler;
-use engine_render::camera::Camera2D;
+use engine_render::camera::{Camera2D, CameraRotation};
 use engine_render::culling::compute_view_rect;
 use engine_render::font::{GlyphCache, measure_text, render_text_transformed, wrap_text};
 use engine_render::material::{Material2d, apply_material};
@@ -115,7 +115,7 @@ pub fn unified_render_system(
     shape_query: Query<ShapeItem>,
     text_query: Query<TextItem>,
     color_mesh_query: Query<ColorMeshItem>,
-    camera_query: Query<&Camera2D>,
+    camera_query: Query<(&Camera2D, Option<&CameraRotation>)>,
     mut renderer: ResMut<RendererRes>,
     mut cache: Local<GlyphCache>,
     mut profiler: Option<ResMut<FrameProfiler>>,

@@ -6,10 +6,14 @@ use bevy_ecs::prelude::*;
 use card_game::card::identity::signature::{CardSignature, Element};
 use card_game::card::jack_cable::{Cable, Jack, JackDirection, signature_space_propagation_system};
 use card_game::card::reader::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
-use card_game::card::screen_device::{ScreenDevice, display_axes, screen_render_system};
+use card_game::card::screen_device::{display_axes, screen_render_system, spawn_screen_device};
 use engine_core::prelude::Transform2D;
 use engine_render::prelude::{Camera2D, RendererRes};
 use engine_render::testing::{ShapeCallLog, SpyRenderer};
+use engine_scene::prelude::{
+    hierarchy_maintenance_system, transform_propagation_system, visibility_system,
+};
+use engine_ui::unified_render::unified_render_system;
 use glam::Vec2;
 
 // ---------------------------------------------------------------------------
@@ -18,20 +22,11 @@ use glam::Vec2;
 
 fn make_screen_world(jack_data: Option<SignatureSpace>) -> (World, ShapeCallLog) {
     let mut world = World::new();
-
-    let jack_entity = world
-        .spawn(Jack::<SignatureSpace> {
-            direction: JackDirection::Input,
-            data: jack_data,
-        })
-        .id();
-
-    world.spawn((
-        ScreenDevice {
-            signature_input: jack_entity,
-        },
-        Transform2D::default(),
-    ));
+    let (_device_entity, jack_entity) = spawn_screen_device(&mut world, Vec2::ZERO);
+    world
+        .get_mut::<Jack<SignatureSpace>>(jack_entity)
+        .unwrap()
+        .data = jack_data;
 
     let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
     let spy = SpyRenderer::new(Arc::new(Mutex::new(Vec::new())))
@@ -44,6 +39,21 @@ fn make_screen_world(jack_data: Option<SignatureSpace>) -> (World, ShapeCallLog)
     });
 
     (world, shape_calls)
+}
+
+fn run_screen_visuals(world: &mut World) {
+    let mut schedule = Schedule::default();
+    schedule.add_systems(
+        (
+            hierarchy_maintenance_system,
+            screen_render_system,
+            transform_propagation_system,
+            visibility_system,
+            unified_render_system,
+        )
+            .chain(),
+    );
+    schedule.run(world);
 }
 
 // ---------------------------------------------------------------------------
@@ -100,24 +110,24 @@ fn when_display_index_is_three_then_axes_map_to_subsidium_and_spatium() {
 // TC012 — no draws when input jack has None
 // ---------------------------------------------------------------------------
 
-/// @doc: A `ScreenDevice` whose input jack carries `None` must produce zero draw calls.
-/// Without this gate, a device with a disconnected cable would emit phantom dots onto
-/// the display — shapes that represent a signature nobody actually played. Clean silence
-/// when there is no signal is the "off" state that every other display test depends on.
+/// @doc: A `ScreenDevice` with no signal must still draw its chassis, stroke, socket, and
+/// four panel backgrounds while hiding the four signal dots. Without this panel-only state
+/// the display would vanish until a card is inserted, giving no indication that a connectable
+/// device exists on the table.
 #[test]
-fn given_input_jack_data_is_none_when_screen_render_system_runs_then_no_shapes_are_drawn() {
+fn given_input_jack_data_is_none_when_screen_render_system_runs_then_only_panel_backgrounds_drawn()
+{
     // Arrange
     let (mut world, shape_calls) = make_screen_world(None);
-    let mut schedule = Schedule::default();
-    schedule.add_systems(screen_render_system);
 
     // Act
-    schedule.run(&mut world);
+    run_screen_visuals(&mut world);
 
-    // Assert
-    assert!(
-        shape_calls.lock().unwrap().is_empty(),
-        "disconnected input jack must produce zero draw calls — no phantom signal"
+    // Assert — body fill + body stroke + socket + 4 panels = 7 draw calls
+    assert_eq!(
+        shape_calls.lock().unwrap().len(),
+        7,
+        "disconnected screen must draw body, stroke, socket, and 4 panels with no signal dots"
     );
 }
 
@@ -125,31 +135,27 @@ fn given_input_jack_data_is_none_when_screen_render_system_runs_then_no_shapes_a
 // TC013 — 4 draws when input jack has Some(SignatureSpace)
 // ---------------------------------------------------------------------------
 
-/// @doc: When a `SignatureSpace` arrives on the input jack, `screen_render_system` must draw
-/// exactly 4 dots — one per element-pair display panel (Solidum/Febris, Ordinem/Lumines,
-/// Varias/Inertiae, Subsidium/Spatium). Fewer than 4 would leave panels dark that should
-/// show the card's position in that dimension; more than 4 would invent phantom panels or
-/// repeat existing ones. The count of 4 is load-bearing: it is the fixed arity of the
-/// 8-dimensional element space partitioned into consecutive pairs.
+/// @doc: When a `SignatureSpace` arrives on the input jack, the screen must render the same
+/// chassis/panel base plus 4 signal dots — 11 draw calls total including the body stroke and
+/// socket. Fewer would leave some displays dark; more would duplicate visuals or invent
+/// phantom signal markers.
 #[test]
-fn given_input_jack_has_signature_space_when_screen_render_system_runs_then_draws_four_shapes() {
+fn given_input_jack_has_signature_space_when_screen_render_system_runs_then_draws_eight_shapes() {
     // Arrange
     let signal = SignatureSpace {
         center: CardSignature::new([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]),
         radius: SIGNATURE_SPACE_RADIUS,
     };
     let (mut world, shape_calls) = make_screen_world(Some(signal));
-    let mut schedule = Schedule::default();
-    schedule.add_systems(screen_render_system);
 
     // Act
-    schedule.run(&mut world);
+    run_screen_visuals(&mut world);
 
-    // Assert — exactly one dot per display panel, 4 panels total
+    // Assert — body fill + body stroke + socket + 4 panels + 4 dots
     assert_eq!(
         shape_calls.lock().unwrap().len(),
-        4,
-        "each of the 4 element-pair display panels must produce exactly one dot shape"
+        11,
+        "screen with active signal must draw body, stroke, socket, 4 panels, and 4 signal dots"
     );
 }
 

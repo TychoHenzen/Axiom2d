@@ -2,12 +2,12 @@
 
 use axiom2d::prelude::*;
 use demo::{
-    orbit_system, setup,
-    types::{Moon, OrbitalSpeed, SUN_COLOR, SUN_POSITION, Sun, action},
+    setup,
+    types::{Earth, Moon, OrbitalSpeed, SUN_COLOR, Sun, SynodicFrame, action},
 };
 
-const PLANET_COUNT: usize = 4;
-const MOON_COUNT: usize = 2;
+const PLANET_COUNT: usize = 8;
+const MOON_COUNT: usize = 1;
 
 #[test]
 fn when_setup_called_then_all_celestial_entities_exist() {
@@ -56,12 +56,22 @@ fn when_setup_called_then_action_map_has_all_bindings() {
     // Assert
     let world = app.world_mut();
     let action_map = world.get_resource::<ActionMap>().unwrap();
-    assert!(!action_map.bindings_for(action::MOVE_RIGHT).is_empty());
-    assert!(!action_map.bindings_for(action::MOVE_LEFT).is_empty());
-    assert!(!action_map.bindings_for(action::MOVE_UP).is_empty());
-    assert!(!action_map.bindings_for(action::MOVE_DOWN).is_empty());
     assert!(!action_map.bindings_for(action::ZOOM_IN).is_empty());
     assert!(!action_map.bindings_for(action::ZOOM_OUT).is_empty());
+}
+
+#[test]
+fn when_setup_called_then_exactly_one_synodic_frame_exists() {
+    // Arrange
+    let mut app = App::new();
+
+    // Act
+    setup(&mut app);
+
+    // Assert
+    let world = app.world_mut();
+    let mut query = world.query::<&SynodicFrame>();
+    assert_eq!(query.iter(world).count(), 1);
 }
 
 #[test]
@@ -75,6 +85,20 @@ fn when_setup_called_then_exactly_one_sun_entity_exists() {
     // Assert
     let world = app.world_mut();
     let mut query = world.query::<&Sun>();
+    assert_eq!(query.iter(world).count(), 1);
+}
+
+#[test]
+fn when_setup_called_then_exactly_one_earth_entity_exists() {
+    // Arrange
+    let mut app = App::new();
+
+    // Act
+    setup(&mut app);
+
+    // Assert
+    let world = app.world_mut();
+    let mut query = world.query::<&Earth>();
     assert_eq!(query.iter(world).count(), 1);
 }
 
@@ -94,7 +118,7 @@ fn when_setup_called_then_sun_has_yellow_color() {
 }
 
 #[test]
-fn when_setup_called_then_correct_number_of_planet_pivots() {
+fn when_setup_called_then_correct_number_of_orbiting_body_pivots() {
     // Arrange
     let mut app = App::new();
 
@@ -103,12 +127,22 @@ fn when_setup_called_then_correct_number_of_planet_pivots() {
 
     // Assert
     let world = app.world_mut();
-    let mut query = world.query_filtered::<&OrbitalSpeed, Without<ChildOf>>();
-    assert_eq!(query.iter(world).count(), PLANET_COUNT);
+    let frame = world
+        .query::<(Entity, &SynodicFrame)>()
+        .single(world)
+        .unwrap()
+        .0;
+    let mut query = world.query::<(Entity, &OrbitalSpeed, &ChildOf)>();
+    let pivots: Vec<Entity> = query
+        .iter(world)
+        .filter(|(_, _, parent)| parent.0 == frame)
+        .map(|(entity, _, _)| entity)
+        .collect();
+    assert_eq!(pivots.len(), PLANET_COUNT);
 }
 
 #[test]
-fn when_setup_called_then_each_pivot_has_one_planet_child() {
+fn when_setup_called_then_each_pivot_has_one_body_child() {
     // Arrange
     let mut app = App::new();
     setup(&mut app);
@@ -118,8 +152,17 @@ fn when_setup_called_then_each_pivot_has_one_planet_child() {
     schedule.run(world);
 
     // Act / Assert
-    let mut pivot_query = world.query_filtered::<(Entity, &OrbitalSpeed), Without<ChildOf>>();
-    let pivots: Vec<Entity> = pivot_query.iter(world).map(|(e, _)| e).collect();
+    let frame = world
+        .query::<(Entity, &SynodicFrame)>()
+        .single(world)
+        .unwrap()
+        .0;
+    let mut pivot_query = world.query::<(Entity, &OrbitalSpeed, &ChildOf)>();
+    let pivots: Vec<Entity> = pivot_query
+        .iter(world)
+        .filter(|(_, _, parent)| parent.0 == frame)
+        .map(|(e, _, _)| e)
+        .collect();
     assert_eq!(pivots.len(), PLANET_COUNT);
     for pivot in pivots {
         let children = world.get::<Children>(pivot).unwrap();
@@ -140,8 +183,17 @@ fn when_setup_called_then_all_planets_on_world_render_layer() {
     schedule.run(world);
 
     // Act / Assert
-    let mut pivot_query = world.query_filtered::<(Entity, &OrbitalSpeed), Without<ChildOf>>();
-    let pivots: Vec<Entity> = pivot_query.iter(world).map(|(e, _)| e).collect();
+    let frame = world
+        .query::<(Entity, &SynodicFrame)>()
+        .single(world)
+        .unwrap()
+        .0;
+    let mut pivot_query = world.query::<(Entity, &OrbitalSpeed, &ChildOf)>();
+    let pivots: Vec<Entity> = pivot_query
+        .iter(world)
+        .filter(|(_, _, parent)| parent.0 == frame)
+        .map(|(e, _, _)| e)
+        .collect();
     for pivot in pivots {
         let children = world.get::<Children>(pivot).unwrap();
         let layer = world.get::<RenderLayer>(children.0[0]).unwrap();
@@ -150,63 +202,7 @@ fn when_setup_called_then_all_planets_on_world_render_layer() {
 }
 
 #[test]
-fn when_setup_called_then_camera_centered_on_sun() {
-    // Arrange
-    let mut app = App::new();
-    setup(&mut app);
-
-    // Act
-    let world = app.world_mut();
-    let mut query = world.query::<&Camera2D>();
-    let camera = query.single(world).unwrap();
-
-    // Assert
-    assert_eq!(camera.position, SUN_POSITION);
-}
-
-#[test]
-fn when_orbit_and_propagation_run_then_planet_position_on_circle() {
-    // Arrange
-    let mut world = World::new();
-    let orbit_radius = 100.0;
-    world.insert_resource(DeltaTime(Seconds(std::f32::consts::FRAC_PI_2)));
-    let pivot = world
-        .spawn((Transform2D::default(), OrbitalSpeed(1.0)))
-        .id();
-    world.spawn_child(
-        pivot,
-        Transform2D {
-            position: Vec2::new(orbit_radius, 0.0),
-            ..Transform2D::default()
-        },
-    );
-    let mut schedule = Schedule::default();
-    schedule.add_systems(
-        (
-            orbit_system,
-            hierarchy_maintenance_system,
-            transform_propagation_system,
-        )
-            .chain(),
-    );
-
-    // Act
-    schedule.run(&mut world);
-
-    // Assert
-    let mut query = world.query::<(&GlobalTransform2D, &ChildOf)>();
-    let (global, _) = query.single(&world).unwrap();
-    let pos = global.0.translation;
-    assert!(
-        (pos - Vec2::new(0.0, orbit_radius)).length() < 1e-4,
-        "expected planet near (0, {orbit_radius}), got ({}, {})",
-        pos.x,
-        pos.y
-    );
-}
-
-#[test]
-fn when_setup_called_then_moons_exist_with_moon_marker() {
+fn when_setup_called_then_moon_exists_with_moon_marker() {
     // Arrange
     let mut app = App::new();
 
@@ -216,57 +212,25 @@ fn when_setup_called_then_moons_exist_with_moon_marker() {
     // Assert
     let world = app.world_mut();
     let mut query = world.query::<&Moon>();
-    assert!(query.iter(world).count() >= 1, "expected at least one moon");
+    assert_eq!(query.iter(world).count(), MOON_COUNT);
 }
 
 #[test]
-fn when_setup_called_then_moons_are_grandchildren_of_orbit_pivots() {
+fn when_setup_called_then_moon_is_child_of_earth() {
     // Arrange
     let mut app = App::new();
     setup(&mut app);
     let world = app.world_mut();
-    let mut schedule = Schedule::default();
-    schedule.add_systems(hierarchy_maintenance_system);
-    schedule.run(world);
-    schedule.run(world);
+    let earth = world.query::<(Entity, &Earth)>().single(world).unwrap().0;
 
     // Act
-    let mut moon_query = world.query::<(Entity, &Moon, &ChildOf)>();
-    let moons: Vec<(Entity, Entity)> = moon_query
-        .iter(world)
-        .map(|(e, _, parent)| (e, parent.0))
-        .collect();
+    let moon = world.query::<(Entity, &Moon)>().single(world).unwrap().0;
 
     // Assert
-    assert!(!moons.is_empty());
-    for (_moon, moon_pivot) in &moons {
-        let pivot_parent = world.get::<ChildOf>(*moon_pivot);
-        assert!(
-            pivot_parent.is_some(),
-            "moon pivot should be a child of the planet"
-        );
-    }
-}
-
-#[test]
-fn when_setup_called_then_moon_pivots_have_orbital_speed() {
-    // Arrange
-    let mut app = App::new();
-    setup(&mut app);
-    let world = app.world_mut();
-
-    // Act
-    let mut moon_query = world.query::<(&Moon, &ChildOf)>();
-    let moon_pivots: Vec<Entity> = moon_query.iter(world).map(|(_, parent)| parent.0).collect();
-
-    // Assert
-    assert!(!moon_pivots.is_empty());
-    for pivot in moon_pivots {
-        assert!(
-            world.get::<OrbitalSpeed>(pivot).is_some(),
-            "moon pivot should have OrbitalSpeed"
-        );
-    }
+    let parent = world.get::<ChildOf>(moon).unwrap().0;
+    assert!(world.get::<OrbitalSpeed>(parent).is_some());
+    let grandparent = world.get::<ChildOf>(parent).unwrap().0;
+    assert_eq!(grandparent, earth);
 }
 
 #[test]
@@ -312,7 +276,7 @@ fn when_setup_called_then_sun_is_circle_shape() {
 }
 
 #[test]
-fn when_planets_queried_then_each_has_shape() {
+fn when_orbiting_bodies_queried_then_each_has_shape() {
     // Arrange
     let mut app = App::new();
     setup(&mut app);
@@ -322,23 +286,32 @@ fn when_planets_queried_then_each_has_shape() {
     schedule.run(world);
 
     // Act
-    let mut pivot_query = world.query_filtered::<(Entity, &OrbitalSpeed), Without<ChildOf>>();
-    let pivots: Vec<Entity> = pivot_query.iter(world).map(|(e, _)| e).collect();
+    let frame = world
+        .query::<(Entity, &SynodicFrame)>()
+        .single(world)
+        .unwrap()
+        .0;
+    let mut pivot_query = world.query::<(Entity, &OrbitalSpeed, &ChildOf)>();
+    let pivots: Vec<Entity> = pivot_query
+        .iter(world)
+        .filter(|(_, _, parent)| parent.0 == frame)
+        .map(|(e, _, _)| e)
+        .collect();
 
     // Assert
     assert_eq!(pivots.len(), PLANET_COUNT);
     for pivot in pivots {
         let children = world.get::<Children>(pivot).unwrap();
-        let planet = children.0[0];
+        let body = children.0[0];
         assert!(
-            world.get::<Shape>(planet).is_some(),
-            "planet child should have a Shape component"
+            world.get::<Shape>(body).is_some(),
+            "orbiting body child should have a Shape component"
         );
     }
 }
 
 #[test]
-fn when_planet_shapes_queried_then_distinct_colors() {
+fn when_orbiting_body_shapes_queried_then_distinct_colors() {
     // Arrange
     let mut app = App::new();
     setup(&mut app);
@@ -348,8 +321,17 @@ fn when_planet_shapes_queried_then_distinct_colors() {
     schedule.run(world);
 
     // Act
-    let mut pivot_query = world.query_filtered::<(Entity, &OrbitalSpeed), Without<ChildOf>>();
-    let pivots: Vec<Entity> = pivot_query.iter(world).map(|(e, _)| e).collect();
+    let frame = world
+        .query::<(Entity, &SynodicFrame)>()
+        .single(world)
+        .unwrap()
+        .0;
+    let mut pivot_query = world.query::<(Entity, &OrbitalSpeed, &ChildOf)>();
+    let pivots: Vec<Entity> = pivot_query
+        .iter(world)
+        .filter(|(_, _, parent)| parent.0 == frame)
+        .map(|(e, _, _)| e)
+        .collect();
     let mut colors = Vec::new();
     for pivot in pivots {
         let children = world.get::<Children>(pivot).unwrap();

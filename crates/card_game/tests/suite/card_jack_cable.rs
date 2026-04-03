@@ -8,9 +8,13 @@ use card_game::card::jack_cable::{
     Cable, Jack, JackDirection, cable_render_system, signature_space_propagation_system,
 };
 use card_game::card::reader::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
+use engine_core::color::Color;
 use engine_core::prelude::Transform2D;
-use engine_render::prelude::{Camera2D, RendererRes};
+use engine_render::prelude::{Camera2D, RendererRes, Shape, ShapeVariant};
 use engine_render::testing::{ShapeCallLog, SpyRenderer};
+use engine_scene::prelude::{SortOrder, Visible, transform_propagation_system, visibility_system};
+use engine_scene::render_order::RenderLayer;
+use engine_ui::unified_render::unified_render_system;
 use glam::Vec2;
 
 // ---------------------------------------------------------------------------
@@ -147,11 +151,45 @@ fn make_cable_render_world() -> (World, ShapeCallLog) {
     (world, shape_calls)
 }
 
-/// @doc: `cable_render_system` must draw a line shape between the world positions of the
-/// source and destination jack entities connected by a Cable. Without this visual, cables
-/// are invisible — a player dropping a card into a reader has no feedback that it is
-/// connected to a screen device, making the wiring system opaque and unplayable.
-/// This test verifies the minimal contract: one Cable entity produces one draw call.
+fn spawn_renderable_cable(world: &mut World, source: Entity, dest: Entity) {
+    world.spawn((
+        Cable { source, dest },
+        Transform2D::default(),
+        Shape {
+            variant: ShapeVariant::Polygon {
+                points: vec![
+                    Vec2::new(-1.0, -1.0),
+                    Vec2::new(1.0, -1.0),
+                    Vec2::new(1.0, 1.0),
+                    Vec2::new(-1.0, 1.0),
+                ],
+            },
+            color: Color::WHITE,
+        },
+        Visible(true),
+        RenderLayer::World,
+        SortOrder::default(),
+    ));
+}
+
+fn run_cable_visuals(world: &mut World) {
+    let mut schedule = Schedule::default();
+    schedule.add_systems(
+        (
+            cable_render_system,
+            transform_propagation_system,
+            visibility_system,
+            unified_render_system,
+        )
+            .chain(),
+    );
+    schedule.run(world);
+}
+
+/// @doc: `cable_render_system` must update the cable entity so the unified shape renderer
+/// draws one quad between the world positions of its two endpoint jacks. Without this visual
+/// the wiring layer is invisible and a player has no feedback that a reader is connected
+/// to a screen.
 #[test]
 fn when_cable_connects_two_positioned_entities_then_one_line_shape_is_drawn() {
     // Arrange
@@ -171,13 +209,10 @@ fn when_cable_connects_two_positioned_entities_then_one_line_shape_is_drawn() {
             scale: Vec2::ONE,
         })
         .id();
-    world.spawn(Cable { source, dest });
-
-    let mut schedule = Schedule::default();
-    schedule.add_systems(cable_render_system);
+    spawn_renderable_cable(&mut world, source, dest);
 
     // Act
-    schedule.run(&mut world);
+    run_cable_visuals(&mut world);
 
     // Assert
     assert_eq!(
@@ -188,19 +223,15 @@ fn when_cable_connects_two_positioned_entities_then_one_line_shape_is_drawn() {
 }
 
 /// @doc: `cable_render_system` must be a no-op when there are no Cable entities in the
-/// world. Drawing zero shapes when zero cables exist is the correct "empty scene" behaviour:
-/// any accidental phantom draw here would appear as a stray line floating on the table,
-/// which would be confusing since it corresponds to no connection the player made.
+/// world. Any accidental draw here would appear as a stray line floating on the table
+/// that corresponds to no connection the player made.
 #[test]
 fn when_no_cables_exist_then_no_shapes_are_drawn() {
     // Arrange
     let (mut world, shape_calls) = make_cable_render_world();
 
-    let mut schedule = Schedule::default();
-    schedule.add_systems(cable_render_system);
-
     // Act
-    schedule.run(&mut world);
+    run_cable_visuals(&mut world);
 
     // Assert
     assert!(

@@ -5,6 +5,7 @@ use card_game::card::art::ShapeRepository;
 use card_game::card::reader::{
     READER_COLLISION_FILTER, READER_COLLISION_GROUP, READER_HALF_EXTENTS, spawn_reader,
 };
+use card_game::card::screen_device::spawn_screen_device;
 use card_game::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
@@ -60,7 +61,11 @@ fn spawn_scene(world: &mut World) {
 
     // Spawn a card reader altar with child visual entities.
     let reader_pos = Vec2::new(300.0, 0.0);
-    let (reader_entity, _jack_entity) = spawn_reader(world, reader_pos);
+    let (reader_entity, _reader_jack) = spawn_reader(world, reader_pos);
+
+    // Spawn a screen device — connect to the reader by dragging a cable interactively.
+    let screen_pos = Vec2::new(300.0, 150.0);
+    let (_screen_entity, _screen_jack) = spawn_screen_device(world, screen_pos);
 
     let mut physics = world.resource_mut::<PhysicsRes>();
     physics.add_body(reader_entity, &RigidBody::Kinematic, reader_pos);

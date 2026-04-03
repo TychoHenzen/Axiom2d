@@ -3,7 +3,9 @@
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
+use engine_app::app::format_window_title;
 use engine_app::prelude::*;
 use engine_core::color::Color;
 use engine_core::types::Pixels;
@@ -582,4 +584,17 @@ fn when_set_window_config_called_then_window_size_reflects_config() {
     let size = app.world().resource::<WindowSize>();
     assert_eq!(size.width, Pixels(1920.0));
     assert_eq!(size.height, Pixels(1080.0));
+}
+
+/// @doc: FPS title formatting must include the base title and rounded FPS count.
+#[test]
+fn when_format_window_title_called_then_title_includes_fps() {
+    // Arrange
+    let frame_time = Duration::from_secs_f64(1.0 / 60.0);
+
+    // Act
+    let title = format_window_title("Card Game", frame_time);
+
+    // Assert
+    assert_eq!(title, "Card Game - 60 FPS");
 }

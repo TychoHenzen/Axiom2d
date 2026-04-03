@@ -5,7 +5,7 @@ use glam::Vec2;
 use super::cache::CachedMesh;
 use super::components::{Shape, ShapeVariant, Stroke};
 use super::tessellate::{shape_aabb, tessellate, tessellate_stroke};
-use crate::camera::Camera2D;
+use crate::camera::{Camera2D, CameraRotation};
 use crate::culling::{aabb_intersects_view_rect, compute_view_rect};
 use crate::material::{Material2d, apply_material};
 use crate::renderer::RendererRes;
@@ -51,7 +51,7 @@ type ShapeQuery<'w> = (
 pub fn shape_render_system(
     disabled: Option<Res<ShapeRenderDisabled>>,
     query: Query<ShapeQuery>,
-    camera_query: Query<&Camera2D>,
+    camera_query: Query<(&Camera2D, Option<&CameraRotation>)>,
     mut renderer: ResMut<RendererRes>,
 ) {
     if disabled.is_some() {

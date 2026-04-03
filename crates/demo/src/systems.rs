@@ -1,7 +1,7 @@
 use axiom2d::prelude::*;
 
 use crate::types::{
-    CAMERA_PAN_SPEED, CAMERA_ZOOM_SPEED, FrameCount, OrbitalSpeed, ZOOM_MIN, action,
+    CAMERA_PAN_SPEED, CAMERA_ZOOM_SPEED, Earth, FrameCount, Moon, OrbitalSpeed, ZOOM_MIN, action,
 };
 
 pub fn count_frames(mut count: ResMut<FrameCount>) {
@@ -58,4 +58,24 @@ pub fn orbit_system(mut query: Query<(&mut Transform2D, &OrbitalSpeed)>, dt: Res
     for (mut transform, speed) in &mut query {
         transform.rotation += speed.0 * dt.0.0;
     }
+}
+
+pub fn synodic_camera_system(
+    mut camera_query: Query<(&mut Camera2D, &mut CameraRotation)>,
+    earth_query: Query<&GlobalTransform2D, With<Earth>>,
+    moon_query: Query<&GlobalTransform2D, With<Moon>>,
+) {
+    let earth = earth_query
+        .single()
+        .expect("expected exactly one Earth entity");
+    let moon = moon_query
+        .single()
+        .expect("expected exactly one Moon entity");
+    let (mut camera, mut camera_rotation) = camera_query
+        .single_mut()
+        .expect("expected exactly one camera entity");
+    let (_, _, translation) = earth.0.to_scale_angle_translation();
+    let (_, rotation, _) = moon.0.to_scale_angle_translation();
+    camera.position = translation;
+    camera_rotation.0 = rotation;
 }

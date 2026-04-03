@@ -3,7 +3,8 @@
 use std::sync::{Arc, Mutex};
 
 use engine_render::camera::{
-    Camera2D, CameraUniform, camera_prepare_system, screen_to_world, world_to_screen,
+    Camera2D, CameraRotation, CameraUniform, camera_prepare_system, screen_to_world,
+    screen_to_world_with_rotation, world_to_screen, world_to_screen_with_rotation,
 };
 use engine_render::renderer::RendererRes;
 use engine_render::testing::{SpyRenderer, insert_spy_with_viewport};
@@ -196,6 +197,25 @@ fn when_screen_to_world_after_world_to_screen_then_recovers_original_point() {
     assert!((recovered.y - original.y).abs() < 1e-4);
 }
 
+#[test]
+fn when_screen_to_world_after_world_to_screen_with_rotation_then_recovers_original_point() {
+    // Arrange
+    let camera = Camera2D {
+        position: Vec2::new(150.0, 75.0),
+        zoom: 1.5,
+    };
+    let rotation = std::f32::consts::FRAC_PI_4;
+    let original = Vec2::new(200.0, 100.0);
+
+    // Act
+    let screen = world_to_screen_with_rotation(original, &camera, rotation, 800.0, 600.0);
+    let recovered = screen_to_world_with_rotation(screen, &camera, rotation, 800.0, 600.0);
+
+    // Assert
+    assert!((recovered.x - original.x).abs() < 1e-4);
+    assert!((recovered.y - original.y).abs() < 1e-4);
+}
+
 proptest::proptest! {
     #[test]
     fn when_any_world_point_then_screen_to_world_of_world_to_screen_recovers_original(
@@ -287,6 +307,35 @@ fn when_camera_prepare_system_runs_with_camera_then_set_view_projection_called()
     // Assert
     let log = log.lock().unwrap();
     assert!(log.contains(&"set_view_projection".to_string()));
+}
+
+#[test]
+fn when_camera_prepare_system_runs_with_rotation_then_view_projection_uses_rotation() {
+    // Arrange
+    let mut world = bevy_ecs::world::World::new();
+    let matrix: engine_render::testing::MatrixCapture = Arc::new(Mutex::new(None));
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log)
+        .with_viewport(800, 600)
+        .with_matrix_capture(matrix.clone());
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+    world.spawn((
+        Camera2D::default(),
+        CameraRotation(std::f32::consts::FRAC_PI_2),
+    ));
+
+    // Act
+    run_camera_prepare(&mut world);
+
+    // Assert
+    let actual = matrix.lock().unwrap().unwrap();
+    let expected = CameraUniform::from_camera_with_rotation(
+        &Camera2D::default(),
+        std::f32::consts::FRAC_PI_2,
+        800.0,
+        600.0,
+    );
+    assert_eq!(actual, expected.view_proj);
 }
 
 /// @doc: `camera_prepare_system` always sets a projection — defaults to viewport-centered ortho when no `Camera2D` entity exists

@@ -1,46 +1,106 @@
 use axiom2d::prelude::*;
 
-use crate::types::{CelestialDef, Moon, MoonDef, OrbitalSpeed, SUN_COLOR, SUN_POSITION, Sun};
+use crate::types::{
+    EARTH_COLOR, Earth, MOON_COLOR, Moon, OrbitalSpeed, SUN_COLOR, Sun, SynodicFrame,
+};
 
-pub fn planets() -> [CelestialDef; 4] {
+#[derive(Clone, Copy)]
+struct PlanetDef {
+    orbit_radius: f32,
+    angular_speed: f32,
+    phase: f32,
+    color: Color,
+    size: f32,
+    moon: Option<MoonDef>,
+    is_earth: bool,
+}
+
+#[derive(Clone, Copy)]
+struct MoonDef {
+    orbit_radius: f32,
+    angular_speed: f32,
+    phase: f32,
+    size: f32,
+}
+
+fn planets() -> [PlanetDef; 8] {
     [
-        CelestialDef {
-            orbit_radius: 120.0,
-            speed: 1.5,
-            color: Color::from_u8(180, 120, 60, 255),
-            size: 20.0,
+        PlanetDef {
+            orbit_radius: 90.0,
+            angular_speed: 1.2,
+            phase: 0.25,
+            color: Color::from_u8(155, 155, 165, 255),
+            size: 8.0,
             moon: None,
+            is_earth: false,
         },
-        CelestialDef {
-            orbit_radius: 200.0,
-            speed: 1.0,
-            color: Color::from_u8(60, 130, 200, 255),
-            size: 30.0,
+        PlanetDef {
+            orbit_radius: 130.0,
+            angular_speed: 0.85,
+            phase: 1.1,
+            color: Color::from_u8(220, 190, 120, 255),
+            size: 13.0,
+            moon: None,
+            is_earth: false,
+        },
+        PlanetDef {
+            orbit_radius: 180.0,
+            angular_speed: 0.5,
+            phase: 2.0,
+            color: EARTH_COLOR,
+            size: 20.0,
             moon: Some(MoonDef {
                 orbit_radius: 40.0,
-                speed: 3.0,
-                color: Color::from_u8(200, 200, 200, 255),
+                angular_speed: 1.0,
+                phase: 0.75,
                 size: 8.0,
             }),
+            is_earth: true,
         },
-        CelestialDef {
-            orbit_radius: 300.0,
-            speed: 0.6,
-            color: Color::from_u8(50, 180, 80, 255),
-            size: 35.0,
-            moon: Some(MoonDef {
-                orbit_radius: 50.0,
-                speed: 2.0,
-                color: Color::from_u8(180, 160, 140, 255),
-                size: 10.0,
-            }),
-        },
-        CelestialDef {
-            orbit_radius: 420.0,
-            speed: 0.35,
-            color: Color::RED,
-            size: 25.0,
+        PlanetDef {
+            orbit_radius: 240.0,
+            angular_speed: 0.42,
+            phase: 2.8,
+            color: Color::from_u8(210, 95, 75, 255),
+            size: 11.0,
             moon: None,
+            is_earth: false,
+        },
+        PlanetDef {
+            orbit_radius: 300.0,
+            angular_speed: 0.22,
+            phase: 3.5,
+            color: Color::from_u8(205, 145, 85, 255),
+            size: 28.0,
+            moon: None,
+            is_earth: false,
+        },
+        PlanetDef {
+            orbit_radius: 380.0,
+            angular_speed: 0.16,
+            phase: 4.2,
+            color: Color::from_u8(235, 215, 150, 255),
+            size: 24.0,
+            moon: None,
+            is_earth: false,
+        },
+        PlanetDef {
+            orbit_radius: 460.0,
+            angular_speed: 0.12,
+            phase: 4.9,
+            color: Color::from_u8(120, 205, 220, 255),
+            size: 18.0,
+            moon: None,
+            is_earth: false,
+        },
+        PlanetDef {
+            orbit_radius: 540.0,
+            angular_speed: 0.09,
+            phase: 5.6,
+            color: Color::from_u8(85, 120, 230, 255),
+            size: 18.0,
+            moon: None,
+            is_earth: false,
         },
     ]
 }
@@ -98,33 +158,56 @@ fn nebula_polygons() -> [(Vec2, Vec<Vec2>, Color); 2] {
     ]
 }
 
-pub fn spawn_sun(world: &mut World) {
-    world.spawn((
-        Transform2D {
-            position: SUN_POSITION,
-            ..Transform2D::default()
-        },
-        Shape {
-            variant: ShapeVariant::Circle { radius: 40.0 },
-            color: SUN_COLOR,
-        },
-        Sun,
-        RenderLayer::World,
-    ));
+pub fn spawn_synodic_frame(world: &mut World) -> Entity {
+    world.spawn((Transform2D::default(), SynodicFrame)).id()
 }
 
-pub fn spawn_planets(world: &mut World) {
-    for planet_def in planets() {
-        let pivot = world
-            .spawn((
+pub fn spawn_sun(world: &mut World, parent: Entity) {
+    world.spawn_child(
+        parent,
+        (
+            Transform2D::default(),
+            Shape {
+                variant: ShapeVariant::Circle { radius: 40.0 },
+                color: SUN_COLOR,
+            },
+            Sun,
+            RenderLayer::World,
+        ),
+    );
+}
+
+fn spawn_planet(world: &mut World, parent: Entity, planet_def: PlanetDef) {
+    let pivot = world.spawn_child(
+        parent,
+        (
+            Transform2D {
+                rotation: planet_def.phase,
+                ..Transform2D::default()
+            },
+            OrbitalSpeed(planet_def.angular_speed),
+        ),
+    );
+    let planet = if planet_def.is_earth {
+        world.spawn_child(
+            pivot,
+            (
                 Transform2D {
-                    position: SUN_POSITION,
+                    position: Vec2::new(planet_def.orbit_radius, 0.0),
                     ..Transform2D::default()
                 },
-                OrbitalSpeed(planet_def.speed),
-            ))
-            .id();
-        let planet = world.spawn_child(
+                Shape {
+                    variant: ShapeVariant::Circle {
+                        radius: planet_def.size / 2.0,
+                    },
+                    color: planet_def.color,
+                },
+                Earth,
+                RenderLayer::World,
+            ),
+        )
+    } else {
+        world.spawn_child(
             pivot,
             (
                 Transform2D {
@@ -139,31 +222,44 @@ pub fn spawn_planets(world: &mut World) {
                 },
                 RenderLayer::World,
             ),
+        )
+    };
+
+    if let Some(moon_def) = planet_def.moon {
+        let moon_pivot = world.spawn_child(
+            planet,
+            (
+                Transform2D {
+                    rotation: moon_def.phase,
+                    ..Transform2D::default()
+                },
+                OrbitalSpeed(moon_def.angular_speed),
+            ),
         );
-        if let Some(moon_def) = planet_def.moon {
-            let moon_pivot = world.spawn_child(
-                planet,
-                (Transform2D::default(), OrbitalSpeed(moon_def.speed)),
-            );
-            world.spawn_child(
-                moon_pivot,
-                (
-                    Transform2D {
-                        position: Vec2::new(moon_def.orbit_radius, 0.0),
-                        ..Transform2D::default()
-                    },
-                    Sprite {
-                        texture: TextureId(0),
-                        uv_rect: [0.0, 0.0, 1.0, 1.0],
-                        color: moon_def.color,
-                        width: Pixels(moon_def.size),
-                        height: Pixels(moon_def.size),
-                    },
-                    Moon,
-                    RenderLayer::World,
-                ),
-            );
-        }
+        world.spawn_child(
+            moon_pivot,
+            (
+                Transform2D {
+                    position: Vec2::new(moon_def.orbit_radius, 0.0),
+                    ..Transform2D::default()
+                },
+                Sprite {
+                    texture: TextureId(0),
+                    uv_rect: [0.0, 0.0, 1.0, 1.0],
+                    color: MOON_COLOR,
+                    width: Pixels(moon_def.size),
+                    height: Pixels(moon_def.size),
+                },
+                Moon,
+                RenderLayer::World,
+            ),
+        );
+    }
+}
+
+pub fn spawn_planets(world: &mut World, parent: Entity) {
+    for planet_def in planets() {
+        spawn_planet(world, parent, planet_def);
     }
 }
 
@@ -203,8 +299,11 @@ pub fn spawn_nebula(world: &mut World) {
 }
 
 pub fn spawn_camera(world: &mut World) {
-    world.spawn(Camera2D {
-        position: SUN_POSITION,
-        zoom: 0.5,
-    });
+    world.spawn((
+        Camera2D {
+            position: Vec2::ZERO,
+            zoom: 0.5,
+        },
+        CameraRotation::default(),
+    ));
 }
