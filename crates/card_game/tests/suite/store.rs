@@ -111,7 +111,7 @@ fn when_click_reader_tile_then_spawns_reader_copy_and_spends_coins() {
     // Arrange
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
-    let bounds = store_item_screen_bounds(&world.resource::<StashGrid>(), &catalog, 0).unwrap();
+    let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 0).unwrap();
     let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
     click_at(&mut world, center, true);
 
@@ -129,7 +129,7 @@ fn when_click_screen_tile_then_spawns_screen_copy_and_spends_coins() {
     // Arrange
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
-    let bounds = store_item_screen_bounds(&world.resource::<StashGrid>(), &catalog, 1).unwrap();
+    let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 1).unwrap();
     let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
     click_at(&mut world, center, true);
 
@@ -147,7 +147,7 @@ fn when_reader_dragged_back_over_store_then_reader_is_sold_and_refunded() {
     // Arrange
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
-    let bounds = store_item_screen_bounds(&world.resource::<StashGrid>(), &catalog, 0).unwrap();
+    let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 0).unwrap();
     let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
     click_at(&mut world, center, true);
     run_buy_system(&mut world);
@@ -266,7 +266,7 @@ fn when_selling_reader_then_reader_tree_and_jack_are_removed() {
     // Arrange
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
-    let bounds = store_item_screen_bounds(&world.resource::<StashGrid>(), &catalog, 0).unwrap();
+    let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 0).unwrap();
     let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
     click_at(&mut world, center, true);
     run_buy_system(&mut world);
@@ -291,7 +291,7 @@ fn when_selling_screen_then_screen_tree_and_jack_are_removed() {
     // Arrange
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
-    let bounds = store_item_screen_bounds(&world.resource::<StashGrid>(), &catalog, 1).unwrap();
+    let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 1).unwrap();
     let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
     click_at(&mut world, center, true);
     run_buy_system(&mut world);
