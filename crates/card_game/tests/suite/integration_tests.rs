@@ -228,16 +228,14 @@ fn when_card_picked_from_table_and_released_on_stash_then_card_in_stash() {
         CardSignature::default(),
     );
 
-    // Open stash before first frame.
-    app.world_mut().resource_mut::<StashVisible>().0 = true;
+    // Pick the card while stash is closed (stash overlay blocks world picks).
     tick(&mut app);
-
-    // Act — pick the card at world origin.
     simulate_mouse_press(&mut app, Vec2::new(400.0, 300.0));
     tick(&mut app);
 
-    // Act — release over stash slot (0,0): screen pos inside the first slot area.
+    // Open stash while dragging, then release over stash slot (0,0).
     // GRID_MARGIN=20, SLOT_STRIDE_W=54, SLOT_STRIDE_H=79 → (45, 57) is center of slot (0,0).
+    app.world_mut().resource_mut::<StashVisible>().0 = true;
     simulate_mouse_release(&mut app, Vec2::new(45.0, 57.0));
     tick(&mut app);
 
@@ -282,12 +280,12 @@ fn when_card_picked_from_stash_and_released_into_hand_then_card_in_hand() {
         false,
         CardSignature::default(),
     );
-    app.world_mut().resource_mut::<StashVisible>().0 = true;
     tick(&mut app);
 
-    // Pick from table and drop into stash slot (0,0).
+    // Pick from table while stash is closed, then open stash and drop into slot (0,0).
     simulate_mouse_press(&mut app, Vec2::new(400.0, 300.0));
     tick(&mut app);
+    app.world_mut().resource_mut::<StashVisible>().0 = true;
     simulate_mouse_release(&mut app, Vec2::new(45.0, 57.0));
     tick(&mut app);
 
@@ -408,11 +406,12 @@ fn when_stash_card_released_on_table_then_zone_table_body_present_item_form_remo
         false,
         CardSignature::default(),
     );
-    app.world_mut().resource_mut::<StashVisible>().0 = true;
     tick(&mut app);
 
+    // Pick from table while stash is closed, then open stash and drop into slot.
     simulate_mouse_press(&mut app, Vec2::new(400.0, 300.0));
     tick(&mut app);
+    app.world_mut().resource_mut::<StashVisible>().0 = true;
     simulate_mouse_release(&mut app, Vec2::new(45.0, 57.0));
     tick(&mut app);
     // Flush Commands so CardItemForm is inserted before we assert the precondition.
@@ -513,10 +512,9 @@ fn when_table_card_crosses_stash_boundary_over_multiple_frames_then_release_uses
         false,
         CardSignature::default(),
     );
-    app.world_mut().resource_mut::<StashVisible>().0 = true;
     tick(&mut app);
 
-    // Act - press on the table card.
+    // Pick the card while stash is closed (stash overlay blocks world picks).
     simulate_mouse_press(&mut app, Vec2::new(400.0, 300.0));
     tick(&mut app);
 
@@ -525,7 +523,8 @@ fn when_table_card_crosses_stash_boundary_over_multiple_frames_then_release_uses
         "card should enter drag state on the press frame"
     );
 
-    // Act - move into the stash while still holding the mouse button.
+    // Open stash while dragging, then move into the stash area.
+    app.world_mut().resource_mut::<StashVisible>().0 = true;
     simulate_mouse_move(&mut app, Vec2::new(45.0, 57.0));
     tick(&mut app);
     tick(&mut app);

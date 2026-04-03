@@ -230,19 +230,19 @@ fn when_set_current_page_beyond_count_then_clamped_to_last_page() {
     grid.set_current_page(5);
 
     // Assert
-    assert_eq!(grid.current_page(), 2);
+    assert_eq!(grid.current_page(), 3);
 }
 
 #[test]
-fn when_set_current_page_on_single_page_grid_then_stays_zero() {
+fn when_set_current_page_on_single_page_grid_then_clamped_to_one() {
     // Arrange
     let mut grid = StashGrid::new(10, 10, 1);
 
     // Act
-    grid.set_current_page(1);
+    grid.set_current_page(5);
 
     // Assert
-    assert_eq!(grid.current_page(), 0);
+    assert_eq!(grid.current_page(), 1);
 }
 
 /// @doc: Pages are truly isolated in coordinate space — allows full reuse of same (col, row) across page tabs without collision.
