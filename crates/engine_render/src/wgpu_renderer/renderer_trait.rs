@@ -1,5 +1,3 @@
-use wgpu::util::DeviceExt;
-
 use engine_core::color::Color;
 
 use crate::rect::Rect;
@@ -8,12 +6,21 @@ use crate::shader::ShaderHandle;
 
 use super::gpu_init::create_shape_pipeline_set;
 use super::renderer::{
-    MeshSource, PersistentMesh, ShapeDrawRecord, WgpuRenderer, pack_material_bindings,
+    MeshSource, PersistentMesh, ShapeDrawRecord, UploadBindGroupBuffer, UploadBuffer, WgpuRenderer,
+    align_to_uniform_offset, pack_material_frame_data,
 };
 use super::types::{
     BloomParamsUniform, FullscreenBuffers, FullscreenPass, QUAD_INDICES, ShapeVertex, TextureData,
     compute_batch_ranges, create_texture_bind_group, rect_to_instance, run_fullscreen_pass,
 };
+
+struct PreparedShapeResources {
+    aligned_entry: usize,
+    material_entry_size: usize,
+    model_bg: wgpu::BindGroup,
+    material_bg: wgpu::BindGroup,
+    batched_buffers: Option<(wgpu::Buffer, wgpu::Buffer)>,
+}
 
 impl WgpuRenderer {
     fn begin_scene_pass<'a>(
@@ -39,14 +46,7 @@ impl WgpuRenderer {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    fn draw_quad_instances(&self, pass: &mut wgpu::RenderPass) {
-        let instance_buffer = self
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(&self.pending_instances),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
+    fn draw_quad_instances(&self, pass: &mut wgpu::RenderPass, instance_buffer: &wgpu::Buffer) {
         pass.set_bind_group(0, &self.texture_bind_group, &[]);
         pass.set_bind_group(1, &self.camera_bind_group, &[]);
         pass.set_vertex_buffer(0, self.quad_vertex_buffer.slice(..));
@@ -58,45 +58,105 @@ impl WgpuRenderer {
         }
     }
 
-    fn create_shape_buffers(&self) -> (wgpu::Buffer, wgpu::Buffer) {
-        let vb = self
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(self.shape_batch.vertices()),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-        let ib = self
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(self.shape_batch.indices()),
-                usage: wgpu::BufferUsages::INDEX,
-            });
-        (vb, ib)
+    fn prepare_upload_buffer(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        slot: &mut Option<UploadBuffer>,
+        usage: wgpu::BufferUsages,
+        bytes: &[u8],
+    ) -> wgpu::Buffer {
+        let upload = slot.get_or_insert_with(|| UploadBuffer::new(device, usage, bytes.len()));
+        upload.ensure_capacity(device, bytes.len());
+        queue.write_buffer(&upload.buffer, 0, bytes);
+        upload.buffer.clone()
     }
 
-    fn create_model_bind_group(&self, aligned_entry: usize) -> wgpu::BindGroup {
-        let model_data = pack_model_uniform_data(&self.shape_draws, aligned_entry);
-        let model_buffer = self
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: &model_data,
-                usage: wgpu::BufferUsages::UNIFORM,
-            });
-        self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
-            layout: &self.model_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                    buffer: &model_buffer,
-                    offset: 0,
-                    size: wgpu::BufferSize::new(64),
-                }),
-            }],
+    fn prepare_instance_buffer(&mut self) -> Option<wgpu::Buffer> {
+        let bytes = bytemuck::cast_slice(&self.pending_instances);
+        (!bytes.is_empty()).then(|| {
+            Self::prepare_upload_buffer(
+                &self.device,
+                &self.queue,
+                &mut self.instance_upload_buffer,
+                wgpu::BufferUsages::VERTEX,
+                bytes,
+            )
         })
+    }
+
+    fn prepare_shape_buffers(&mut self) -> Option<(wgpu::Buffer, wgpu::Buffer)> {
+        let vertex_bytes = bytemuck::cast_slice(self.shape_batch.vertices());
+        let index_bytes = bytemuck::cast_slice(self.shape_batch.indices());
+        if vertex_bytes.is_empty() || index_bytes.is_empty() {
+            return None;
+        }
+        let vb = Self::prepare_upload_buffer(
+            &self.device,
+            &self.queue,
+            &mut self.shape_vertex_upload_buffer,
+            wgpu::BufferUsages::VERTEX,
+            vertex_bytes,
+        );
+        let ib = Self::prepare_upload_buffer(
+            &self.device,
+            &self.queue,
+            &mut self.shape_index_upload_buffer,
+            wgpu::BufferUsages::INDEX,
+            index_bytes,
+        );
+        Some((vb, ib))
+    }
+
+    fn prepare_model_bind_group(&mut self, aligned_entry: usize) -> Option<wgpu::BindGroup> {
+        let model_data = pack_model_uniform_data(&self.shape_draws, aligned_entry);
+        if model_data.is_empty() {
+            return None;
+        }
+        let model_upload = self.model_upload_buffer.get_or_insert_with(|| {
+            UploadBindGroupBuffer::new(
+                &self.device,
+                &self.model_bind_group_layout,
+                64,
+                model_data.len(),
+            )
+        });
+        model_upload.ensure_capacity(
+            &self.device,
+            &self.model_bind_group_layout,
+            64,
+            model_data.len(),
+        );
+        self.queue
+            .write_buffer(&model_upload.storage.buffer, 0, &model_data);
+        Some(model_upload.bind_group.clone())
+    }
+
+    fn prepare_material_bind_group(&mut self) -> Option<(wgpu::BindGroup, usize)> {
+        let (slot_size, material_data) = pack_material_frame_data(
+            &self.shape_draws,
+            &self.texture_lookups,
+            self.model_uniform_align as usize,
+        );
+        if material_data.is_empty() {
+            return None;
+        }
+        let material_upload = self.material_upload_buffer.get_or_insert_with(|| {
+            UploadBindGroupBuffer::new(
+                &self.device,
+                &self.material_bind_group_layout,
+                slot_size as u64,
+                material_data.len(),
+            )
+        });
+        material_upload.ensure_capacity(
+            &self.device,
+            &self.material_bind_group_layout,
+            slot_size as u64,
+            material_data.len(),
+        );
+        self.queue
+            .write_buffer(&material_upload.storage.buffer, 0, &material_data);
+        Some((material_upload.bind_group.clone(), slot_size))
     }
 
     fn select_shape_pipeline(
@@ -112,44 +172,14 @@ impl WgpuRenderer {
         }
     }
 
-    fn create_material_bind_groups(&self) -> Vec<wgpu::BindGroup> {
-        self.shape_draws
-            .iter()
-            .map(|draw| {
-                let contents = pack_material_bindings(
-                    &draw.material_uniforms,
-                    &draw.material_textures,
-                    &self.texture_lookups,
-                );
-                if contents.len() == 32 && contents.iter().all(|&b| b == 0) {
-                    return self.default_material_bind_group.clone();
-                }
-                let buffer = self
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: None,
-                        contents: &contents,
-                        usage: wgpu::BufferUsages::UNIFORM,
-                    });
-                self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: None,
-                    layout: &self.material_bind_group_layout,
-                    entries: &[wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: buffer.as_entire_binding(),
-                    }],
-                })
-            })
-            .collect()
-    }
-
     #[allow(clippy::cast_possible_truncation)]
     fn issue_shape_draw_calls(
         &self,
         pass: &mut wgpu::RenderPass,
         model_bg: &wgpu::BindGroup,
-        material_bgs: &[wgpu::BindGroup],
+        material_bg: &wgpu::BindGroup,
         aligned_entry: usize,
+        material_entry_size: usize,
         batched_buffers: Option<&(wgpu::Buffer, wgpu::Buffer)>,
     ) {
         let mut last_key: Option<(ShaderHandle, crate::material::BlendMode)> = None;
@@ -162,8 +192,9 @@ impl WgpuRenderer {
                 last_key = Some(key);
             }
             let dyn_offset = (i * aligned_entry) as u32;
+            let material_offset = (i * material_entry_size) as u32;
             pass.set_bind_group(1, model_bg, &[dyn_offset]);
-            pass.set_bind_group(2, &material_bgs[i], &[]);
+            pass.set_bind_group(2, material_bg, &[material_offset]);
 
             match &draw.source {
                 MeshSource::Batched {
@@ -194,27 +225,45 @@ impl WgpuRenderer {
         }
     }
 
-    fn draw_shape_batches(&self, pass: &mut wgpu::RenderPass) {
-        let aligned_entry = (self.model_uniform_align as usize).max(64);
-        let model_bg = self.create_model_bind_group(aligned_entry);
-        let material_bgs = self.create_material_bind_groups();
+    fn prepare_shape_resources(&mut self) -> Option<PreparedShapeResources> {
+        if self.shape_draws.is_empty() {
+            return None;
+        }
+        let aligned_entry = align_to_uniform_offset(64, self.model_uniform_align as usize);
+        let model_bg = self.prepare_model_bind_group(aligned_entry)?;
+        let (material_bg, material_entry_size) = self.prepare_material_bind_group()?;
+        let batched_buffers = (!self.shape_batch.is_empty())
+            .then(|| self.prepare_shape_buffers())
+            .flatten();
+        Some(PreparedShapeResources {
+            aligned_entry,
+            material_entry_size,
+            model_bg,
+            material_bg,
+            batched_buffers,
+        })
+    }
+
+    fn draw_shape_batches(&self, pass: &mut wgpu::RenderPass, prepared: &PreparedShapeResources) {
         pass.set_bind_group(0, &self.camera_bind_group, &[]);
         pass.set_bind_group(3, &self.texture_bind_group, &[]);
-        let batched_buffers = (!self.shape_batch.is_empty()).then(|| self.create_shape_buffers());
         self.issue_shape_draw_calls(
             pass,
-            &model_bg,
-            &material_bgs,
-            aligned_entry,
-            batched_buffers.as_ref(),
+            &prepared.model_bg,
+            &prepared.material_bg,
+            prepared.aligned_entry,
+            prepared.material_entry_size,
+            prepared.batched_buffers.as_ref(),
         );
     }
 
     pub(super) fn draw_scene_to(
-        &self,
+        &mut self,
         encoder: &mut wgpu::CommandEncoder,
         target_view: &wgpu::TextureView,
     ) {
+        let instance_buffer = self.prepare_instance_buffer();
+        let prepared_shapes = self.prepare_shape_resources();
         let clear_color = wgpu::Color {
             r: f64::from(self.clear_color.r),
             g: f64::from(self.clear_color.g),
@@ -222,11 +271,11 @@ impl WgpuRenderer {
             a: f64::from(self.clear_color.a),
         };
         let mut pass = Self::begin_scene_pass(encoder, &self.msaa_view, target_view, clear_color);
-        if !self.pending_instances.is_empty() {
-            self.draw_quad_instances(&mut pass);
+        if let Some(instance_buffer) = instance_buffer.as_ref() {
+            self.draw_quad_instances(&mut pass, instance_buffer);
         }
-        if !self.shape_draws.is_empty() {
-            self.draw_shape_batches(&mut pass);
+        if let Some(prepared_shapes) = prepared_shapes.as_ref() {
+            self.draw_shape_batches(&mut pass, prepared_shapes);
         }
     }
 
@@ -586,10 +635,13 @@ impl Renderer for WgpuRenderer {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-        if self.post_process_pending
-            && let Some(pp) = self.post_process.as_ref()
-        {
-            self.draw_scene_to(&mut encoder, &pp.scene_view);
+        if self.post_process_pending {
+            let scene_view = self.post_process.as_ref().map(|pp| pp.scene_view.clone());
+            if let Some(scene_view) = scene_view {
+                self.draw_scene_to(&mut encoder, &scene_view);
+            } else {
+                self.draw_scene_to(&mut encoder, &view);
+            }
             self.execute_bloom(&mut encoder, &view);
             self.post_process_pending = false;
         } else {

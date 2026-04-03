@@ -131,9 +131,11 @@ pub fn spawn_visual_card(
                 .upload_persistent_colored_mesh(&baked.back.vertices, &baked.back.indices),
         });
     let mut entity_mut = world.entity_mut(root);
-    entity_mut.insert((baked, mesh_overlays, ColorMesh(initial_mesh)));
+    entity_mut.insert((baked, mesh_overlays));
     if let Some(gpu) = gpu_mesh {
         entity_mut.insert(gpu);
+    } else {
+        entity_mut.insert(ColorMesh(initial_mesh));
     }
 
     root

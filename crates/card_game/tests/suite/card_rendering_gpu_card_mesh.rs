@@ -15,6 +15,7 @@ use card_game::card::rendering::spawn_table_card::spawn_visual_card;
 use engine_core::prelude::{TextureId, Transform2D};
 use engine_render::renderer::GpuMeshHandle;
 use engine_render::renderer::RendererRes;
+use engine_render::shape::ColorMesh;
 use engine_render::testing::{PersistentMeshCallLog, SpyRenderer};
 use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
@@ -65,6 +66,31 @@ fn when_card_spawned_then_gpu_card_mesh_uploaded() {
     assert_ne!(
         gpu_mesh.front, gpu_mesh.back,
         "front and back must be distinct"
+    );
+}
+
+#[test]
+fn when_card_spawned_with_gpu_mesh_then_color_mesh_is_not_inserted() {
+    // Arrange
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let spy = SpyRenderer::new(log);
+    let mut world = World::new();
+    world.insert_resource(RendererRes::new(Box::new(spy)));
+
+    // Act
+    let entity = spawn_visual_card(
+        &mut world,
+        &placeholder_def(),
+        Vec2::ZERO,
+        Vec2::new(60.0, 90.0),
+        true,
+        CardSignature::default(),
+    );
+
+    // Assert
+    assert!(
+        world.get::<ColorMesh>(entity).is_none(),
+        "GPU-backed cards should not insert a fallback ColorMesh"
     );
 }
 

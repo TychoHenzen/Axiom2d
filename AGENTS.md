@@ -39,6 +39,7 @@ cargo.exe test               # Run all tests
 cargo.exe test <test_name>   # Run a single test by name
 cargo.exe clippy             # Lint (pedantic, workspace-configured)
 cargo.exe fmt --all          # Format all crates
+cargo.exe build --profile profiling -p card_game_bin   # Build a symbolized optimized binary for Samply
 ```
 
 Always use `cargo.exe` (not `cargo`) since the Rust toolchain is Windows-only. The same applies to `rustc.exe`, `rustfmt.exe`, etc.
@@ -53,6 +54,9 @@ The project uses Rust edition 2024. Dependencies are declared at the workspace l
 - **Path formats**: WSL sees `/mnt/c/...` paths; Windows/RustRover sees `C:\...` paths. Cargo and rustc invoked via `.exe` will interpret paths as Windows paths. When passing paths to `cargo.exe`, use Windows-style paths or rely on the working directory.
 - **File locking**: Both RustRover (Windows) and Codex (WSL) access the same files. Avoid concurrent builds — RustRover's build and `cargo.exe` from WSL share the same `target/` directory and lock file.
 - **Target triple**: The Windows toolchain compiles for `x86_64-pc-windows-msvc` by default. Any platform-specific code or dependencies should target Windows, not Linux.
+- **Prefer Samply for real profiling**: `scripts/profile-card-game.ps1` builds `card_game_bin` with the repo-local `profiling` Cargo profile and launches `samply record` against the resulting `.exe`.
+- **Frame profiler scope**: `perf_log.csv` only measures schedule execution and manual spans. It does not include `renderer.present()` or any other work outside those spans, so low CSV totals do not rule out a GPU/present bottleneck.
+- **Samply symbolization on Windows**: `profile.json` frame names for `card_game_bin.exe` are RVAs, not full virtual addresses. To symbolize them with `llvm-symbolizer.exe` against `card_game_bin.pdb`, add the PE image base first (obtain it with `objdump -p target/profiling/card_game_bin.exe | rg ImageBase`).
 - **Snapshot testing (insta)**: `INSTA_UPDATE=always` does not propagate from WSL env vars to Windows `cargo.exe`. To accept new snapshots, rename `.snap.new` → `.snap` manually (e.g., `for f in $(find crates -name "*.snap.new"); do mv "$f" "${f%.new}"; done`).
 
 ### Clippy Configuration

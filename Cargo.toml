@@ -80,6 +80,13 @@ strip = "symbols"     # strips everything — use release-debuggable for stack t
 
 [profile.release-debuggable]
 inherits = "release"
-strip = false         # full symbols
+debug = true          # keep debuginfo for profilers and source-backed stack traces
+strip = false         # preserve symbols in the binary
 panic = "unwind"      # backtraces work
 opt-level = 2         # speed over size, better debuggability
+
+[profile.profiling]
+inherits = "release-debuggable"
+opt-level = 3         # profile the optimized code path, not the size-tuned release build
+lto = false           # faster rebuilds and clearer call trees during iteration
+codegen-units = 16    # trade a little peak perf for much faster profiling rebuilds
