@@ -17,9 +17,9 @@ fn when_index_then_matches_declaration_order() {
     }
 }
 
-/// @doc: PHASE_COUNT is the compile-time constant used to size arrays and
+/// @doc: `PHASE_COUNT` is the compile-time constant used to size arrays and
 /// pre-allocate schedule storage throughout the engine. If a variant is added
-/// without updating PHASE_COUNT the constant drifts from reality, causing
+/// without updating `PHASE_COUNT` the constant drifts from reality, causing
 /// under-allocated buffers and missed schedule slots at runtime.
 #[test]
 fn when_phase_count_then_equals_eighteen() {

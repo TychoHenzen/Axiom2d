@@ -153,8 +153,8 @@ fn when_handle_redraw_called_twice_then_system_runs_twice() {
     assert_eq!(app.world().resource::<Counter>().0, 2);
 }
 
-/// @doc: Phase execution order is enforced across all 18 phases. FixedUpdate fires once when
-/// delta equals step_size. Startup executes only on the first frame.
+/// @doc: Phase execution order is enforced across all 18 phases. `FixedUpdate` fires once when
+/// delta equals `step_size`. Startup executes only on the first frame.
 #[test]
 fn when_systems_in_all_phases_then_run_in_canonical_order() {
     #[derive(Resource, Default)]
@@ -281,7 +281,7 @@ fn when_add_systems_chained_then_builder_pattern_works() {
         .add_systems(Phase::Update, noop);
 }
 
-/// @doc: App must initialize all 18 phase schedules — a mismatch between PHASE_COUNT and the enum
+/// @doc: App must initialize all 18 phase schedules — a mismatch between `PHASE_COUNT` and the enum
 /// variants would silently drop a phase and break every system registered to it.
 #[test]
 fn when_new_app_created_then_eighteen_schedules_exist() {
@@ -644,8 +644,8 @@ fn when_scroll_event_received_by_app_then_event_pushed_to_bus() {
 }
 
 /// @doc: Phase timing records 18 entries per frame — one per schedule phase. The profiler loop
-/// iterates `Phase::ALL` which contains all 18 phases. FixedUpdate must fire at least once to
-/// record its entry, so we set DeltaTime to exactly one step. A count other than 18 means the
+/// iterates `Phase::ALL` which contains all 18 phases. `FixedUpdate` must fire at least once to
+/// record its entry, so we set `DeltaTime` to exactly one step. A count other than 18 means the
 /// loop and the enum are out of sync.
 #[test]
 fn when_handle_redraw_called_with_profiler_then_eighteen_phase_records_buffered() {
@@ -740,8 +740,8 @@ fn when_startup_system_registered_then_does_not_run_on_second_handle_redraw() {
     assert_eq!(app.world().resource::<Counter>().0, 1);
 }
 
-/// @doc: FixedUpdate must execute N times per frame where N = floor(accumulated_delta / step_size).
-/// With delta=0.2s and step_size=0.1s the accumulator fires twice.
+/// @doc: `FixedUpdate` must execute N times per frame where N = `floor(accumulated_delta` / `step_size`).
+/// With delta=0.2s and `step_size=0.1s` the accumulator fires twice.
 #[test]
 fn when_fixed_update_system_registered_and_delta_covers_two_steps_then_runs_twice() {
     // Arrange
@@ -759,7 +759,7 @@ fn when_fixed_update_system_registered_and_delta_covers_two_steps_then_runs_twic
     assert_eq!(app.world().resource::<Counter>().0, 2);
 }
 
-/// @doc: FixedUpdate must not run when delta is zero — a zero-delta frame produces zero accumulator
+/// @doc: `FixedUpdate` must not run when delta is zero — a zero-delta frame produces zero accumulator
 /// steps, so physics and game logic that depend on deterministic fixed ticks must not fire.
 #[test]
 fn when_delta_is_zero_then_fixed_update_system_does_not_run() {
@@ -778,7 +778,7 @@ fn when_delta_is_zero_then_fixed_update_system_does_not_run() {
     assert_eq!(app.world().resource::<Counter>().0, 0);
 }
 
-/// @doc: FixedUpdate must not fire when the accumulated delta has not yet reached one full step.
+/// @doc: `FixedUpdate` must not fire when the accumulated delta has not yet reached one full step.
 /// A delta of 0.05s with a 0.1s step size produces zero steps; the remainder carries forward.
 #[test]
 fn when_delta_less_than_step_size_then_fixed_update_does_not_run() {
@@ -797,7 +797,7 @@ fn when_delta_less_than_step_size_then_fixed_update_does_not_run() {
     assert_eq!(app.world().resource::<Counter>().0, 0);
 }
 
-/// @doc: The FixedUpdate accumulator must carry its remainder across frames. Frame 1 adds 0.05s
+/// @doc: The `FixedUpdate` accumulator must carry its remainder across frames. Frame 1 adds 0.05s
 /// (no step fires, remainder=0.05s). Frame 2 adds 0.07s (total=0.12s, one step fires,
 /// remainder=0.02s). The counter must be exactly 1 after both frames.
 #[test]
