@@ -1,10 +1,9 @@
 #![allow(clippy::unwrap_used)]
 
-use std::sync::{Arc, Mutex};
-
 use bevy_ecs::prelude::*;
+use engine_core::prelude::EventBus;
 use engine_input::prelude::MouseState;
-use engine_physics::prelude::{Collider, PhysicsBackend, PhysicsRes};
+use engine_physics::prelude::{Collider, PhysicsCommand};
 use engine_scene::prelude::GlobalTransform2D;
 use glam::{Affine2, Vec2};
 
@@ -16,7 +15,6 @@ use card_game::stash::boundary::stash_boundary_system;
 use card_game::stash::constants::SLOT_WIDTH;
 use card_game::stash::grid::StashGrid;
 use card_game::stash::toggle::StashVisible;
-use card_game::test_helpers::{AddBodyLog, RemoveBodyLog, SpyPhysicsBackend};
 use engine_core::scale_spring::ScaleSpring;
 
 fn run_system(world: &mut World) {
@@ -25,17 +23,11 @@ fn run_system(world: &mut World) {
     schedule.run(world);
 }
 
-fn make_spy_physics() -> (
-    Box<dyn PhysicsBackend + Send + Sync>,
-    AddBodyLog,
-    RemoveBodyLog,
-) {
-    let add_log: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
-    let remove_log: RemoveBodyLog = Arc::new(Mutex::new(Vec::new()));
-    let spy = SpyPhysicsBackend::new()
-        .with_add_body_log(add_log.clone())
-        .with_remove_body_log(remove_log.clone());
-    (Box::new(spy), add_log, remove_log)
+fn drain_physics_commands(world: &mut World) -> Vec<PhysicsCommand> {
+    world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect()
 }
 
 fn make_drag_info(entity: Entity, stash_cursor_follow: bool) -> DragState {
@@ -64,8 +56,7 @@ fn mouse_at_screen(pos: Vec2) -> MouseState {
 fn when_no_drag_then_no_physics_calls() {
     // Arrange
     let mut world = World::new();
-    let (spy, add_log, remove_log) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     world.insert_resource(DragState::default());
     world.insert_resource(mouse_at_screen(Vec2::new(45.0, 57.5)));
     world.insert_resource(StashVisible(true));
@@ -75,8 +66,8 @@ fn when_no_drag_then_no_physics_calls() {
     run_system(&mut world);
 
     // Assert
-    assert!(add_log.lock().unwrap().is_empty());
-    assert!(remove_log.lock().unwrap().is_empty());
+    let commands = drain_physics_commands(&mut world);
+    assert!(commands.is_empty());
 }
 
 #[test]
@@ -89,8 +80,7 @@ fn when_stash_follow_and_cursor_in_stash_then_no_physics_calls() {
             Collider::Aabb(Vec2::new(30.0, 45.0)),
         ))
         .id();
-    let (spy, add_log, remove_log) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     world.insert_resource(make_drag_info(entity, true));
     world.insert_resource(mouse_at_screen(Vec2::new(45.0, 57.5))); // inside slot (0,0)
     world.insert_resource(StashVisible(true));
@@ -100,8 +90,8 @@ fn when_stash_follow_and_cursor_in_stash_then_no_physics_calls() {
     run_system(&mut world);
 
     // Assert
-    assert!(add_log.lock().unwrap().is_empty());
-    assert!(remove_log.lock().unwrap().is_empty());
+    let commands = drain_physics_commands(&mut world);
+    assert!(commands.is_empty());
     assert!(
         world
             .resource::<DragState>()
@@ -123,8 +113,7 @@ fn when_stash_follow_and_cursor_exits_stash_then_physics_body_added() {
             Collider::Aabb(Vec2::new(30.0, 45.0)),
         ))
         .id();
-    let (spy, add_log, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     world.insert_resource(make_drag_info(entity, true));
     world.insert_resource(mouse_at_screen(Vec2::new(800.0, 400.0))); // outside stash
     world.insert_resource(StashVisible(true));
@@ -134,9 +123,16 @@ fn when_stash_follow_and_cursor_exits_stash_then_physics_body_added() {
     run_system(&mut world);
 
     // Assert
-    let calls = add_log.lock().unwrap();
-    assert_eq!(calls.len(), 1, "add_body should be called once");
-    assert_eq!(calls[0].0, entity);
+    let commands = drain_physics_commands(&mut world);
+    let add_bodies: Vec<_> = commands
+        .iter()
+        .filter_map(|c| match c {
+            PhysicsCommand::AddBody { entity: e, .. } => Some(*e),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(add_bodies.len(), 1, "add_body should be called once");
+    assert_eq!(add_bodies[0], entity);
 }
 
 #[test]
@@ -149,8 +145,7 @@ fn when_stash_follow_and_cursor_exits_stash_then_follow_set_false() {
             Collider::Aabb(Vec2::new(30.0, 45.0)),
         ))
         .id();
-    let (spy, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     world.insert_resource(make_drag_info(entity, true));
     world.insert_resource(mouse_at_screen(Vec2::new(800.0, 400.0)));
     world.insert_resource(StashVisible(true));
@@ -177,8 +172,7 @@ fn when_stash_follow_and_cursor_exits_stash_then_scale_spring_targets_drag_eleva
             Collider::Aabb(Vec2::new(30.0, 45.0)),
         ))
         .id();
-    let (spy, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     world.insert_resource(make_drag_info(entity, true));
     world.insert_resource(mouse_at_screen(Vec2::new(800.0, 400.0)));
     world.insert_resource(StashVisible(true));
@@ -209,8 +203,7 @@ fn when_physics_drag_and_cursor_enters_stash_then_physics_body_removed() {
             Collider::Aabb(Vec2::new(30.0, 45.0)),
         ))
         .id();
-    let (spy, _, remove_log) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     world.insert_resource(make_drag_info(entity, false));
     world.insert_resource(mouse_at_screen(Vec2::new(45.0, 57.5))); // inside slot (0,0)
     world.insert_resource(StashVisible(true));
@@ -220,9 +213,16 @@ fn when_physics_drag_and_cursor_enters_stash_then_physics_body_removed() {
     run_system(&mut world);
 
     // Assert
-    let calls = remove_log.lock().unwrap();
-    assert_eq!(calls.len(), 1, "remove_body should be called once");
-    assert_eq!(calls[0], entity);
+    let commands = drain_physics_commands(&mut world);
+    let remove_bodies: Vec<_> = commands
+        .iter()
+        .filter_map(|c| match c {
+            PhysicsCommand::RemoveBody { entity: e } => Some(*e),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(remove_bodies.len(), 1, "remove_body should be called once");
+    assert_eq!(remove_bodies[0], entity);
 }
 
 #[test]
@@ -235,8 +235,7 @@ fn when_physics_drag_and_cursor_enters_stash_then_follow_set_true() {
             Collider::Aabb(Vec2::new(30.0, 45.0)),
         ))
         .id();
-    let (spy, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     world.insert_resource(make_drag_info(entity, false));
     world.insert_resource(mouse_at_screen(Vec2::new(45.0, 57.5)));
     world.insert_resource(StashVisible(true));
@@ -263,8 +262,7 @@ fn when_physics_drag_and_cursor_enters_stash_then_scale_spring_targets_slot_scal
             Collider::Aabb(Vec2::new(30.0, 45.0)),
         ))
         .id();
-    let (spy, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     world.insert_resource(make_drag_info(entity, false));
     world.insert_resource(mouse_at_screen(Vec2::new(45.0, 57.5)));
     world.insert_resource(StashVisible(true));
@@ -296,8 +294,7 @@ fn when_stash_hidden_and_follow_true_then_physics_body_added() {
             Collider::Aabb(Vec2::new(30.0, 45.0)),
         ))
         .id();
-    let (spy, add_log, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     world.insert_resource(make_drag_info(entity, true));
     world.insert_resource(mouse_at_screen(Vec2::new(45.0, 57.5))); // would be in stash, but stash hidden
     world.insert_resource(StashVisible(false));
@@ -307,8 +304,12 @@ fn when_stash_hidden_and_follow_true_then_physics_body_added() {
     run_system(&mut world);
 
     // Assert
+    let commands = drain_physics_commands(&mut world);
     assert_eq!(
-        add_log.lock().unwrap().len(),
+        commands
+            .iter()
+            .filter(|c| matches!(c, PhysicsCommand::AddBody { .. }))
+            .count(),
         1,
         "stash hidden → over_stash=false → exit transition should fire"
     );

@@ -16,7 +16,8 @@ use engine_input::prelude::{
 };
 #[cfg(feature = "physics")]
 use engine_physics::prelude::{
-    CollisionEvent, PhysicsRes, physics_step_system, physics_sync_system,
+    CollisionEvent, PhysicsCommand, PhysicsRes, physics_command_apply_system, physics_step_system,
+    physics_sync_system,
 };
 #[cfg(feature = "render")]
 use engine_render::prelude::{
@@ -79,9 +80,16 @@ fn register_physics(app: &mut App) {
         }
         app.world_mut()
             .insert_resource(engine_core::prelude::EventBus::<CollisionEvent>::default());
+        app.world_mut()
+            .insert_resource(engine_core::prelude::EventBus::<PhysicsCommand>::default());
         app.add_systems(
             Phase::FixedUpdate,
-            (physics_step_system, physics_sync_system).chain(),
+            (
+                physics_command_apply_system,
+                physics_step_system,
+                physics_sync_system,
+            )
+                .chain(),
         );
     }
 }

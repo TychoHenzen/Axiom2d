@@ -1,18 +1,17 @@
 use bevy_ecs::prelude::{Query, ResMut, With};
+use engine_core::prelude::EventBus;
+use engine_physics::prelude::PhysicsCommand;
 
-use crate::card::interaction::physics_helpers::warn_on_physics_result;
 use crate::card::reader::components::CardReader;
-use engine_physics::prelude::PhysicsRes;
 
 pub fn reader_rotation_lock_system(
     query: Query<bevy_ecs::prelude::Entity, With<CardReader>>,
-    mut physics: ResMut<PhysicsRes>,
+    mut physics_commands: ResMut<EventBus<PhysicsCommand>>,
 ) {
     for entity in &query {
-        warn_on_physics_result(
-            "set_angular_velocity",
+        physics_commands.push(PhysicsCommand::SetAngularVelocity {
             entity,
-            physics.set_angular_velocity(entity, 0.0),
-        );
+            angular_velocity: 0.0,
+        });
     }
 }

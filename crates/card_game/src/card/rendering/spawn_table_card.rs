@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::{Entity, World};
-use engine_core::prelude::{TextureId, Transform2D};
-use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
+use engine_core::prelude::{EventBus, TextureId, Transform2D};
+use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
 use engine_render::shape::ColorMesh;
 use engine_scene::prelude::{RenderLayer, SortOrder};
 use glam::Vec2;
@@ -18,7 +18,6 @@ use crate::card::identity::residual::ResidualStats;
 use crate::card::identity::signature::CardSignature;
 use crate::card::identity::signature_profile::SignatureProfile;
 use crate::card::interaction::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
-use crate::card::interaction::physics_helpers::warn_on_physics_bool;
 use crate::card::rendering::bake::{bake_back_face, bake_front_face};
 use crate::card::rendering::baked_mesh::BakedCardMesh;
 use crate::card::rendering::gpu_card_mesh::GpuCardMesh;
@@ -87,20 +86,21 @@ pub fn spawn_visual_card(
         ))
         .id();
 
-    if let Some(mut physics) = world.get_resource_mut::<PhysicsRes>() {
-        warn_on_physics_bool(
-            "add_body",
-            root,
-            physics.add_body(root, &RigidBody::Dynamic, position),
-        );
-        warn_on_physics_bool(
-            "add_collider",
-            root,
-            physics.add_collider(root, &Collider::Aabb(half)),
-        );
-        physics
-            .set_damping(root, BASE_LINEAR_DRAG, BASE_ANGULAR_DRAG)
-            .expect("freshly spawned card should have physics body");
+    if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
+        bus.push(PhysicsCommand::AddBody {
+            entity: root,
+            body_type: RigidBody::Dynamic,
+            position,
+        });
+        bus.push(PhysicsCommand::AddCollider {
+            entity: root,
+            collider: Collider::Aabb(half),
+        });
+        bus.push(PhysicsCommand::SetDamping {
+            entity: root,
+            linear: BASE_LINEAR_DRAG,
+            angular: BASE_ANGULAR_DRAG,
+        });
     }
 
     if let Some(stats) = stats {

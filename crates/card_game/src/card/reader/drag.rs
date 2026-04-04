@@ -1,10 +1,9 @@
 use bevy_ecs::prelude::{Query, Res, ResMut, With, Without};
-use engine_core::prelude::Transform2D;
+use engine_core::prelude::{EventBus, Transform2D};
 use engine_input::mouse_button::MouseButton;
 use engine_input::prelude::MouseState;
-use engine_physics::prelude::PhysicsRes;
+use engine_physics::prelude::PhysicsCommand;
 
-use crate::card::interaction::physics_helpers::warn_on_physics_result;
 use crate::card::reader::components::{CardReader, ReaderDragState};
 use crate::card::reader::spawn::READER_JACK_OFFSET;
 
@@ -14,7 +13,7 @@ pub fn reader_drag_system(
     mut reader_transforms: Query<&mut Transform2D, With<CardReader>>,
     mut card_transforms: Query<&mut Transform2D, Without<CardReader>>,
     readers: Query<&CardReader>,
-    mut physics: ResMut<PhysicsRes>,
+    mut commands: ResMut<EventBus<PhysicsCommand>>,
 ) {
     let Some(info) = &reader_drag.dragging else {
         return;
@@ -26,11 +25,10 @@ pub fn reader_drag_system(
     if let Ok(mut transform) = reader_transforms.get_mut(info.entity) {
         transform.position = target;
     }
-    warn_on_physics_result(
-        "set_body_position",
-        info.entity,
-        physics.set_body_position(info.entity, target),
-    );
+    commands.push(PhysicsCommand::SetBodyPosition {
+        entity: info.entity,
+        position: target,
+    });
     if let Ok(reader) = readers.get(info.entity) {
         if let Ok(mut jack_t) = card_transforms.get_mut(reader.jack_entity) {
             jack_t.position = target + READER_JACK_OFFSET;

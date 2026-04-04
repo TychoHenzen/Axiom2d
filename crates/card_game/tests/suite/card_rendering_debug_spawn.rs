@@ -1,19 +1,19 @@
 #![allow(clippy::unwrap_used)]
 
 use bevy_ecs::prelude::World;
+use engine_core::prelude::EventBus;
 use engine_input::prelude::{InputState, KeyCode};
-use engine_physics::prelude::PhysicsRes;
+use engine_physics::prelude::PhysicsCommand;
 
 use card_game::card::component::Card;
 use card_game::card::identity::base_type::{BaseCardTypeRegistry, populate_default_types};
 use card_game::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
-use card_game::test_helpers::SpyPhysicsBackend;
 
 fn setup_world() -> World {
     let mut world = World::new();
     world.insert_resource(InputState::default());
     world.insert_resource(DebugSpawnRng::default());
-    world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     let mut registry = BaseCardTypeRegistry::default();
     populate_default_types(&mut registry);
     world.insert_resource(registry);

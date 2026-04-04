@@ -1,5 +1,6 @@
-use bevy_ecs::prelude::{Entity, Query, ResMut, With};
-use engine_physics::prelude::PhysicsRes;
+use bevy_ecs::prelude::{Entity, Query, Res, ResMut, With};
+use engine_core::prelude::EventBus;
+use engine_physics::prelude::{PhysicsCommand, PhysicsRes};
 
 use crate::card::component::Card;
 use crate::card::component::CardZone;
@@ -19,7 +20,8 @@ pub fn compute_card_damping(angular_velocity: f32) -> (f32, f32) {
 
 pub fn card_damping_system(
     query: Query<(Entity, &CardZone), With<Card>>,
-    mut physics: ResMut<PhysicsRes>,
+    physics: Res<PhysicsRes>,
+    mut physics_commands: ResMut<EventBus<PhysicsCommand>>,
 ) {
     for (entity, zone) in &query {
         if !matches!(zone, CardZone::Table) {
@@ -29,8 +31,10 @@ pub fn card_damping_system(
             continue;
         };
         let (linear, angular) = compute_card_damping(omega);
-        physics
-            .set_damping(entity, linear, angular)
-            .expect("damped entity should have physics body");
+        physics_commands.push(PhysicsCommand::SetDamping {
+            entity,
+            linear,
+            angular,
+        });
     }
 }

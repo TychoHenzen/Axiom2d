@@ -1,11 +1,12 @@
 use bevy_ecs::prelude::{Commands, Query, Res, ResMut};
+use engine_core::prelude::EventBus;
 use engine_input::prelude::MouseState;
-use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
+use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
 use engine_scene::prelude::{GlobalTransform2D, RenderLayer};
 
 use crate::card::component::CardItemForm;
 use crate::card::interaction::drag_state::DragState;
-use crate::card::interaction::physics_helpers::{activate_physics_body, warn_on_physics_result};
+use crate::card::interaction::physics_helpers::activate_physics_body;
 use crate::card::interaction::pick::{
     DRAG_SCALE, DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP,
 };
@@ -18,7 +19,7 @@ use engine_core::scale_spring::ScaleSpring;
 pub fn stash_boundary_system(
     mouse: Res<MouseState>,
     mut drag_state: ResMut<DragState>,
-    mut physics: ResMut<PhysicsRes>,
+    mut physics_commands: ResMut<EventBus<PhysicsCommand>>,
     stash_visible: Res<StashVisible>,
     grid: Res<StashGrid>,
     mut commands: Commands,
@@ -33,13 +34,12 @@ pub fn stash_boundary_system(
         && find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height()).is_some();
 
     if info.stash_cursor_follow && !over_stash {
-        // Exit stash: add physics body, switch to spring drag
         if let Ok((transform, collider)) = transform_query.get(info.entity) {
             activate_physics_body(
                 info.entity,
                 transform.0.translation,
                 collider,
-                &mut physics,
+                &mut *physics_commands,
                 DRAGGED_COLLISION_GROUP,
                 DRAGGED_COLLISION_FILTER,
             );
@@ -55,8 +55,9 @@ pub fn stash_boundary_system(
             ..info
         });
     } else if !info.stash_cursor_follow && over_stash {
-        // Enter stash: remove physics body, switch to cursor-follow
-        warn_on_physics_result("remove_body", info.entity, physics.remove_body(info.entity));
+        physics_commands.push(PhysicsCommand::RemoveBody {
+            entity: info.entity,
+        });
         commands
             .entity(info.entity)
             .remove::<RigidBody>()

@@ -1,8 +1,9 @@
 use bevy_ecs::prelude::{Entity, Query, Res, ResMut, Resource, World};
 use engine_core::color::Color;
+use engine_core::prelude::EventBus;
 use engine_core::prelude::Transform2D;
 use engine_input::prelude::{MouseButton, MouseState};
-use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
+use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
 use engine_render::font::measure_text;
 use engine_render::prelude::{
     Camera2D, QUAD_INDICES, RendererRes, rect_vertices, resolve_viewport_camera, screen_to_world,
@@ -485,16 +486,21 @@ fn store_item_at(
 
 fn spawn_reader_purchase(world: &mut World, position: Vec2) -> Entity {
     let (reader_entity, _jack_entity) = spawn_reader(world, position);
-    if let Some(mut physics) = world.get_resource_mut::<PhysicsRes>() {
-        physics.add_body(reader_entity, &RigidBody::Kinematic, position);
-        physics.add_collider(reader_entity, &Collider::Aabb(READER_HALF_EXTENTS));
-        physics
-            .set_collision_group(
-                reader_entity,
-                READER_COLLISION_GROUP,
-                READER_COLLISION_FILTER,
-            )
-            .expect("reader entity should accept collision groups");
+    if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
+        bus.push(PhysicsCommand::AddBody {
+            entity: reader_entity,
+            body_type: RigidBody::Kinematic,
+            position,
+        });
+        bus.push(PhysicsCommand::AddCollider {
+            entity: reader_entity,
+            collider: Collider::Aabb(READER_HALF_EXTENTS),
+        });
+        bus.push(PhysicsCommand::SetCollisionGroup {
+            entity: reader_entity,
+            membership: READER_COLLISION_GROUP,
+            filter: READER_COLLISION_FILTER,
+        });
     }
     reader_entity
 }
@@ -741,11 +747,20 @@ fn sell_reader(world: &mut World, entity: Entity) {
             .insert(RenderLayer::World)
             .insert(ScaleSpring::new(1.0));
         if let Some(collider) = world.get::<Collider>(card_entity).cloned()
-            && let Some(mut physics) = world.get_resource_mut::<PhysicsRes>()
+            && let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>()
         {
-            let _ = physics.remove_body(card_entity);
-            physics.add_body(card_entity, &RigidBody::Dynamic, reader_pos);
-            physics.add_collider(card_entity, &collider);
+            bus.push(PhysicsCommand::RemoveBody {
+                entity: card_entity,
+            });
+            bus.push(PhysicsCommand::AddBody {
+                entity: card_entity,
+                body_type: RigidBody::Dynamic,
+                position: reader_pos,
+            });
+            bus.push(PhysicsCommand::AddCollider {
+                entity: card_entity,
+                collider,
+            });
         }
     }
 

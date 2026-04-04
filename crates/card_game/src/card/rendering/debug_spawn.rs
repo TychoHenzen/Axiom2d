@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::{Resource, World};
+use engine_core::prelude::EventBus;
 use engine_input::prelude::{InputState, KeyCode};
-use engine_physics::prelude::PhysicsRes;
+use engine_physics::prelude::PhysicsCommand;
 use glam::Vec2;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
@@ -72,10 +73,12 @@ pub fn debug_spawn_system(world: &mut World) {
         entities.push(entity);
     }
 
-    let mut physics = world.resource_mut::<PhysicsRes>();
+    let mut bus = world.resource_mut::<EventBus<PhysicsCommand>>();
     for entity in entities {
-        physics
-            .set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER)
-            .expect("set_collision_group: body must exist for freshly spawned card");
+        bus.push(PhysicsCommand::SetCollisionGroup {
+            entity,
+            membership: CARD_COLLISION_GROUP,
+            filter: CARD_COLLISION_FILTER,
+        });
     }
 }

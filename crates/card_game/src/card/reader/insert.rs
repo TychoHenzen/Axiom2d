@@ -1,12 +1,11 @@
 use bevy_ecs::prelude::{Commands, Entity, Query, Res, ResMut, Without};
-use engine_core::prelude::Transform2D;
+use engine_core::prelude::{EventBus, Transform2D};
 use engine_input::mouse_button::MouseButton;
 use engine_input::prelude::MouseState;
-use engine_physics::prelude::{PhysicsRes, RigidBody};
+use engine_physics::prelude::{PhysicsCommand, RigidBody};
 
 use crate::card::component::{Card, CardZone};
 use crate::card::interaction::drag_state::DragState;
-use crate::card::interaction::physics_helpers::warn_on_physics_result;
 use crate::card::jack_cable::Jack;
 use crate::card::reader::components::{CardReader, READER_CARD_SCALE, card_overlaps_reader};
 use crate::card::reader::signature_space::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
@@ -17,7 +16,7 @@ pub fn card_reader_insert_system(
     mut readers: Query<(Entity, &Transform2D, &mut CardReader)>,
     mut cards: Query<(&mut Transform2D, &Card, &mut CardZone), Without<CardReader>>,
     mut jacks: Query<&mut Jack<SignatureSpace>>,
-    mut physics: ResMut<PhysicsRes>,
+    mut physics_commands: ResMut<EventBus<PhysicsCommand>>,
     mut commands: Commands,
 ) {
     if !mouse.just_released(MouseButton::Left) {
@@ -50,7 +49,9 @@ pub fn card_reader_insert_system(
                 READER_CARD_SCALE,
             ));
 
-        warn_on_physics_result("remove_body", card_entity, physics.remove_body(card_entity));
+        physics_commands.push(PhysicsCommand::RemoveBody {
+            entity: card_entity,
+        });
         commands.entity(card_entity).remove::<RigidBody>();
 
         *card_zone = CardZone::Reader(reader_entity);

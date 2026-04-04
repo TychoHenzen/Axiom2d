@@ -2,6 +2,8 @@ pub mod collider;
 pub mod collision_event;
 pub mod hit_test;
 pub mod physics_backend;
+pub mod physics_command;
+pub mod physics_command_apply_system;
 pub mod physics_res;
 pub mod physics_step_system;
 pub mod physics_sync_system;
@@ -12,8 +14,8 @@ pub mod rigid_body;
 #[doc(hidden)]
 pub mod test_helpers {
     use std::collections::HashMap;
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicU32, Ordering};
+    use std::sync::{Arc, Mutex};
 
     use bevy_ecs::prelude::{Entity, World};
     use engine_core::prelude::Seconds;
@@ -132,6 +134,80 @@ pub mod test_helpers {
         }
         fn set_body_position(&mut self, _: Entity, _: Vec2) -> Result<(), PhysicsError> {
             Ok(())
+        }
+    }
+
+    pub struct RecordingPhysicsBackend {
+        pub calls: Arc<Mutex<Vec<String>>>,
+    }
+
+    impl RecordingPhysicsBackend {
+        pub fn new(calls: Arc<Mutex<Vec<String>>>) -> Self {
+            Self { calls }
+        }
+    }
+
+    impl PhysicsBackend for RecordingPhysicsBackend {
+        fn step(&mut self, _dt: Seconds) {}
+        fn add_body(&mut self, _: Entity, _: &RigidBody, _: Vec2) -> bool {
+            self.calls.lock().unwrap().push("add_body".into());
+            true
+        }
+        fn add_collider(&mut self, _: Entity, _: &Collider) -> bool {
+            self.calls.lock().unwrap().push("add_collider".into());
+            true
+        }
+        fn remove_body(&mut self, _: Entity) -> Result<(), PhysicsError> {
+            self.calls.lock().unwrap().push("remove_body".into());
+            Ok(())
+        }
+        fn set_linear_velocity(&mut self, _: Entity, _: Vec2) -> Result<(), PhysicsError> {
+            self.calls
+                .lock()
+                .unwrap()
+                .push("set_linear_velocity".into());
+            Ok(())
+        }
+        fn set_angular_velocity(&mut self, _: Entity, _: f32) -> Result<(), PhysicsError> {
+            self.calls
+                .lock()
+                .unwrap()
+                .push("set_angular_velocity".into());
+            Ok(())
+        }
+        fn set_damping(&mut self, _: Entity, _: f32, _: f32) -> Result<(), PhysicsError> {
+            self.calls.lock().unwrap().push("set_damping".into());
+            Ok(())
+        }
+        fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) -> Result<(), PhysicsError> {
+            self.calls
+                .lock()
+                .unwrap()
+                .push("set_collision_group".into());
+            Ok(())
+        }
+        fn set_body_position(&mut self, _: Entity, _: Vec2) -> Result<(), PhysicsError> {
+            self.calls.lock().unwrap().push("set_body_position".into());
+            Ok(())
+        }
+        fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) -> Result<(), PhysicsError> {
+            self.calls.lock().unwrap().push("add_force_at_point".into());
+            Ok(())
+        }
+        fn body_position(&self, _: Entity) -> Option<Vec2> {
+            None
+        }
+        fn body_rotation(&self, _: Entity) -> Option<f32> {
+            None
+        }
+        fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
+            vec![]
+        }
+        fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
+            None
+        }
+        fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
+            None
         }
     }
 }

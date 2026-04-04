@@ -1,18 +1,15 @@
 #![allow(clippy::unwrap_used)]
-#![allow(clippy::too_many_arguments)]
-
-use std::sync::{Arc, Mutex};
 
 use bevy_ecs::prelude::*;
-use engine_core::prelude::Transform2D;
+use engine_core::prelude::{EventBus, Transform2D};
 use engine_input::prelude::{MouseButton, MouseState};
-use engine_physics::prelude::PhysicsRes;
+use engine_physics::prelude::{PhysicsCommand, PhysicsRes};
 use glam::Vec2;
 
 use card_game::card::component::CardZone;
 use card_game::card::interaction::drag::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
-use card_game::test_helpers::{AngularVelocityLog, SpyPhysicsBackend, VelocityLog, spawn_entity};
+use card_game::test_helpers::{SpyPhysicsBackend, spawn_entity};
 
 fn run_system(world: &mut World) {
     let mut schedule = Schedule::default();
@@ -27,15 +24,11 @@ fn setup_drag_world(
     body_rot: f32,
     cursor_pos: Vec2,
     mouse_pressed: bool,
-) -> (World, VelocityLog, AngularVelocityLog) {
+) -> World {
     let mut world = World::new();
-    let velocity_log: VelocityLog = Arc::new(Mutex::new(Vec::new()));
-    let angular_velocity_log: AngularVelocityLog = Arc::new(Mutex::new(Vec::new()));
-    let spy = SpyPhysicsBackend::new()
-        .with_velocity_log(velocity_log.clone())
-        .with_angular_velocity_log(angular_velocity_log.clone())
-        .with_body(entity, body_pos, body_rot);
+    let spy = SpyPhysicsBackend::new().with_body(entity, body_pos, body_rot);
     world.insert_resource(PhysicsRes::new(Box::new(spy)));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 
     let mut mouse = MouseState::default();
     if mouse_pressed {
@@ -54,15 +47,39 @@ fn setup_drag_world(
         }),
     });
 
-    (world, velocity_log, angular_velocity_log)
+    world
+}
+
+/// Helper to extract velocity commands from the EventBus
+fn drain_velocity_commands(world: &mut World) -> (Vec<(Entity, Vec2)>, Vec<(Entity, f32)>) {
+    let commands: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    let velocities: Vec<_> = commands
+        .iter()
+        .filter_map(|c| match c {
+            PhysicsCommand::SetLinearVelocity { entity, velocity } => Some((*entity, *velocity)),
+            _ => None,
+        })
+        .collect();
+    let angular_velocities: Vec<_> = commands
+        .iter()
+        .filter_map(|c| match c {
+            PhysicsCommand::SetAngularVelocity {
+                entity,
+                angular_velocity,
+            } => Some((*entity, *angular_velocity)),
+            _ => None,
+        })
+        .collect();
+    (velocities, angular_velocities)
 }
 
 /// @doc: Stash cursor follow bypasses physics—card tracks mouse directly without velocity/force
 #[test]
 fn when_stash_cursor_follow_then_position_set_to_world_pos_and_no_physics_velocity() {
     // Arrange
-    let vel_log: VelocityLog = Arc::new(Mutex::new(Vec::new()));
-    let ang_log: AngularVelocityLog = Arc::new(Mutex::new(Vec::new()));
     let mut world = World::new();
     let entity = world
         .spawn(Transform2D {
@@ -71,11 +88,9 @@ fn when_stash_cursor_follow_then_position_set_to_world_pos_and_no_physics_veloci
             scale: Vec2::ONE,
         })
         .id();
-    let spy = SpyPhysicsBackend::new()
-        .with_velocity_log(vel_log.clone())
-        .with_angular_velocity_log(ang_log.clone())
-        .with_body(entity, Vec2::ZERO, 0.0);
+    let spy = SpyPhysicsBackend::new().with_body(entity, Vec2::ZERO, 0.0);
     world.insert_resource(PhysicsRes::new(Box::new(spy)));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::new(120.0, 80.0));
@@ -96,15 +111,16 @@ fn when_stash_cursor_follow_then_position_set_to_world_pos_and_no_physics_veloci
     // Assert
     let pos = world.entity(entity).get::<Transform2D>().unwrap().position;
     assert_eq!(pos, Vec2::new(120.0, 80.0));
-    assert!(vel_log.lock().unwrap().is_empty());
-    assert!(ang_log.lock().unwrap().is_empty());
+    let (velocities, angular_velocities) = drain_velocity_commands(&mut world);
+    assert!(velocities.is_empty());
+    assert!(angular_velocities.is_empty());
 }
 
 #[test]
 fn when_dragging_at_center_then_velocity_points_toward_cursor() {
     // Arrange
     let entity = spawn_entity();
-    let (mut world, vel_log, _) = setup_drag_world(
+    let mut world = setup_drag_world(
         entity,
         Vec2::ZERO,
         Vec2::ZERO,
@@ -117,10 +133,10 @@ fn when_dragging_at_center_then_velocity_points_toward_cursor() {
     run_system(&mut world);
 
     // Assert
-    let calls = vel_log.lock().unwrap();
-    assert_eq!(calls.len(), 1);
+    let (velocities, _) = drain_velocity_commands(&mut world);
+    assert_eq!(velocities.len(), 1);
     assert!(
-        calls[0].1.x > 0.0,
+        velocities[0].1.x > 0.0,
         "velocity should point toward cursor (+X)"
     );
 }
@@ -129,7 +145,7 @@ fn when_dragging_at_center_then_velocity_points_toward_cursor() {
 fn when_cursor_equals_grab_point_then_zero_velocity() {
     // Arrange
     let entity = spawn_entity();
-    let (mut world, vel_log, _) = setup_drag_world(
+    let mut world = setup_drag_world(
         entity,
         Vec2::ZERO,
         Vec2::new(5.0, 5.0),
@@ -142,12 +158,12 @@ fn when_cursor_equals_grab_point_then_zero_velocity() {
     run_system(&mut world);
 
     // Assert
-    let calls = vel_log.lock().unwrap();
-    assert_eq!(calls.len(), 1);
+    let (velocities, _) = drain_velocity_commands(&mut world);
+    assert_eq!(velocities.len(), 1);
     assert!(
-        calls[0].1.length() < 1e-6,
+        velocities[0].1.length() < 1e-6,
         "velocity should be ~zero, got {}",
-        calls[0].1
+        velocities[0].1
     );
 }
 
@@ -155,7 +171,7 @@ fn when_cursor_equals_grab_point_then_zero_velocity() {
 fn when_dragging_at_center_and_cursor_twice_as_far_then_velocity_doubles() {
     // Arrange
     let entity_a = spawn_entity();
-    let (mut world_a, log_a, _) = setup_drag_world(
+    let mut world_a = setup_drag_world(
         entity_a,
         Vec2::ZERO,
         Vec2::ZERO,
@@ -164,9 +180,10 @@ fn when_dragging_at_center_and_cursor_twice_as_far_then_velocity_doubles() {
         true,
     );
     run_system(&mut world_a);
+    let (vel_a, _) = drain_velocity_commands(&mut world_a);
 
     let entity_b = spawn_entity();
-    let (mut world_b, log_b, _) = setup_drag_world(
+    let mut world_b = setup_drag_world(
         entity_b,
         Vec2::ZERO,
         Vec2::ZERO,
@@ -175,13 +192,12 @@ fn when_dragging_at_center_and_cursor_twice_as_far_then_velocity_doubles() {
         true,
     );
     run_system(&mut world_b);
+    let (vel_b, _) = drain_velocity_commands(&mut world_b);
 
     // Assert
-    let calls_a = log_a.lock().unwrap();
-    let calls_b = log_b.lock().unwrap();
-    assert_eq!(calls_a.len(), 1);
-    assert_eq!(calls_b.len(), 1);
-    let ratio = calls_b[0].1.length() / calls_a[0].1.length();
+    assert_eq!(vel_a.len(), 1);
+    assert_eq!(vel_b.len(), 1);
+    let ratio = vel_b[0].1.length() / vel_a[0].1.length();
     assert!(
         (ratio - 2.0).abs() < 1e-4,
         "velocity ratio should be 2.0, got {ratio}"
@@ -192,7 +208,7 @@ fn when_dragging_at_center_and_cursor_twice_as_far_then_velocity_doubles() {
 fn when_dragging_at_center_then_no_angular_velocity() {
     // Arrange — grabbed at center, arm is zero → pure translation
     let entity = spawn_entity();
-    let (mut world, _, ang_log) = setup_drag_world(
+    let mut world = setup_drag_world(
         entity,
         Vec2::ZERO,
         Vec2::ZERO,
@@ -205,9 +221,9 @@ fn when_dragging_at_center_then_no_angular_velocity() {
     run_system(&mut world);
 
     // Assert
-    let calls = ang_log.lock().unwrap();
+    let (_, angular_velocities) = drain_velocity_commands(&mut world);
     assert!(
-        calls.is_empty(),
+        angular_velocities.is_empty(),
         "center grab should not set angular velocity"
     );
 }
@@ -219,7 +235,7 @@ fn when_dragging_off_center_perpendicular_then_pure_rotation() {
     // grab_world = (10, 0), arm = (10, 0)
     // desired = GAIN * (0, 5), which is perpendicular to arm → pure rotation
     let entity = spawn_entity();
-    let (mut world, vel_log, ang_log) = setup_drag_world(
+    let mut world = setup_drag_world(
         entity,
         Vec2::new(10.0, 0.0),
         Vec2::ZERO,
@@ -232,8 +248,7 @@ fn when_dragging_off_center_perpendicular_then_pure_rotation() {
     run_system(&mut world);
 
     // Assert — center velocity should be ~zero, angular velocity non-zero
-    let v_calls = vel_log.lock().unwrap();
-    let a_calls = ang_log.lock().unwrap();
+    let (v_calls, a_calls) = drain_velocity_commands(&mut world);
     assert_eq!(v_calls.len(), 1);
     assert_eq!(a_calls.len(), 1);
     assert!(
@@ -254,7 +269,7 @@ fn when_dragging_off_center_along_arm_then_pure_translation() {
     // Arrange — body at origin, grabbed at (10,0), cursor at (15,0)
     // displacement is along arm → pure translation, no rotation
     let entity = spawn_entity();
-    let (mut world, vel_log, ang_log) = setup_drag_world(
+    let mut world = setup_drag_world(
         entity,
         Vec2::new(10.0, 0.0),
         Vec2::ZERO,
@@ -267,8 +282,7 @@ fn when_dragging_off_center_along_arm_then_pure_translation() {
     run_system(&mut world);
 
     // Assert
-    let v_calls = vel_log.lock().unwrap();
-    let a_calls = ang_log.lock().unwrap();
+    let (v_calls, a_calls) = drain_velocity_commands(&mut world);
     assert_eq!(v_calls.len(), 1);
     assert_eq!(a_calls.len(), 1);
     assert!(v_calls[0].1.x > 0.0, "should translate toward cursor");
@@ -288,15 +302,15 @@ fn when_dragging_off_center_then_grab_point_velocity_matches_desired() {
     let rotation = std::f32::consts::FRAC_PI_4;
     let local_offset = Vec2::new(10.0, 0.0);
     let cursor = Vec2::new(15.0, 5.0);
-    let (mut world, vel_log, ang_log) =
-        setup_drag_world(entity, local_offset, Vec2::ZERO, rotation, cursor, true);
+    let mut world = setup_drag_world(entity, local_offset, Vec2::ZERO, rotation, cursor, true);
 
     // Act
     run_system(&mut world);
 
     // Assert — reconstruct grab point velocity and compare to desired
-    let v_center = vel_log.lock().unwrap()[0].1;
-    let omega = ang_log.lock().unwrap()[0].1;
+    let (v_calls, a_calls) = drain_velocity_commands(&mut world);
+    let v_center = v_calls[0].1;
+    let omega = a_calls[0].1;
     let (sin, cos) = rotation.sin_cos();
     let arm = Vec2::new(
         local_offset.x * cos - local_offset.y * sin,
@@ -324,14 +338,13 @@ fn when_dragging_off_center_with_nonzero_body_pos_then_arm_computed_correctly() 
     let body_pos = Vec2::new(10.0, 0.0);
     let local_offset = Vec2::new(5.0, 0.0);
     let cursor = Vec2::new(20.0, 0.0);
-    let (mut world, vel_log, ang_log) =
-        setup_drag_world(entity, local_offset, body_pos, 0.0, cursor, true);
+    let mut world = setup_drag_world(entity, local_offset, body_pos, 0.0, cursor, true);
 
     // Act
     run_system(&mut world);
 
     // Assert — displacement along arm should yield ~zero angular velocity
-    let a_calls = ang_log.lock().unwrap();
+    let (v_calls, a_calls) = drain_velocity_commands(&mut world);
     assert_eq!(a_calls.len(), 1);
     assert!(
         a_calls[0].1.abs() < 1e-4,
@@ -340,7 +353,6 @@ fn when_dragging_off_center_with_nonzero_body_pos_then_arm_computed_correctly() 
     );
 
     // Assert — velocity should point in +X direction (toward cursor)
-    let v_calls = vel_log.lock().unwrap();
     assert_eq!(v_calls.len(), 1);
     assert!(
         v_calls[0].1.x > 0.0,
@@ -356,7 +368,7 @@ fn when_arm_length_just_above_threshold_then_rotation_path_used() {
     // body at origin, grabbed at (0.02, 0), cursor pulled perpendicular at (0.02, 1.0)
     // arm = (0.02, 0), arm_len_sq = 0.0004 > 1e-4 → rotation path
     let entity = spawn_entity();
-    let (mut world, _vel_log, ang_log) = setup_drag_world(
+    let mut world = setup_drag_world(
         entity,
         Vec2::new(0.02, 0.0),
         Vec2::ZERO,
@@ -369,7 +381,7 @@ fn when_arm_length_just_above_threshold_then_rotation_path_used() {
     run_system(&mut world);
 
     // Assert — rotation path must be taken (angular velocity set)
-    let a_calls = ang_log.lock().unwrap();
+    let (_, a_calls) = drain_velocity_commands(&mut world);
     assert_eq!(
         a_calls.len(),
         1,
@@ -386,12 +398,10 @@ fn when_arm_length_just_above_threshold_then_rotation_path_used() {
 fn when_not_dragging_then_no_velocity_set() {
     // Arrange
     let mut world = World::new();
-    let vel_log: VelocityLog = Arc::new(Mutex::new(Vec::new()));
     let entity = spawn_entity();
-    let spy = SpyPhysicsBackend::new()
-        .with_velocity_log(vel_log.clone())
-        .with_body(entity, Vec2::ZERO, 0.0);
+    let spy = SpyPhysicsBackend::new().with_body(entity, Vec2::ZERO, 0.0);
     world.insert_resource(PhysicsRes::new(Box::new(spy)));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::new(10.0, 0.0));
@@ -402,15 +412,15 @@ fn when_not_dragging_then_no_velocity_set() {
     run_system(&mut world);
 
     // Assert
-    let calls = vel_log.lock().unwrap();
-    assert!(calls.is_empty());
+    let (velocities, _) = drain_velocity_commands(&mut world);
+    assert!(velocities.is_empty());
 }
 
 #[test]
 fn when_dragging_but_mouse_not_pressed_then_no_velocity_set() {
     // Arrange
     let entity = spawn_entity();
-    let (mut world, vel_log, _) = setup_drag_world(
+    let mut world = setup_drag_world(
         entity,
         Vec2::ZERO,
         Vec2::ZERO,
@@ -423,8 +433,8 @@ fn when_dragging_but_mouse_not_pressed_then_no_velocity_set() {
     run_system(&mut world);
 
     // Assert
-    let calls = vel_log.lock().unwrap();
-    assert!(calls.is_empty());
+    let (velocities, _) = drain_velocity_commands(&mut world);
+    assert!(velocities.is_empty());
 }
 
 #[test]
@@ -434,7 +444,7 @@ fn when_body_not_at_origin_then_arm_direction_is_grab_minus_body_pos() {
     // desired = GAIN*(0,1) is purely perpendicular to arm → pure rotation, v_center ≈ zero
     // mutant arm = (3,5)+(0,5) = (3,10): omega ≈ 0.55, v_center ≈ (5.5, 18.35)
     let entity = spawn_entity();
-    let (mut world, vel_log, ang_log) = setup_drag_world(
+    let mut world = setup_drag_world(
         entity,
         Vec2::new(3.0, 0.0),
         Vec2::new(0.0, 5.0),
@@ -447,8 +457,7 @@ fn when_body_not_at_origin_then_arm_direction_is_grab_minus_body_pos() {
     run_system(&mut world);
 
     // Assert — perpendicular pull should produce ~zero center velocity
-    let v_calls = vel_log.lock().unwrap();
-    let a_calls = ang_log.lock().unwrap();
+    let (v_calls, a_calls) = drain_velocity_commands(&mut world);
     assert_eq!(v_calls.len(), 1);
     assert_eq!(a_calls.len(), 1);
     assert!(
@@ -464,7 +473,7 @@ fn when_arm_len_sq_exactly_at_threshold_then_rotation_path_used() {
     // `<` is false at exactly 1e-4 → rotation path → angular velocity IS set
     // `<=` would be true → center path → angular velocity NOT set
     let entity = spawn_entity();
-    let (mut world, _vel_log, ang_log) = setup_drag_world(
+    let mut world = setup_drag_world(
         entity,
         Vec2::new(0.01, 0.0),
         Vec2::ZERO,
@@ -477,7 +486,7 @@ fn when_arm_len_sq_exactly_at_threshold_then_rotation_path_used() {
     run_system(&mut world);
 
     // Assert — rotation path must be taken (angular velocity set and nonzero)
-    let a_calls = ang_log.lock().unwrap();
+    let (_, a_calls) = drain_velocity_commands(&mut world);
     assert_eq!(
         a_calls.len(),
         1,
@@ -496,7 +505,7 @@ fn when_edge_grab_produces_extreme_spin_then_angular_velocity_clamped() {
     // Arrange — body at origin, grabbed at (5,0), cursor at (5, 500)
     // raw_omega = arm.perp_dot(desired) / arm_len_sq would be huge
     let entity = spawn_entity();
-    let (mut world, _vel_log, ang_log) = setup_drag_world(
+    let mut world = setup_drag_world(
         entity,
         Vec2::new(5.0, 0.0),
         Vec2::ZERO,
@@ -509,7 +518,7 @@ fn when_edge_grab_produces_extreme_spin_then_angular_velocity_clamped() {
     run_system(&mut world);
 
     // Assert
-    let a_calls = ang_log.lock().unwrap();
+    let (_, a_calls) = drain_velocity_commands(&mut world);
     assert_eq!(a_calls.len(), 1);
     assert!(
         a_calls[0].1.abs() <= MAX_ANGULAR_VELOCITY + 1e-6,

@@ -1,13 +1,12 @@
 #![allow(clippy::unwrap_used)]
 
-use std::sync::{Arc, Mutex};
-
 use bevy_ecs::prelude::*;
+use engine_core::prelude::EventBus;
 use engine_core::prelude::Transform2D;
 use engine_core::scale_spring::ScaleSpring;
 use engine_input::mouse_button::MouseButton;
 use engine_input::prelude::MouseState;
-use engine_physics::prelude::{PhysicsRes, RigidBody};
+use engine_physics::prelude::{PhysicsCommand, RigidBody};
 use glam::Vec2;
 
 use card_game::card::component::{Card, CardZone};
@@ -21,9 +20,7 @@ use card_game::card::reader::{
     reader_drag_system, reader_pick_system, reader_release_system, reader_rotation_lock_system,
 };
 use card_game::card::screen_device::ScreenDragState;
-use card_game::test_helpers::{
-    AddBodyLog, AngularVelocityLog, RemoveBodyLog, SpyPhysicsBackend, spawn_entity,
-};
+use card_game::test_helpers::spawn_entity;
 
 fn run_rotation_lock(world: &mut World) {
     let mut schedule = Schedule::default();
@@ -187,8 +184,7 @@ fn setup_insert_scenario(world: &mut World) -> InsertTestSetup {
         }),
     });
 
-    let spy = SpyPhysicsBackend::new();
-    world.insert_resource(PhysicsRes::new(Box::new(spy)));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 
     InsertTestSetup {
         card_entity,
@@ -260,10 +256,30 @@ fn when_card_inside_reader_aabb_then_returns_true() {
 /// jack positions remain predictable. The physics engine has no rotation-lock
 /// API, so we zero angular velocity every frame. Without this, a reader hit
 /// by a sliding card would spin freely, making it impossible to aim card drops.
+/// @doc: The rotation lock must only affect `CardReader` entities — if it
+/// accidentally queried all physics bodies, every card on the table would
+/// stop spinning, breaking the flick-to-spin interaction.
 #[test]
-fn when_reader_has_angular_velocity_then_zeroed() {
+fn when_no_readers_then_no_angular_velocity_commands() {
     // Arrange
-    let ang_log: AngularVelocityLog = Arc::new(Mutex::new(Vec::new()));
+    let mut world = World::new();
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
+
+    // Act
+    run_rotation_lock(&mut world);
+
+    // Assert
+    assert!(world.resource::<EventBus<PhysicsCommand>>().is_empty());
+}
+
+/// @doc: After migration to the physics command layer, the rotation-lock system
+/// must queue `SetAngularVelocity` commands into the `EventBus` rather than
+/// calling `PhysicsRes` directly. This test pins both entity identity and the
+/// zero-velocity payload so a refactor that targets the wrong entity or leaves
+/// the velocity non-zero is caught immediately.
+#[test]
+fn when_reader_present_then_queues_set_angular_velocity_command() {
+    // Arrange
     let mut world = World::new();
     let jack = spawn_entity();
     let reader = world
@@ -273,40 +289,26 @@ fn when_reader_has_angular_velocity_then_zeroed() {
             jack_entity: jack,
         })
         .id();
-    let spy = SpyPhysicsBackend::new()
-        .with_angular_velocity(reader, 5.0)
-        .with_angular_velocity_log(ang_log.clone());
-    world.insert_resource(PhysicsRes::new(Box::new(spy)));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 
     // Act
     run_rotation_lock(&mut world);
 
     // Assert
-    let calls = ang_log.lock().unwrap();
-    assert_eq!(calls.len(), 1);
-    assert_eq!(calls[0].0, reader);
+    let commands: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    assert_eq!(commands.len(), 1, "expected exactly one command queued");
     assert!(
-        (calls[0].1).abs() < 1e-6,
-        "angular velocity should be zeroed"
+        matches!(
+            &commands[0],
+            PhysicsCommand::SetAngularVelocity { entity, angular_velocity }
+                if *entity == reader && angular_velocity.abs() < 1e-6
+        ),
+        "expected SetAngularVelocity for reader {reader:?} with 0.0, got {:?}",
+        commands[0]
     );
-}
-
-/// @doc: The rotation lock must only affect `CardReader` entities — if it
-/// accidentally queried all physics bodies, every card on the table would
-/// stop spinning, breaking the flick-to-spin interaction.
-#[test]
-fn when_no_readers_then_no_angular_velocity_calls() {
-    // Arrange
-    let ang_log: AngularVelocityLog = Arc::new(Mutex::new(Vec::new()));
-    let mut world = World::new();
-    let spy = SpyPhysicsBackend::new().with_angular_velocity_log(ang_log.clone());
-    world.insert_resource(PhysicsRes::new(Box::new(spy)));
-
-    // Act
-    run_rotation_lock(&mut world);
-
-    // Assert
-    assert!(ang_log.lock().unwrap().is_empty());
 }
 
 /// @doc: Cards must teleport to the reader's center on insertion so their
@@ -353,31 +355,53 @@ fn when_card_released_over_reader_then_scale_spring_inserted() {
     );
 }
 
-/// @doc: Inserted cards lose their physics body to prevent them from being
-/// knocked out of the reader by table collisions. A card that retains its
-/// body could be launched out of the reader by another card sliding into it,
-/// which would break the reader's slot guarantee.
+/// @doc: Inserted cards lose their RigidBody ECS component so zone-aware
+/// systems correctly identify them as non-physical reader cards. A stale
+/// RigidBody would cause the damping system to attempt physics operations
+/// on an entity whose body was already removed by the command layer.
 #[test]
-fn when_card_released_over_reader_then_physics_body_removed() {
+fn when_card_released_over_reader_then_rigid_body_component_removed() {
     // Arrange
     let mut world = World::new();
-    let remove_log: RemoveBodyLog = Arc::new(Mutex::new(Vec::new()));
     let setup = setup_insert_scenario(&mut world);
-    let spy = SpyPhysicsBackend::new().with_remove_body_log(remove_log.clone());
-    world.insert_resource(PhysicsRes::new(Box::new(spy)));
 
     // Act
     run_insert(&mut world);
 
     // Assert
-    let removed = remove_log.lock().unwrap();
-    assert!(
-        removed.contains(&setup.card_entity),
-        "physics body should be removed for card"
-    );
     assert!(
         world.get::<RigidBody>(setup.card_entity).is_none(),
         "RigidBody component should be removed"
+    );
+}
+
+/// @doc: When a card is inserted into a reader, the system must queue a
+/// `RemoveBody` command so the physics layer tears down the card's rigid body.
+/// A card with an active physics body inside a reader would be affected by
+/// table collisions, potentially getting knocked out of position while the
+/// reader expects it to stay fixed.
+#[test]
+fn when_card_inserted_then_queues_remove_body_command() {
+    // Arrange
+    let mut world = World::new();
+    let setup = setup_insert_scenario(&mut world);
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
+
+    // Act
+    run_insert(&mut world);
+
+    // Assert
+    let commands: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    assert!(
+        commands.iter().any(
+            |c| matches!(c, PhysicsCommand::RemoveBody { entity } if *entity == setup.card_entity)
+        ),
+        "expected RemoveBody command for card {:?}, got {:?}",
+        setup.card_entity,
+        commands
     );
 }
 
@@ -527,7 +551,7 @@ fn when_card_released_not_over_reader_then_no_insertion() {
             origin_position: Vec2::new(500.0, 300.0),
         }),
     });
-    world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 
     // Act
     run_insert(&mut world);
@@ -601,7 +625,7 @@ fn when_reader_full_then_second_card_not_inserted() {
             origin_position: Vec2::new(110.0, 95.0),
         }),
     });
-    world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 
     // Act
     run_insert(&mut world);
@@ -689,7 +713,7 @@ fn when_reader_dragged_then_loaded_card_moves_by_same_delta() {
         }),
     });
 
-    world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 
     // Act
     run_reader_drag(&mut world);
@@ -700,6 +724,72 @@ fn when_reader_dragged_then_loaded_card_moves_by_same_delta() {
     assert_eq!(
         card_pos, reader_pos,
         "loaded card position {card_pos} must equal reader position {reader_pos} after drag"
+    );
+}
+
+/// @doc: The reader drag system must queue a `SetBodyPosition` command so the
+/// physics body follows the reader's visual position. Without this, the physics
+/// collider stays at the old position while the sprite moves, causing invisible
+/// collisions at the wrong location and making the reader un-hittable for picks.
+#[test]
+fn when_reader_dragged_then_queues_set_body_position_command() {
+    // Arrange
+    let mut world = World::new();
+    let target_pos = Vec2::new(250.0, 180.0);
+
+    let jack_entity = world
+        .spawn(Jack::<SignatureSpace> {
+            direction: JackDirection::Output,
+            data: None,
+        })
+        .id();
+
+    let reader_entity = world
+        .spawn((
+            CardReader {
+                loaded: None,
+                half_extents: Vec2::new(40.0, 60.0),
+                jack_entity,
+            },
+            Transform2D {
+                position: Vec2::new(50.0, 80.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+        ))
+        .id();
+
+    let mut mouse = MouseState::default();
+    mouse.press(MouseButton::Left);
+    mouse.set_world_pos(target_pos);
+    world.insert_resource(mouse);
+
+    world.insert_resource(ReaderDragState {
+        dragging: Some(ReaderDragInfo {
+            entity: reader_entity,
+            grab_offset: Vec2::ZERO,
+        }),
+    });
+
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
+
+    // Act
+    run_reader_drag(&mut world);
+
+    // Assert
+    let commands: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    assert_eq!(commands.len(), 1, "expected exactly one command queued");
+    assert!(
+        matches!(
+            &commands[0],
+            PhysicsCommand::SetBodyPosition { entity, position }
+                if *entity == reader_entity && (*position - target_pos).length() < 1e-6
+        ),
+        "expected SetBodyPosition for reader at {target_pos}, got {:?}",
+        commands[0]
     );
 }
 
@@ -744,7 +834,7 @@ fn when_empty_reader_dragged_then_no_panic() {
         }),
     });
 
-    world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 
     // Act
     run_reader_drag(&mut world);
@@ -830,7 +920,7 @@ fn setup_eject_scenario(world: &mut World) -> EjectTestSetup {
         }),
     });
 
-    world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 
     EjectTestSetup {
         card_entity,
@@ -886,6 +976,53 @@ fn when_card_picked_from_reader_then_physics_body_restored() {
     );
 }
 
+/// @doc: When a card is ejected from a reader, the system must queue all four
+/// physics activation commands (AddBody, AddCollider, SetDamping, SetCollisionGroup)
+/// so the card becomes a physical object on the table again. Missing any one of
+/// these would leave the card in a broken state — no body means invisible to
+/// collisions, no collider means untouchable, no damping means infinite sliding,
+/// no collision group means it clips through boundaries.
+#[test]
+fn when_card_ejected_then_queues_physics_activation_commands() {
+    // Arrange
+    let mut world = World::new();
+    let setup = setup_eject_scenario(&mut world);
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
+
+    // Act
+    run_eject(&mut world);
+
+    // Assert
+    let commands: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    assert!(
+        commands.iter().any(
+            |c| matches!(c, PhysicsCommand::AddBody { entity, .. } if *entity == setup.card_entity)
+        ),
+        "expected AddBody for card, got {commands:?}"
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|c| matches!(c, PhysicsCommand::AddCollider { entity, .. } if *entity == setup.card_entity)),
+        "expected AddCollider for card, got {commands:?}"
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|c| matches!(c, PhysicsCommand::SetDamping { entity, .. } if *entity == setup.card_entity)),
+        "expected SetDamping for card, got {commands:?}"
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|c| matches!(c, PhysicsCommand::SetCollisionGroup { entity, .. } if *entity == setup.card_entity)),
+        "expected SetCollisionGroup for card, got {commands:?}"
+    );
+}
+
 /// @doc: Ejected cards animate back to full size via ScaleSpring(1.0), matching
 /// the convention used by `drop_on_table` in the release system. Without this,
 /// the card would remain at 60% size on the table, looking broken.
@@ -937,7 +1074,6 @@ fn when_card_picked_from_reader_then_jack_data_cleared() {
 fn when_reader_dragged_then_ejected_card_physics_body_placed_at_new_position() {
     // Arrange
     let mut world = World::new();
-    let add_log: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
     let sig = CardSignature::new([0.1, 0.2, 0.3, 0.4, -0.1, -0.2, -0.3, -0.4]);
     let jack_entity = world
         .spawn(Jack::<SignatureSpace> {
@@ -1009,19 +1145,25 @@ fn when_reader_dragged_then_ejected_card_physics_body_placed_at_new_position() {
         }),
     });
 
-    let spy = SpyPhysicsBackend::new().with_add_body_log(add_log.clone());
-    world.insert_resource(PhysicsRes::new(Box::new(spy)));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 
     // Act
     run_reader_drag(&mut world);
     run_eject(&mut world);
 
     // Assert
-    let calls = add_log.lock().unwrap();
-    let body_pos = calls
+    let commands: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    let body_pos = commands
         .iter()
-        .find(|(e, _)| *e == card_entity)
-        .map(|(_, pos)| *pos)
+        .find_map(|c| match c {
+            PhysicsCommand::AddBody {
+                entity, position, ..
+            } if *entity == card_entity => Some(*position),
+            _ => None,
+        })
         .expect("add_body should have been called for the card entity");
     assert_eq!(
         body_pos, reader_dest,
@@ -1109,7 +1251,7 @@ fn when_card_over_two_overlapping_readers_then_only_one_claims_it() {
             origin_position: Vec2::new(50.0, 50.0),
         }),
     });
-    world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 
     // Act
     run_insert(&mut world);

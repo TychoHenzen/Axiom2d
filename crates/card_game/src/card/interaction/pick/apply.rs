@@ -1,5 +1,6 @@
 use bevy_ecs::prelude::{Commands, Entity, Query};
-use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
+use engine_core::prelude::EventBus;
+use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
 use engine_scene::prelude::{GlobalTransform2D, LocalSortOrder, RenderLayer, SortOrder};
 use glam::Vec2;
 
@@ -40,7 +41,7 @@ pub(super) fn pick_from_card(
     collider: Collider,
     grab_offset: Vec2,
     hand: &mut Hand,
-    physics: &mut PhysicsRes,
+    physics_commands: &mut EventBus<PhysicsCommand>,
     drag_state: &mut DragState,
     grid: &mut crate::stash::grid::StashGrid,
     commands: &mut Commands,
@@ -56,7 +57,7 @@ pub(super) fn pick_from_card(
     let max_sort = max_table_sort_order(query);
 
     if let CardZone::Hand(_) = zone {
-        transition_hand_to_table(entity, hand, physics, commands, query, &collider);
+        transition_hand_to_table(entity, hand, physics_commands, commands, query, &collider);
     }
 
     if let CardZone::Stash { page, col, row } = zone {
@@ -66,9 +67,11 @@ pub(super) fn pick_from_card(
     }
 
     if matches!(zone, CardZone::Table) {
-        physics
-            .set_collision_group(entity, DRAGGED_COLLISION_GROUP, DRAGGED_COLLISION_FILTER)
-            .expect("picked entity should have physics body");
+        physics_commands.push(PhysicsCommand::SetCollisionGroup {
+            entity,
+            membership: DRAGGED_COLLISION_GROUP,
+            filter: DRAGGED_COLLISION_FILTER,
+        });
     }
 
     let origin_position = query
@@ -107,7 +110,7 @@ pub(super) fn max_table_sort_order(
 pub(super) fn transition_hand_to_table(
     entity: Entity,
     hand: &mut Hand,
-    physics: &mut PhysicsRes,
+    physics_commands: &mut EventBus<PhysicsCommand>,
     commands: &mut Commands,
     query: &Query<(
         Entity,
@@ -128,7 +131,7 @@ pub(super) fn transition_hand_to_table(
         entity,
         position,
         collider,
-        physics,
+        physics_commands,
         DRAGGED_COLLISION_GROUP,
         DRAGGED_COLLISION_FILTER,
     );

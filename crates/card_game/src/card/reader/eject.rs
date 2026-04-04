@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::{Commands, Query, Res, ResMut, With};
-use engine_core::prelude::Transform2D;
-use engine_physics::prelude::{PhysicsRes, RigidBody};
+use engine_core::prelude::{EventBus, Transform2D};
+use engine_physics::prelude::{PhysicsCommand, RigidBody};
 
 use crate::card::component::{Card, CardZone};
 use crate::card::interaction::drag_state::DragState;
@@ -15,7 +15,7 @@ pub fn card_reader_eject_system(
     mut readers: Query<&mut CardReader>,
     mut cards: Query<&mut CardZone, With<Card>>,
     mut jacks: Query<&mut Jack<SignatureSpace>>,
-    mut physics: ResMut<PhysicsRes>,
+    mut physics_commands: ResMut<EventBus<PhysicsCommand>>,
     transforms: Query<&Transform2D>,
     colliders: Query<&engine_physics::prelude::Collider>,
     mut commands: Commands,
@@ -45,7 +45,7 @@ pub fn card_reader_eject_system(
             card_entity,
             transform.position,
             collider,
-            &mut physics,
+            &mut *physics_commands,
             CARD_COLLISION_GROUP,
             CARD_COLLISION_FILTER,
         );

@@ -1,14 +1,12 @@
 #![allow(clippy::unwrap_used, clippy::float_cmp)]
 
-use std::sync::{Arc, Mutex};
-
 use bevy_ecs::prelude::*;
 use engine_input::prelude::{MouseButton, MouseState};
-use engine_physics::prelude::{Collider, NullPhysicsBackend, PhysicsBackend, PhysicsRes};
+use engine_physics::prelude::{Collider, PhysicsCommand};
 use engine_scene::prelude::{GlobalTransform2D, LocalSortOrder, RenderLayer, SortOrder};
 use glam::{Affine2, Vec2};
 
-use engine_core::prelude::TextureId;
+use engine_core::prelude::{EventBus, TextureId};
 
 use card_game::card::component::Card;
 use card_game::card::component::CardZone;
@@ -17,7 +15,6 @@ use card_game::card::interaction::pick::{DRAG_SCALE, card_pick_system};
 use card_game::card::reader::ReaderDragState;
 use card_game::hand::cards::Hand;
 use card_game::hand::layout::HandSpring;
-use card_game::test_helpers::{AddBodyLog, ColliderLog, DampingLog, SpyPhysicsBackend};
 use engine_core::scale_spring::ScaleSpring;
 
 fn run_system(world: &mut World) {
@@ -32,7 +29,7 @@ fn default_collider() -> Collider {
 
 fn insert_pick_resources(world: &mut World) {
     world.insert_resource(Hand::new(10));
-    world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     world.insert_resource(card_game::stash::grid::StashGrid::new(10, 10, 1));
     world.insert_resource(card_game::stash::toggle::StashVisible(false));
     world.insert_resource(ReaderDragState::default());
@@ -452,20 +449,8 @@ fn when_rotated_card_clicked_outside_obb_then_not_picked() {
     assert!(world.resource::<DragState>().dragging.is_none());
 }
 
-fn make_spy_physics() -> (
-    Box<dyn PhysicsBackend + Send + Sync>,
-    AddBodyLog,
-    ColliderLog,
-    DampingLog,
-) {
-    let bodies: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
-    let colliders: ColliderLog = Arc::new(Mutex::new(Vec::new()));
-    let dampings: DampingLog = Arc::new(Mutex::new(Vec::new()));
-    let spy = SpyPhysicsBackend::new()
-        .with_add_body_log(bodies.clone())
-        .with_collider_log(colliders.clone())
-        .with_damping_log(dampings.clone());
-    (Box::new(spy), bodies, colliders, dampings)
+fn insert_spy_physics(world: &mut World) {
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 }
 
 #[test]
@@ -484,8 +469,7 @@ fn when_left_click_on_hand_card_then_drag_origin_is_hand() {
     let mut hand = Hand::new(10);
     hand.add(card_entity).unwrap();
     world.insert_resource(hand);
-    let (spy, _, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    insert_spy_physics(&mut world);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::ZERO);
@@ -519,8 +503,7 @@ fn when_pick_from_hand_then_card_removed_from_hand_resource() {
     let mut hand = Hand::new(10);
     hand.add(card_entity).unwrap();
     world.insert_resource(hand);
-    let (spy, _, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    insert_spy_physics(&mut world);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::ZERO);
@@ -554,8 +537,7 @@ fn when_pick_from_hand_then_physics_body_added() {
     let mut hand = Hand::new(10);
     hand.add(card_entity).unwrap();
     world.insert_resource(hand);
-    let (spy, bodies, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    insert_spy_physics(&mut world);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::new(50.0, 200.0));
@@ -569,10 +551,22 @@ fn when_pick_from_hand_then_physics_body_added() {
     run_system(&mut world);
 
     // Assert
-    let calls = bodies.lock().unwrap();
-    assert_eq!(calls.len(), 1);
-    assert_eq!(calls[0].0, card_entity);
-    assert_eq!(calls[0].1, Vec2::new(50.0, 200.0));
+    let commands: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    let add_bodies: Vec<_> = commands
+        .iter()
+        .filter_map(|c| match c {
+            PhysicsCommand::AddBody {
+                entity, position, ..
+            } => Some((*entity, *position)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(add_bodies.len(), 1);
+    assert_eq!(add_bodies[0].0, card_entity);
+    assert_eq!(add_bodies[0].1, Vec2::new(50.0, 200.0));
 }
 
 /// @doc: Render layer shifts to World on pick—hand cards drawn over table, picked cards below UI
@@ -593,8 +587,7 @@ fn when_pick_from_hand_then_render_layer_becomes_world() {
     let mut hand = Hand::new(10);
     hand.add(card_entity).unwrap();
     world.insert_resource(hand);
-    let (spy, _, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    insert_spy_physics(&mut world);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::ZERO);
@@ -638,8 +631,7 @@ fn when_hand_card_and_table_card_overlap_then_highest_sort_wins() {
     let mut hand = Hand::new(10);
     hand.add(hand_card).unwrap();
     world.insert_resource(hand);
-    let (spy, _, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    insert_spy_physics(&mut world);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::ZERO);
@@ -673,8 +665,7 @@ fn when_pick_from_hand_then_scale_spring_inserted() {
     let mut hand = Hand::new(10);
     hand.add(card_entity).unwrap();
     world.insert_resource(hand);
-    let (spy, _, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    insert_spy_physics(&mut world);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::ZERO);
@@ -710,8 +701,7 @@ fn when_pick_from_hand_then_handspring_removed() {
     let mut hand = Hand::new(10);
     hand.add(card_entity).unwrap();
     world.insert_resource(hand);
-    let (spy, _, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    insert_spy_physics(&mut world);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::ZERO);
@@ -791,7 +781,7 @@ fn when_left_click_on_stash_card_then_drag_info_records_stash_origin_and_slot_va
     world.insert_resource(DragState::default());
     world.insert_resource(ReaderDragState::default());
     world.insert_resource(Hand::new(10));
-    world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_screen_pos(Vec2::new(153.0, 294.0));
@@ -847,8 +837,7 @@ fn when_left_click_on_stash_card_then_no_physics_body_added_and_render_layer_sta
     world.insert_resource(DragState::default());
     world.insert_resource(ReaderDragState::default());
     world.insert_resource(Hand::new(10));
-    let (spy, bodies, _, _) = make_spy_physics();
-    world.insert_resource(PhysicsRes::new(spy));
+    insert_spy_physics(&mut world);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_screen_pos(Vec2::new(153.0, 294.0));
@@ -858,8 +847,16 @@ fn when_left_click_on_stash_card_then_no_physics_body_added_and_render_layer_sta
     run_system(&mut world);
 
     // Assert — stash picks must NOT create physics bodies (cursor-follow mode)
+    let commands: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    let add_bodies: Vec<_> = commands
+        .iter()
+        .filter(|c| matches!(c, PhysicsCommand::AddBody { .. }))
+        .collect();
     assert!(
-        bodies.lock().unwrap().is_empty(),
+        add_bodies.is_empty(),
         "add_body should NOT be called for stash card (cursor-follow mode)"
     );
     assert_eq!(
@@ -900,7 +897,7 @@ fn when_stash_hidden_and_slot_clicked_then_pick_not_triggered() {
     world.insert_resource(DragState::default());
     world.insert_resource(ReaderDragState::default());
     world.insert_resource(Hand::new(10));
-    world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_screen_pos(Vec2::new(45.0, 45.0));
@@ -945,7 +942,7 @@ fn when_left_click_on_stash_card_then_drag_info_stash_cursor_follow_is_true() {
     world.insert_resource(DragState::default());
     world.insert_resource(ReaderDragState::default());
     world.insert_resource(Hand::new(10));
-    world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_screen_pos(Vec2::new(45.0, 57.5));
@@ -990,7 +987,7 @@ fn when_pick_from_stash_then_scale_spring_target_is_drag_elevation() {
     world.insert_resource(DragState::default());
     world.insert_resource(ReaderDragState::default());
     world.insert_resource(Hand::new(10));
-    world.insert_resource(PhysicsRes::new(Box::new(NullPhysicsBackend::default())));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_screen_pos(Vec2::new(45.0, 57.5));

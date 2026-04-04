@@ -1,13 +1,13 @@
 use bevy_ecs::prelude::{Commands, Entity, Query};
-use engine_core::prelude::Transform2D;
-use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
+use engine_core::prelude::{EventBus, Transform2D};
+use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
 use engine_scene::render_order::RenderLayer;
 use glam::Vec2;
 
 use crate::card::component::CardItemForm;
 use crate::card::component::CardZone;
 use crate::card::interaction::flip_animation::FlipAnimation;
-use crate::card::interaction::physics_helpers::{activate_physics_body, warn_on_physics_result};
+use crate::card::interaction::physics_helpers::activate_physics_body;
 use crate::card::interaction::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
 use crate::hand::cards::Hand;
 use crate::hand::layout::HandSpring;
@@ -19,10 +19,10 @@ pub(super) fn drop_on_hand(
     face_up: bool,
     origin_position: Vec2,
     hand: &mut Hand,
-    physics: &mut PhysicsRes,
+    physics_commands: &mut EventBus<PhysicsCommand>,
     commands: &mut Commands,
 ) {
-    warn_on_physics_result("remove_body", entity, physics.remove_body(entity));
+    physics_commands.push(PhysicsCommand::RemoveBody { entity });
     let zone = if let Ok(index) = hand.add(entity) {
         CardZone::Hand(index)
     } else {
@@ -51,10 +51,10 @@ pub(super) fn drop_on_stash(
     row: u8,
     current_pos: Option<Vec2>,
     grid: &mut StashGrid,
-    physics: &mut PhysicsRes,
+    physics_commands: &mut EventBus<PhysicsCommand>,
     commands: &mut Commands,
 ) {
-    warn_on_physics_result("remove_body", entity, physics.remove_body(entity));
+    physics_commands.push(PhysicsCommand::RemoveBody { entity });
     grid.place(page, col, row, entity)
         .expect("slot should be empty: guarded by is_none check above");
     let mut ec = commands.entity(entity);
@@ -74,7 +74,7 @@ pub(super) fn drop_on_stash(
 pub(super) fn drop_on_table(
     entity: Entity,
     snap_back: Option<Vec2>,
-    physics: &mut PhysicsRes,
+    physics_commands: &mut EventBus<PhysicsCommand>,
     commands: &mut Commands,
     transform_query: &Query<(&Transform2D, &Collider)>,
 ) {
@@ -89,7 +89,7 @@ pub(super) fn drop_on_table(
             entity,
             position,
             collider,
-            physics,
+            physics_commands,
             CARD_COLLISION_GROUP,
             CARD_COLLISION_FILTER,
         );

@@ -74,7 +74,7 @@ pub fn card_pick_system(
                 collider,
                 grab_offset,
                 &mut state.hand,
-                &mut state.physics,
+                &mut *state.physics_commands,
                 &mut state.drag_state,
                 &mut state.grid,
                 &mut commands,

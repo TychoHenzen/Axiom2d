@@ -3,9 +3,9 @@
 use std::sync::{Arc, Mutex};
 
 use bevy_ecs::prelude::*;
-use engine_core::prelude::Transform2D;
+use engine_core::prelude::{EventBus, Transform2D};
 use engine_input::prelude::{MouseButton, MouseState};
-use engine_physics::prelude::{Collider, PhysicsRes, RigidBody};
+use engine_physics::prelude::{Collider, PhysicsCommand, PhysicsRes, RigidBody};
 use engine_render::prelude::RendererRes;
 use engine_render::testing::SpyRenderer;
 use engine_scene::prelude::RenderLayer;
@@ -19,7 +19,7 @@ use card_game::card::interaction::release::card_release_system;
 use card_game::hand::cards::Hand;
 use card_game::hand::layout::HandSpring;
 use card_game::stash::grid::StashGrid;
-use card_game::test_helpers::{AddBodyLog, RemoveBodyLog, SpyPhysicsBackend};
+use card_game::test_helpers::SpyPhysicsBackend;
 
 fn run_system(world: &mut World) {
     let mut schedule = Schedule::default();
@@ -163,15 +163,10 @@ impl ReleaseTestBuilder {
         self
     }
 
-    fn build(self) -> (World, Entity, RemoveBodyLog, AddBodyLog) {
-        let remove_log: RemoveBodyLog = Arc::new(Mutex::new(Vec::new()));
-        let add_log: AddBodyLog = Arc::new(Mutex::new(Vec::new()));
+    fn build(self) -> (World, Entity) {
         let mut world = World::new();
-        world.insert_resource(PhysicsRes::new(Box::new(
-            SpyPhysicsBackend::new()
-                .with_remove_body_log(remove_log.clone())
-                .with_add_body_log(add_log.clone()),
-        )));
+        world.insert_resource(PhysicsRes::new(Box::new(SpyPhysicsBackend::new())));
+        world.insert_resource(EventBus::<PhysicsCommand>::default());
 
         let mut hand = Hand::new(self.hand_capacity);
         for _ in 0..self.pre_fill_hand {
@@ -224,8 +219,15 @@ impl ReleaseTestBuilder {
             }),
         });
 
-        (world, entity, remove_log, add_log)
+        (world, entity)
     }
+}
+
+fn drain_physics_commands(world: &mut World) -> Vec<PhysicsCommand> {
+    world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect()
 }
 
 // ── Tests ────────────────────────────────────────────────────────
@@ -233,7 +235,7 @@ impl ReleaseTestBuilder {
 #[test]
 fn when_mouse_released_while_dragging_then_drag_state_cleared() {
     // Arrange
-    let (mut world, _, _, _) = ReleaseTestBuilder::card_on_table().build();
+    let (mut world, _) = ReleaseTestBuilder::card_on_table().build();
 
     // Act
     run_system(&mut world);
@@ -245,7 +247,7 @@ fn when_mouse_released_while_dragging_then_drag_state_cleared() {
 #[test]
 fn when_mouse_released_while_not_dragging_then_no_panic_and_stays_none() {
     // Arrange
-    let (mut world, _, _, _) = ReleaseTestBuilder::card_on_table().build();
+    let (mut world, _) = ReleaseTestBuilder::card_on_table().build();
     world.insert_resource(DragState::default());
 
     // Act
@@ -276,6 +278,7 @@ fn when_mouse_not_released_then_drag_state_not_cleared() {
     world.insert_resource(PhysicsRes::new(Box::new(
         engine_physics::prelude::NullPhysicsBackend::default(),
     )));
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
     let log = Arc::new(Mutex::new(Vec::new()));
     let spy = SpyRenderer::new(log).with_viewport(800, 600);
     world.insert_resource(RendererRes::new(Box::new(spy)));
@@ -293,7 +296,7 @@ fn when_mouse_not_released_then_drag_state_not_cleared() {
 #[test]
 fn when_card_released_on_table_then_zone_unchanged() {
     // Arrange
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table().build();
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table().build();
 
     // Act
     run_system(&mut world);
@@ -306,7 +309,7 @@ fn when_card_released_on_table_then_zone_unchanged() {
 #[test]
 fn when_card_released_into_hand_from_table_then_full_zone_transition() {
     // Arrange
-    let (mut world, entity, remove_log, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(400.0, 550.0)
         .build();
 
@@ -317,15 +320,19 @@ fn when_card_released_into_hand_from_table_then_full_zone_transition() {
     assert_eq!(world.resource::<Hand>().cards(), &[entity]);
     assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Hand(0));
     assert_eq!(*world.get::<RenderLayer>(entity).unwrap(), RenderLayer::UI);
-    assert_eq!(remove_log.lock().unwrap().len(), 1);
-    assert_eq!(remove_log.lock().unwrap()[0], entity);
+    let commands = drain_physics_commands(&mut world);
+    let remove_bodies: Vec<_> = commands
+        .iter()
+        .filter(|c| matches!(c, PhysicsCommand::RemoveBody { entity: e } if *e == entity))
+        .collect();
+    assert_eq!(remove_bodies.len(), 1);
 }
 
 /// @doc: Hand-to-table release transitions zone—card leaves hand inventory to play surface
 #[test]
 fn when_release_on_table_from_hand_then_zone_becomes_table() {
     // Arrange
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_hand(0)
+    let (mut world, entity) = ReleaseTestBuilder::card_in_hand(0)
         .card_position(Vec2::new(50.0, 50.0))
         .build();
 
@@ -340,7 +347,7 @@ fn when_release_on_table_from_hand_then_zone_becomes_table() {
 #[test]
 fn when_release_on_table_from_hand_then_physics_body_added() {
     // Arrange
-    let (mut world, entity, _, add_log) = ReleaseTestBuilder::card_in_hand(0)
+    let (mut world, entity) = ReleaseTestBuilder::card_in_hand(0)
         .card_position(Vec2::new(50.0, 50.0))
         .build();
 
@@ -348,10 +355,21 @@ fn when_release_on_table_from_hand_then_physics_body_added() {
     run_system(&mut world);
 
     // Assert
-    let calls = add_log.lock().unwrap();
-    assert_eq!(calls.len(), 1);
-    assert_eq!(calls[0].0, entity);
-    assert_eq!(calls[0].1, Vec2::new(50.0, 50.0));
+    let commands = drain_physics_commands(&mut world);
+    let add_bodies: Vec<_> = commands
+        .iter()
+        .filter_map(|c| match c {
+            PhysicsCommand::AddBody {
+                entity: e,
+                position,
+                ..
+            } => Some((*e, *position)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(add_bodies.len(), 1);
+    assert_eq!(add_bodies[0].0, entity);
+    assert_eq!(add_bodies[0].1, Vec2::new(50.0, 50.0));
 }
 
 /// @doc: Face-down cards auto-flip to face-up on hand entry so the player can see
@@ -360,7 +378,7 @@ fn when_release_on_table_from_hand_then_physics_body_added() {
 #[test]
 fn when_face_down_card_released_into_hand_then_flip_animation_inserted() {
     // Arrange
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(400.0, 550.0)
         .build();
 
@@ -376,7 +394,7 @@ fn when_face_down_card_released_into_hand_then_flip_animation_inserted() {
 #[test]
 fn when_face_up_card_released_into_hand_then_no_flip_animation() {
     // Arrange
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(400.0, 550.0)
         .face_up()
         .build();
@@ -394,7 +412,7 @@ fn when_face_up_card_released_into_hand_then_no_flip_animation() {
 #[test]
 fn when_face_down_card_released_on_table_then_no_flip_animation() {
     // Arrange
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table().build();
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table().build();
 
     // Act
     run_system(&mut world);
@@ -409,7 +427,7 @@ fn when_face_down_card_released_on_table_then_no_flip_animation() {
 #[test]
 fn when_face_down_card_released_into_hand_then_also_added_to_hand() {
     // Arrange
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(400.0, 550.0)
         .build();
 
@@ -431,7 +449,7 @@ fn when_face_down_card_released_into_hand_then_also_added_to_hand() {
 #[test]
 fn when_hand_full_and_release_in_hand_area_then_card_stays_on_table() {
     // Arrange
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(400.0, 550.0)
         .hand_capacity(1)
         .pre_fill_hand(1)
@@ -448,7 +466,7 @@ fn when_hand_full_and_release_in_hand_area_then_card_stays_on_table() {
 #[test]
 fn when_viewport_height_zero_then_card_dropped_on_table_not_hand() {
     // Arrange
-    let (mut world, entity, _, add_log) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .viewport_height(0)
         .card_position(Vec2::new(50.0, 50.0))
         .build();
@@ -462,8 +480,12 @@ fn when_viewport_height_zero_then_card_dropped_on_table_not_hand() {
         world.resource::<Hand>().cards().is_empty(),
         "card should not be added to hand when viewport height is 0"
     );
+    let commands = drain_physics_commands(&mut world);
     assert_eq!(
-        add_log.lock().unwrap().len(),
+        commands
+            .iter()
+            .filter(|c| matches!(c, PhysicsCommand::AddBody { .. }))
+            .count(),
         1,
         "physics body should be re-added for table drop"
     );
@@ -473,7 +495,7 @@ fn when_viewport_height_zero_then_card_dropped_on_table_not_hand() {
 #[test]
 fn when_release_to_hand_then_handspring_inserted() {
     // Arrange
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(400.0, 550.0)
         .build();
 
@@ -491,7 +513,7 @@ fn when_release_to_hand_then_handspring_inserted() {
 fn when_stash_card_released_over_empty_stash_slot_then_full_stash_transition() {
     // Arrange
     // slot (0,1,0) center: x = 20 + 1*54 + 25 = 99.0, y = 20 + 0*54 + 25 = 45.0
-    let (mut world, entity, remove_log, _) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
+    let (mut world, entity) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
         .screen_pos(99.0, 45.0)
         .build();
 
@@ -513,8 +535,12 @@ fn when_stash_card_released_over_empty_stash_slot_then_full_stash_transition() {
         }
     );
     assert_eq!(*world.get::<RenderLayer>(entity).unwrap(), RenderLayer::UI);
+    let commands = drain_physics_commands(&mut world);
     assert_eq!(
-        remove_log.lock().unwrap().len(),
+        commands
+            .iter()
+            .filter(|c| matches!(c, PhysicsCommand::RemoveBody { .. }))
+            .count(),
         1,
         "remove_body called once"
     );
@@ -525,7 +551,7 @@ fn when_stash_card_released_over_empty_stash_slot_then_full_stash_transition() {
 #[test]
 fn when_released_over_occupied_stash_slot_then_card_returned_to_origin() {
     // Arrange — slot (0,0,0) occupied by blocker, origin slot (0,1,0)
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_stash(0, 1, 0)
+    let (mut world, entity) = ReleaseTestBuilder::card_in_stash(0, 1, 0)
         .screen_pos(45.0, 45.0)
         .build();
     // Override: place blocker in slot (0,0,0) so drop fails
@@ -556,7 +582,7 @@ fn when_released_over_occupied_stash_slot_then_card_returned_to_origin() {
 #[test]
 fn when_stash_card_released_outside_zones_then_drops_on_table() {
     // Arrange — x=600 past stash grid; y=200 above hand zone
-    let (mut world, entity, _, add_log) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
+    let (mut world, entity) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
         .screen_pos(600.0, 200.0)
         .card_position(Vec2::new(10.0, 20.0))
         .build();
@@ -566,8 +592,12 @@ fn when_stash_card_released_outside_zones_then_drops_on_table() {
 
     // Assert
     assert_eq!(*world.get::<CardZone>(entity).unwrap(), CardZone::Table);
+    let commands = drain_physics_commands(&mut world);
     assert_eq!(
-        add_log.lock().unwrap().len(),
+        commands
+            .iter()
+            .filter(|c| matches!(c, PhysicsCommand::AddBody { .. }))
+            .count(),
         1,
         "physics body should be re-added for table drop"
     );
@@ -576,7 +606,7 @@ fn when_stash_card_released_outside_zones_then_drops_on_table() {
 #[test]
 fn when_stash_card_released_in_hand_zone_then_full_hand_transition() {
     // Arrange — x=600 past stash grid; y=550 in hand zone
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
+    let (mut world, entity) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
         .screen_pos(600.0, 550.0)
         .build();
 
@@ -598,7 +628,7 @@ fn when_stash_card_released_in_hand_zone_then_full_hand_transition() {
 #[test]
 fn when_table_card_released_over_empty_stash_slot_then_full_stash_transition() {
     // Arrange — slot (0,0,0) center: x=45.0, y=45.0
-    let (mut world, entity, remove_log, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(45.0, 45.0)
         .stash_visible()
         .build();
@@ -620,15 +650,18 @@ fn when_table_card_released_over_empty_stash_slot_then_full_stash_transition() {
             row: 0
         }
     );
-    let calls = remove_log.lock().unwrap();
-    assert_eq!(calls.len(), 1, "remove_body should be called once");
-    assert_eq!(calls[0], entity);
+    let commands = drain_physics_commands(&mut world);
+    let remove_bodies: Vec<_> = commands
+        .iter()
+        .filter(|c| matches!(c, PhysicsCommand::RemoveBody { entity: e } if *e == entity))
+        .collect();
+    assert_eq!(remove_bodies.len(), 1, "remove_body should be called once");
 }
 
 #[test]
 fn when_hand_card_released_over_empty_stash_slot_then_not_in_hand_resource() {
     // Arrange — slot (0,0,0) center: x=45.0, y=45.0
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_hand(0)
+    let (mut world, entity) = ReleaseTestBuilder::card_in_hand(0)
         .screen_pos(45.0, 45.0)
         .stash_visible()
         .build();
@@ -651,7 +684,7 @@ fn when_hand_card_released_over_empty_stash_slot_then_not_in_hand_resource() {
 #[test]
 fn when_released_at_stash_slot_then_stash_drop_takes_priority_over_hand_zone() {
     // Arrange — slot (0,0,0) center at screen (45, 45); stash check runs BEFORE hand zone
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(45.0, 45.0)
         .stash_visible()
         .build();
@@ -671,7 +704,7 @@ fn when_released_at_stash_slot_then_stash_drop_takes_priority_over_hand_zone() {
 #[test]
 fn when_table_card_dropped_on_stash_slot_then_card_item_form_inserted() {
     // Arrange — slot (0,0,0) center: x=45.0, y=45.0
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(45.0, 45.0)
         .stash_visible()
         .build();
@@ -689,7 +722,7 @@ fn when_table_card_dropped_on_stash_slot_then_card_item_form_inserted() {
 #[test]
 fn when_stash_card_dropped_on_table_area_then_card_item_form_removed() {
     // Arrange — x=600 past stash grid; y=200 above hand zone
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
+    let (mut world, entity) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
         .screen_pos(600.0, 200.0)
         .with_item_form()
         .build();
@@ -707,7 +740,7 @@ fn when_stash_card_dropped_on_table_area_then_card_item_form_removed() {
 #[test]
 fn when_stash_card_dropped_on_hand_zone_then_card_item_form_removed() {
     // Arrange — x=600 past stash grid; y=550 in hand zone
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
+    let (mut world, entity) = ReleaseTestBuilder::card_in_stash(0, 0, 0)
         .screen_pos(600.0, 550.0)
         .with_item_form()
         .build();
@@ -725,7 +758,7 @@ fn when_stash_card_dropped_on_hand_zone_then_card_item_form_removed() {
 #[test]
 fn when_table_card_dropped_on_stash_slot_then_only_dragged_entity_gains_card_item_form() {
     // Arrange — slot (0,0,0) center: x=45.0, y=45.0
-    let (mut world, dragged, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, dragged) = ReleaseTestBuilder::card_on_table()
         .screen_pos(45.0, 45.0)
         .stash_visible()
         .build();
@@ -758,7 +791,7 @@ fn when_table_card_dropped_on_stash_slot_then_only_dragged_entity_gains_card_ite
 #[test]
 fn when_card_dropped_on_stash_then_scale_reset_to_one() {
     // Arrange — slot (0,0,0) center: x=45.0, y=57.5
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(45.0, 57.5)
         .stash_visible()
         .card_scale(Vec2::splat(0.833))
@@ -776,7 +809,7 @@ fn when_card_released_on_table_then_scale_spring_target_is_one() {
     use engine_core::scale_spring::ScaleSpring;
 
     // Arrange
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table().build();
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table().build();
 
     // Act
     run_system(&mut world);
@@ -791,7 +824,7 @@ fn when_card_released_on_table_then_scale_spring_target_is_one() {
 #[test]
 fn when_card_dropped_on_stash_then_rotation_reset_to_zero() {
     // Arrange — slot (0,0,0) center: x=45.0, y=57.5
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(45.0, 57.5)
         .stash_visible()
         .card_rotation(0.8)
@@ -807,7 +840,7 @@ fn when_card_dropped_on_stash_then_rotation_reset_to_zero() {
 #[test]
 fn when_table_card_dropped_on_occupied_stash_then_position_restored_to_origin() {
     // Arrange
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(45.0, 45.0)
         .stash_visible()
         .card_position(Vec2::new(300.0, 400.0))
@@ -833,7 +866,7 @@ fn when_table_card_dropped_on_occupied_stash_then_position_restored_to_origin() 
 #[test]
 fn when_table_card_dropped_on_empty_stash_then_position_not_forced_to_origin() {
     // Arrange — slot (0,0,0) is empty, drop should succeed
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(45.0, 57.5)
         .stash_visible()
         .card_position(Vec2::new(300.0, 400.0))
@@ -862,7 +895,7 @@ fn when_table_card_dropped_on_empty_stash_then_position_not_forced_to_origin() {
 #[test]
 fn when_table_card_dropped_on_full_hand_then_position_restored_to_origin() {
     // Arrange
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_on_table()
+    let (mut world, entity) = ReleaseTestBuilder::card_on_table()
         .screen_pos(400.0, 550.0)
         .hand_capacity(1)
         .pre_fill_hand(1)
@@ -885,7 +918,7 @@ fn when_table_card_dropped_on_full_hand_then_position_restored_to_origin() {
 #[test]
 fn when_hand_card_released_over_empty_stash_slot_then_placed_in_stash_not_in_hand() {
     // Arrange — slot (0,0,0) center: x=45.0, y=45.0
-    let (mut world, entity, _, _) = ReleaseTestBuilder::card_in_hand(0)
+    let (mut world, entity) = ReleaseTestBuilder::card_in_hand(0)
         .screen_pos(45.0, 45.0)
         .stash_visible()
         .build();
