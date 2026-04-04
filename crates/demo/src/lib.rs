@@ -43,7 +43,7 @@ pub fn setup(app: &mut App) {
         ),
     );
     app.add_systems(
-        Phase::PostUpdate,
+        Phase::LateUpdate,
         crate::systems::synodic_camera_system.after(transform_propagation_system),
     );
 }

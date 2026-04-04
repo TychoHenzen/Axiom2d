@@ -18,11 +18,8 @@ pub fn preload_system(world: &mut World) {
     let Some(mut hooks) = world.remove_resource::<PreloadHooks>() else {
         return;
     };
-    for hook in &mut hooks.hooks {
-        hook(world);
-    }
+    hooks.schedule.run(world);
     hooks.executed = true;
-    hooks.hooks.clear();
     world.insert_resource(hooks);
 }
 
@@ -38,8 +35,8 @@ impl Plugin for SplashPlugin {
         #[cfg(feature = "render")]
         super::render::spawn_splash_entities(app.world_mut());
 
-        app.add_systems(Phase::PreUpdate, preload_system);
-        app.add_systems(Phase::PreUpdate, post_splash_setup_system);
+        app.add_systems(Phase::Startup, preload_system);
+        app.add_systems(Phase::Input, post_splash_setup_system);
         app.add_systems(Phase::Update, splash_tick_system);
     }
 }
@@ -60,11 +57,8 @@ pub fn post_splash_setup_system(world: &mut World) {
     let Some(mut setup) = world.remove_resource::<PostSplashSetup>() else {
         return;
     };
-    for hook in &mut setup.hooks {
-        hook(world);
-    }
+    setup.schedule.run(world);
     setup.executed = true;
-    setup.hooks.clear();
     world.insert_resource(setup);
 }
 

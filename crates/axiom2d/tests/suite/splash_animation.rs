@@ -149,7 +149,7 @@ fn when_preload_system_runs_during_splash_then_hooks_are_executed() {
     let mut world = World::new();
     world.insert_resource(SplashScreen::new(2.0));
     let mut hooks = PreloadHooks::new();
-    hooks.add(|w: &mut World| {
+    hooks.add_systems(|w: &mut World| {
         w.insert_resource(DeltaTime(Seconds(42.0)));
     });
     world.insert_resource(hooks);
@@ -174,7 +174,7 @@ fn when_preload_already_executed_then_hooks_not_run_again() {
     let call_count = std::sync::Arc::new(std::sync::Mutex::new(0u32));
     let counter = std::sync::Arc::clone(&call_count);
     let mut hooks = PreloadHooks::new();
-    hooks.add(move |_: &mut World| {
+    hooks.add_systems(move |_: &mut World| {
         *counter.lock().unwrap() += 1;
     });
     hooks.executed = true;
@@ -202,7 +202,7 @@ fn when_splash_done_then_preload_hooks_not_run() {
     let call_count = std::sync::Arc::new(std::sync::Mutex::new(0u32));
     let counter = std::sync::Arc::clone(&call_count);
     let mut hooks = PreloadHooks::new();
-    hooks.add(move |_: &mut World| {
+    hooks.add_systems(move |_: &mut World| {
         *counter.lock().unwrap() += 1;
     });
     world.insert_resource(hooks);
@@ -241,7 +241,7 @@ fn when_splash_done_then_post_splash_hooks_run() {
         done: true,
     });
     let mut setup = PostSplashSetup::new();
-    setup.add(|w: &mut World| {
+    setup.add_systems(|w: &mut World| {
         w.insert_resource(DeltaTime(Seconds(99.0)));
     });
     world.insert_resource(setup);
@@ -270,7 +270,7 @@ fn when_post_splash_hooks_already_executed_then_not_run_again() {
     let call_count = std::sync::Arc::new(std::sync::Mutex::new(0u32));
     let counter = std::sync::Arc::clone(&call_count);
     let mut setup = PostSplashSetup::new();
-    setup.add(move |_: &mut World| {
+    setup.add_systems(move |_: &mut World| {
         *counter.lock().unwrap() += 1;
     });
     setup.executed = true;
@@ -291,7 +291,7 @@ fn when_no_splash_screen_resource_then_post_splash_hooks_run_immediately() {
     // Arrange
     let mut world = World::new();
     let mut setup = PostSplashSetup::new();
-    setup.add(|w: &mut World| {
+    setup.add_systems(|w: &mut World| {
         w.insert_resource(DeltaTime(Seconds(42.0)));
     });
     world.insert_resource(setup);
@@ -321,7 +321,7 @@ fn when_post_splash_hook_runs_then_can_spawn_entities() {
         done: true,
     });
     let mut setup = PostSplashSetup::new();
-    setup.add(|w: &mut World| {
+    setup.add_systems(|w: &mut World| {
         w.spawn(Marker);
     });
     world.insert_resource(setup);
@@ -348,12 +348,23 @@ fn when_multiple_post_splash_hooks_then_run_in_order() {
         done: true,
     });
     let mut setup = PostSplashSetup::new();
-    for i in 0..3 {
-        let order = std::sync::Arc::clone(&order);
-        setup.add(move |_: &mut World| {
-            order.lock().unwrap().push(i);
-        });
-    }
+    let first = std::sync::Arc::clone(&order);
+    let second = std::sync::Arc::clone(&order);
+    let third = std::sync::Arc::clone(&order);
+    setup.add_systems(
+        (
+            move |_: &mut World| {
+                first.lock().unwrap().push(0);
+            },
+            move |_: &mut World| {
+                second.lock().unwrap().push(1);
+            },
+            move |_: &mut World| {
+                third.lock().unwrap().push(2);
+            },
+        )
+            .chain(),
+    );
     world.insert_resource(setup);
 
     let mut schedule = Schedule::default();
@@ -398,7 +409,7 @@ fn when_splash_done_and_post_splash_hook_registered_then_hook_runs_on_redraw() {
     let counter = std::sync::Arc::clone(&call_count);
     app.world_mut()
         .resource_mut::<PostSplashSetup>()
-        .add(move |_: &mut World| {
+        .add_systems(move |_: &mut World| {
             *counter.lock().unwrap() += 1;
         });
 
@@ -424,14 +435,14 @@ fn when_preload_and_post_splash_coexist_then_preload_runs_during_and_post_splash
 
     let pc = std::sync::Arc::clone(&preload_count);
     let mut hooks = PreloadHooks::new();
-    hooks.add(move |_: &mut World| {
+    hooks.add_systems(move |_: &mut World| {
         *pc.lock().unwrap() += 1;
     });
     world.insert_resource(hooks);
 
     let psc = std::sync::Arc::clone(&post_count);
     let mut setup = PostSplashSetup::new();
-    setup.add(move |_: &mut World| {
+    setup.add_systems(move |_: &mut World| {
         *psc.lock().unwrap() += 1;
     });
     world.insert_resource(setup);
@@ -464,7 +475,7 @@ fn when_splash_not_done_then_post_splash_hooks_do_not_run() {
         done: false,
     });
     let mut setup = PostSplashSetup::new();
-    setup.add(|w: &mut World| {
+    setup.add_systems(|w: &mut World| {
         w.insert_resource(DeltaTime(Seconds(99.0)));
     });
     world.insert_resource(setup);

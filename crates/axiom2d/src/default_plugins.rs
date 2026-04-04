@@ -66,7 +66,7 @@ fn register_core_resources(app: &mut App) {
 
 fn register_core_systems(app: &mut App) {
     app.add_systems(Phase::Input, (input_system, mouse_input_system));
-    app.add_systems(Phase::PreUpdate, time_system);
+    app.add_systems(Phase::Input, time_system);
 }
 
 fn register_physics(app: &mut App) {
@@ -80,7 +80,7 @@ fn register_physics(app: &mut App) {
         app.world_mut()
             .insert_resource(engine_core::prelude::EventBus::<CollisionEvent>::default());
         app.add_systems(
-            Phase::PreUpdate,
+            Phase::FixedUpdate,
             (physics_step_system, physics_sync_system).chain(),
         );
     }
@@ -93,12 +93,12 @@ fn register_post_update_systems(app: &mut App) {
             .insert_resource(AudioRes::new(Box::new(NullAudioBackend::new())));
         app.world_mut()
             .insert_resource(engine_core::prelude::EventBus::<PlaySound>::default());
-        app.add_systems(Phase::PreUpdate, play_sound_system);
+        app.add_systems(Phase::LateUpdate, play_sound_system);
     }
 
     #[cfg(not(feature = "audio"))]
     app.add_systems(
-        Phase::PostUpdate,
+        Phase::LateUpdate,
         (
             hierarchy_maintenance_system,
             transform_propagation_system,
@@ -111,7 +111,7 @@ fn register_post_update_systems(app: &mut App) {
 
     #[cfg(feature = "audio")]
     app.add_systems(
-        Phase::PostUpdate,
+        Phase::LateUpdate,
         (
             hierarchy_maintenance_system,
             transform_propagation_system,
@@ -129,7 +129,7 @@ fn register_render(app: &mut App) {
     {
         app.world_mut().insert_resource(ClearColor::default());
         app.world_mut().insert_resource(ShaderRegistry::default());
-        app.add_systems(Phase::PreUpdate, mesh_cache_system);
+        app.add_systems(Phase::LateUpdate, mesh_cache_system);
         app.add_systems(
             Phase::Render,
             (

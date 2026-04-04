@@ -28,7 +28,7 @@ fn when_press_event_in_bus_then_mouse_input_system_sets_button_pressed() {
     let mut world = setup_world();
     world
         .resource_mut::<EventBus<MouseInputEvent>>()
-        .push(MouseInputEvent {
+        .push(MouseInputEvent::Button {
             button: MouseButton::Left,
             state: ButtonState::Pressed,
         });
@@ -46,7 +46,7 @@ fn when_press_event_in_bus_then_mouse_input_system_sets_just_pressed() {
     let mut world = setup_world();
     world
         .resource_mut::<EventBus<MouseInputEvent>>()
-        .push(MouseInputEvent {
+        .push(MouseInputEvent::Button {
             button: MouseButton::Right,
             state: ButtonState::Pressed,
         });
@@ -70,7 +70,7 @@ fn when_release_event_in_bus_then_mouse_input_system_sets_just_released() {
     world.resource_mut::<MouseState>().clear_frame_state();
     world
         .resource_mut::<EventBus<MouseInputEvent>>()
-        .push(MouseInputEvent {
+        .push(MouseInputEvent::Button {
             button: MouseButton::Left,
             state: ButtonState::Released,
         });
@@ -90,7 +90,7 @@ fn when_mouse_input_system_runs_then_bus_is_drained() {
     let mut world = setup_world();
     world
         .resource_mut::<EventBus<MouseInputEvent>>()
-        .push(MouseInputEvent {
+        .push(MouseInputEvent::Button {
             button: MouseButton::Left,
             state: ButtonState::Pressed,
         });
@@ -128,7 +128,7 @@ fn when_mouse_input_system_runs_second_frame_then_just_pressed_is_cleared() {
     let mut world = setup_world();
     world
         .resource_mut::<EventBus<MouseInputEvent>>()
-        .push(MouseInputEvent {
+        .push(MouseInputEvent::Button {
             button: MouseButton::Left,
             state: ButtonState::Pressed,
         });
@@ -141,4 +141,44 @@ fn when_mouse_input_system_runs_second_frame_then_just_pressed_is_cleared() {
     let state = world.resource::<MouseState>();
     assert!(!state.just_pressed(MouseButton::Left));
     assert!(state.pressed(MouseButton::Left));
+}
+
+#[test]
+fn when_move_event_in_bus_then_mouse_input_system_sets_screen_pos() {
+    // Arrange
+    let mut world = setup_world();
+    world
+        .resource_mut::<EventBus<MouseInputEvent>>()
+        .push(MouseInputEvent::Move {
+            screen_pos: glam::Vec2::new(320.0, 240.0),
+        });
+
+    // Act
+    run_mouse_system(&mut world);
+
+    // Assert
+    assert_eq!(
+        world.resource::<MouseState>().screen_pos(),
+        glam::Vec2::new(320.0, 240.0)
+    );
+}
+
+#[test]
+fn when_scroll_event_in_bus_then_mouse_input_system_accumulates_scroll_delta() {
+    // Arrange
+    let mut world = setup_world();
+    world
+        .resource_mut::<EventBus<MouseInputEvent>>()
+        .push(MouseInputEvent::Scroll {
+            delta: glam::Vec2::new(0.0, 3.0),
+        });
+
+    // Act
+    run_mouse_system(&mut world);
+
+    // Assert
+    assert_eq!(
+        world.resource::<MouseState>().scroll_delta(),
+        glam::Vec2::new(0.0, 3.0)
+    );
 }

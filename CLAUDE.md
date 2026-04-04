@@ -78,7 +78,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 
 ### Scheduling Phases
 
-`Input → PreUpdate → Update → PostUpdate → Render` — implemented as `engine_ecs::schedule::Phase` enum with `ScheduleLabel` derive.
+`Startup → OnEnable → FixedUpdate → AsyncFixedUpdate → OnCollision → Input → Update → Async → Animate → LateUpdate → OnBecameVisible → Render → PostRender → AsyncEndOfFrame → OnPause → OnDisable → OnDestroy → WaitForVBlank` — 18 phases implemented as `engine_ecs::schedule::Phase` enum with `ScheduleLabel` derive. The sequence is frozen with an enforcement test. `Startup` runs once on the first frame (gated by `App::startup_executed`). `FixedUpdate` runs N times per frame based on the `FixedTimestep` accumulator. All other phases run exactly once per frame.
 
 ### Render Pipeline
 

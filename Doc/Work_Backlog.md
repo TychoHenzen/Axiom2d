@@ -20,8 +20,8 @@ Order matters:
 
 ## Architecture Unification First
 
-- `TD-035` (`Open`): Replace preload/post-splash `FnMut(&mut World)` hook queues with typed startup schedules/phases registered like normal ECS systems.
-- `TD-036` (`Open`): Normalize all raw platform input through a single event ingestion path, including cursor movement and wheel input, before deriving frame state resources.
+- `TD-035` (`In progress`): Replace preload/post-splash `FnMut(&mut World)` hook queues with typed startup schedules/phases registered like normal ECS systems. Added Startup and FixedUpdate phases; moved preload_system to Startup, physics to FixedUpdate, removed `.add()` shim. Phase enum is frozen at 7 with enforcement test.
+- `TD-036` (`Completed`): Normalize all raw platform input through a single event ingestion path, including cursor movement and wheel input, before deriving frame state resources.
 - `TD-034` (`Open`): Centralize physics ownership behind a command/reconcile layer so gameplay systems stop mutating `PhysicsRes` ad hoc.
 - `TD-033` (`Open`): Replace the card game's long chained interaction pipeline with explicit interaction intents/events and a smaller number of authoritative applier systems.
 - `TD-037` (`Open`): Add a render extraction phase and cached per-frame draw lists to reduce duplicated sorting, re-querying, and ad hoc render-time data rebuilding.

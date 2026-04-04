@@ -90,7 +90,7 @@ fn simulate_mouse_press(app: &mut App, screen_pos: Vec2) {
     set_mouse_position(app, screen_pos);
     app.world_mut()
         .resource_mut::<engine_core::prelude::EventBus<MouseInputEvent>>()
-        .push(MouseInputEvent {
+        .push(MouseInputEvent::Button {
             button: MouseButton::Left,
             state: ButtonState::Pressed,
         });
@@ -101,21 +101,20 @@ fn simulate_mouse_release(app: &mut App, screen_pos: Vec2) {
     set_mouse_position(app, screen_pos);
     app.world_mut()
         .resource_mut::<engine_core::prelude::EventBus<MouseInputEvent>>()
-        .push(MouseInputEvent {
+        .push(MouseInputEvent::Button {
             button: MouseButton::Left,
             state: ButtonState::Released,
         });
 }
 
 fn simulate_mouse_move(app: &mut App, screen_pos: Vec2) {
-    set_mouse_position(app, screen_pos);
+    app.world_mut()
+        .resource_mut::<engine_core::prelude::EventBus<MouseInputEvent>>()
+        .push(MouseInputEvent::Move { screen_pos });
 }
 
 fn set_mouse_position(app: &mut App, screen_pos: Vec2) {
-    let world_pos = screen_pos - Vec2::new(400.0, 300.0);
-    let mut mouse = app.world_mut().resource_mut::<MouseState>();
-    mouse.set_screen_pos(screen_pos);
-    mouse.set_world_pos(world_pos);
+    simulate_mouse_move(app, screen_pos);
 }
 
 // ── Tests ────────────────────────────────────────────────────────

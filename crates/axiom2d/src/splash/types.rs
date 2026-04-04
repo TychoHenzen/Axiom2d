@@ -1,4 +1,6 @@
-use bevy_ecs::prelude::{Component, Resource, World};
+use bevy_ecs::prelude::{Component, Resource};
+use bevy_ecs::schedule::{IntoScheduleConfigs, Schedule};
+use bevy_ecs::system::ScheduleSystem;
 use engine_core::prelude::Color;
 
 #[derive(Resource)]
@@ -40,24 +42,26 @@ pub(crate) const ACCENT_COLOR: Color = Color {
 #[derive(Component)]
 pub struct SplashEntity;
 
-pub(crate) type PreloadHook = Box<dyn FnMut(&mut World) + Send + Sync>;
-
 #[derive(Resource)]
 pub struct PreloadHooks {
-    pub(crate) hooks: Vec<PreloadHook>,
+    pub(crate) schedule: Schedule,
     pub executed: bool,
 }
 
 impl PreloadHooks {
     pub fn new() -> Self {
         Self {
-            hooks: Vec::new(),
+            schedule: Schedule::default(),
             executed: false,
         }
     }
 
-    pub fn add(&mut self, hook: impl FnMut(&mut World) + Send + Sync + 'static) {
-        self.hooks.push(Box::new(hook));
+    pub fn add_systems<M>(
+        &mut self,
+        systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
+    ) -> &mut Self {
+        self.schedule.add_systems(systems);
+        self
     }
 }
 
@@ -67,24 +71,26 @@ impl Default for PreloadHooks {
     }
 }
 
-pub(crate) type PostSplashHook = Box<dyn FnMut(&mut World) + Send + Sync>;
-
 #[derive(Resource)]
 pub struct PostSplashSetup {
-    pub(crate) hooks: Vec<PostSplashHook>,
+    pub(crate) schedule: Schedule,
     pub executed: bool,
 }
 
 impl PostSplashSetup {
     pub fn new() -> Self {
         Self {
-            hooks: Vec::new(),
+            schedule: Schedule::default(),
             executed: false,
         }
     }
 
-    pub fn add(&mut self, hook: impl FnMut(&mut World) + Send + Sync + 'static) {
-        self.hooks.push(Box::new(hook));
+    pub fn add_systems<M>(
+        &mut self,
+        systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
+    ) -> &mut Self {
+        self.schedule.add_systems(systems);
+        self
     }
 }
 

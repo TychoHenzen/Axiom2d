@@ -17,6 +17,25 @@ const TABLE_COLOR: Color = Color {
     a: 1.0,
 };
 
+fn hydrate_shape_repository_system(world: &mut World) {
+    let mut repo = ShapeRepository::new();
+    repo.hydrate_all();
+    world.insert_resource(repo);
+}
+
+fn warm_up_physics_system(world: &mut World) {
+    const WARM_UP_STEPS: u32 = 10;
+    const WARM_UP_DT: f32 = 1.0 / 60.0;
+
+    let Some(mut physics) = world.remove_resource::<PhysicsRes>() else {
+        return;
+    };
+    for _ in 0..WARM_UP_STEPS {
+        physics.step(axiom2d::prelude::Seconds(WARM_UP_DT));
+    }
+    world.insert_resource(physics);
+}
+
 fn spawn_scene(world: &mut World) {
     world.spawn((
         Transform2D {
@@ -101,26 +120,11 @@ fn setup(app: &mut App) {
 
     app.world_mut()
         .resource_mut::<PostSplashSetup>()
-        .add(spawn_scene);
+        .add_systems(spawn_scene);
 
     {
         let hooks = &mut *app.world_mut().resource_mut::<PreloadHooks>();
-        hooks.add(|world: &mut World| {
-            let mut repo = ShapeRepository::new();
-            repo.hydrate_all();
-            world.insert_resource(repo);
-        });
-        hooks.add(|world: &mut World| {
-            const WARM_UP_STEPS: u32 = 10;
-            const WARM_UP_DT: f32 = 1.0 / 60.0;
-            let Some(mut physics) = world.remove_resource::<PhysicsRes>() else {
-                return;
-            };
-            for _ in 0..WARM_UP_STEPS {
-                physics.step(axiom2d::prelude::Seconds(WARM_UP_DT));
-            }
-            world.insert_resource(physics);
-        });
+        hooks.add_systems((hydrate_shape_repository_system, warm_up_physics_system).chain());
     }
 }
 

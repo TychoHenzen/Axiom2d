@@ -317,7 +317,7 @@ fn when_mouse_button_pressed_and_frame_runs_then_mouse_state_reflects_button() {
     let mut app = app_with_default_plugins();
     app.world_mut()
         .resource_mut::<engine_core::prelude::EventBus<engine_input::prelude::MouseInputEvent>>()
-        .push(engine_input::prelude::MouseInputEvent {
+        .push(engine_input::prelude::MouseInputEvent::Button {
             button: MouseButton::Left,
             state: ButtonState::Pressed,
         });
@@ -339,7 +339,7 @@ fn when_mouse_button_pressed_and_two_frames_run_then_just_pressed_cleared() {
     let mut app = app_with_default_plugins();
     app.world_mut()
         .resource_mut::<engine_core::prelude::EventBus<engine_input::prelude::MouseInputEvent>>()
-        .push(engine_input::prelude::MouseInputEvent {
+        .push(engine_input::prelude::MouseInputEvent::Button {
             button: MouseButton::Left,
             state: ButtonState::Pressed,
         });

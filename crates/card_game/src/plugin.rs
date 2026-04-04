@@ -105,7 +105,7 @@ impl Plugin for CardGamePlugin {
 
 fn register_systems(app: &mut App) {
     app.add_systems(
-        Phase::PreUpdate,
+        Phase::FixedUpdate,
         (
             card_damping_system.after(physics_sync_system),
             reader_rotation_lock_system.after(physics_sync_system),
@@ -151,7 +151,7 @@ fn register_systems(app: &mut App) {
     .add_systems(Phase::Update, (stash_toggle_system, stash_tab_click_system))
     .add_systems(Phase::Update, stash_hover_preview_system)
     .add_systems(
-        Phase::PostUpdate,
+        Phase::LateUpdate,
         (
             shader_pointer_system,
             stash_layout_system,
@@ -162,7 +162,7 @@ fn register_systems(app: &mut App) {
         ),
     )
     .add_systems(
-        Phase::PostUpdate,
+        Phase::LateUpdate,
         (sync_scale_spring_lock_x, scale_spring_system).chain(),
     )
     .add_systems(

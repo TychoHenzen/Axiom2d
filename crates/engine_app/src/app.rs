@@ -17,7 +17,7 @@ use engine_core::types::Pixels;
 use engine_ecs::prelude::{
     IntoScheduleConfigs, PHASE_COUNT, Phase, Schedule, ScheduleSystem, World,
 };
-use engine_input::prelude::{KeyInputEvent, MouseInputEvent, MouseState};
+use engine_input::prelude::{KeyInputEvent, MouseInputEvent};
 use engine_render::prelude::RendererRes;
 use engine_render::window::WindowConfig;
 
@@ -29,6 +29,7 @@ pub trait Plugin {
 
 pub struct App {
     plugin_count: usize,
+    startup_executed: bool,
     window_config: WindowConfig,
     window: Option<Arc<Window>>,
     world: World,
@@ -40,8 +41,10 @@ impl App {
         let mut world = World::new();
         world.insert_resource(WindowSize::default());
         world.insert_resource(engine_core::time::DeltaTime::default());
+        world.insert_resource(engine_core::time::FixedTimestep::default());
         Self {
             plugin_count: 0,
+            startup_executed: false,
             window_config: WindowConfig::default(),
             window: None,
             world,
@@ -117,8 +120,10 @@ impl App {
 
     #[doc(hidden)]
     pub fn handle_cursor_moved(&mut self, position: glam::Vec2) {
-        if let Some(mut mouse) = self.world.get_resource_mut::<MouseState>() {
-            mouse.set_screen_pos(position);
+        if let Some(mut bus) = self.world.get_resource_mut::<EventBus<MouseInputEvent>>() {
+            bus.push(MouseInputEvent::Move {
+                screen_pos: position,
+            });
         }
     }
 
@@ -129,7 +134,7 @@ impl App {
         state: winit::event::ElementState,
     ) {
         if let Some(mut bus) = self.world.get_resource_mut::<EventBus<MouseInputEvent>>() {
-            bus.push(MouseInputEvent {
+            bus.push(MouseInputEvent::Button {
                 button: MouseButton::from(button),
                 state: ButtonState::from(state),
             });
@@ -138,8 +143,8 @@ impl App {
 
     #[doc(hidden)]
     pub fn handle_mouse_wheel(&mut self, delta: glam::Vec2) {
-        if let Some(mut mouse) = self.world.get_resource_mut::<MouseState>() {
-            mouse.add_scroll_delta(delta);
+        if let Some(mut bus) = self.world.get_resource_mut::<EventBus<MouseInputEvent>>() {
+            bus.push(MouseInputEvent::Scroll { delta });
         }
     }
 
@@ -158,14 +163,44 @@ impl App {
         }
     }
 
+    fn run_schedule(&mut self, phase: Phase) {
+        let start = Instant::now();
+        self.schedules[phase.index()].run(&mut self.world);
+        let elapsed_us = start.elapsed().as_micros() as u64;
+        if let Some(mut profiler) = self.world.get_resource_mut::<FrameProfiler>() {
+            profiler.record_phase(phase.name(), elapsed_us);
+        }
+    }
+
     pub fn handle_redraw(&mut self) {
         let frame_start = Instant::now();
-        for (i, schedule) in self.schedules.iter_mut().enumerate() {
-            let start = Instant::now();
-            schedule.run(&mut self.world);
-            let elapsed_us = start.elapsed().as_micros() as u64;
-            if let Some(mut profiler) = self.world.get_resource_mut::<FrameProfiler>() {
-                profiler.record_phase(Phase::ALL[i].name(), elapsed_us);
+
+        // Compute how many FixedUpdate steps to run this frame.
+        let delta = self
+            .world
+            .get_resource::<engine_core::time::DeltaTime>()
+            .map(|dt| dt.0);
+        let fixed_steps = delta
+            .and_then(|dt| {
+                self.world
+                    .get_resource_mut::<engine_core::time::FixedTimestep>()
+                    .map(|mut ts| ts.tick(dt))
+            })
+            .unwrap_or(0);
+
+        for phase in Phase::ALL {
+            match phase {
+                Phase::Startup if self.startup_executed => continue,
+                Phase::Startup => {
+                    self.run_schedule(phase);
+                    self.startup_executed = true;
+                }
+                Phase::FixedUpdate => {
+                    for _ in 0..fixed_steps {
+                        self.run_schedule(phase);
+                    }
+                }
+                _ => self.run_schedule(phase),
             }
         }
         if let Some(mut renderer) = self.world.get_resource_mut::<RendererRes>() {

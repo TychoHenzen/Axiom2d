@@ -10,10 +10,14 @@ pub fn mouse_input_system(
     mut state: ResMut<MouseState>,
 ) {
     state.clear_frame_state();
-    for MouseInputEvent { button, state: bs } in bus.drain() {
-        match bs {
-            ButtonState::Pressed => state.press(button),
-            ButtonState::Released => state.release(button),
+    for event in bus.drain() {
+        match event {
+            MouseInputEvent::Button { button, state: bs } => match bs {
+                ButtonState::Pressed => state.press(button),
+                ButtonState::Released => state.release(button),
+            },
+            MouseInputEvent::Move { screen_pos } => state.set_screen_pos(screen_pos),
+            MouseInputEvent::Scroll { delta } => state.add_scroll_delta(delta),
         }
     }
 }

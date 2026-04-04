@@ -18,18 +18,23 @@ Current hotspots:
 
 - `crates/axiom2d/src/splash/types.rs:43-95`
 - `crates/axiom2d/src/splash/animation.rs:8-68`
+- `crates/axiom2d/src/splash/render.rs:25-304`
 - `crates/card_game_bin/src/main.rs:87-124`
 
 What is asymmetric:
 
-- `PreloadHooks` and `PostSplashSetup` both store `Vec<Box<dyn FnMut(&mut World)>>` and execute them once, outside the normal schedule.
+- `PreloadHooks` and `PostSplashSetup` now wrap typed startup schedules instead of manual closure queues, but they still run outside the normal phase graph.
 - `card_game_bin` wires content through those hook queues instead of registering startup systems like the rest of the app.
 - The splash code has two almost identical execution paths that differ only by timing.
+- The splash subsystem also keeps a separate render module with its own geometry-building helpers, so the lifecycle split extends into rendering instead of staying in one place.
 
 Resolution target:
 
 - Replace hook queues with typed startup schedules or phases.
-- Keep hooks only for truly one-off bridging code during migration.
+- [x] The splash startup queues now store typed ECS systems instead of manual `Vec<Box<dyn FnMut(&mut World)>>` lists, and `card_game_bin` registers preload/post-splash work through those schedules.
+- [x] The `.add(FnMut)` compatibility shim was removed from both `PreloadHooks` and `PostSplashSetup`. All callers now use `add_systems()`.
+- [x] `preload_system` moved to `Phase::Startup` — runs once on the first frame, gated by the App's `startup_executed` flag.
+- PostSplashSetup remains in Phase::PreUpdate with its splash-done guard — it needs to run after the splash animation finishes, not on frame 1.
 - Make scene setup, asset warmup, and post-splash setup ordinary systems with explicit ordering.
 
 Migration rule:
@@ -58,6 +63,7 @@ Resolution target:
 - Normalize all raw platform input into a single ingestion path.
 - Derive `InputState` and `MouseState` from event streams in one predictable place.
 - Keep movement, wheel, and button handling symmetrical unless the hardware genuinely differs.
+- [x] `App` now routes cursor movement and wheel input through `EventBus<MouseInputEvent>` instead of mutating `MouseState` directly.
 
 Migration rule:
 
@@ -146,6 +152,7 @@ Current hotspots:
 - `crates/engine_render/src/shape/render.rs:51-89`
 - `crates/engine_ui/src/unified_render.rs:63-208`
 - `crates/card_game/src/card/rendering/baked_render.rs:15-67`
+- `crates/card_game/src/card/rendering/art_shader.rs:61-129`
 - `crates/card_game/src/stash/render/drag_preview.rs:14-60`
 - `crates/card_game/src/stash/render/slots.rs:18-73`
 - `crates/card_game/src/stash/hover.rs:65-127`
@@ -157,6 +164,7 @@ What is asymmetric:
 - The card game has both the normal shape pipeline and the unified pipeline, with `ShapeRenderDisabled` acting as a switch.
 - Stash rendering and drag-preview rendering duplicate shader resets and manual shader selection.
 - Hover preview uses its own overlay and uniform patching path instead of sharing the same draw-list contract as the rest of render.
+- Card art and hover preview both hardcode uniform byte offsets to match `ArtRegionParams`, which makes the shader/layout contract fragile if the struct changes.
 
 Resolution target:
 
@@ -214,4 +222,3 @@ A fix is good when:
 - and adding a new device, input source, or renderable does not require duplicating the same control flow again.
 
 If a change only moves duplication around, it is not a fix.
-
