@@ -13,6 +13,7 @@ mod card_identity_signature;
 mod card_identity_signature_profile;
 mod card_identity_visual_params;
 mod card_interaction_camera_drag;
+mod card_interaction_click_resolve;
 mod card_interaction_damping;
 mod card_interaction_drag;
 mod card_interaction_flip;

@@ -1,5 +1,6 @@
 pub mod apply;
 pub mod camera_drag;
+pub mod click_resolve;
 pub mod damping;
 pub mod drag;
 pub mod drag_state;
