@@ -224,6 +224,67 @@ fn when_socket_clicked_then_pending_cable_source_set() {
     assert_eq!(pending.source, Some(jack_entity));
 }
 
+/// The original double-pick bug: clicking a card sitting on a reader must only
+/// fire the card pick (topmost by SortOrder), not also start reader drag.
+#[test]
+fn when_card_on_reader_clicked_only_card_picked_not_reader() {
+    use card_game::card::identity::definition::{
+        CardAbilities, CardDefinition, CardType, art_descriptor_default,
+    };
+    use card_game::card::rendering::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
+    use card_game::card::rendering::spawn_table_card::spawn_visual_card;
+    use card_game::card::reader::spawn::spawn_reader;
+
+    // Arrange
+    let mut world = World::new();
+    insert_base_resources(&mut world);
+    world.insert_resource(EventBus::<engine_physics::prelude::PhysicsCommand>::default());
+
+    let pos = Vec2::ZERO;
+    let (reader_entity, _) = spawn_reader(&mut world, pos);
+    world.entity_mut(reader_entity).insert((
+        GlobalTransform2D(Affine2::from_translation(pos)),
+        SortOrder::new(1),
+    ));
+
+    let def = CardDefinition {
+        card_type: CardType::Spell,
+        name: "Test".to_owned(),
+        stats: None,
+        abilities: CardAbilities { keywords: vec![], text: String::new() },
+        art: art_descriptor_default(CardType::Spell),
+    };
+    let card = spawn_visual_card(
+        &mut world,
+        &def,
+        pos,
+        Vec2::new(TABLE_CARD_WIDTH, TABLE_CARD_HEIGHT),
+        true,
+        Default::default(),
+    );
+    world.entity_mut(card).insert((
+        GlobalTransform2D(Affine2::from_translation(pos)),
+        SortOrder::new(10),
+    ));
+
+    world.insert_resource(make_mouse_pressed_at(pos));
+
+    // Act
+    run_click_resolve(&mut world);
+
+    // Assert — card intent fired, reader drag did NOT start
+    let mut bus = world.resource_mut::<EventBus<InteractionIntent>>();
+    let intents: Vec<_> = bus.drain().collect();
+    assert_eq!(intents.len(), 1, "exactly one pick intent expected");
+    assert!(
+        matches!(&intents[0], InteractionIntent::PickCard { entity, .. } if *entity == card),
+        "expected PickCard for card, got {:?}",
+        intents[0]
+    );
+    let reader_drag = world.resource::<card_game::card::reader::ReaderDragState>();
+    assert!(reader_drag.dragging.is_none(), "reader must not be dragged");
+}
+
 /// @doc: When no Clickable entity is under the cursor, no intent is emitted.
 #[test]
 fn when_no_clickable_entity_under_cursor_then_no_intent() {

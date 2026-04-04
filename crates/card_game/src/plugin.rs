@@ -1,5 +1,6 @@
 use crate::card::identity::base_type::{BaseCardTypeRegistry, populate_default_types};
 use crate::card::interaction::apply::interaction_apply_system;
+use crate::card::interaction::click_resolve::click_resolve_system;
 use crate::card::interaction::camera_drag::{
     CameraDragState, camera_drag_system, camera_zoom_system,
 };
@@ -9,11 +10,10 @@ use crate::card::interaction::drag_state::DragState;
 use crate::card::interaction::flip::card_flip_system;
 use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
 use crate::card::interaction::intent::InteractionIntent;
-use crate::card::interaction::pick::card_pick_system;
 use crate::card::interaction::release::card_release_system;
 use crate::card::jack_cable::{cable_render_system, signature_space_propagation_system};
 use crate::card::jack_socket::{
-    PendingCable, jack_socket_pick_system, jack_socket_release_system, jack_socket_render_system,
+    PendingCable, jack_socket_release_system, jack_socket_render_system,
     pending_cable_drag_system, spawn_pending_cable_preview,
 };
 use crate::card::reader::{
@@ -29,8 +29,7 @@ use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
 use crate::card::rendering::drop_zone_glow::hand_drop_zone_render_system;
 use crate::card::rendering::render_layer::card_render_layer_system;
 use crate::card::screen_device::{
-    ScreenDragState, screen_drag_system, screen_pick_system, screen_release_system,
-    screen_render_system,
+    ScreenDragState, screen_drag_system, screen_release_system, screen_render_system,
 };
 use crate::hand::Hand;
 use crate::hand::layout::hand_layout_system;
@@ -107,7 +106,8 @@ impl Plugin for CardGamePlugin {
 }
 
 fn register_systems(app: &mut App) {
-    app.add_systems(
+    app.add_systems(Phase::Input, click_resolve_system)
+    .add_systems(
         Phase::FixedUpdate,
         (
             card_damping_system.after(physics_sync_system),
@@ -118,9 +118,6 @@ fn register_systems(app: &mut App) {
         Phase::Update,
         (
             store_buy_system,
-            card_pick_system,
-            screen_pick_system,
-            jack_socket_pick_system,
             card_reader_eject_system,
             card_drag_system,
             reader_drag_system,
