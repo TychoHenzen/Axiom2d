@@ -31,7 +31,7 @@ fn warm_up_physics_system(world: &mut World) {
         return;
     };
     for _ in 0..WARM_UP_STEPS {
-        physics.step(axiom2d::prelude::Seconds(WARM_UP_DT));
+        physics.step(Seconds(WARM_UP_DT));
     }
     world.insert_resource(physics);
 }

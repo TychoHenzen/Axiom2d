@@ -3,7 +3,6 @@
 use bevy_ecs::prelude::*;
 use engine_core::prelude::TextureId;
 use engine_input::prelude::{MouseButton, MouseState};
-use engine_physics::prelude::Collider;
 use engine_scene::prelude::{GlobalTransform2D, SortOrder};
 use glam::{Affine2, Vec2};
 
@@ -13,14 +12,12 @@ use card_game::card::interaction::flip::card_flip_system;
 use card_game::card::interaction::flip_animation::{FLIP_DURATION, FlipAnimation};
 use card_game::test_helpers::make_test_card;
 
+use super::helpers::default_card_collider;
+
 fn run_system(world: &mut World) {
     let mut schedule = Schedule::default();
     schedule.add_systems(card_flip_system);
     schedule.run(world);
-}
-
-fn default_collider() -> Collider {
-    Collider::Aabb(Vec2::new(30.0, 45.0))
 }
 
 fn spawn_table_card_at(world: &mut World, pos: Vec2, face_up: bool, sort: i32) -> Entity {
@@ -33,7 +30,7 @@ fn spawn_table_card_at(world: &mut World, pos: Vec2, face_up: bool, sort: i32) -
                 signature: card_game::card::identity::signature::CardSignature::default(),
             },
             CardZone::Table,
-            default_collider(),
+            default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(pos)),
             SortOrder::new(sort),
         ))
@@ -133,7 +130,7 @@ fn when_right_click_on_hand_card_then_no_animation_inserted() {
         .spawn((
             make_test_card(),
             CardZone::Hand(0),
-            default_collider(),
+            default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
             SortOrder::new(0),
         ))
@@ -222,7 +219,7 @@ fn when_flip_triggered_then_face_up_unchanged_until_animation_completes() {
         .spawn((
             make_test_card(),
             CardZone::Table,
-            default_collider(),
+            default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
             SortOrder::new(0),
         ))

@@ -1,4 +1,5 @@
-use bevy_ecs::prelude::{Commands, Entity, Query, Res};
+use bevy_ecs::prelude::{Entity, Query, Res, ResMut};
+use engine_core::prelude::EventBus;
 use engine_input::prelude::{MouseButton, MouseState};
 use engine_physics::prelude::Collider;
 use engine_scene::prelude::{GlobalTransform2D, SortOrder};
@@ -6,10 +7,10 @@ use engine_scene::prelude::{GlobalTransform2D, SortOrder};
 use crate::card::component::Card;
 use crate::card::component::CardZone;
 use crate::card::interaction::game_state_param::CardGameState;
+use crate::card::interaction::intent::InteractionIntent;
 use crate::card::reader::ReaderDragState;
 use crate::card::screen_device::ScreenDragState;
 
-mod apply;
 mod hit_test;
 mod source;
 
@@ -26,8 +27,8 @@ pub fn card_pick_system(
     mut state: CardGameState,
     reader_drag: Res<ReaderDragState>,
     screen_drag: Option<Res<ScreenDragState>>,
-    mut commands: Commands,
-    mut query: Query<(
+    mut intents: ResMut<EventBus<InteractionIntent>>,
+    query: Query<(
         Entity,
         &Card,
         &CardZone,
@@ -59,8 +60,12 @@ pub fn card_pick_system(
             col,
             row,
         } => {
-            state.grid.take(page, col, row);
-            apply::pick_from_stash(entity, page, col, row, &mut state.drag_state, &mut commands);
+            intents.push(InteractionIntent::PickFromStash {
+                entity,
+                page,
+                col,
+                row,
+            });
         }
         PickSource::Card {
             entity,
@@ -68,18 +73,12 @@ pub fn card_pick_system(
             collider,
             grab_offset,
         } => {
-            apply::pick_from_card(
+            intents.push(InteractionIntent::PickCard {
                 entity,
                 zone,
                 collider,
                 grab_offset,
-                &mut state.hand,
-                &mut state.physics_commands,
-                &mut state.drag_state,
-                &mut state.grid,
-                &mut commands,
-                &mut query,
-            );
+            });
         }
     }
 }

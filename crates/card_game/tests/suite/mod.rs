@@ -1,3 +1,5 @@
+mod helpers;
+
 mod card_art_selection;
 mod card_identity_base_type;
 mod card_identity_card_description;
@@ -15,6 +17,7 @@ mod card_interaction_damping;
 mod card_interaction_drag;
 mod card_interaction_flip;
 mod card_interaction_flip_animation;
+mod card_interaction_intent_apply;
 mod card_interaction_pick;
 mod card_interaction_release;
 mod card_jack_cable;

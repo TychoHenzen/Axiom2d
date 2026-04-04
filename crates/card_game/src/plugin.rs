@@ -1,4 +1,5 @@
 use crate::card::identity::base_type::{BaseCardTypeRegistry, populate_default_types};
+use crate::card::interaction::apply::interaction_apply_system;
 use crate::card::interaction::camera_drag::{
     CameraDragState, camera_drag_system, camera_zoom_system,
 };
@@ -7,6 +8,7 @@ use crate::card::interaction::drag::card_drag_system;
 use crate::card::interaction::drag_state::DragState;
 use crate::card::interaction::flip::card_flip_system;
 use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
+use crate::card::interaction::intent::InteractionIntent;
 use crate::card::interaction::pick::card_pick_system;
 use crate::card::interaction::release::card_release_system;
 use crate::card::jack_cable::{cable_render_system, signature_space_propagation_system};
@@ -44,7 +46,7 @@ use crate::stash::store::{StoreCatalog, StoreWallet, store_buy_system, store_sel
 use crate::stash::toggle::{StashVisible, stash_toggle_system};
 use bevy_ecs::schedule::IntoScheduleConfigs;
 use engine_app::prelude::{App, Phase, Plugin};
-use engine_core::prelude::Color;
+use engine_core::prelude::{Color, EventBus};
 use engine_core::scale_spring::scale_spring_system;
 use engine_physics::prelude::physics_sync_system;
 use engine_render::prelude::{
@@ -76,6 +78,7 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(DebugSpawnRng::default());
         world.insert_resource(PendingCable::default());
         world.insert_resource(ScreenDragState::default());
+        world.insert_resource(EventBus::<InteractionIntent>::default());
         spawn_pending_cable_preview(world);
         let mut registry = BaseCardTypeRegistry::new();
         populate_default_types(&mut registry);
@@ -127,6 +130,7 @@ fn register_systems(app: &mut App) {
             stash_boundary_system,
             card_reader_insert_system,
             card_release_system,
+            interaction_apply_system,
             reader_release_system,
             screen_release_system,
             jack_socket_release_system,
