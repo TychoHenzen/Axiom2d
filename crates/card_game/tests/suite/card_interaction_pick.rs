@@ -2,25 +2,28 @@
 
 use bevy_ecs::prelude::*;
 use engine_input::prelude::{MouseButton, MouseState};
-use engine_physics::prelude::{Collider, PhysicsCommand};
+use engine_physics::prelude::Collider;
 use engine_scene::prelude::{GlobalTransform2D, SortOrder};
 use glam::{Affine2, Vec2};
 
 use engine_core::prelude::{EventBus, TextureId};
 
-use card_game::card::component::Card;
-use card_game::card::component::CardZone;
+use card_game::card::component::{Card, CardZone};
+use card_game::card::interaction::click_resolve::{
+    ClickHitShape, Clickable, click_resolve_system, on_card_clicked,
+};
 use card_game::card::interaction::drag_state::DragState;
 use card_game::card::interaction::intent::InteractionIntent;
-use card_game::card::interaction::pick::card_pick_system;
+use card_game::card::jack_socket::PendingCable;
 use card_game::card::reader::ReaderDragState;
-use card_game::hand::cards::Hand;
 
 use super::helpers::default_card_collider;
 
+const CARD_HALF: glam::Vec2 = glam::Vec2::new(30.0, 45.0);
+
 fn run_system(world: &mut World) {
     let mut schedule = Schedule::default();
-    schedule.add_systems(card_pick_system);
+    schedule.add_systems(click_resolve_system);
     schedule.run(world);
 }
 
@@ -28,11 +31,10 @@ fn insert_pick_resources(world: &mut World) {
     if world.get_resource::<DragState>().is_none() {
         world.insert_resource(DragState::default());
     }
-    world.insert_resource(Hand::new(10));
-    world.insert_resource(EventBus::<PhysicsCommand>::default());
     world.insert_resource(card_game::stash::grid::StashGrid::new(10, 10, 1));
     world.insert_resource(card_game::stash::toggle::StashVisible(false));
     world.insert_resource(ReaderDragState::default());
+    world.insert_resource(PendingCable::default());
     if world
         .get_resource::<EventBus<InteractionIntent>>()
         .is_none()
@@ -41,17 +43,27 @@ fn insert_pick_resources(world: &mut World) {
     }
 }
 
+/// Spawns a card at `pos` with Clickable + on_card_clicked observer. Returns the entity.
+fn spawn_clickable_card(world: &mut World, pos: Vec2, sort: i32) -> Entity {
+    let card = world
+        .spawn((
+            card_game::test_helpers::make_test_card(),
+            card_game::card::component::CardZone::Table,
+            default_card_collider(),
+            GlobalTransform2D(Affine2::from_translation(pos)),
+            SortOrder::new(sort),
+            Clickable(ClickHitShape::Aabb(CARD_HALF)),
+        ))
+        .id();
+    world.entity_mut(card).observe(on_card_clicked);
+    card
+}
+
 #[test]
 fn when_left_click_outside_all_cards_then_drag_state_remains_none() {
     // Arrange
     let mut world = World::new();
-    world.spawn((
-        card_game::test_helpers::make_test_card(),
-        CardZone::Table,
-        default_card_collider(),
-        GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-        SortOrder::new(0),
-    ));
+    spawn_clickable_card(&mut world, Vec2::ZERO, 0);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::new(200.0, 200.0));
@@ -61,8 +73,8 @@ fn when_left_click_outside_all_cards_then_drag_state_remains_none() {
     // Act
     run_system(&mut world);
 
-    // Assert
-    assert!(world.resource::<DragState>().dragging.is_none());
+    // Assert — cursor missed all cards, no pick intent
+    assert!(world.resource::<EventBus<InteractionIntent>>().is_empty());
 }
 
 #[test]
@@ -78,8 +90,8 @@ fn when_left_click_with_no_table_cards_then_drag_state_remains_none() {
     // Act
     run_system(&mut world);
 
-    // Assert
-    assert!(world.resource::<DragState>().dragging.is_none());
+    // Assert — no clickable entities, no pick intent
+    assert!(world.resource::<EventBus<InteractionIntent>>().is_empty());
 }
 
 /// @doc: Sort order selects which card to pick when overlapping—highest sort is topmost
@@ -87,24 +99,8 @@ fn when_left_click_with_no_table_cards_then_drag_state_remains_none() {
 fn when_two_overlapping_cards_then_picks_highest_sort_order() {
     // Arrange
     let mut world = World::new();
-    let _card_a = world
-        .spawn((
-            card_game::test_helpers::make_test_card(),
-            CardZone::Table,
-            default_card_collider(),
-            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-            SortOrder::new(0),
-        ))
-        .id();
-    let card_b = world
-        .spawn((
-            Card::face_down(TextureId(3), TextureId(4)),
-            CardZone::Table,
-            default_card_collider(),
-            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-            SortOrder::new(5),
-        ))
-        .id();
+    spawn_clickable_card(&mut world, Vec2::ZERO, 0);
+    let card_b = spawn_clickable_card(&mut world, Vec2::ZERO, 5);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::ZERO);
@@ -129,13 +125,7 @@ fn when_already_dragging_then_new_click_does_not_replace_drag() {
     // Arrange
     let mut world = World::new();
     let card_a = world.spawn_empty().id();
-    world.spawn((
-        card_game::test_helpers::make_test_card(),
-        CardZone::Table,
-        default_card_collider(),
-        GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-        SortOrder::new(0),
-    ));
+    spawn_clickable_card(&mut world, Vec2::ZERO, 0);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::ZERO);
@@ -154,9 +144,8 @@ fn when_already_dragging_then_new_click_does_not_replace_drag() {
     // Act
     run_system(&mut world);
 
-    // Assert
-    let drag = world.resource::<DragState>().dragging.unwrap();
-    assert_eq!(drag.entity, card_a);
+    // Assert — guard fires, no intent emitted
+    assert!(world.resource::<EventBus<InteractionIntent>>().is_empty());
 }
 
 /// @doc: Local grab offset transformed by inverse rotation—drag stays aligned to card frame even after rotation
@@ -166,13 +155,17 @@ fn when_card_picked_at_offset_then_local_grab_offset_is_inverse_rotated() {
     let mut world = World::new();
     let angle = std::f32::consts::FRAC_PI_4;
     let transform = Affine2::from_scale_angle_translation(Vec2::ONE, angle, Vec2::new(100.0, 50.0));
-    world.spawn((
-        card_game::test_helpers::make_test_card(),
-        CardZone::Table,
-        default_card_collider(),
-        GlobalTransform2D(transform),
-        SortOrder::new(0),
-    ));
+    let card = world
+        .spawn((
+            card_game::test_helpers::make_test_card(),
+            CardZone::Table,
+            default_card_collider(),
+            GlobalTransform2D(transform),
+            SortOrder::new(0),
+            Clickable(ClickHitShape::Aabb(CARD_HALF)),
+        ))
+        .id();
+    world.entity_mut(card).observe(on_card_clicked);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::new(110.0, 50.0));
@@ -209,13 +202,17 @@ fn when_card_picked_at_offset_then_local_grab_offset_is_inverse_rotated() {
 fn when_card_picked_at_center_then_local_grab_offset_is_zero() {
     // Arrange
     let mut world = World::new();
-    world.spawn((
-        card_game::test_helpers::make_test_card(),
-        CardZone::Table,
-        default_card_collider(),
-        GlobalTransform2D(Affine2::from_translation(Vec2::new(100.0, 50.0))),
-        SortOrder::new(0),
-    ));
+    let card = world
+        .spawn((
+            card_game::test_helpers::make_test_card(),
+            CardZone::Table,
+            default_card_collider(),
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(100.0, 50.0))),
+            SortOrder::new(0),
+            Clickable(ClickHitShape::Aabb(CARD_HALF)),
+        ))
+        .id();
+    world.entity_mut(card).observe(on_card_clicked);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::new(100.0, 50.0));
@@ -244,13 +241,7 @@ fn when_card_picked_at_center_then_local_grab_offset_is_zero() {
 fn when_cursor_on_edge_of_card_then_card_is_picked() {
     // Arrange
     let mut world = World::new();
-    world.spawn((
-        card_game::test_helpers::make_test_card(),
-        CardZone::Table,
-        default_card_collider(),
-        GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-        SortOrder::new(0),
-    ));
+    spawn_clickable_card(&mut world, Vec2::ZERO, 0);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::new(30.0, 0.0));
@@ -276,17 +267,21 @@ fn when_rotated_card_clicked_inside_obb_then_picked() {
     // Arrange
     let mut world = World::new();
     let angle = std::f32::consts::FRAC_PI_4;
-    world.spawn((
-        card_game::test_helpers::make_test_card(),
-        CardZone::Table,
-        default_card_collider(),
-        GlobalTransform2D(Affine2::from_scale_angle_translation(
-            Vec2::ONE,
-            angle,
-            Vec2::ZERO,
-        )),
-        SortOrder::new(0),
-    ));
+    let card = world
+        .spawn((
+            card_game::test_helpers::make_test_card(),
+            CardZone::Table,
+            default_card_collider(),
+            GlobalTransform2D(Affine2::from_scale_angle_translation(
+                Vec2::ONE,
+                angle,
+                Vec2::ZERO,
+            )),
+            SortOrder::new(0),
+            Clickable(ClickHitShape::Aabb(CARD_HALF)),
+        ))
+        .id();
+    world.entity_mut(card).observe(on_card_clicked);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::new(20.0, 20.0));
@@ -307,17 +302,21 @@ fn when_rotated_card_clicked_outside_obb_then_not_picked() {
     // Arrange
     let mut world = World::new();
     let angle = std::f32::consts::FRAC_PI_4;
-    world.spawn((
-        card_game::test_helpers::make_test_card(),
-        CardZone::Table,
-        default_card_collider(),
-        GlobalTransform2D(Affine2::from_scale_angle_translation(
-            Vec2::ONE,
-            angle,
-            Vec2::ZERO,
-        )),
-        SortOrder::new(0),
-    ));
+    let card = world
+        .spawn((
+            card_game::test_helpers::make_test_card(),
+            CardZone::Table,
+            default_card_collider(),
+            GlobalTransform2D(Affine2::from_scale_angle_translation(
+                Vec2::ONE,
+                angle,
+                Vec2::ZERO,
+            )),
+            SortOrder::new(0),
+            Clickable(ClickHitShape::Aabb(CARD_HALF)),
+        ))
+        .id();
+    world.entity_mut(card).observe(on_card_clicked);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::new(50.0, 0.0));
@@ -327,46 +326,22 @@ fn when_rotated_card_clicked_outside_obb_then_not_picked() {
     // Act
     run_system(&mut world);
 
-    // Assert
-    assert!(world.resource::<DragState>().dragging.is_none());
+    // Assert — cursor is outside rotated OBB, no pick intent
+    assert!(world.resource::<EventBus<InteractionIntent>>().is_empty());
 }
 
-/// @doc: Hand card priority over table cards—hand cards above table in picking, sort order breaks ties
+/// @doc: SortOrder determines which card wins when two overlap at the same position.
 #[test]
 fn when_hand_card_and_table_card_overlap_then_highest_sort_wins() {
     // Arrange
     let mut world = World::new();
-    let _table_card = world
-        .spawn((
-            card_game::test_helpers::make_test_card(),
-            CardZone::Table,
-            default_card_collider(),
-            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-            SortOrder::new(3),
-        ))
-        .id();
-    let hand_card = world
-        .spawn((
-            Card::face_down(TextureId(3), TextureId(4)),
-            CardZone::Hand(0),
-            default_card_collider(),
-            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-            SortOrder::new(10),
-        ))
-        .id();
-    let mut hand = Hand::new(10);
-    hand.add(hand_card).unwrap();
-    world.insert_resource(hand);
-    world.insert_resource(EventBus::<PhysicsCommand>::default());
+    spawn_clickable_card(&mut world, Vec2::ZERO, 3);
+    let hand_card = spawn_clickable_card(&mut world, Vec2::ZERO, 10);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::ZERO);
     world.insert_resource(mouse);
-    world.insert_resource(DragState::default());
-    world.insert_resource(ReaderDragState::default());
-    world.insert_resource(card_game::stash::grid::StashGrid::new(10, 10, 1));
-    world.insert_resource(card_game::stash::toggle::StashVisible(false));
-    world.insert_resource(EventBus::<InteractionIntent>::default());
+    insert_pick_resources(&mut world);
 
     // Act
     run_system(&mut world);
@@ -381,13 +356,12 @@ fn when_hand_card_and_table_card_overlap_then_highest_sort_wins() {
     }
 }
 
-/// @doc: Stash picks preserve UI layer and skip physics—cards stay in cursor-follow mode during drag
+/// @doc: Clicking a stash slot emits PickFromStash intent carrying the slot address.
 #[test]
 fn when_left_click_on_stash_card_then_no_physics_body_added_and_render_layer_stays_ui() {
     // Arrange
     use card_game::stash::grid::StashGrid;
     use card_game::stash::toggle::StashVisible;
-    use engine_scene::prelude::RenderLayer;
 
     let mut world = World::new();
     // col=2, row=3 center: x = 153, y = 20 + 3*79 + 37 = 294
@@ -401,7 +375,6 @@ fn when_left_click_on_stash_card_then_no_physics_body_added_and_render_layer_sta
             },
             Collider::Aabb(Vec2::new(30.0, 45.0)),
             GlobalTransform2D(Affine2::IDENTITY),
-            RenderLayer::UI,
             SortOrder::new(0),
         ))
         .id();
@@ -411,8 +384,7 @@ fn when_left_click_on_stash_card_then_no_physics_body_added_and_render_layer_sta
     world.insert_resource(StashVisible(true));
     world.insert_resource(DragState::default());
     world.insert_resource(ReaderDragState::default());
-    world.insert_resource(Hand::new(10));
-    world.insert_resource(EventBus::<PhysicsCommand>::default());
+    world.insert_resource(PendingCable::default());
     world.insert_resource(EventBus::<InteractionIntent>::default());
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
@@ -422,23 +394,14 @@ fn when_left_click_on_stash_card_then_no_physics_body_added_and_render_layer_sta
     // Act
     run_system(&mut world);
 
-    // Assert — stash picks must NOT create physics bodies (cursor-follow mode)
-    let commands: Vec<_> = world
-        .resource_mut::<EventBus<PhysicsCommand>>()
-        .drain()
-        .collect();
-    let add_bodies: Vec<_> = commands
-        .iter()
-        .filter(|c| matches!(c, PhysicsCommand::AddBody { .. }))
-        .collect();
+    // Assert — stash pick emits PickFromStash intent
+    let mut bus = world.resource_mut::<EventBus<InteractionIntent>>();
+    let intents: Vec<_> = bus.drain().collect();
+    assert_eq!(intents.len(), 1, "expected one PickFromStash intent");
     assert!(
-        add_bodies.is_empty(),
-        "add_body should NOT be called for stash card (cursor-follow mode)"
-    );
-    assert_eq!(
-        *world.get::<RenderLayer>(card_entity).unwrap(),
-        RenderLayer::UI,
-        "RenderLayer should stay UI for stash card"
+        matches!(&intents[0], InteractionIntent::PickFromStash { entity, .. } if *entity == card_entity),
+        "expected PickFromStash for card_entity, got {:?}",
+        intents[0]
     );
 }
 
@@ -473,8 +436,7 @@ fn when_stash_hidden_and_slot_clicked_then_pick_not_triggered() {
     world.insert_resource(StashVisible(false));
     world.insert_resource(DragState::default());
     world.insert_resource(ReaderDragState::default());
-    world.insert_resource(Hand::new(10));
-    world.insert_resource(EventBus::<PhysicsCommand>::default());
+    world.insert_resource(PendingCable::default());
     world.insert_resource(EventBus::<InteractionIntent>::default());
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
@@ -484,17 +446,14 @@ fn when_stash_hidden_and_slot_clicked_then_pick_not_triggered() {
     // Act
     run_system(&mut world);
 
-    // Assert
+    // Assert — stash hidden, no pick intent
     assert!(
-        world.resource::<DragState>().dragging.is_none(),
+        world.resource::<EventBus<InteractionIntent>>().is_empty(),
         "stash pick should not trigger when stash is hidden"
     );
 }
 
-/// @doc: card_pick_system must emit an InteractionIntent::PickCard carrying the target entity,
-/// its zone, and collider so the applier has everything needed to begin the drag without
-/// re-querying ECS. If the system mutates DragState directly instead, the applier/intent split
-/// is violated and two systems will race to own drag state on the same frame.
+/// @doc: click_resolve_system emits PickCard intent via observer — DragState is not set directly.
 #[test]
 fn when_table_card_picked_then_pick_intent_emitted_not_drag_state() {
     // Arrange
@@ -507,13 +466,14 @@ fn when_table_card_picked_then_pick_intent_emitted_not_drag_state() {
             collider.clone(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
             SortOrder::new(0),
+            Clickable(ClickHitShape::Aabb(CARD_HALF)),
         ))
         .id();
+    world.entity_mut(card_entity).observe(on_card_clicked);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::ZERO);
     world.insert_resource(mouse);
-    world.insert_resource(EventBus::<InteractionIntent>::default());
     insert_pick_resources(&mut world);
 
     // Act
@@ -538,7 +498,7 @@ fn when_table_card_picked_then_pick_intent_emitted_not_drag_state() {
     }
     assert!(
         world.resource::<DragState>().dragging.is_none(),
-        "pick system must not set DragState; that is the applier's responsibility"
+        "click_resolve_system must not set DragState; that is the applier's responsibility"
     );
 }
 
@@ -573,8 +533,7 @@ fn when_stash_card_picked_then_pick_from_stash_intent_emitted_and_slot_not_vacat
     world.insert_resource(StashVisible(true));
     world.insert_resource(DragState::default());
     world.insert_resource(ReaderDragState::default());
-    world.insert_resource(Hand::new(10));
-    world.insert_resource(EventBus::<PhysicsCommand>::default());
+    world.insert_resource(PendingCable::default());
     world.insert_resource(EventBus::<InteractionIntent>::default());
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
@@ -606,10 +565,6 @@ fn when_stash_card_picked_then_pick_from_stash_intent_emitted_and_slot_not_vacat
         world.resource::<StashGrid>().get(0, 2, 3).is_some(),
         "stash slot must NOT be vacated by the pick system; the applier owns that"
     );
-    assert!(
-        world.resource::<DragState>().dragging.is_none(),
-        "pick system must not set DragState; that is the applier's responsibility"
-    );
 }
 
 /// @doc: The mutual-exclusion guard prevents the pick system from emitting intents when any
@@ -622,13 +577,7 @@ fn when_already_dragging_then_no_pick_intent_emitted() {
 
     // Arrange
     let mut world = World::new();
-    world.spawn((
-        card_game::test_helpers::make_test_card(),
-        CardZone::Table,
-        default_card_collider(),
-        GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-        SortOrder::new(0),
-    ));
+    spawn_clickable_card(&mut world, Vec2::ZERO, 0);
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
     mouse.set_world_pos(Vec2::ZERO);

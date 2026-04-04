@@ -11,15 +11,10 @@ use engine_scene::render_order::{RenderLayer, SortOrder};
 use glam::Vec2;
 
 use crate::card::interaction::click_resolve::ClickedEntity;
-use crate::card::interaction::drag_state::DragState;
 use crate::card::jack_cable::{
     CABLE_HALF_THICKNESS, CABLE_LOCAL_SORT, Cable, Jack, JackDirection, cable_visuals,
 };
-use crate::card::reader::ReaderDragState;
 use crate::card::reader::SignatureSpace;
-use crate::card::screen_device::ScreenDragState;
-use crate::stash::grid::StashGrid;
-use crate::stash::toggle::StashVisible;
 
 const SOCKET_LOCAL_SORT: i32 = 1;
 const PREVIEW_LOCAL_SORT: i32 = 3;
@@ -103,41 +98,6 @@ pub fn jack_socket_render_system(
 /// Observer registered on each `JackSocket` entity at spawn time.
 pub fn on_socket_clicked(trigger: Trigger<ClickedEntity>, mut pending: ResMut<PendingCable>) {
     pending.source = Some(trigger.target());
-}
-
-pub fn jack_socket_pick_system(
-    mouse: Res<MouseState>,
-    drag_state: Res<DragState>,
-    reader_drag: Res<ReaderDragState>,
-    screen_drag: Res<ScreenDragState>,
-    mut pending: ResMut<PendingCable>,
-    stash_visible: Option<Res<StashVisible>>,
-    grid: Option<Res<StashGrid>>,
-    sockets: Query<(Entity, &JackSocket, &Transform2D)>,
-) {
-    if drag_state.dragging.is_some()
-        || reader_drag.dragging.is_some()
-        || screen_drag.dragging.is_some()
-        || pending.source.is_some()
-    {
-        return;
-    }
-    if !mouse.just_pressed(MouseButton::Left) {
-        return;
-    }
-    if let (Some(stash_visible), Some(grid)) = (stash_visible, grid)
-        && stash_visible.0
-        && crate::stash::pages::stash_ui_contains(mouse.screen_pos(), &grid)
-    {
-        return;
-    }
-    let cursor = mouse.world_pos();
-    for (entity, socket, transform) in &sockets {
-        if (cursor - transform.position).length() <= socket.radius {
-            pending.source = Some(entity);
-            return;
-        }
-    }
 }
 
 pub fn pending_cable_drag_system(
