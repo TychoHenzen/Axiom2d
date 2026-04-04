@@ -17,6 +17,7 @@ use crate::card::identity::definition::CardDefinition;
 use crate::card::identity::residual::ResidualStats;
 use crate::card::identity::signature::CardSignature;
 use crate::card::identity::signature_profile::SignatureProfile;
+use crate::card::interaction::click_resolve::{Clickable, ClickHitShape, on_card_clicked};
 use crate::card::interaction::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card::rendering::bake::{bake_back_face, bake_front_face};
 use crate::card::rendering::baked_mesh::BakedCardMesh;
@@ -83,8 +84,10 @@ pub fn spawn_visual_card(
             Collider::Aabb(half),
             RenderLayer::World,
             SortOrder::default(),
+            Clickable(ClickHitShape::Aabb(half)),
         ))
         .id();
+    world.entity_mut(root).observe(on_card_clicked);
 
     if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
         bus.push(PhysicsCommand::AddBody {

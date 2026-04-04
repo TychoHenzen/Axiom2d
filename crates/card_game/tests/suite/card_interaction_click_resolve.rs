@@ -16,6 +16,13 @@ use card_game::card::interaction::intent::InteractionIntent;
 use card_game::card::jack_socket::PendingCable;
 use card_game::card::reader::ReaderDragState;
 
+fn make_mouse_pressed_at(pos: Vec2) -> MouseState {
+    let mut mouse = MouseState::default();
+    mouse.press(MouseButton::Left);
+    mouse.set_world_pos(pos);
+    mouse
+}
+
 fn run_click_resolve(world: &mut World) {
     let mut schedule = Schedule::default();
     schedule.add_systems(click_resolve_system);
@@ -96,6 +103,60 @@ fn when_card_and_reader_overlap_then_topmost_card_picked() {
     assert!(
         world.resource::<ReaderDragState>().dragging.is_none(),
         "reader drag state must remain None"
+    );
+}
+
+/// Calling `spawn_visual_card` attaches `Clickable` and the `on_card_clicked` observer,
+/// so clicking the card at its center produces a `PickCard` intent.
+#[test]
+fn when_card_spawned_via_spawn_visual_card_then_click_resolves_to_pick_card() {
+    use card_game::card::identity::definition::{
+        CardAbilities, CardDefinition, CardType, art_descriptor_default,
+    };
+    use card_game::card::rendering::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
+    use card_game::card::rendering::spawn_table_card::spawn_visual_card;
+
+    // Arrange
+    let mut world = World::new();
+    insert_base_resources(&mut world);
+    // spawn_visual_card needs PhysicsCommand bus (used optionally)
+    world.insert_resource(EventBus::<engine_physics::prelude::PhysicsCommand>::default());
+
+    let pos = Vec2::ZERO;
+    let def = CardDefinition {
+        card_type: CardType::Spell,
+        name: "Test".to_owned(),
+        stats: None,
+        abilities: CardAbilities { keywords: vec![], text: String::new() },
+        art: art_descriptor_default(CardType::Spell),
+    };
+    let card = spawn_visual_card(
+        &mut world,
+        &def,
+        pos,
+        Vec2::new(TABLE_CARD_WIDTH, TABLE_CARD_HEIGHT),
+        true,
+        Default::default(),
+    );
+
+    // transform_propagation runs in LateUpdate — set it manually for the test
+    world
+        .entity_mut(card)
+        .insert(GlobalTransform2D(Affine2::from_translation(pos)));
+
+    world.insert_resource(make_mouse_pressed_at(pos));
+
+    // Act
+    run_click_resolve(&mut world);
+
+    // Assert
+    let mut bus = world.resource_mut::<EventBus<InteractionIntent>>();
+    let intents: Vec<_> = bus.drain().collect();
+    assert_eq!(intents.len(), 1, "expected one PickCard intent");
+    assert!(
+        matches!(&intents[0], InteractionIntent::PickCard { entity, .. } if *entity == card),
+        "expected PickCard for spawned card, got {:?}",
+        intents[0]
     );
 }
 
