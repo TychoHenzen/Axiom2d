@@ -16,7 +16,7 @@ use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::toggle::StashVisible;
 
 /// Hit shape for a `Clickable` entity.
-#[derive(Component, Clone)]
+#[derive(Clone)]
 pub enum ClickHitShape {
     Aabb(Vec2),
     Circle(f32),
@@ -44,7 +44,7 @@ pub fn click_resolve_system(
     screen_drag: Option<Res<ScreenDragState>>,
     pending: Res<PendingCable>,
     stash_visible: Option<Res<StashVisible>>,
-    mut grid: Option<ResMut<StashGrid>>,
+    grid: Option<Res<StashGrid>>,
     mut intents: ResMut<EventBus<InteractionIntent>>,
     mut commands: Commands,
     query: Query<(Entity, &Clickable, &GlobalTransform2D, &SortOrder)>,
@@ -63,7 +63,7 @@ pub fn click_resolve_system(
     }
 
     // Stash UI check (screen-space) — handled before world raycast
-    if let (Some(stash_visible), Some(grid)) = (&stash_visible, &mut grid) {
+    if let (Some(stash_visible), Some(grid)) = (stash_visible.as_deref(), grid.as_deref()) {
         if stash_visible.0 && crate::stash::pages::stash_ui_contains(mouse.screen_pos(), grid) {
             if !grid.is_store_page() {
                 if let Some((col, row)) =
@@ -88,19 +88,7 @@ pub fn click_resolve_system(
     let cursor = mouse.world_pos();
     let hit = query
         .iter()
-        .filter(|(_, clickable, global, _)| {
-            let hit_shape = &clickable.0;
-            match hit_shape {
-                ClickHitShape::Aabb(half) => {
-                    let cursor_local = global.0.inverse().transform_point2(cursor);
-                    local_space_hit(cursor_local, *half)
-                }
-                ClickHitShape::Circle(radius) => {
-                    let cursor_local = global.0.inverse().transform_point2(cursor);
-                    cursor_local.length() <= *radius
-                }
-            }
-        })
+        .filter(|(_, clickable, global, _)| hit_test(cursor, clickable, global))
         .max_by_key(|(_, _, _, sort)| sort.value());
 
     if let Some((entity, _, _, _)) = hit {
@@ -110,6 +98,19 @@ pub fn click_resolve_system(
             },
             entity,
         );
+    }
+}
+
+fn hit_test(cursor: Vec2, clickable: &Clickable, global: &GlobalTransform2D) -> bool {
+    match &clickable.0 {
+        ClickHitShape::Aabb(half) => {
+            let cursor_local = global.0.inverse().transform_point2(cursor);
+            local_space_hit(cursor_local, *half)
+        }
+        ClickHitShape::Circle(radius) => {
+            let cursor_local = global.0.inverse().transform_point2(cursor);
+            cursor_local.length() <= *radius
+        }
     }
 }
 
