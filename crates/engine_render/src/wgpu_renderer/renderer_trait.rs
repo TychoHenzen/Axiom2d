@@ -582,7 +582,7 @@ impl Renderer for WgpuRenderer {
         &mut self,
         atlas: &crate::atlas::TextureAtlas,
     ) -> Result<(), crate::renderer::RenderError> {
-        self.texture_lookups = atlas.lookups.clone();
+        self.texture_lookups.clone_from(&atlas.lookups);
         self.texture_bind_group = create_texture_bind_group(
             &self.device,
             &self.queue,

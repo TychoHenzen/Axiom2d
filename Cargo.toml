@@ -58,6 +58,14 @@ too_many_lines = "allow"
 similar_names = "allow"
 many_single_char_names = "allow"
 trivially_copy_pass_by_ref = "allow"
+# bevy_ecs query types are inherently complex; type aliases add noise without clarity
+type_complexity = "allow"
+# Card signature test data uses multi-digit floats by necessity
+unreadable_literal = "allow"
+# Test setup structs use _entity postfix intentionally
+struct_field_names = "allow"
+# Default::default() is idiomatic in call sites where the type is inferred
+default_trait_access = "allow"
 # Tests compare exact f32 constants; production code uses epsilon where needed
 float_cmp = "allow"
 # Correctness lints worth promoting

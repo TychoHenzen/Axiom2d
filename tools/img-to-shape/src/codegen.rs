@@ -559,8 +559,10 @@ fn encode_path_commands_to_compact_geometry(
                 push_i16_scaled(data, to.y - previous.y, "cubic to dy")?;
                 previous = *to;
             }
-            PathCommand::Close | PathCommand::Reverse | PathCommand::MoveTo(_) => {}
-            PathCommand::QuadraticTo { .. } => {}
+            PathCommand::Close
+            | PathCommand::Reverse
+            | PathCommand::MoveTo(_)
+            | PathCommand::QuadraticTo { .. } => {}
         }
     }
 

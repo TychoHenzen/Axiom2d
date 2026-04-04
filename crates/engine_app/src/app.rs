@@ -190,7 +190,7 @@ impl App {
 
         for phase in Phase::ALL {
             match phase {
-                Phase::Startup if self.startup_executed => continue,
+                Phase::Startup if self.startup_executed => {}
                 Phase::Startup => {
                     self.run_schedule(phase);
                     self.startup_executed = true;

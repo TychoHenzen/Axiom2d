@@ -150,48 +150,66 @@ pub mod test_helpers {
     impl PhysicsBackend for RecordingPhysicsBackend {
         fn step(&mut self, _dt: Seconds) {}
         fn add_body(&mut self, _: Entity, _: &RigidBody, _: Vec2) -> bool {
-            self.calls.lock().unwrap().push("add_body".into());
+            self.calls
+                .lock()
+                .expect("lock poisoned")
+                .push("add_body".into());
             true
         }
         fn add_collider(&mut self, _: Entity, _: &Collider) -> bool {
-            self.calls.lock().unwrap().push("add_collider".into());
+            self.calls
+                .lock()
+                .expect("lock poisoned")
+                .push("add_collider".into());
             true
         }
         fn remove_body(&mut self, _: Entity) -> Result<(), PhysicsError> {
-            self.calls.lock().unwrap().push("remove_body".into());
+            self.calls
+                .lock()
+                .expect("lock poisoned")
+                .push("remove_body".into());
             Ok(())
         }
         fn set_linear_velocity(&mut self, _: Entity, _: Vec2) -> Result<(), PhysicsError> {
             self.calls
                 .lock()
-                .unwrap()
+                .expect("lock poisoned")
                 .push("set_linear_velocity".into());
             Ok(())
         }
         fn set_angular_velocity(&mut self, _: Entity, _: f32) -> Result<(), PhysicsError> {
             self.calls
                 .lock()
-                .unwrap()
+                .expect("lock poisoned")
                 .push("set_angular_velocity".into());
             Ok(())
         }
         fn set_damping(&mut self, _: Entity, _: f32, _: f32) -> Result<(), PhysicsError> {
-            self.calls.lock().unwrap().push("set_damping".into());
+            self.calls
+                .lock()
+                .expect("lock poisoned")
+                .push("set_damping".into());
             Ok(())
         }
         fn set_collision_group(&mut self, _: Entity, _: u32, _: u32) -> Result<(), PhysicsError> {
             self.calls
                 .lock()
-                .unwrap()
+                .expect("lock poisoned")
                 .push("set_collision_group".into());
             Ok(())
         }
         fn set_body_position(&mut self, _: Entity, _: Vec2) -> Result<(), PhysicsError> {
-            self.calls.lock().unwrap().push("set_body_position".into());
+            self.calls
+                .lock()
+                .expect("lock poisoned")
+                .push("set_body_position".into());
             Ok(())
         }
         fn add_force_at_point(&mut self, _: Entity, _: Vec2, _: Vec2) -> Result<(), PhysicsError> {
-            self.calls.lock().unwrap().push("add_force_at_point".into());
+            self.calls
+                .lock()
+                .expect("lock poisoned")
+                .push("add_force_at_point".into());
             Ok(())
         }
         fn body_position(&self, _: Entity) -> Option<Vec2> {

@@ -87,9 +87,20 @@ jobs:
         run: cargo install naga-cli --locked
       - name: Validate WGSL shaders
         run: |
+          preamble="crates/engine_render/src/wgpu_renderer/bloom_preamble.wgsl"
           find crates -name '*.wgsl' | while read -r shader; do
             echo "Validating $shader"
-            naga "$shader"
+            case "$shader" in
+              *bloom_frag.wgsl|*bloom_composite.wgsl)
+                tmp=$(mktemp /tmp/shader_XXXXXX.wgsl)
+                cat "$preamble" "$shader" > "$tmp"
+                naga "$tmp"
+                rm "$tmp"
+                ;;
+              *)
+                naga "$shader"
+                ;;
+            esac
           done
 
   dead-code:

@@ -141,9 +141,8 @@ pub fn jack_socket_release_system(
     if !mouse.just_released(MouseButton::Left) {
         return;
     }
-    let source_entity = match pending.source.take() {
-        Some(e) => e,
-        None => return,
+    let Some(source_entity) = pending.source.take() else {
+        return;
     };
     let Ok((_, _, source_transform)) = sockets.get(source_entity) else {
         return;

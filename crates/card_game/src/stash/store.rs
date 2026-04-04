@@ -637,11 +637,12 @@ pub fn store_buy_system(world: &mut World) {
     };
 
     let cost = item.cost();
-    let mut wallet = world.resource_mut::<StoreWallet>();
-    if !wallet.spend(cost) {
-        return;
+    {
+        let mut wallet = world.resource_mut::<StoreWallet>();
+        if !wallet.spend(cost) {
+            return;
+        }
     }
-    drop(wallet);
 
     let spawn_pos = mouse_world_pos;
     match item {

@@ -945,13 +945,9 @@ impl App {
                         }
                     } else {
                         // Flat list (no categories).
-                        for idx in 0..entry_labels.len() {
-                            let (clicked, dropped) = entry_row_ui(
-                                ui,
-                                idx,
-                                &entry_labels[idx],
-                                cur_selection == Some(idx),
-                            );
+                        for (idx, label) in entry_labels.iter().enumerate() {
+                            let (clicked, dropped) =
+                                entry_row_ui(ui, idx, label, cur_selection == Some(idx));
                             if clicked {
                                 new_selection = Some(idx);
                             }

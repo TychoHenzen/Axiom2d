@@ -20,6 +20,7 @@ pub struct PackedTextureBinding {
     pub texture_id: u32,
     pub binding: u32,
     pub uv_rect: [f32; 4],
+    #[allow(clippy::pub_underscore_fields)]
     pub _pad: [u32; 2],
 }
 
@@ -323,10 +324,10 @@ impl WgpuRenderer {
     }
 }
 
-pub fn pack_material_bindings(
+pub fn pack_material_bindings<S: std::hash::BuildHasher>(
     uniforms: &[u8],
     textures: &[(TextureId, u32)],
-    lookups: &HashMap<TextureId, [f32; 4]>,
+    lookups: &HashMap<TextureId, [f32; 4], S>,
 ) -> Vec<u8> {
     let mut packed = uniforms.to_vec();
     if packed.len() < 32 {
