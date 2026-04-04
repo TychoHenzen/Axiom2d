@@ -782,15 +782,18 @@ fn when_reader_dragged_then_queues_set_body_position_command() {
         .resource_mut::<EventBus<PhysicsCommand>>()
         .drain()
         .collect();
-    assert_eq!(commands.len(), 2, "expected SetBodyPosition + SetCollisionGroup commands");
+    assert_eq!(
+        commands.len(),
+        2,
+        "expected SetBodyPosition + SetCollisionGroup commands"
+    );
     assert!(
         commands.iter().any(|c| matches!(
             c,
             PhysicsCommand::SetBodyPosition { entity, position }
                 if *entity == reader_entity && (*position - target_pos).length() < 1e-6
         )),
-        "expected SetBodyPosition for reader at {target_pos}, got {:?}",
-        commands
+        "expected SetBodyPosition for reader at {target_pos}, got {commands:?}"
     );
 }
 
