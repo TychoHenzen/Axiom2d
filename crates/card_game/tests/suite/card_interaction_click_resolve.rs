@@ -190,6 +190,40 @@ fn when_reader_clicked_alone_then_reader_drag_starts() {
     );
 }
 
+/// Clicking a JackSocket (from `spawn_screen_device`) sets `PendingCable.source`.
+#[test]
+fn when_socket_clicked_then_pending_cable_source_set() {
+    use card_game::card::screen_device::spawn_screen_device;
+
+    // Arrange
+    let mut world = World::new();
+    insert_base_resources(&mut world);
+    world.insert_resource(EventBus::<engine_physics::prelude::PhysicsCommand>::default());
+
+    let pos = Vec2::new(50.0, 50.0);
+    let (device_entity, jack_entity) = spawn_screen_device(&mut world, pos);
+
+    // socket is offset from device body
+    let socket_pos = pos + Vec2::new(129.0, 0.0);
+    world
+        .entity_mut(jack_entity)
+        .insert(GlobalTransform2D(Affine2::from_translation(socket_pos)))
+        .insert(SortOrder::new(3));
+    world
+        .entity_mut(device_entity)
+        .insert(GlobalTransform2D(Affine2::from_translation(pos)))
+        .insert(SortOrder::new(1));
+
+    world.insert_resource(make_mouse_pressed_at(socket_pos));
+
+    // Act
+    run_click_resolve(&mut world);
+
+    // Assert
+    let pending = world.resource::<card_game::card::jack_socket::PendingCable>();
+    assert_eq!(pending.source, Some(jack_entity));
+}
+
 /// @doc: When no Clickable entity is under the cursor, no intent is emitted.
 #[test]
 fn when_no_clickable_entity_under_cursor_then_no_intent() {

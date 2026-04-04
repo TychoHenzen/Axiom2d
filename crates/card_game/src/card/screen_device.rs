@@ -1,4 +1,6 @@
-use bevy_ecs::prelude::{Component, Entity, Query, Res, ResMut, Resource, With, Without, World};
+use bevy_ecs::prelude::{
+    Component, Entity, Query, Res, ResMut, Resource, Trigger, With, Without, World,
+};
 use engine_core::color::Color;
 use engine_core::prelude::Transform2D;
 use engine_input::mouse_button::MouseButton;
@@ -10,9 +12,10 @@ use glam::Vec2;
 use std::f32::consts::TAU;
 
 use crate::card::identity::signature::Element;
+use crate::card::interaction::click_resolve::{Clickable, ClickHitShape, ClickedEntity};
 use crate::card::interaction::drag_state::DragState;
 use crate::card::jack_cable::{Jack, JackDirection};
-use crate::card::jack_socket::{JackSocket, PendingCable};
+use crate::card::jack_socket::{JackSocket, PendingCable, on_socket_clicked};
 use crate::card::reader::{ReaderDragState, SignatureSpace};
 use crate::stash::grid::StashGrid;
 use crate::stash::toggle::StashVisible;
@@ -150,6 +153,7 @@ pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity
             RenderLayer::World,
             SortOrder::default(),
             LocalSortOrder(SCREEN_SOCKET_LOCAL_SORT),
+            Clickable(ClickHitShape::Circle(SOCKET_RADIUS)),
         ))
         .id();
 
@@ -174,8 +178,11 @@ pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity
             RenderLayer::World,
             SortOrder::default(),
             LocalSortOrder(SCREEN_LOCAL_SORT),
+            Clickable(ClickHitShape::Aabb(SCREEN_HALF_EXTENTS)),
         ))
         .id();
+    world.entity_mut(device_entity).observe(on_screen_clicked);
+    world.entity_mut(jack_entity).observe(on_socket_clicked);
 
     for display_index in 0..DISPLAY_COUNT {
         world.spawn_child(
@@ -230,6 +237,23 @@ pub struct ScreenDragState {
 pub struct ScreenDragInfo {
     pub entity: Entity,
     pub grab_offset: Vec2,
+}
+
+/// Observer registered on each `ScreenDevice` entity at spawn time.
+pub fn on_screen_clicked(
+    trigger: Trigger<ClickedEntity>,
+    screens: Query<&Transform2D, With<ScreenDevice>>,
+    mut screen_drag: ResMut<ScreenDragState>,
+) {
+    let entity = trigger.target();
+    let cursor = trigger.event().world_cursor;
+    let Ok(transform) = screens.get(entity) else {
+        return;
+    };
+    screen_drag.dragging = Some(ScreenDragInfo {
+        entity,
+        grab_offset: cursor - transform.position,
+    });
 }
 
 pub fn screen_pick_system(
