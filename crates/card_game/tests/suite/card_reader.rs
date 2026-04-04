@@ -17,7 +17,7 @@ use card_game::card::jack_socket::PendingCable;
 use card_game::card::reader::{
     CardReader, READER_CARD_SCALE, ReaderDragInfo, ReaderDragState, SIGNATURE_SPACE_RADIUS,
     SignatureSpace, card_overlaps_reader, card_reader_eject_system, card_reader_insert_system,
-    reader_drag_system, reader_pick_system, reader_release_system, reader_rotation_lock_system,
+    on_reader_clicked, reader_drag_system, reader_release_system, reader_rotation_lock_system,
 };
 use card_game::card::screen_device::ScreenDragState;
 use card_game::test_helpers::spawn_entity;
@@ -28,10 +28,13 @@ fn run_rotation_lock(world: &mut World) {
     schedule.run(world);
 }
 
-fn run_reader_pick(world: &mut World) {
-    let mut schedule = Schedule::default();
-    schedule.add_systems(reader_pick_system);
-    schedule.run(world);
+fn trigger_reader_click(world: &mut World, entity: Entity, cursor: Vec2) {
+    use card_game::card::interaction::click_resolve::ClickedEntity;
+    world
+        .entity_mut(entity)
+        .observe(on_reader_clicked);
+    world.flush();
+    world.trigger_targets(ClickedEntity { world_cursor: cursor }, entity);
 }
 
 fn run_reader_release(world: &mut World) {
@@ -70,17 +73,12 @@ fn when_reader_clicked_then_starts_reader_drag() {
             },
         ))
         .id();
-    let mut mouse = MouseState::default();
-    mouse.press(MouseButton::Left);
-    mouse.set_world_pos(Vec2::new(110.0, 95.0));
-    world.insert_resource(mouse);
-    world.insert_resource(DragState::default());
     world.insert_resource(ReaderDragState::default());
-    world.insert_resource(ScreenDragState::default());
-    world.insert_resource(PendingCable::default());
 
-    // Act
-    run_reader_pick(&mut world);
+    let cursor = Vec2::new(110.0, 95.0);
+
+    // Act — trigger the observer directly
+    trigger_reader_click(&mut world, reader, cursor);
 
     // Assert
     let dragging = world.resource::<ReaderDragState>().dragging.clone();

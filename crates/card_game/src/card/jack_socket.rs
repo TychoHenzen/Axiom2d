@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::{
-    Commands, Component, Entity, Query, Res, ResMut, Resource, With, Without, World,
+    Commands, Component, Entity, Query, Res, ResMut, Resource, Trigger, With, Without, World,
 };
 use engine_core::color::Color;
 use engine_core::prelude::Transform2D;
@@ -10,6 +10,7 @@ use engine_scene::prelude::{LocalSortOrder, Visible};
 use engine_scene::render_order::{RenderLayer, SortOrder};
 use glam::Vec2;
 
+use crate::card::interaction::click_resolve::ClickedEntity;
 use crate::card::interaction::drag_state::DragState;
 use crate::card::jack_cable::{
     CABLE_HALF_THICKNESS, CABLE_LOCAL_SORT, Cable, Jack, JackDirection, cable_visuals,
@@ -97,6 +98,11 @@ pub fn jack_socket_render_system(
             entity_commands.insert(Visible(true));
         }
     }
+}
+
+/// Observer registered on each `JackSocket` entity at spawn time.
+pub fn on_socket_clicked(trigger: Trigger<ClickedEntity>, mut pending: ResMut<PendingCable>) {
+    pending.source = Some(trigger.target());
 }
 
 pub fn jack_socket_pick_system(

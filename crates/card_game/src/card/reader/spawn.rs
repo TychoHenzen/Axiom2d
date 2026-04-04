@@ -6,10 +6,12 @@ use engine_scene::prelude::{LocalSortOrder, SpawnChildExt};
 use engine_scene::render_order::{RenderLayer, SortOrder};
 use glam::Vec2;
 
+use crate::card::interaction::click_resolve::{Clickable, ClickHitShape};
 use crate::card::jack_cable::{Jack, JackDirection};
-use crate::card::jack_socket::JackSocket;
+use crate::card::jack_socket::{JackSocket, on_socket_clicked};
 use crate::card::reader::components::CardReader;
 use crate::card::reader::glow::{ReaderAccent, ReaderRecess, ReaderRune};
+use crate::card::reader::pick::on_reader_clicked;
 use crate::card::reader::signature_space::SignatureSpace;
 
 // --- Dimensions -----------------------------------------------------------
@@ -133,6 +135,7 @@ pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
             RenderLayer::World,
             SortOrder::default(),
             LocalSortOrder(READER_SOCKET_LOCAL_SORT),
+            Clickable(ClickHitShape::Circle(READER_SOCKET_RADIUS)),
         ))
         .id();
 
@@ -163,8 +166,11 @@ pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
             RenderLayer::World,
             SortOrder::default(),
             LocalSortOrder(-1),
+            Clickable(ClickHitShape::Aabb(half)),
         ))
         .id();
+    world.entity_mut(reader_entity).observe(on_reader_clicked);
+    world.entity_mut(jack_entity).observe(on_socket_clicked);
 
     // Inner recess
     world.spawn_child(

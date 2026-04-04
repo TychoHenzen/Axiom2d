@@ -160,6 +160,36 @@ fn when_card_spawned_via_spawn_visual_card_then_click_resolves_to_pick_card() {
     );
 }
 
+/// Clicking a reader (no card on top) starts reader drag via the observer.
+#[test]
+fn when_reader_clicked_alone_then_reader_drag_starts() {
+    use card_game::card::reader::spawn::spawn_reader;
+
+    // Arrange
+    let mut world = World::new();
+    insert_base_resources(&mut world);
+    world.insert_resource(EventBus::<engine_physics::prelude::PhysicsCommand>::default());
+
+    let pos = Vec2::new(200.0, 200.0);
+    let (reader_entity, _jack_entity) = spawn_reader(&mut world, pos);
+
+    world
+        .entity_mut(reader_entity)
+        .insert(GlobalTransform2D(Affine2::from_translation(pos)));
+    world.insert_resource(make_mouse_pressed_at(pos));
+
+    // Act
+    run_click_resolve(&mut world);
+
+    // Assert
+    let reader_drag = world.resource::<card_game::card::reader::ReaderDragState>();
+    assert!(reader_drag.dragging.is_some(), "reader drag should start");
+    assert_eq!(
+        reader_drag.dragging.as_ref().unwrap().entity,
+        reader_entity
+    );
+}
+
 /// @doc: When no Clickable entity is under the cursor, no intent is emitted.
 #[test]
 fn when_no_clickable_entity_under_cursor_then_no_intent() {

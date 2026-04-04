@@ -18,7 +18,7 @@ use crate::card::jack_socket::{
 };
 use crate::card::reader::{
     ReaderDragState, card_reader_eject_system, card_reader_insert_system, reader_drag_system,
-    reader_glow_system, reader_pick_system, reader_release_system, reader_rotation_lock_system,
+    reader_glow_system, reader_release_system, reader_rotation_lock_system,
 };
 use crate::card::rendering::art_shader::{
     register_card_art_shader, register_gem_shader, register_tier_shaders, register_variant_shaders,
@@ -119,7 +119,6 @@ fn register_systems(app: &mut App) {
         (
             store_buy_system,
             card_pick_system,
-            reader_pick_system,
             screen_pick_system,
             jack_socket_pick_system,
             card_reader_eject_system,
