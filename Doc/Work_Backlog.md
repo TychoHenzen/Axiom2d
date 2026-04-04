@@ -20,9 +20,9 @@ Order matters:
 
 ## Architecture Unification First
 
-- `TD-035` (`In progress`): Replace preload/post-splash `FnMut(&mut World)` hook queues with typed startup schedules/phases registered like normal ECS systems. Added Startup and FixedUpdate phases; moved preload_system to Startup, physics to FixedUpdate, removed `.add()` shim. Phase enum is frozen at 7 with enforcement test.
+- `TD-035` (`Completed`): Replace preload/post-splash `FnMut(&mut World)` hook queues with typed startup schedules/phases registered like normal ECS systems. Phase enum expanded to 18 Unity-inspired phases (Startup through WaitForVBlank) with enforcement test. Startup runs once (gated by `startup_executed`), FixedUpdate runs N times per frame via accumulator. Currently 6 of 18 phases have systems wired in; remaining phases are structural placeholders.
 - `TD-036` (`Completed`): Normalize all raw platform input through a single event ingestion path, including cursor movement and wheel input, before deriving frame state resources.
-- `TD-034` (`Open`): Centralize physics ownership behind a command/reconcile layer so gameplay systems stop mutating `PhysicsRes` ad hoc.
+- `TD-034` (`Completed`): Centralize physics ownership behind a command/reconcile layer so gameplay systems stop mutating `PhysicsRes` ad hoc. All 14 card_game systems now push `PhysicsCommand` variants into `EventBus<PhysicsCommand>`; `physics_command_apply_system` drains and dispatches in `FixedUpdate`. Systems needing read access keep `Res<PhysicsRes>`.
 - `TD-033` (`Open`): Replace the card game's long chained interaction pipeline with explicit interaction intents/events and a smaller number of authoritative applier systems.
 - `TD-037` (`Open`): Add a render extraction phase and cached per-frame draw lists to reduce duplicated sorting, re-querying, and ad hoc render-time data rebuilding.
 
@@ -36,6 +36,13 @@ Order matters:
 
 ## Engine Gaps After Unification
 
+- `TD-038` (`Open`): Add an async task system so the Async, AsyncFixedUpdate, and AsyncEndOfFrame phases can run background work (e.g., pathfinding, generation) without blocking the main loop.
+- `TD-039` (`Open`): Add collision event dispatch so the OnCollision phase has events to consume (requires physics backend to emit contact pairs into `EventBus<CollisionEvent>`).
+- `TD-040` (`Open`): Add entity lifecycle hooks so OnEnable/OnDisable/OnDestroy phases fire when entities are activated, deactivated, or despawned.
+- `TD-041` (`Open`): Add a visibility change detection system so OnBecameVisible fires when entities enter the camera frustum.
+- `TD-042` (`Open`): Add pause/resume event flow so OnPause fires on app suspend and systems can react.
+- `TD-043` (`Open`): Add a VBlank synchronization system for the WaitForVBlank phase to pace the frame loop.
+- `TD-044` (`Open`): Wire PostRender phase with GPU readback or screenshot capture systems.
 - `TD-018` (`Open`): Add physics interpolation so rendering can smooth between fixed physics steps.
 - `TD-015` (`Open`): Add a color grading post-process pass.
 - `TD-010` (`Open`): Add hot reload support for assets.
