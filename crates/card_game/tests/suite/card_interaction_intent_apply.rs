@@ -3,7 +3,7 @@
 use bevy_ecs::prelude::*;
 use engine_core::prelude::EventBus;
 use engine_core::scale_spring::ScaleSpring;
-use engine_physics::prelude::{Collider, PhysicsCommand};
+use engine_physics::prelude::PhysicsCommand;
 use engine_scene::prelude::{GlobalTransform2D, LocalSortOrder, SortOrder};
 use glam::{Affine2, Vec2};
 
@@ -27,10 +27,10 @@ fn insert_apply_resources(world: &mut World) {
     world.insert_resource(EventBus::<InteractionIntent>::default());
 }
 
-/// @doc: When a PickCard intent for a Table card is consumed, DragState must be populated with the
+/// @doc: When a `PickCard` intent for a Table card is consumed, `DragState` must be populated with the
 /// correct entity and zone so that the drag system can track the active drag. This is the primary
-/// output contract of interaction_apply_system: the intent bus is the input, DragState is the
-/// output, and origin_zone must faithfully reflect where the card came from.
+/// output contract of `interaction_apply_system`: the intent bus is the input, `DragState` is the
+/// output, and `origin_zone` must faithfully reflect where the card came from.
 #[test]
 fn when_pick_card_table_intent_applied_then_drag_state_set_with_correct_entity_and_zone() {
     // Arrange
@@ -67,10 +67,10 @@ fn when_pick_card_table_intent_applied_then_drag_state_set_with_correct_entity_a
     assert!(!drag.stash_cursor_follow);
 }
 
-/// @doc: A PickCard intent for a Table card must issue a SetCollisionGroup command with both
-/// membership and filter set to 0 (DRAGGED_COLLISION_GROUP / DRAGGED_COLLISION_FILTER), removing
+/// @doc: A `PickCard` intent for a Table card must issue a `SetCollisionGroup` command with both
+/// membership and filter set to 0 (`DRAGGED_COLLISION_GROUP` / `DRAGGED_COLLISION_FILTER`), removing
 /// the card from all collision layers so it does not interfere with physics queries while being
-/// dragged. This verifies the physics side-effect, not merely the DragState.
+/// dragged. This verifies the physics side-effect, not merely the `DragState`.
 #[test]
 fn when_pick_card_table_intent_applied_then_physics_bus_contains_set_collision_group_zero() {
     // Arrange
@@ -118,9 +118,9 @@ fn when_pick_card_table_intent_applied_then_physics_bus_contains_set_collision_g
     );
 }
 
-/// @doc: After interaction_apply_system processes a PickCard intent, the intent bus must be empty.
+/// @doc: After `interaction_apply_system` processes a `PickCard` intent, the intent bus must be empty.
 /// Leaving unconsumed intents would cause the next frame's apply pass to double-apply the same
-/// transition. This test also verifies that the entity receives LocalSortOrder and ScaleSpring
+/// transition. This test also verifies that the entity receives `LocalSortOrder` and `ScaleSpring`
 /// components, which are the visual side effects of a pick (sort bump + scale-up animation).
 #[test]
 fn when_pick_card_intent_applied_then_intent_bus_drained_and_entity_has_sort_and_scale_components()
@@ -167,8 +167,8 @@ fn when_pick_card_intent_applied_then_intent_bus_drained_and_entity_has_sort_and
     );
 }
 
-/// @doc: A PickFromStash intent causes the applier to vacate the stash slot and set up
-/// DragState with stash_cursor_follow=true so the card tracks the cursor without physics.
+/// @doc: A `PickFromStash` intent causes the applier to vacate the stash slot and set up
+/// `DragState` with `stash_cursor_follow=true` so the card tracks the cursor without physics.
 /// If the slot were not vacated here, the stash grid would show a ghost card in a slot
 /// that the player already picked up, and another card could be placed on top of it.
 #[test]
@@ -235,7 +235,7 @@ fn when_pick_from_stash_intent_applied_then_drag_state_set_and_slot_vacated() {
 }
 
 /// @doc: Picking a Hand card transitions it to the table — the applier must remove it from
-/// the Hand resource and emit AddBody physics commands so the card becomes a physics-driven
+/// the Hand resource and emit `AddBody` physics commands so the card becomes a physics-driven
 /// table entity. If the Hand removal is skipped, the hand layout system will still position
 /// the card in the hand while the drag system moves it on the table, causing a visual tug-of-war.
 #[test]
@@ -286,9 +286,9 @@ fn when_pick_card_hand_intent_applied_then_removed_from_hand_and_physics_body_ad
     assert!(has_add_body, "must emit AddBody for the picked hand card");
 }
 
-/// @doc: The applier must be a no-op when the intent bus is empty — no DragState mutation,
+/// @doc: The applier must be a no-op when the intent bus is empty — no `DragState` mutation,
 /// no physics commands. This prevents phantom state changes on frames where no interaction
-/// occurred, which would corrupt the drag lifecycle for other systems that read DragState.
+/// occurred, which would corrupt the drag lifecycle for other systems that read `DragState`.
 #[test]
 fn when_intent_bus_empty_then_drag_state_unchanged() {
     // Arrange
@@ -318,9 +318,9 @@ fn setup_active_drag(world: &mut World, entity: bevy_ecs::prelude::Entity) {
     });
 }
 
-/// @doc: After a ReleaseOnTable intent, the applier must clear DragState and re-add the
+/// @doc: After a `ReleaseOnTable` intent, the applier must clear `DragState` and re-add the
 /// card's physics body with normal collision groups so it participates in table collisions
-/// again. If DragState is not cleared, the drag system will keep moving the card on
+/// again. If `DragState` is not cleared, the drag system will keep moving the card on
 /// subsequent frames even though the player has released the mouse button.
 #[test]
 fn when_release_on_table_intent_applied_then_drag_state_cleared_and_physics_restored() {
@@ -369,7 +369,7 @@ fn when_release_on_table_intent_applied_then_drag_state_cleared_and_physics_rest
     assert!(has_add_body, "must re-add physics body on table release");
 }
 
-/// @doc: When snap_back is true, the card must be teleported to its origin position before
+/// @doc: When `snap_back` is true, the card must be teleported to its origin position before
 /// re-adding physics. This handles the case where a stash drop failed (occupied slot) and
 /// the card needs to return to where it was before the drag started. Without the position
 /// reset, the card would remain at the cursor's last position with no valid zone.
@@ -465,7 +465,7 @@ fn when_release_on_hand_intent_applied_then_card_added_to_hand_and_physics_remov
     assert!(has_remove, "must remove physics body when entering hand");
 }
 
-/// @doc: Face-down cards get a FlipAnimation when entering the hand so they auto-flip to
+/// @doc: Face-down cards get a `FlipAnimation` when entering the hand so they auto-flip to
 /// face-up. The hand always shows card faces. Without this, face-down cards in the hand
 /// would display their back texture, making them unidentifiable.
 #[test]
@@ -508,7 +508,7 @@ fn when_release_on_hand_face_down_then_flip_animation_inserted() {
 
 /// @doc: When the hand is at full capacity, the release-on-hand intent falls back to
 /// keeping the card on the table and snapping it to its origin position. If the applier
-/// blindly tried to add the card to a full hand, the Hand::add() call would fail and the
+/// blindly tried to add the card to a full hand, the `Hand::add()` call would fail and the
 /// card would be in limbo — not in the hand, not properly on the table.
 #[test]
 fn when_release_on_hand_but_hand_full_then_card_stays_on_table() {
@@ -559,7 +559,7 @@ fn when_release_on_hand_but_hand_full_then_card_stays_on_table() {
 
 /// @doc: Releasing onto a stash slot places the card in the grid, removes physics, and
 /// sets the stash zone. The grid placement is authoritative — only the applier writes to
-/// StashGrid on release, preventing double-placement if multiple systems tried to claim
+/// `StashGrid` on release, preventing double-placement if multiple systems tried to claim
 /// the same slot.
 #[test]
 fn when_release_on_stash_intent_applied_then_card_placed_in_grid() {

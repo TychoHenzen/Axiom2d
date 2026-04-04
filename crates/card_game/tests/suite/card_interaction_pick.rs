@@ -43,7 +43,7 @@ fn insert_pick_resources(world: &mut World) {
     }
 }
 
-/// Spawns a card at `pos` with Clickable + on_card_clicked observer. Returns the entity.
+/// Spawns a card at `pos` with Clickable + `on_card_clicked` observer. Returns the entity.
 fn spawn_clickable_card(world: &mut World, pos: Vec2, sort: i32) -> Entity {
     let card = world
         .spawn((
@@ -330,7 +330,7 @@ fn when_rotated_card_clicked_outside_obb_then_not_picked() {
     assert!(world.resource::<EventBus<InteractionIntent>>().is_empty());
 }
 
-/// @doc: SortOrder determines which card wins when two overlap at the same position.
+/// @doc: `SortOrder` determines which card wins when two overlap at the same position.
 #[test]
 fn when_hand_card_and_table_card_overlap_then_highest_sort_wins() {
     // Arrange
@@ -356,7 +356,7 @@ fn when_hand_card_and_table_card_overlap_then_highest_sort_wins() {
     }
 }
 
-/// @doc: Clicking a stash slot emits PickFromStash intent carrying the slot address.
+/// @doc: Clicking a stash slot emits `PickFromStash` intent carrying the slot address.
 #[test]
 fn when_left_click_on_stash_card_then_no_physics_body_added_and_render_layer_stays_ui() {
     // Arrange
@@ -453,7 +453,7 @@ fn when_stash_hidden_and_slot_clicked_then_pick_not_triggered() {
     );
 }
 
-/// @doc: click_resolve_system emits PickCard intent via observer — DragState is not set directly.
+/// @doc: `click_resolve_system` emits `PickCard` intent via observer — `DragState` is not set directly.
 #[test]
 fn when_table_card_picked_then_pick_intent_emitted_not_drag_state() {
     // Arrange
@@ -502,9 +502,9 @@ fn when_table_card_picked_then_pick_intent_emitted_not_drag_state() {
     );
 }
 
-/// @doc: Stash picks emit a PickFromStash intent carrying the slot address so the applier
+/// @doc: Stash picks emit a `PickFromStash` intent carrying the slot address so the applier
 /// can vacate the slot and set up the drag. The pick system must NOT vacate the stash slot
-/// or set DragState — if it did, a dropped intent (e.g. from a guard check in the applier)
+/// or set `DragState` — if it did, a dropped intent (e.g. from a guard check in the applier)
 /// would leave the grid in an inconsistent state with a phantom empty slot and no active drag.
 #[test]
 fn when_stash_card_picked_then_pick_from_stash_intent_emitted_and_slot_not_vacated() {
@@ -568,8 +568,8 @@ fn when_stash_card_picked_then_pick_from_stash_intent_emitted_and_slot_not_vacat
 }
 
 /// @doc: The mutual-exclusion guard prevents the pick system from emitting intents when any
-/// drag is already active (card, reader, or screen). Without this guard, a second PickCard
-/// intent during an active drag would cause the applier to overwrite DragState, losing the
+/// drag is already active (card, reader, or screen). Without this guard, a second `PickCard`
+/// intent during an active drag would cause the applier to overwrite `DragState`, losing the
 /// original drag's entity reference and leaving a card floating with no system owning it.
 #[test]
 fn when_already_dragging_then_no_pick_intent_emitted() {

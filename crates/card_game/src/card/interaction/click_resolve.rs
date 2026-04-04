@@ -63,25 +63,25 @@ pub fn click_resolve_system(
     }
 
     // Stash UI check (screen-space) — handled before world raycast
-    if let (Some(stash_visible), Some(grid)) = (stash_visible.as_deref(), grid.as_deref()) {
-        if stash_visible.0 && crate::stash::pages::stash_ui_contains(mouse.screen_pos(), grid) {
-            if !grid.is_store_page() {
-                if let Some((col, row)) =
-                    find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height())
-                {
-                    let page = grid.current_storage_page().unwrap_or(0);
-                    if let Some(entity) = grid.get(page, col, row) {
-                        intents.push(InteractionIntent::PickFromStash {
-                            entity: *entity,
-                            page,
-                            col,
-                            row,
-                        });
-                    }
-                }
+    if let (Some(stash_visible), Some(grid)) = (stash_visible.as_deref(), grid.as_deref())
+        && stash_visible.0
+        && crate::stash::pages::stash_ui_contains(mouse.screen_pos(), grid)
+    {
+        if !grid.is_store_page()
+            && let Some((col, row)) =
+                find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height())
+        {
+            let page = grid.current_storage_page().unwrap_or(0);
+            if let Some(entity) = grid.get(page, col, row) {
+                intents.push(InteractionIntent::PickFromStash {
+                    entity: *entity,
+                    page,
+                    col,
+                    row,
+                });
             }
-            return;
         }
+        return;
     }
 
     // World raycast: find topmost Clickable under cursor

@@ -48,7 +48,7 @@ fn insert_base_resources(world: &mut World) {
 }
 
 /// @doc: When a card and reader overlap at the same position, the entity with higher
-/// SortOrder wins click resolution — topmost entity gets the trigger.
+/// `SortOrder` wins click resolution — topmost entity gets the trigger.
 #[test]
 fn when_card_and_reader_overlap_then_topmost_card_picked() {
     // Arrange
@@ -190,7 +190,7 @@ fn when_reader_clicked_alone_then_reader_drag_starts() {
     assert_eq!(reader_drag.dragging.as_ref().unwrap().entity, reader_entity);
 }
 
-/// Clicking a JackSocket (from `spawn_screen_device`) sets `PendingCable.source`.
+/// Clicking a `JackSocket` (from `spawn_screen_device`) sets `PendingCable.source`.
 #[test]
 fn when_socket_clicked_then_pending_cable_source_set() {
     use card_game::card::screen_device::spawn_screen_device;
@@ -225,7 +225,7 @@ fn when_socket_clicked_then_pending_cable_source_set() {
 }
 
 /// The original double-pick bug: clicking a card sitting on a reader must only
-/// fire the card pick (topmost by SortOrder), not also start reader drag.
+/// fire the card pick (topmost by `SortOrder`), not also start reader drag.
 #[test]
 fn when_card_on_reader_clicked_only_card_picked_not_reader() {
     use card_game::card::identity::definition::{

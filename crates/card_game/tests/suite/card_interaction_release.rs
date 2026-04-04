@@ -458,10 +458,10 @@ fn when_card_dropped_on_stash_then_rotation_reset_to_zero() {
     assert_eq!(world.get::<Transform2D>(entity).unwrap().rotation, 0.0);
 }
 
-/// @doc: card_release_system must emit a ReleaseOnTable intent instead of calling drop_on_table
+/// @doc: `card_release_system` must emit a `ReleaseOnTable` intent instead of calling `drop_on_table`
 /// directly. The release system decides WHERE the card lands; the applier system performs the
 /// zone transition. If the release system both decides and applies, the intent/applier boundary
-/// is violated and two systems race to own DragState and physics state on the same frame.
+/// is violated and two systems race to own `DragState` and physics state on the same frame.
 #[test]
 fn when_mouse_released_over_table_then_release_on_table_intent_emitted() {
     // Arrange — card on table, mouse released well above hand zone
@@ -493,8 +493,8 @@ fn when_mouse_released_over_table_then_release_on_table_intent_emitted() {
 }
 
 /// @doc: The hand drop zone occupies the bottom 120px of the viewport. When the cursor
-/// is in this zone on release, the system must emit ReleaseOnHand with the card's face_up
-/// state so the applier can decide whether to insert a FlipAnimation. If face_up were
+/// is in this zone on release, the system must emit `ReleaseOnHand` with the card's `face_up`
+/// state so the applier can decide whether to insert a `FlipAnimation`. If `face_up` were
 /// always defaulted, face-down cards would never auto-flip when entering the hand.
 #[test]
 fn when_mouse_released_over_hand_zone_then_release_on_hand_intent_emitted() {
@@ -519,7 +519,7 @@ fn when_mouse_released_over_hand_zone_then_release_on_hand_intent_emitted() {
 }
 
 /// @doc: When the cursor is over an empty stash slot on release, the system emits
-/// ReleaseOnStash with the slot address so the applier can place the card in the grid.
+/// `ReleaseOnStash` with the slot address so the applier can place the card in the grid.
 /// The slot coordinates must be accurate or the card ends up in the wrong grid cell.
 #[test]
 fn when_mouse_released_over_empty_stash_slot_then_release_on_stash_intent_emitted() {
@@ -555,8 +555,8 @@ fn when_mouse_released_over_empty_stash_slot_then_release_on_stash_intent_emitte
 }
 
 /// @doc: When the cursor is over an occupied stash slot and the origin slot is also
-/// occupied, the card has nowhere to go in the stash. The system must emit ReleaseOnTable
-/// with snap_back=true so the applier teleports the card back to its origin position
+/// occupied, the card has nowhere to go in the stash. The system must emit `ReleaseOnTable`
+/// with `snap_back=true` so the applier teleports the card back to its origin position
 /// rather than leaving it floating at the cursor location with no home zone.
 #[test]
 fn when_mouse_released_over_occupied_stash_slot_then_snap_back_intent_emitted() {

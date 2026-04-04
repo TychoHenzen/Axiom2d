@@ -10,11 +10,10 @@ use engine_physics::prelude::{PhysicsCommand, RigidBody};
 use glam::Vec2;
 
 use card_game::card::component::{Card, CardZone};
-use card_game::card::interaction::pick::{DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
 use card_game::card::identity::signature::CardSignature;
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
+use card_game::card::interaction::pick::{DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
 use card_game::card::jack_cable::{Jack, JackDirection};
-use card_game::card::jack_socket::PendingCable;
 use card_game::card::reader::{
     CardReader, READER_CARD_SCALE, ReaderDragInfo, ReaderDragState, SIGNATURE_SPACE_RADIUS,
     SignatureSpace, card_overlaps_reader, card_reader_eject_system, card_reader_insert_system,
@@ -1027,7 +1026,7 @@ fn when_card_ejected_then_queues_physics_activation_commands() {
 /// @doc: Ejected cards must start with zero-collision groups (DRAGGED) so they
 /// don't physically collide with the reader they were just removed from.
 /// The card starts at the reader's center position; if it were activated with
-/// CARD_COLLISION_GROUP/FILTER (which match the reader's membership), rapier
+/// `CARD_COLLISION_GROUP/FILTER` (which match the reader's membership), rapier
 /// would detect an immediate overlap and fire a separation impulse, causing
 /// the card to fly away. Zero groups mean no collisions until the card is
 /// released onto the table, at which point the release system restores the
