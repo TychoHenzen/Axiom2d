@@ -108,6 +108,7 @@ fn when_mouse_released_while_reader_dragging_then_clears_reader_drag() {
     mouse.press(MouseButton::Left);
     mouse.release(MouseButton::Left);
     world.insert_resource(mouse);
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
 
     // Act
     run_reader_release(&mut world);
@@ -781,15 +782,15 @@ fn when_reader_dragged_then_queues_set_body_position_command() {
         .resource_mut::<EventBus<PhysicsCommand>>()
         .drain()
         .collect();
-    assert_eq!(commands.len(), 1, "expected exactly one command queued");
+    assert_eq!(commands.len(), 2, "expected SetBodyPosition + SetCollisionGroup commands");
     assert!(
-        matches!(
-            &commands[0],
+        commands.iter().any(|c| matches!(
+            c,
             PhysicsCommand::SetBodyPosition { entity, position }
                 if *entity == reader_entity && (*position - target_pos).length() < 1e-6
-        ),
+        )),
         "expected SetBodyPosition for reader at {target_pos}, got {:?}",
-        commands[0]
+        commands
     );
 }
 
