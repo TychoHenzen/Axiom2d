@@ -86,20 +86,27 @@ fn spawn_scene(world: &mut World) {
     let screen_pos = Vec2::new(300.0, 150.0);
     let (_screen_entity, _screen_jack) = spawn_screen_device(world, screen_pos);
 
-    let mut physics = world.resource_mut::<PhysicsRes>();
-    physics.add_body(reader_entity, &RigidBody::Kinematic, reader_pos);
-    physics.add_collider(reader_entity, &Collider::Aabb(READER_HALF_EXTENTS));
-    physics
-        .set_collision_group(
-            reader_entity,
-            READER_COLLISION_GROUP,
-            READER_COLLISION_FILTER,
-        )
-        .expect("reader entity should have physics body");
+    let mut bus = world.resource_mut::<EventBus<PhysicsCommand>>();
+    bus.push(PhysicsCommand::AddBody {
+        entity: reader_entity,
+        body_type: RigidBody::Kinematic,
+        position: reader_pos,
+    });
+    bus.push(PhysicsCommand::AddCollider {
+        entity: reader_entity,
+        collider: Collider::Aabb(READER_HALF_EXTENTS),
+    });
+    bus.push(PhysicsCommand::SetCollisionGroup {
+        entity: reader_entity,
+        membership: READER_COLLISION_GROUP,
+        filter: READER_COLLISION_FILTER,
+    });
     for &entity in &card_entities {
-        physics
-            .set_collision_group(entity, CARD_COLLISION_GROUP, CARD_COLLISION_FILTER)
-            .expect("card entity should have physics body");
+        bus.push(PhysicsCommand::SetCollisionGroup {
+            entity,
+            membership: CARD_COLLISION_GROUP,
+            filter: CARD_COLLISION_FILTER,
+        });
     }
 }
 
