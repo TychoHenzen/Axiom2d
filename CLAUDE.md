@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Axiom2d is an LLM-optimized 2D game engine written in Rust. The engine is complete (10 engine crates + `axiom2d` facade + `demo`, 1100+ tests). A physics-based card game has been built on top (`card_game` + `card_game_bin` crates, 530+ tests). The full architectural vision is documented in `Doc/Axiom_Blueprint.md`. Completed implementation milestones are in `Doc/Completed_Milestones.md`. The active work backlog lives in `Doc/Work_Backlog.md`. Historical roadmaps and debt audits are kept as references. Design principles are codified in `Doc/architecture_bible.md`.
+Axiom2d is an LLM-optimized 2D game engine written in Rust. The engine is complete (10 engine crates + `axiom2d` facade + `demo`, 1100+ tests). A physics-based card game has been built on top (`card_game` + `card_game_bin` crates, 530+ tests). The full architectural vision is documented in `docs/Axiom_Blueprint.md`. Completed implementation milestones are in `docs/Completed_Milestones.md`. The active work backlog lives in `docs/BACKLOG.md`. Historical roadmaps and debt audits are kept in `docs/archive/`. Design principles are codified in `docs/architecture_bible.md`.
 
 ## Current Focus: Card Game
 
 The card game's core implementation (Phases A–H2) is **complete** — physics drag-and-drop, flip animation, hand inventory, stash grid with pages/hover preview, camera drag, visual feedback, and the `CardGamePlugin` are all done.
 
-**Next steps** are tracked in `Doc/Work_Backlog.md`. The archived roadmap and debt audit remain in `Doc/CardCleaner_Ideas_Roadmap.md` and `Doc/Technical_Debt_Audit.md` for design context.
+**Next steps** are tracked in `docs/BACKLOG.md`. The archived roadmap and debt audit are in `docs/archive/` for historical context.
 
 ### Working on new features
 
