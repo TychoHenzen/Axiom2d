@@ -39,7 +39,7 @@ pub fn stash_boundary_system(
                 info.entity,
                 transform.0.translation,
                 collider,
-                &mut *physics_commands,
+                &mut physics_commands,
                 DRAGGED_COLLISION_GROUP,
                 DRAGGED_COLLISION_FILTER,
             );

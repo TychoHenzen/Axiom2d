@@ -50,7 +50,7 @@ fn setup_drag_world(
     world
 }
 
-/// Helper to extract velocity commands from the EventBus
+/// Helper to extract velocity commands from the `EventBus`
 fn drain_velocity_commands(world: &mut World) -> (Vec<(Entity, Vec2)>, Vec<(Entity, f32)>) {
     let commands: Vec<_> = world
         .resource_mut::<EventBus<PhysicsCommand>>()

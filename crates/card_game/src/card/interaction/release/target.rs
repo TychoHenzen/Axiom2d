@@ -107,7 +107,7 @@ pub fn card_release_system(
                 row,
                 current_pos,
                 &mut state.grid,
-                &mut *state.physics_commands,
+                &mut state.physics_commands,
                 &mut commands,
             );
         }
@@ -118,7 +118,7 @@ pub fn card_release_system(
                 face_up,
                 info.origin_position,
                 &mut state.hand,
-                &mut *state.physics_commands,
+                &mut state.physics_commands,
                 &mut commands,
             );
         }
@@ -126,7 +126,7 @@ pub fn card_release_system(
             drop_on_table(
                 info.entity,
                 None,
-                &mut *state.physics_commands,
+                &mut state.physics_commands,
                 &mut commands,
                 &transform_query,
             );
@@ -135,7 +135,7 @@ pub fn card_release_system(
             drop_on_table(
                 info.entity,
                 Some(info.origin_position),
-                &mut *state.physics_commands,
+                &mut state.physics_commands,
                 &mut commands,
                 &transform_query,
             );

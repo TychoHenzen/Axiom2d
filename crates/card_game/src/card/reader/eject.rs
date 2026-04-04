@@ -45,7 +45,7 @@ pub fn card_reader_eject_system(
             card_entity,
             transform.position,
             collider,
-            &mut *physics_commands,
+            &mut physics_commands,
             CARD_COLLISION_GROUP,
             CARD_COLLISION_FILTER,
         );

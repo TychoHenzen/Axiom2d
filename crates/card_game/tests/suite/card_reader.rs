@@ -355,9 +355,9 @@ fn when_card_released_over_reader_then_scale_spring_inserted() {
     );
 }
 
-/// @doc: Inserted cards lose their RigidBody ECS component so zone-aware
+/// @doc: Inserted cards lose their `RigidBody` ECS component so zone-aware
 /// systems correctly identify them as non-physical reader cards. A stale
-/// RigidBody would cause the damping system to attempt physics operations
+/// `RigidBody` would cause the damping system to attempt physics operations
 /// on an entity whose body was already removed by the command layer.
 #[test]
 fn when_card_released_over_reader_then_rigid_body_component_removed() {
@@ -977,7 +977,7 @@ fn when_card_picked_from_reader_then_physics_body_restored() {
 }
 
 /// @doc: When a card is ejected from a reader, the system must queue all four
-/// physics activation commands (AddBody, AddCollider, SetDamping, SetCollisionGroup)
+/// physics activation commands (`AddBody`, `AddCollider`, `SetDamping`, `SetCollisionGroup`)
 /// so the card becomes a physical object on the table again. Missing any one of
 /// these would leave the card in a broken state — no body means invisible to
 /// collisions, no collider means untouchable, no damping means infinite sliding,
