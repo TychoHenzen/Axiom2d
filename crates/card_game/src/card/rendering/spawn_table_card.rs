@@ -17,7 +17,7 @@ use crate::card::identity::definition::CardDefinition;
 use crate::card::identity::residual::ResidualStats;
 use crate::card::identity::signature::CardSignature;
 use crate::card::identity::signature_profile::SignatureProfile;
-use crate::card::interaction::click_resolve::{Clickable, ClickHitShape, on_card_clicked};
+use crate::card::interaction::click_resolve::{ClickHitShape, Clickable, on_card_clicked};
 use crate::card::interaction::damping::{BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG};
 use crate::card::rendering::bake::{bake_back_face, bake_front_face};
 use crate::card::rendering::baked_mesh::BakedCardMesh;

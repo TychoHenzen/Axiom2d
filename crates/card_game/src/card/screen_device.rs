@@ -12,7 +12,7 @@ use glam::Vec2;
 use std::f32::consts::TAU;
 
 use crate::card::identity::signature::Element;
-use crate::card::interaction::click_resolve::{Clickable, ClickHitShape, ClickedEntity};
+use crate::card::interaction::click_resolve::{ClickHitShape, Clickable, ClickedEntity};
 use crate::card::interaction::drag_state::DragState;
 use crate::card::jack_cable::{Jack, JackDirection};
 use crate::card::jack_socket::{JackSocket, PendingCable, on_socket_clicked};

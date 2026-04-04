@@ -23,6 +23,7 @@ pub use crate::card::identity::visual_params::{
 pub use crate::card::interaction::camera_drag::{
     CameraDragState, camera_drag_system, camera_zoom_system,
 };
+pub use crate::card::interaction::click_resolve::click_resolve_system;
 pub use crate::card::interaction::damping::card_damping_system;
 pub use crate::card::interaction::drag::card_drag_system;
 pub use crate::card::interaction::drag_state::DragState;
@@ -30,7 +31,6 @@ pub use crate::card::interaction::flip::card_flip_system;
 pub use crate::card::interaction::flip_animation::{
     flip_animation_system, sync_scale_spring_lock_x,
 };
-pub use crate::card::interaction::click_resolve::click_resolve_system;
 pub use crate::card::interaction::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
 pub use crate::card::interaction::release::card_release_system;
 pub use crate::card::rendering::art_shader::{

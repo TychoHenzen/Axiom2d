@@ -127,7 +127,10 @@ fn when_card_spawned_via_spawn_visual_card_then_click_resolves_to_pick_card() {
         card_type: CardType::Spell,
         name: "Test".to_owned(),
         stats: None,
-        abilities: CardAbilities { keywords: vec![], text: String::new() },
+        abilities: CardAbilities {
+            keywords: vec![],
+            text: String::new(),
+        },
         art: art_descriptor_default(CardType::Spell),
     };
     let card = spawn_visual_card(
@@ -184,10 +187,7 @@ fn when_reader_clicked_alone_then_reader_drag_starts() {
     // Assert
     let reader_drag = world.resource::<card_game::card::reader::ReaderDragState>();
     assert!(reader_drag.dragging.is_some(), "reader drag should start");
-    assert_eq!(
-        reader_drag.dragging.as_ref().unwrap().entity,
-        reader_entity
-    );
+    assert_eq!(reader_drag.dragging.as_ref().unwrap().entity, reader_entity);
 }
 
 /// Clicking a JackSocket (from `spawn_screen_device`) sets `PendingCable.source`.
@@ -231,9 +231,9 @@ fn when_card_on_reader_clicked_only_card_picked_not_reader() {
     use card_game::card::identity::definition::{
         CardAbilities, CardDefinition, CardType, art_descriptor_default,
     };
+    use card_game::card::reader::spawn::spawn_reader;
     use card_game::card::rendering::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
     use card_game::card::rendering::spawn_table_card::spawn_visual_card;
-    use card_game::card::reader::spawn::spawn_reader;
 
     // Arrange
     let mut world = World::new();
@@ -251,7 +251,10 @@ fn when_card_on_reader_clicked_only_card_picked_not_reader() {
         card_type: CardType::Spell,
         name: "Test".to_owned(),
         stats: None,
-        abilities: CardAbilities { keywords: vec![], text: String::new() },
+        abilities: CardAbilities {
+            keywords: vec![],
+            text: String::new(),
+        },
         art: art_descriptor_default(CardType::Spell),
     };
     let card = spawn_visual_card(

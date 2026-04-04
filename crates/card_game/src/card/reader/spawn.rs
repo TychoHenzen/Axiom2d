@@ -6,7 +6,7 @@ use engine_scene::prelude::{LocalSortOrder, SpawnChildExt};
 use engine_scene::render_order::{RenderLayer, SortOrder};
 use glam::Vec2;
 
-use crate::card::interaction::click_resolve::{Clickable, ClickHitShape};
+use crate::card::interaction::click_resolve::{ClickHitShape, Clickable};
 use crate::card::jack_cable::{Jack, JackDirection};
 use crate::card::jack_socket::{JackSocket, on_socket_clicked};
 use crate::card::reader::components::CardReader;

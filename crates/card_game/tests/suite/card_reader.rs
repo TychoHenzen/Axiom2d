@@ -10,6 +10,7 @@ use engine_physics::prelude::{PhysicsCommand, RigidBody};
 use glam::Vec2;
 
 use card_game::card::component::{Card, CardZone};
+use card_game::card::interaction::pick::{DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
 use card_game::card::identity::signature::CardSignature;
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
 use card_game::card::jack_cable::{Jack, JackDirection};
@@ -19,7 +20,6 @@ use card_game::card::reader::{
     SignatureSpace, card_overlaps_reader, card_reader_eject_system, card_reader_insert_system,
     on_reader_clicked, reader_drag_system, reader_release_system, reader_rotation_lock_system,
 };
-use card_game::card::screen_device::ScreenDragState;
 use card_game::test_helpers::spawn_entity;
 
 fn run_rotation_lock(world: &mut World) {
@@ -30,11 +30,14 @@ fn run_rotation_lock(world: &mut World) {
 
 fn trigger_reader_click(world: &mut World, entity: Entity, cursor: Vec2) {
     use card_game::card::interaction::click_resolve::ClickedEntity;
-    world
-        .entity_mut(entity)
-        .observe(on_reader_clicked);
+    world.entity_mut(entity).observe(on_reader_clicked);
     world.flush();
-    world.trigger_targets(ClickedEntity { world_cursor: cursor }, entity);
+    world.trigger_targets(
+        ClickedEntity {
+            world_cursor: cursor,
+        },
+        entity,
+    );
 }
 
 fn run_reader_release(world: &mut World) {
@@ -1018,6 +1021,45 @@ fn when_card_ejected_then_queues_physics_activation_commands() {
             .iter()
             .any(|c| matches!(c, PhysicsCommand::SetCollisionGroup { entity, .. } if *entity == setup.card_entity)),
         "expected SetCollisionGroup for card, got {commands:?}"
+    );
+}
+
+/// @doc: Ejected cards must start with zero-collision groups (DRAGGED) so they
+/// don't physically collide with the reader they were just removed from.
+/// The card starts at the reader's center position; if it were activated with
+/// CARD_COLLISION_GROUP/FILTER (which match the reader's membership), rapier
+/// would detect an immediate overlap and fire a separation impulse, causing
+/// the card to fly away. Zero groups mean no collisions until the card is
+/// released onto the table, at which point the release system restores the
+/// proper groups.
+#[test]
+fn when_card_ejected_then_collision_group_is_dragged_zero() {
+    // Arrange
+    let mut world = World::new();
+    let setup = setup_eject_scenario(&mut world);
+    world.insert_resource(EventBus::<PhysicsCommand>::default());
+
+    // Act
+    run_eject(&mut world);
+
+    // Assert
+    let commands: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    let group_cmd = commands.iter().find(
+        |c| matches!(c, PhysicsCommand::SetCollisionGroup { entity, .. } if *entity == setup.card_entity),
+    );
+    assert!(
+        matches!(
+            group_cmd,
+            Some(PhysicsCommand::SetCollisionGroup {
+                membership,
+                filter,
+                ..
+            }) if *membership == DRAGGED_COLLISION_GROUP && *filter == DRAGGED_COLLISION_FILTER
+        ),
+        "expected SetCollisionGroup with DRAGGED groups (0, 0), got {group_cmd:?}"
     );
 }
 

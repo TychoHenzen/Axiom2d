@@ -1,9 +1,9 @@
 use crate::card::identity::base_type::{BaseCardTypeRegistry, populate_default_types};
 use crate::card::interaction::apply::interaction_apply_system;
-use crate::card::interaction::click_resolve::click_resolve_system;
 use crate::card::interaction::camera_drag::{
     CameraDragState, camera_drag_system, camera_zoom_system,
 };
+use crate::card::interaction::click_resolve::click_resolve_system;
 use crate::card::interaction::damping::card_damping_system;
 use crate::card::interaction::drag::card_drag_system;
 use crate::card::interaction::drag_state::DragState;
@@ -13,8 +13,8 @@ use crate::card::interaction::intent::InteractionIntent;
 use crate::card::interaction::release::card_release_system;
 use crate::card::jack_cable::{cable_render_system, signature_space_propagation_system};
 use crate::card::jack_socket::{
-    PendingCable, jack_socket_release_system, jack_socket_render_system,
-    pending_cable_drag_system, spawn_pending_cable_preview,
+    PendingCable, jack_socket_release_system, jack_socket_render_system, pending_cable_drag_system,
+    spawn_pending_cable_preview,
 };
 use crate::card::reader::{
     ReaderDragState, card_reader_eject_system, card_reader_insert_system, reader_drag_system,
@@ -107,82 +107,82 @@ impl Plugin for CardGamePlugin {
 
 fn register_systems(app: &mut App) {
     app.add_systems(Phase::Input, click_resolve_system)
-    .add_systems(
-        Phase::FixedUpdate,
-        (
-            card_damping_system.after(physics_sync_system),
-            reader_rotation_lock_system.after(physics_sync_system),
-        ),
-    )
-    .add_systems(
-        Phase::Update,
-        (
-            store_buy_system,
-            card_reader_eject_system,
-            card_drag_system,
-            reader_drag_system,
-            screen_drag_system,
-            store_sell_system,
-            stash_boundary_system,
-            card_reader_insert_system,
-            card_release_system,
-            interaction_apply_system,
-            reader_release_system,
-            screen_release_system,
-            jack_socket_release_system,
-            card_flip_system,
-            flip_animation_system,
+        .add_systems(
+            Phase::FixedUpdate,
+            (
+                card_damping_system.after(physics_sync_system),
+                reader_rotation_lock_system.after(physics_sync_system),
+            ),
         )
-            .chain(),
-    )
-    .add_systems(
-        Phase::Update,
-        (
-            signature_space_propagation_system,
-            jack_socket_render_system,
-            cable_render_system,
-            screen_render_system,
-            pending_cable_drag_system,
+        .add_systems(
+            Phase::Update,
+            (
+                store_buy_system,
+                card_reader_eject_system,
+                card_drag_system,
+                reader_drag_system,
+                screen_drag_system,
+                store_sell_system,
+                stash_boundary_system,
+                card_reader_insert_system,
+                card_release_system,
+                interaction_apply_system,
+                reader_release_system,
+                screen_release_system,
+                jack_socket_release_system,
+                card_flip_system,
+                flip_animation_system,
+            )
+                .chain(),
         )
-            .chain()
-            .after(jack_socket_release_system),
-    )
-    .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system))
-    .add_systems(Phase::Update, (stash_toggle_system, stash_tab_click_system))
-    .add_systems(Phase::Update, stash_hover_preview_system)
-    .add_systems(
-        Phase::LateUpdate,
-        (
-            shader_pointer_system,
-            stash_layout_system,
-            hierarchy_sort_system,
-            card_render_layer_system,
-            hand_layout_system,
-            reader_glow_system,
-        ),
-    )
-    .add_systems(
-        Phase::LateUpdate,
-        (sync_scale_spring_lock_x, scale_spring_system).chain(),
-    )
-    .add_systems(
-        Phase::Render,
-        stash_render_system.after(shape_render_system),
-    )
-    .add_systems(
-        Phase::Render,
-        (stash_tab_render_system, stash_hover_preview_render_system).after(stash_render_system),
-    )
-    .add_systems(
-        Phase::Render,
-        unified_render_system.after(shape_render_system),
-    )
-    .add_systems(
-        Phase::Render,
-        baked_card_render_system.after(unified_render_system),
-    )
-    .add_systems(
-        Phase::Render,
-        hand_drop_zone_render_system.after(shape_render_system),
-    );
+        .add_systems(
+            Phase::Update,
+            (
+                signature_space_propagation_system,
+                jack_socket_render_system,
+                cable_render_system,
+                screen_render_system,
+                pending_cable_drag_system,
+            )
+                .chain()
+                .after(jack_socket_release_system),
+        )
+        .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system))
+        .add_systems(Phase::Update, (stash_toggle_system, stash_tab_click_system))
+        .add_systems(Phase::Update, stash_hover_preview_system)
+        .add_systems(
+            Phase::LateUpdate,
+            (
+                shader_pointer_system,
+                stash_layout_system,
+                hierarchy_sort_system,
+                card_render_layer_system,
+                hand_layout_system,
+                reader_glow_system,
+            ),
+        )
+        .add_systems(
+            Phase::LateUpdate,
+            (sync_scale_spring_lock_x, scale_spring_system).chain(),
+        )
+        .add_systems(
+            Phase::Render,
+            stash_render_system.after(shape_render_system),
+        )
+        .add_systems(
+            Phase::Render,
+            (stash_tab_render_system, stash_hover_preview_render_system).after(stash_render_system),
+        )
+        .add_systems(
+            Phase::Render,
+            unified_render_system.after(shape_render_system),
+        )
+        .add_systems(
+            Phase::Render,
+            baked_card_render_system.after(unified_render_system),
+        )
+        .add_systems(
+            Phase::Render,
+            hand_drop_zone_render_system.after(shape_render_system),
+        );
 }

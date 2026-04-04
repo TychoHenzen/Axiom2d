@@ -5,7 +5,7 @@ use engine_physics::prelude::{PhysicsCommand, RigidBody};
 use crate::card::component::{Card, CardZone};
 use crate::card::interaction::drag_state::DragState;
 use crate::card::interaction::physics_helpers::activate_physics_body;
-use crate::card::interaction::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
+use crate::card::interaction::pick::{DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
 use crate::card::jack_cable::Jack;
 use crate::card::reader::components::CardReader;
 use crate::card::reader::signature_space::SignatureSpace;
@@ -46,8 +46,8 @@ pub fn card_reader_eject_system(
             transform.position,
             collider,
             &mut physics_commands,
-            CARD_COLLISION_GROUP,
-            CARD_COLLISION_FILTER,
+            DRAGGED_COLLISION_GROUP,
+            DRAGGED_COLLISION_FILTER,
         );
     }
 

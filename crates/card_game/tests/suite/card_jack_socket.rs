@@ -4,14 +4,16 @@ use std::sync::{Arc, Mutex};
 
 use bevy_ecs::prelude::*;
 use card_game::card::component::CardZone;
+use card_game::card::interaction::click_resolve::{ClickHitShape, Clickable, click_resolve_system};
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
+use card_game::card::interaction::intent::InteractionIntent;
 use card_game::card::jack_cable::{Cable, Jack, JackDirection};
 use card_game::card::jack_socket::{
-    JackSocket, PendingCable, jack_socket_pick_system, jack_socket_release_system,
-    jack_socket_render_system, pending_cable_drag_system,
+    JackSocket, PendingCable, jack_socket_release_system, jack_socket_render_system,
+    on_socket_clicked, pending_cable_drag_system,
 };
 use card_game::card::reader::{ReaderDragInfo, ReaderDragState, SignatureSpace};
-use card_game::card::screen_device::{ScreenDevice, ScreenDragState, spawn_screen_device};
+use card_game::card::screen_device::{ScreenDevice, spawn_screen_device};
 use card_game::plugin::CardGamePlugin;
 use engine_app::prelude::App;
 use engine_core::color::Color;
@@ -150,17 +152,25 @@ fn when_two_jack_sockets_exist_then_two_shapes_are_drawn() {
 // TC005 — jack_socket_pick_system happy path
 // ---------------------------------------------------------------------------
 
+fn run_click_resolve(world: &mut World) {
+    let mut schedule = Schedule::default();
+    schedule.add_systems(click_resolve_system);
+    schedule.run(world);
+}
+
 fn make_pick_world() -> World {
     let mut world = World::new();
     world.insert_resource(DragState::default());
     world.insert_resource(ReaderDragState::default());
-    world.insert_resource(ScreenDragState::default());
     world.insert_resource(PendingCable::default());
+    world.insert_resource(engine_core::prelude::EventBus::<InteractionIntent>::default());
     world
 }
 
 fn spawn_jack_socket_at(world: &mut World, pos: Vec2) -> Entity {
-    world
+    use engine_scene::prelude::{GlobalTransform2D, SortOrder};
+    use glam::Affine2;
+    let entity = world
         .spawn((
             Jack::<SignatureSpace> {
                 direction: JackDirection::Output,
@@ -175,8 +185,13 @@ fn spawn_jack_socket_at(world: &mut World, pos: Vec2) -> Entity {
                 rotation: 0.0,
                 scale: Vec2::ONE,
             },
+            Clickable(ClickHitShape::Circle(10.0)),
+            GlobalTransform2D(Affine2::from_translation(pos)),
+            SortOrder::default(),
         ))
-        .id()
+        .id();
+    world.entity_mut(entity).observe(on_socket_clicked);
+    entity
 }
 
 /// @doc: When the player clicks directly on a jack socket, `jack_socket_pick_system` must
@@ -193,11 +208,8 @@ fn given_cursor_over_jack_socket_when_left_mouse_just_pressed_then_pending_cable
     mouse.set_world_pos(Vec2::new(100.0, 100.0));
     world.insert_resource(mouse);
 
-    let mut schedule = Schedule::default();
-    schedule.add_systems(jack_socket_pick_system);
-
     // Act
-    schedule.run(&mut world);
+    run_click_resolve(&mut world);
 
     // Assert
     let pending = world.resource::<PendingCable>();
@@ -226,11 +238,8 @@ fn given_cursor_outside_jack_socket_when_left_mouse_just_pressed_then_pending_ca
     mouse.set_world_pos(Vec2::new(200.0, 200.0)); // far outside radius 10
     world.insert_resource(mouse);
 
-    let mut schedule = Schedule::default();
-    schedule.add_systems(jack_socket_pick_system);
-
     // Act
-    schedule.run(&mut world);
+    run_click_resolve(&mut world);
 
     // Assert
     assert!(
@@ -266,11 +275,8 @@ fn given_card_drag_active_when_left_mouse_pressed_over_socket_then_pending_cable
     mouse.set_world_pos(Vec2::new(100.0, 100.0));
     world.insert_resource(mouse);
 
-    let mut schedule = Schedule::default();
-    schedule.add_systems(jack_socket_pick_system);
-
     // Act
-    schedule.run(&mut world);
+    run_click_resolve(&mut world);
 
     // Assert
     assert!(
@@ -304,11 +310,8 @@ fn given_reader_drag_active_when_left_mouse_pressed_over_socket_then_pending_cab
     mouse.set_world_pos(Vec2::new(100.0, 100.0));
     world.insert_resource(mouse);
 
-    let mut schedule = Schedule::default();
-    schedule.add_systems(jack_socket_pick_system);
-
     // Act
-    schedule.run(&mut world);
+    run_click_resolve(&mut world);
 
     // Assert
     assert!(
@@ -340,11 +343,8 @@ fn given_pending_cable_already_active_when_left_mouse_pressed_over_second_socket
     mouse.set_world_pos(Vec2::new(200.0, 200.0));
     world.insert_resource(mouse);
 
-    let mut schedule = Schedule::default();
-    schedule.add_systems(jack_socket_pick_system);
-
     // Act
-    schedule.run(&mut world);
+    run_click_resolve(&mut world);
 
     // Assert
     assert_eq!(
