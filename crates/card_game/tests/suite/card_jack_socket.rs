@@ -100,7 +100,6 @@ fn when_one_jack_socket_exists_then_one_shape_is_drawn() {
     );
 }
 
-
 /// @doc: The sync system must iterate all `JackSocket` entities, not just the first.
 /// If it only materialized one socket, a wiring setup with multiple devices would show
 /// only one connection point and make the others impossible to cable.

@@ -40,7 +40,6 @@ fn when_play_on_track_called_twice_with_sfx_then_ids_differ() {
     assert_ne!(id1, id2);
 }
 
-
 #[test]
 fn when_play_on_track_called_then_play_count_increments() {
     // Arrange

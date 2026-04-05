@@ -285,7 +285,6 @@ fn when_cable_render_system_runs_then_cable_transform_is_at_midpoint_of_endpoint
     );
 }
 
-
 // ---------------------------------------------------------------------------
 // Original TC (SignatureSpace identity axiom — pre-existing, do not remove)
 // ---------------------------------------------------------------------------

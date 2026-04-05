@@ -134,7 +134,6 @@ fn when_random_with_same_seed_twice_then_results_are_identical() {
     assert_eq!(sig1.axes(), sig2.axes());
 }
 
-
 #[test]
 fn when_random_with_different_seeds_then_results_differ() {
     use rand::SeedableRng;
@@ -253,7 +252,6 @@ fn when_many_different_signatures_compute_rarity_then_not_all_the_same() {
     );
 }
 
-
 #[test]
 fn when_many_random_signatures_compute_rarity_then_common_is_most_frequent() {
     use rand::SeedableRng;
@@ -313,8 +311,6 @@ fn when_rarity_computed_with_higher_advance_rate_then_rare_or_above_frequency_in
     assert!(rare_above_high > rare_above_default);
 }
 
-
-
 #[test]
 fn when_many_random_signatures_compute_card_tier_then_dormant_is_most_frequent() {
     use rand::SeedableRng;
@@ -349,6 +345,3 @@ fn when_rarity_and_card_tier_computed_for_same_signature_then_they_can_differ() 
     });
     assert!(found);
 }
-
-
-

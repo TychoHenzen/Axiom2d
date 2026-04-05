@@ -27,7 +27,6 @@ fn when_play_called_twice_then_ids_are_unique() {
     assert_ne!(id1, id2);
 }
 
-
 // TODO: needs pub promotion — CpalBackend::active_sound_count() is #[cfg(test)] only
 // #[test]
 // fn when_play_called_then_active_sound_added()

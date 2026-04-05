@@ -128,7 +128,6 @@ fn when_pan_down_then_camera_moves_down() {
     assert_eq!(camera.position.y, 300.0 + CAMERA_PAN_SPEED);
 }
 
-
 #[test]
 fn when_opposite_pan_directions_then_camera_x_unchanged() {
     // Arrange

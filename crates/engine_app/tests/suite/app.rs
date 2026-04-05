@@ -33,7 +33,6 @@ impl Plugin for AnotherNoOpPlugin {
     fn build(&self, _app: &mut App) {}
 }
 
-
 /// @doc: `plugin_count` must accurately track registrations — count mismatch indicates missing plugins
 #[test]
 fn when_one_plugin_added_then_plugin_count_is_one() {
@@ -102,7 +101,6 @@ fn when_handle_redraw_called_then_present_called_via_renderer_res() {
     // Assert
     assert_eq!(log.lock().unwrap().as_slice(), &["present"]);
 }
-
 
 /// @doc: Systems must run during `handle_redraw` — non-execution breaks game loop integration
 #[test]
@@ -543,7 +541,6 @@ fn when_cursor_moved_event_received_by_app_then_event_pushed_to_bus() {
     );
 }
 
-
 /// @doc: Mouse button events must reach `EventBus<MouseInputEvent>` — missing events break click/drag input
 #[test]
 fn when_mouse_button_event_received_by_app_then_event_pushed_to_bus() {
@@ -575,7 +572,6 @@ fn when_mouse_button_event_received_by_app_then_event_pushed_to_bus() {
         }
     );
 }
-
 
 /// @doc: Scroll events must reach the mouse input bus — stale scroll breaks wheel input
 #[test]

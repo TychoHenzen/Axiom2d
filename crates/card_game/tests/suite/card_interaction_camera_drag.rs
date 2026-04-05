@@ -50,7 +50,6 @@ fn when_rmb_just_pressed_then_drag_state_anchor_set_to_screen_pos() {
     );
 }
 
-
 /// @doc: Drag delta inverted for camera movement—moving mouse right pans camera left
 #[test]
 fn when_rmb_held_and_mouse_moved_then_camera_moves_inversely() {
@@ -172,7 +171,6 @@ fn when_rmb_released_then_camera_position_unchanged() {
     assert_eq!(camera.position, Vec2::new(50.0, 50.0));
 }
 
-
 fn run_zoom_system(world: &mut World) {
     let mut schedule = Schedule::default();
     schedule.add_systems(camera_zoom_system);
@@ -253,4 +251,3 @@ fn when_scroll_by_two_then_zoom_equals_initial_plus_speed_times_delta() {
     let camera = world.query::<&Camera2D>().single(&world).unwrap();
     assert_eq!(camera.zoom, 1.2);
 }
-

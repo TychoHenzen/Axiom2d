@@ -230,7 +230,6 @@ fn when_drain_called_twice_without_step_then_second_is_empty() {
     assert!(events.is_empty());
 }
 
-
 /// @doc: `remove_body` on non-existent entity must return Err — prevents phantom cleanup in removal systems
 #[test]
 fn when_remove_body_for_unknown_entity_on_rapier_then_returns_err() {
