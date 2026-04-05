@@ -286,23 +286,6 @@ fn when_pick_card_hand_intent_applied_then_removed_from_hand_and_physics_body_ad
     assert!(has_add_body, "must emit AddBody for the picked hand card");
 }
 
-/// @doc: The applier must be a no-op when the intent bus is empty — no `DragState` mutation,
-/// no physics commands. This prevents phantom state changes on frames where no interaction
-/// occurred, which would corrupt the drag lifecycle for other systems that read `DragState`.
-#[test]
-fn when_intent_bus_empty_then_drag_state_unchanged() {
-    // Arrange
-    let mut world = World::new();
-    insert_apply_resources(&mut world);
-
-    // Act
-    run_system(&mut world);
-
-    // Assert
-    assert!(world.resource::<DragState>().dragging.is_none());
-    assert!(world.resource::<EventBus<PhysicsCommand>>().is_empty());
-}
-
 // ── Release applier tests ───────────────────────────────────────
 
 fn setup_active_drag(world: &mut World, entity: bevy_ecs::prelude::Entity) {

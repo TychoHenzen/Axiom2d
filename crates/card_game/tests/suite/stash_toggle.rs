@@ -41,17 +41,3 @@ fn when_tab_just_pressed_and_visible_then_becomes_hidden() {
     // Assert
     assert!(!world.resource::<StashVisible>().0);
 }
-
-#[test]
-fn when_tab_not_pressed_then_visibility_unchanged() {
-    // Arrange
-    let mut world = World::new();
-    world.insert_resource(StashVisible(false));
-    world.insert_resource(InputState::default());
-
-    // Act
-    run_system(&mut world);
-
-    // Assert
-    assert!(!world.resource::<StashVisible>().0);
-}

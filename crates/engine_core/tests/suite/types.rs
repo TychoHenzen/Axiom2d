@@ -1,41 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
-use engine_core::types::{Pixels, Seconds, TextureId};
-
-#[test]
-fn when_newtypes_serialized_to_ron_then_deserialize_to_equal_value() {
-    // Arrange
-    let pixels = Pixels(123.456);
-    let seconds = Seconds(0.016);
-    let texture_id = TextureId(42);
-
-    // Act
-    let pixels_ron = ron::to_string(&pixels).unwrap();
-    let seconds_ron = ron::to_string(&seconds).unwrap();
-    let texture_id_ron = ron::to_string(&texture_id).unwrap();
-
-    let pixels_back: Pixels = ron::from_str(&pixels_ron).unwrap();
-    let seconds_back: Seconds = ron::from_str(&seconds_ron).unwrap();
-    let texture_id_back: TextureId = ron::from_str(&texture_id_ron).unwrap();
-
-    // Assert
-    assert_eq!(pixels, pixels_back);
-    assert_eq!(seconds, seconds_back);
-    assert_eq!(texture_id, texture_id_back);
-}
-
-#[test]
-fn when_negative_pixels_serialized_to_ron_then_roundtrip_preserves_sign() {
-    // Arrange
-    let pixels = Pixels(-42.5);
-
-    // Act
-    let ron = ron::to_string(&pixels).unwrap();
-    let back: Pixels = ron::from_str(&ron).unwrap();
-
-    // Assert
-    assert_eq!(pixels, back);
-}
+use engine_core::types::{Pixels, Seconds};
 
 /// @doc: Custom `Add`/`Sub`/`Mul` impls on `Pixels` newtype — verifies the
 /// operator overloads forward correctly to the inner f32. A broken impl

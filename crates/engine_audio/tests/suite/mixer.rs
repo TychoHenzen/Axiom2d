@@ -3,15 +3,6 @@
 use engine_audio::mixer::{MixerState, MixerTrack};
 
 #[test]
-fn when_mixer_track_variants_serialized_to_ron_then_each_deserializes_to_matching_variant() {
-    for track in MixerTrack::ALL {
-        let ron = ron::to_string(&track).unwrap();
-        let back: MixerTrack = ron::from_str(&ron).unwrap();
-        assert_eq!(track, back);
-    }
-}
-
-#[test]
 fn when_set_track_volume_then_only_that_track_changes() {
     // Arrange
     let mut state = MixerState::default();

@@ -164,6 +164,10 @@ These tests fire assertions that Rust's type system or derive macros already gua
 - ✅ `when_default_rarity_tier_config_constructed_then_advance_rates_are_0_point_3` — trivial default echo
 - ✅ `when_element_hue_mapping_called_then_all_colors_are_fully_opaque`, `when_generate_card_visuals_called_then_art_color_is_fully_opaque` — asserting `.a == 1.0` on hardcoded consts
 - ✅ `when_dominant_aspect_called_for_all_elements_then_each_returns_distinct_positive_variant` — enum completeness check, caught by compilation
+- ✅ `when_mixer_track_variants_serialized_to_ron_then_each_deserializes_to_matching_variant` — serde roundtrip on `#[derive(Serialize, Deserialize)]` for non-scene type
+- ✅ `when_rigid_body_variants_serialized_to_ron_then_each_deserializes_to_matching_variant` — serde roundtrip on `#[derive(Serialize, Deserialize)]` for non-scene type; file deleted (was the only test)
+- ✅ `when_newtypes_serialized_to_ron_then_deserialize_to_equal_value` — serde roundtrip on derived `Pixels`/`Seconds`/`TextureId`, superseded by propts below
+- ✅ `when_negative_pixels_serialized_to_ron_then_roundtrip_preserves_sign` — redundant with `when_any_finite_pixels_then_ron_roundtrip_preserves_value` proptest
 
 **Other zero-kill `suite::` tests (364 — require manual review):**
 
@@ -171,6 +175,8 @@ These don't match banned patterns but still catch nothing. Common root causes:
 
 1. **Null-path tests with no behavioral assertion** (≈75 tests):  
    `when_rmb_just_pressed_then_camera_position_unchanged`, `when_zero_scroll_delta_then_zoom_unchanged`, `when_no_cables_exist_then_no_shapes_are_drawn` — these assert the system doesn't crash on a no-op path, or that something is "unchanged" when the system has nothing to do. These will never fail unless the code panics. They're testing absence of behavior, not presence of behavior. **Candidates for deletion or strengthening.**
+   - ✅ `when_tab_not_pressed_then_visibility_unchanged` (stash_toggle.rs) — no input, trivially true assertion
+   - ✅ `when_intent_bus_empty_then_drag_state_unchanged` (card_interaction_intent_apply.rs) — empty event bus, system does nothing
 
 2. ✅ **"Spawn then check component exists" tests** (≈20 tests):  
    The four `given_empty_world_when_spawn_screen_device_called_then_*` tests (TC020–TC023) were deleted. `when_spawn_reader_then_accent_child_exists` and similar remain; they're low value but harmless.
