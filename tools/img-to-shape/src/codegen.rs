@@ -358,10 +358,18 @@ fn fmt_f32(v: f32) -> String {
     // Canonicalize -0.0 → 0.0 so generated literals are unambiguous.
     let rounded = {
         let r = (v * 100.0).round() / 100.0;
-        if r == 0.0 && r.is_sign_negative() { 0.0_f32 } else { r }
+        if r == 0.0 && r.is_sign_negative() {
+            0.0_f32
+        } else {
+            r
+        }
     };
     let s = format!("{rounded}");
-    if s.contains('.') { s } else { format!("{rounded}.0") }
+    if s.contains('.') {
+        s
+    } else {
+        format!("{rounded}.0")
+    }
 }
 
 fn write_shape(out: &mut String, shape: &Shape) {
