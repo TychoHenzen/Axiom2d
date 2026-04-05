@@ -156,14 +156,14 @@ Scene graph math (2 each). These are fundamental engine subsystems. Worth invest
 
 **Matched banned patterns (67 tests — candidates for deletion):**
 
-These tests fire assertions that Rust's type system or derive macros already guarantee:
-- `when_camera2d_serialized_to_ron_then_deserializes_to_equal_value` — serde roundtrip on `#[derive(Serialize, Deserialize)]`
-- `when_card_definition_is_creature_with_none_stats_then_stats_is_none` — constructor echo
-- `when_card_definition_is_spell_with_some_stats_then_stats_is_some` — constructor echo
-- `when_aspect_cluster_called_for_all_aspects_then_each_maps_to_correct_cluster` — likely enum match verification
-- `when_default_rarity_tier_config_constructed_then_advance_rates_are_0_point_3` — trivial default echo
-- All `when_*_is_fully_opaque` color tests — asserting `.a == 1.0` on a const struct
-- `when_dominant_aspect_called_for_all_elements_then_each_returns_distinct_positive_variant` — enum completeness check, caught by compilation
+These tests fire assertions that Rust's type system or derive macros already guarantee. The named examples below were deleted:
+- ✅ `when_camera2d_serialized_to_ron_then_deserializes_to_equal_value` — serde roundtrip on `#[derive(Serialize, Deserialize)]`
+- ✅ `when_card_definition_is_creature_with_none_stats_then_stats_is_none` — constructor echo
+- ✅ `when_card_definition_is_spell_with_some_stats_then_stats_is_some` — constructor echo
+- ✅ `when_aspect_cluster_called_for_all_aspects_then_each_maps_to_correct_cluster` — enum match verification
+- ✅ `when_default_rarity_tier_config_constructed_then_advance_rates_are_0_point_3` — trivial default echo
+- ✅ `when_element_hue_mapping_called_then_all_colors_are_fully_opaque`, `when_generate_card_visuals_called_then_art_color_is_fully_opaque` — asserting `.a == 1.0` on hardcoded consts
+- ✅ `when_dominant_aspect_called_for_all_elements_then_each_returns_distinct_positive_variant` — enum completeness check, caught by compilation
 
 **Other zero-kill `suite::` tests (364 — require manual review):**
 
@@ -172,8 +172,8 @@ These don't match banned patterns but still catch nothing. Common root causes:
 1. **Null-path tests with no behavioral assertion** (≈75 tests):  
    `when_rmb_just_pressed_then_camera_position_unchanged`, `when_zero_scroll_delta_then_zoom_unchanged`, `when_no_cables_exist_then_no_shapes_are_drawn` — these assert the system doesn't crash on a no-op path, or that something is "unchanged" when the system has nothing to do. These will never fail unless the code panics. They're testing absence of behavior, not presence of behavior. **Candidates for deletion or strengthening.**
 
-2. **"Spawn then check component exists" tests** (≈20 tests):  
-   `given_empty_world_when_spawn_screen_device_called_then_jack_entity_has_direction_input`, `when_spawn_reader_then_accent_child_exists` — testing that spawn functions set components that they visibly set in the same function body. Any time spawn logic changes, these tests update automatically because they're reading the same state they're asserting. **Candidates for deletion.**
+2. ✅ **"Spawn then check component exists" tests** (≈20 tests):  
+   The four `given_empty_world_when_spawn_screen_device_called_then_*` tests (TC020–TC023) were deleted. `when_spawn_reader_then_accent_child_exists` and similar remain; they're low value but harmless.
 
 3. **Range/invariant tests with no specific value** (≈30 tests):  
    `when_random_signature_generated_then_all_axes_within_bounds` — asserts `(-1..=1)` range. The range is enforced structurally. `when_any_valid_axis_values_then_distance_is_non_negative` — always true by geometry. **Not false: these are legitimate invariant tests but cannot catch mutations because the invariant holds for all mutations.**
@@ -223,15 +223,15 @@ Other high-coupling examples (>50 tests per mutant):
 
 ### Immediate (high confidence, low risk)
 
-1. **Delete the stash tab navigation duplicate tests.** `when_click_on_third_tab_then_switches_to_page_two` and `when_click_on_first_tab_then_stays_on_page_zero` are fully redundant with `when_click_on_second_tab_then_switches_to_page_one` and add no unique kills. Merge into a parameterized or table-driven test over all tabs.
+1. ✅ **Delete the stash tab navigation duplicate tests.** Merged all three tab-nav tests into `when_clicking_any_tab_then_switches_to_corresponding_page`. Also deleted `when_click_above_tabs_then_page_unchanged` (superseded by the page-2 variant). Also deleted 7 other banned-pattern tests across `card_identity_definition`, `card_identity_visual_params`, `card_identity_signature`, `card_identity_card_name`, and `engine_render/camera`.
 
-2. **Review `card_jack_cable` zero-kill on system deletion.** `when_cable_connects_two_positioned_entities_then_one_line_shape_is_drawn` should catch `cable_render_system → ()` but shows zero kills. Either the test is not running the cable render system, or the spy doesn't capture shape output. Investigate.
+2. ✅ **`card_jack_cable` zero-kill on system deletion resolved.** Root cause: cable entity was pre-spawned with a `Shape`, so `unified_render_system` drew it even with `cable_render_system → ()`. Fix: added `when_cable_render_system_runs_then_cable_transform_is_at_midpoint_of_endpoints` which asserts the transform position was updated (not just that something rendered).
 
-3. **Delete or strengthen "spawn then check component" tests.** The `card_jack_socket` spawner tests (`given_empty_world_when_spawn_screen_device_called_then_*`) test that spawn functions attach components they visibly attach. These match the banned "component spawn tests" pattern from CLAUDE.md.
+3. ✅ **Delete "spawn then check component" tests.** Deleted all four `given_empty_world_when_spawn_screen_device_called_then_*` tests (TC020–TC023) from `card_jack_socket`.
 
 ### Medium-term (higher effort)
 
-4. **Fix `apply_pick_card` zone filter gap.** The `== → !=` mutation on `CardZone::Table` filter (line 173) lets a mutation survive that would incorrectly compute sort order in mixed-zone scenarios. Write one test: pick a card from Table when a Hand card has a higher sort order; assert the picked card gets `max_table_sort + 1`, not `max_hand_sort + 1`.
+4. ✅ **Fix `apply_pick_card` zone filter gap.** Added `when_picking_table_card_with_higher_sort_hand_card_present_then_local_sort_is_above_table_max`: spawns a Hand card at sort 10, picks a Table card at sort 5, asserts `LocalSortOrder == 6` (table_max + 1), not 11 (hand_max + 1).
 
 5. **Consolidate identity tests that rely on `compute_seed`.** 133 tests catch the same `compute_seed` mutation. Consider whether the identity test suite needs a smaller set of targeted seed tests, with the others focusing on the downstream transformation (color computation, name selection) rather than re-exercising the seed path.
 
@@ -260,12 +260,12 @@ Other high-coupling examples (>50 tests per mutant):
 | `stash_ui_contains` system-level | 1 | ✅ | 0 | Fixed |
 | `stash_ui_contains` arithmetic | ~23 | — | ~23 | Geometrically unreachable |
 | `stash_tab_render_system` / `tab_row_top_y` | ~11 | — | ~11 | Skip (display) |
-| `apply_pick_card` zone filter | 1 | — | 1 | **Open gap** |
+| `apply_pick_card` zone filter | 1 | ✅ | 0 | Fixed |
 | `hsl_to_rgb` | 90 | — | 90 | Skip (color math) |
 | `font.rs` / `text_render.rs` | 104 | — | 104 | Skip (display) |
 | `splash/render.rs` | 64 | — | 64 | Skip (display) |
 | `jack_cable` render math | 12 | — | 12 | Skip (display) |
-| `jack_cable` system deletion | 1 | — | 1 | **Investigate** |
+| `jack_cable` system deletion | 1 | ✅ | 0 | Fixed |
 | Engine physics test helpers | 15 | — | 15 | Skip (test infra) |
 | Audio backend | 13 | — | 13 | Skip |
 | `gem_sockets` / `name_pools` | 47 | — | 47 | Low priority |
