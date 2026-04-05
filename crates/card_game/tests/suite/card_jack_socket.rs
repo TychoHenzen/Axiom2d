@@ -100,20 +100,6 @@ fn when_one_jack_socket_exists_then_one_shape_is_drawn() {
     );
 }
 
-/// @doc: `jack_socket_render_system` must be a complete no-op when no `JackSocket` entities
-/// exist in the world. Any accidental shape insertion here would create a stray visible
-/// connection point that does not correspond to a real jack.
-#[test]
-fn when_no_jack_sockets_exist_then_no_shapes_are_drawn() {
-    // Arrange
-    let mut world = World::new();
-
-    // Act
-    run_socket_visual_sync(&mut world);
-
-    // Assert
-    assert_eq!(world.query::<&Shape>().iter(&world).count(), 0);
-}
 
 /// @doc: The sync system must iterate all `JackSocket` entities, not just the first.
 /// If it only materialized one socket, a wiring setup with multiple devices would show

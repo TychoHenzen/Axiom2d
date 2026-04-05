@@ -285,23 +285,6 @@ fn when_cable_render_system_runs_then_cable_transform_is_at_midpoint_of_endpoint
     );
 }
 
-/// @doc: `cable_render_system` must be a no-op when there are no Cable entities in the
-/// world. Any accidental draw here would appear as a stray line floating on the table
-/// that corresponds to no connection the player made.
-#[test]
-fn when_no_cables_exist_then_no_shapes_are_drawn() {
-    // Arrange
-    let (mut world, shape_calls) = make_cable_render_world();
-
-    // Act
-    run_cable_visuals(&mut world);
-
-    // Assert
-    assert!(
-        shape_calls.lock().unwrap().is_empty(),
-        "zero Cable entities must produce zero draw calls"
-    );
-}
 
 // ---------------------------------------------------------------------------
 // Original TC (SignatureSpace identity axiom — pre-existing, do not remove)

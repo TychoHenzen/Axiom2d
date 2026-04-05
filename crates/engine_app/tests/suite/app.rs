@@ -33,15 +33,6 @@ impl Plugin for AnotherNoOpPlugin {
     fn build(&self, _app: &mut App) {}
 }
 
-/// @doc: Plugin chaining must work — builder pattern foundation for configuration composition
-#[test]
-fn when_add_plugin_chained_twice_then_does_not_panic() {
-    // Arrange
-    let mut app = App::new();
-
-    // Act
-    app.add_plugin(NoOpPlugin).add_plugin(AnotherNoOpPlugin);
-}
 
 /// @doc: `plugin_count` must accurately track registrations — count mismatch indicates missing plugins
 #[test]
@@ -112,15 +103,6 @@ fn when_handle_redraw_called_then_present_called_via_renderer_res() {
     assert_eq!(log.lock().unwrap().as_slice(), &["present"]);
 }
 
-/// @doc: `handle_redraw` must handle missing renderer gracefully — prevents panic during headless testing
-#[test]
-fn when_handle_redraw_called_without_renderer_res_then_does_not_panic() {
-    // Arrange
-    let mut app = App::new();
-
-    // Act
-    app.handle_redraw();
-}
 
 /// @doc: Systems must run during `handle_redraw` — non-execution breaks game loop integration
 #[test]
@@ -561,15 +543,6 @@ fn when_cursor_moved_event_received_by_app_then_event_pushed_to_bus() {
     );
 }
 
-/// @doc: Missing `EventBus<MouseInputEvent>` must not panic — handles optional mouse input resources gracefully
-#[test]
-fn when_cursor_moved_without_mouse_bus_resource_then_does_not_panic() {
-    // Arrange
-    let mut app = App::new();
-
-    // Act
-    app.handle_cursor_moved(glam::Vec2::new(100.0, 100.0));
-}
 
 /// @doc: Mouse button events must reach `EventBus<MouseInputEvent>` — missing events break click/drag input
 #[test]
@@ -603,18 +576,6 @@ fn when_mouse_button_event_received_by_app_then_event_pushed_to_bus() {
     );
 }
 
-/// @doc: Missing `EventBus<MouseInputEvent>` must not panic — handles optional input bus gracefully
-#[test]
-fn when_mouse_button_event_received_without_bus_resource_then_does_not_panic() {
-    // Arrange
-    let mut app = App::new();
-
-    // Act
-    app.handle_mouse_button(
-        winit::event::MouseButton::Left,
-        winit::event::ElementState::Pressed,
-    );
-}
 
 /// @doc: Scroll events must reach the mouse input bus — stale scroll breaks wheel input
 #[test]

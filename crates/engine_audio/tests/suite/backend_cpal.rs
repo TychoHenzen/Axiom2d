@@ -2,7 +2,6 @@
 
 use engine_audio::backend::{AudioBackend, CpalBackend};
 use engine_audio::mixer::MixerTrack;
-use engine_audio::playback::PlaybackId;
 use engine_audio::sound::SoundData;
 
 fn minimal_sound() -> SoundData {
@@ -28,14 +27,6 @@ fn when_play_called_twice_then_ids_are_unique() {
     assert_ne!(id1, id2);
 }
 
-#[test]
-fn when_stop_with_unknown_id_then_does_not_panic() {
-    // Arrange
-    let mut backend = CpalBackend::new();
-
-    // Act
-    backend.stop(PlaybackId(999));
-}
 
 // TODO: needs pub promotion — CpalBackend::active_sound_count() is #[cfg(test)] only
 // #[test]

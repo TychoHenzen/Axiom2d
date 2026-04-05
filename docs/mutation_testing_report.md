@@ -229,6 +229,12 @@ Other high-coupling examples (>50 tests per mutant):
 
 3. ✅ **Delete "spawn then check component" tests.** Deleted all four `given_empty_world_when_spawn_screen_device_called_then_*` tests (TC020–TC023) from `card_jack_socket`.
 
+4. ✅ **Delete structural invariant tests.** Removed 7 tests from `card_identity_signature.rs` whose assertions are guaranteed by construction or math: `when_random_signature_generated_then_all_axes_within_bounds` (clamped by constructor), `when_rarity_computed_with_default_config_then_result_is_one_of_five_valid_variants`, `when_sign_opposite_signatures_compute_rarity_then_both_have_valid_rarity`, `when_card_tier_computed_then_result_is_one_of_three_valid_variants` (all enum-exhaustiveness checks), and three proptest invariants (`distance ≥ 0`, `rarity is valid`, `tier is valid`).
+
+5. ✅ **Delete panic-guard tests.** Removed 12 tests named `*_does_not_panic` or `*_no_panic` with no assertions beyond running without crashing: 2 in `card_interaction_camera_drag`, 1 in `card_identity_visual_params`, 3 in `engine_audio/backend_traits`, 1 in `engine_audio/backend_cpal`, 4 in `engine_app/app`, and 1 in `engine_physics/rapier_backend`.
+
+6. ✅ **Delete null-path tests.** Removed 6 tests where the system has no entities/input to act on and any assertion is trivially true: `when_rmb_just_pressed_then_camera_position_unchanged`, `when_zero_scroll_delta_then_zoom_unchanged`, `when_no_cables_exist_then_no_shapes_are_drawn`, `when_no_jack_sockets_exist_then_no_shapes_are_drawn`, `when_no_click_then_page_unchanged`, `when_no_pan_input_then_camera_position_unchanged`.
+
 ### Medium-term (higher effort)
 
 4. ✅ **Fix `apply_pick_card` zone filter gap.** Added `when_picking_table_card_with_higher_sort_hand_card_present_then_local_sort_is_above_table_max`: spawns a Hand card at sort 10, picks a Table card at sort 5, asserts `LocalSortOrder == 6` (table_max + 1), not 11 (hand_max + 1).

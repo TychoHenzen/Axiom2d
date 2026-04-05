@@ -245,14 +245,6 @@ fn when_compute_seed_called_on_different_signatures_then_results_differ() {
     assert_ne!(seed_a, seed_b);
 }
 
-#[test]
-fn when_compute_seed_called_on_all_zero_signature_then_does_not_panic() {
-    // Arrange
-    let sig = CardSignature::default();
-
-    // Act / Assert — must complete without panicking
-    compute_seed(&sig);
-}
 
 /// @doc: Sign-opposite signatures (e.g., +0.5 vs -0.5 Heat vs Cold) must hash differently.
 /// Without this test, positive/negative axes could accidentally collide, breaking aspect uniqueness.

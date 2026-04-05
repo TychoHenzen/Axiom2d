@@ -230,23 +230,6 @@ fn when_drain_called_twice_without_step_then_second_is_empty() {
     assert!(events.is_empty());
 }
 
-/// @doc: Removed bodies in collision events must not crash drain — event buffer handles stale entity IDs gracefully
-#[test]
-fn when_body_removed_after_collision_then_drain_does_not_panic() {
-    // Arrange
-    let mut backend = RapierBackend::new(Vec2::ZERO);
-    let entities = spawn_entities(2);
-    backend.add_body(entities[0], &RigidBody::Dynamic, Vec2::ZERO);
-    backend.add_collider(entities[0], &Collider::Circle(1.0));
-    backend.add_body(entities[1], &RigidBody::Dynamic, Vec2::ZERO);
-    backend.add_collider(entities[1], &Collider::Circle(1.0));
-    backend.step(Seconds(0.016));
-    backend.remove_body(entities[0]).unwrap();
-
-    // Act
-    backend.step(Seconds(0.016));
-    let _ = backend.drain_collision_events();
-}
 
 /// @doc: `remove_body` on non-existent entity must return Err — prevents phantom cleanup in removal systems
 #[test]

@@ -134,23 +134,6 @@ fn when_random_with_same_seed_twice_then_results_are_identical() {
     assert_eq!(sig1.axes(), sig2.axes());
 }
 
-#[test]
-fn when_random_signature_generated_then_all_axes_within_bounds() {
-    use rand::SeedableRng;
-    use rand_chacha::ChaCha8Rng;
-
-    let seeds = [0_u64, 1, 42, u64::MAX];
-    for seed in seeds {
-        let mut rng = ChaCha8Rng::seed_from_u64(seed);
-        let sig = CardSignature::random(&mut rng);
-        for (i, &v) in sig.axes().iter().enumerate() {
-            assert!(
-                (-1.0..=1.0).contains(&v),
-                "seed {seed}, axis {i}: value {v} out of bounds"
-            );
-        }
-    }
-}
 
 #[test]
 fn when_random_with_different_seeds_then_results_differ() {
@@ -270,32 +253,6 @@ fn when_many_different_signatures_compute_rarity_then_not_all_the_same() {
     );
 }
 
-#[test]
-fn when_rarity_computed_with_default_config_then_result_is_one_of_five_valid_variants() {
-    let valid = [
-        Rarity::Common,
-        Rarity::Uncommon,
-        Rarity::Rare,
-        Rarity::Epic,
-        Rarity::Legendary,
-    ];
-    let sigs = [
-        CardSignature::new([0.0; 8]),
-        CardSignature::new([0.5; 8]),
-        CardSignature::new([-0.5; 8]),
-        CardSignature::new([1.0; 8]),
-        CardSignature::new([0.1, -0.9, 0.3, -0.7, 0.5, -0.3, 0.8, -0.2]),
-    ];
-    for sig in &sigs {
-        let r = sig.rarity();
-        assert!(
-            valid.contains(&r),
-            "signature {:?} produced invalid rarity {:?}",
-            sig.axes(),
-            r
-        );
-    }
-}
 
 #[test]
 fn when_many_random_signatures_compute_rarity_then_common_is_most_frequent() {
@@ -356,43 +313,7 @@ fn when_rarity_computed_with_higher_advance_rate_then_rare_or_above_frequency_in
     assert!(rare_above_high > rare_above_default);
 }
 
-#[test]
-fn when_sign_opposite_signatures_compute_rarity_then_both_have_valid_rarity() {
-    let sig_pos = CardSignature::new([0.5; 8]);
-    let sig_neg = CardSignature::new([-0.5; 8]);
-    let valid = [
-        Rarity::Common,
-        Rarity::Uncommon,
-        Rarity::Rare,
-        Rarity::Epic,
-        Rarity::Legendary,
-    ];
-    let rarity_pos = sig_pos.rarity();
-    let rarity_neg = sig_neg.rarity();
-    assert!(valid.contains(&rarity_pos));
-    assert!(valid.contains(&rarity_neg));
-}
 
-#[test]
-fn when_card_tier_computed_then_result_is_one_of_three_valid_variants() {
-    let valid = [Tier::Dormant, Tier::Active, Tier::Intense];
-    let sigs = [
-        CardSignature::new([0.0; 8]),
-        CardSignature::new([1.0; 8]),
-        CardSignature::new([-1.0; 8]),
-        CardSignature::new([0.5; 8]),
-        CardSignature::new([0.1, -0.9, 0.3, -0.7, 0.5, -0.3, 0.8, -0.2]),
-    ];
-    for sig in &sigs {
-        let t = sig.card_tier();
-        assert!(
-            valid.contains(&t),
-            "signature {:?} produced invalid tier {:?}",
-            sig.axes(),
-            t
-        );
-    }
-}
 
 #[test]
 fn when_many_random_signatures_compute_card_tier_then_dormant_is_most_frequent() {
@@ -429,57 +350,5 @@ fn when_rarity_and_card_tier_computed_for_same_signature_then_they_can_differ() 
     assert!(found);
 }
 
-proptest::proptest! {
-    #[test]
-    fn when_any_valid_axis_values_then_distance_is_non_negative(
-        a0 in -1.0_f32..=1.0, a1 in -1.0_f32..=1.0,
-        a2 in -1.0_f32..=1.0, a3 in -1.0_f32..=1.0,
-        a4 in -1.0_f32..=1.0, a5 in -1.0_f32..=1.0,
-        a6 in -1.0_f32..=1.0, a7 in -1.0_f32..=1.0,
-        b0 in -1.0_f32..=1.0, b1 in -1.0_f32..=1.0,
-        b2 in -1.0_f32..=1.0, b3 in -1.0_f32..=1.0,
-        b4 in -1.0_f32..=1.0, b5 in -1.0_f32..=1.0,
-        b6 in -1.0_f32..=1.0, b7 in -1.0_f32..=1.0,
-    ) {
-        let a = CardSignature::new([a0, a1, a2, a3, a4, a5, a6, a7]);
-        let b = CardSignature::new([b0, b1, b2, b3, b4, b5, b6, b7]);
-        let dist = a.distance_to(&b);
-        proptest::prop_assert!(dist >= 0.0, "distance was {dist}");
-    }
-}
 
-proptest::proptest! {
-    #[test]
-    fn when_any_valid_signature_computes_card_tier_then_always_returns_valid_tier(
-        a0 in -1.0_f32..=1.0, a1 in -1.0_f32..=1.0,
-        a2 in -1.0_f32..=1.0, a3 in -1.0_f32..=1.0,
-        a4 in -1.0_f32..=1.0, a5 in -1.0_f32..=1.0,
-        a6 in -1.0_f32..=1.0, a7 in -1.0_f32..=1.0,
-    ) {
-        let sig = CardSignature::new([a0, a1, a2, a3, a4, a5, a6, a7]);
-        let t = sig.card_tier();
-        let valid = [Tier::Dormant, Tier::Active, Tier::Intense];
-        proptest::prop_assert!(valid.contains(&t));
-    }
-}
 
-proptest::proptest! {
-    #[test]
-    fn when_any_valid_signature_computes_rarity_then_always_returns_valid_rarity(
-        a0 in -1.0_f32..=1.0, a1 in -1.0_f32..=1.0,
-        a2 in -1.0_f32..=1.0, a3 in -1.0_f32..=1.0,
-        a4 in -1.0_f32..=1.0, a5 in -1.0_f32..=1.0,
-        a6 in -1.0_f32..=1.0, a7 in -1.0_f32..=1.0,
-    ) {
-        let sig = CardSignature::new([a0, a1, a2, a3, a4, a5, a6, a7]);
-        let r = sig.rarity();
-        let valid = [
-            Rarity::Common,
-            Rarity::Uncommon,
-            Rarity::Rare,
-            Rarity::Epic,
-            Rarity::Legendary,
-        ];
-        proptest::prop_assert!(valid.contains(&r));
-    }
-}

@@ -50,27 +50,6 @@ fn when_rmb_just_pressed_then_drag_state_anchor_set_to_screen_pos() {
     );
 }
 
-#[test]
-fn when_rmb_just_pressed_then_camera_position_unchanged() {
-    // Arrange
-    let mut world = World::new();
-    world.spawn(Camera2D {
-        position: Vec2::new(50.0, 50.0),
-        zoom: 1.0,
-    });
-    let mut mouse = MouseState::default();
-    mouse.press(MouseButton::Right);
-    mouse.set_screen_pos(Vec2::new(150.0, 150.0));
-    world.insert_resource(mouse);
-    world.insert_resource(CameraDragState::default());
-
-    // Act
-    run_system(&mut world);
-
-    // Assert
-    let camera = world.query::<&Camera2D>().single(&world).unwrap();
-    assert_eq!(camera.position, Vec2::new(50.0, 50.0));
-}
 
 /// @doc: Drag delta inverted for camera movement—moving mouse right pans camera left
 #[test]
@@ -193,22 +172,6 @@ fn when_rmb_released_then_camera_position_unchanged() {
     assert_eq!(camera.position, Vec2::new(50.0, 50.0));
 }
 
-#[test]
-fn when_no_camera_entity_then_drag_system_does_not_panic() {
-    // Arrange
-    let mut world = World::new();
-    let mut mouse = MouseState::default();
-    mouse.press(MouseButton::Right);
-    mouse.clear_frame_state();
-    mouse.set_screen_pos(Vec2::new(110.0, 110.0));
-    world.insert_resource(mouse);
-    world.insert_resource(CameraDragState {
-        anchor_screen_pos: Some(Vec2::new(100.0, 100.0)),
-    });
-
-    // Act + Assert (no panic)
-    run_system(&mut world);
-}
 
 fn run_zoom_system(world: &mut World) {
     let mut schedule = Schedule::default();
@@ -291,32 +254,3 @@ fn when_scroll_by_two_then_zoom_equals_initial_plus_speed_times_delta() {
     assert_eq!(camera.zoom, 1.2);
 }
 
-#[test]
-fn when_zero_scroll_delta_then_zoom_unchanged() {
-    // Arrange
-    let mut world = World::new();
-    world.spawn(Camera2D {
-        position: Vec2::ZERO,
-        zoom: 1.5,
-    });
-    world.insert_resource(MouseState::default());
-
-    // Act
-    run_zoom_system(&mut world);
-
-    // Assert
-    let camera = world.query::<&Camera2D>().single(&world).unwrap();
-    assert_eq!(camera.zoom, 1.5);
-}
-
-#[test]
-fn when_no_camera_entity_then_zoom_system_does_not_panic() {
-    // Arrange
-    let mut world = World::new();
-    let mut mouse = MouseState::default();
-    mouse.add_scroll_delta(Vec2::new(0.0, 1.0));
-    world.insert_resource(mouse);
-
-    // Act + Assert (no panic)
-    run_zoom_system(&mut world);
-}

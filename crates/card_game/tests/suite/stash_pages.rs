@@ -115,18 +115,6 @@ fn when_stash_hidden_and_click_on_tab_then_page_unchanged() {
     assert_eq!(world.resource::<StashGrid>().current_page(), 1);
 }
 
-#[test]
-fn when_no_click_then_page_unchanged() {
-    // Arrange
-    let mut world = make_click_world(3, true);
-    world.resource_mut::<StashGrid>().set_current_page(1);
-
-    // Act
-    run_click_system(&mut world);
-
-    // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
-}
 
 #[test]
 fn when_right_click_on_tab_then_page_unchanged() {

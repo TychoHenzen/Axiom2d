@@ -128,24 +128,6 @@ fn when_pan_down_then_camera_moves_down() {
     assert_eq!(camera.position.y, 300.0 + CAMERA_PAN_SPEED);
 }
 
-#[test]
-fn when_no_pan_input_then_camera_position_unchanged() {
-    // Arrange
-    let camera = Camera2D {
-        position: Vec2::new(400.0, 300.0),
-        zoom: 1.0,
-    };
-    let mut world = setup_camera_world(&pan_bindings(), camera);
-
-    // Act
-    run_camera_pan(&mut world);
-
-    // Assert
-    let mut query = world.query::<&Camera2D>();
-    let camera = query.single(&world).unwrap();
-    assert_eq!(camera.position.x, 400.0);
-    assert_eq!(camera.position.y, 300.0);
-}
 
 #[test]
 fn when_opposite_pan_directions_then_camera_x_unchanged() {
