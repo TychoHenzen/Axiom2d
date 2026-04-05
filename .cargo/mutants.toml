@@ -8,6 +8,13 @@ exclude_globs = [
     # wgpu_renderer is the GPU backend — every function requires a live GPU device.
     # Pure utility functions should live outside this module if they need testing.
     "crates/engine_render/src/wgpu_renderer/**",
+    # Generated card art — baked vertex/color/mesh data produced by img-to-shape codegen.
+    # These files contain only literal constants; mutating them produces thousands of
+    # noise entries with no behavioral signal.
+    "crates/card_game/src/card/art/generated/**",
+    "crates/card_game/src/card/art/card_back.rs",
+    "crates/card_game/src/card/art/repository.rs",
+    "crates/card_game/src/card/art/hydrate.rs",
 ]
 
 exclude_re = [

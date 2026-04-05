@@ -355,13 +355,13 @@ pub fn shapes_to_vec_literal(shapes: &[Shape]) -> String {
 
 fn fmt_f32(v: f32) -> String {
     // Round to 2 decimal places to keep generated code compact.
-    let rounded = (v * 100.0).round() / 100.0;
+    // Canonicalize -0.0 → 0.0 so generated literals are unambiguous.
+    let rounded = {
+        let r = (v * 100.0).round() / 100.0;
+        if r == 0.0 && r.is_sign_negative() { 0.0_f32 } else { r }
+    };
     let s = format!("{rounded}");
-    if s.contains('.') {
-        s
-    } else {
-        format!("{rounded}.0")
-    }
+    if s.contains('.') { s } else { format!("{rounded}.0") }
 }
 
 fn write_shape(out: &mut String, shape: &Shape) {
@@ -1079,19 +1079,34 @@ pub fn generate_repository_module(entries: &[RepositoryEntry<'_>]) -> String {
 }
 
 /// Deterministically generate a signature from an art name when no axes are specified.
-/// Uses a simple hash-based approach seeded from the name bytes so that re-running
-/// codegen produces identical output.
+/// Uses FNV-1a to hash the name bytes (then XORs in the name length for better avalanche),
+/// then runs splitmix64 eight times to produce eight independent,
+/// well-spread axis values in [-1.0, 1.0].
 fn seed_signature_from_name(name: &str) -> [f32; 8] {
+    const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+    const FNV_PRIME: u64 = 0x100_0000_01b3;
+
+    let mut h: u64 = FNV_OFFSET;
+    for &b in name.as_bytes() {
+        h ^= u64::from(b);
+        h = h.wrapping_mul(FNV_PRIME);
+    }
+    // XOR in the length for better avalanche — without this, some names (e.g. "armor1")
+    // produce duplicate axis values after 2-decimal rounding.
+    h ^= name.len() as u64;
+
+    let mut state = h;
     let mut axes = [0.0_f32; 8];
-    // FNV-1a-inspired hash per axis, seeded differently for each
-    for (i, axis) in axes.iter_mut().enumerate() {
-        let mut h: u64 = 0xcbf2_9ce4_8422_2325 ^ (i as u64 * 0x100_0000_01b3);
-        for &b in name.as_bytes() {
-            h ^= u64::from(b);
-            h = h.wrapping_mul(0x100_0000_01b3);
-        }
-        // Map to [-1, 1]
-        *axis = (h as f32 / u64::MAX as f32) * 2.0 - 1.0;
+    for axis in &mut axes {
+        state = state.wrapping_add(0x9e37_79b9_7f4a_7c15);
+        let mut z = state;
+        z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+        z ^= z >> 31;
+        // Extract the top 24 bits as a uniform float in [-1.0, 1.0]:
+        // shift discards the low 40 bits; dividing by 2^24 gives [0.0, 1.0);
+        // multiplying by 2 and subtracting 1 maps to [-1.0, 1.0).
+        *axis = (z >> 40) as f32 / (1u64 << 24) as f32 * 2.0 - 1.0;
     }
     axes
 }
