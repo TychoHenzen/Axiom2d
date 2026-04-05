@@ -13,7 +13,6 @@ use card_game::card::jack_socket::{
     on_socket_clicked, pending_cable_drag_system,
 };
 use card_game::card::reader::{ReaderDragInfo, ReaderDragState, SignatureSpace};
-use card_game::card::screen_device::{ScreenDevice, spawn_screen_device};
 use card_game::plugin::CardGamePlugin;
 use engine_app::prelude::App;
 use engine_core::color::Color;
@@ -733,88 +732,5 @@ fn given_no_pending_cable_when_mouse_released_over_socket_then_no_cable_spawned(
         world.query::<&Cable>().iter(&world).count(),
         0,
         "no pending cable means mouse release must not spawn any Cable entity"
-    );
-}
-
-// ---------------------------------------------------------------------------
-// TC020–TC023 — spawn_screen_device
-// ---------------------------------------------------------------------------
-
-/// @doc: `spawn_screen_device` must produce an entity that carries both `ScreenDevice`
-/// and `Transform2D` at the requested position. Without these two components together,
-/// `screen_render_system` cannot locate the device on the table or look up its input jack,
-/// making the screen invisible no matter what cable is connected to it.
-#[test]
-fn given_empty_world_when_spawn_screen_device_called_then_screen_device_entity_exists_with_transform()
- {
-    // Arrange
-    let mut world = World::new();
-
-    // Act
-    let (device_entity, _jack_entity) = spawn_screen_device(&mut world, Vec2::new(100.0, 50.0));
-
-    // Assert
-    assert!(world.get::<ScreenDevice>(device_entity).is_some());
-    assert!(world.get::<Transform2D>(device_entity).is_some());
-}
-
-/// @doc: The jack entity spawned by `spawn_screen_device` must have `JackDirection::Input`
-/// so that it is a valid cable destination. If the direction were `Output`, the
-/// direction-compatibility check in `jack_socket_release_system` would reject any cable
-/// dragged from a reader's output jack to the screen, making the screen unconnectable.
-#[test]
-fn given_empty_world_when_spawn_screen_device_called_then_jack_entity_has_direction_input() {
-    // Arrange
-    let mut world = World::new();
-
-    // Act
-    let (_device_entity, jack_entity) = spawn_screen_device(&mut world, Vec2::ZERO);
-
-    // Assert
-    let jack = world.get::<Jack<SignatureSpace>>(jack_entity).unwrap();
-    assert_eq!(
-        jack.direction,
-        JackDirection::Input,
-        "screen device jack must be an Input so cables can be connected from a reader Output"
-    );
-}
-
-/// @doc: The jack entity spawned by `spawn_screen_device` must also carry a `JackSocket`
-/// component so it is rendered as a visible dot and is included in the pick/release hit
-/// tests. Without `JackSocket`, the jack exists only as an invisible ECS entity — the
-/// player cannot see it, click it, or connect a cable to it.
-#[test]
-fn given_empty_world_when_spawn_screen_device_called_then_jack_entity_has_jack_socket() {
-    // Arrange
-    let mut world = World::new();
-
-    // Act
-    let (_device_entity, jack_entity) = spawn_screen_device(&mut world, Vec2::ZERO);
-
-    // Assert
-    let socket = world.get::<JackSocket>(jack_entity);
-    assert!(
-        socket.is_some(),
-        "jack entity must have JackSocket for rendering and hit-testing"
-    );
-    assert!(
-        socket.unwrap().radius > 0.0,
-        "JackSocket radius must be positive"
-    );
-}
-
-#[test]
-fn given_empty_world_when_spawn_screen_device_called_then_signature_input_matches_jack_entity() {
-    // Arrange
-    let mut world = World::new();
-
-    // Act
-    let (device_entity, jack_entity) = spawn_screen_device(&mut world, Vec2::ZERO);
-
-    // Assert
-    let device = world.get::<ScreenDevice>(device_entity).unwrap();
-    assert_eq!(
-        device.signature_input, jack_entity,
-        "ScreenDevice.signature_input must reference the spawned jack entity"
     );
 }

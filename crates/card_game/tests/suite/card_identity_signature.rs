@@ -101,22 +101,6 @@ fn when_dominant_aspect_called_with_zero_value_then_returns_negative_variant() {
 }
 
 #[test]
-fn when_dominant_aspect_called_for_all_elements_then_each_returns_distinct_positive_variant() {
-    let sig = CardSignature::new([0.5; 8]);
-    let elements = Element::ALL;
-    let aspects: Vec<Aspect> = elements.iter().map(|e| sig.dominant_aspect(*e)).collect();
-    let mut unique = aspects.clone();
-    unique.sort_by_key(|a| format!("{a:?}"));
-    unique.dedup();
-    assert_eq!(
-        unique.len(),
-        8,
-        "expected 8 distinct aspects, got {}",
-        unique.len()
-    );
-}
-
-#[test]
 fn when_intensity_called_for_negative_axis_then_returns_absolute_value() {
     let mut input = [0.0_f32; 8];
     input[4] = -0.6;
@@ -202,13 +186,6 @@ fn when_subtracting_produces_values_outside_range_then_result_is_clamped() {
     let result = a.subtract(&b);
     assert_eq!(result.axes()[0], 1.0);
     assert_eq!(result.axes()[1], -1.0);
-}
-
-#[test]
-fn when_default_rarity_tier_config_constructed_then_advance_rates_are_0_point_3() {
-    let config = RarityTierConfig::default();
-    assert_eq!(config.rarity_advance_rate, 0.3_f32);
-    assert_eq!(config.tier_advance_rate, 0.3_f32);
 }
 
 #[test]

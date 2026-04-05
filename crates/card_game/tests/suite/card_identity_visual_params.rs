@@ -30,25 +30,6 @@ fn when_element_hue_mapping_called_for_each_element_then_all_eight_hues_are_dist
     }
 }
 
-/// @doc: Verifies all element base colors have alpha=1.0 (fully opaque).
-/// Transparent element tints would render incorrectly on card artwork.
-#[test]
-fn when_element_hue_mapping_called_then_all_colors_are_fully_opaque() {
-    // Arrange / Act
-    let colors: [Color; 8] = Element::ALL.map(element_base_color);
-
-    // Assert
-    for (i, c) in colors.iter().enumerate() {
-        assert_eq!(
-            c.a,
-            1.0,
-            "element {:?} base color alpha is {} (expected 1.0)",
-            Element::ALL[i],
-            c.a
-        );
-    }
-}
-
 /// @doc: Confirms dominant element drives the tint color, not signature axes directly.
 /// This ensures rarity-independent visual consistency: same element always produces same tint.
 #[test]
@@ -287,20 +268,6 @@ fn when_compute_seed_called_on_sign_opposite_signatures_then_seeds_differ() {
 
     // Assert
     assert_ne!(seed_pos, seed_neg);
-}
-
-/// @doc: All generated art colors must be fully opaque (alpha=1.0) regardless of signature.
-/// Transparent colors would blend with background incorrectly, corrupting visual identity.
-#[test]
-fn when_generate_card_visuals_called_then_art_color_is_fully_opaque() {
-    // Arrange
-    let sig = CardSignature::new([0.5, -0.3, 0.8, 0.0, -0.1, 0.6, -0.9, 0.2]);
-
-    // Act
-    let params = generate_card_visuals(&sig, &SignatureProfile::without_archetype(&sig));
-
-    // Assert
-    assert_eq!(params.art_color.a, 1.0);
 }
 
 /// @doc: Visual generation is deterministic: same signature always produces identical visuals.

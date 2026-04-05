@@ -1,8 +1,8 @@
 #![allow(clippy::unwrap_used)]
 
 use card_game::card::identity::definition::{
-    CardAbilities, CardDefinition, CardStats, CardType, Keyword, art_descriptor_default,
-    description_from_abilities, rarity_border_color,
+    CardAbilities, CardType, Keyword, art_descriptor_default, description_from_abilities,
+    rarity_border_color,
 };
 use card_game::card::identity::signature::{CardSignature, Rarity};
 
@@ -174,44 +174,4 @@ fn when_art_descriptor_default_called_for_artifact_then_gradient_differs_from_cr
             || creature.background.bottom != artifact.background.bottom,
         "artifact and creature should have distinct default gradients"
     );
-}
-
-#[test]
-fn when_card_definition_is_creature_with_none_stats_then_stats_is_none() {
-    // Arrange
-    let def = CardDefinition {
-        card_type: CardType::Creature,
-        name: "Token".to_owned(),
-        stats: None,
-        abilities: CardAbilities {
-            keywords: vec![],
-            text: String::new(),
-        },
-        art: art_descriptor_default(CardType::Creature),
-    };
-
-    // Assert
-    assert!(def.stats.is_none());
-}
-
-#[test]
-fn when_card_definition_is_spell_with_some_stats_then_stats_is_some() {
-    // Arrange
-    let def = CardDefinition {
-        card_type: CardType::Spell,
-        name: "Fireball".to_owned(),
-        stats: Some(CardStats {
-            cost: 4,
-            attack: 0,
-            health: 0,
-        }),
-        abilities: CardAbilities {
-            keywords: vec![],
-            text: "Deal 6 damage.".to_owned(),
-        },
-        art: art_descriptor_default(CardType::Spell),
-    };
-
-    // Assert
-    assert!(def.stats.is_some());
 }

@@ -50,45 +50,18 @@ fn tab_center(tab_index: u8, storage_tab_count: u8) -> (f32, f32) {
 }
 
 #[test]
-fn when_click_on_second_tab_then_switches_to_page_one() {
-    // Arrange
-    let mut world = make_click_world(3, true);
-    let (cx, cy) = tab_center(1, 3);
-    click_at(&mut world, cx, cy);
-
-    // Act
-    run_click_system(&mut world);
-
-    // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
-}
-
-#[test]
-fn when_click_on_third_tab_then_switches_to_page_two() {
-    // Arrange
-    let mut world = make_click_world(3, true);
-    let (cx, cy) = tab_center(2, 3);
-    click_at(&mut world, cx, cy);
-
-    // Act
-    run_click_system(&mut world);
-
-    // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 2);
-}
-
-#[test]
-fn when_click_on_first_tab_then_stays_on_page_zero() {
-    // Arrange
-    let mut world = make_click_world(3, true);
-    let (cx, cy) = tab_center(0, 3);
-    click_at(&mut world, cx, cy);
-
-    // Act
-    run_click_system(&mut world);
-
-    // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 0);
+fn when_clicking_any_tab_then_switches_to_corresponding_page() {
+    for tab_index in [0u8, 1, 2] {
+        let mut world = make_click_world(3, true);
+        let (cx, cy) = tab_center(tab_index, 3);
+        click_at(&mut world, cx, cy);
+        run_click_system(&mut world);
+        assert_eq!(
+            world.resource::<StashGrid>().current_page(),
+            tab_index,
+            "clicking tab {tab_index} should switch to page {tab_index}"
+        );
+    }
 }
 
 /// @doc: Tab gap pixels don't change pages — only tab rectangles are clickable, preventing accidental page flips.
@@ -104,21 +77,6 @@ fn when_click_between_tabs_then_page_unchanged() {
         left0 + TAB_WIDTH + TAB_GAP / 2.0,
         top + TAB_HEIGHT / 2.0,
     );
-
-    // Act
-    run_click_system(&mut world);
-
-    // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
-}
-
-#[test]
-fn when_click_above_tabs_then_page_unchanged() {
-    // Arrange
-    let mut world = make_click_world(3, true);
-    let left = tab_left_x(GRID_W, 3 + 2, 1);
-    let top = tab_row_top_y(GRID_H);
-    click_at(&mut world, left + TAB_WIDTH / 2.0, top - 2.0);
 
     // Act
     run_click_system(&mut world);

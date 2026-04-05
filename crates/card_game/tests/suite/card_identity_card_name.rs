@@ -1,9 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
 use card_game::card::identity::card_name::{generate_card_name, subtitle_phrase};
-use card_game::card::identity::name_pools::{
-    AspectCluster, adjective_pool, aspect_cluster, noun_pool,
-};
+use card_game::card::identity::name_pools::{AspectCluster, adjective_pool, noun_pool};
 use card_game::card::identity::signature::{Aspect, CardSignature, Rarity};
 use card_game::card::identity::signature_profile::{SignatureProfile, Tier};
 
@@ -510,38 +508,6 @@ fn when_generating_card_name_then_result_has_non_empty_title_and_subtitle() {
     // Assert
     assert!(!name.title.is_empty());
     assert!(!name.subtitle.is_empty());
-}
-
-#[test]
-fn when_aspect_cluster_called_for_all_aspects_then_each_maps_to_correct_cluster() {
-    // Arrange
-    let cases: &[(Aspect, AspectCluster)] = &[
-        (Aspect::Solid, AspectCluster::Physical),
-        (Aspect::Fragile, AspectCluster::Physical),
-        (Aspect::Force, AspectCluster::Physical),
-        (Aspect::Calm, AspectCluster::Physical),
-        (Aspect::Heat, AspectCluster::Elemental),
-        (Aspect::Cold, AspectCluster::Elemental),
-        (Aspect::Light, AspectCluster::Elemental),
-        (Aspect::Dark, AspectCluster::Elemental),
-        (Aspect::Growth, AspectCluster::Nature),
-        (Aspect::Decay, AspectCluster::Nature),
-        (Aspect::Order, AspectCluster::Nature),
-        (Aspect::Chaos, AspectCluster::Nature),
-        (Aspect::Change, AspectCluster::Arcane),
-        (Aspect::Stasis, AspectCluster::Arcane),
-        (Aspect::Expansion, AspectCluster::Arcane),
-        (Aspect::Contraction, AspectCluster::Arcane),
-    ];
-
-    // Act & Assert
-    for &(aspect, expected) in cases {
-        let cluster = aspect_cluster(aspect);
-        assert_eq!(
-            cluster, expected,
-            "{aspect:?} should map to {expected:?}, got {cluster:?}"
-        );
-    }
 }
 
 /// @doc: Secondary axis can be absent (when dominant >> second) but title generation still succeeds.

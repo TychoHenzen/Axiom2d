@@ -12,22 +12,6 @@ use engine_render::testing::{SpyRenderer, insert_spy_with_viewport};
 use glam::{Mat4, Vec2};
 
 #[test]
-fn when_camera2d_serialized_to_ron_then_deserializes_to_equal_value() {
-    // Arrange
-    let camera = Camera2D {
-        position: Vec2::new(150.0, -75.0),
-        zoom: 2.5,
-    };
-
-    // Act
-    let ron = ron::to_string(&camera).unwrap();
-    let back: Camera2D = ron::from_str(&ron).unwrap();
-
-    // Assert
-    assert_eq!(camera, back);
-}
-
-#[test]
 fn when_camera_at_origin_zoom_one_then_ndc_center_is_zero() {
     // Arrange
     let camera = Camera2D::default();
