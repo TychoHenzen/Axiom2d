@@ -222,6 +222,69 @@ fn when_cable_connects_two_positioned_entities_then_one_line_shape_is_drawn() {
     );
 }
 
+/// @doc: `cable_render_system` must reposition the cable's transform to the midpoint of its
+/// two endpoint entities. If the system does nothing, the cable transform stays at its initial
+/// default position and renders in the wrong place regardless of where the endpoints are.
+#[test]
+fn when_cable_render_system_runs_then_cable_transform_is_at_midpoint_of_endpoints() {
+    // Arrange
+    let (mut world, _) = make_cable_render_world();
+
+    let source = world
+        .spawn(Transform2D {
+            position: Vec2::new(0.0, 0.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+    let dest = world
+        .spawn(Transform2D {
+            position: Vec2::new(200.0, 0.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+    let cable_entity = world
+        .spawn((
+            Cable { source, dest },
+            Transform2D::default(), // starts at origin — system must move it to midpoint
+            Shape {
+                variant: ShapeVariant::Polygon {
+                    points: vec![
+                        Vec2::new(-1.0, -1.0),
+                        Vec2::new(1.0, -1.0),
+                        Vec2::new(1.0, 1.0),
+                        Vec2::new(-1.0, 1.0),
+                    ],
+                },
+                color: Color::WHITE,
+            },
+            Visible(true),
+            RenderLayer::World,
+            SortOrder::default(),
+        ))
+        .id();
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems(cable_render_system);
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert — transform must be at midpoint (100, 0), not at the pre-spawn default (0, 0)
+    let transform = world.get::<Transform2D>(cable_entity).unwrap();
+    assert!(
+        (transform.position.x - 100.0).abs() < 0.01,
+        "cable transform x should be at midpoint 100.0, got {}",
+        transform.position.x
+    );
+    assert!(
+        (transform.position.y - 0.0).abs() < 0.01,
+        "cable transform y should be at midpoint 0.0, got {}",
+        transform.position.y
+    );
+}
+
 /// @doc: `cable_render_system` must be a no-op when there are no Cable entities in the
 /// world. Any accidental draw here would appear as a stray line floating on the table
 /// that corresponds to no connection the player made.

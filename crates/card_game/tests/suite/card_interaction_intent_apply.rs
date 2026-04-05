@@ -607,3 +607,49 @@ fn when_release_on_stash_intent_applied_then_card_placed_in_grid() {
         .any(|cmd| matches!(cmd, PhysicsCommand::RemoveBody { entity } if *entity == card_entity));
     assert!(has_remove, "must remove physics body when entering stash");
 }
+
+/// @doc: When picking a Table card, `max_sort` must only consider other Table cards, not Hand cards.
+/// If the zone filter is inverted (`== → !=`), a Hand card with a higher sort order would inflate
+/// the picked card's `LocalSortOrder`, making it sort above all hand cards instead of above all
+/// table cards — this breaks the table z-ordering contract whenever the hand is non-empty.
+#[test]
+fn when_picking_table_card_with_higher_sort_hand_card_present_then_local_sort_is_above_table_max() {
+    // Arrange — table card at sort 5, hand card at sort 10; pick the table card
+    let mut world = World::new();
+    let table_card = world
+        .spawn((
+            card_game::test_helpers::make_test_card(),
+            CardZone::Table,
+            default_card_collider(),
+            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+            SortOrder::new(5),
+        ))
+        .id();
+    world.spawn((
+        card_game::test_helpers::make_test_card(),
+        CardZone::Hand(0),
+        SortOrder::new(10),
+    ));
+    insert_apply_resources(&mut world);
+    world
+        .resource_mut::<EventBus<InteractionIntent>>()
+        .push(InteractionIntent::PickCard {
+            entity: table_card,
+            zone: CardZone::Table,
+            collider: default_card_collider(),
+            grab_offset: Vec2::ZERO,
+        });
+
+    // Act
+    run_system(&mut world);
+
+    // Assert — LocalSortOrder must be table_max + 1 = 6, not hand_max + 1 = 11
+    let local_sort = world
+        .entity(table_card)
+        .get::<LocalSortOrder>()
+        .expect("LocalSortOrder must be inserted on pick");
+    assert_eq!(
+        local_sort.0, 6,
+        "sort order must be table max (5) + 1 = 6, not hand max (10) + 1 = 11"
+    );
+}
