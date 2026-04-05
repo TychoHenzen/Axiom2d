@@ -476,3 +476,63 @@ fn when_tabs_rendered_then_labels_land_on_their_tabs() {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// Tab row y-boundary tests — catch < vs <= and > vs == mutations
+// ---------------------------------------------------------------------------
+
+/// @doc: A click exactly on the tab-row top edge must register — the boundary is inclusive.
+/// Catching `< with <=` mutation: with <=, y==top_y would early-return before reaching tabs.
+#[test]
+fn when_click_exactly_at_tab_row_top_edge_then_page_changes() {
+    // Arrange — start on page 2 so moving to page 1 is detectable
+    let mut world = make_click_world(3, true);
+    world.resource_mut::<StashGrid>().set_current_page(2);
+    let (cx, _) = tab_center(1, 3);
+    let top_y = tab_row_top_y(GRID_H);
+    click_at(&mut world, cx, top_y);
+
+    // Act
+    run_click_system(&mut world);
+
+    // Assert
+    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
+}
+
+/// @doc: A click exactly on the tab-row bottom edge must register — the boundary is inclusive.
+/// Catching `> with ==` mutation: with ==, y==bottom_y would early-return before reaching tabs.
+#[test]
+fn when_click_exactly_at_tab_row_bottom_edge_then_page_changes() {
+    // Arrange — start on page 2 so moving to page 1 is detectable
+    let mut world = make_click_world(3, true);
+    world.resource_mut::<StashGrid>().set_current_page(2);
+    let (cx, _) = tab_center(1, 3);
+    let bottom_y = tab_row_top_y(GRID_H) + TAB_HEIGHT;
+    click_at(&mut world, cx, bottom_y);
+
+    // Act
+    run_click_system(&mut world);
+
+    // Assert
+    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
+}
+
+/// @doc: A click above the tab row must NOT change the page.
+/// Catching `|| with &&` mutation: with &&, the condition is always false (can't be simultaneously
+/// above AND below), so clicks above the tabs would fall through to the tab loop.
+/// Using page 2 as starting page distinguishes "stayed at 2" from "changed to 1".
+#[test]
+fn when_click_above_tab_row_then_page_unchanged_regardless_of_starting_page() {
+    // Arrange — start on page 2, not page 1 (prevents false-pass from tab1 == page1 coincidence)
+    let mut world = make_click_world(3, true);
+    world.resource_mut::<StashGrid>().set_current_page(2);
+    let (cx, _) = tab_center(1, 3);
+    let top_y = tab_row_top_y(GRID_H);
+    click_at(&mut world, cx, top_y - 2.0);
+
+    // Act
+    run_click_system(&mut world);
+
+    // Assert
+    assert_eq!(world.resource::<StashGrid>().current_page(), 2);
+}

@@ -3,11 +3,20 @@
 use std::sync::{Arc, Mutex};
 
 use bevy_ecs::prelude::*;
+use card_game::card::component::CardZone;
 use card_game::card::identity::signature::{CardSignature, Element};
+use card_game::card::interaction::drag_state::{DragInfo, DragState};
 use card_game::card::jack_cable::{Cable, Jack, JackDirection, signature_space_propagation_system};
-use card_game::card::reader::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
-use card_game::card::screen_device::{display_axes, screen_render_system, spawn_screen_device};
+use card_game::card::jack_socket::PendingCable;
+use card_game::card::reader::{ReaderDragState, SIGNATURE_SPACE_RADIUS, SignatureSpace};
+use card_game::card::screen_device::{
+    SCREEN_HALF_EXTENTS, ScreenDragState, display_axes, screen_pick_system, screen_render_system,
+    spawn_screen_device,
+};
+use card_game::stash::grid::StashGrid;
+use card_game::stash::toggle::StashVisible;
 use engine_core::prelude::Transform2D;
+use engine_input::prelude::{MouseButton, MouseState};
 use engine_render::prelude::{Camera2D, RendererRes};
 use engine_render::testing::{ShapeCallLog, SpyRenderer};
 use engine_scene::prelude::{
@@ -230,4 +239,113 @@ fn when_card_inserted_and_cable_propagated_then_screen_input_jack_holds_signatur
         }),
         "screen input jack must receive the SignatureSpace after cable propagation"
     );
+}
+
+// ---------------------------------------------------------------------------
+// screen_pick_system — behavioral tests
+// ---------------------------------------------------------------------------
+
+fn make_pick_world(device_world_pos: Vec2, cursor_world: Vec2, cursor_screen: Vec2) -> World {
+    let mut world = World::new();
+    spawn_screen_device(&mut world, device_world_pos);
+    world.insert_resource(ScreenDragState::default());
+    world.insert_resource(DragState::default());
+    world.insert_resource(ReaderDragState::default());
+    world.insert_resource(PendingCable::default());
+
+    let mut mouse = MouseState::default();
+    mouse.set_world_pos(cursor_world);
+    mouse.set_screen_pos(cursor_screen);
+    mouse.press(MouseButton::Left);
+    world.insert_resource(mouse);
+    world
+}
+
+fn run_pick_system(world: &mut World) {
+    let mut schedule = Schedule::default();
+    schedule.add_systems(screen_pick_system);
+    schedule.run(world);
+}
+
+/// @doc: Clicking inside the screen device bounding box must initiate a drag.
+/// Catches: `replace screen_pick_system with ()`, `delete !` on just_pressed check,
+/// `replace <= with >` on hit test bounds.
+#[test]
+fn when_cursor_inside_screen_device_bounds_and_left_clicked_then_drag_starts() {
+    // Arrange — device at origin; cursor at exact center (delta = 0 < HALF_EXTENTS)
+    let mut world = make_pick_world(Vec2::ZERO, Vec2::ZERO, Vec2::new(-9999.0, -9999.0));
+
+    // Act
+    run_pick_system(&mut world);
+
+    // Assert
+    assert!(world.resource::<ScreenDragState>().dragging.is_some());
+}
+
+/// @doc: When a card drag is already active, screen_pick_system must return without starting
+/// a screen drag. Catches `replace || with && in screen_pick_system` (lines 270-272):
+/// with `&&`, only all-active blocks the pick; with a single drag, the mutant proceeds.
+#[test]
+fn when_card_drag_active_and_cursor_on_screen_then_screen_drag_does_not_start() {
+    // Arrange
+    let mut world = make_pick_world(Vec2::ZERO, Vec2::ZERO, Vec2::new(-9999.0, -9999.0));
+    let dummy = world.spawn_empty().id();
+    world.resource_mut::<DragState>().dragging = Some(DragInfo {
+        entity: dummy,
+        local_grab_offset: Vec2::ZERO,
+        origin_zone: CardZone::Table,
+        stash_cursor_follow: false,
+        origin_position: Vec2::ZERO,
+    });
+
+    // Act
+    run_pick_system(&mut world);
+
+    // Assert
+    assert!(world.resource::<ScreenDragState>().dragging.is_none());
+}
+
+/// @doc: When the stash is visible and the cursor is inside the stash UI area,
+/// screen_pick_system must not start a screen drag (stash UI has priority).
+/// Catches `replace stash_ui_contains -> bool with true` mutations in callers:
+/// this test ensures clicks inside the stash region are correctly blocked.
+#[test]
+fn when_stash_visible_and_cursor_inside_stash_bounds_then_screen_drag_blocked() {
+    // Arrange — place device inside stash screen region; stash occupies x=[20,286], y=[20,427]
+    // for a 5×5 grid. Cursor at (100, 100) is inside.
+    let stash_screen_pos = Vec2::new(100.0, 100.0);
+    let mut world = make_pick_world(Vec2::ZERO, Vec2::ZERO, stash_screen_pos);
+    // Override mouse world_pos to be on the device, but screen_pos stays inside stash
+    {
+        let mut mouse = world.resource_mut::<MouseState>();
+        mouse.set_world_pos(Vec2::ZERO);
+        mouse.set_screen_pos(stash_screen_pos);
+    }
+    world.insert_resource(StashGrid::new(5, 5, 1));
+    world.insert_resource(StashVisible(true));
+
+    // Act
+    run_pick_system(&mut world);
+
+    // Assert
+    assert!(world.resource::<ScreenDragState>().dragging.is_none());
+}
+
+/// @doc: When the stash is visible but the cursor is outside the stash UI area,
+/// screen_pick_system must proceed and start a drag.
+/// Catches `replace stash_ui_contains -> bool with true`: with the mutant,
+/// clicking outside stash would still be blocked, so drag would not start.
+#[test]
+fn when_stash_visible_and_cursor_outside_stash_bounds_then_screen_drag_starts() {
+    // Arrange — cursor screen_pos far outside stash bounds (stash right ≈ 286)
+    let outside_stash = Vec2::new(800.0, 400.0);
+    let mut world = make_pick_world(Vec2::ZERO, Vec2::ZERO, outside_stash);
+    world.insert_resource(StashGrid::new(5, 5, 1));
+    world.insert_resource(StashVisible(true));
+
+    // Act
+    run_pick_system(&mut world);
+
+    // Assert
+    assert!(world.resource::<ScreenDragState>().dragging.is_some());
 }

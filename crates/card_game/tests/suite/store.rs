@@ -8,7 +8,7 @@ use card_game::card::screen_device::{ScreenDevice, ScreenDragState, ScreenSignal
 use card_game::stash::grid::StashGrid;
 use card_game::stash::pages::{stash_tab_click_system, tab_left_x, tab_row_top_y};
 use card_game::stash::store::{
-    StoreCatalog, StoreWallet, storage_tab_purchase_cost, store_buy_system,
+    STORE_TAB_BASE_COST, StoreCatalog, StoreWallet, storage_tab_purchase_cost, store_buy_system,
     store_item_screen_bounds, store_sell_system,
 };
 use card_game::stash::toggle::StashVisible;
@@ -307,4 +307,87 @@ fn when_selling_screen_then_screen_tree_and_jack_are_removed() {
         0
     );
     assert_eq!(world.query::<&ScreenSignalDot>().iter(&world).count(), 0);
+}
+
+// ---------------------------------------------------------------------------
+// StoreWallet::can_afford boundary tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn when_wallet_coins_less_than_cost_then_can_afford_is_false() {
+    // Arrange
+    let wallet = StoreWallet::new(10);
+
+    // Act / Assert
+    assert!(!wallet.can_afford(11));
+}
+
+#[test]
+fn when_wallet_coins_equal_cost_then_can_afford_is_true() {
+    // Arrange
+    let wallet = StoreWallet::new(10);
+
+    // Act / Assert
+    assert!(wallet.can_afford(10));
+}
+
+#[test]
+fn when_wallet_empty_and_spend_called_then_returns_false_and_coins_unchanged() {
+    // Arrange
+    let mut wallet = StoreWallet::new(0);
+
+    // Act
+    let result = wallet.spend(1);
+
+    // Assert
+    assert!(!result);
+    assert_eq!(wallet.coins(), 0);
+}
+
+// ---------------------------------------------------------------------------
+// storage_tab_purchase_cost — hardcoded-value tests (catch << vs >> mutation)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn when_one_storage_tab_exists_then_purchase_cost_equals_base_cost() {
+    // exponent = 0, cost = 25 * 1 = 25
+    assert_eq!(storage_tab_purchase_cost(1), STORE_TAB_BASE_COST);
+}
+
+#[test]
+fn when_two_storage_tabs_exist_then_purchase_cost_is_twice_base() {
+    // exponent = 1, cost = 25 * 2 = 50
+    assert_eq!(storage_tab_purchase_cost(2), STORE_TAB_BASE_COST * 2);
+}
+
+#[test]
+fn when_three_storage_tabs_exist_then_purchase_cost_is_four_times_base() {
+    // exponent = 2, cost = 25 * 4 = 100
+    assert_eq!(storage_tab_purchase_cost(3), STORE_TAB_BASE_COST * 4);
+}
+
+// ---------------------------------------------------------------------------
+// Behavioral: insufficient coins blocks tab purchase
+// ---------------------------------------------------------------------------
+
+#[test]
+fn when_wallet_empty_and_plus_tab_clicked_then_no_storage_tab_added() {
+    // Arrange
+    let mut world = make_store_world();
+    world.insert_resource(StoreWallet::new(0));
+    let (left, top) = {
+        let grid = world.resource::<StashGrid>();
+        let tab_count = grid.tab_count();
+        let plus_index = tab_count - 1;
+        let left = tab_left_x(grid.width(), tab_count, plus_index);
+        let top = tab_row_top_y(grid.height());
+        (left, top)
+    };
+    click_at(&mut world, Vec2::new(left + 1.0, top + 1.0), true);
+
+    // Act
+    run_tab_click_system(&mut world);
+
+    // Assert
+    assert_eq!(world.resource::<StashGrid>().page_count(), 1);
 }

@@ -692,7 +692,9 @@ fn extract_first_signature_axes(code: &str) -> &str {
         .find(marker)
         .expect("CardSignature::new not found in generated output");
     let after = &code[sig_start + marker.len()..];
-    let sig_end = after.find("])").expect("closing ]) not found after CardSignature::new([");
+    let sig_end = after
+        .find("])")
+        .expect("closing ]) not found after CardSignature::new([");
     after[..sig_end].trim()
 }
 
