@@ -10,8 +10,7 @@ use card_game::card::jack_cable::{Cable, Jack, JackDirection, signature_space_pr
 use card_game::card::jack_socket::PendingCable;
 use card_game::card::reader::{ReaderDragState, SIGNATURE_SPACE_RADIUS, SignatureSpace};
 use card_game::card::screen_device::{
-    SCREEN_HALF_EXTENTS, ScreenDragState, display_axes, screen_pick_system, screen_render_system,
-    spawn_screen_device,
+    ScreenDragState, display_axes, screen_pick_system, screen_render_system, spawn_screen_device,
 };
 use card_game::stash::grid::StashGrid;
 use card_game::stash::toggle::StashVisible;
@@ -268,7 +267,7 @@ fn run_pick_system(world: &mut World) {
 }
 
 /// @doc: Clicking inside the screen device bounding box must initiate a drag.
-/// Catches: `replace screen_pick_system with ()`, `delete !` on just_pressed check,
+/// Catches: `replace screen_pick_system with ()`, `delete !` on `just_pressed` check,
 /// `replace <= with >` on hit test bounds.
 #[test]
 fn when_cursor_inside_screen_device_bounds_and_left_clicked_then_drag_starts() {
@@ -282,7 +281,7 @@ fn when_cursor_inside_screen_device_bounds_and_left_clicked_then_drag_starts() {
     assert!(world.resource::<ScreenDragState>().dragging.is_some());
 }
 
-/// @doc: When a card drag is already active, screen_pick_system must return without starting
+/// @doc: When a card drag is already active, `screen_pick_system` must return without starting
 /// a screen drag. Catches `replace || with && in screen_pick_system` (lines 270-272):
 /// with `&&`, only all-active blocks the pick; with a single drag, the mutant proceeds.
 #[test]
@@ -306,7 +305,7 @@ fn when_card_drag_active_and_cursor_on_screen_then_screen_drag_does_not_start() 
 }
 
 /// @doc: When the stash is visible and the cursor is inside the stash UI area,
-/// screen_pick_system must not start a screen drag (stash UI has priority).
+/// `screen_pick_system` must not start a screen drag (stash UI has priority).
 /// Catches `replace stash_ui_contains -> bool with true` mutations in callers:
 /// this test ensures clicks inside the stash region are correctly blocked.
 #[test]
@@ -332,7 +331,7 @@ fn when_stash_visible_and_cursor_inside_stash_bounds_then_screen_drag_blocked() 
 }
 
 /// @doc: When the stash is visible but the cursor is outside the stash UI area,
-/// screen_pick_system must proceed and start a drag.
+/// `screen_pick_system` must proceed and start a drag.
 /// Catches `replace stash_ui_contains -> bool with true`: with the mutant,
 /// clicking outside stash would still be blocked, so drag would not start.
 #[test]

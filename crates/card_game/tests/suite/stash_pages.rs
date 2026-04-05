@@ -482,7 +482,7 @@ fn when_tabs_rendered_then_labels_land_on_their_tabs() {
 // ---------------------------------------------------------------------------
 
 /// @doc: A click exactly on the tab-row top edge must register — the boundary is inclusive.
-/// Catching `< with <=` mutation: with <=, y==top_y would early-return before reaching tabs.
+/// Catching `< with <=` mutation: with <=, `y==top_y` would early-return before reaching tabs.
 #[test]
 fn when_click_exactly_at_tab_row_top_edge_then_page_changes() {
     // Arrange — start on page 2 so moving to page 1 is detectable
@@ -500,7 +500,7 @@ fn when_click_exactly_at_tab_row_top_edge_then_page_changes() {
 }
 
 /// @doc: A click exactly on the tab-row bottom edge must register — the boundary is inclusive.
-/// Catching `> with ==` mutation: with ==, y==bottom_y would early-return before reaching tabs.
+/// Catching `> with ==` mutation: with ==, `y==bottom_y` would early-return before reaching tabs.
 #[test]
 fn when_click_exactly_at_tab_row_bottom_edge_then_page_changes() {
     // Arrange — start on page 2 so moving to page 1 is detectable
