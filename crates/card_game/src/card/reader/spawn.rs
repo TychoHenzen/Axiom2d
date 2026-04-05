@@ -7,7 +7,7 @@ use engine_scene::render_order::{RenderLayer, SortOrder};
 use glam::Vec2;
 
 use crate::card::interaction::click_resolve::{ClickHitShape, Clickable};
-use crate::card::jack_cable::{Jack, JackDirection};
+use crate::card::jack_cable::{CableCollider, Jack, JackDirection};
 use crate::card::jack_socket::{JackSocket, on_socket_clicked};
 use crate::card::reader::components::CardReader;
 use crate::card::reader::glow::{ReaderAccent, ReaderRecess, ReaderRune};
@@ -120,6 +120,7 @@ pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
             JackSocket {
                 radius: READER_SOCKET_RADIUS,
                 color: READER_SOCKET_COLOR,
+                connected_cable: None,
             },
             Transform2D {
                 position: position + READER_JACK_OFFSET,
@@ -155,6 +156,7 @@ pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
             },
             RigidBody::Kinematic,
             Collider::Aabb(half),
+            CableCollider { half_extents: half },
             Shape {
                 variant: rounded_rect_path(READER_HALF_W, READER_HALF_H, BASE_CORNER_RADIUS),
                 color: BASE_FILL,

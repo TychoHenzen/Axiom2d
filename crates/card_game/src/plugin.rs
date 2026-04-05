@@ -11,7 +11,9 @@ use crate::card::interaction::flip::card_flip_system;
 use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
 use crate::card::interaction::intent::InteractionIntent;
 use crate::card::interaction::release::card_release_system;
-use crate::card::jack_cable::{cable_render_system, signature_space_propagation_system};
+use crate::card::jack_cable::{
+    rope_physics_system, rope_render_system, signature_space_propagation_system,
+};
 use crate::card::jack_socket::{
     PendingCable, jack_socket_release_system, jack_socket_render_system, pending_cable_drag_system,
     spawn_pending_cable_preview,
@@ -138,11 +140,12 @@ fn register_systems(app: &mut App) {
         .add_systems(
             Phase::Update,
             (
+                pending_cable_drag_system,
+                rope_physics_system,
+                rope_render_system,
                 signature_space_propagation_system,
                 jack_socket_render_system,
-                cable_render_system,
                 screen_render_system,
-                pending_cable_drag_system,
             )
                 .chain()
                 .after(jack_socket_release_system),

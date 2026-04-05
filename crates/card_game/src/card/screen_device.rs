@@ -14,7 +14,7 @@ use std::f32::consts::TAU;
 use crate::card::identity::signature::Element;
 use crate::card::interaction::click_resolve::{ClickHitShape, Clickable, ClickedEntity};
 use crate::card::interaction::drag_state::DragState;
-use crate::card::jack_cable::{Jack, JackDirection};
+use crate::card::jack_cable::{CableCollider, Jack, JackDirection};
 use crate::card::jack_socket::{JackSocket, PendingCable, on_socket_clicked};
 use crate::card::reader::{ReaderDragState, SignatureSpace};
 use crate::stash::grid::StashGrid;
@@ -138,6 +138,7 @@ pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity
             JackSocket {
                 radius: SOCKET_RADIUS,
                 color: SOCKET_COLOR,
+                connected_cable: None,
             },
             Transform2D {
                 position: position + JACK_OFFSET,
@@ -179,6 +180,9 @@ pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity
             SortOrder::default(),
             LocalSortOrder(SCREEN_LOCAL_SORT),
             Clickable(ClickHitShape::Aabb(SCREEN_HALF_EXTENTS)),
+            CableCollider {
+                half_extents: SCREEN_HALF_EXTENTS,
+            },
         ))
         .id();
     world.entity_mut(device_entity).observe(on_screen_clicked);

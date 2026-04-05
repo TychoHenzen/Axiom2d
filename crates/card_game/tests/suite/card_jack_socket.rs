@@ -7,9 +7,9 @@ use card_game::card::component::CardZone;
 use card_game::card::interaction::click_resolve::{ClickHitShape, Clickable, click_resolve_system};
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
 use card_game::card::interaction::intent::InteractionIntent;
-use card_game::card::jack_cable::{Cable, Jack, JackDirection};
+use card_game::card::jack_cable::{Cable, Jack, JackDirection, RopeWire, RopeWireEndpoints};
 use card_game::card::jack_socket::{
-    JackSocket, PendingCable, jack_socket_release_system, jack_socket_render_system,
+    CableFreeEnd, JackSocket, PendingCable, jack_socket_release_system, jack_socket_render_system,
     on_socket_clicked, pending_cable_drag_system,
 };
 use card_game::card::reader::{ReaderDragInfo, ReaderDragState, SignatureSpace};
@@ -76,6 +76,7 @@ fn when_one_jack_socket_exists_then_one_shape_is_drawn() {
             JackSocket {
                 radius: 8.0,
                 color: Color::WHITE,
+                connected_cable: None,
             },
             Transform2D {
                 position: Vec2::new(50.0, 50.0),
@@ -112,6 +113,7 @@ fn when_two_jack_sockets_exist_then_two_shapes_are_drawn() {
             JackSocket {
                 radius: 8.0,
                 color: Color::WHITE,
+                connected_cable: None,
             },
             Transform2D {
                 position: pos,
@@ -163,6 +165,7 @@ fn spawn_jack_socket_at(world: &mut World, pos: Vec2) -> Entity {
             JackSocket {
                 radius: 10.0,
                 color: Color::WHITE,
+                connected_cable: None,
             },
             Transform2D {
                 position: pos,
@@ -321,6 +324,8 @@ fn given_pending_cable_already_active_when_left_mouse_pressed_over_second_socket
     spawn_jack_socket_at(&mut world, Vec2::new(200.0, 200.0));
     world.insert_resource(PendingCable {
         source: Some(first),
+        origin_cable: None,
+        free_end: None,
     });
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
@@ -357,6 +362,7 @@ fn given_pending_cable_active_and_mouse_pressed_when_drag_system_runs_then_previ
             JackSocket {
                 radius: 8.0,
                 color: Color::WHITE,
+                connected_cable: None,
             },
             Transform2D {
                 position: Vec2::new(50.0, 50.0),
@@ -367,6 +373,8 @@ fn given_pending_cable_active_and_mouse_pressed_when_drag_system_runs_then_previ
         .id();
     app.world_mut().insert_resource(PendingCable {
         source: Some(source_jack),
+        origin_cable: None,
+        free_end: None,
     });
     let mut mouse = MouseState::default();
     mouse.press(MouseButton::Left);
@@ -430,12 +438,15 @@ fn given_pending_cable_set_but_mouse_not_pressed_when_drag_system_runs_then_no_p
             JackSocket {
                 radius: 8.0,
                 color: Color::WHITE,
+                connected_cable: None,
             },
             Transform2D::default(),
         ))
         .id();
     app.world_mut().insert_resource(PendingCable {
         source: Some(source_jack),
+        origin_cable: None,
+        free_end: None,
     });
     app.world_mut().insert_resource(MouseState::default()); // mouse not pressed
 
@@ -463,6 +474,7 @@ fn spawn_input_socket_at(world: &mut World, pos: Vec2) -> Entity {
             JackSocket {
                 radius: 10.0,
                 color: Color::WHITE,
+                connected_cable: None,
             },
             Transform2D {
                 position: pos,
@@ -486,6 +498,8 @@ fn given_pending_cable_and_cursor_over_compatible_socket_when_mouse_released_the
     let input_jack = spawn_input_socket_at(&mut world, Vec2::new(100.0, 0.0));
     world.insert_resource(PendingCable {
         source: Some(output_jack),
+        origin_cable: None,
+        free_end: None,
     });
     let mut mouse = MouseState::default();
     mouse.release(MouseButton::Left);
@@ -528,6 +542,8 @@ fn given_pending_cable_and_cursor_over_compatible_socket_when_mouse_released_the
     spawn_input_socket_at(&mut world, Vec2::new(100.0, 0.0));
     world.insert_resource(PendingCable {
         source: Some(output_jack),
+        origin_cable: None,
+        free_end: None,
     });
     let mut mouse = MouseState::default();
     mouse.release(MouseButton::Left);
@@ -563,6 +579,8 @@ fn given_pending_cable_and_cursor_in_empty_space_when_mouse_released_then_no_cab
     let output_jack = spawn_jack_socket_at(&mut world, Vec2::new(0.0, 0.0));
     world.insert_resource(PendingCable {
         source: Some(output_jack),
+        origin_cable: None,
+        free_end: None,
     });
     let mut mouse = MouseState::default();
     mouse.release(MouseButton::Left);
@@ -598,6 +616,8 @@ fn given_pending_cable_and_cursor_in_empty_space_when_mouse_released_then_pendin
     let output_jack = spawn_jack_socket_at(&mut world, Vec2::new(0.0, 0.0));
     world.insert_resource(PendingCable {
         source: Some(output_jack),
+        origin_cable: None,
+        free_end: None,
     });
     let mut mouse = MouseState::default();
     mouse.release(MouseButton::Left);
@@ -632,6 +652,8 @@ fn given_pending_cable_and_cursor_over_same_socket_when_mouse_released_then_no_c
     let output_jack = spawn_jack_socket_at(&mut world, Vec2::new(100.0, 100.0));
     world.insert_resource(PendingCable {
         source: Some(output_jack),
+        origin_cable: None,
+        free_end: None,
     });
     let mut mouse = MouseState::default();
     mouse.release(MouseButton::Left);
@@ -670,6 +692,8 @@ fn given_pending_cable_and_cursor_over_same_direction_socket_when_mouse_released
     spawn_jack_socket_at(&mut world, Vec2::new(100.0, 0.0)); // also Output
     world.insert_resource(PendingCable {
         source: Some(output_jack1),
+        origin_cable: None,
+        free_end: None,
     });
     let mut mouse = MouseState::default();
     mouse.release(MouseButton::Left);
@@ -717,5 +741,632 @@ fn given_no_pending_cable_when_mouse_released_over_socket_then_no_cable_spawned(
         world.query::<&Cable>().iter(&world).count(),
         0,
         "no pending cable means mouse release must not spawn any Cable entity"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TC-OCC-01 (spec TC015) — JackSocket.connected_cable / is_occupied
+// ---------------------------------------------------------------------------
+
+/// @doc: `JackSocket` must expose a `connected_cable: Option<Entity>` field and an
+/// `is_occupied()` convenience method so the release system can refuse to double-connect
+/// an already-used socket. Without occupancy tracking every socket would silently accept
+/// multiple cables, making the wiring graph impossible to reason about.
+#[test]
+fn given_jack_socket_with_connected_cable_set_when_is_occupied_called_then_returns_true() {
+    // Arrange
+    let mut scratch_world = World::new();
+    let dummy_cable = scratch_world.spawn_empty().id();
+    let socket = JackSocket {
+        radius: 10.0,
+        color: Color::WHITE,
+        connected_cable: Some(dummy_cable), // field does not exist yet → compile error
+    };
+
+    // Act
+    let occupied = socket.is_occupied(); // method does not exist yet → compile error
+
+    // Assert
+    assert!(
+        occupied,
+        "is_occupied must return true when connected_cable is Some"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TC-OCC-02 (spec TC016) — occupied socket blocks second cable spawn
+// ---------------------------------------------------------------------------
+
+/// @doc: `jack_socket_release_system` must check `JackSocket.is_occupied()` before
+/// spawning a cable. If an input socket already holds a cable, dropping a second pending
+/// cable onto it must be silently rejected — otherwise one socket would be the destination
+/// of two cables, creating an ambiguous signal fanin that the propagation system cannot
+/// handle deterministically.
+#[test]
+fn given_occupied_input_socket_when_pending_cable_released_over_it_then_no_second_cable_spawned() {
+    use engine_scene::prelude::{GlobalTransform2D, SortOrder};
+    use glam::Affine2;
+
+    // Arrange
+    let mut world = make_pick_world();
+
+    let existing_cable = world.spawn_empty().id();
+
+    let output_socket = world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Output,
+                data: None,
+            },
+            JackSocket {
+                radius: 10.0,
+                color: Color::WHITE,
+                connected_cable: None, // field does not exist yet → compile error
+            },
+            Transform2D {
+                position: Vec2::new(0.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(0.0, 0.0))),
+            SortOrder::default(),
+        ))
+        .id();
+
+    world.spawn((
+        Jack::<SignatureSpace> {
+            direction: JackDirection::Input,
+            data: None,
+        },
+        JackSocket {
+            radius: 10.0,
+            color: Color::WHITE,
+            connected_cable: Some(existing_cable), // occupied
+        },
+        Transform2D {
+            position: Vec2::new(50.0, 0.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        },
+        GlobalTransform2D(Affine2::from_translation(Vec2::new(50.0, 0.0))),
+        SortOrder::default(),
+    ));
+
+    world.insert_resource(PendingCable {
+        source: Some(output_socket),
+        origin_cable: None,
+        free_end: None,
+    });
+    let mut mouse = MouseState::default();
+    mouse.release(MouseButton::Left);
+    mouse.set_world_pos(Vec2::new(50.0, 0.0));
+    world.insert_resource(mouse);
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems(jack_socket_release_system);
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert — no new Cable component was spawned
+    assert_eq!(
+        world.query::<&Cable>().iter(&world).count(),
+        0,
+        "releasing over an occupied socket must not spawn a second Cable"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TC-OCC-03 (spec TC017) — successful connect marks both sockets occupied
+// ---------------------------------------------------------------------------
+
+/// @doc: When `jack_socket_release_system` successfully connects two jacks it must write
+/// the new cable entity into `JackSocket.connected_cable` on both the source and destination
+/// sockets. Without this, `is_occupied()` would always return false and the occupancy guard
+/// added in TC-OCC-02 would never fire — every socket would remain permanently
+/// re-connectable regardless of how many cables were already attached.
+#[test]
+fn given_two_free_compatible_sockets_when_cable_connected_then_both_sockets_connected_cable_is_set()
+{
+    use engine_scene::prelude::{GlobalTransform2D, SortOrder};
+    use glam::Affine2;
+
+    // Arrange
+    let mut world = make_pick_world();
+
+    let output_socket = world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Output,
+                data: None,
+            },
+            JackSocket {
+                radius: 10.0,
+                color: Color::WHITE,
+                connected_cable: None,
+            },
+            Transform2D {
+                position: Vec2::new(0.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+            SortOrder::default(),
+        ))
+        .id();
+
+    let input_socket = world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Input,
+                data: None,
+            },
+            JackSocket {
+                radius: 10.0,
+                color: Color::WHITE,
+                connected_cable: None,
+            },
+            Transform2D {
+                position: Vec2::new(50.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(50.0, 0.0))),
+            SortOrder::default(),
+        ))
+        .id();
+
+    world.insert_resource(PendingCable {
+        source: Some(output_socket),
+        origin_cable: None,
+        free_end: None,
+    });
+    let mut mouse = MouseState::default();
+    mouse.release(MouseButton::Left);
+    mouse.set_world_pos(Vec2::new(50.0, 0.0));
+    world.insert_resource(mouse);
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems(jack_socket_release_system);
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert
+    let out_socket = world.get::<JackSocket>(output_socket).unwrap();
+    let in_socket = world.get::<JackSocket>(input_socket).unwrap();
+    assert!(
+        out_socket.connected_cable.is_some(),
+        "output socket must be marked occupied after successful connection"
+    );
+    assert!(
+        in_socket.connected_cable.is_some(),
+        "input socket must be marked occupied after successful connection"
+    );
+    assert_eq!(
+        out_socket.connected_cable, in_socket.connected_cable,
+        "both sockets must reference the same cable entity"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TC-OCC-04 (spec TC018) — clicking occupied socket begins disconnect-drag
+// ---------------------------------------------------------------------------
+
+/// @doc: Clicking an occupied socket (when no cable drag is already pending) must start a
+/// disconnect-drag: `PendingCable.source` is set to the OTHER end of the existing cable,
+/// the clicked socket's `connected_cable` is cleared, and `PendingCable.origin_cable`
+/// records the cable entity so it can be re-attached or destroyed on release. Without this
+/// the player has no way to move an existing connection — they would need to delete and
+/// recreate every cable they want to reroute.
+#[test]
+fn given_occupied_socket_when_clicked_with_no_active_pending_cable_then_disconnect_drag_begins() {
+    use engine_scene::prelude::{GlobalTransform2D, SortOrder};
+    use glam::Affine2;
+
+    // Arrange
+    let mut world = make_pick_world();
+
+    let output_socket = world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Output,
+                data: None,
+            },
+            JackSocket {
+                radius: 10.0,
+                color: Color::WHITE,
+                connected_cable: None, // updated after cable entity created below
+            },
+            Transform2D {
+                position: Vec2::new(0.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+            SortOrder::default(),
+        ))
+        .id();
+
+    // placeholder input socket; will have a proper id assigned below
+    let input_socket_placeholder = world.spawn_empty().id();
+    let cable_entity = world
+        .spawn(Cable {
+            source: output_socket,
+            dest: input_socket_placeholder,
+        })
+        .id();
+
+    let input_socket = world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Input,
+                data: None,
+            },
+            JackSocket {
+                radius: 10.0,
+                color: Color::WHITE,
+                connected_cable: Some(cable_entity), // occupied
+            },
+            Transform2D {
+                position: Vec2::new(50.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            Clickable(ClickHitShape::Circle(10.0)),
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(50.0, 0.0))),
+            SortOrder::default(),
+        ))
+        .id();
+    world.entity_mut(input_socket).observe(on_socket_clicked);
+
+    // fix cable dest to real input_socket entity
+    world
+        .entity_mut(cable_entity)
+        .get_mut::<Cable>()
+        .unwrap()
+        .dest = input_socket;
+    // mark output socket occupied
+    world
+        .entity_mut(output_socket)
+        .get_mut::<JackSocket>()
+        .unwrap()
+        .connected_cable = Some(cable_entity);
+
+    world.insert_resource(PendingCable {
+        source: None,
+        origin_cable: None,
+        free_end: None,
+    });
+    let mut mouse = MouseState::default();
+    mouse.press(MouseButton::Left);
+    mouse.set_world_pos(Vec2::new(50.0, 0.0)); // cursor on the input socket
+    world.insert_resource(mouse);
+
+    // Act
+    run_click_resolve(&mut world);
+
+    // Assert
+    let pending = world.resource::<PendingCable>();
+    assert_eq!(
+        pending.source,
+        Some(output_socket),
+        "PendingCable.source must be the other end of the disconnected cable"
+    );
+    assert_eq!(
+        pending.origin_cable,
+        Some(cable_entity),
+        "PendingCable.origin_cable must hold the cable entity being rerouted"
+    );
+    assert!(
+        world
+            .get::<JackSocket>(input_socket)
+            .unwrap()
+            .connected_cable
+            .is_none(),
+        "clicked socket must be unoccupied after disconnect-drag begins"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TC-OCC-05 (spec TC019) — disconnect drag in empty space destroys cable
+// ---------------------------------------------------------------------------
+
+/// @doc: When a disconnect-drag (`origin_cable` is Some) is released over empty space the
+/// system must despawn the cable entity and clear `connected_cable` on whichever socket
+/// still references it. Without this, the player is left with a dangling cable entity and
+/// a socket that permanently reports itself as occupied — blocking any future connection
+/// to that socket until the game is restarted.
+#[test]
+fn given_disconnect_drag_when_released_in_empty_space_then_cable_despawned_and_socket_cleared() {
+    use engine_scene::prelude::{GlobalTransform2D, SortOrder};
+    use glam::Affine2;
+
+    // Arrange
+    let mut world = make_pick_world();
+
+    // The source socket — still occupied at drag-release time (the dest end was pulled free)
+    let source_socket = world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Output,
+                data: None,
+            },
+            JackSocket {
+                radius: 10.0,
+                color: Color::WHITE,
+                connected_cable: None, // will be set after cable spawn
+            },
+            Transform2D {
+                position: Vec2::new(0.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+            SortOrder::default(),
+        ))
+        .id();
+
+    let dummy_dest = world.spawn_empty().id();
+    let cable_entity = world
+        .spawn((
+            Cable {
+                source: source_socket,
+                dest: dummy_dest,
+            },
+            Transform2D::default(),
+        ))
+        .id();
+
+    world
+        .entity_mut(source_socket)
+        .get_mut::<JackSocket>()
+        .unwrap()
+        .connected_cable = Some(cable_entity);
+
+    world.insert_resource(PendingCable {
+        source: Some(source_socket),
+        origin_cable: Some(cable_entity),
+        free_end: None,
+    });
+    let mut mouse = MouseState::default();
+    mouse.release(MouseButton::Left);
+    mouse.set_world_pos(Vec2::new(9999.0, 9999.0)); // empty space
+    world.insert_resource(mouse);
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems(jack_socket_release_system);
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert — cable entity despawned
+    assert!(
+        world.get_entity(cable_entity).is_err(),
+        "cable entity must be despawned when disconnect-drag is released in empty space"
+    );
+    // Assert — source socket unoccupied
+    assert!(
+        world
+            .get::<JackSocket>(source_socket)
+            .unwrap()
+            .connected_cable
+            .is_none(),
+        "source socket must be cleared after its cable is destroyed"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TC-OCC-06 (spec TC020) — disconnect drag over free socket re-attaches cable
+// ---------------------------------------------------------------------------
+
+/// @doc: When a disconnect-drag (`origin_cable` is Some) is released over a compatible free
+/// socket, the existing cable entity must be mutated in-place (`Cable.dest` updated) and
+/// the new socket must be marked occupied. Reusing the entity avoids invalidating the
+/// `connected_cable` handle stored on the source socket — spawning a replacement entity
+/// would leave the source socket pointing at a stale (now-despawned) entity id.
+#[test]
+fn given_disconnect_drag_when_released_over_free_compatible_socket_then_cable_reattached_to_new_socket()
+ {
+    use engine_scene::prelude::{GlobalTransform2D, SortOrder};
+    use glam::Affine2;
+
+    // Arrange
+    let mut world = make_pick_world();
+
+    let source_socket = world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Output,
+                data: None,
+            },
+            JackSocket {
+                radius: 10.0,
+                color: Color::WHITE,
+                connected_cable: None, // will be set after cable spawn
+            },
+            Transform2D {
+                position: Vec2::new(0.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+            SortOrder::default(),
+        ))
+        .id();
+
+    let new_dest = world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Input,
+                data: None,
+            },
+            JackSocket {
+                radius: 10.0,
+                color: Color::WHITE,
+                connected_cable: None, // free
+            },
+            Transform2D {
+                position: Vec2::new(50.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(50.0, 0.0))),
+            SortOrder::default(),
+        ))
+        .id();
+
+    let stale_dest = world.spawn_empty().id();
+    let cable_entity = world
+        .spawn((
+            Cable {
+                source: source_socket,
+                dest: stale_dest,
+            },
+            Transform2D::default(),
+        ))
+        .id();
+
+    world
+        .entity_mut(source_socket)
+        .get_mut::<JackSocket>()
+        .unwrap()
+        .connected_cable = Some(cable_entity);
+
+    world.insert_resource(PendingCable {
+        source: Some(source_socket),
+        origin_cable: Some(cable_entity),
+        free_end: None,
+    });
+    let mut mouse = MouseState::default();
+    mouse.release(MouseButton::Left);
+    mouse.set_world_pos(Vec2::new(50.0, 0.0)); // cursor on new_dest
+    world.insert_resource(mouse);
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems(jack_socket_release_system);
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert — same cable entity, dest updated
+    let cable = world.get::<Cable>(cable_entity).unwrap();
+    assert_eq!(
+        cable.dest, new_dest,
+        "cable.dest must point at the new destination socket after re-attach"
+    );
+
+    // Assert — new socket is now occupied
+    let new_socket = world.get::<JackSocket>(new_dest).unwrap();
+    assert_eq!(
+        new_socket.connected_cable,
+        Some(cable_entity),
+        "new destination socket must be marked occupied with the reattached cable entity"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TC-F05 — clicking a socket must spawn a RopeWire immediately
+// ---------------------------------------------------------------------------
+
+/// @doc: The `RopeWireEndpoints` on the immediately-spawned rope must reference the clicked
+/// socket so that `rope_physics_system` pins particle[0] to the correct world position each
+/// tick. If the rope is only spawned on mouse release (the old behaviour), the player gets no
+/// physical cable feedback during the drag — the rope materialises after the drop instead of
+/// tracking the cursor in real time, making the wiring interaction feel broken.
+#[test]
+fn when_jack_socket_clicked_then_spawned_rope_wire_source_endpoint_matches_socket() {
+    // Arrange
+    let mut world = make_pick_world();
+    let socket = spawn_jack_socket_at(&mut world, Vec2::new(100.0, 100.0));
+    let mut mouse = MouseState::default();
+    mouse.press(MouseButton::Left);
+    mouse.set_world_pos(Vec2::new(100.0, 100.0));
+    world.insert_resource(mouse);
+
+    // Act
+    run_click_resolve(&mut world);
+
+    // Assert
+    let mut q = world.query::<&RopeWireEndpoints>();
+    let endpoints: Vec<_> = q.iter(&world).collect();
+    assert_eq!(
+        endpoints.len(),
+        1,
+        "exactly one RopeWireEndpoints must exist after socket click"
+    );
+    assert_eq!(
+        endpoints[0].source, socket,
+        "RopeWireEndpoints.source must be the clicked socket entity"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TC-F06 — free end of the in-flight rope tracks cursor position
+// ---------------------------------------------------------------------------
+
+/// @doc: The `CableFreeEnd` entity spawned during a cable drag must have its `Transform2D`
+/// position updated to the cursor's world position each frame by `pending_cable_drag_system`.
+/// Without this update the rope's dest endpoint stays at the socket's position and the
+/// rope collapses to a zero-length line instead of stretching toward the cursor, giving
+/// the player no spatial feedback about where they are routing the cable.
+#[test]
+fn when_pending_cable_drag_system_runs_then_free_end_position_matches_cursor() {
+    // Arrange — use make_preview_app so PendingCablePreview exists (required by the system)
+    let (mut app, _shape_calls) = make_preview_app();
+    let world = app.world_mut();
+
+    let socket = world
+        .spawn((
+            JackSocket {
+                radius: 8.0,
+                color: Color::WHITE,
+                connected_cable: None,
+            },
+            Transform2D {
+                position: Vec2::new(50.0, 50.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+        ))
+        .id();
+
+    let free_end = world
+        .spawn((
+            CableFreeEnd,
+            Transform2D {
+                position: Vec2::new(50.0, 50.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+        ))
+        .id();
+
+    world.insert_resource(PendingCable {
+        source: Some(socket),
+        origin_cable: None,
+        free_end: Some(free_end),
+    });
+
+    let cursor_pos = Vec2::new(200.0, 150.0);
+    let mut mouse = MouseState::default();
+    mouse.press(MouseButton::Left);
+    mouse.set_world_pos(cursor_pos);
+    world.insert_resource(mouse);
+
+    // Act
+    let mut schedule = Schedule::default();
+    schedule.add_systems(pending_cable_drag_system);
+    schedule.run(app.world_mut());
+
+    // Assert
+    let free_end_pos = app
+        .world_mut()
+        .get::<Transform2D>(free_end)
+        .unwrap()
+        .position;
+    assert!(
+        (free_end_pos - cursor_pos).length() < 0.01,
+        "CableFreeEnd position must match cursor world pos {cursor_pos}, got {free_end_pos}"
     );
 }
