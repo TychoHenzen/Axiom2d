@@ -253,10 +253,10 @@ pub fn pending_cable_drag_system(
             free_t.position = cursor_pos;
         }
         // Dynamically resize the rope to match the current drag distance
-        if let Some(cable_entity) = pending.origin_cable {
-            if let Ok(mut rope) = ropes.get_mut(cable_entity) {
-                rope.resize_for_endpoints(src_t.position, cursor_pos);
-            }
+        if let Some(cable_entity) = pending.origin_cable
+            && let Ok(mut rope) = ropes.get_mut(cable_entity)
+        {
+            rope.resize_for_endpoints(src_t.position, cursor_pos);
         }
     } else {
         let (next_transform, mut next_shape) = cable_visuals(src_t.position, mouse.world_pos());
@@ -330,7 +330,7 @@ pub fn jack_socket_release_system(
         // No valid target — despawn the pending rope and free end
         if let Some(cable_entity) = origin_cable {
             // Clear any socket that references this cable
-            for (_, mut socket, _) in sockets.iter_mut() {
+            for (_, mut socket, _) in &mut sockets {
                 if socket.connected_cable == Some(cable_entity) {
                     socket.connected_cable = None;
                 }
@@ -412,4 +412,3 @@ pub fn jack_socket_release_system(
         }
     }
 }
-

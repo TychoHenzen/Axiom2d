@@ -73,7 +73,11 @@ pub fn particles_to_bezier_path(points: &[Vec2]) -> Vec<PathCommand> {
         let p0 = if i == 0 { points[0] } else { points[i - 1] };
         let p1 = points[i];
         let p2 = points[i + 1];
-        let p3 = if i + 2 < n { points[i + 2] } else { points[n - 1] };
+        let p3 = if i + 2 < n {
+            points[i + 2]
+        } else {
+            points[n - 1]
+        };
 
         let control1 = p1 + (p2 - p0) / 6.0;
         let control2 = p2 - (p3 - p1) / 6.0;
@@ -312,7 +316,9 @@ impl RopeWire {
                 let float_idx = t * (current_n - 1) as f32;
                 let lo = (float_idx as usize).min(current_n - 2);
                 let frac = float_idx - lo as f32;
-                self.particles[lo].pos.lerp(self.particles[lo + 1].pos, frac)
+                self.particles[lo]
+                    .pos
+                    .lerp(self.particles[lo + 1].pos, frac)
             } else {
                 a.lerp(b, t)
             };
@@ -371,7 +377,11 @@ pub fn catmull_rom_subdivide(points: &[Vec2], subdivisions: usize) -> Vec<Vec2> 
         let p0 = if i == 0 { points[0] } else { points[i - 1] };
         let p1 = points[i];
         let p2 = points[i + 1];
-        let p3 = if i + 2 < n { points[i + 2] } else { points[n - 1] };
+        let p3 = if i + 2 < n {
+            points[i + 2]
+        } else {
+            points[n - 1]
+        };
 
         for s in 0..subdivisions {
             let t = s as f32 / subdivisions as f32;
@@ -421,9 +431,7 @@ pub fn particles_to_ribbon(positions: &[Vec2], half_thickness: f32) -> Vec<Vec2>
     left
 }
 
-pub fn rope_render_system(
-    mut ropes: Query<(&RopeWire, &mut Transform2D, &mut Shape)>,
-) {
+pub fn rope_render_system(mut ropes: Query<(&RopeWire, &mut Transform2D, &mut Shape)>) {
     for (rope, mut transform, mut shape) in &mut ropes {
         transform.position = Vec2::ZERO;
         transform.rotation = 0.0;

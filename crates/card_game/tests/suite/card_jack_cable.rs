@@ -777,7 +777,7 @@ fn given_rope_wired_between_two_sockets_when_rope_physics_system_runs_then_endpo
 // Rope wire — TC012: rope_physics_system tracks a moved source socket
 // ---------------------------------------------------------------------------
 
-/// @doc: `rope_physics_system` must re-read socket Transform2D positions each tick so that
+/// @doc: `rope_physics_system` must re-read socket `Transform2D` positions each tick so that
 /// a rope responds immediately when a socket is relocated. After moving the source socket
 /// from (0,0) to (50,50) before the system runs, the rope's first particle must end up at
 /// the new socket position rather than the old one. Without live position reading, the rope
@@ -952,7 +952,7 @@ fn given_rope_wire_with_n_particles_when_rope_render_system_runs_then_one_draw_c
 /// view, making a static wiring layout impossible to maintain visually.
 #[test]
 fn when_rope_at_rest_pinned_between_horizontal_sockets_then_interior_particle_y_positions_unchanged()
-{
+ {
     // Arrange
     let mut world = World::new();
     let a = Vec2::new(0.0, 0.0);
@@ -974,10 +974,7 @@ fn when_rope_at_rest_pinned_between_horizontal_sockets_then_interior_particle_y_
         .id();
 
     let rope_entity = world
-        .spawn((
-            RopeWire::new(a, b, 6),
-            RopeWireEndpoints { source, dest },
-        ))
+        .spawn((RopeWire::new(a, b, 6), RopeWireEndpoints { source, dest }))
         .id();
 
     let y_before: Vec<f32> = world
@@ -1090,7 +1087,7 @@ fn given_five_particles_when_bezier_path_computed_then_result_has_move_to_plus_f
 // ---------------------------------------------------------------------------
 
 /// @doc: When all particles lie on the same line, the B-spline approximation must also lie
-/// on that line — all CubicTo control points must have the same Y coordinate as the
+/// on that line — all `CubicTo` control points must have the same Y coordinate as the
 /// particles. If control points deviate from the chord, a taut cable would render as a
 /// wavy curve, confusing the player about whether the cable is slack or tight.
 #[test]
@@ -1189,9 +1186,15 @@ fn given_rope_wire_when_rope_render_system_runs_then_shape_is_ribbon_polygon() {
     match &shape.variant {
         ShapeVariant::Polygon { points } => {
             // 3 particles → 2 segments × 4 subdivisions + 1 = 9 per edge × 2 edges = 18
-            assert!(points.len() > 6, "ribbon must have more vertices than 2*N due to Catmull-Rom subdivision, got {}", points.len());
+            assert!(
+                points.len() > 6,
+                "ribbon must have more vertices than 2*N due to Catmull-Rom subdivision, got {}",
+                points.len()
+            );
         }
-        other => panic!("rope_render_system must write ShapeVariant::Polygon, got {:?}", std::mem::discriminant(other)),
+        other => panic!(
+            "rope_render_system must write ShapeVariant::Polygon, got {:?}",
+            std::mem::discriminant(other)
+        ),
     }
 }
-

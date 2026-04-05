@@ -7,7 +7,7 @@ use card_game::card::component::CardZone;
 use card_game::card::interaction::click_resolve::{ClickHitShape, Clickable, click_resolve_system};
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
 use card_game::card::interaction::intent::InteractionIntent;
-use card_game::card::jack_cable::{Cable, Jack, JackDirection, RopeWire, RopeWireEndpoints};
+use card_game::card::jack_cable::{Cable, Jack, JackDirection, RopeWireEndpoints};
 use card_game::card::jack_socket::{
     CableFreeEnd, JackSocket, PendingCable, jack_socket_release_system, jack_socket_render_system,
     on_socket_clicked, pending_cable_drag_system,
