@@ -496,66 +496,138 @@ impl RopeWire {
             .sum()
     }
 
-    /// Rebuild particles when the distance between endpoints changes enough
-    /// to warrant a different segment count. Only shrinks when the actual
-    /// cable path is close to the straight-line distance — if the cable is
-    /// wrapped around an obstacle, the path is much longer and shrinking
-    /// would phase the cable through the obstacle.
-    pub fn resize_for_endpoints(&mut self, a: Vec2, b: Vec2) {
-        let straight_dist = (b - a).length();
-        let target_n = ((straight_dist / SEGMENT_LENGTH).ceil() as usize + 1).max(2);
+    /// Resize particle chain for the current path through waypoints.
+    /// `waypoints` is the full path: `[src, anchor1, ..., anchorN, dst]`.
+    /// Particles are distributed proportionally so each span gets a count
+    /// matching its length — locked spans keep their particle density and
+    /// growth goes into the spans that actually grew.
+    pub fn resize_for_path(&mut self, waypoints: &[Vec2]) {
+        if waypoints.len() < 2 {
+            return;
+        }
+
+        // Total path length through all waypoints
+        let total_path: f32 = waypoints
+            .windows(2)
+            .map(|w| (w[1] - w[0]).length())
+            .sum();
+
+        let target_n = ((total_path / SEGMENT_LENGTH).ceil() as usize + 1).max(2);
         let current_n = self.particles.len();
-        let path_len = self.path_length();
-        let wrap_ratio = if straight_dist > 1e-4 {
-            path_len / straight_dist
-        } else {
-            1.0
+        let particle_path = self.path_length();
+
+        // Only rebuild when count changes meaningfully
+        let needs_grow = target_n > current_n;
+        let needs_shrink = target_n < current_n && {
+            // Only shrink when particle path is close to geometric path
+            // (not wrapped with lots of slack)
+            let ratio = if total_path > 1e-4 {
+                particle_path / total_path
+            } else {
+                1.0
+            };
+            ratio < 1.4
         };
 
-        if target_n > current_n || (target_n < current_n && wrap_ratio < 1.4) {
-            self.rebuild_particles(a, b, target_n);
+        if needs_grow || needs_shrink {
+            self.rebuild_along_path(waypoints, target_n);
         }
-        // else: same count or wrapped — keep current particles
 
-        // Rest length: use path length when wrapped so constraints don't
-        // compress the cable through obstacles
         let n = self.particles.len();
         if n > 1 {
-            if wrap_ratio > 1.2 {
-                self.rest_length = path_len / (n - 1) as f32;
-            } else {
-                self.rest_length = straight_dist / (n - 1) as f32;
-            }
+            self.rest_length = total_path / (n - 1) as f32;
         } else {
             self.rest_length = 0.0;
         }
     }
 
-    fn rebuild_particles(&mut self, a: Vec2, b: Vec2, target_n: usize) {
-        let straight_dist = (b - a).length();
-        self.rest_length = if target_n > 1 {
-            straight_dist / (target_n - 1) as f32
-        } else {
-            0.0
-        };
+    /// Distribute `target_n` particles along a waypoint path, placing them
+    /// at positions proportional to each span's fraction of total length.
+    fn rebuild_along_path(&mut self, waypoints: &[Vec2], target_n: usize) {
+        let span_lengths: Vec<f32> = waypoints
+            .windows(2)
+            .map(|w| (w[1] - w[0]).length())
+            .collect();
+        let total: f32 = span_lengths.iter().sum();
 
-        let current_n = self.particles.len();
+        if total < 1e-8 || target_n < 2 {
+            let mid = waypoints[0].lerp(*waypoints.last().unwrap(), 0.5);
+            self.particles = vec![
+                RopeParticle { pos: waypoints[0], prev: waypoints[0] },
+                RopeParticle { pos: mid, prev: mid },
+            ];
+            return;
+        }
+
         let mut new_particles = Vec::with_capacity(target_n);
-        for i in 0..target_n {
-            let t = i as f32 / (target_n - 1) as f32;
-            let pos = if current_n >= 2 {
-                let float_idx = t * (current_n - 1) as f32;
-                let lo = (float_idx as usize).min(current_n - 2);
-                let frac = float_idx - lo as f32;
-                self.particles[lo]
-                    .pos
-                    .lerp(self.particles[lo + 1].pos, frac)
+        // First particle at start
+        new_particles.push(RopeParticle {
+            pos: waypoints[0],
+            prev: waypoints[0],
+        });
+
+        // Interior particles: walk along the waypoint path
+        let mut span_idx = 0;
+        let mut dist_into_span: f32;
+        let mut cumulative_before_span = 0.0_f32;
+
+        for i in 1..target_n - 1 {
+            let target_dist = (i as f32 / (target_n - 1) as f32) * total;
+
+            // Advance span pointer to the span containing target_dist
+            while span_idx < span_lengths.len()
+                && target_dist > cumulative_before_span + span_lengths[span_idx] + 1e-6
+            {
+                cumulative_before_span += span_lengths[span_idx];
+                span_idx += 1;
+            }
+            span_idx = span_idx.min(span_lengths.len() - 1);
+
+            dist_into_span = target_dist - cumulative_before_span;
+            let span_len = span_lengths[span_idx];
+            let t = if span_len > 1e-8 {
+                (dist_into_span / span_len).clamp(0.0, 1.0)
             } else {
-                a.lerp(b, t)
+                0.0
             };
+            let pos = waypoints[span_idx].lerp(waypoints[span_idx + 1], t);
             new_particles.push(RopeParticle { pos, prev: pos });
         }
+
+        // Last particle at end
+        let end = *waypoints.last().unwrap();
+        new_particles.push(RopeParticle { pos: end, prev: end });
+
         self.particles = new_particles;
+    }
+
+    /// Legacy resize for unwrapped cables (no anchors).
+    pub fn resize_for_endpoints(&mut self, a: Vec2, b: Vec2) {
+        self.resize_for_path(&[a, b]);
+    }
+
+    /// Grow or shrink only the free segment (after `last_pin_idx`) to match
+    /// the distance from the last anchor to `dst`. Locked segments are
+    /// untouched — no Verlet state is lost, no pinned indices invalidated.
+    pub fn resize_free_end(&mut self, last_pin_idx: usize, dst: Vec2) {
+        let pin_pos = self.particles[last_pin_idx].pos;
+        let free_span = (dst - pin_pos).length();
+        let target_free = ((free_span / SEGMENT_LENGTH).ceil() as usize + 1).max(2);
+        let current_free = self.particles.len() - last_pin_idx;
+
+        if target_free > current_free {
+            // Append new particles lerped between current last particle and dst
+            let old_last = self.particles.last().unwrap().pos;
+            let to_add = target_free - current_free;
+            for i in 1..=to_add {
+                let t = i as f32 / (to_add + 1) as f32;
+                let pos = old_last.lerp(dst, t);
+                self.particles.push(RopeParticle { pos, prev: pos });
+            }
+        } else if target_free < current_free {
+            let new_len = (last_pin_idx + target_free).max(last_pin_idx + 2);
+            self.particles.truncate(new_len);
+        }
     }
 }
 
@@ -658,7 +730,17 @@ pub fn rope_physics_system(
         let src_pos = src_t.position;
         let dst_pos = dst_t.position;
 
-        rope.resize_for_endpoints(src_pos, dst_pos);
+        // When wrapped, only resize the free end (after last anchor).
+        // Locked segments are left untouched.
+        if let Some(wrap) = wrap_wire {
+            if let Some(last_anchor) = wrap.anchors.last() {
+                rope.resize_free_end(last_anchor.pinned_particle, dst_pos);
+            } else {
+                rope.resize_for_endpoints(src_pos, dst_pos);
+            }
+        } else {
+            rope.resize_for_endpoints(src_pos, dst_pos);
+        }
 
         let rest_length = if let Some(wrap) = wrap_wire {
             if wrap.target_length > 0.0 && rope.particles.len() > 1 {

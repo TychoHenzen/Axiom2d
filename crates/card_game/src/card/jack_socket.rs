@@ -254,18 +254,26 @@ pub fn pending_cable_drag_system(
         if let Ok(mut free_t) = free_ends.get_mut(free_end_entity) {
             free_t.position = cursor_pos;
         }
-        // Dynamically resize the rope to match the current drag distance
-        if let Some(cable_entity) = pending.origin_cable
-            && let Ok(mut rope) = ropes.get_mut(cable_entity)
-        {
-            rope.resize_for_endpoints(src_t.position, cursor_pos);
-        }
-        if let Some(cable_entity) = pending.origin_cable
-            && let Ok(mut wrap) = wrap_wires.get_mut(cable_entity)
-        {
-            let dist = (cursor_pos - src_t.position).length();
-            if wrap.target_length < dist {
-                wrap.target_length = dist * 1.05;
+        // Dynamically resize the rope and update wrap target_length
+        if let Some(cable_entity) = pending.origin_cable {
+            let last_pin = wrap_wires
+                .get(cable_entity)
+                .ok()
+                .and_then(|w| w.anchors.last().map(|a| a.pinned_particle));
+
+            if let Ok(mut wrap) = wrap_wires.get_mut(cable_entity) {
+                let dist = (cursor_pos - src_t.position).length();
+                if wrap.target_length < dist {
+                    wrap.target_length = dist * 1.05;
+                }
+            }
+
+            if let Ok(mut rope) = ropes.get_mut(cable_entity) {
+                if let Some(pin_idx) = last_pin {
+                    rope.resize_free_end(pin_idx, cursor_pos);
+                } else {
+                    rope.resize_for_endpoints(src_t.position, cursor_pos);
+                }
             }
         }
     } else {
