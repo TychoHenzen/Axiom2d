@@ -180,9 +180,7 @@ pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity
             SortOrder::default(),
             LocalSortOrder(SCREEN_LOCAL_SORT),
             Clickable(ClickHitShape::Aabb(SCREEN_HALF_EXTENTS)),
-            CableCollider {
-                half_extents: SCREEN_HALF_EXTENTS,
-            },
+            CableCollider::from_aabb(SCREEN_HALF_EXTENTS),
         ))
         .id();
     world.entity_mut(device_entity).observe(on_screen_clicked);

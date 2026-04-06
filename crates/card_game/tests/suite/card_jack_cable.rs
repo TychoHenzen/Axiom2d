@@ -1198,3 +1198,44 @@ fn given_rope_wire_when_rope_render_system_runs_then_shape_is_ribbon_polygon() {
         ),
     }
 }
+
+// ---------------------------------------------------------------------------
+// Polygon collision — particle pushed out of convex polygon
+// ---------------------------------------------------------------------------
+
+#[test]
+fn when_particle_inside_polygon_then_resolve_polygon_collisions_pushes_it_out() {
+    // Arrange — a square obstacle centered at (100, 100) with half-extent 20
+    let vertices = vec![
+        Vec2::new(80.0, 80.0),
+        Vec2::new(120.0, 80.0),
+        Vec2::new(120.0, 120.0),
+        Vec2::new(80.0, 120.0),
+    ];
+    let mut wire = RopeWire::with_particles(vec![
+        RopeParticle {
+            pos: Vec2::new(0.0, 0.0),
+            prev: Vec2::new(0.0, 0.0),
+        },
+        RopeParticle {
+            pos: Vec2::new(105.0, 100.0),
+            prev: Vec2::new(105.0, 100.0),
+        },
+        RopeParticle {
+            pos: Vec2::new(200.0, 0.0),
+            prev: Vec2::new(200.0, 0.0),
+        },
+    ]);
+
+    // Act
+    wire.resolve_polygon_collisions(&[(Vec2::new(100.0, 100.0), &vertices)]);
+
+    // Assert — particle must be outside the polygon
+    let p = wire.particles[1].pos;
+    let dx = (p.x - 100.0).abs();
+    let dy = (p.y - 100.0).abs();
+    assert!(
+        dx >= 19.9 || dy >= 19.9,
+        "particle must be pushed to polygon boundary, got {p}"
+    );
+}

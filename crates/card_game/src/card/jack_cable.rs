@@ -133,7 +133,22 @@ pub fn signature_space_propagation_system(
 
 #[derive(Component, Debug, Clone)]
 pub struct CableCollider {
-    pub half_extents: Vec2,
+    /// Convex hull vertices in local space, wound counter-clockwise.
+    pub vertices: Vec<Vec2>,
+}
+
+impl CableCollider {
+    /// Construct from AABB half-extents (backward compat for readers/screens).
+    pub fn from_aabb(half: Vec2) -> Self {
+        Self {
+            vertices: vec![
+                Vec2::new(-half.x, -half.y),
+                Vec2::new(half.x, -half.y),
+                Vec2::new(half.x, half.y),
+                Vec2::new(-half.x, half.y),
+            ],
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -236,22 +251,52 @@ impl RopeWire {
         }
     }
 
-    pub fn resolve_aabb_collisions(&mut self, boxes: &[(Vec2, Vec2)]) {
+    /// Push interior particles out of convex polygons.
+    /// Each entry in `polygons` is `(center, &world_verts)`.
+    pub fn resolve_polygon_collisions(&mut self, polygons: &[(Vec2, &[Vec2])]) {
         let len = self.particles.len();
-        // Skip first and last particles — they're pinned to endpoints
         for i in 1..len.saturating_sub(1) {
-            let particle = &mut self.particles[i];
-            for &(center, half) in boxes {
-                let d = particle.pos - center;
-                if d.x.abs() < half.x && d.y.abs() < half.y {
-                    let overlap_x = half.x - d.x.abs();
-                    let overlap_y = half.y - d.y.abs();
-                    if overlap_x < overlap_y {
-                        particle.pos.x += overlap_x * d.x.signum();
-                    } else {
-                        particle.pos.y += overlap_y * d.y.signum();
+            let p = self.particles[i].pos;
+            for &(_, verts) in polygons {
+                let n = verts.len();
+                if n < 3 {
+                    continue;
+                }
+                // Check if point is inside convex polygon using cross products
+                let mut inside = true;
+                for j in 0..n {
+                    let a = verts[j];
+                    let b = verts[(j + 1) % n];
+                    let cross = (b - a).perp_dot(p - a);
+                    if cross < 0.0 {
+                        inside = false;
+                        break;
                     }
                 }
+                if !inside {
+                    continue;
+                }
+                // Find closest edge and push out along its normal
+                let mut min_dist = f32::MAX;
+                let mut push = Vec2::ZERO;
+                for j in 0..n {
+                    let a = verts[j];
+                    let b = verts[(j + 1) % n];
+                    let edge = b - a;
+                    let edge_len_sq = edge.length_squared();
+                    if edge_len_sq < 1e-10 {
+                        continue;
+                    }
+                    let t = ((p - a).dot(edge) / edge_len_sq).clamp(0.0, 1.0);
+                    let closest = a + edge * t;
+                    let dist = (p - closest).length();
+                    if dist < min_dist {
+                        min_dist = dist;
+                        let normal = Vec2::new(edge.y, -edge.x).normalize_or_zero();
+                        push = normal * (min_dist + 0.1);
+                    }
+                }
+                self.particles[i].pos = p + push;
             }
         }
     }
@@ -337,9 +382,12 @@ pub fn rope_physics_system(
     transforms: Query<&Transform2D, Without<RopeWire>>,
     colliders: Query<(&Transform2D, &CableCollider), Without<RopeWire>>,
 ) {
-    let boxes: Vec<(Vec2, Vec2)> = colliders
+    let polygons: Vec<(Vec2, Vec<Vec2>)> = colliders
         .iter()
-        .map(|(t, c)| (t.position, c.half_extents))
+        .map(|(t, c)| {
+            let world_verts: Vec<Vec2> = c.vertices.iter().map(|v| *v + t.position).collect();
+            (t.position, world_verts)
+        })
         .collect();
 
     for (mut rope, endpoints) in &mut ropes {
@@ -357,7 +405,9 @@ pub fn rope_physics_system(
         rope.verlet_step(ROPE_DAMPING);
         for _ in 0..ROPE_CONSTRAINT_ITERATIONS {
             rope.relax_constraints(rest_length);
-            rope.resolve_aabb_collisions(&boxes);
+            let poly_refs: Vec<(Vec2, &[Vec2])> =
+                polygons.iter().map(|(c, v)| (*c, v.as_slice())).collect();
+            rope.resolve_polygon_collisions(&poly_refs);
         }
         rope.pin_endpoints(src_pos, dst_pos);
     }

@@ -156,7 +156,7 @@ pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
             },
             RigidBody::Kinematic,
             Collider::Aabb(half),
-            CableCollider { half_extents: half },
+            CableCollider::from_aabb(half),
             Shape {
                 variant: rounded_rect_path(READER_HALF_W, READER_HALF_H, BASE_CORNER_RADIUS),
                 color: BASE_FILL,
