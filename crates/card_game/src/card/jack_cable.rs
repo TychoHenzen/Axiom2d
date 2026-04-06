@@ -137,6 +137,56 @@ pub struct CableCollider {
     pub vertices: Vec<Vec2>,
 }
 
+#[derive(Debug, Clone)]
+pub struct WrapAnchor {
+    /// World-space position of this anchor (polygon vertex).
+    pub position: Vec2,
+    /// Which obstacle entity this anchor belongs to.
+    pub obstacle: Entity,
+    /// Index into that obstacle's CableCollider.vertices.
+    pub vertex_index: usize,
+    /// Wrap direction: +1.0 for CCW wrap, -1.0 for CW wrap.
+    pub wrap_sign: f32,
+    /// Index of the pinned particle in the `RopeWire` chain.
+    pub pinned_particle: usize,
+}
+
+#[derive(Component, Debug, Clone)]
+pub struct WrapWire {
+    /// Ordered anchor points from source toward dest.
+    pub anchors: Vec<WrapAnchor>,
+    /// Target length the cable is retracting toward.
+    pub target_length: f32,
+}
+
+impl Default for WrapWire {
+    fn default() -> Self {
+        Self {
+            anchors: vec![],
+            target_length: 0.0,
+        }
+    }
+}
+
+impl WrapWire {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Compute the shortest geometric path from `src` through all anchors to `dst`.
+    pub fn shortest_path(&self, src: Vec2, dst: Vec2) -> f32 {
+        if self.anchors.is_empty() {
+            return (dst - src).length();
+        }
+        let mut total = (self.anchors[0].position - src).length();
+        for i in 0..self.anchors.len() - 1 {
+            total += (self.anchors[i + 1].position - self.anchors[i].position).length();
+        }
+        total += (dst - self.anchors.last().expect("checked non-empty").position).length();
+        total
+    }
+}
+
 impl CableCollider {
     /// Construct from AABB half-extents (backward compat for readers/screens).
     pub fn from_aabb(half: Vec2) -> Self {

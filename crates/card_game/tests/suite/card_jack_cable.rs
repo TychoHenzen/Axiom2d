@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex};
 use bevy_ecs::prelude::*;
 use card_game::card::identity::signature::CardSignature;
 use card_game::card::jack_cable::{
-    Cable, Jack, JackDirection, RopeParticle, RopeWire, RopeWireEndpoints, cable_render_system,
-    particles_to_bezier_path, rope_physics_system, rope_render_system,
+    Cable, Jack, JackDirection, RopeParticle, RopeWire, RopeWireEndpoints, WrapAnchor, WrapWire,
+    cable_render_system, particles_to_bezier_path, rope_physics_system, rope_render_system,
     signature_space_propagation_system,
 };
 use card_game::card::reader::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
@@ -1237,5 +1237,59 @@ fn when_particle_inside_polygon_then_resolve_polygon_collisions_pushes_it_out() 
     assert!(
         dx >= 19.9 || dy >= 19.9,
         "particle must be pushed to polygon boundary, got {p}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// WrapWire — shortest_path computation
+// ---------------------------------------------------------------------------
+
+/// @doc: A `WrapWire` with no anchors represents a cable that wraps around zero obstacles,
+/// so its shortest geometric path is simply the straight-line distance between the two
+/// endpoints. This is the base case for the path-length computation used by the retraction
+/// system — if the zero-anchor case returns the wrong value, every retraction target length
+/// will be miscalculated even for cables that have never contacted an obstacle.
+#[test]
+fn when_wrap_wire_has_no_anchors_then_shortest_path_is_endpoint_distance() {
+    // Arrange
+    let wire = WrapWire::new();
+    let src = Vec2::new(0.0, 0.0);
+    let dst = Vec2::new(100.0, 0.0);
+
+    // Act
+    let path = wire.shortest_path(src, dst);
+
+    // Assert
+    assert!((path - 100.0).abs() < 0.01, "expected 100.0, got {path}");
+}
+
+/// @doc: When a `WrapWire` has one anchor, the shortest path must go from `src` to the
+/// anchor position and then from the anchor to `dst`, forming a two-segment polyline. This
+/// tests the fundamental anchor-routing logic: the cable bends around a single obstacle
+/// vertex, and the total path length equals the sum of the two segment lengths. If this
+/// case is wrong, multi-anchor paths (which are just chained single-anchor segments) will
+/// also be wrong, breaking retraction distance calculations for any wrapped cable.
+#[test]
+fn when_wrap_wire_has_one_anchor_then_shortest_path_goes_through_it() {
+    // Arrange
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(50.0, 50.0),
+        obstacle: Entity::from_raw(999),
+        vertex_index: 0,
+        wrap_sign: 1.0,
+        pinned_particle: 0,
+    });
+    let src = Vec2::new(0.0, 0.0);
+    let dst = Vec2::new(100.0, 0.0);
+
+    // Act
+    let path = wire.shortest_path(src, dst);
+
+    // Assert — src→(50,50)→dst = ~70.71 + ~70.71 = ~141.42
+    let expected = (Vec2::new(50.0, 50.0) - src).length() + (dst - Vec2::new(50.0, 50.0)).length();
+    assert!(
+        (path - expected).abs() < 0.01,
+        "expected {expected}, got {path}"
     );
 }
