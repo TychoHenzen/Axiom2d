@@ -374,9 +374,7 @@ impl RopeWire {
             1.0
         };
 
-        if target_n > current_n {
-            self.rebuild_particles(a, b, target_n);
-        } else if target_n < current_n && wrap_ratio < 1.4 {
+        if target_n > current_n || (target_n < current_n && wrap_ratio < 1.4) {
             self.rebuild_particles(a, b, target_n);
         }
         // else: same count or wrapped — keep current particles

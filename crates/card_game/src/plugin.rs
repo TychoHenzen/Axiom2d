@@ -114,6 +114,7 @@ fn register_systems(app: &mut App) {
             (
                 card_damping_system.after(physics_sync_system),
                 reader_rotation_lock_system.after(physics_sync_system),
+                rope_physics_system.after(physics_sync_system),
             ),
         )
         .add_systems(
@@ -141,7 +142,6 @@ fn register_systems(app: &mut App) {
             Phase::Update,
             (
                 pending_cable_drag_system,
-                rope_physics_system,
                 rope_render_system,
                 signature_space_propagation_system,
                 jack_socket_render_system,
