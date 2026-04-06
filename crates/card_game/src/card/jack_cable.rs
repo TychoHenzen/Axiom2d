@@ -1,6 +1,7 @@
-use bevy_ecs::prelude::{Component, Entity, Query, Without};
+use bevy_ecs::prelude::{Component, Entity, Query, Res, Without};
 use engine_core::color::Color;
 use engine_core::prelude::Transform2D;
+use engine_core::time::DeltaTime;
 use engine_render::prelude::{Shape, ShapeVariant};
 use engine_render::shape::PathCommand;
 use engine_scene::prelude::Visible;
@@ -246,6 +247,24 @@ impl WrapWire {
             } else {
                 i += 1;
             }
+        }
+    }
+
+    /// Proportionally retract `target_length` toward the shortest geometric path.
+    pub fn retract(&mut self, src: Vec2, dst: Vec2, rate: f32, dt: f32) {
+        let shortest = self.shortest_path(src, dst);
+        let slack_factor = 1.05;
+        let floor = shortest * slack_factor;
+
+        if self.target_length > floor {
+            self.target_length -= (self.target_length - floor) * rate * dt;
+            if self.target_length < floor {
+                self.target_length = floor;
+            }
+        }
+
+        if self.target_length < shortest {
+            self.target_length = shortest;
         }
     }
 
@@ -553,6 +572,24 @@ pub fn find_wrap_vertex(a: Vec2, b: Vec2, polygon: &[Vec2]) -> Option<(usize, f3
 
     let wrap_sign = span_dir.perp_dot(polygon[best_idx] - a).signum();
     Some((best_idx, wrap_sign))
+}
+
+const RETRACTION_RATE: f32 = 3.0;
+
+pub fn retraction_system(
+    mut wires: Query<(&mut WrapWire, &RopeWireEndpoints)>,
+    transforms: Query<&Transform2D, Without<WrapWire>>,
+    dt: Res<DeltaTime>,
+) {
+    for (mut wrap, endpoints) in &mut wires {
+        let Ok(src_t) = transforms.get(endpoints.source) else {
+            continue;
+        };
+        let Ok(dst_t) = transforms.get(endpoints.dest) else {
+            continue;
+        };
+        wrap.retract(src_t.position, dst_t.position, RETRACTION_RATE, dt.0.0);
+    }
 }
 
 const ROPE_DAMPING: f32 = 0.95;

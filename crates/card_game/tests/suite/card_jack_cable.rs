@@ -1580,3 +1580,29 @@ fn when_rope_has_wrap_anchor_then_physics_pins_particle_at_anchor_position() {
         "particle[5] must be pinned to anchor at {anchor_pos}, got {pinned}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Retraction — WrapWire::retract reduces target_length toward shortest path
+// ---------------------------------------------------------------------------
+
+#[test]
+fn when_target_length_exceeds_shortest_path_then_retraction_reduces_it() {
+    // Arrange
+    let mut wire = WrapWire::new();
+    wire.target_length = 200.0;
+    let src = Vec2::new(0.0, 0.0);
+    let dst = Vec2::new(100.0, 0.0);
+    let shortest = wire.shortest_path(src, dst); // 100.0
+    let dt = 0.016;
+    let retraction_rate = 3.0;
+
+    // Act
+    wire.retract(src, dst, retraction_rate, dt);
+
+    // Assert
+    assert!(wire.target_length < 200.0, "target_length must decrease");
+    assert!(
+        wire.target_length > shortest,
+        "target_length must not go below shortest path"
+    );
+}
