@@ -248,11 +248,13 @@ impl WrapWire {
             }
 
             if let Some(anchor) = found {
-                let pos = anchor.position;
                 self.anchors.insert(insert_idx, anchor);
-                pins.insert(i + 1, pos);
-                insert_idx += 1;
-                i += 1;
+                // Stop after inserting one anchor per call. The next frame will
+                // discover additional corners if the cable has actually moved
+                // around them. Without this limit, a single span crossing a box
+                // cascades: V1 is inserted, the new span V1→B still crosses the
+                // same box, so V2 is added immediately, then V3, etc.
+                return;
             } else {
                 insert_idx += 1;
                 i += 1;
