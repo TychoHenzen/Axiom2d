@@ -1370,3 +1370,92 @@ fn when_pending_cable_drag_system_runs_then_free_end_position_matches_cursor() {
         "CableFreeEnd position must match cursor world pos {cursor_pos}, got {free_end_pos}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// TC — cable entity has WrapWire component
+// ---------------------------------------------------------------------------
+
+/// @doc: Every cable entity must carry a `WrapWire` component so that wrap detection
+/// systems can find and operate on all cables uniformly. Without `WrapWire`, a cable
+/// spawned through the release-system fallback path would be invisible to the wrap
+/// subsystem and could never gain anchor points around obstacles.
+#[test]
+fn when_cable_connected_between_sockets_then_cable_entity_has_wrap_wire() {
+    use card_game::card::jack_cable::WrapWire;
+    use engine_scene::prelude::{GlobalTransform2D, SortOrder};
+    use glam::Affine2;
+
+    // Arrange
+    let mut world = make_pick_world();
+
+    let output_socket = world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Output,
+                data: None,
+            },
+            JackSocket {
+                radius: 10.0,
+                color: Color::WHITE,
+                connected_cable: None,
+            },
+            Transform2D {
+                position: Vec2::new(0.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
+            SortOrder::default(),
+        ))
+        .id();
+
+    let input_socket = world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Input,
+                data: None,
+            },
+            JackSocket {
+                radius: 10.0,
+                color: Color::WHITE,
+                connected_cable: None,
+            },
+            Transform2D {
+                position: Vec2::new(50.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(50.0, 0.0))),
+            SortOrder::default(),
+        ))
+        .id();
+
+    world.insert_resource(PendingCable {
+        source: Some(output_socket),
+        origin_cable: None,
+        free_end: None,
+    });
+    let mut mouse = MouseState::default();
+    mouse.release(MouseButton::Left);
+    mouse.set_world_pos(Vec2::new(50.0, 0.0));
+    world.insert_resource(mouse);
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems(jack_socket_release_system);
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert — find the cable entity via the socket's connected_cable
+    let socket = world.get::<JackSocket>(output_socket).unwrap();
+    let cable_entity = socket
+        .connected_cable
+        .expect("socket must have a connected cable");
+    let wrap = world
+        .get::<WrapWire>(cable_entity)
+        .expect("cable entity must have WrapWire component");
+    assert!(
+        wrap.anchors.is_empty(),
+        "new cable must start with no anchors"
+    );
+}

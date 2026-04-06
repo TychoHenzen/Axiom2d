@@ -13,7 +13,7 @@ use glam::Vec2;
 use crate::card::interaction::click_resolve::ClickedEntity;
 use crate::card::jack_cable::{
     CABLE_HALF_THICKNESS, CABLE_LOCAL_SORT, Cable, Jack, JackDirection, RopeWire,
-    RopeWireEndpoints, cable_visuals,
+    RopeWireEndpoints, WrapWire, cable_visuals,
 };
 use crate::card::reader::SignatureSpace;
 
@@ -163,6 +163,7 @@ pub fn on_socket_clicked(
                 RenderLayer::World,
                 SortOrder::default(),
                 LocalSortOrder(CABLE_LOCAL_SORT),
+                WrapWire::new(),
             ))
             .id();
         pending.origin_cable = Some(cable_entity);
@@ -402,6 +403,7 @@ pub fn jack_socket_release_system(
                 RenderLayer::World,
                 SortOrder::default(),
                 LocalSortOrder(CABLE_LOCAL_SORT),
+                WrapWire::new(),
             ))
             .id();
         if let Ok((_, mut src_socket, _)) = sockets.get_mut(source_entity) {
