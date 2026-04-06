@@ -1606,3 +1606,227 @@ fn when_target_length_exceeds_shortest_path_then_retraction_reduces_it() {
         "target_length must not go below shortest path"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Bug regression — detect_wraps allowed only one anchor per obstacle (Bug 1)
+// ---------------------------------------------------------------------------
+
+/// @doc: A cable that loops around two separate corners of the same obstacle box must receive
+/// one `WrapAnchor` per corner vertex, not just one for the whole obstacle. The previous
+/// implementation skipped an obstacle entirely once any of its vertices was already anchored,
+/// making it impossible to wrap the cable around a second corner of the same box. This test
+/// pre-inserts an anchor at the top-left corner, then places the destination far enough to
+/// the right that the span from that corner to the destination crosses the box again at the
+/// top-right corner, verifying that a second anchor is added at the different vertex.
+#[test]
+fn when_cable_requires_two_corners_of_same_obstacle_then_detect_wraps_inserts_two_anchors() {
+    // Arrange — box with vertices at x=[30..70], y=[-20..20].
+    // Pre-insert anchor at TL corner (30, 20), vertex index 3.
+    // src is to the left of the box; dst is far to the right at y=20 (same height as TL).
+    // The span from anchor TL (30,20) to dst (150,20) is horizontal and crosses the top
+    // edge of the box — specifically the TR corner (70,20) — so a second anchor must be
+    // added at vertex index 2 (TR).
+    let mut wire = WrapWire::new();
+    let obstacle = Entity::from_raw(7);
+    // CCW vertices: BL, BR, TR, TL  (indices 0,1,2,3)
+    let verts = vec![
+        Vec2::new(30.0, -20.0), // 0 BL
+        Vec2::new(70.0, -20.0), // 1 BR
+        Vec2::new(70.0, 20.0),  // 2 TR
+        Vec2::new(30.0, 20.0),  // 3 TL
+    ];
+    let obstacles = vec![(obstacle, verts.as_slice())];
+
+    // Pre-insert the first anchor at the TL corner to simulate a partially-wrapped state.
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(30.0, 20.0), // vertex index 3 (TL)
+        obstacle,
+        vertex_index: 3,
+        wrap_sign: 1.0,
+        pinned_particle: 3,
+    });
+
+    // src is to the left; dst is far to the right at y=20.
+    // Span layout: src(-10,20) → anchor-TL(30,20) → dst(150,20).
+    // The span anchor-TL → dst(150,20) crosses the top edge of the box (TR corner at 70,20),
+    // so detect_wraps must add a second anchor at vertex 2 (TR).
+    let src = Vec2::new(-10.0, 20.0);
+    let dst = Vec2::new(150.0, 20.0);
+
+    // Act
+    wire.detect_wraps(src, dst, &obstacles);
+
+    // Assert — a second anchor must have been inserted alongside the pre-existing TL anchor
+    assert!(
+        wire.anchors.len() >= 2,
+        "detect_wraps must add a second anchor at a different corner of the same obstacle; \
+         anchors by vertex_index: {:?}",
+        wire.anchors
+            .iter()
+            .map(|a| a.vertex_index)
+            .collect::<Vec<_>>()
+    );
+    // The two anchors must reference different vertices on the same obstacle
+    let indices: Vec<usize> = wire.anchors.iter().map(|a| a.vertex_index).collect();
+    assert!(
+        indices.windows(2).all(|w| w[0] != w[1]),
+        "anchors on the same obstacle must reference different vertices, got {:?}",
+        indices
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Bug regression — wrap_detect_system must assign a non-zero pinned_particle (Bug 2)
+// ---------------------------------------------------------------------------
+
+/// @doc: `wrap_detect_system` must assign each newly-inserted `WrapAnchor` a `pinned_particle`
+/// index that points to an interior particle in the associated `RopeWire`, not to index 0.
+/// `rope_physics_system` guards `if idx > 0 && idx < n - 1`, so an anchor with
+/// `pinned_particle == 0` silently pins nothing: the cable appears to wrap geometrically but
+/// the Verlet physics ignores the anchor and lets the cable pull straight through the obstacle.
+#[test]
+fn when_wrap_detect_system_inserts_anchor_then_pinned_particle_is_nonzero_interior_index() {
+    // Arrange
+    let mut world = World::new();
+
+    let source = world
+        .spawn(Transform2D {
+            position: Vec2::new(0.0, 5.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+    let dest = world
+        .spawn(Transform2D {
+            position: Vec2::new(200.0, 5.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+
+    // Obstacle box centered at (100, 0) with half-extents (20, 20)
+    world.spawn((
+        Transform2D {
+            position: Vec2::new(100.0, 0.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        },
+        CableCollider::from_aabb(Vec2::new(20.0, 20.0)),
+    ));
+
+    let cable_entity = world
+        .spawn((
+            RopeWire::new(Vec2::new(0.0, 5.0), Vec2::new(200.0, 5.0), 10),
+            RopeWireEndpoints { source, dest },
+            WrapWire::new(),
+        ))
+        .id();
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems((wrap_update_system, wrap_detect_system).chain());
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert
+    let wrap = world.get::<WrapWire>(cable_entity).unwrap();
+    let rope = world.get::<RopeWire>(cable_entity).unwrap();
+    assert!(
+        !wrap.anchors.is_empty(),
+        "wrap_detect_system must insert at least one anchor"
+    );
+    for anchor in &wrap.anchors {
+        let n = rope.particles.len();
+        assert!(
+            anchor.pinned_particle > 0 && anchor.pinned_particle < n - 1,
+            "pinned_particle must be an interior index (1..{}) so rope_physics_system \
+             actually pins it; got {}",
+            n - 1,
+            anchor.pinned_particle
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Integration — wrap + physics together: particle is actually pinned to obstacle vertex
+// ---------------------------------------------------------------------------
+
+/// @doc: End-to-end test verifying that after `wrap_detect_system` and `rope_physics_system`
+/// both run, the particle corresponding to the wrap anchor is held at the obstacle vertex
+/// position. This is the observable player-facing invariant: the cable must not pass through
+/// the reader box when dragged across it. The previous two bugs (wrong `already_anchored`
+/// scope and `pinned_particle: 0`) together allowed anchors to be created but ignored by the
+/// physics solver, so the cable pulled straight through.
+#[test]
+fn when_cable_crosses_obstacle_and_both_systems_run_then_anchor_particle_is_pinned_to_vertex() {
+    // Arrange
+    let mut world = World::new();
+
+    let source = world
+        .spawn(Transform2D {
+            position: Vec2::new(0.0, 5.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+    let dest = world
+        .spawn(Transform2D {
+            position: Vec2::new(200.0, 5.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+
+    // Obstacle box centered at (100, 0) with half-extents (20, 20)
+    let obstacle_pos = Vec2::new(100.0, 0.0);
+    world.spawn((
+        Transform2D {
+            position: obstacle_pos,
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        },
+        CableCollider::from_aabb(Vec2::new(20.0, 20.0)),
+    ));
+
+    // Enough particles so index 0 and n-1 are endpoints, and interior indices exist
+    let mut wrap = WrapWire::new();
+    wrap.target_length = 300.0;
+    let cable_entity = world
+        .spawn((
+            RopeWire::new(Vec2::new(0.0, 5.0), Vec2::new(200.0, 5.0), 12),
+            RopeWireEndpoints { source, dest },
+            wrap,
+        ))
+        .id();
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems((wrap_update_system, wrap_detect_system, rope_physics_system).chain());
+
+    // Act — run two ticks so the anchor from tick 1 is pinned in tick 2
+    schedule.run(&mut world);
+    schedule.run(&mut world);
+
+    // Assert — at least one anchor exists and its particle is at the anchor position
+    let wrap = world.get::<WrapWire>(cable_entity).unwrap();
+    let rope = world.get::<RopeWire>(cable_entity).unwrap();
+    assert!(
+        !wrap.anchors.is_empty(),
+        "cable crossing obstacle must have at least one anchor"
+    );
+    for anchor in &wrap.anchors {
+        let idx = anchor.pinned_particle;
+        let n = rope.particles.len();
+        assert!(
+            idx > 0 && idx < n - 1,
+            "pinned_particle must be an interior index, got {idx} (n={n})"
+        );
+        let pinned_pos = rope.particles[idx].pos;
+        assert!(
+            (pinned_pos - anchor.position).length() < 1.0,
+            "particle[{idx}] must be pinned to anchor at {:?}; got {:?} (distance {})",
+            anchor.position,
+            pinned_pos,
+            (pinned_pos - anchor.position).length()
+        );
+    }
+}

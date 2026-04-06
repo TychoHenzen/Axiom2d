@@ -192,21 +192,58 @@ impl WrapWire {
             let span_b = pins[i + 1];
 
             let mut found = None;
-            for &(entity, verts) in obstacles {
-                // Skip obstacles already anchored
-                let already_anchored = self.anchors.iter().any(|a| a.obstacle == entity);
-                if already_anchored {
+            'obstacle: for &(entity, verts) in obstacles {
+                let n = verts.len();
+                if n < 3 {
                     continue;
                 }
-                if let Some((vidx, sign)) = find_wrap_vertex(span_a, span_b, verts) {
+                // Check whether the span *enters* a polygon edge at a point strictly
+                // interior to the span (t > ε).  Intersections at t≈0 mean the span
+                // starts exactly at the polygon boundary (i.e. the start point is an
+                // already-pinned anchor on this obstacle) and must not trigger another wrap.
+                let has_interior_intersection = (0..n).any(|j| {
+                    segment_intersects_segment(span_a, span_b, verts[j], verts[(j + 1) % n])
+                        .map_or(false, |t| t > 1e-6)
+                });
+                if !has_interior_intersection {
+                    continue 'obstacle;
+                }
+
+                // Pick the best vertex that (a) creates the shortest detour and
+                // (b) is not already an anchor on this obstacle.  Excluding already-anchored
+                // vertices lets the cable add a second anchor at a different corner of the
+                // same box — necessary for cables that wrap around more than one corner.
+                let span_dir = span_b - span_a;
+                let mut best_idx: Option<usize> = None;
+                let mut best_detour = f32::MAX;
+                for (j, v) in verts.iter().enumerate() {
+                    let already = self
+                        .anchors
+                        .iter()
+                        .any(|a| a.obstacle == entity && a.vertex_index == j);
+                    if already {
+                        continue;
+                    }
+                    let detour = (*v - span_a).length() + (span_b - *v).length();
+                    if detour < best_detour {
+                        best_detour = detour;
+                        best_idx = Some(j);
+                    }
+                }
+
+                if let Some(vidx) = best_idx {
+                    let v = verts[vidx];
+                    let wrap_sign = span_dir.perp_dot(v - span_a).signum();
                     found = Some(WrapAnchor {
-                        position: verts[vidx],
+                        position: v,
                         obstacle: entity,
                         vertex_index: vidx,
-                        wrap_sign: sign,
+                        wrap_sign,
+                        // pinned_particle is 0 as a placeholder; wrap_detect_system
+                        // updates it to the closest interior particle index after insertion.
                         pinned_particle: 0,
                     });
-                    break;
+                    break 'obstacle;
                 }
             }
 
@@ -750,7 +787,7 @@ pub fn wrap_update_system(
 
 /// Detect wrap and unwrap events based on cable span vs obstacle polygon intersections.
 pub fn wrap_detect_system(
-    mut wires: Query<(&mut WrapWire, &RopeWireEndpoints)>,
+    mut wires: Query<(&mut WrapWire, &RopeWireEndpoints, Option<&RopeWire>)>,
     transforms: Query<&Transform2D, Without<WrapWire>>,
     colliders: Query<(Entity, &Transform2D, &CableCollider), Without<WrapWire>>,
 ) {
@@ -762,7 +799,7 @@ pub fn wrap_detect_system(
         })
         .collect();
 
-    for (mut wrap, endpoints) in &mut wires {
+    for (mut wrap, endpoints, rope) in &mut wires {
         let Ok(src_t) = transforms.get(endpoints.source) else {
             continue;
         };
@@ -778,6 +815,37 @@ pub fn wrap_detect_system(
         let obstacle_refs: Vec<(Entity, &[Vec2])> =
             obstacles.iter().map(|(e, v)| (*e, v.as_slice())).collect();
         wrap.detect_wraps(src, dst, &obstacle_refs);
+
+        // Assign pinned_particle for any anchor whose index is still 0 (the placeholder set
+        // by detect_wraps).  We pick the interior particle closest to the anchor's world
+        // position so that rope_physics_system can actually lock a particle onto the vertex.
+        // Without this, every new anchor would reference particle[0] (the source endpoint),
+        // which rope_physics_system deliberately skips, leaving no particle pinned.
+        if let Some(rope) = rope {
+            let n = rope.particles.len();
+            if n > 2 {
+                for anchor in wrap.anchors.iter_mut() {
+                    if anchor.pinned_particle == 0 {
+                        // Search interior particles only (skip endpoints 0 and n-1)
+                        let best = rope
+                            .particles
+                            .iter()
+                            .enumerate()
+                            .skip(1)
+                            .take(n - 2)
+                            .min_by(|(_, a), (_, b)| {
+                                a.pos
+                                    .distance_squared(anchor.position)
+                                    .partial_cmp(&b.pos.distance_squared(anchor.position))
+                                    .unwrap_or(std::cmp::Ordering::Equal)
+                            });
+                        if let Some((idx, _)) = best {
+                            anchor.pinned_particle = idx;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
