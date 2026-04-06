@@ -421,6 +421,60 @@ impl RopeWire {
     }
 }
 
+/// Returns the parameter `t` along segment (a1→a2) where it intersects segment (b1→b2).
+/// Returns `None` if the segments don't intersect. Both `t` and `u` must be in [0, 1].
+pub fn segment_intersects_segment(a1: Vec2, a2: Vec2, b1: Vec2, b2: Vec2) -> Option<f32> {
+    let d1 = a2 - a1;
+    let d2 = b2 - b1;
+    let denom = d1.perp_dot(d2);
+    if denom.abs() < 1e-10 {
+        return None; // parallel
+    }
+    let diff = b1 - a1;
+    let t = diff.perp_dot(d2) / denom;
+    let u = diff.perp_dot(d1) / denom;
+    if (0.0..=1.0).contains(&t) && (0.0..=1.0).contains(&u) {
+        Some(t)
+    } else {
+        None
+    }
+}
+
+/// Given a cable span (a→b) that crosses a convex polygon, find the vertex to wrap around.
+/// Returns `(vertex_index, wrap_sign)` where `wrap_sign` is +1.0 (CCW) or -1.0 (CW).
+/// Returns `None` if the span doesn't cross the polygon.
+pub fn find_wrap_vertex(a: Vec2, b: Vec2, polygon: &[Vec2]) -> Option<(usize, f32)> {
+    let n = polygon.len();
+    if n < 3 {
+        return None;
+    }
+
+    // Check if the span intersects any edge of the polygon
+    let has_intersection = (0..n).any(|i| {
+        let e1 = polygon[i];
+        let e2 = polygon[(i + 1) % n];
+        segment_intersects_segment(a, b, e1, e2).is_some()
+    });
+    if !has_intersection {
+        return None;
+    }
+
+    // Find the vertex that creates the shortest detour
+    let span_dir = b - a;
+    let mut best_idx = 0;
+    let mut best_detour = f32::MAX;
+    for (i, v) in polygon.iter().enumerate() {
+        let detour = (*v - a).length() + (b - *v).length();
+        if detour < best_detour {
+            best_detour = detour;
+            best_idx = i;
+        }
+    }
+
+    let wrap_sign = span_dir.perp_dot(polygon[best_idx] - a).signum();
+    Some((best_idx, wrap_sign))
+}
+
 const ROPE_DAMPING: f32 = 0.95;
 const ROPE_CONSTRAINT_ITERATIONS: usize = 8;
 const ROPE_SLACK: f32 = 1.0;

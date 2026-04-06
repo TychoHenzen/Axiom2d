@@ -1293,3 +1293,86 @@ fn when_wrap_wire_has_one_anchor_then_shortest_path_goes_through_it() {
         "expected {expected}, got {path}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Segment intersection — crossing and parallel cases
+// ---------------------------------------------------------------------------
+
+use card_game::card::jack_cable::{find_wrap_vertex, segment_intersects_segment};
+
+/// @doc: `segment_intersects_segment` detects when two finite line segments cross each other
+/// and returns the parametric `t` along the first segment at the intersection point. For two
+/// perpendicular segments that cross at their midpoints, `t` must be 0.5. This is the
+/// foundation of the wrap-detection system — without accurate segment–segment intersection,
+/// the cable cannot detect when it crosses a polygon edge.
+#[test]
+fn when_two_crossing_segments_then_intersection_returns_some() {
+    // Arrange — horizontal and vertical crossing segments
+    let a1 = Vec2::new(0.0, 0.0);
+    let a2 = Vec2::new(10.0, 0.0);
+    let b1 = Vec2::new(5.0, -5.0);
+    let b2 = Vec2::new(5.0, 5.0);
+
+    // Act
+    let result = segment_intersects_segment(a1, a2, b1, b2);
+
+    // Assert
+    assert!(result.is_some(), "crossing segments must intersect");
+    let t = result.unwrap();
+    assert!((t - 0.5).abs() < 0.01, "intersection at midpoint, t={t}");
+}
+
+/// @doc: Parallel segments can never intersect regardless of how close they are, so
+/// `segment_intersects_segment` must return `None`. The denominator (perp-dot of the two
+/// direction vectors) is zero for parallel lines, and the function must detect this
+/// degenerate case rather than dividing by zero or returning a spurious intersection.
+#[test]
+fn when_parallel_segments_then_intersection_returns_none() {
+    // Arrange
+    let a1 = Vec2::new(0.0, 0.0);
+    let a2 = Vec2::new(10.0, 0.0);
+    let b1 = Vec2::new(0.0, 5.0);
+    let b2 = Vec2::new(10.0, 5.0);
+
+    // Act
+    let result = segment_intersects_segment(a1, a2, b1, b2);
+
+    // Assert
+    assert!(result.is_none(), "parallel segments must not intersect");
+}
+
+// ---------------------------------------------------------------------------
+// find_wrap_vertex — span crosses polygon
+// ---------------------------------------------------------------------------
+
+/// @doc: `find_wrap_vertex` identifies which vertex of a convex polygon a cable should wrap
+/// around when the cable span crosses the polygon. For a horizontal cable at y=5 crossing a
+/// box centered at (50, 0), the function must pick one of the top vertices (y=10) because
+/// those are on the same side as the cable. The wrap sign indicates whether the cable bends
+/// clockwise or counter-clockwise around that vertex.
+#[test]
+fn when_span_crosses_polygon_then_find_wrap_vertex_returns_correct_corner() {
+    // Arrange — cable spans from left to right across a box centered at (50, 0)
+    let span_a = Vec2::new(0.0, 5.0);
+    let span_b = Vec2::new(100.0, 5.0);
+    // Box vertices CCW: bottom-left, bottom-right, top-right, top-left
+    let verts = vec![
+        Vec2::new(40.0, -10.0),
+        Vec2::new(60.0, -10.0),
+        Vec2::new(60.0, 10.0),
+        Vec2::new(40.0, 10.0),
+    ];
+
+    // Act
+    let result = find_wrap_vertex(span_a, span_b, &verts);
+
+    // Assert — should pick one of the top vertices (y=10 side, same side as the cable at y=5)
+    assert!(result.is_some(), "must find a wrap vertex");
+    let (idx, sign) = result.unwrap();
+    let chosen = verts[idx];
+    assert!(
+        chosen.y > 0.0,
+        "cable at y=5 should wrap around a top vertex, got {chosen}"
+    );
+    assert!(sign.abs() > 0.0, "wrap_sign must be nonzero");
+}
