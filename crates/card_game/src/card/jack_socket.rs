@@ -228,6 +228,7 @@ pub fn pending_cable_drag_system(
     >,
     mut free_ends: Query<&mut Transform2D, (With<CableFreeEnd>, Without<PendingCablePreview>)>,
     mut ropes: Query<&mut RopeWire>,
+    mut wrap_wires: Query<&mut WrapWire>,
 ) {
     let Ok((mut preview_transform, mut preview_shape, mut preview_visible)) = preview.single_mut()
     else {
@@ -258,6 +259,14 @@ pub fn pending_cable_drag_system(
             && let Ok(mut rope) = ropes.get_mut(cable_entity)
         {
             rope.resize_for_endpoints(src_t.position, cursor_pos);
+        }
+        if let Some(cable_entity) = pending.origin_cable
+            && let Ok(mut wrap) = wrap_wires.get_mut(cable_entity)
+        {
+            let dist = (cursor_pos - src_t.position).length();
+            if wrap.target_length < dist {
+                wrap.target_length = dist * 1.05;
+            }
         }
     } else {
         let (next_transform, mut next_shape) = cable_visuals(src_t.position, mouse.world_pos());
