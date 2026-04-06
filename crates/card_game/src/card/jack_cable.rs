@@ -297,6 +297,10 @@ pub struct RopeWireEndpoints {
 }
 
 impl RopeWire {
+    pub fn rest_length(&self) -> f32 {
+        self.rest_length
+    }
+
     pub fn with_particles(particles: Vec<RopeParticle>) -> Self {
         Self {
             particles,
@@ -556,7 +560,7 @@ const ROPE_CONSTRAINT_ITERATIONS: usize = 8;
 const ROPE_SLACK: f32 = 1.0;
 const SEGMENT_LENGTH: f32 = 12.0;
 pub fn rope_physics_system(
-    mut ropes: Query<(&mut RopeWire, &RopeWireEndpoints)>,
+    mut ropes: Query<(&mut RopeWire, &RopeWireEndpoints, Option<&WrapWire>)>,
     transforms: Query<&Transform2D, Without<RopeWire>>,
     colliders: Query<(&Transform2D, &CableCollider), Without<RopeWire>>,
 ) {
@@ -568,7 +572,7 @@ pub fn rope_physics_system(
         })
         .collect();
 
-    for (mut rope, endpoints) in &mut ropes {
+    for (mut rope, endpoints, wrap_wire) in &mut ropes {
         let Ok(src_t) = transforms.get(endpoints.source) else {
             continue;
         };
@@ -579,15 +583,47 @@ pub fn rope_physics_system(
         let dst_pos = dst_t.position;
 
         rope.resize_for_endpoints(src_pos, dst_pos);
-        let rest_length = rope.rest_length;
+
+        let rest_length = if let Some(wrap) = wrap_wire {
+            if wrap.target_length > 0.0 && rope.particles.len() > 1 {
+                wrap.target_length / (rope.particles.len() - 1) as f32
+            } else {
+                rope.rest_length()
+            }
+        } else {
+            rope.rest_length()
+        };
+
         rope.verlet_step(ROPE_DAMPING);
         for _ in 0..ROPE_CONSTRAINT_ITERATIONS {
             rope.relax_constraints(rest_length);
+
+            // Re-pin anchored particles after each constraint iteration
+            if let Some(wrap) = wrap_wire {
+                for anchor in &wrap.anchors {
+                    let idx = anchor.pinned_particle;
+                    if idx > 0 && idx < rope.particles.len() - 1 {
+                        rope.particles[idx].pos = anchor.position;
+                        rope.particles[idx].prev = anchor.position;
+                    }
+                }
+            }
+
             let poly_refs: Vec<(Vec2, &[Vec2])> =
                 polygons.iter().map(|(c, v)| (*c, v.as_slice())).collect();
             rope.resolve_polygon_collisions(&poly_refs);
         }
         rope.pin_endpoints(src_pos, dst_pos);
+
+        if let Some(wrap) = wrap_wire {
+            for anchor in &wrap.anchors {
+                let idx = anchor.pinned_particle;
+                if idx > 0 && idx < rope.particles.len() - 1 {
+                    rope.particles[idx].pos = anchor.position;
+                    rope.particles[idx].prev = anchor.position;
+                }
+            }
+        }
     }
 }
 

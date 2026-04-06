@@ -1522,3 +1522,61 @@ fn when_cable_dragged_across_obstacle_then_wrap_detect_system_adds_anchor() {
         "wrap_detect_system must find the obstacle crossing"
     );
 }
+
+// ---------------------------------------------------------------------------
+// rope_physics_system pins particles at WrapWire anchor positions
+// ---------------------------------------------------------------------------
+
+#[test]
+fn when_rope_has_wrap_anchor_then_physics_pins_particle_at_anchor_position() {
+    // Arrange
+    let mut world = World::new();
+
+    let source = world
+        .spawn(Transform2D {
+            position: Vec2::new(0.0, 0.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+    let dest = world
+        .spawn(Transform2D {
+            position: Vec2::new(200.0, 0.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+
+    let anchor_pos = Vec2::new(100.0, 50.0);
+    let mut wrap = WrapWire::new();
+    wrap.anchors.push(WrapAnchor {
+        position: anchor_pos,
+        obstacle: Entity::from_raw(999),
+        vertex_index: 0,
+        wrap_sign: 1.0,
+        pinned_particle: 5,
+    });
+    wrap.target_length = 300.0;
+
+    let rope_entity = world
+        .spawn((
+            RopeWire::new(Vec2::new(0.0, 0.0), Vec2::new(200.0, 0.0), 10),
+            RopeWireEndpoints { source, dest },
+            wrap,
+        ))
+        .id();
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems(rope_physics_system);
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert
+    let rope = world.get::<RopeWire>(rope_entity).unwrap();
+    let pinned = rope.particles[5].pos;
+    assert!(
+        (pinned - anchor_pos).length() < 0.1,
+        "particle[5] must be pinned to anchor at {anchor_pos}, got {pinned}"
+    );
+}
