@@ -173,6 +173,82 @@ impl WrapWire {
         Self::default()
     }
 
+    /// Check each span for polygon intersections and insert wrap anchors.
+    pub fn detect_wraps(&mut self, src: Vec2, dst: Vec2, obstacles: &[(Entity, &[Vec2])]) {
+        // Build list of pin points: src, anchor positions, dst
+        let mut pins: Vec<Vec2> = Vec::with_capacity(self.anchors.len() + 2);
+        pins.push(src);
+        for anchor in &self.anchors {
+            pins.push(anchor.position);
+        }
+        pins.push(dst);
+
+        // Walk spans and check for intersections
+        let mut insert_idx = 0;
+        let mut i = 0;
+        while i < pins.len() - 1 {
+            let span_a = pins[i];
+            let span_b = pins[i + 1];
+
+            let mut found = None;
+            for &(entity, verts) in obstacles {
+                // Skip obstacles already anchored
+                let already_anchored = self.anchors.iter().any(|a| a.obstacle == entity);
+                if already_anchored {
+                    continue;
+                }
+                if let Some((vidx, sign)) = find_wrap_vertex(span_a, span_b, verts) {
+                    found = Some(WrapAnchor {
+                        position: verts[vidx],
+                        obstacle: entity,
+                        vertex_index: vidx,
+                        wrap_sign: sign,
+                        pinned_particle: 0,
+                    });
+                    break;
+                }
+            }
+
+            if let Some(anchor) = found {
+                let pos = anchor.position;
+                self.anchors.insert(insert_idx, anchor);
+                pins.insert(i + 1, pos);
+                insert_idx += 1;
+                i += 1;
+            } else {
+                insert_idx += 1;
+                i += 1;
+            }
+        }
+    }
+
+    /// Remove anchors where the cable has swung past the wrap point.
+    pub fn detect_unwraps(&mut self, src: Vec2, dst: Vec2) {
+        let mut i = 0;
+        while i < self.anchors.len() {
+            let prev = if i == 0 {
+                src
+            } else {
+                self.anchors[i - 1].position
+            };
+            let next = if i + 1 < self.anchors.len() {
+                self.anchors[i + 1].position
+            } else {
+                dst
+            };
+
+            let to_anchor = self.anchors[i].position - prev;
+            let from_anchor = next - self.anchors[i].position;
+            let cross = to_anchor.perp_dot(from_anchor);
+
+            if cross * self.anchors[i].wrap_sign <= 0.0 {
+                self.anchors.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+    }
+
     /// Compute the shortest geometric path from `src` through all anchors to `dst`.
     pub fn shortest_path(&self, src: Vec2, dst: Vec2) -> f32 {
         if self.anchors.is_empty() {

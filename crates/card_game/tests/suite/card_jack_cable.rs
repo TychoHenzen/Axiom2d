@@ -1376,3 +1376,93 @@ fn when_span_crosses_polygon_then_find_wrap_vertex_returns_correct_corner() {
     );
     assert!(sign.abs() > 0.0, "wrap_sign must be nonzero");
 }
+
+// ---------------------------------------------------------------------------
+// detect_wraps — inserts anchor when cable crosses polygon
+// ---------------------------------------------------------------------------
+
+/// @doc: `detect_wraps` walks each span of the cable path and checks for polygon intersections,
+/// inserting `WrapAnchor`s where the cable crosses an obstacle. This test verifies the basic
+/// contract: a straight cable that passes through a box gets exactly one anchor inserted.
+#[test]
+fn when_line_crosses_polygon_edge_then_detect_wraps_inserts_anchor() {
+    // Arrange — cable from (0,5) to (100,5), box centered at (50,0)
+    let mut wire = WrapWire::new();
+    let src = Vec2::new(0.0, 5.0);
+    let dst = Vec2::new(100.0, 5.0);
+    let obstacle = Entity::from_raw(42);
+    let verts = vec![
+        Vec2::new(40.0, -10.0),
+        Vec2::new(60.0, -10.0),
+        Vec2::new(60.0, 10.0),
+        Vec2::new(40.0, 10.0),
+    ];
+    let obstacles = vec![(obstacle, verts.as_slice())];
+
+    // Act
+    wire.detect_wraps(src, dst, &obstacles);
+
+    // Assert
+    assert_eq!(wire.anchors.len(), 1, "must insert exactly one anchor");
+    assert_eq!(wire.anchors[0].obstacle, obstacle);
+}
+
+// ---------------------------------------------------------------------------
+// detect_unwraps — removes anchor when cable swings past
+// ---------------------------------------------------------------------------
+
+/// @doc: `detect_unwraps` checks each anchor's cross product to determine if the cable has swung
+/// past the wrap point. When the cross product sign no longer matches the wrap direction, the
+/// anchor is removed. This test verifies that an anchor is correctly removed when the cable
+/// endpoint moves to the opposite side.
+#[test]
+fn when_cable_swings_past_anchor_then_detect_unwraps_removes_it() {
+    // Arrange — anchor at (50, 10) with CCW wrap
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(50.0, 10.0),
+        obstacle: Entity::from_raw(42),
+        vertex_index: 2,
+        wrap_sign: 1.0,
+        pinned_particle: 0,
+    });
+
+    let src = Vec2::new(0.0, 0.0);
+    // dst on the opposite side — cable has swung past
+    let dst = Vec2::new(100.0, -20.0);
+
+    // Act
+    wire.detect_unwraps(src, dst);
+
+    // Assert
+    assert!(
+        wire.anchors.is_empty(),
+        "anchor must be removed when cable swings past"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// detect_wraps — cable through a box creates anchors
+// ---------------------------------------------------------------------------
+
+/// @doc: A cable that passes straight through a box (entering one edge, exiting another) must
+/// generate at least one wrap anchor. This complements the offset-cable test by checking the
+/// head-on case where the cable's y-coordinate matches the box center.
+#[test]
+fn when_cable_passes_through_box_then_detect_wraps_creates_anchors() {
+    let mut wire = WrapWire::new();
+    let obstacle = Entity::from_raw(1);
+    let verts = vec![
+        Vec2::new(40.0, -10.0),
+        Vec2::new(60.0, -10.0),
+        Vec2::new(60.0, 10.0),
+        Vec2::new(40.0, 10.0),
+    ];
+    let obstacles = vec![(obstacle, verts.as_slice())];
+
+    wire.detect_wraps(Vec2::new(0.0, 0.0), Vec2::new(100.0, 0.0), &obstacles);
+    assert!(
+        !wire.anchors.is_empty(),
+        "cable through box must create anchors"
+    );
+}
