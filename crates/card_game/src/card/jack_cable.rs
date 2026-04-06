@@ -659,6 +659,55 @@ pub fn particles_to_ribbon(positions: &[Vec2], half_thickness: f32) -> Vec<Vec2>
     left
 }
 
+/// Update anchor world positions from obstacle transforms each frame.
+pub fn wrap_update_system(
+    mut wires: Query<&mut WrapWire>,
+    colliders: Query<(&Transform2D, &CableCollider), Without<WrapWire>>,
+) {
+    for mut wrap in &mut wires {
+        for anchor in &mut wrap.anchors {
+            if let Ok((transform, collider)) = colliders.get(anchor.obstacle)
+                && let Some(local_vert) = collider.vertices.get(anchor.vertex_index)
+            {
+                anchor.position = *local_vert + transform.position;
+            }
+        }
+    }
+}
+
+/// Detect wrap and unwrap events based on cable span vs obstacle polygon intersections.
+pub fn wrap_detect_system(
+    mut wires: Query<(&mut WrapWire, &RopeWireEndpoints)>,
+    transforms: Query<&Transform2D, Without<WrapWire>>,
+    colliders: Query<(Entity, &Transform2D, &CableCollider), Without<WrapWire>>,
+) {
+    let obstacles: Vec<(Entity, Vec<Vec2>)> = colliders
+        .iter()
+        .map(|(entity, t, c)| {
+            let world_verts: Vec<Vec2> = c.vertices.iter().map(|v| *v + t.position).collect();
+            (entity, world_verts)
+        })
+        .collect();
+
+    for (mut wrap, endpoints) in &mut wires {
+        let Ok(src_t) = transforms.get(endpoints.source) else {
+            continue;
+        };
+        let Ok(dst_t) = transforms.get(endpoints.dest) else {
+            continue;
+        };
+        let src = src_t.position;
+        let dst = dst_t.position;
+
+        // Unwrap first, then wrap — order matters
+        wrap.detect_unwraps(src, dst);
+
+        let obstacle_refs: Vec<(Entity, &[Vec2])> =
+            obstacles.iter().map(|(e, v)| (*e, v.as_slice())).collect();
+        wrap.detect_wraps(src, dst, &obstacle_refs);
+    }
+}
+
 pub fn rope_render_system(mut ropes: Query<(&RopeWire, &mut Transform2D, &mut Shape)>) {
     for (rope, mut transform, mut shape) in &mut ropes {
         transform.position = Vec2::ZERO;

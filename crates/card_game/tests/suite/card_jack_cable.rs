@@ -5,9 +5,9 @@ use std::sync::{Arc, Mutex};
 use bevy_ecs::prelude::*;
 use card_game::card::identity::signature::CardSignature;
 use card_game::card::jack_cable::{
-    Cable, Jack, JackDirection, RopeParticle, RopeWire, RopeWireEndpoints, WrapAnchor, WrapWire,
-    cable_render_system, particles_to_bezier_path, rope_physics_system, rope_render_system,
-    signature_space_propagation_system,
+    Cable, CableCollider, Jack, JackDirection, RopeParticle, RopeWire, RopeWireEndpoints,
+    WrapAnchor, WrapWire, cable_render_system, particles_to_bezier_path, rope_physics_system,
+    rope_render_system, signature_space_propagation_system, wrap_detect_system, wrap_update_system,
 };
 use card_game::card::reader::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
 use engine_core::color::Color;
@@ -1464,5 +1464,61 @@ fn when_cable_passes_through_box_then_detect_wraps_creates_anchors() {
     assert!(
         !wire.anchors.is_empty(),
         "cable through box must create anchors"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// wrap_update_system + wrap_detect_system — ECS integration
+// ---------------------------------------------------------------------------
+
+#[test]
+fn when_cable_dragged_across_obstacle_then_wrap_detect_system_adds_anchor() {
+    // Arrange
+    let mut world = World::new();
+
+    let source = world
+        .spawn(Transform2D {
+            position: Vec2::new(0.0, 5.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+    let dest = world
+        .spawn(Transform2D {
+            position: Vec2::new(200.0, 5.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+
+    // Obstacle box centered at (100, 0)
+    world.spawn((
+        Transform2D {
+            position: Vec2::new(100.0, 0.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        },
+        CableCollider::from_aabb(Vec2::new(20.0, 20.0)),
+    ));
+
+    let cable_entity = world
+        .spawn((
+            RopeWire::new(Vec2::new(0.0, 5.0), Vec2::new(200.0, 5.0), 10),
+            RopeWireEndpoints { source, dest },
+            WrapWire::new(),
+        ))
+        .id();
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems((wrap_update_system, wrap_detect_system).chain());
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert
+    let wrap = world.get::<WrapWire>(cable_entity).unwrap();
+    assert!(
+        !wrap.anchors.is_empty(),
+        "wrap_detect_system must find the obstacle crossing"
     );
 }
