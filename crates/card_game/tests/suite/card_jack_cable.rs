@@ -419,6 +419,32 @@ fn when_line_crosses_polygon_edge_then_detect_wraps_inserts_anchor() {
     assert_eq!(wire.anchors[1].obstacle, obstacle);
 }
 
+/// @doc: A cable that merely grazes the center of an obstacle edge must not snap to a corner.
+/// Boundary contact by itself is not a wrap; otherwise the cable glues to any object it brushes
+/// against and never has a chance to slide free.
+#[test]
+fn when_wire_grazes_edge_center_then_detect_wraps_does_not_anchor() {
+    // Arrange — cable runs along the top edge of the box without actually crossing through it.
+    let mut wire = WrapWire::new();
+    let obstacle = Entity::from_raw(43);
+    let verts = vec![
+        Vec2::new(40.0, -10.0),
+        Vec2::new(60.0, -10.0),
+        Vec2::new(60.0, 10.0),
+        Vec2::new(40.0, 10.0),
+    ];
+    let obstacles = vec![(obstacle, verts.as_slice())];
+
+    // Act
+    wire.detect_wraps(Vec2::new(45.0, 10.0), Vec2::new(55.0, 10.0), &obstacles);
+
+    // Assert
+    assert!(
+        wire.anchors.is_empty(),
+        "boundary-only edge contact must not create a corner anchor"
+    );
+}
+
 // ---------------------------------------------------------------------------
 // detect_unwraps — removes anchor when cable swings past
 // ---------------------------------------------------------------------------
@@ -463,12 +489,11 @@ fn when_cable_swings_past_anchor_then_detect_unwraps_removes_it() {
     );
 }
 
-/// @doc: A cable that is still turning around the same side of a corner must not lose the
-/// anchor just because the direct previous-to-next segment would bypass the obstacle. That
-/// premature unwrap is what caused half-wrapped cables to phase through an obstacle and snap
-/// to the opposite side.
+/// @doc: A cable that can bypass an obstacle cleanly should unwrap even if it has not yet
+/// fully reversed its turning direction. If the anchor remains after the path is clear, the
+/// cable appears glued to the object instead of releasing naturally.
 #[test]
-fn when_cable_can_bypass_obstacle_but_has_not_reversed_turn_then_detect_unwraps_keeps_anchor() {
+fn when_cable_can_bypass_obstacle_then_detect_unwraps_removes_anchor() {
     // Arrange
     let obstacle = Entity::from_raw(77);
     let mut wire = WrapWire::new();
@@ -495,8 +520,8 @@ fn when_cable_can_bypass_obstacle_but_has_not_reversed_turn_then_detect_unwraps_
 
     // Assert
     assert!(
-        wire.anchors.len() == 1,
-        "anchor must remain while the cable is still turning the same way"
+        wire.anchors.is_empty(),
+        "anchor must be removed once the path can bypass the obstacle"
     );
 }
 
@@ -692,6 +717,45 @@ fn when_partial_wrap_crosses_same_obstacle_then_detect_wraps_keeps_same_side() {
         !indices.contains(&1),
         "partial wrap must not flip to BR while the cable is still on the top side, got {:?}",
         indices
+    );
+}
+
+/// @doc: When a wrapped cable retreats from a chain of corners, `detect_unwraps` must
+/// remove the free-end corners first and then cascade backward through earlier anchors in
+/// the same call. If it only scans forward once, the last corner disappears but the earlier
+/// one remains sticky until the next frame, which makes multi-object unwraps feel glued.
+#[test]
+fn when_cable_retreats_past_two_anchors_then_detect_unwraps_cascades_in_one_call() {
+    // Arrange — two anchors in a straight chain.
+    let obstacle_a = Entity::from_raw(11);
+    let obstacle_b = Entity::from_raw(12);
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(30.0, 20.0),
+        obstacle: obstacle_a,
+        vertex_index: 3,
+        boundary_step: -1,
+        wrap_sign: 1.0,
+    });
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(70.0, 20.0),
+        obstacle: obstacle_b,
+        vertex_index: 3,
+        boundary_step: -1,
+        wrap_sign: 1.0,
+    });
+
+    let src = Vec2::new(0.0, 20.0);
+    let dst = Vec2::new(100.0, 0.0);
+    let empty_obstacles: Vec<(Entity, &[Vec2])> = vec![];
+
+    // Act
+    wire.detect_unwraps(src, dst, &empty_obstacles);
+
+    // Assert — both anchors should disappear in one pass.
+    assert!(
+        wire.anchors.is_empty(),
+        "multi-anchor retreat should cascade through both corners in one call"
     );
 }
 

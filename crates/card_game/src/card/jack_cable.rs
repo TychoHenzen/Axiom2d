@@ -82,6 +82,46 @@ fn polygon_centroid(polygon: &[Vec2]) -> Vec2 {
     sum / polygon.len() as f32
 }
 
+fn segment_intersects_convex_polygon(a: Vec2, b: Vec2, polygon: &[Vec2]) -> bool {
+    if polygon.len() < 3 {
+        return false;
+    }
+    if point_in_convex_polygon(a, polygon) || point_in_convex_polygon(b, polygon) {
+        return true;
+    }
+    polygon.iter().enumerate().any(|(i, &p1)| {
+        let p2 = polygon[(i + 1) % polygon.len()];
+        segment_intersects_segment(a, b, p1, p2).is_some_and(|t| t > 1e-4 && t < 1.0 - 1e-4)
+    })
+}
+
+fn segment_crosses_convex_polygon(a: Vec2, b: Vec2, polygon: &[Vec2]) -> Option<f32> {
+    if polygon.len() < 3 {
+        return None;
+    }
+
+    let endpoint_on_vertex = |p: Vec2| polygon.iter().any(|v| (p - *v).length_squared() <= 1e-6);
+    let mut first_t = f32::MAX;
+    let mut hit_count = 0;
+    for i in 0..polygon.len() {
+        let p1 = polygon[i];
+        let p2 = polygon[(i + 1) % polygon.len()];
+        if let Some(t) = segment_intersects_segment(a, b, p1, p2)
+            && t > 1e-4
+            && t < 1.0 - 1e-4
+        {
+            hit_count += 1;
+            first_t = first_t.min(t);
+        }
+    }
+
+    if hit_count >= 2 || (hit_count == 1 && (endpoint_on_vertex(a) || endpoint_on_vertex(b))) {
+        Some(first_t)
+    } else {
+        None
+    }
+}
+
 pub fn point_in_convex_polygon(point: Vec2, polygon: &[Vec2]) -> bool {
     if polygon.len() < 3 {
         return false;
@@ -430,34 +470,14 @@ impl WrapWire {
                     if n < 3 {
                         continue;
                     }
-                    // Only count crossings strictly interior to the span.
-                    // t≈0 means the crossing is at span_a (an existing anchor on
-                    // this polygon), t≈1 means the crossing is at span_b (ditto).
-                    // Both must be excluded to avoid the cascade bug where a span
-                    // ending at a polygon vertex is mistaken for a new crossing.
-                    let has_interior_intersection = (0..n).any(|j| {
-                        segment_intersects_segment(span_a, span_b, verts[j], verts[(j + 1) % n])
-                            .is_some_and(|t| t > 1e-4 && t < 1.0 - 1e-4)
-                    });
-                    if !has_interior_intersection {
+                    // We only create a wrap when the span actually crosses the
+                    // polygon boundary in more than one place. A one-point graze
+                    // against the middle of an edge should not snap the cable to
+                    // a corner.
+                    let Some(first_t) = segment_crosses_convex_polygon(span_a, span_b, verts)
+                    else {
                         continue 'obstacle;
-                    }
-
-                    // Find the first intersection point along the span so we
-                    // can pick the polygon vertex closest to it.  This gives
-                    // more natural wrapping than a detour metric that's biased
-                    // by far-away span endpoints.
-                    let mut first_t = f32::MAX;
-                    for j in 0..n {
-                        if let Some(t) =
-                            segment_intersects_segment(span_a, span_b, verts[j], verts[(j + 1) % n])
-                            && t > 1e-4
-                            && t < 1.0 - 1e-4
-                            && t < first_t
-                        {
-                            first_t = t;
-                        }
-                    }
+                    };
                     let span_dir = span_b - span_a;
                     let hit = span_a + (span_b - span_a) * first_t;
                     let last_anchor = self.anchors.iter().rev().find(|a| a.obstacle == entity);
@@ -541,36 +561,49 @@ impl WrapWire {
     /// We intentionally do not unwrap just because the straight line would be
     /// able to bypass the obstacle, since that causes mid-wrap side flipping.
     pub fn detect_unwraps(&mut self, src: Vec2, dst: Vec2, _obstacles: &[(Entity, &[Vec2])]) {
-        let mut i = 0;
-        while i < self.anchors.len() {
-            let prev = if i == 0 {
-                src
-            } else {
-                self.anchors[i - 1].position
-            };
-            let next = if i + 1 < self.anchors.len() {
-                self.anchors[i + 1].position
-            } else {
-                dst
-            };
+        loop {
+            let mut changed = false;
+            let mut i = self.anchors.len();
+            while i > 0 {
+                i -= 1;
+                let prev = if i == 0 {
+                    src
+                } else {
+                    self.anchors[i - 1].position
+                };
+                let next = if i + 1 < self.anchors.len() {
+                    self.anchors[i + 1].position
+                } else {
+                    dst
+                };
 
-            let to_anchor = self.anchors[i].position - prev;
-            let from_anchor = next - self.anchors[i].position;
-            let cross = to_anchor.perp_dot(from_anchor);
+                let to_anchor = self.anchors[i].position - prev;
+                let from_anchor = next - self.anchors[i].position;
+                let cross = to_anchor.perp_dot(from_anchor);
 
-            let to_len = to_anchor.length();
-            let from_len = from_anchor.length();
-            let sin_angle = if to_len > 1e-6 && from_len > 1e-6 {
-                cross / (to_len * from_len)
-            } else {
-                0.0
-            };
-            let turn_reversed = sin_angle * self.anchors[i].wrap_sign < -UNWRAP_SIN_THRESHOLD;
+                let to_len = to_anchor.length();
+                let from_len = from_anchor.length();
+                let sin_angle = if to_len > 1e-6 && from_len > 1e-6 {
+                    cross / (to_len * from_len)
+                } else {
+                    0.0
+                };
+                let turn_reversed = sin_angle * self.anchors[i].wrap_sign < -UNWRAP_SIN_THRESHOLD;
+                let shortcut_clear = _obstacles
+                    .iter()
+                    .find(|(entity, _)| *entity == self.anchors[i].obstacle)
+                    .is_none_or(|(_, verts)| !segment_intersects_convex_polygon(prev, next, verts));
 
-            if turn_reversed {
-                self.anchors.remove(i);
-            } else {
-                i += 1;
+                if turn_reversed || shortcut_clear {
+                    self.anchors.remove(i);
+                    changed = true;
+                } else {
+                    continue;
+                }
+            }
+
+            if !changed {
+                break;
             }
         }
     }

@@ -304,6 +304,11 @@ pub fn jack_socket_release_system(
     let source_transform = sockets.get(source_entity).map(|(_, _, t)| t.position).ok();
     if source_transform.is_none() {
         if let Some(cable_entity) = origin_cable {
+            for (_, mut socket, _) in &mut sockets {
+                if socket.connected_cable == Some(cable_entity) {
+                    socket.connected_cable = None;
+                }
+            }
             commands.entity(cable_entity).despawn();
         }
         if let Some(fe) = free_end {

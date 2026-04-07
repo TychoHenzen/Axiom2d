@@ -21,7 +21,7 @@ use engine_input::mouse_button::MouseButton;
 use engine_input::prelude::MouseState;
 use engine_render::prelude::{Camera2D, RendererRes, ShaderRegistry, Shape, ShapeVariant};
 use engine_render::testing::{ShapeCallLog, SpyRenderer};
-use engine_scene::prelude::{transform_propagation_system, visibility_system};
+use engine_scene::prelude::{Visible, transform_propagation_system, visibility_system};
 use engine_ui::unified_render::unified_render_system;
 use glam::Vec2;
 
@@ -634,6 +634,89 @@ fn given_pending_cable_and_cursor_in_empty_space_when_mouse_released_then_pendin
     assert!(
         world.resource::<PendingCable>().source.is_none(),
         "PendingCable must always be cleared on mouse release, even when no cable is spawned"
+    );
+}
+
+/// @doc: The empty-space release path must also be safe when it runs in the same update
+/// chain as `pending_cable_drag_system`, because that is the real schedule order used by
+/// the game. If the release cleanup leaves a stale free-end or preview state behind, the
+/// next system in the chain can panic when it tries to read a despawned cable.
+#[test]
+fn given_pending_cable_and_preview_when_release_chain_runs_then_cable_cleared_without_panic() {
+    // Arrange
+    let mut world = make_pick_world();
+    let output_jack = spawn_jack_socket_at(&mut world, Vec2::new(0.0, 0.0));
+    let free_end = world
+        .spawn((
+            CableFreeEnd,
+            Transform2D {
+                position: Vec2::new(20.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+        ))
+        .id();
+    let cable_entity = world
+        .spawn((
+            Cable {
+                source: output_jack,
+                dest: free_end,
+            },
+            WireEndpoints {
+                source: output_jack,
+                dest: free_end,
+            },
+            Shape {
+                variant: ShapeVariant::Polygon {
+                    points: vec![Vec2::ZERO],
+                },
+                color: Color::WHITE,
+            },
+            Visible(false),
+            Transform2D::default(),
+        ))
+        .id();
+    world
+        .entity_mut(output_jack)
+        .get_mut::<JackSocket>()
+        .unwrap()
+        .connected_cable = Some(cable_entity);
+    world.insert_resource(PendingCable {
+        source: Some(output_jack),
+        origin_cable: Some(cable_entity),
+        free_end: Some(free_end),
+    });
+    let mut mouse = MouseState::default();
+    mouse.release(MouseButton::Left);
+    mouse.set_world_pos(Vec2::new(9999.0, 9999.0));
+    world.insert_resource(mouse);
+
+    world.spawn((
+        card_game::card::jack_socket::PendingCablePreview,
+        Transform2D::default(),
+        Shape {
+            variant: ShapeVariant::Polygon {
+                points: vec![Vec2::ZERO],
+            },
+            color: Color::WHITE,
+        },
+        Visible(false),
+    ));
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems((jack_socket_release_system, pending_cable_drag_system).chain());
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert
+    assert!(
+        world.get_entity(cable_entity).is_err(),
+        "cable entity must be despawned when the drag is released into empty space"
+    );
+    assert!(
+        world.resource::<PendingCable>().source.is_none(),
+        "release chain must clear PendingCable.source after empty-space release"
     );
 }
 
