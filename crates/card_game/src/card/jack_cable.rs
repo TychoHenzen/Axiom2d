@@ -447,7 +447,10 @@ impl WrapWire {
     /// index prevents re-adding the same vertex, so multiple corners of the
     /// same obstacle are added across successive iterations (not frames).
     pub fn detect_wraps(&mut self, src: Vec2, dst: Vec2, obstacles: &[(Entity, &[Vec2])]) {
-        loop {
+        // Each iteration adds one anchor.  The total vertex count across all
+        // obstacles is the hard upper bound on useful iterations.
+        let max_iters = obstacles.iter().map(|(_, v)| v.len()).sum::<usize>().max(1);
+        for _ in 0..max_iters {
             // Rebuild pin list from current anchor state each iteration,
             // since insertions invalidate the previous pin list.
             let mut pins: Vec<Vec2> = Vec::with_capacity(self.anchors.len() + 2);
@@ -504,7 +507,12 @@ impl WrapWire {
                         }
                     }
 
-                    if let Some(vidx) = best_idx {
+                    if let Some(vidx) = best_idx
+                        && !self
+                            .anchors
+                            .iter()
+                            .any(|a| a.obstacle == entity && a.vertex_index == vidx)
+                    {
                         let v = verts[vidx];
                         let ccw_prev = verts[(vidx + n - 1) % n];
                         let ccw_next = verts[(vidx + 1) % n];
@@ -589,10 +597,26 @@ impl WrapWire {
                     0.0
                 };
                 let turn_reversed = sin_angle * self.anchors[i].wrap_sign < -UNWRAP_SIN_THRESHOLD;
+                // When two consecutive anchors share an obstacle, `prev` is a
+                // polygon vertex and point_in_convex_polygon treats it as
+                // "inside", permanently blocking the shortcut.  Nudge the
+                // start slightly along the segment to move off the boundary.
+                // Only nudge for same-obstacle chains — nudging when prev is
+                // src or on a different obstacle can false-clear the shortcut
+                // (e.g. src sitting on the obstacle boundary).
+                let same_obstacle_prev =
+                    i > 0 && self.anchors[i - 1].obstacle == self.anchors[i].obstacle;
+                let shortcut_start = if same_obstacle_prev {
+                    prev + (next - prev) * 0.005
+                } else {
+                    prev
+                };
                 let shortcut_clear = _obstacles
                     .iter()
                     .find(|(entity, _)| *entity == self.anchors[i].obstacle)
-                    .is_none_or(|(_, verts)| !segment_intersects_convex_polygon(prev, next, verts));
+                    .is_none_or(|(_, verts)| {
+                        !segment_intersects_convex_polygon(shortcut_start, next, verts)
+                    });
 
                 if turn_reversed || shortcut_clear {
                     self.anchors.remove(i);

@@ -1172,3 +1172,231 @@ fn when_rope_is_recomputed_many_times_then_point_count_stays_bounded() {
         ),
     }
 }
+
+// ---------------------------------------------------------------------------
+// Multi-corner unwrap — same-obstacle anchor chain releases via shortcut
+// ---------------------------------------------------------------------------
+
+/// @doc: When a cable wraps two consecutive corners of the same obstacle (e.g.
+/// screen-TL → screen-BL down the left side) and the free end is dragged away so
+/// the straight line from TL to dst no longer crosses the screen, the BL anchor
+/// must release via the shortcut path. Previously the shortcut check tested the
+/// segment from TL to dst against the screen polygon, but `point_in_convex_polygon`
+/// classified the TL vertex (on the polygon boundary) as "inside", causing the
+/// shortcut to always fail — the anchor stayed stuck regardless of cable position.
+#[test]
+fn when_multi_corner_cable_pulls_away_from_last_anchor_then_it_unwraps() {
+    // Arrange
+    //
+    // Screen polygon (CCW): BL(-50,-30) BR(50,-30) TR(50,30) TL(-50,30)
+    //
+    // Cable path: src(0,40) → anchor TL(-50,30) → anchor BL(-50,-30) → dst
+    //
+    // When dst = (-80,50), the straight line TL→dst goes up-left, clearly
+    // outside the screen body. The shortcut must detect this and remove BL.
+
+    let screen = Entity::from_raw(2);
+    let screen_verts = vec![
+        Vec2::new(-50.0, -30.0), // BL = 0
+        Vec2::new(50.0, -30.0),  // BR = 1
+        Vec2::new(50.0, 30.0),   // TR = 2
+        Vec2::new(-50.0, 30.0),  // TL = 3
+    ];
+
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(-50.0, 30.0),
+        obstacle: screen,
+        vertex_index: 3,
+        boundary_step: 1,
+        wrap_sign: 1.0,
+    });
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(-50.0, -30.0),
+        obstacle: screen,
+        vertex_index: 0,
+        boundary_step: -1,
+        wrap_sign: -1.0, // boundary_step as f32
+    });
+
+    let src = Vec2::new(0.0, 40.0);
+    let dst_pulling_away = Vec2::new(-80.0, 50.0);
+    let obstacles: Vec<(Entity, &[Vec2])> = vec![(screen, &screen_verts)];
+
+    // Act
+    wire.detect_unwraps(src, dst_pulling_away, &obstacles);
+
+    // Assert — BL must be released via the shortcut path (TL→dst clears the screen).
+    let bl_still_present = wire
+        .anchors
+        .iter()
+        .any(|a| a.position == Vec2::new(-50.0, -30.0));
+    assert!(
+        !bl_still_present,
+        "screen bottom-left anchor must unwrap when cable pulls away upward; \
+         anchors remaining: {:?}",
+        wire.anchors
+            .iter()
+            .map(|a| (a.position, a.wrap_sign))
+            .collect::<Vec<_>>()
+    );
+}
+
+// ---------------------------------------------------------------------------
+// detect_wraps — duplicate vertex guard prevents infinite loop
+// ---------------------------------------------------------------------------
+
+/// @doc: When a cable is attached to an obstacle and already wraps some of its
+/// corners, `detect_wraps` must not re-add a vertex that is already in the anchor
+/// list. Without the duplicate guard, `boundary_neighbor_index` can cycle back to
+/// an existing vertex, inserting a duplicate that triggers another iteration,
+/// creating an infinite loop that freezes the game.
+#[test]
+fn when_detect_wraps_encounters_existing_vertex_then_no_duplicate_and_terminates() {
+    // Arrange — cable attached to the screen wraps TL and BL already.
+    // The span from BL to dst (jack on screen's right side) crosses the screen,
+    // so detect_wraps will try to add the next boundary neighbor. If BL has
+    // boundary_step = -1, the neighbor is TL (already anchored). Without the
+    // guard, this would loop forever.
+    let screen = Entity::from_raw(1);
+    let screen_verts = vec![
+        Vec2::new(-50.0, -30.0), // BL = 0
+        Vec2::new(50.0, -30.0),  // BR = 1
+        Vec2::new(50.0, 30.0),   // TR = 2
+        Vec2::new(-50.0, 30.0),  // TL = 3
+    ];
+
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(-50.0, 30.0),
+        obstacle: screen,
+        vertex_index: 3, // TL
+        boundary_step: 1,
+        wrap_sign: 1.0,
+    });
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(-50.0, -30.0),
+        obstacle: screen,
+        vertex_index: 0, // BL
+        boundary_step: -1,
+        wrap_sign: -1.0,
+    });
+
+    let src = Vec2::new(0.0, 50.0);
+    // dst is a jack on the screen's right side — span from BL to dst crosses
+    // the screen body, triggering boundary_neighbor which would cycle to TL.
+    let dst = Vec2::new(50.0, 0.0);
+    let obstacles: Vec<(Entity, &[Vec2])> = vec![(screen, &screen_verts)];
+
+    // Act — must terminate (previously would infinite loop).
+    wire.detect_wraps(src, dst, &obstacles);
+
+    // Assert — no duplicate anchors.
+    let tl_count = wire
+        .anchors
+        .iter()
+        .filter(|a| a.obstacle == screen && a.vertex_index == 3)
+        .count();
+    let bl_count = wire
+        .anchors
+        .iter()
+        .filter(|a| a.obstacle == screen && a.vertex_index == 0)
+        .count();
+    assert_eq!(tl_count, 1, "TL must appear exactly once");
+    assert_eq!(bl_count, 1, "BL must appear exactly once");
+}
+
+// ---------------------------------------------------------------------------
+// detect_unwraps — shortcut nudge must not false-clear cross-obstacle anchors
+// ---------------------------------------------------------------------------
+
+/// @doc: When the cable wraps the reader (src on reader boundary) and continues
+/// to a screen that has moved far right, `detect_unwraps` must not strip
+/// reader-TR via the shortcut path. `src` sits on the reader's polygon
+/// boundary; nudging the shortcut start unconditionally would move it outside
+/// the polygon, false-clearing the shortcut and unraveling the cable to a
+/// single screen-TR anchor. The nudge must only apply to same-obstacle chains.
+///
+/// reader-TL MAY be removed (same-obstacle shortcut: TR→screen-TL clears the
+/// reader since screen-TL is now to the right of reader-TR). reader-TR must
+/// remain because its prev is `src` (not a same-obstacle anchor).
+#[test]
+fn when_screen_moves_right_then_reader_tr_survives_unwrap() {
+    // Arrange
+    //
+    // Reader at (0,100), half-extents (40,20):
+    //   BL(-40,80) BR(40,80) TR(40,120) TL(-40,120)
+    //
+    // Screen at (100,0), half-extents (50,30):
+    //   BL(50,-30) BR(150,-30) TR(150,30) TL(50,30)
+    //
+    // Cable: src(40,100) → reader-TR(40,120) → reader-TL(-40,120)
+    //        → screen-TL(50,30) → dst(150,0)
+
+    let reader = Entity::from_raw(1);
+    let screen = Entity::from_raw(2);
+
+    let reader_verts = vec![
+        Vec2::new(-40.0, 80.0),
+        Vec2::new(40.0, 80.0),
+        Vec2::new(40.0, 120.0),
+        Vec2::new(-40.0, 120.0),
+    ];
+    let screen_verts = vec![
+        Vec2::new(50.0, -30.0),
+        Vec2::new(150.0, -30.0),
+        Vec2::new(150.0, 30.0),
+        Vec2::new(50.0, 30.0),
+    ];
+
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(40.0, 120.0),
+        obstacle: reader,
+        vertex_index: 2, // TR
+        boundary_step: 1,
+        wrap_sign: 1.0,
+    });
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(-40.0, 120.0),
+        obstacle: reader,
+        vertex_index: 3, // TL
+        boundary_step: 1,
+        wrap_sign: 1.0,
+    });
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(50.0, 30.0),
+        obstacle: screen,
+        vertex_index: 3, // TL
+        boundary_step: 1,
+        wrap_sign: 1.0,
+    });
+
+    let src = Vec2::new(40.0, 100.0); // socket on reader's right edge
+    let dst = Vec2::new(150.0, 0.0); // jack on screen's right side
+    let obstacles: Vec<(Entity, &[Vec2])> = vec![(reader, &reader_verts), (screen, &screen_verts)];
+
+    // Act
+    wire.detect_unwraps(src, dst, &obstacles);
+
+    // Assert — reader-TR must survive (src is on reader boundary, no nudge).
+    // reader-TL may validly be removed by the same-obstacle shortcut.
+    let has_reader_tr = wire
+        .anchors
+        .iter()
+        .any(|a| a.obstacle == reader && a.vertex_index == 2);
+    assert!(
+        has_reader_tr,
+        "reader-TR must not be stripped by shortcut when src sits on the reader boundary; \
+         remaining: {:?}",
+        wire.anchors
+            .iter()
+            .map(|a| (a.obstacle, a.vertex_index, a.position))
+            .collect::<Vec<_>>()
+    );
+    // Total anchors: reader-TR + screen-TL (reader-TL removed by same-obstacle shortcut)
+    assert!(
+        wire.anchors.len() >= 2,
+        "cable must retain at least reader-TR and screen-TL"
+    );
+}
