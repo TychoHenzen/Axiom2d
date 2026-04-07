@@ -12,8 +12,8 @@ use glam::Vec2;
 
 use crate::card::interaction::click_resolve::ClickedEntity;
 use crate::card::jack_cable::{
-    CABLE_HALF_THICKNESS, CABLE_LOCAL_SORT, Cable, Jack, JackDirection, RopeWire,
-    RopeWireEndpoints, WrapWire, cable_visuals,
+    CABLE_HALF_THICKNESS, CABLE_LOCAL_SORT, Cable, CableRope, Jack, JackDirection, WireEndpoints,
+    WrapWire,
 };
 use crate::card::reader::SignatureSpace;
 
@@ -115,7 +115,7 @@ pub fn on_socket_clicked(
     mut sockets: Query<&mut JackSocket>,
     transforms: Query<&Transform2D, Without<CableFreeEnd>>,
     cables: Query<&Cable>,
-    mut rope_endpoints: Query<&mut RopeWireEndpoints>,
+    mut wire_endpoints: Query<&mut WireEndpoints>,
     mut commands: Commands,
 ) {
     let clicked = trigger.target();
@@ -140,14 +140,12 @@ pub fn on_socket_clicked(
                 },
             ))
             .id();
-        let rope = RopeWire::for_distance(pos, pos);
         let cable_entity = commands
             .spawn((
-                RopeWireEndpoints {
+                WireEndpoints {
                     source: clicked,
                     dest: free_end,
                 },
-                rope,
                 Transform2D {
                     position: pos,
                     rotation: 0.0,
@@ -164,6 +162,7 @@ pub fn on_socket_clicked(
                 SortOrder::default(),
                 LocalSortOrder(CABLE_LOCAL_SORT),
                 WrapWire::new(),
+                CableRope::new(pos, pos),
             ))
             .id();
         pending.origin_cable = Some(cable_entity);
@@ -204,8 +203,8 @@ pub fn on_socket_clicked(
         ))
         .id();
 
-    // Rewire the rope endpoint from the clicked socket to the free end
-    if let Ok(mut endpoints) = rope_endpoints.get_mut(cable_entity) {
+    // Rewire the wire endpoint from the clicked socket to the free end
+    if let Ok(mut endpoints) = wire_endpoints.get_mut(cable_entity) {
         if endpoints.dest == clicked {
             endpoints.dest = free_end;
         } else {
@@ -227,8 +226,6 @@ pub fn pending_cable_drag_system(
         (With<PendingCablePreview>, Without<CableFreeEnd>),
     >,
     mut free_ends: Query<&mut Transform2D, (With<CableFreeEnd>, Without<PendingCablePreview>)>,
-    mut ropes: Query<&mut RopeWire>,
-    mut wrap_wires: Query<&mut WrapWire>,
 ) {
     let Ok((mut preview_transform, mut preview_shape, mut preview_visible)) = preview.single_mut()
     else {
@@ -254,33 +251,32 @@ pub fn pending_cable_drag_system(
         if let Ok(mut free_t) = free_ends.get_mut(free_end_entity) {
             free_t.position = cursor_pos;
         }
-        // Dynamically resize the rope and update wrap target_length
-        if let Some(cable_entity) = pending.origin_cable {
-            let last_pin = wrap_wires
-                .get(cable_entity)
-                .ok()
-                .and_then(|w| w.anchors.last().map(|a| a.pinned_particle));
-
-            if let Ok(mut wrap) = wrap_wires.get_mut(cable_entity) {
-                let dist = (cursor_pos - src_t.position).length();
-                if wrap.target_length < dist {
-                    wrap.target_length = dist * 1.05;
-                }
-            }
-
-            if let Ok(mut rope) = ropes.get_mut(cable_entity) {
-                if let Some(pin_idx) = last_pin {
-                    rope.resize_free_end(pin_idx, cursor_pos);
-                } else {
-                    rope.resize_for_endpoints(src_t.position, cursor_pos);
-                }
-            }
-        }
+        // wire_render_system picks up the new free-end position automatically
     } else {
-        let (next_transform, mut next_shape) = cable_visuals(src_t.position, mouse.world_pos());
-        next_shape.color = Color::WHITE;
-        *preview_transform = next_transform;
-        *preview_shape = next_shape;
+        // No pre-spawned wire — show a simple preview rectangle
+        let a = src_t.position;
+        let b = mouse.world_pos();
+        let midpoint = (a + b) * 0.5;
+        let half_delta = (b - a) * 0.5;
+        let dir = (b - a).normalize_or_zero();
+        let perp = Vec2::new(-dir.y, dir.x) * CABLE_HALF_THICKNESS;
+
+        *preview_transform = Transform2D {
+            position: midpoint,
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        };
+        *preview_shape = Shape {
+            variant: ShapeVariant::Polygon {
+                points: vec![
+                    -half_delta - perp,
+                    -half_delta + perp,
+                    half_delta + perp,
+                    half_delta - perp,
+                ],
+            },
+            color: Color::WHITE,
+        };
         preview_visible.0 = true;
     }
 }
@@ -291,7 +287,7 @@ pub fn jack_socket_release_system(
     mut sockets: Query<(Entity, &mut JackSocket, &Transform2D)>,
     jacks: Query<&Jack<SignatureSpace>>,
     mut cables: Query<&mut Cable>,
-    mut rope_endpoints: Query<&mut RopeWireEndpoints>,
+    mut rope_endpoints: Query<&mut WireEndpoints>,
     mut commands: Commands,
 ) {
     if !mouse.just_released(MouseButton::Left) {
@@ -360,6 +356,11 @@ pub fn jack_socket_release_system(
         }
         return;
     };
+    let source_pos = source_transform.unwrap_or(Vec2::ZERO);
+    let dest_pos = sockets
+        .get(dest_entity)
+        .map(|(_, _, t)| t.position)
+        .unwrap_or(cursor);
 
     // Despawn the free-end cursor tracker
     if let Some(fe) = free_end {
@@ -388,27 +389,17 @@ pub fn jack_socket_release_system(
             src_socket.connected_cable = Some(cable_entity);
         }
     } else {
-        // Fallback: no pre-spawned rope — create cable entity from scratch
-        let src_pos = sockets
-            .get(output)
-            .map(|(_, _, t)| t.position)
-            .unwrap_or(Vec2::ZERO);
-        let dst_pos = sockets
-            .get(input)
-            .map(|(_, _, t)| t.position)
-            .unwrap_or(Vec2::ZERO);
-        let rope = RopeWire::for_distance(src_pos, dst_pos);
+        // Fallback: no pre-spawned wire — create cable entity from scratch
         let cable_entity = commands
             .spawn((
                 Cable {
                     source: output,
                     dest: input,
                 },
-                RopeWireEndpoints {
+                WireEndpoints {
                     source: output,
                     dest: input,
                 },
-                rope,
                 Transform2D::default(),
                 Shape {
                     variant: ShapeVariant::Polygon {
@@ -421,6 +412,7 @@ pub fn jack_socket_release_system(
                 SortOrder::default(),
                 LocalSortOrder(CABLE_LOCAL_SORT),
                 WrapWire::new(),
+                CableRope::new(source_pos, dest_pos),
             ))
             .id();
         if let Ok((_, mut src_socket, _)) = sockets.get_mut(source_entity) {

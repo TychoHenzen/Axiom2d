@@ -7,7 +7,7 @@ use card_game::card::component::CardZone;
 use card_game::card::interaction::click_resolve::{ClickHitShape, Clickable, click_resolve_system};
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
 use card_game::card::interaction::intent::InteractionIntent;
-use card_game::card::jack_cable::{Cable, Jack, JackDirection, RopeWireEndpoints};
+use card_game::card::jack_cable::{Cable, Jack, JackDirection, WireEndpoints};
 use card_game::card::jack_socket::{
     CableFreeEnd, JackSocket, PendingCable, jack_socket_release_system, jack_socket_render_system,
     on_socket_clicked, pending_cable_drag_system,
@@ -1266,16 +1266,16 @@ fn given_disconnect_drag_when_released_over_free_compatible_socket_then_cable_re
 }
 
 // ---------------------------------------------------------------------------
-// TC-F05 — clicking a socket must spawn a RopeWire immediately
+// TC-F05 — clicking a socket must spawn a WireEndpoints immediately
 // ---------------------------------------------------------------------------
 
-/// @doc: The `RopeWireEndpoints` on the immediately-spawned rope must reference the clicked
-/// socket so that `rope_physics_system` pins particle[0] to the correct world position each
-/// tick. If the rope is only spawned on mouse release (the old behaviour), the player gets no
-/// physical cable feedback during the drag — the rope materialises after the drop instead of
+/// @doc: The `WireEndpoints` on the immediately-spawned wire must reference the clicked
+/// socket so that the wire render system draws from the correct world position each
+/// tick. If the wire is only spawned on mouse release (the old behaviour), the player gets no
+/// visual cable feedback during the drag — the wire materialises after the drop instead of
 /// tracking the cursor in real time, making the wiring interaction feel broken.
 #[test]
-fn when_jack_socket_clicked_then_spawned_rope_wire_source_endpoint_matches_socket() {
+fn when_jack_socket_clicked_then_spawned_wire_source_endpoint_matches_socket() {
     // Arrange
     let mut world = make_pick_world();
     let socket = spawn_jack_socket_at(&mut world, Vec2::new(100.0, 100.0));
@@ -1288,16 +1288,16 @@ fn when_jack_socket_clicked_then_spawned_rope_wire_source_endpoint_matches_socke
     run_click_resolve(&mut world);
 
     // Assert
-    let mut q = world.query::<&RopeWireEndpoints>();
+    let mut q = world.query::<&WireEndpoints>();
     let endpoints: Vec<_> = q.iter(&world).collect();
     assert_eq!(
         endpoints.len(),
         1,
-        "exactly one RopeWireEndpoints must exist after socket click"
+        "exactly one WireEndpoints must exist after socket click"
     );
     assert_eq!(
         endpoints[0].source, socket,
-        "RopeWireEndpoints.source must be the clicked socket entity"
+        "WireEndpoints.source must be the clicked socket entity"
     );
 }
 
@@ -1409,7 +1409,7 @@ fn when_cable_connected_between_sockets_then_cable_entity_has_wrap_wire() {
         ))
         .id();
 
-    let input_socket = world
+    let _input_socket = world
         .spawn((
             Jack::<SignatureSpace> {
                 direction: JackDirection::Input,

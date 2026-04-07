@@ -1,7 +1,6 @@
 use bevy_ecs::prelude::{Component, Entity, Query, Res, Without};
 use engine_core::color::Color;
-use engine_core::prelude::Transform2D;
-use engine_core::time::DeltaTime;
+use engine_core::prelude::{DeltaTime, Seconds, Transform2D};
 use engine_render::prelude::{Shape, ShapeVariant};
 use engine_render::shape::PathCommand;
 use engine_scene::prelude::Visible;
@@ -36,30 +35,267 @@ pub struct Cable {
     pub dest: Entity,
 }
 
-pub(crate) fn cable_visuals(a: Vec2, b: Vec2) -> (Transform2D, Shape) {
-    let midpoint = (a + b) * 0.5;
-    let half_delta = (b - a) * 0.5;
-    let dir = (b - a).normalize_or_zero();
-    let perp = Vec2::new(-dir.y, dir.x) * CABLE_HALF_THICKNESS;
+const ROPE_SAMPLE_SPACING: f32 = 10.0;
+const ROPE_REEL_SPEED: f32 = 48.0;
+const ROPE_DAMPING: f32 = 0.92;
+const ROPE_GRAVITY: f32 = 18.0;
+const ROPE_OBSTACLE_PADDING: f32 = 0.35;
 
-    (
-        Transform2D {
-            position: midpoint,
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        },
-        Shape {
-            variant: ShapeVariant::Polygon {
-                points: vec![
-                    -half_delta - perp,
-                    -half_delta + perp,
-                    half_delta + perp,
-                    half_delta - perp,
-                ],
-            },
-            color: CABLE_COLOR,
-        },
-    )
+#[derive(Component, Debug, Clone)]
+pub struct CableRope {
+    pub points: Vec<Vec2>,
+    pub previous_points: Vec<Vec2>,
+    pub sample_spacing: f32,
+    pub reel_speed: f32,
+    pub damping: f32,
+    pub gravity: Vec2,
+}
+
+impl CableRope {
+    pub fn new(start: Vec2, end: Vec2) -> Self {
+        Self {
+            points: vec![start, end],
+            previous_points: vec![start, end],
+            sample_spacing: ROPE_SAMPLE_SPACING,
+            reel_speed: ROPE_REEL_SPEED,
+            damping: ROPE_DAMPING,
+            gravity: Vec2::new(0.0, ROPE_GRAVITY),
+        }
+    }
+}
+
+fn closest_point_on_segment(point: Vec2, a: Vec2, b: Vec2) -> Vec2 {
+    let ab = b - a;
+    let denom = ab.length_squared();
+    if denom <= 1e-12 {
+        return a;
+    }
+    let t = ((point - a).dot(ab) / denom).clamp(0.0, 1.0);
+    a + ab * t
+}
+
+fn polygon_centroid(polygon: &[Vec2]) -> Vec2 {
+    if polygon.is_empty() {
+        return Vec2::ZERO;
+    }
+    let sum = polygon.iter().copied().fold(Vec2::ZERO, |acc, v| acc + v);
+    sum / polygon.len() as f32
+}
+
+pub fn point_in_convex_polygon(point: Vec2, polygon: &[Vec2]) -> bool {
+    if polygon.len() < 3 {
+        return false;
+    }
+
+    let mut sign = 0.0;
+    for i in 0..polygon.len() {
+        let a = polygon[i];
+        let b = polygon[(i + 1) % polygon.len()];
+        let cross = (b - a).perp_dot(point - a);
+        if cross.abs() <= 1e-5 {
+            continue;
+        }
+        if sign == 0.0 {
+            sign = cross.signum();
+        } else if sign * cross < 0.0 {
+            return false;
+        }
+    }
+    true
+}
+
+pub fn project_point_outside_convex_polygon(point: Vec2, polygon: &[Vec2]) -> Vec2 {
+    if polygon.len() < 3 || !point_in_convex_polygon(point, polygon) {
+        return point;
+    }
+
+    let centroid = polygon_centroid(polygon);
+    let mut best_point = point;
+    let mut best_dist = f32::MAX;
+    for i in 0..polygon.len() {
+        let a = polygon[i];
+        let b = polygon[(i + 1) % polygon.len()];
+        let candidate = closest_point_on_segment(point, a, b);
+        let dist = (candidate - point).length_squared();
+        if dist < best_dist {
+            best_dist = dist;
+            best_point = candidate;
+        }
+    }
+
+    let outward = (best_point - centroid).normalize_or_zero();
+    if outward.length_squared() <= 1e-8 {
+        return best_point;
+    }
+    best_point + outward * ROPE_OBSTACLE_PADDING
+}
+
+fn resample_polyline(waypoints: &[Vec2], spacing: f32) -> Vec<Vec2> {
+    if waypoints.len() < 2 {
+        return waypoints.to_vec();
+    }
+
+    let mut cumulative = Vec::with_capacity(waypoints.len());
+    cumulative.push(0.0);
+    for pair in waypoints.windows(2) {
+        let next = cumulative.last().copied().unwrap_or(0.0) + (pair[1] - pair[0]).length();
+        cumulative.push(next);
+    }
+
+    let total = *cumulative
+        .last()
+        .expect("waypoints has at least two points");
+    if total <= 1e-6 {
+        return vec![
+            waypoints[0],
+            *waypoints.last().expect("waypoints has at least two points"),
+        ];
+    }
+
+    let sample_count = ((total / spacing).ceil() as usize).max(1) + 1;
+    let mut result = Vec::with_capacity(sample_count);
+    let mut seg = 0;
+    for sample_idx in 0..sample_count {
+        let target = total * sample_idx as f32 / (sample_count - 1) as f32;
+        while seg + 1 < cumulative.len() && cumulative[seg + 1] < target {
+            seg += 1;
+        }
+        let a = waypoints[seg];
+        let b = waypoints[(seg + 1).min(waypoints.len() - 1)];
+        let next_seg = (seg + 1).min(cumulative.len() - 1);
+        let seg_len = (cumulative[next_seg] - cumulative[seg]).max(1e-6);
+        let t = if seg + 1 < cumulative.len() {
+            (target - cumulative[seg]) / seg_len
+        } else {
+            0.0
+        };
+        result.push(a.lerp(b, t.clamp(0.0, 1.0)));
+    }
+    result
+}
+
+pub fn rope_solve_system(
+    dt: Res<DeltaTime>,
+    mut wires: Query<(&WireEndpoints, Option<&WrapWire>, &mut CableRope)>,
+    transforms: Query<&Transform2D, Without<WireEndpoints>>,
+    colliders: Query<(&Transform2D, &CableCollider), Without<WireEndpoints>>,
+) {
+    let Seconds(dt_secs) = dt.0;
+    let dt_secs = dt_secs.clamp(0.0, 1.0 / 30.0);
+    let dt_sq = dt_secs * dt_secs;
+    let obstacles: Vec<Vec<Vec2>> = colliders
+        .iter()
+        .map(|(transform, collider)| {
+            collider
+                .vertices
+                .iter()
+                .map(|v| *v + transform.position)
+                .collect()
+        })
+        .collect();
+
+    for (endpoints, wrap_wire, mut rope) in &mut wires {
+        let Ok(src_t) = transforms.get(endpoints.source) else {
+            continue;
+        };
+        let Ok(dst_t) = transforms.get(endpoints.dest) else {
+            continue;
+        };
+
+        let src = src_t.position;
+        let dst = dst_t.position;
+        let waypoints = if let Some(wrap_wire) = wrap_wire {
+            wrap_wire.waypoints(src, dst)
+        } else {
+            vec![src, dst]
+        };
+        let target_points = resample_polyline(&waypoints, rope.sample_spacing);
+
+        if rope.points.len() != target_points.len() || rope.points.is_empty() {
+            rope.points = target_points.clone();
+            rope.previous_points = target_points.clone();
+        }
+
+        let last_index = rope.points.len().saturating_sub(1);
+        if last_index == 0 {
+            continue;
+        }
+
+        rope.points[0] = src;
+        rope.points[last_index] = dst;
+        rope.previous_points[0] = src;
+        rope.previous_points[last_index] = dst;
+
+        let tighten = (rope.reel_speed * dt_secs).clamp(0.0, 0.35);
+        for i in 1..last_index {
+            let current = rope.points[i];
+            let previous = rope.previous_points[i];
+            let velocity = (current - previous) * rope.damping;
+            rope.previous_points[i] = current;
+            let target = target_points[i];
+            rope.points[i] =
+                current + velocity + (target - current) * tighten + rope.gravity * dt_sq;
+        }
+
+        let iterations = 4;
+        for _ in 0..iterations {
+            rope.points[0] = src;
+            rope.points[last_index] = dst;
+
+            for i in 0..last_index {
+                let p1 = rope.points[i];
+                let p2 = rope.points[i + 1];
+                let delta = p2 - p1;
+                let dist = delta.length();
+                if dist <= 1e-6 {
+                    continue;
+                }
+                let desired = if i + 1 < target_points.len() {
+                    (target_points[i + 1] - target_points[i])
+                        .length()
+                        .max(rope.sample_spacing * 0.5)
+                } else {
+                    rope.sample_spacing
+                };
+                let error = dist - desired;
+                if error.abs() <= 1e-4 {
+                    continue;
+                }
+                let correction = delta * (error / dist) * 0.5;
+                if i > 0 {
+                    rope.points[i] += correction;
+                }
+                if i + 1 < last_index {
+                    rope.points[i + 1] -= correction;
+                }
+            }
+
+            for point in rope.points.iter_mut().take(last_index).skip(1) {
+                for polygon in &obstacles {
+                    *point = project_point_outside_convex_polygon(*point, polygon);
+                }
+            }
+        }
+    }
+}
+
+pub fn signature_space_propagation_system(
+    cables: Query<&Cable>,
+    mut jacks: Query<&mut Jack<SignatureSpace>>,
+) {
+    let updates: Vec<(Entity, Option<SignatureSpace>)> = cables
+        .iter()
+        .filter_map(|cable| {
+            let data = jacks.get(cable.source).ok()?.data.clone();
+            Some((cable.dest, data))
+        })
+        .collect();
+
+    for (dest, data) in updates {
+        if let Ok(mut jack) = jacks.get_mut(dest) {
+            jack.data = data;
+        }
+    }
 }
 
 /// Convert particle positions to a smooth cubic bezier path using Catmull-Rom interpolation.
@@ -92,51 +328,39 @@ pub fn particles_to_bezier_path(points: &[Vec2]) -> Vec<PathCommand> {
     commands
 }
 
-pub fn cable_render_system(
-    mut cables: Query<(&Cable, &mut Transform2D, &mut Shape, &mut Visible)>,
-    transforms: Query<&Transform2D, Without<Cable>>,
-) {
-    for (cable, mut transform, mut shape, mut visible) in &mut cables {
-        let Ok(src_t) = transforms.get(cable.source) else {
-            visible.0 = false;
-            continue;
-        };
-        let Ok(dst_t) = transforms.get(cable.dest) else {
-            visible.0 = false;
-            continue;
-        };
-
-        let (next_transform, next_shape) = cable_visuals(src_t.position, dst_t.position);
-        *transform = next_transform;
-        *shape = next_shape;
-        visible.0 = true;
-    }
-}
-
-pub fn signature_space_propagation_system(
-    cables: Query<&Cable>,
-    mut jacks: Query<&mut Jack<SignatureSpace>>,
-) {
-    let updates: Vec<(Entity, Option<SignatureSpace>)> = cables
-        .iter()
-        .filter_map(|cable| {
-            let data = jacks.get(cable.source).ok()?.data.clone();
-            Some((cable.dest, data))
-        })
-        .collect();
-
-    for (dest, data) in updates {
-        if let Ok(mut jack) = jacks.get_mut(dest) {
-            jack.data = data;
-        }
-    }
-}
+// ---------------------------------------------------------------------------
+// Cable collider (convex polygon for wrap detection)
+// ---------------------------------------------------------------------------
 
 #[derive(Component, Debug, Clone)]
 pub struct CableCollider {
     /// Convex hull vertices in local space, wound counter-clockwise.
     pub vertices: Vec<Vec2>,
 }
+
+impl CableCollider {
+    /// Construct from AABB half-extents (backward compat for readers/screens).
+    pub fn from_aabb(half: Vec2) -> Self {
+        Self {
+            vertices: vec![
+                Vec2::new(-half.x, -half.y),
+                Vec2::new(half.x, -half.y),
+                Vec2::new(half.x, half.y),
+                Vec2::new(-half.x, half.y),
+            ],
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Wrap detection (geometric — no particle simulation)
+// ---------------------------------------------------------------------------
+
+/// Sine of the minimum angular overshoot past the straight-through direction
+/// before an anchor is unwrapped via turn reversal.  ~9 degrees — provides
+/// hysteresis that prevents rapid wrap/unwrap oscillation when the cable sits
+/// near the decision boundary.
+const UNWRAP_SIN_THRESHOLD: f32 = 0.15;
 
 #[derive(Debug, Clone)]
 pub struct WrapAnchor {
@@ -146,27 +370,16 @@ pub struct WrapAnchor {
     pub obstacle: Entity,
     /// Index into that obstacle's CableCollider.vertices.
     pub vertex_index: usize,
+    /// Boundary step along the polygon: +1 moves to the next CCW vertex, -1 moves to the previous.
+    pub boundary_step: i8,
     /// Wrap direction: +1.0 for CCW wrap, -1.0 for CW wrap.
     pub wrap_sign: f32,
-    /// Index of the pinned particle in the `RopeWire` chain.
-    pub pinned_particle: usize,
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Default)]
 pub struct WrapWire {
     /// Ordered anchor points from source toward dest.
     pub anchors: Vec<WrapAnchor>,
-    /// Target length the cable is retracting toward.
-    pub target_length: f32,
-}
-
-impl Default for WrapWire {
-    fn default() -> Self {
-        Self {
-            anchors: vec![],
-            target_length: 0.0,
-        }
-    }
 }
 
 impl WrapWire {
@@ -174,96 +387,160 @@ impl WrapWire {
         Self::default()
     }
 
-    /// Check each span for polygon intersections and insert wrap anchors.
-    pub fn detect_wraps(&mut self, src: Vec2, dst: Vec2, obstacles: &[(Entity, &[Vec2])]) {
-        // Build list of pin points: src, anchor positions, dst
-        let mut pins: Vec<Vec2> = Vec::with_capacity(self.anchors.len() + 2);
-        pins.push(src);
-        for anchor in &self.anchors {
-            pins.push(anchor.position);
+    fn boundary_neighbor_index(
+        vertex_index: usize,
+        boundary_step: i8,
+        vertex_count: usize,
+    ) -> usize {
+        let vertex_count = vertex_count.max(1);
+        match boundary_step.cmp(&0) {
+            std::cmp::Ordering::Greater => (vertex_index + 1) % vertex_count,
+            std::cmp::Ordering::Less => (vertex_index + vertex_count - 1) % vertex_count,
+            std::cmp::Ordering::Equal => (vertex_index + 1) % vertex_count,
         }
-        pins.push(dst);
+    }
 
-        // Walk spans and check for intersections
-        let mut insert_idx = 0;
-        let mut i = 0;
-        while i < pins.len() - 1 {
-            let span_a = pins[i];
-            let span_b = pins[i + 1];
+    /// Check each span for polygon intersections and insert wrap anchors.
+    ///
+    /// Each iteration of the outer loop adds at most one anchor, then restarts
+    /// the scan from scratch with updated pins.  The `already` check on vertex
+    /// index prevents re-adding the same vertex, so multiple corners of the
+    /// same obstacle are added across successive iterations (not frames).
+    pub fn detect_wraps(&mut self, src: Vec2, dst: Vec2, obstacles: &[(Entity, &[Vec2])]) {
+        loop {
+            // Rebuild pin list from current anchor state each iteration,
+            // since insertions invalidate the previous pin list.
+            let mut pins: Vec<Vec2> = Vec::with_capacity(self.anchors.len() + 2);
+            pins.push(src);
+            for anchor in &self.anchors {
+                pins.push(anchor.position);
+            }
+            pins.push(dst);
 
-            let mut found = None;
-            'obstacle: for &(entity, verts) in obstacles {
-                let n = verts.len();
-                if n < 3 {
-                    continue;
-                }
-                // Check whether the span *enters* a polygon edge at a point strictly
-                // interior to the span (t > ε).  Intersections at t≈0 mean the span
-                // starts exactly at the polygon boundary (i.e. the start point is an
-                // already-pinned anchor on this obstacle) and must not trigger another wrap.
-                let has_interior_intersection = (0..n).any(|j| {
-                    segment_intersects_segment(span_a, span_b, verts[j], verts[(j + 1) % n])
-                        .map_or(false, |t| t > 1e-6)
-                });
-                if !has_interior_intersection {
-                    continue 'obstacle;
-                }
+            let mut found_any = false;
+            let mut insert_idx = 0;
+            let mut i = 0;
+            while i < pins.len() - 1 {
+                let span_a = pins[i];
+                let span_b = pins[i + 1];
 
-                // Pick the best vertex that (a) creates the shortest detour and
-                // (b) is not already an anchor on this obstacle.  Excluding already-anchored
-                // vertices lets the cable add a second anchor at a different corner of the
-                // same box — necessary for cables that wrap around more than one corner.
-                let span_dir = span_b - span_a;
-                let mut best_idx: Option<usize> = None;
-                let mut best_detour = f32::MAX;
-                for (j, v) in verts.iter().enumerate() {
-                    let already = self
-                        .anchors
-                        .iter()
-                        .any(|a| a.obstacle == entity && a.vertex_index == j);
-                    if already {
+                let mut found = None;
+                'obstacle: for &(entity, verts) in obstacles {
+                    let n = verts.len();
+                    if n < 3 {
                         continue;
                     }
-                    let detour = (*v - span_a).length() + (span_b - *v).length();
-                    if detour < best_detour {
-                        best_detour = detour;
-                        best_idx = Some(j);
+                    // Only count crossings strictly interior to the span.
+                    // t≈0 means the crossing is at span_a (an existing anchor on
+                    // this polygon), t≈1 means the crossing is at span_b (ditto).
+                    // Both must be excluded to avoid the cascade bug where a span
+                    // ending at a polygon vertex is mistaken for a new crossing.
+                    let has_interior_intersection = (0..n).any(|j| {
+                        segment_intersects_segment(span_a, span_b, verts[j], verts[(j + 1) % n])
+                            .is_some_and(|t| t > 1e-4 && t < 1.0 - 1e-4)
+                    });
+                    if !has_interior_intersection {
+                        continue 'obstacle;
+                    }
+
+                    // Find the first intersection point along the span so we
+                    // can pick the polygon vertex closest to it.  This gives
+                    // more natural wrapping than a detour metric that's biased
+                    // by far-away span endpoints.
+                    let mut first_t = f32::MAX;
+                    for j in 0..n {
+                        if let Some(t) =
+                            segment_intersects_segment(span_a, span_b, verts[j], verts[(j + 1) % n])
+                            && t > 1e-4
+                            && t < 1.0 - 1e-4
+                            && t < first_t
+                        {
+                            first_t = t;
+                        }
+                    }
+                    let span_dir = span_b - span_a;
+                    let hit = span_a + (span_b - span_a) * first_t;
+                    let last_anchor = self.anchors.iter().rev().find(|a| a.obstacle == entity);
+
+                    let mut best_idx: Option<usize> = None;
+                    let mut best_dist = f32::MAX;
+                    if let Some(last_anchor) = last_anchor
+                        && last_anchor.obstacle == entity
+                        && last_anchor.vertex_index < n
+                    {
+                        let candidate_idx = Self::boundary_neighbor_index(
+                            last_anchor.vertex_index,
+                            last_anchor.boundary_step,
+                            n,
+                        );
+                        best_idx = Some(candidate_idx);
+                    } else {
+                        for (j, v) in verts.iter().enumerate() {
+                            let dist = (*v - hit).length_squared();
+                            if dist < best_dist {
+                                best_dist = dist;
+                                best_idx = Some(j);
+                            }
+                        }
+                    }
+
+                    if let Some(vidx) = best_idx {
+                        let v = verts[vidx];
+                        let ccw_prev = verts[(vidx + n - 1) % n];
+                        let ccw_next = verts[(vidx + 1) % n];
+                        let centroid_sign =
+                            span_dir.perp_dot(polygon_centroid(verts) - span_a).signum();
+                        let prev_sign = span_dir.perp_dot(ccw_prev - span_a).signum();
+                        let next_sign = span_dir.perp_dot(ccw_next - span_a).signum();
+                        let prev_dist =
+                            (closest_point_on_segment(hit, v, ccw_prev) - hit).length_squared();
+                        let next_dist =
+                            (closest_point_on_segment(hit, v, ccw_next) - hit).length_squared();
+                        let boundary_step = if centroid_sign.abs() > 1e-6 {
+                            if prev_sign == -centroid_sign && next_sign != -centroid_sign {
+                                -1
+                            } else if next_sign == -centroid_sign && prev_sign != -centroid_sign {
+                                1
+                            } else if prev_dist <= next_dist {
+                                -1
+                            } else {
+                                1
+                            }
+                        } else if prev_dist <= next_dist {
+                            -1
+                        } else {
+                            1
+                        };
+                        found = Some(WrapAnchor {
+                            position: v,
+                            obstacle: entity,
+                            vertex_index: vidx,
+                            boundary_step,
+                            wrap_sign: boundary_step as f32,
+                        });
+                        break 'obstacle;
                     }
                 }
 
-                if let Some(vidx) = best_idx {
-                    let v = verts[vidx];
-                    let wrap_sign = span_dir.perp_dot(v - span_a).signum();
-                    found = Some(WrapAnchor {
-                        position: v,
-                        obstacle: entity,
-                        vertex_index: vidx,
-                        wrap_sign,
-                        // pinned_particle is 0 as a placeholder; wrap_detect_system
-                        // updates it to the closest interior particle index after insertion.
-                        pinned_particle: 0,
-                    });
-                    break 'obstacle;
+                if let Some(anchor) = found {
+                    self.anchors.insert(insert_idx, anchor);
+                    found_any = true;
+                    break; // Restart scan with updated pins
                 }
-            }
-
-            if let Some(anchor) = found {
-                self.anchors.insert(insert_idx, anchor);
-                // Stop after inserting one anchor per call. The next frame will
-                // discover additional corners if the cable has actually moved
-                // around them. Without this limit, a single span crossing a box
-                // cascades: V1 is inserted, the new span V1→B still crosses the
-                // same box, so V2 is added immediately, then V3, etc.
-                return;
-            } else {
                 insert_idx += 1;
                 i += 1;
+            }
+
+            if !found_any {
+                break;
             }
         }
     }
 
-    /// Remove anchors where the cable has swung past the wrap point.
-    pub fn detect_unwraps(&mut self, src: Vec2, dst: Vec2) {
+    /// Remove anchors only after the cable has clearly swung past the wrap point.
+    /// We intentionally do not unwrap just because the straight line would be
+    /// able to bypass the obstacle, since that causes mid-wrap side flipping.
+    pub fn detect_unwraps(&mut self, src: Vec2, dst: Vec2, _obstacles: &[(Entity, &[Vec2])]) {
         let mut i = 0;
         while i < self.anchors.len() {
             let prev = if i == 0 {
@@ -281,29 +558,20 @@ impl WrapWire {
             let from_anchor = next - self.anchors[i].position;
             let cross = to_anchor.perp_dot(from_anchor);
 
-            if cross * self.anchors[i].wrap_sign <= 0.0 {
+            let to_len = to_anchor.length();
+            let from_len = from_anchor.length();
+            let sin_angle = if to_len > 1e-6 && from_len > 1e-6 {
+                cross / (to_len * from_len)
+            } else {
+                0.0
+            };
+            let turn_reversed = sin_angle * self.anchors[i].wrap_sign < -UNWRAP_SIN_THRESHOLD;
+
+            if turn_reversed {
                 self.anchors.remove(i);
             } else {
                 i += 1;
             }
-        }
-    }
-
-    /// Proportionally retract `target_length` toward the shortest geometric path.
-    pub fn retract(&mut self, src: Vec2, dst: Vec2, rate: f32, dt: f32) {
-        let shortest = self.shortest_path(src, dst);
-        let slack_factor = 1.05;
-        let floor = shortest * slack_factor;
-
-        if self.target_length > floor {
-            self.target_length -= (self.target_length - floor) * rate * dt;
-            if self.target_length < floor {
-                self.target_length = floor;
-            }
-        }
-
-        if self.target_length < shortest {
-            self.target_length = shortest;
         }
     }
 
@@ -319,317 +587,22 @@ impl WrapWire {
         total += (dst - self.anchors.last().expect("checked non-empty").position).length();
         total
     }
-}
 
-impl CableCollider {
-    /// Construct from AABB half-extents (backward compat for readers/screens).
-    pub fn from_aabb(half: Vec2) -> Self {
-        Self {
-            vertices: vec![
-                Vec2::new(-half.x, -half.y),
-                Vec2::new(half.x, -half.y),
-                Vec2::new(half.x, half.y),
-                Vec2::new(-half.x, half.y),
-            ],
+    /// Return the full waypoint list: `[src, anchor1, ..., anchorN, dst]`.
+    pub fn waypoints(&self, src: Vec2, dst: Vec2) -> Vec<Vec2> {
+        let mut pts = Vec::with_capacity(self.anchors.len() + 2);
+        pts.push(src);
+        for anchor in &self.anchors {
+            pts.push(anchor.position);
         }
+        pts.push(dst);
+        pts
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct RopeParticle {
-    pub pos: Vec2,
-    pub prev: Vec2,
-}
-
-#[derive(Component, Debug, Clone)]
-pub struct RopeWire {
-    pub particles: Vec<RopeParticle>,
-    pub segments: Vec<Entity>,
-    rest_length: f32,
-}
-
-#[derive(Component, Debug, Clone)]
-pub struct RopeWireEndpoints {
-    pub source: Entity,
-    pub dest: Entity,
-}
-
-impl RopeWire {
-    pub fn rest_length(&self) -> f32 {
-        self.rest_length
-    }
-
-    pub fn with_particles(particles: Vec<RopeParticle>) -> Self {
-        Self {
-            particles,
-            segments: vec![],
-            rest_length: 0.0,
-        }
-    }
-
-    pub fn for_distance(a: Vec2, b: Vec2) -> Self {
-        let dist = (b - a).length();
-        let n = ((dist / SEGMENT_LENGTH).ceil() as usize + 1).max(2);
-        Self::new(a, b, n)
-    }
-
-    pub fn new(a: Vec2, b: Vec2, n: usize) -> Self {
-        let rest_length = if n > 1 {
-            (b - a).length() * ROPE_SLACK / (n - 1) as f32
-        } else {
-            0.0
-        };
-        let mut particles = Vec::with_capacity(n);
-        for i in 0..n {
-            let t = i as f32 / (n - 1) as f32;
-            let pos = a.lerp(b, t);
-            particles.push(RopeParticle { pos, prev: pos });
-        }
-        Self {
-            particles,
-            segments: vec![],
-            rest_length,
-        }
-    }
-
-    pub fn verlet_step(&mut self, damping: f32) {
-        for particle in &mut self.particles {
-            let new_pos = particle.pos + (particle.pos - particle.prev) * damping;
-            particle.prev = particle.pos;
-            particle.pos = new_pos;
-        }
-    }
-
-    pub fn apply_shrinkage(&mut self, strength: f32) {
-        let n = self.particles.len();
-        if n < 3 {
-            return;
-        }
-        let start = self.particles[0].pos;
-        let end = self.particles[n - 1].pos;
-        for i in 1..n - 1 {
-            let t = i as f32 / (n - 1) as f32;
-            let target = start.lerp(end, t);
-            let current = self.particles[i].pos;
-            self.particles[i].pos += (target - current) * strength;
-        }
-    }
-
-    pub fn relax_constraints(&mut self, rest_length: f32) {
-        for i in 0..self.particles.len().saturating_sub(1) {
-            let delta = self.particles[i + 1].pos - self.particles[i].pos;
-            let dist = delta.length();
-            if dist < 1e-8 {
-                continue;
-            }
-            let correction = delta * ((dist - rest_length) / dist) * 0.5;
-            self.particles[i].pos += correction;
-            self.particles[i + 1].pos -= correction;
-        }
-    }
-
-    pub fn pin_endpoints(&mut self, a: Vec2, b: Vec2) {
-        if let Some(first) = self.particles.first_mut() {
-            first.pos = a;
-            first.prev = a;
-        }
-        if let Some(last) = self.particles.last_mut() {
-            last.pos = b;
-            last.prev = b;
-        }
-    }
-
-    /// Push interior particles out of convex polygons.
-    /// Each entry in `polygons` is `(center, &world_verts)`.
-    pub fn resolve_polygon_collisions(&mut self, polygons: &[(Vec2, &[Vec2])]) {
-        let len = self.particles.len();
-        for i in 1..len.saturating_sub(1) {
-            let p = self.particles[i].pos;
-            for &(_, verts) in polygons {
-                let n = verts.len();
-                if n < 3 {
-                    continue;
-                }
-                // Check if point is inside convex polygon using cross products
-                let mut inside = true;
-                for j in 0..n {
-                    let a = verts[j];
-                    let b = verts[(j + 1) % n];
-                    let cross = (b - a).perp_dot(p - a);
-                    if cross < 0.0 {
-                        inside = false;
-                        break;
-                    }
-                }
-                if !inside {
-                    continue;
-                }
-                // Find closest edge and push out along its normal
-                let mut min_dist = f32::MAX;
-                let mut push = Vec2::ZERO;
-                for j in 0..n {
-                    let a = verts[j];
-                    let b = verts[(j + 1) % n];
-                    let edge = b - a;
-                    let edge_len_sq = edge.length_squared();
-                    if edge_len_sq < 1e-10 {
-                        continue;
-                    }
-                    let t = ((p - a).dot(edge) / edge_len_sq).clamp(0.0, 1.0);
-                    let closest = a + edge * t;
-                    let dist = (p - closest).length();
-                    if dist < min_dist {
-                        min_dist = dist;
-                        let normal = Vec2::new(edge.y, -edge.x).normalize_or_zero();
-                        push = normal * (min_dist + 0.1);
-                    }
-                }
-                self.particles[i].pos = p + push;
-            }
-        }
-    }
-
-    fn path_length(&self) -> f32 {
-        self.particles
-            .windows(2)
-            .map(|w| (w[1].pos - w[0].pos).length())
-            .sum()
-    }
-
-    /// Resize particle chain for the current path through waypoints.
-    /// `waypoints` is the full path: `[src, anchor1, ..., anchorN, dst]`.
-    /// Particles are distributed proportionally so each span gets a count
-    /// matching its length — locked spans keep their particle density and
-    /// growth goes into the spans that actually grew.
-    pub fn resize_for_path(&mut self, waypoints: &[Vec2]) {
-        if waypoints.len() < 2 {
-            return;
-        }
-
-        // Total path length through all waypoints
-        let total_path: f32 = waypoints
-            .windows(2)
-            .map(|w| (w[1] - w[0]).length())
-            .sum();
-
-        let target_n = ((total_path / SEGMENT_LENGTH).ceil() as usize + 1).max(2);
-        let current_n = self.particles.len();
-        let particle_path = self.path_length();
-
-        // Only rebuild when count changes meaningfully
-        let needs_grow = target_n > current_n;
-        let needs_shrink = target_n < current_n && {
-            // Only shrink when particle path is close to geometric path
-            // (not wrapped with lots of slack)
-            let ratio = if total_path > 1e-4 {
-                particle_path / total_path
-            } else {
-                1.0
-            };
-            ratio < 1.4
-        };
-
-        if needs_grow || needs_shrink {
-            self.rebuild_along_path(waypoints, target_n);
-        }
-
-        let n = self.particles.len();
-        if n > 1 {
-            self.rest_length = total_path / (n - 1) as f32;
-        } else {
-            self.rest_length = 0.0;
-        }
-    }
-
-    /// Distribute `target_n` particles along a waypoint path, placing them
-    /// at positions proportional to each span's fraction of total length.
-    fn rebuild_along_path(&mut self, waypoints: &[Vec2], target_n: usize) {
-        let span_lengths: Vec<f32> = waypoints
-            .windows(2)
-            .map(|w| (w[1] - w[0]).length())
-            .collect();
-        let total: f32 = span_lengths.iter().sum();
-
-        if total < 1e-8 || target_n < 2 {
-            let mid = waypoints[0].lerp(*waypoints.last().unwrap(), 0.5);
-            self.particles = vec![
-                RopeParticle { pos: waypoints[0], prev: waypoints[0] },
-                RopeParticle { pos: mid, prev: mid },
-            ];
-            return;
-        }
-
-        let mut new_particles = Vec::with_capacity(target_n);
-        // First particle at start
-        new_particles.push(RopeParticle {
-            pos: waypoints[0],
-            prev: waypoints[0],
-        });
-
-        // Interior particles: walk along the waypoint path
-        let mut span_idx = 0;
-        let mut dist_into_span: f32;
-        let mut cumulative_before_span = 0.0_f32;
-
-        for i in 1..target_n - 1 {
-            let target_dist = (i as f32 / (target_n - 1) as f32) * total;
-
-            // Advance span pointer to the span containing target_dist
-            while span_idx < span_lengths.len()
-                && target_dist > cumulative_before_span + span_lengths[span_idx] + 1e-6
-            {
-                cumulative_before_span += span_lengths[span_idx];
-                span_idx += 1;
-            }
-            span_idx = span_idx.min(span_lengths.len() - 1);
-
-            dist_into_span = target_dist - cumulative_before_span;
-            let span_len = span_lengths[span_idx];
-            let t = if span_len > 1e-8 {
-                (dist_into_span / span_len).clamp(0.0, 1.0)
-            } else {
-                0.0
-            };
-            let pos = waypoints[span_idx].lerp(waypoints[span_idx + 1], t);
-            new_particles.push(RopeParticle { pos, prev: pos });
-        }
-
-        // Last particle at end
-        let end = *waypoints.last().unwrap();
-        new_particles.push(RopeParticle { pos: end, prev: end });
-
-        self.particles = new_particles;
-    }
-
-    /// Legacy resize for unwrapped cables (no anchors).
-    pub fn resize_for_endpoints(&mut self, a: Vec2, b: Vec2) {
-        self.resize_for_path(&[a, b]);
-    }
-
-    /// Grow or shrink only the free segment (after `last_pin_idx`) to match
-    /// the distance from the last anchor to `dst`. Locked segments are
-    /// untouched — no Verlet state is lost, no pinned indices invalidated.
-    pub fn resize_free_end(&mut self, last_pin_idx: usize, dst: Vec2) {
-        let pin_pos = self.particles[last_pin_idx].pos;
-        let free_span = (dst - pin_pos).length();
-        let target_free = ((free_span / SEGMENT_LENGTH).ceil() as usize + 1).max(2);
-        let current_free = self.particles.len() - last_pin_idx;
-
-        if target_free > current_free {
-            // Append new particles lerped between current last particle and dst
-            let old_last = self.particles.last().unwrap().pos;
-            let to_add = target_free - current_free;
-            for i in 1..=to_add {
-                let t = i as f32 / (to_add + 1) as f32;
-                let pos = old_last.lerp(dst, t);
-                self.particles.push(RopeParticle { pos, prev: pos });
-            }
-        } else if target_free < current_free {
-            let new_len = (last_pin_idx + target_free).max(last_pin_idx + 2);
-            self.particles.truncate(new_len);
-        }
-    }
-}
+// ---------------------------------------------------------------------------
+// Geometry utilities
+// ---------------------------------------------------------------------------
 
 /// Returns the parameter `t` along segment (a1→a2) where it intersects segment (b1→b2).
 /// Returns `None` if the segments don't intersect. Both `t` and `u` must be in [0, 1].
@@ -659,7 +632,6 @@ pub fn find_wrap_vertex(a: Vec2, b: Vec2, polygon: &[Vec2]) -> Option<(usize, f3
         return None;
     }
 
-    // Check if the span intersects any edge of the polygon
     let has_intersection = (0..n).any(|i| {
         let e1 = polygon[i];
         let e2 = polygon[(i + 1) % n];
@@ -669,7 +641,6 @@ pub fn find_wrap_vertex(a: Vec2, b: Vec2, polygon: &[Vec2]) -> Option<(usize, f3
         return None;
     }
 
-    // Find the vertex that creates the shortest detour
     let span_dir = b - a;
     let mut best_idx = 0;
     let mut best_detour = f32::MAX;
@@ -685,111 +656,78 @@ pub fn find_wrap_vertex(a: Vec2, b: Vec2, polygon: &[Vec2]) -> Option<(usize, f3
     Some((best_idx, wrap_sign))
 }
 
-const RETRACTION_RATE: f32 = 3.0;
+// ---------------------------------------------------------------------------
+// Wire rendering (geometric — no simulation)
+// ---------------------------------------------------------------------------
 
-pub fn retraction_system(
-    mut wires: Query<(&mut WrapWire, &RopeWireEndpoints)>,
-    transforms: Query<&Transform2D, Without<WrapWire>>,
-    dt: Res<DeltaTime>,
-) {
-    for (mut wrap, endpoints) in &mut wires {
-        let Ok(src_t) = transforms.get(endpoints.source) else {
-            continue;
-        };
-        let Ok(dst_t) = transforms.get(endpoints.dest) else {
-            continue;
-        };
-        wrap.retract(src_t.position, dst_t.position, RETRACTION_RATE, dt.0.0);
-    }
-}
+/// Maximum spacing between sample points along the wire.
+const WIRE_SAMPLE_SPACING: f32 = 12.0;
 
-const ROPE_DAMPING: f32 = 0.95;
-const ROPE_CONSTRAINT_ITERATIONS: usize = 8;
-const ROPE_SLACK: f32 = 1.0;
-const SEGMENT_LENGTH: f32 = 12.0;
-pub fn rope_physics_system(
-    mut ropes: Query<(&mut RopeWire, &RopeWireEndpoints, Option<&WrapWire>)>,
-    transforms: Query<&Transform2D, Without<RopeWire>>,
-    colliders: Query<(&Transform2D, &CableCollider), Without<RopeWire>>,
-) {
-    let polygons: Vec<(Vec2, Vec<Vec2>)> = colliders
-        .iter()
-        .map(|(t, c)| {
-            let world_verts: Vec<Vec2> = c.vertices.iter().map(|v| *v + t.position).collect();
-            (t.position, world_verts)
-        })
-        .collect();
-
-    for (mut rope, endpoints, wrap_wire) in &mut ropes {
-        let Ok(src_t) = transforms.get(endpoints.source) else {
-            continue;
-        };
-        let Ok(dst_t) = transforms.get(endpoints.dest) else {
-            continue;
-        };
-        let src_pos = src_t.position;
-        let dst_pos = dst_t.position;
-
-        // When wrapped, only resize the free end (after last anchor).
-        // Locked segments are left untouched.
-        if let Some(wrap) = wrap_wire {
-            if let Some(last_anchor) = wrap.anchors.last() {
-                rope.resize_free_end(last_anchor.pinned_particle, dst_pos);
-            } else {
-                rope.resize_for_endpoints(src_pos, dst_pos);
-            }
-        } else {
-            rope.resize_for_endpoints(src_pos, dst_pos);
-        }
-
-        let rest_length = if let Some(wrap) = wrap_wire {
-            if wrap.target_length > 0.0 && rope.particles.len() > 1 {
-                wrap.target_length / (rope.particles.len() - 1) as f32
-            } else {
-                rope.rest_length()
-            }
-        } else {
-            rope.rest_length()
-        };
-
-        rope.verlet_step(ROPE_DAMPING);
-        for _ in 0..ROPE_CONSTRAINT_ITERATIONS {
-            rope.relax_constraints(rest_length);
-
-            // Re-pin anchored particles after each constraint iteration
-            if let Some(wrap) = wrap_wire {
-                for anchor in &wrap.anchors {
-                    let idx = anchor.pinned_particle;
-                    if idx > 0 && idx < rope.particles.len() - 1 {
-                        rope.particles[idx].pos = anchor.position;
-                        rope.particles[idx].prev = anchor.position;
-                    }
-                }
-            }
-
-            let poly_refs: Vec<(Vec2, &[Vec2])> =
-                polygons.iter().map(|(c, v)| (*c, v.as_slice())).collect();
-            rope.resolve_polygon_collisions(&poly_refs);
-        }
-        rope.pin_endpoints(src_pos, dst_pos);
-
-        if let Some(wrap) = wrap_wire {
-            for anchor in &wrap.anchors {
-                let idx = anchor.pinned_particle;
-                if idx > 0 && idx < rope.particles.len() - 1 {
-                    rope.particles[idx].pos = anchor.position;
-                    rope.particles[idx].prev = anchor.position;
-                }
-            }
-        }
-    }
-}
-
+/// Number of Catmull-Rom subdivisions per densified segment.
 const SUBDIVISIONS_PER_SEGMENT: usize = 4;
+
+/// Densify a polyline by inserting intermediate points so no segment exceeds
+/// `max_spacing`.  This constrains the subsequent Catmull-Rom subdivision to
+/// follow straight segments closely and only curve in a small radius around
+/// the original waypoint corners.
+fn densify_polyline(waypoints: &[Vec2], max_spacing: f32) -> Vec<Vec2> {
+    if waypoints.len() < 2 {
+        return waypoints.to_vec();
+    }
+    let mut result = Vec::with_capacity(waypoints.len() * 4);
+    result.push(waypoints[0]);
+    for pair in waypoints.windows(2) {
+        let (a, b) = (pair[0], pair[1]);
+        let dist = (b - a).length();
+        let n = ((dist / max_spacing).ceil() as usize).max(1);
+        for i in 1..n {
+            let t = i as f32 / n as f32;
+            result.push(a.lerp(b, t));
+        }
+        result.push(b);
+    }
+    result
+}
+
+/// Build a ribbon polygon from a polyline of waypoints.
+///
+/// First densifies the polyline so no segment exceeds `WIRE_SAMPLE_SPACING`,
+/// then offsets left/right perpendicular to the local tangent at each sample.
+/// Subdivides each edge with Catmull-Rom interpolation to produce slight
+/// rounding at corners (where the cable wraps around an obstacle vertex).
+///
+/// Returns vertices going forward along one edge, then backward along the other.
+pub fn polyline_to_ribbon(waypoints: &[Vec2], half_thickness: f32) -> Vec<Vec2> {
+    let dense = densify_polyline(waypoints, WIRE_SAMPLE_SPACING);
+    let n = dense.len();
+    if n < 2 {
+        return vec![];
+    }
+    let mut left_ctrl = Vec::with_capacity(n);
+    let mut right_ctrl = Vec::with_capacity(n);
+    for i in 0..n {
+        let tangent = if i == 0 {
+            dense[1] - dense[0]
+        } else if i == n - 1 {
+            dense[n - 1] - dense[n - 2]
+        } else {
+            dense[i + 1] - dense[i - 1]
+        };
+        let perp = Vec2::new(-tangent.y, tangent.x).normalize_or_zero() * half_thickness;
+        left_ctrl.push(dense[i] + perp);
+        right_ctrl.push(dense[i] - perp);
+    }
+    // Catmull-Rom subdivide for slight rounding at corners
+    let mut left = catmull_rom_subdivide(&left_ctrl, SUBDIVISIONS_PER_SEGMENT);
+    let mut right = catmull_rom_subdivide(&right_ctrl, SUBDIVISIONS_PER_SEGMENT);
+    right.reverse();
+    left.extend(right);
+    left
+}
 
 /// Evaluate a Catmull-Rom spline through `points` at evenly spaced parameter values,
 /// producing `(points.len() - 1) * subdivisions + 1` output samples.
-pub fn catmull_rom_subdivide(points: &[Vec2], subdivisions: usize) -> Vec<Vec2> {
+fn catmull_rom_subdivide(points: &[Vec2], subdivisions: usize) -> Vec<Vec2> {
     let n = points.len();
     if n < 2 {
         return points.to_vec();
@@ -809,7 +747,6 @@ pub fn catmull_rom_subdivide(points: &[Vec2], subdivisions: usize) -> Vec<Vec2> 
             let t = s as f32 / subdivisions as f32;
             let t2 = t * t;
             let t3 = t2 * t;
-            // Catmull-Rom matrix evaluation
             let pos = 0.5
                 * ((2.0 * p1)
                     + (-p0 + p2) * t
@@ -822,36 +759,19 @@ pub fn catmull_rom_subdivide(points: &[Vec2], subdivisions: usize) -> Vec<Vec2> 
     result
 }
 
-/// Build a ribbon polygon from particle positions. First offsets each particle
-/// perpendicular to the local tangent, then subdivides each edge with Catmull-Rom
-/// interpolation for smooth curves. Returns vertices going forward along one edge,
-/// then backward along the other.
-pub fn particles_to_ribbon(positions: &[Vec2], half_thickness: f32) -> Vec<Vec2> {
-    let n = positions.len();
-    if n < 2 {
-        return vec![];
-    }
-    let mut left_control = Vec::with_capacity(n);
-    let mut right_control = Vec::with_capacity(n);
-    for i in 0..n {
-        let tangent = if i == 0 {
-            positions[1] - positions[0]
-        } else if i == n - 1 {
-            positions[n - 1] - positions[n - 2]
-        } else {
-            positions[i + 1] - positions[i - 1]
-        };
-        let perp = Vec2::new(-tangent.y, tangent.x).normalize_or_zero() * half_thickness;
-        left_control.push(positions[i] + perp);
-        right_control.push(positions[i] - perp);
-    }
-    // Subdivide each edge into smooth curves
-    let mut left = catmull_rom_subdivide(&left_control, SUBDIVISIONS_PER_SEGMENT);
-    let mut right = catmull_rom_subdivide(&right_control, SUBDIVISIONS_PER_SEGMENT);
-    right.reverse();
-    left.extend(right);
-    left
+// ---------------------------------------------------------------------------
+// Wire endpoint component
+// ---------------------------------------------------------------------------
+
+#[derive(Component, Debug, Clone)]
+pub struct WireEndpoints {
+    pub source: Entity,
+    pub dest: Entity,
 }
+
+// ---------------------------------------------------------------------------
+// ECS systems
+// ---------------------------------------------------------------------------
 
 /// Update anchor world positions from obstacle transforms each frame.
 pub fn wrap_update_system(
@@ -871,7 +791,7 @@ pub fn wrap_update_system(
 
 /// Detect wrap and unwrap events based on cable span vs obstacle polygon intersections.
 pub fn wrap_detect_system(
-    mut wires: Query<(&mut WrapWire, &RopeWireEndpoints, Option<&RopeWire>)>,
+    mut wires: Query<(&mut WrapWire, &WireEndpoints)>,
     transforms: Query<&Transform2D, Without<WrapWire>>,
     colliders: Query<(Entity, &Transform2D, &CableCollider), Without<WrapWire>>,
 ) {
@@ -883,7 +803,7 @@ pub fn wrap_detect_system(
         })
         .collect();
 
-    for (mut wrap, endpoints, rope) in &mut wires {
+    for (mut wrap, endpoints) in &mut wires {
         let Ok(src_t) = transforms.get(endpoints.source) else {
             continue;
         };
@@ -893,55 +813,64 @@ pub fn wrap_detect_system(
         let src = src_t.position;
         let dst = dst_t.position;
 
-        // Unwrap first, then wrap — order matters
-        wrap.detect_unwraps(src, dst);
-
         let obstacle_refs: Vec<(Entity, &[Vec2])> =
             obstacles.iter().map(|(e, v)| (*e, v.as_slice())).collect();
-        wrap.detect_wraps(src, dst, &obstacle_refs);
 
-        // Assign pinned_particle for any anchor whose index is still 0 (the placeholder set
-        // by detect_wraps).  We pick the interior particle closest to the anchor's world
-        // position so that rope_physics_system can actually lock a particle onto the vertex.
-        // Without this, every new anchor would reference particle[0] (the source endpoint),
-        // which rope_physics_system deliberately skips, leaving no particle pinned.
-        if let Some(rope) = rope {
-            let n = rope.particles.len();
-            if n > 2 {
-                for anchor in wrap.anchors.iter_mut() {
-                    if anchor.pinned_particle == 0 {
-                        // Search interior particles only (skip endpoints 0 and n-1)
-                        let best = rope
-                            .particles
-                            .iter()
-                            .enumerate()
-                            .skip(1)
-                            .take(n - 2)
-                            .min_by(|(_, a), (_, b)| {
-                                a.pos
-                                    .distance_squared(anchor.position)
-                                    .partial_cmp(&b.pos.distance_squared(anchor.position))
-                                    .unwrap_or(std::cmp::Ordering::Equal)
-                            });
-                        if let Some((idx, _)) = best {
-                            anchor.pinned_particle = idx;
-                        }
-                    }
-                }
-            }
-        }
+        wrap.detect_unwraps(src, dst, &obstacle_refs);
+        wrap.detect_wraps(src, dst, &obstacle_refs);
     }
 }
 
-pub fn rope_render_system(mut ropes: Query<(&RopeWire, &mut Transform2D, &mut Shape)>) {
-    for (rope, mut transform, mut shape) in &mut ropes {
+/// Render each wire as a ribbon polygon along its geometric path.
+pub fn wire_render_system(
+    mut wires: Query<(
+        &WireEndpoints,
+        Option<&WrapWire>,
+        Option<&CableRope>,
+        &mut Transform2D,
+        &mut Shape,
+        &mut Visible,
+    )>,
+    transforms: Query<&Transform2D, Without<WireEndpoints>>,
+) {
+    for (endpoints, wrap_wire, rope, mut transform, mut shape, mut visible) in &mut wires {
+        let Ok(src_t) = transforms.get(endpoints.source) else {
+            visible.0 = false;
+            continue;
+        };
+        let Ok(dst_t) = transforms.get(endpoints.dest) else {
+            visible.0 = false;
+            continue;
+        };
+
+        let waypoints = if let Some(rope) = rope {
+            if rope.points.len() >= 2 {
+                let mut points = rope.points.clone();
+                if let Some(first) = points.first_mut() {
+                    *first = src_t.position;
+                }
+                if let Some(last) = points.last_mut() {
+                    *last = dst_t.position;
+                }
+                points
+            } else if let Some(wrap) = wrap_wire {
+                wrap.waypoints(src_t.position, dst_t.position)
+            } else {
+                vec![src_t.position, dst_t.position]
+            }
+        } else if let Some(wrap) = wrap_wire {
+            wrap.waypoints(src_t.position, dst_t.position)
+        } else {
+            vec![src_t.position, dst_t.position]
+        };
+
         transform.position = Vec2::ZERO;
         transform.rotation = 0.0;
         transform.scale = Vec2::ONE;
-
-        let positions: Vec<Vec2> = rope.particles.iter().map(|p| p.pos).collect();
-        let ribbon = particles_to_ribbon(&positions, CABLE_HALF_THICKNESS);
-        shape.variant = ShapeVariant::Polygon { points: ribbon };
+        shape.variant = ShapeVariant::Polygon {
+            points: polyline_to_ribbon(&waypoints, CABLE_HALF_THICKNESS),
+        };
         shape.color = CABLE_COLOR;
+        visible.0 = true;
     }
 }
