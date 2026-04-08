@@ -79,6 +79,7 @@ pub struct ScreenDevice {
 #[derive(Component)]
 pub struct ScreenSignalShape {
     display_index: usize,
+    logged: bool,
 }
 
 /// Project all control points of a signal onto a 2D panel axis pair.
@@ -109,24 +110,43 @@ fn panel_offset(display_index: usize) -> Vec2 {
 pub fn screen_render_system(
     devices: Query<&ScreenDevice>,
     jacks: Query<&Jack<SignatureSpace>>,
-    mut shapes: Query<(&ScreenSignalShape, &ChildOf, &mut Shape, &mut Visible)>,
+    mut shapes: Query<(&mut ScreenSignalShape, &ChildOf, &mut Shape, &mut Visible)>,
 ) {
-    for (signal_shape, parent, mut shape, mut visible) in &mut shapes {
+    for (mut signal_shape, parent, mut shape, mut visible) in &mut shapes {
         let Ok(device) = devices.get(parent.0) else {
             visible.0 = false;
+            signal_shape.logged = false;
             continue;
         };
         let Ok(jack) = jacks.get(device.signature_input) else {
             visible.0 = false;
+            signal_shape.logged = false;
             continue;
         };
         let Some(space) = jack.data.as_ref() else {
             visible.0 = false;
+            signal_shape.logged = false;
             continue;
         };
 
-        let projected = project_signal_points(space, signal_shape.display_index);
+        let display_index = signal_shape.display_index;
+        let projected = project_signal_points(space, display_index);
         let visual_radius = space.radius * PANEL_HALF;
+
+        if !signal_shape.logged {
+            let x_elem = Element::ALL[display_index * 2];
+            let y_elem = Element::ALL[display_index * 2 + 1];
+            tracing::info!(
+                "Screen panel {}: {:?}/{:?} — {} control point(s), projected: {:?}, radius: {:.4}",
+                display_index,
+                x_elem,
+                y_elem,
+                projected.len(),
+                projected,
+                visual_radius,
+            );
+            signal_shape.logged = true;
+        }
 
         if projected.len() == 1 {
             let center = projected[0] * PANEL_HALF;
@@ -225,7 +245,10 @@ pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity
         world.spawn_child(
             device_entity,
             (
-                ScreenSignalShape { display_index },
+                ScreenSignalShape {
+                    display_index,
+                    logged: false,
+                },
                 Transform2D {
                     position: panel_offset(display_index),
                     ..Default::default()
