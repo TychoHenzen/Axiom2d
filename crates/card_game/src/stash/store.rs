@@ -11,6 +11,9 @@ use engine_render::prelude::{
 use engine_scene::render_order::RenderLayer;
 use glam::Vec2;
 
+use crate::booster::device::{
+    BoosterDragInfo, BoosterDragState, BoosterMachine, spawn_booster_machine,
+};
 use crate::card::combiner_device::{
     CombinerDevice, CombinerDragInfo, CombinerDragState, spawn_combiner_device,
 };
@@ -129,6 +132,7 @@ pub enum StoreItemKind {
     Reader,
     Screen,
     Combiner,
+    BoosterMachine,
 }
 
 impl StoreItemKind {
@@ -137,6 +141,7 @@ impl StoreItemKind {
             Self::Reader => "Card Reader",
             Self::Screen => "Screen",
             Self::Combiner => "Combiner",
+            Self::BoosterMachine => "Booster Machine",
         }
     }
 
@@ -145,6 +150,7 @@ impl StoreItemKind {
             Self::Reader => 30,
             Self::Screen => 20,
             Self::Combiner => 25,
+            Self::BoosterMachine => 35,
         }
     }
 
@@ -172,6 +178,12 @@ impl StoreItemKind {
                 b: 0.50,
                 a: 1.0,
             },
+            Self::BoosterMachine => Color {
+                r: 0.56,
+                g: 0.44,
+                b: 0.12,
+                a: 1.0,
+            },
         }
     }
 }
@@ -188,6 +200,7 @@ impl Default for StoreCatalog {
                 StoreItemKind::Reader,
                 StoreItemKind::Screen,
                 StoreItemKind::Combiner,
+                StoreItemKind::BoosterMachine,
             ],
         }
     }
@@ -467,6 +480,38 @@ fn draw_combiner_preview(
     );
 }
 
+fn draw_booster_preview(
+    renderer: &mut dyn engine_render::renderer::Renderer,
+    camera: &Camera2D,
+    viewport_w: f32,
+    viewport_h: f32,
+    left: f32,
+    top: f32,
+) {
+    draw_screen_rect(
+        renderer,
+        camera,
+        viewport_w,
+        viewport_h,
+        left + 40.0,
+        top + 32.0,
+        64.0,
+        50.0,
+        STORE_PREVIEW_DARK,
+    );
+    draw_screen_rect(
+        renderer,
+        camera,
+        viewport_w,
+        viewport_h,
+        left + 30.0,
+        top + 40.0,
+        10.0,
+        10.0,
+        STORE_PREVIEW_LIGHT,
+    );
+}
+
 fn draw_store_item(
     renderer: &mut dyn engine_render::renderer::Renderer,
     camera: &Camera2D,
@@ -519,6 +564,9 @@ fn draw_store_item(
         }
         StoreItemKind::Combiner => {
             draw_combiner_preview(renderer, camera, viewport_w, viewport_h, left, top);
+        }
+        StoreItemKind::BoosterMachine => {
+            draw_booster_preview(renderer, camera, viewport_w, viewport_h, left, top);
         }
     }
 
@@ -596,6 +644,11 @@ fn spawn_screen_purchase(world: &mut World, position: Vec2) -> Entity {
 
 fn spawn_combiner_purchase(world: &mut World, position: Vec2) -> Entity {
     let (device_entity, _in_a, _in_b, _out) = spawn_combiner_device(world, position);
+    device_entity
+}
+
+fn spawn_booster_purchase(world: &mut World, position: Vec2) -> Entity {
+    let (device_entity, _jack_entity) = spawn_booster_machine(world, position);
     device_entity
 }
 
@@ -716,6 +769,9 @@ pub fn store_buy_system(world: &mut World) {
             .is_some_and(|drag| drag.dragging.is_some())
         || world
             .get_resource::<CombinerDragState>()
+            .is_some_and(|drag| drag.dragging.is_some())
+        || world
+            .get_resource::<BoosterDragState>()
             .is_some_and(|drag| drag.dragging.is_some());
     if drag_active || !stash_ui_contains(mouse_screen_pos, &grid) {
         return;
@@ -759,6 +815,13 @@ pub fn store_buy_system(world: &mut World) {
                 grab_offset: Vec2::ZERO,
             });
         }
+        StoreItemKind::BoosterMachine => {
+            let entity = spawn_booster_purchase(world, spawn_pos);
+            world.resource_mut::<BoosterDragState>().dragging = Some(BoosterDragInfo {
+                entity,
+                grab_offset: Vec2::ZERO,
+            });
+        }
     }
 }
 
@@ -794,6 +857,9 @@ pub fn store_sell_system(world: &mut World) {
     let combiner_drag = world
         .get_resource::<CombinerDragState>()
         .and_then(|drag| drag.dragging.clone());
+    let booster_drag = world
+        .get_resource::<BoosterDragState>()
+        .and_then(|drag| drag.dragging.clone());
 
     if let Some(dragged_reader) = reader_drag {
         sell_reader(world, dragged_reader.entity);
@@ -804,6 +870,9 @@ pub fn store_sell_system(world: &mut World) {
     } else if let Some(dragged_combiner) = combiner_drag {
         sell_combiner(world, dragged_combiner.entity);
         world.resource_mut::<CombinerDragState>().dragging = None;
+    } else if let Some(dragged_booster) = booster_drag {
+        sell_booster(world, dragged_booster.entity);
+        world.resource_mut::<BoosterDragState>().dragging = None;
     }
 }
 
@@ -887,6 +956,28 @@ fn sell_reader(world: &mut World, entity: Entity) {
 
     despawn_connected_cables(world, &[entity, jack_entity]);
     despawn_entity_tree(world, jack_entity);
+    despawn_entity_tree(world, entity);
+    world.resource_mut::<StoreWallet>().refund(refund);
+}
+
+fn sell_booster(world: &mut World, entity: Entity) {
+    let (jack_entity, button_entity, output_pack, refund) = {
+        let Some(machine) = world.get::<BoosterMachine>(entity) else {
+            return;
+        };
+        (
+            machine.signal_input,
+            machine.button_entity,
+            machine.output_pack,
+            StoreItemKind::BoosterMachine.refund_value(),
+        )
+    };
+    despawn_connected_cables(world, &[entity, jack_entity]);
+    despawn_entity_tree(world, jack_entity);
+    despawn_entity_tree(world, button_entity);
+    if let Some(pack) = output_pack {
+        despawn_entity_tree(world, pack);
+    }
     despawn_entity_tree(world, entity);
     world.resource_mut::<StoreWallet>().refund(refund);
 }

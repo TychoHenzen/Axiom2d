@@ -1,3 +1,9 @@
+use crate::booster::device::{
+    BoosterDragState, SealButtonPressed, booster_drag_system, booster_release_system,
+    booster_seal_system,
+};
+use crate::booster::double_click::DoubleClickState;
+use crate::booster::opening::booster_opening_system;
 use crate::card::combiner_device::{
     CombinerDragState, combiner_drag_system, combiner_release_system, combiner_system,
 };
@@ -82,6 +88,9 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(PendingCable::default());
         world.insert_resource(ScreenDragState::default());
         world.insert_resource(CombinerDragState::default());
+        world.insert_resource(BoosterDragState::default());
+        world.insert_resource(DoubleClickState::default());
+        world.insert_resource(SealButtonPressed::default());
         world.insert_resource(EventBus::<InteractionIntent>::default());
         let mut registry = BaseCardTypeRegistry::new();
         populate_default_types(&mut registry);
@@ -127,6 +136,7 @@ fn register_systems(app: &mut App) {
                 reader_drag_system,
                 screen_drag_system,
                 combiner_drag_system,
+                booster_drag_system,
                 store_sell_system,
                 stash_boundary_system,
                 card_reader_insert_system,
@@ -135,9 +145,11 @@ fn register_systems(app: &mut App) {
                 reader_release_system,
                 screen_release_system,
                 combiner_release_system,
+                booster_release_system,
                 jack_socket_release_system,
                 card_flip_system,
                 flip_animation_system,
+                booster_seal_system,
             )
                 .chain(),
         )
@@ -159,6 +171,7 @@ fn register_systems(app: &mut App) {
         .add_systems(Phase::Update, (camera_drag_system, camera_zoom_system))
         .add_systems(Phase::Update, (stash_toggle_system, stash_tab_click_system))
         .add_systems(Phase::Update, stash_hover_preview_system)
+        .add_systems(Phase::Animate, booster_opening_system)
         .add_systems(
             Phase::LateUpdate,
             (

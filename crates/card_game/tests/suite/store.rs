@@ -176,7 +176,7 @@ fn when_store_page_renders_then_item_prices_land_with_the_item_cards() {
 
     // Assert
     let calls = text_calls.lock().unwrap();
-    assert_eq!(calls.len(), 9);
+    assert_eq!(calls.len(), 11);
 
     let catalog = StoreCatalog::default();
     let grid = world.resource::<StashGrid>();

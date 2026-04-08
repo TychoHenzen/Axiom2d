@@ -1,3 +1,11 @@
+pub use crate::booster::device::{
+    BoosterDragState, BoosterMachine, booster_drag_system, booster_release_system,
+    booster_seal_system, spawn_booster_machine,
+};
+pub use crate::booster::double_click::{DoubleClickState, double_click_detect_system};
+pub use crate::booster::opening::{BoosterOpening, booster_opening_system};
+pub use crate::booster::pack::{BoosterPack, spawn_booster_pack};
+pub use crate::booster::sampling::sample_signatures_from_space;
 pub use crate::card::component::Card;
 pub use crate::card::component::CardItemForm;
 pub use crate::card::identity::base_type::{
