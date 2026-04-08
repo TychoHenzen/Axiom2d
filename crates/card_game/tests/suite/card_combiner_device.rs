@@ -236,3 +236,22 @@ fn when_canonical_sort_then_same_points_different_order_produce_identical_output
         "identical card sets must produce identical output"
     );
 }
+
+#[test]
+fn when_capsule_contains_midpoint_then_returns_true_and_far_point_false() {
+    // Arrange
+    let a = CardSignature::new([0.0; 8]);
+    let b = CardSignature::new([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    let capsule = SignatureSpace::combine(
+        &SignatureSpace::from_single(a, 0.2),
+        &SignatureSpace::from_single(b, 0.2),
+    );
+
+    // Act / Assert — midpoint of segment is inside the capsule
+    let midpoint = CardSignature::new([0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    assert!(capsule.contains(&midpoint));
+
+    // Act / Assert — point far from the segment is outside
+    let far = CardSignature::new([0.25, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    assert!(!capsule.contains(&far));
+}
