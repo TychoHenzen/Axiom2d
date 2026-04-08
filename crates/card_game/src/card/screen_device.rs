@@ -136,7 +136,7 @@ pub fn screen_render_system(
         if !signal_shape.logged {
             let x_elem = Element::ALL[display_index * 2];
             let y_elem = Element::ALL[display_index * 2 + 1];
-            tracing::info!(
+            tracing::warn!(
                 "Screen panel {}: {:?}/{:?} — {} control point(s), projected: {:?}, radius: {:.4}",
                 display_index,
                 x_elem,
