@@ -42,12 +42,21 @@ impl DoubleClickState {
 }
 
 pub fn double_click_detect_system(world: &mut World) {
-    // 1. Don't allow a new opening while one is already running
+    // 1. Always tick the elapsed timer so timing works between clicks
+    let dt = world.get_resource::<DeltaTime>().map_or(0.0, |dt| dt.0.0);
+    {
+        let mut state = world
+            .get_resource_mut::<DoubleClickState>()
+            .expect("DoubleClickState must be inserted");
+        state.tick(dt);
+    }
+
+    // 2. Don't allow a new opening while one is already running
     if world.contains_resource::<BoosterOpening>() {
         return;
     }
 
-    // 2. Check mouse just pressed (left button)
+    // 3. Check mouse just pressed (left button)
     let just_pressed = world
         .get_resource::<MouseState>()
         .is_some_and(|m| m.just_pressed(MouseButton::Left));
@@ -55,7 +64,7 @@ pub fn double_click_detect_system(world: &mut World) {
         return;
     }
 
-    // 3. Check if a BoosterPack entity is being dragged
+    // 4. Check if a BoosterPack entity is being dragged
     let drag_entity = world
         .get_resource::<DragState>()
         .and_then(|d| d.dragging.as_ref())
@@ -66,22 +75,12 @@ pub fn double_click_detect_system(world: &mut World) {
         return;
     }
 
-    // 4. Tick the elapsed timer and get current time
-    let dt = world.get_resource::<DeltaTime>().map_or(0.0, |dt| dt.0.0);
-
-    let now = {
-        let mut state = world
-            .get_resource_mut::<DoubleClickState>()
-            .expect("DoubleClickState must be inserted");
-        state.tick(dt);
-        state.elapsed
-    };
-
-    // 5. Register the click — bail if it's not a double-click
+    // 5. Get current elapsed time and register the click
     let double_clicked = {
         let mut state = world
             .get_resource_mut::<DoubleClickState>()
             .expect("DoubleClickState must be inserted");
+        let now = state.elapsed;
         state.register_click(entity, now)
     };
 
