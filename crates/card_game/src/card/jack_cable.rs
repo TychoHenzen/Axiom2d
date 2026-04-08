@@ -269,17 +269,28 @@ impl WrapWire {
                     };
                     let span_dir = span_b - span_a;
                     let hit = span_a + (span_b - span_a) * first_t;
-                    let last_anchor = self.anchors.iter().rev().find(|a| a.obstacle == entity);
+
+                    // Only use boundary-neighbor logic when the anchor
+                    // immediately preceding this span belongs to the same
+                    // obstacle — i.e. we are extending an existing wrap.
+                    // Using the *last* anchor on the entity anywhere in the
+                    // list caused wrong vertex selection when the span
+                    // bridges two different obstacles (e.g. reader→display).
+                    let prev_anchor = if insert_idx > 0 {
+                        let a = &self.anchors[insert_idx - 1];
+                        if a.obstacle == entity { Some(a) } else { None }
+                    } else {
+                        None
+                    };
 
                     let mut best_idx: Option<usize> = None;
                     let mut best_dist = f32::MAX;
-                    if let Some(last_anchor) = last_anchor
-                        && last_anchor.obstacle == entity
-                        && last_anchor.vertex_index < n
+                    if let Some(prev) = prev_anchor
+                        && prev.vertex_index < n
                     {
                         let candidate_idx = Self::boundary_neighbor_index(
-                            last_anchor.vertex_index,
-                            last_anchor.boundary_step,
+                            prev.vertex_index,
+                            prev.boundary_step,
                             n,
                         );
                         best_idx = Some(candidate_idx);
@@ -305,8 +316,8 @@ impl WrapWire {
                         let bend = (v - span_a).perp_dot(span_b - v);
                         let wrap_sign = if bend.abs() > 1e-6 {
                             bend.signum()
-                        } else if let Some(last) = last_anchor {
-                            last.wrap_sign
+                        } else if let Some(prev) = prev_anchor {
+                            prev.wrap_sign
                         } else {
                             // Vertex on cable line, no prior anchor — wrap away
                             // from polygon interior.
@@ -314,9 +325,10 @@ impl WrapWire {
                             if c.abs() > 1e-6 { -c.signum() } else { 1.0 }
                         };
                         // boundary_step: consistent walk direction for this obstacle.
-                        // Inherit from existing anchor; first anchor derives from wrap_sign.
-                        let boundary_step = if let Some(last) = last_anchor {
-                            last.boundary_step
+                        // Inherit from preceding anchor on same obstacle; otherwise
+                        // derive from wrap_sign.
+                        let boundary_step = if let Some(prev) = prev_anchor {
+                            prev.boundary_step
                         } else if wrap_sign > 0.0 {
                             1i8
                         } else {
