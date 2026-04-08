@@ -12,11 +12,10 @@ use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale
 use crate::card::interaction::intent::InteractionIntent;
 use crate::card::interaction::release::card_release_system;
 use crate::card::jack_cable::{
-    rope_physics_system, rope_render_system, signature_space_propagation_system,
+    signature_space_propagation_system, wire_render_system, wrap_detect_system, wrap_update_system,
 };
 use crate::card::jack_socket::{
     PendingCable, jack_socket_release_system, jack_socket_render_system, pending_cable_drag_system,
-    spawn_pending_cable_preview,
 };
 use crate::card::reader::{
     ReaderDragState, card_reader_eject_system, card_reader_insert_system, reader_drag_system,
@@ -80,7 +79,6 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(PendingCable::default());
         world.insert_resource(ScreenDragState::default());
         world.insert_resource(EventBus::<InteractionIntent>::default());
-        spawn_pending_cable_preview(world);
         let mut registry = BaseCardTypeRegistry::new();
         populate_default_types(&mut registry);
         world.insert_resource(registry);
@@ -141,8 +139,9 @@ fn register_systems(app: &mut App) {
             Phase::Update,
             (
                 pending_cable_drag_system,
-                rope_physics_system,
-                rope_render_system,
+                wrap_update_system,
+                wrap_detect_system,
+                wire_render_system,
                 signature_space_propagation_system,
                 jack_socket_render_system,
                 screen_render_system,

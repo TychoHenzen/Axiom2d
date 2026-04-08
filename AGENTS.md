@@ -18,6 +18,7 @@ The card game's core implementation (Phases A–H2) is **complete** — physics 
 2. Update the memory file if new public types/traits/systems were added.
 3. Run `cargo.exe fmt --all`.
 4. If new workspace dependencies were added, mention them in the Development Environment section.
+5. Cable wrap selection must preserve the existing obstacle-side `wrap_sign` when choosing the next corner; nearest-vertex selection alone can flip a partially wrapped cable to the opposite side around midpoint crossings, and global “already used” vertex suppression breaks multi-loop wraps around the same obstacle.
 
 ### Before committing
 

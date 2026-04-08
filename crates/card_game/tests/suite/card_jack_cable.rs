@@ -1,23 +1,17 @@
 #![allow(clippy::unwrap_used)]
 
-use std::sync::{Arc, Mutex};
-
 use bevy_ecs::prelude::*;
 use card_game::card::identity::signature::CardSignature;
 use card_game::card::jack_cable::{
-    Cable, Jack, JackDirection, RopeParticle, RopeWire, RopeWireEndpoints, cable_render_system,
-    particles_to_bezier_path, rope_physics_system, rope_render_system,
-    signature_space_propagation_system,
+    Cable, CableCollider, Jack, JackDirection, WireEndpoints, WrapAnchor, WrapWire,
+    point_in_convex_polygon, polyline_to_ribbon, segment_intersects_segment,
+    signature_space_propagation_system, wire_render_system, wrap_detect_system, wrap_update_system,
 };
 use card_game::card::reader::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
-use engine_core::color::Color;
 use engine_core::prelude::Transform2D;
-use engine_render::prelude::{Camera2D, RendererRes, Shape, ShapeVariant};
-use engine_render::shape::PathCommand;
-use engine_render::testing::{ShapeCallLog, SpyRenderer};
-use engine_scene::prelude::{SortOrder, Visible, transform_propagation_system, visibility_system};
+use engine_render::prelude::{Shape, ShapeVariant};
+use engine_scene::prelude::{SortOrder, Visible};
 use engine_scene::render_order::RenderLayer;
-use engine_ui::unified_render::unified_render_system;
 use glam::Vec2;
 
 // ---------------------------------------------------------------------------
@@ -137,158 +131,6 @@ fn when_output_jack_has_no_data_then_input_jack_data_remains_none_after_propagat
 }
 
 // ---------------------------------------------------------------------------
-// TC015 / TC016 — cable_render_system line drawing
-// ---------------------------------------------------------------------------
-
-fn make_cable_render_world() -> (World, ShapeCallLog) {
-    let mut world = World::new();
-    let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));
-    let spy = SpyRenderer::new(Arc::new(Mutex::new(Vec::new())))
-        .with_shape_capture(shape_calls.clone())
-        .with_viewport(1024, 768);
-    world.insert_resource(RendererRes::new(Box::new(spy)));
-    world.spawn(Camera2D {
-        position: Vec2::ZERO,
-        zoom: 1.0,
-    });
-    (world, shape_calls)
-}
-
-fn spawn_renderable_cable(world: &mut World, source: Entity, dest: Entity) {
-    world.spawn((
-        Cable { source, dest },
-        Transform2D::default(),
-        Shape {
-            variant: ShapeVariant::Polygon {
-                points: vec![
-                    Vec2::new(-1.0, -1.0),
-                    Vec2::new(1.0, -1.0),
-                    Vec2::new(1.0, 1.0),
-                    Vec2::new(-1.0, 1.0),
-                ],
-            },
-            color: Color::WHITE,
-        },
-        Visible(true),
-        RenderLayer::World,
-        SortOrder::default(),
-    ));
-}
-
-fn run_cable_visuals(world: &mut World) {
-    let mut schedule = Schedule::default();
-    schedule.add_systems(
-        (
-            cable_render_system,
-            transform_propagation_system,
-            visibility_system,
-            unified_render_system,
-        )
-            .chain(),
-    );
-    schedule.run(world);
-}
-
-/// @doc: `cable_render_system` must update the cable entity so the unified shape renderer
-/// draws one quad between the world positions of its two endpoint jacks. Without this visual
-/// the wiring layer is invisible and a player has no feedback that a reader is connected
-/// to a screen.
-#[test]
-fn when_cable_connects_two_positioned_entities_then_one_line_shape_is_drawn() {
-    // Arrange
-    let (mut world, shape_calls) = make_cable_render_world();
-
-    let source = world
-        .spawn(Transform2D {
-            position: Vec2::new(0.0, 0.0),
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        })
-        .id();
-    let dest = world
-        .spawn(Transform2D {
-            position: Vec2::new(200.0, 100.0),
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        })
-        .id();
-    spawn_renderable_cable(&mut world, source, dest);
-
-    // Act
-    run_cable_visuals(&mut world);
-
-    // Assert
-    assert_eq!(
-        shape_calls.lock().unwrap().len(),
-        1,
-        "one Cable entity must produce exactly one line draw call"
-    );
-}
-
-/// @doc: `cable_render_system` must reposition the cable's transform to the midpoint of its
-/// two endpoint entities. If the system does nothing, the cable transform stays at its initial
-/// default position and renders in the wrong place regardless of where the endpoints are.
-#[test]
-fn when_cable_render_system_runs_then_cable_transform_is_at_midpoint_of_endpoints() {
-    // Arrange
-    let (mut world, _) = make_cable_render_world();
-
-    let source = world
-        .spawn(Transform2D {
-            position: Vec2::new(0.0, 0.0),
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        })
-        .id();
-    let dest = world
-        .spawn(Transform2D {
-            position: Vec2::new(200.0, 0.0),
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        })
-        .id();
-    let cable_entity = world
-        .spawn((
-            Cable { source, dest },
-            Transform2D::default(), // starts at origin — system must move it to midpoint
-            Shape {
-                variant: ShapeVariant::Polygon {
-                    points: vec![
-                        Vec2::new(-1.0, -1.0),
-                        Vec2::new(1.0, -1.0),
-                        Vec2::new(1.0, 1.0),
-                        Vec2::new(-1.0, 1.0),
-                    ],
-                },
-                color: Color::WHITE,
-            },
-            Visible(true),
-            RenderLayer::World,
-            SortOrder::default(),
-        ))
-        .id();
-
-    let mut schedule = Schedule::default();
-    schedule.add_systems(cable_render_system);
-
-    // Act
-    schedule.run(&mut world);
-
-    // Assert — transform must be at midpoint (100, 0), not at the pre-spawn default (0, 0)
-    let transform = world.get::<Transform2D>(cable_entity).unwrap();
-    assert!(
-        (transform.position.x - 100.0).abs() < 0.01,
-        "cable transform x should be at midpoint 100.0, got {}",
-        transform.position.x
-    );
-    assert!(
-        (transform.position.y - 0.0).abs() < 0.01,
-        "cable transform y should be at midpoint 0.0, got {}",
-        transform.position.y
-    );
-}
-
-// ---------------------------------------------------------------------------
 // Original TC (SignatureSpace identity axiom — pre-existing, do not remove)
 // ---------------------------------------------------------------------------
 
@@ -319,882 +161,911 @@ fn when_point_is_center_of_space_then_contains_returns_true() {
 }
 
 // ---------------------------------------------------------------------------
-// Rope wire — TC001: construction with evenly-spaced particles
+// WrapWire — shortest_path computation
 // ---------------------------------------------------------------------------
 
-/// @doc: A `RopeWire` models the slack cable that hangs between two jack sockets. Particles
-/// must be seeded at evenly-spaced positions along the straight line from endpoint A to B so
-/// that the Verlet integrator starts from a physically plausible rest pose. If particles were
-/// clumped at one end, the first simulation tick would produce a violent jerk that tears the
-/// rope apart or causes tunnelling through card geometry. The `prev == pos` invariant encodes
-/// zero initial velocity — any divergence would inject phantom momentum that the solver cannot
-/// distinguish from real user input.
+/// @doc: A `WrapWire` with no anchors represents a cable that wraps around zero obstacles,
+/// so its shortest geometric path is simply the straight-line distance between the two
+/// endpoints. This is the base case for the path-length computation — if the zero-anchor
+/// case returns the wrong value, every path calculation will be wrong even for cables that
+/// have never contacted an obstacle.
 #[test]
-fn given_two_endpoints_and_particle_count_when_rope_wire_constructed_then_particles_linearly_interpolated_with_zero_velocity()
- {
+fn when_wrap_wire_has_no_anchors_then_shortest_path_is_endpoint_distance() {
     // Arrange
-    let a = Vec2::new(0.0, 0.0);
-    let b = Vec2::new(9.0, 0.0);
-    let n = 4_usize; // particles at x = 0, 3, 6, 9
+    let wire = WrapWire::new();
+    let src = Vec2::new(0.0, 0.0);
+    let dst = Vec2::new(100.0, 0.0);
 
     // Act
-    let rope = RopeWire::new(a, b, n);
+    let path = wire.shortest_path(src, dst);
 
     // Assert
-    assert_eq!(rope.particles.len(), n);
-    for (i, particle) in rope.particles.iter().enumerate() {
-        let t = i as f32 / (n - 1) as f32;
-        let expected = a.lerp(b, t);
-        assert!(
-            (particle.pos - expected).length() < 1e-5,
-            "particle[{i}].pos expected {expected}, got {}",
-            particle.pos
-        );
-        assert!(
-            (particle.prev - particle.pos).length() < 1e-5,
-            "particle[{i}].prev should equal pos (zero velocity), got prev={} pos={}",
-            particle.prev,
-            particle.pos
-        );
-    }
+    assert!((path - 100.0).abs() < 0.01, "expected 100.0, got {path}");
 }
 
-// ---------------------------------------------------------------------------
-// Rope wire — TC002–TC004: verlet_step integration
-// ---------------------------------------------------------------------------
-
-/// @doc: A `RopeWire` in which every particle's `prev` equals its `pos` encodes zero velocity.
-/// Applying one Verlet step must leave all positions unchanged because the displacement vector
-/// `pos - prev` is zero for every particle. If `verlet_step` moves any particle when there is
-/// no momentum, the rope would spontaneously accelerate from rest, making it impossible to
-/// author a hanging rope that stays put before user interaction.
+/// @doc: When a `WrapWire` has one anchor, the shortest path must go from `src` to the
+/// anchor position and then from the anchor to `dst`, forming a two-segment polyline. This
+/// tests the fundamental anchor-routing logic: the cable bends around a single obstacle
+/// vertex, and the total path length equals the sum of the two segment lengths. If this
+/// case is wrong, multi-anchor paths (which are just chained single-anchor segments) will
+/// also be wrong, breaking path distance calculations for any wrapped cable.
 #[test]
-fn when_all_particles_have_zero_velocity_then_verlet_step_leaves_positions_unchanged() {
+fn when_wrap_wire_has_one_anchor_then_shortest_path_goes_through_it() {
     // Arrange
-    let mut wire = RopeWire::new(Vec2::new(0.0, 0.0), Vec2::new(30.0, 0.0), 4);
-    // Capture positions before the step (prev == pos already by construction)
-    let positions_before: Vec<Vec2> = wire.particles.iter().map(|p| p.pos).collect();
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(50.0, 50.0),
+        obstacle: Entity::from_raw(999),
+        vertex_index: 0,
+        boundary_step: 0,
+        wrap_sign: 1.0,
+    });
+    let src = Vec2::new(0.0, 0.0);
+    let dst = Vec2::new(100.0, 0.0);
 
     // Act
-    wire.verlet_step(1.0);
+    let path = wire.shortest_path(src, dst);
 
-    // Assert
-    for (i, (particle, before)) in wire
-        .particles
-        .iter()
-        .zip(positions_before.iter())
-        .enumerate()
-    {
-        assert!(
-            (particle.pos - *before).length() < 1e-5,
-            "particle[{i}].pos should be unchanged when velocity is zero, \
-             expected {before}, got {}",
-            particle.pos
-        );
-    }
+    // Assert — src→(50,50)→dst = ~70.71 + ~70.71 = ~141.42
+    let expected = (Vec2::new(50.0, 50.0) - src).length() + (dst - Vec2::new(50.0, 50.0)).length();
+    assert!(
+        (path - expected).abs() < 0.01,
+        "expected {expected}, got {path}"
+    );
 }
 
-/// @doc: A single particle with `pos=(10,0)` and `prev=(0,0)` carries a displacement of
-/// `(10,0)`. With damping=1.0, Verlet integration must produce `new_pos = pos + (pos - prev)
-/// * 1.0 = (20,0)`. This is the canonical unit test for the integration formula itself: if
-/// the arithmetic is wrong (e.g. velocity is subtracted instead of added, or prev is not
-/// updated) the particle ends up at the wrong position and every rope physics interaction
-/// produces systematically incorrect trajectories.
+// ---------------------------------------------------------------------------
+// Segment intersection — crossing and parallel cases
+// ---------------------------------------------------------------------------
+
+/// @doc: `segment_intersects_segment` detects when two finite line segments cross each other
+/// and returns the parametric `t` along the first segment at the intersection point. For two
+/// perpendicular segments that cross at their midpoints, `t` must be 0.5. This is the
+/// foundation of the wrap-detection system — without accurate segment–segment intersection,
+/// the cable cannot detect when it crosses a polygon edge.
 #[test]
-fn when_single_particle_has_nonzero_velocity_and_damping_one_then_verlet_step_adds_displacement() {
+fn when_two_crossing_segments_then_intersection_returns_some() {
+    // Arrange — horizontal and vertical crossing segments
+    let a1 = Vec2::new(0.0, 0.0);
+    let a2 = Vec2::new(10.0, 0.0);
+    let b1 = Vec2::new(5.0, -5.0);
+    let b2 = Vec2::new(5.0, 5.0);
+
+    // Act
+    let result = segment_intersects_segment(a1, a2, b1, b2);
+
+    // Assert
+    assert!(result.is_some(), "crossing segments must intersect");
+    let t = result.unwrap();
+    assert!((t - 0.5).abs() < 0.01, "intersection at midpoint, t={t}");
+}
+
+/// @doc: Parallel segments can never intersect regardless of how close they are, so
+/// `segment_intersects_segment` must return `None`. The denominator (perp-dot of the two
+/// direction vectors) is zero for parallel lines, and the function must detect this
+/// degenerate case rather than dividing by zero or returning a spurious intersection.
+#[test]
+fn when_parallel_segments_then_intersection_returns_none() {
     // Arrange
-    let mut wire = RopeWire::with_particles(vec![RopeParticle {
-        pos: Vec2::new(10.0, 0.0),
-        prev: Vec2::new(0.0, 0.0),
-    }]);
+    let a1 = Vec2::new(0.0, 0.0);
+    let a2 = Vec2::new(10.0, 0.0);
+    let b1 = Vec2::new(0.0, 5.0);
+    let b2 = Vec2::new(10.0, 5.0);
 
     // Act
-    wire.verlet_step(1.0);
+    let result = segment_intersects_segment(a1, a2, b1, b2);
 
     // Assert
-    let new_pos = wire.particles[0].pos;
-    assert!(
-        (new_pos - Vec2::new(20.0, 0.0)).length() < 1e-5,
-        "verlet_step with damping=1.0 must yield pos=(20,0), got {new_pos}"
-    );
+    assert!(result.is_none(), "parallel segments must not intersect");
 }
 
-/// @doc: Damping values below 1.0 must attenuate the displacement each tick, causing the rope
-/// to decelerate realistically. With `pos=(10,0)`, `prev=(0,0)` and damping=0.9 the expected
-/// result is `pos + (pos - prev) * 0.9 = (10,0) + (10,0)*0.9 = (19,0)`. If `verlet_step`
-/// ignores the damping coefficient the rope will never lose energy and a freely-hanging rope
-/// would oscillate indefinitely instead of settling. Testing damping=0.9 specifically catches
-/// the common bug of multiplying the wrong term or applying damping after the position update.
+// ---------------------------------------------------------------------------
+// detect_wraps — inserts anchor when cable crosses polygon
+// ---------------------------------------------------------------------------
+
+/// @doc: `detect_wraps` walks each span of the cable path and checks for polygon intersections,
+/// inserting `WrapAnchor`s where the cable crosses an obstacle. This test verifies the basic
+/// contract: a straight cable that passes through a box gets exactly one anchor inserted.
 #[test]
-fn when_single_particle_has_nonzero_velocity_and_damping_point_nine_then_verlet_step_attenuates_displacement()
- {
-    // Arrange
-    let mut wire = RopeWire::with_particles(vec![RopeParticle {
-        pos: Vec2::new(10.0, 0.0),
-        prev: Vec2::new(0.0, 0.0),
-    }]);
-
-    // Act
-    wire.verlet_step(0.9);
-
-    // Assert
-    let new_pos = wire.particles[0].pos;
-    assert!(
-        (new_pos - Vec2::new(19.0, 0.0)).length() < 1e-5,
-        "verlet_step with damping=0.9 must yield pos=(19,0), got {new_pos}"
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Rope wire — TC005–TC007: Jakobsen distance constraint relaxation
-// ---------------------------------------------------------------------------
-
-/// @doc: `relax_constraints` must be a no-op when particles are already at rest-length
-/// separation. The Jakobsen correction is proportional to the signed distance error
-/// `(actual - rest)`; when that error is zero, both correction halves are zero and no
-/// position should change. If the method moves particles even when no error exists it will
-/// fight the Verlet integrator every tick, preventing the rope from ever reaching a stable
-/// resting pose and producing perpetual jitter visible to the player.
-#[test]
-fn when_particles_already_at_rest_length_then_relax_constraints_leaves_positions_unchanged() {
-    // Arrange
-    let rest_length = 10.0_f32;
-    let mut wire = RopeWire::with_particles(vec![
-        RopeParticle {
-            pos: Vec2::new(0.0, 0.0),
-            prev: Vec2::new(0.0, 0.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(10.0, 0.0),
-            prev: Vec2::new(10.0, 0.0),
-        },
-    ]);
-    let pos0_before = wire.particles[0].pos;
-    let pos1_before = wire.particles[1].pos;
-
-    // Act
-    wire.relax_constraints(rest_length);
-
-    // Assert
-    assert!(
-        (wire.particles[0].pos - pos0_before).length() < 1e-5,
-        "particle[0] must not move when distance already equals rest_length, \
-         expected {pos0_before}, got {}",
-        wire.particles[0].pos
-    );
-    assert!(
-        (wire.particles[1].pos - pos1_before).length() < 1e-5,
-        "particle[1] must not move when distance already equals rest_length, \
-         expected {pos1_before}, got {}",
-        wire.particles[1].pos
-    );
-}
-
-/// @doc: When two particles are closer than the rest length, `relax_constraints` must push
-/// them apart until their separation equals `rest_length`. For a 2-particle chain there is
-/// exactly one constraint, so a single pass gives the full correction: each particle moves
-/// half of `(actual_dist - rest_length)` along the separation axis. If the method only
-/// partially corrects (e.g. applies the full delta to one particle instead of splitting it)
-/// the rope will never reach rest length in finite passes and will appear rubbery or collapsed
-/// on screen rather than taut at the authored length.
-#[test]
-fn when_particles_too_close_then_relax_constraints_restores_rest_length() {
-    // Arrange — particles at x=0 and x=5, rest_length=10 (half the rest distance)
-    let rest_length = 10.0_f32;
-    let mut wire = RopeWire::with_particles(vec![
-        RopeParticle {
-            pos: Vec2::new(0.0, 0.0),
-            prev: Vec2::new(0.0, 0.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(5.0, 0.0),
-            prev: Vec2::new(5.0, 0.0),
-        },
-    ]);
-
-    // Act
-    wire.relax_constraints(rest_length);
-
-    // Assert
-    let dist = (wire.particles[0].pos - wire.particles[1].pos).length();
-    assert!(
-        (dist - rest_length).abs() < 1e-4,
-        "distance after one relax pass must equal rest_length={rest_length}, got {dist}"
-    );
-}
-
-/// @doc: When two particles are further apart than the rest length, `relax_constraints` must
-/// pull them together until their separation equals `rest_length`. This is the symmetrical
-/// case to TC006: the signed error `(actual - rest)` is positive, so the correction vector
-/// points inward and each particle moves half the error toward the other. If the sign of the
-/// correction is inverted the particles would be pushed further apart every tick, causing the
-/// cable to stretch without bound and producing a visual artefact where the rope grows longer
-/// the longer the simulation runs.
-#[test]
-fn when_particles_too_far_then_relax_constraints_restores_rest_length() {
-    // Arrange — particles at x=0 and x=20, rest_length=10 (double the rest distance)
-    let rest_length = 10.0_f32;
-    let mut wire = RopeWire::with_particles(vec![
-        RopeParticle {
-            pos: Vec2::new(0.0, 0.0),
-            prev: Vec2::new(0.0, 0.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(20.0, 0.0),
-            prev: Vec2::new(20.0, 0.0),
-        },
-    ]);
-
-    // Act
-    wire.relax_constraints(rest_length);
-
-    // Assert
-    let dist = (wire.particles[0].pos - wire.particles[1].pos).length();
-    assert!(
-        (dist - rest_length).abs() < 1e-4,
-        "distance after one relax pass must equal rest_length={rest_length}, got {dist}"
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Rope wire — TC008–TC009: apply_shrinkage self-straightening restoring force
-// ---------------------------------------------------------------------------
-
-/// @doc: `apply_shrinkage` models the visual tendency of a slack cable to resist wild
-/// lateral bowing — a gentle restoring force that pulls each interior particle toward
-/// the straight chord between the two endpoints. With a positive `strength`, a single
-/// call must reduce the perpendicular displacement of every interior particle; if the
-/// force is absent or reversed, a rope displaced sideways will never self-straighten
-/// and the cable will appear to float rigidly in the wrong shape regardless of how
-/// long the simulation runs.
-#[test]
-fn when_interior_particles_displaced_perpendicularly_then_apply_shrinkage_reduces_displacement() {
-    // Arrange — 4-particle rope; chord is y=0 (endpoints at x=0 and x=30);
-    // interior particles are 20 units above the chord line
-    let mut wire = RopeWire::with_particles(vec![
-        RopeParticle {
-            pos: Vec2::new(0.0, 0.0),
-            prev: Vec2::new(0.0, 0.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(10.0, 20.0),
-            prev: Vec2::new(10.0, 20.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(20.0, 20.0),
-            prev: Vec2::new(20.0, 20.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(30.0, 0.0),
-            prev: Vec2::new(30.0, 0.0),
-        },
-    ]);
-    let y_before_1 = wire.particles[1].pos.y;
-    let y_before_2 = wire.particles[2].pos.y;
-
-    // Act
-    wire.apply_shrinkage(0.1);
-
-    // Assert — both interior particles must be strictly closer to the chord (y=0)
-    assert!(
-        wire.particles[1].pos.y.abs() < y_before_1.abs(),
-        "particle[1].y must move toward 0 after shrinkage; before={y_before_1}, after={}",
-        wire.particles[1].pos.y
-    );
-    assert!(
-        wire.particles[2].pos.y.abs() < y_before_2.abs(),
-        "particle[2].y must move toward 0 after shrinkage; before={y_before_2}, after={}",
-        wire.particles[2].pos.y
-    );
-}
-
-/// @doc: When interior particles are already on the straight chord between the two
-/// endpoints their interpolated target equals their current position, so the
-/// correction vector is zero and `apply_shrinkage` must leave every position
-/// untouched. If the method moves particles that are already collinear it introduces
-/// drift that accumulates each tick and shifts a perfectly taut rope away from its
-/// authored path, causing visible position errors for cables strung between nearby
-/// sockets.
-#[test]
-fn when_all_particles_collinear_then_apply_shrinkage_leaves_positions_unchanged() {
-    // Arrange — 4 particles perfectly on the x-axis (chord line)
-    let mut wire = RopeWire::with_particles(vec![
-        RopeParticle {
-            pos: Vec2::new(0.0, 0.0),
-            prev: Vec2::new(0.0, 0.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(10.0, 0.0),
-            prev: Vec2::new(10.0, 0.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(20.0, 0.0),
-            prev: Vec2::new(20.0, 0.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(30.0, 0.0),
-            prev: Vec2::new(30.0, 0.0),
-        },
-    ]);
-    let pos1_before = wire.particles[1].pos;
-    let pos2_before = wire.particles[2].pos;
-
-    // Act
-    wire.apply_shrinkage(0.1);
-
-    // Assert — interior positions must be identical to within floating-point noise
-    assert!(
-        (wire.particles[1].pos - pos1_before).length() < 1e-6,
-        "particle[1] must not move when already collinear; expected {pos1_before}, got {}",
-        wire.particles[1].pos
-    );
-    assert!(
-        (wire.particles[2].pos - pos2_before).length() < 1e-6,
-        "particle[2] must not move when already collinear; expected {pos2_before}, got {}",
-        wire.particles[2].pos
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Rope wire — TC010: pin_endpoints pure function
-// ---------------------------------------------------------------------------
-
-/// @doc: `pin_endpoints` is the boundary-condition enforcer that prevents the Verlet solver
-/// from drifting the rope's two ends away from their socket anchors. Given a rope whose
-/// particles are at arbitrary positions, a single call must teleport particle[0] to `a` and
-/// particle[n-1] to `b`, leaving all interior particles exactly where they were. Without this
-/// hard snap, every integration tick would allow the endpoints to wander, and the visual rope
-/// would appear to detach from its jack sockets during gameplay.
-#[test]
-fn given_rope_with_arbitrary_positions_when_pin_endpoints_then_first_and_last_snap_and_interior_unchanged()
- {
-    // Arrange
-    let mut wire = RopeWire::with_particles(vec![
-        RopeParticle {
-            pos: Vec2::new(100.0, 100.0),
-            prev: Vec2::new(100.0, 100.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(100.0, 100.0),
-            prev: Vec2::new(100.0, 100.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(100.0, 100.0),
-            prev: Vec2::new(100.0, 100.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(100.0, 100.0),
-            prev: Vec2::new(100.0, 100.0),
-        },
-    ]);
-    let pin_a = Vec2::new(0.0, 0.0);
-    let pin_b = Vec2::new(50.0, 0.0);
-
-    // Act
-    wire.pin_endpoints(pin_a, pin_b);
-
-    // Assert
-    assert_eq!(
-        wire.particles[0].pos, pin_a,
-        "particle[0].pos must snap to pin_a after pin_endpoints"
-    );
-    assert_eq!(
-        wire.particles[3].pos, pin_b,
-        "particle[3].pos must snap to pin_b after pin_endpoints"
-    );
-    assert_eq!(
-        wire.particles[1].pos,
-        Vec2::new(100.0, 100.0),
-        "particle[1] (interior) must be unchanged after pin_endpoints"
-    );
-    assert_eq!(
-        wire.particles[2].pos,
-        Vec2::new(100.0, 100.0),
-        "particle[2] (interior) must be unchanged after pin_endpoints"
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Rope wire — TC011: rope_physics_system ECS integration (positions track sockets)
-// ---------------------------------------------------------------------------
-
-/// @doc: `rope_physics_system` is responsible for keeping a `RopeWire`'s endpoints welded
-/// to their jack socket entities every physics tick. A freshly-constructed rope whose
-/// `RopeWireEndpoints` components point at sockets at (0,0) and (200,0) must, after one
-/// schedule tick, have its first and last particles within floating-point tolerance of those
-/// socket positions. Without this system the rope would hang in space at its spawn-time
-/// positions and never respond to where the sockets actually are, making visual plug-in
-/// connections impossible to author.
-#[test]
-fn given_rope_wired_between_two_sockets_when_rope_physics_system_runs_then_endpoints_match_socket_positions()
- {
-    // Arrange
-    let mut world = World::new();
-
-    let source = world
-        .spawn(Transform2D {
-            position: Vec2::new(0.0, 0.0),
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        })
-        .id();
-    let dest = world
-        .spawn(Transform2D {
-            position: Vec2::new(200.0, 0.0),
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        })
-        .id();
-
-    let rope_entity = world
-        .spawn((
-            RopeWire::new(Vec2::new(0.0, 0.0), Vec2::new(200.0, 0.0), 6),
-            RopeWireEndpoints { source, dest },
-        ))
-        .id();
-
-    let mut schedule = Schedule::default();
-    schedule.add_systems(rope_physics_system);
-
-    // Act
-    schedule.run(&mut world);
-
-    // Assert
-    let rope = world.get::<RopeWire>(rope_entity).unwrap();
-    let first = rope.particles.first().unwrap().pos;
-    let last = rope.particles.last().unwrap().pos;
-    assert!(
-        (first - Vec2::new(0.0, 0.0)).length() < 0.1,
-        "first particle must be within 0.1 of source socket (0,0), got {first}"
-    );
-    assert!(
-        (last - Vec2::new(200.0, 0.0)).length() < 0.1,
-        "last particle must be within 0.1 of dest socket (200,0), got {last}"
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Rope wire — TC012: rope_physics_system tracks a moved source socket
-// ---------------------------------------------------------------------------
-
-/// @doc: `rope_physics_system` must re-read socket `Transform2D` positions each tick so that
-/// a rope responds immediately when a socket is relocated. After moving the source socket
-/// from (0,0) to (50,50) before the system runs, the rope's first particle must end up at
-/// the new socket position rather than the old one. Without live position reading, the rope
-/// would remain anchored to stale coordinates and appear disconnected from a socket that the
-/// player has just dragged to a new location.
-#[test]
-fn given_source_socket_moved_before_tick_when_rope_physics_system_runs_then_first_particle_at_new_socket_position()
- {
-    // Arrange
-    let mut world = World::new();
-
-    let source = world
-        .spawn(Transform2D {
-            position: Vec2::new(0.0, 0.0),
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        })
-        .id();
-    let dest = world
-        .spawn(Transform2D {
-            position: Vec2::new(200.0, 0.0),
-            rotation: 0.0,
-            scale: Vec2::ONE,
-        })
-        .id();
-
-    let rope_entity = world
-        .spawn((
-            RopeWire::new(Vec2::new(0.0, 0.0), Vec2::new(200.0, 0.0), 6),
-            RopeWireEndpoints { source, dest },
-        ))
-        .id();
-
-    // Move source socket to a new position before the system runs
-    world.get_mut::<Transform2D>(source).unwrap().position = Vec2::new(50.0, 50.0);
-
-    let mut schedule = Schedule::default();
-    schedule.add_systems(rope_physics_system);
-
-    // Act
-    schedule.run(&mut world);
-
-    // Assert
-    let rope = world.get::<RopeWire>(rope_entity).unwrap();
-    let first = rope.particles[0].pos;
-    assert!(
-        (first - Vec2::new(50.0, 50.0)).length() < 0.1,
-        "particles[0].pos must track the moved source socket at (50,50), got {first}"
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Rope wire — TC013: rope_render_system emits exactly N-1 draw calls
-// ---------------------------------------------------------------------------
-
-fn spawn_renderable_rope(world: &mut World, particles: Vec<RopeParticle>) -> Entity {
-    let n = particles.len();
-    let segment_count = n.saturating_sub(1);
-
-    let segment_ids: Vec<Entity> = (0..segment_count)
-        .map(|_| {
-            world
-                .spawn((
-                    Transform2D::default(),
-                    Shape {
-                        variant: ShapeVariant::Polygon {
-                            points: vec![
-                                Vec2::new(-1.0, -1.0),
-                                Vec2::new(1.0, -1.0),
-                                Vec2::new(1.0, 1.0),
-                                Vec2::new(-1.0, 1.0),
-                            ],
-                        },
-                        color: engine_core::color::Color::WHITE,
-                    },
-                    Visible(true),
-                    RenderLayer::World,
-                    SortOrder::default(),
-                ))
-                .id()
-        })
-        .collect();
-
-    let mut rope = RopeWire::with_particles(particles);
-    rope.segments = segment_ids;
-
-    world
-        .spawn((
-            rope,
-            Transform2D::default(),
-            RenderLayer::World,
-            SortOrder::default(),
-            Visible(true),
-        ))
-        .id()
-}
-
-fn run_rope_visuals(world: &mut World) {
-    let mut schedule = Schedule::default();
-    schedule.add_systems(
-        (
-            rope_render_system,
-            transform_propagation_system,
-            visibility_system,
-            unified_render_system,
-        )
-            .chain(),
-    );
-    schedule.run(world);
-}
-
-/// @doc: `rope_render_system` must produce exactly one draw call for a rope entity by writing
-/// a single bezier `Path` shape, rather than the old approach of N-1 separate polygon segment
-/// entities. One draw call means a single unified curve rendered by the GPU, which eliminates
-/// visible seams between segments and reduces the entity count per cable from O(N) to O(1).
-#[test]
-fn given_rope_wire_with_n_particles_when_rope_render_system_runs_then_one_draw_call_emitted() {
-    // Arrange
-    let (mut world, shape_calls) = make_cable_render_world();
-    let particles = vec![
-        RopeParticle {
-            pos: Vec2::new(0.0, 0.0),
-            prev: Vec2::new(0.0, 0.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(50.0, 0.0),
-            prev: Vec2::new(50.0, 0.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(100.0, 0.0),
-            prev: Vec2::new(100.0, 0.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(150.0, 0.0),
-            prev: Vec2::new(150.0, 0.0),
-        },
+fn when_line_crosses_polygon_edge_then_detect_wraps_inserts_anchor() {
+    // Arrange — cable from (0,5) to (100,5), box centered at (50,0)
+    let mut wire = WrapWire::new();
+    let src = Vec2::new(0.0, 5.0);
+    let dst = Vec2::new(100.0, 5.0);
+    let obstacle = Entity::from_raw(42);
+    let verts = vec![
+        Vec2::new(40.0, -10.0),
+        Vec2::new(60.0, -10.0),
+        Vec2::new(60.0, 10.0),
+        Vec2::new(40.0, 10.0),
     ];
-    let rope = RopeWire::with_particles(particles);
+    let obstacles = vec![(obstacle, verts.as_slice())];
+
+    // Act
+    wire.detect_wraps(src, dst, &obstacles);
+
+    // Assert — cable passes fully through the box, so it wraps at entry and exit corners
+    assert_eq!(
+        wire.anchors.len(),
+        2,
+        "cable through box needs entry + exit anchors"
+    );
+    assert_eq!(wire.anchors[0].obstacle, obstacle);
+    assert_eq!(wire.anchors[1].obstacle, obstacle);
+}
+
+/// @doc: A cable that merely grazes the center of an obstacle edge must not snap to a corner.
+/// Boundary contact by itself is not a wrap; otherwise the cable glues to any object it brushes
+/// against and never has a chance to slide free.
+#[test]
+fn when_wire_grazes_edge_center_then_detect_wraps_does_not_anchor() {
+    // Arrange — cable runs along the top edge of the box without actually crossing through it.
+    let mut wire = WrapWire::new();
+    let obstacle = Entity::from_raw(43);
+    let verts = vec![
+        Vec2::new(40.0, -10.0),
+        Vec2::new(60.0, -10.0),
+        Vec2::new(60.0, 10.0),
+        Vec2::new(40.0, 10.0),
+    ];
+    let obstacles = vec![(obstacle, verts.as_slice())];
+
+    // Act
+    wire.detect_wraps(Vec2::new(45.0, 10.0), Vec2::new(55.0, 10.0), &obstacles);
+
+    // Assert
+    assert!(
+        wire.anchors.is_empty(),
+        "boundary-only edge contact must not create a corner anchor"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// detect_unwraps — removes anchor when cable swings past
+// ---------------------------------------------------------------------------
+
+/// @doc: `detect_unwraps` checks each anchor's cross product to determine if the cable has swung
+/// past the wrap point. When the cross product sign no longer matches the wrap direction, the
+/// anchor is removed. This test verifies that an anchor is correctly removed when the cable
+/// endpoint moves to the opposite side.
+#[test]
+fn when_cable_swings_past_anchor_then_detect_unwraps_removes_it() {
+    // Arrange — anchor at (50, 10) with CCW wrap
+    let obstacle = Entity::from_raw(42);
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(50.0, 10.0),
+        obstacle,
+        vertex_index: 2,
+        boundary_step: 0,
+        wrap_sign: 1.0,
+    });
+
+    let src = Vec2::new(0.0, 0.0);
+    // dst on the opposite side — cable has swung past
+    let dst = Vec2::new(100.0, -20.0);
+    // Provide obstacle polygon around the anchor so the bypass check doesn't
+    // short-circuit — we want to test the turn-reversal path.
+    let verts = vec![
+        Vec2::new(40.0, -5.0),
+        Vec2::new(60.0, -5.0),
+        Vec2::new(60.0, 15.0),
+        Vec2::new(40.0, 15.0),
+    ];
+    let obstacles: Vec<(Entity, &[Vec2])> = vec![(obstacle, &verts)];
+
+    // Act
+    wire.detect_unwraps(src, dst, &obstacles);
+
+    // Assert
+    assert!(
+        wire.anchors.is_empty(),
+        "anchor must be removed when cable swings past"
+    );
+}
+
+/// @doc: A cable that can bypass an obstacle cleanly should unwrap even if it has not yet
+/// fully reversed its turning direction. If the anchor remains after the path is clear, the
+/// cable appears glued to the object instead of releasing naturally.
+#[test]
+fn when_cable_can_bypass_obstacle_then_detect_unwraps_removes_anchor() {
+    // Arrange
+    let obstacle = Entity::from_raw(77);
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(40.0, 10.0),
+        obstacle,
+        vertex_index: 3,
+        boundary_step: 0,
+        wrap_sign: 1.0,
+    });
+
+    let src = Vec2::new(0.0, 5.0);
+    let dst = Vec2::new(100.0, 20.0);
+    let verts = vec![
+        Vec2::new(40.0, 0.0),
+        Vec2::new(60.0, 0.0),
+        Vec2::new(60.0, 10.0),
+        Vec2::new(40.0, 10.0),
+    ];
+    let obstacles: Vec<(Entity, &[Vec2])> = vec![(obstacle, &verts)];
+
+    // Act
+    wire.detect_unwraps(src, dst, &obstacles);
+
+    // Assert
+    assert!(
+        wire.anchors.is_empty(),
+        "anchor must be removed once the path can bypass the obstacle"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// detect_wraps — cable through a box creates anchors
+// ---------------------------------------------------------------------------
+
+/// @doc: A cable that passes straight through a box (entering one edge, exiting another) must
+/// generate at least one wrap anchor. This complements the offset-cable test by checking the
+/// head-on case where the cable's y-coordinate matches the box center.
+#[test]
+fn when_cable_passes_through_box_then_detect_wraps_creates_anchors() {
+    let mut wire = WrapWire::new();
+    let obstacle = Entity::from_raw(1);
+    let verts = vec![
+        Vec2::new(40.0, -10.0),
+        Vec2::new(60.0, -10.0),
+        Vec2::new(60.0, 10.0),
+        Vec2::new(40.0, 10.0),
+    ];
+    let obstacles = vec![(obstacle, verts.as_slice())];
+
+    wire.detect_wraps(Vec2::new(0.0, 0.0), Vec2::new(100.0, 0.0), &obstacles);
+    assert!(
+        !wire.anchors.is_empty(),
+        "cable through box must create anchors"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// wrap_update_system + wrap_detect_system — ECS integration
+// ---------------------------------------------------------------------------
+
+#[test]
+fn when_cable_dragged_across_obstacle_then_wrap_detect_system_adds_anchor() {
+    // Arrange
+    let mut world = World::new();
+
+    let source = world
+        .spawn(Transform2D {
+            position: Vec2::new(0.0, 5.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+    let dest = world
+        .spawn(Transform2D {
+            position: Vec2::new(200.0, 5.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
+        })
+        .id();
+
+    // Obstacle box centered at (100, 0)
     world.spawn((
-        rope,
-        Transform2D::default(),
-        Shape {
-            variant: ShapeVariant::Polygon {
-                points: vec![Vec2::ZERO],
-            },
-            color: Color::WHITE,
+        Transform2D {
+            position: Vec2::new(100.0, 0.0),
+            rotation: 0.0,
+            scale: Vec2::ONE,
         },
-        Visible(true),
-        RenderLayer::World,
-        SortOrder::default(),
+        CableCollider::from_aabb(Vec2::new(20.0, 20.0)),
     ));
 
-    // Act
-    run_rope_visuals(&mut world);
+    let cable_entity = world
+        .spawn((WireEndpoints { source, dest }, WrapWire::new()))
+        .id();
 
-    // Assert — the rope entity produces a single ribbon polygon draw call
-    assert_eq!(
-        shape_calls.lock().unwrap().len(),
-        1,
-        "a RopeWire must produce exactly 1 draw call (ribbon polygon)"
+    let mut schedule = Schedule::default();
+    schedule.add_systems((wrap_update_system, wrap_detect_system).chain());
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert
+    let wrap = world.get::<WrapWire>(cable_entity).unwrap();
+    assert!(
+        !wrap.anchors.is_empty(),
+        "wrap_detect_system must find the obstacle crossing"
     );
 }
 
 // ---------------------------------------------------------------------------
-// TC-F01 — rope_physics_system must not apply gravity to particles
+// Bug regression — detect_wraps allowed only one anchor per obstacle (Bug 1)
 // ---------------------------------------------------------------------------
 
-/// @doc: `rope_physics_system` must not apply any vertical force to particles. A rope
-/// whose particles all start at rest (`prev == pos`) between two horizontal sockets must
-/// keep every particle at its initial Y position after one tick. Without this invariant,
-/// every rope in the UI would visibly sag further on each frame until it collapses out of
-/// view, making a static wiring layout impossible to maintain visually.
+/// @doc: A cable that loops around two separate corners of the same obstacle box must receive
+/// one `WrapAnchor` per corner vertex, not just one for the whole obstacle. The previous
+/// implementation skipped an obstacle entirely once any of its vertices was already anchored,
+/// making it impossible to wrap the cable around a second corner of the same box. This test
+/// pre-inserts an anchor at the top-left corner, then places the destination far enough to
+/// the right that the span from that corner to the destination crosses the box again at the
+/// top-right corner, verifying that a second anchor is added at the different vertex.
 #[test]
-fn when_rope_at_rest_pinned_between_horizontal_sockets_then_interior_particle_y_positions_unchanged()
- {
+fn when_cable_requires_two_corners_of_same_obstacle_then_detect_wraps_inserts_two_anchors() {
+    // Arrange — box with vertices at x=[30..70], y=[-20..20].
+    // Pre-insert anchor at TL corner (30, 20), vertex index 3.
+    // src is to the left of the box; dst is far to the right at y=20 (same height as TL).
+    // The span from anchor TL (30,20) to dst (150,20) is horizontal and crosses the top
+    // edge of the box — specifically the TR corner (70,20) — so a second anchor must be
+    // added at vertex index 2 (TR).
+    let mut wire = WrapWire::new();
+    let obstacle = Entity::from_raw(7);
+    // CCW vertices: BL, BR, TR, TL  (indices 0,1,2,3)
+    let verts = vec![
+        Vec2::new(30.0, -20.0), // 0 BL
+        Vec2::new(70.0, -20.0), // 1 BR
+        Vec2::new(70.0, 20.0),  // 2 TR
+        Vec2::new(30.0, 20.0),  // 3 TL
+    ];
+    let obstacles = vec![(obstacle, verts.as_slice())];
+
+    // Pre-insert the first anchor at the TL corner to simulate a partially-wrapped state.
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(30.0, 20.0), // vertex index 3 (TL)
+        obstacle,
+        vertex_index: 3,
+        boundary_step: -1,
+        wrap_sign: 1.0,
+    });
+
+    // src is to the left; dst is far to the right at y=20.
+    // Span layout: src(-10,20) → anchor-TL(30,20) → dst(150,20).
+    // The span anchor-TL → dst(150,20) crosses the top edge of the box (TR corner at 70,20),
+    // so detect_wraps must add a second anchor at vertex 2 (TR).
+    let src = Vec2::new(-10.0, 20.0);
+    let dst = Vec2::new(150.0, 20.0);
+
+    // Act
+    wire.detect_wraps(src, dst, &obstacles);
+
+    // Assert — a second anchor must have been inserted alongside the pre-existing TL anchor
+    assert!(
+        wire.anchors.len() >= 2,
+        "detect_wraps must add a second anchor at a different corner of the same obstacle; \
+         anchors by vertex_index: {:?}",
+        wire.anchors
+            .iter()
+            .map(|a| a.vertex_index)
+            .collect::<Vec<_>>()
+    );
+    // The two anchors must reference different vertices on the same obstacle
+    let indices: Vec<usize> = wire.anchors.iter().map(|a| a.vertex_index).collect();
+    assert!(
+        indices.windows(2).all(|w| w[0] != w[1]),
+        "anchors on the same obstacle must reference different vertices, got {:?}",
+        indices
+    );
+}
+
+/// @doc: When a cable is already committed to one side of an obstacle, a new crossing on the
+/// same obstacle must keep the same wrap direction instead of snapping to the opposite side.
+/// Without this constraint, the anchor selection can jump from the top edge to the bottom edge
+/// as soon as the free endpoint moves past the midpoint of the obstacle, which is the "51% wrap"
+/// failure reported by the user.
+#[test]
+fn when_partial_wrap_crosses_same_obstacle_then_detect_wraps_keeps_same_side() {
+    // Arrange — box with vertices at x=[30..70], y=[-20..20].
+    // Pre-insert anchor at the top-left corner (TL), vertex index 3.
+    let mut wire = WrapWire::new();
+    let obstacle = Entity::from_raw(8);
+    let verts = vec![
+        Vec2::new(30.0, -20.0), // 0 BL
+        Vec2::new(70.0, -20.0), // 1 BR
+        Vec2::new(70.0, 20.0),  // 2 TR
+        Vec2::new(30.0, 20.0),  // 3 TL
+    ];
+    let obstacles = vec![(obstacle, verts.as_slice())];
+
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(30.0, 20.0),
+        obstacle,
+        vertex_index: 3,
+        boundary_step: -1,
+        wrap_sign: 1.0,
+    });
+
+    // This destination makes the span TL -> dst cross the right side close to the bottom,
+    // which previously caused the algorithm to choose BR instead of staying on the top side.
+    let src = Vec2::new(-10.0, 20.0);
+    let dst = Vec2::new(150.0, -95.0);
+
+    // Act
+    wire.detect_wraps(src, dst, &obstacles);
+
+    // Assert
+    let indices: Vec<usize> = wire.anchors.iter().map(|a| a.vertex_index).collect();
+    assert!(
+        indices.contains(&2),
+        "partial wrap must stay on the same side and choose TR, got {:?}",
+        indices
+    );
+    assert!(
+        !indices.contains(&1),
+        "partial wrap must not flip to BR while the cable is still on the top side, got {:?}",
+        indices
+    );
+}
+
+/// @doc: When a wrapped cable retreats from a chain of corners, `detect_unwraps` must
+/// remove the free-end corners first and then cascade backward through earlier anchors in
+/// the same call. If it only scans forward once, the last corner disappears but the earlier
+/// one remains sticky until the next frame, which makes multi-object unwraps feel glued.
+#[test]
+fn when_cable_retreats_past_two_anchors_then_detect_unwraps_cascades_in_one_call() {
+    // Arrange — two anchors in a straight chain.
+    let obstacle_a = Entity::from_raw(11);
+    let obstacle_b = Entity::from_raw(12);
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(30.0, 20.0),
+        obstacle: obstacle_a,
+        vertex_index: 3,
+        boundary_step: -1,
+        wrap_sign: 1.0,
+    });
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(70.0, 20.0),
+        obstacle: obstacle_b,
+        vertex_index: 3,
+        boundary_step: -1,
+        wrap_sign: 1.0,
+    });
+
+    let src = Vec2::new(0.0, 20.0);
+    let dst = Vec2::new(100.0, 0.0);
+    let empty_obstacles: Vec<(Entity, &[Vec2])> = vec![];
+
+    // Act
+    wire.detect_unwraps(src, dst, &empty_obstacles);
+
+    // Assert — both anchors should disappear in one pass.
+    assert!(
+        wire.anchors.is_empty(),
+        "multi-anchor retreat should cascade through both corners in one call"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// ST002 — detect_wraps inserts anchors on multiple obstacles in one call
+// ---------------------------------------------------------------------------
+
+/// @doc: When a cable span crosses two different obstacles, `detect_wraps` must insert
+/// anchors for both in a single call rather than requiring one frame per obstacle. Without
+/// this, a cable dragged across multiple objects takes N frames to fully wrap and visually
+/// passes through intermediate obstacles during the delay.
+#[test]
+fn when_cable_crosses_two_different_obstacles_then_detect_wraps_anchors_both_in_one_call() {
+    // Arrange — two separate boxes along the cable path
+    let mut wire = WrapWire::new();
+    let obstacle_a = Entity::from_raw(1);
+    let obstacle_b = Entity::from_raw(2);
+    let verts_a = vec![
+        Vec2::new(30.0, -10.0),
+        Vec2::new(50.0, -10.0),
+        Vec2::new(50.0, 10.0),
+        Vec2::new(30.0, 10.0),
+    ];
+    let verts_b = vec![
+        Vec2::new(80.0, -10.0),
+        Vec2::new(100.0, -10.0),
+        Vec2::new(100.0, 10.0),
+        Vec2::new(80.0, 10.0),
+    ];
+    let obstacles: Vec<(Entity, &[Vec2])> = vec![(obstacle_a, &verts_a), (obstacle_b, &verts_b)];
+
+    let src = Vec2::new(0.0, 5.0);
+    let dst = Vec2::new(130.0, 5.0);
+
+    // Act
+    wire.detect_wraps(src, dst, &obstacles);
+
+    // Assert — must have anchors for both obstacles
+    let anchored_obstacles: Vec<Entity> = wire.anchors.iter().map(|a| a.obstacle).collect();
+    assert!(
+        anchored_obstacles.contains(&obstacle_a),
+        "must anchor obstacle_a; got {:?}",
+        anchored_obstacles
+    );
+    assert!(
+        anchored_obstacles.contains(&obstacle_b),
+        "must anchor obstacle_b; got {:?}",
+        anchored_obstacles
+    );
+}
+
+// ---------------------------------------------------------------------------
+// ST003 — unwrap hysteresis prevents flicker near zero cross product
+// ---------------------------------------------------------------------------
+
+/// @doc: An anchor whose cross product is very close to zero (cable nearly straight
+/// through the anchor) must NOT be removed. Without hysteresis, near-zero cross products
+/// cause the anchor to flicker between wrapped and unwrapped every frame, making the
+/// cable appear to stick to corners.
+#[test]
+fn when_cross_product_near_zero_then_detect_unwraps_keeps_anchor() {
+    // Arrange — anchor at (50, 10) with CCW wrap, cable nearly straight through it
+    let obstacle = Entity::from_raw(42);
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(50.0, 10.0),
+        obstacle,
+        vertex_index: 2,
+        boundary_step: 0,
+        wrap_sign: 1.0,
+    });
+
+    let src = Vec2::new(0.0, 10.0);
+    // dst very slightly below the anchor line — cross product magnitude < threshold.
+    // to_anchor = (50,0), from_anchor = (50, dst.y-10).
+    // cross = 50 * (dst.y - 10), so dst.y = 9.98 → cross = -1.0 (inside ±2 threshold).
+    let dst = Vec2::new(100.0, 9.98);
+    let verts = vec![
+        Vec2::new(40.0, 0.0),
+        Vec2::new(60.0, 0.0),
+        Vec2::new(60.0, 20.0),
+        Vec2::new(40.0, 20.0),
+    ];
+    let obstacles: Vec<(Entity, &[Vec2])> = vec![(obstacle, &verts)];
+
+    // Act
+    wire.detect_unwraps(src, dst, &obstacles);
+
+    // Assert — anchor must survive because cross product is near zero
+    assert_eq!(
+        wire.anchors.len(),
+        1,
+        "anchor must not be removed when cross product is near zero (hysteresis)"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// wire_render_system — renders wire as a ribbon polygon
+// ---------------------------------------------------------------------------
+
+/// @doc: `wire_render_system` must read the `WireEndpoints` positions and optional `WrapWire`
+/// anchors, then write a `ShapeVariant::Polygon` ribbon to the wire entity's `Shape` component.
+/// The ribbon must be a non-empty polygon built from the polyline waypoints (src, anchors, dst).
+/// Without this system, wires are invisible to the player.
+#[test]
+fn when_wire_has_endpoints_and_wrap_anchor_then_wire_render_system_produces_polygon() {
     // Arrange
     let mut world = World::new();
-    let a = Vec2::new(0.0, 0.0);
-    let b = Vec2::new(200.0, 0.0);
 
     let source = world
         .spawn(Transform2D {
-            position: a,
+            position: Vec2::new(0.0, 0.0),
             rotation: 0.0,
             scale: Vec2::ONE,
         })
         .id();
     let dest = world
         .spawn(Transform2D {
-            position: b,
+            position: Vec2::new(200.0, 0.0),
             rotation: 0.0,
             scale: Vec2::ONE,
         })
         .id();
 
-    let rope_entity = world
-        .spawn((RopeWire::new(a, b, 6), RopeWireEndpoints { source, dest }))
-        .id();
+    let mut wrap = WrapWire::new();
+    wrap.anchors.push(WrapAnchor {
+        position: Vec2::new(100.0, 50.0),
+        obstacle: Entity::from_raw(999),
+        vertex_index: 0,
+        boundary_step: 0,
+        wrap_sign: 1.0,
+    });
 
-    let y_before: Vec<f32> = world
-        .get::<RopeWire>(rope_entity)
-        .unwrap()
-        .particles
-        .iter()
-        .map(|p| p.pos.y)
-        .collect();
-
-    let mut schedule = Schedule::default();
-    schedule.add_systems(rope_physics_system);
-
-    // Act
-    schedule.run(&mut world);
-
-    // Assert
-    let rope = world.get::<RopeWire>(rope_entity).unwrap();
-    for (i, (particle, &y_init)) in rope.particles.iter().zip(y_before.iter()).enumerate() {
-        assert!(
-            (particle.pos.y - y_init).abs() < 1e-4,
-            "particle[{i}].pos.y must remain {y_init} after one tick at rest, \
-             got {} (gravity offset detected)",
-            particle.pos.y
-        );
-    }
-}
-
-// ---------------------------------------------------------------------------
-// TC-F08 / TC-F09 — dynamic particle count scales with distance
-// ---------------------------------------------------------------------------
-
-/// @doc: `RopeWire::for_distance` must produce fewer particles for short cables than for
-/// long ones, scaling proportionally with a fixed segment length. A 30-pixel cable should
-/// have only a handful of particles, while a 300-pixel cable should have substantially more.
-/// Without distance-based scaling, short cables would have too many segments (wasting memory
-/// and producing near-zero-length constraints that jitter), while long cables would have too
-/// few (producing visible polygonal kinks instead of a smooth curve).
-#[test]
-fn when_rope_wire_created_for_short_vs_long_distance_then_long_has_more_particles() {
-    // Arrange
-    let a = Vec2::ZERO;
-    let short_b = Vec2::new(30.0, 0.0);
-    let long_b = Vec2::new(300.0, 0.0);
-
-    // Act
-    let short_rope = RopeWire::for_distance(a, short_b);
-    let long_rope = RopeWire::for_distance(a, long_b);
-
-    // Assert
-    assert!(
-        short_rope.particles.len() >= 2,
-        "even the shortest cable needs at least 2 particles (endpoints), got {}",
-        short_rope.particles.len()
-    );
-    assert!(
-        long_rope.particles.len() > short_rope.particles.len(),
-        "a 300px cable must have more particles than a 30px cable: long={}, short={}",
-        long_rope.particles.len(),
-        short_rope.particles.len()
-    );
-    assert!(
-        long_rope.particles.len() >= 10,
-        "a 300px cable should have at least 10 particles for smooth bezier rendering, got {}",
-        long_rope.particles.len()
-    );
-}
-
-// ---------------------------------------------------------------------------
-// TC-F12 — B-spline to bezier conversion produces correct segment count
-// ---------------------------------------------------------------------------
-
-/// @doc: `particles_to_bezier_path` converts Verlet particle positions into a smooth B-spline
-/// curve represented as cubic bezier `PathCommand`s. For N particles, the result must contain
-/// a single `MoveTo` followed by exactly N-1 `CubicTo` commands — one bezier segment per
-/// adjacent particle pair. Fewer segments leave gaps in the cable; more segments produce
-/// phantom arcs between non-adjacent particles.
-#[test]
-fn given_five_particles_when_bezier_path_computed_then_result_has_move_to_plus_four_cubic_to() {
-    // Arrange
-    let positions = vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(25.0, 10.0),
-        Vec2::new(50.0, 0.0),
-        Vec2::new(75.0, -10.0),
-        Vec2::new(100.0, 0.0),
-    ];
-
-    // Act
-    let commands = particles_to_bezier_path(&positions);
-
-    // Assert
-    let move_count = commands
-        .iter()
-        .filter(|c| matches!(c, PathCommand::MoveTo(_)))
-        .count();
-    let cubic_count = commands
-        .iter()
-        .filter(|c| matches!(c, PathCommand::CubicTo { .. }))
-        .count();
-    assert_eq!(move_count, 1, "path must start with exactly one MoveTo");
-    assert_eq!(
-        cubic_count, 4,
-        "5 particles must produce 4 CubicTo segments, got {cubic_count}"
-    );
-}
-
-// ---------------------------------------------------------------------------
-// TC-F13 — collinear particles produce a straight bezier
-// ---------------------------------------------------------------------------
-
-/// @doc: When all particles lie on the same line, the B-spline approximation must also lie
-/// on that line — all `CubicTo` control points must have the same Y coordinate as the
-/// particles. If control points deviate from the chord, a taut cable would render as a
-/// wavy curve, confusing the player about whether the cable is slack or tight.
-#[test]
-fn given_collinear_particles_when_bezier_path_computed_then_all_control_points_on_same_line() {
-    // Arrange — 4 particles on Y=0
-    let positions = vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(30.0, 0.0),
-        Vec2::new(60.0, 0.0),
-        Vec2::new(90.0, 0.0),
-    ];
-
-    // Act
-    let commands = particles_to_bezier_path(&positions);
-
-    // Assert
-    for cmd in &commands {
-        if let PathCommand::CubicTo {
-            control1,
-            control2,
-            to,
-        } = cmd
-        {
-            assert!(
-                control1.y.abs() < 1e-4,
-                "control1.y must be ~0.0 for collinear particles, got {}",
-                control1.y
-            );
-            assert!(
-                control2.y.abs() < 1e-4,
-                "control2.y must be ~0.0 for collinear particles, got {}",
-                control2.y
-            );
-            assert!(
-                to.y.abs() < 1e-4,
-                "to.y must be ~0.0 for collinear particles, got {}",
-                to.y
-            );
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// TC-F14 — rope_render_system writes a ribbon Polygon from particle offsets
-// ---------------------------------------------------------------------------
-
-/// @doc: `rope_render_system` converts rope particles into a ribbon polygon by offsetting
-/// each particle position perpendicular to the local tangent. The forward edge runs along
-/// one side of the cable, and the backward edge along the other, forming a closed filled
-/// strip. This avoids the Path fill+close rendering artifact where the GPU would draw a
-/// filled region between the bezier curve and a straight-line closure.
-#[test]
-fn given_rope_wire_when_rope_render_system_runs_then_shape_is_ribbon_polygon() {
-    // Arrange
-    let mut world = World::new();
-    let particles = vec![
-        RopeParticle {
-            pos: Vec2::new(0.0, 0.0),
-            prev: Vec2::new(0.0, 0.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(50.0, 10.0),
-            prev: Vec2::new(50.0, 10.0),
-        },
-        RopeParticle {
-            pos: Vec2::new(100.0, 0.0),
-            prev: Vec2::new(100.0, 0.0),
-        },
-    ];
-    let rope = RopeWire::with_particles(particles);
-
-    let rope_entity = world
+    let wire_entity = world
         .spawn((
-            rope,
+            WireEndpoints { source, dest },
+            wrap,
             Transform2D::default(),
             Shape {
                 variant: ShapeVariant::Polygon {
                     points: vec![Vec2::ZERO],
                 },
-                color: Color::WHITE,
+                color: engine_core::color::Color::WHITE,
             },
-            Visible(true),
+            Visible(false),
             RenderLayer::World,
             SortOrder::default(),
         ))
         .id();
 
     let mut schedule = Schedule::default();
-    schedule.add_systems(rope_render_system);
+    schedule.add_systems(wire_render_system);
 
     // Act
     schedule.run(&mut world);
 
-    // Assert — ribbon is a Polygon with subdivided smooth edges (more vertices than raw particles)
-    let shape = world.get::<Shape>(rope_entity).unwrap();
+    // Assert — shape must be a non-empty Polygon
+    let shape = world.get::<Shape>(wire_entity).unwrap();
     match &shape.variant {
         ShapeVariant::Polygon { points } => {
-            // 3 particles → 2 segments × 4 subdivisions + 1 = 9 per edge × 2 edges = 18
             assert!(
                 points.len() > 6,
-                "ribbon must have more vertices than 2*N due to Catmull-Rom subdivision, got {}",
+                "ribbon must have more vertices than 2*waypoints due to Catmull-Rom subdivision, got {}",
                 points.len()
             );
         }
         other => panic!(
-            "rope_render_system must write ShapeVariant::Polygon, got {:?}",
+            "wire_render_system must write ShapeVariant::Polygon, got {:?}",
             std::mem::discriminant(other)
         ),
     }
+    // wire_render_system must set visibility to true
+    let visible = world.get::<Visible>(wire_entity).unwrap();
+    assert!(visible.0, "wire_render_system must set Visible(true)");
+}
+
+// ---------------------------------------------------------------------------
+// polyline_to_ribbon — builds ribbon from waypoints with subdivision
+// ---------------------------------------------------------------------------
+
+/// @doc: `polyline_to_ribbon` converts a polyline of waypoints into a ribbon polygon by
+/// offsetting perpendicular to the local tangent. Catmull-Rom subdivision smooths the
+/// corners. For N waypoints, the ribbon must have substantially more vertices than 2*N
+/// due to the subdivision, and the result must be non-empty.
+#[test]
+fn when_three_waypoints_given_then_polyline_to_ribbon_produces_subdivided_polygon() {
+    // Arrange — an L-shaped polyline with a bend
+    let waypoints = vec![
+        Vec2::new(0.0, 0.0),
+        Vec2::new(50.0, 50.0),
+        Vec2::new(100.0, 0.0),
+    ];
+    let half_thickness = 1.5;
+
+    // Act
+    let ribbon = polyline_to_ribbon(&waypoints, half_thickness);
+
+    // Assert — ribbon must be non-empty and have more vertices than 2*waypoints
+    assert!(
+        !ribbon.is_empty(),
+        "ribbon must not be empty for 3 waypoints"
+    );
+    assert!(
+        ribbon.len() > 2 * waypoints.len(),
+        "ribbon must have more vertices than 2*N due to Catmull-Rom subdivision; \
+         got {} for {} waypoints",
+        ribbon.len(),
+        waypoints.len()
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Multi-corner unwrap — same-obstacle anchor chain releases via shortcut
+// ---------------------------------------------------------------------------
+
+/// @doc: When a cable wraps two consecutive corners of the same obstacle (e.g.
+/// screen-TL → screen-BL down the left side) and the free end is dragged away so
+/// the straight line from TL to dst no longer crosses the screen, the BL anchor
+/// must release via the shortcut path. Previously the shortcut check tested the
+/// segment from TL to dst against the screen polygon, but `point_in_convex_polygon`
+/// classified the TL vertex (on the polygon boundary) as "inside", causing the
+/// shortcut to always fail — the anchor stayed stuck regardless of cable position.
+#[test]
+fn when_multi_corner_cable_pulls_away_from_last_anchor_then_it_unwraps() {
+    // Arrange
+    //
+    // Screen polygon (CCW): BL(-50,-30) BR(50,-30) TR(50,30) TL(-50,30)
+    //
+    // Cable path: src(0,40) → anchor TL(-50,30) → anchor BL(-50,-30) → dst
+    //
+    // When dst = (-80,50), the straight line TL→dst goes up-left, clearly
+    // outside the screen body. The shortcut must detect this and remove BL.
+
+    let screen = Entity::from_raw(2);
+    let screen_verts = vec![
+        Vec2::new(-50.0, -30.0), // BL = 0
+        Vec2::new(50.0, -30.0),  // BR = 1
+        Vec2::new(50.0, 30.0),   // TR = 2
+        Vec2::new(-50.0, 30.0),  // TL = 3
+    ];
+
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(-50.0, 30.0),
+        obstacle: screen,
+        vertex_index: 3,
+        boundary_step: 1,
+        wrap_sign: 1.0,
+    });
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(-50.0, -30.0),
+        obstacle: screen,
+        vertex_index: 0,
+        boundary_step: -1,
+        wrap_sign: -1.0, // boundary_step as f32
+    });
+
+    let src = Vec2::new(0.0, 40.0);
+    let dst_pulling_away = Vec2::new(-80.0, 50.0);
+    let obstacles: Vec<(Entity, &[Vec2])> = vec![(screen, &screen_verts)];
+
+    // Act
+    wire.detect_unwraps(src, dst_pulling_away, &obstacles);
+
+    // Assert — BL must be released via the shortcut path (TL→dst clears the screen).
+    let bl_still_present = wire
+        .anchors
+        .iter()
+        .any(|a| a.position == Vec2::new(-50.0, -30.0));
+    assert!(
+        !bl_still_present,
+        "screen bottom-left anchor must unwrap when cable pulls away upward; \
+         anchors remaining: {:?}",
+        wire.anchors
+            .iter()
+            .map(|a| (a.position, a.wrap_sign))
+            .collect::<Vec<_>>()
+    );
+}
+
+// ---------------------------------------------------------------------------
+// detect_wraps — duplicate vertex guard prevents infinite loop
+// ---------------------------------------------------------------------------
+
+/// @doc: When a cable is attached to an obstacle and already wraps some of its
+/// corners, `detect_wraps` must not re-add a vertex that is already in the anchor
+/// list. Without the duplicate guard, `boundary_neighbor_index` can cycle back to
+/// an existing vertex, inserting a duplicate that triggers another iteration,
+/// creating an infinite loop that freezes the game.
+#[test]
+fn when_detect_wraps_encounters_existing_vertex_then_no_duplicate_and_terminates() {
+    // Arrange — cable attached to the screen wraps TL and BL already.
+    // The span from BL to dst (jack on screen's right side) crosses the screen,
+    // so detect_wraps will try to add the next boundary neighbor. If BL has
+    // boundary_step = -1, the neighbor is TL (already anchored). Without the
+    // guard, this would loop forever.
+    let screen = Entity::from_raw(1);
+    let screen_verts = vec![
+        Vec2::new(-50.0, -30.0), // BL = 0
+        Vec2::new(50.0, -30.0),  // BR = 1
+        Vec2::new(50.0, 30.0),   // TR = 2
+        Vec2::new(-50.0, 30.0),  // TL = 3
+    ];
+
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(-50.0, 30.0),
+        obstacle: screen,
+        vertex_index: 3, // TL
+        boundary_step: 1,
+        wrap_sign: 1.0,
+    });
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(-50.0, -30.0),
+        obstacle: screen,
+        vertex_index: 0, // BL
+        boundary_step: -1,
+        wrap_sign: -1.0,
+    });
+
+    let src = Vec2::new(0.0, 50.0);
+    // dst is a jack on the screen's right side — span from BL to dst crosses
+    // the screen body, triggering boundary_neighbor which would cycle to TL.
+    let dst = Vec2::new(50.0, 0.0);
+    let obstacles: Vec<(Entity, &[Vec2])> = vec![(screen, &screen_verts)];
+
+    // Act — must terminate (previously would infinite loop).
+    wire.detect_wraps(src, dst, &obstacles);
+
+    // Assert — no duplicate anchors.
+    let tl_count = wire
+        .anchors
+        .iter()
+        .filter(|a| a.obstacle == screen && a.vertex_index == 3)
+        .count();
+    let bl_count = wire
+        .anchors
+        .iter()
+        .filter(|a| a.obstacle == screen && a.vertex_index == 0)
+        .count();
+    assert_eq!(tl_count, 1, "TL must appear exactly once");
+    assert_eq!(bl_count, 1, "BL must appear exactly once");
+}
+
+// ---------------------------------------------------------------------------
+// detect_unwraps — shortcut nudge must not false-clear cross-obstacle anchors
+// ---------------------------------------------------------------------------
+
+/// @doc: When the cable wraps the reader (src on reader boundary) and continues
+/// to a screen that has moved far right, `detect_unwraps` must not strip
+/// reader-TR via the shortcut path. `src` sits on the reader's polygon
+/// boundary; nudging the shortcut start unconditionally would move it outside
+/// the polygon, false-clearing the shortcut and unraveling the cable to a
+/// single screen-TR anchor. The nudge must only apply to same-obstacle chains.
+///
+/// reader-TL MAY be removed (same-obstacle shortcut: TR→screen-TL clears the
+/// reader since screen-TL is now to the right of reader-TR). reader-TR must
+/// remain because its prev is `src` (not a same-obstacle anchor).
+#[test]
+fn when_screen_moves_right_then_reader_tr_survives_unwrap() {
+    // Arrange
+    //
+    // Reader at (0,100), half-extents (40,20):
+    //   BL(-40,80) BR(40,80) TR(40,120) TL(-40,120)
+    //
+    // Screen at (100,0), half-extents (50,30):
+    //   BL(50,-30) BR(150,-30) TR(150,30) TL(50,30)
+    //
+    // Cable: src(40,100) → reader-TR(40,120) → reader-TL(-40,120)
+    //        → screen-TL(50,30) → dst(150,0)
+
+    let reader = Entity::from_raw(1);
+    let screen = Entity::from_raw(2);
+
+    let reader_verts = vec![
+        Vec2::new(-40.0, 80.0),
+        Vec2::new(40.0, 80.0),
+        Vec2::new(40.0, 120.0),
+        Vec2::new(-40.0, 120.0),
+    ];
+    let screen_verts = vec![
+        Vec2::new(50.0, -30.0),
+        Vec2::new(150.0, -30.0),
+        Vec2::new(150.0, 30.0),
+        Vec2::new(50.0, 30.0),
+    ];
+
+    let mut wire = WrapWire::new();
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(40.0, 120.0),
+        obstacle: reader,
+        vertex_index: 2, // TR
+        boundary_step: 1,
+        wrap_sign: 1.0,
+    });
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(-40.0, 120.0),
+        obstacle: reader,
+        vertex_index: 3, // TL
+        boundary_step: 1,
+        wrap_sign: 1.0,
+    });
+    wire.anchors.push(WrapAnchor {
+        position: Vec2::new(50.0, 30.0),
+        obstacle: screen,
+        vertex_index: 3, // TL
+        boundary_step: 1,
+        wrap_sign: 1.0,
+    });
+
+    let src = Vec2::new(40.0, 100.0); // socket on reader's right edge
+    let dst = Vec2::new(150.0, 0.0); // jack on screen's right side
+    let obstacles: Vec<(Entity, &[Vec2])> = vec![(reader, &reader_verts), (screen, &screen_verts)];
+
+    // Act
+    wire.detect_unwraps(src, dst, &obstacles);
+
+    // Assert — reader-TR must survive (src is on reader boundary, no nudge).
+    // reader-TL may validly be removed by the same-obstacle shortcut.
+    let has_reader_tr = wire
+        .anchors
+        .iter()
+        .any(|a| a.obstacle == reader && a.vertex_index == 2);
+    assert!(
+        has_reader_tr,
+        "reader-TR must not be stripped by shortcut when src sits on the reader boundary; \
+         remaining: {:?}",
+        wire.anchors
+            .iter()
+            .map(|a| (a.obstacle, a.vertex_index, a.position))
+            .collect::<Vec<_>>()
+    );
+    // Total anchors: reader-TR + screen-TL (reader-TL removed by same-obstacle shortcut)
+    assert!(
+        wire.anchors.len() >= 2,
+        "cable must retain at least reader-TR and screen-TL"
+    );
 }
