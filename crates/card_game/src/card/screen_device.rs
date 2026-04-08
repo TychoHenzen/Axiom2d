@@ -77,8 +77,19 @@ pub struct ScreenDevice {
 }
 
 #[derive(Component)]
-pub struct ScreenSignalDot {
+pub struct ScreenSignalShape {
     display_index: usize,
+}
+
+/// Project all control points of a signal onto a 2D panel axis pair.
+pub fn project_signal_points(space: &SignatureSpace, display_index: usize) -> Vec<Vec2> {
+    let x_element = Element::ALL[display_index * 2];
+    let y_element = Element::ALL[display_index * 2 + 1];
+    space
+        .control_points
+        .iter()
+        .map(|cp| Vec2::new(cp[x_element], cp[y_element]))
+        .collect()
 }
 
 pub fn display_axes(space: &SignatureSpace, display_index: usize) -> (f32, f32) {
@@ -98,9 +109,9 @@ fn panel_offset(display_index: usize) -> Vec2 {
 pub fn screen_render_system(
     devices: Query<&ScreenDevice>,
     jacks: Query<&Jack<SignatureSpace>>,
-    mut dots: Query<(&ScreenSignalDot, &ChildOf, &mut Shape, &mut Visible)>,
+    mut shapes: Query<(&ScreenSignalShape, &ChildOf, &mut Shape, &mut Visible)>,
 ) {
-    for (dot, parent, mut shape, mut visible) in &mut dots {
+    for (signal_shape, parent, mut shape, mut visible) in &mut shapes {
         let Ok(device) = devices.get(parent.0) else {
             visible.0 = false;
             continue;
@@ -114,9 +125,16 @@ pub fn screen_render_system(
             continue;
         };
 
-        let (ax, ay) = display_axes(space, dot.display_index);
-        let center = Vec2::new(ax * PANEL_HALF, ay * PANEL_HALF);
-        shape.variant = clipped_signal_circle(center, space.radius * PANEL_HALF);
+        let projected = project_signal_points(space, signal_shape.display_index);
+        let visual_radius = space.radius * PANEL_HALF;
+
+        if projected.len() == 1 {
+            let center = projected[0] * PANEL_HALF;
+            shape.variant = clipped_signal_circle(center, visual_radius);
+        } else {
+            let scaled: Vec<Vec2> = projected.iter().map(|p| *p * PANEL_HALF).collect();
+            shape.variant = build_signal_polyline(&scaled, visual_radius);
+        }
         shape.color = SIGNAL_COLOR;
         visible.0 = true;
     }
@@ -207,7 +225,7 @@ pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity
         world.spawn_child(
             device_entity,
             (
-                ScreenSignalDot { display_index },
+                ScreenSignalShape { display_index },
                 Transform2D {
                     position: panel_offset(display_index),
                     ..Default::default()
@@ -286,6 +304,44 @@ pub fn screen_release_system(mouse: Res<MouseState>, mut screen_drag: ResMut<Scr
     if screen_drag.dragging.is_some() && !mouse.pressed(MouseButton::Left) {
         screen_drag.dragging = None;
     }
+}
+
+fn build_signal_polyline(points: &[Vec2], thickness: f32) -> ShapeVariant {
+    let mut polygon = Vec::new();
+    let clamped_thickness = thickness.max(1.0);
+
+    // Forward pass: offset left
+    for i in 0..points.len() {
+        let prev = if i == 0 { points[0] } else { points[i - 1] };
+        let next = if i + 1 < points.len() {
+            points[i + 1]
+        } else {
+            points[i]
+        };
+        let dir = (next - prev).normalize_or_zero();
+        let normal = Vec2::new(-dir.y, dir.x);
+        polygon.push(points[i] + normal * clamped_thickness);
+    }
+
+    // Reverse pass: offset right
+    for i in (0..points.len()).rev() {
+        let prev = if i == 0 { points[0] } else { points[i - 1] };
+        let next = if i + 1 < points.len() {
+            points[i + 1]
+        } else {
+            points[i]
+        };
+        let dir = (next - prev).normalize_or_zero();
+        let normal = Vec2::new(-dir.y, dir.x);
+        polygon.push(points[i] - normal * clamped_thickness);
+    }
+
+    let clipped = clip_polygon_to_rect(
+        &polygon,
+        Vec2::new(-PANEL_HALF, -PANEL_HALF),
+        Vec2::new(PANEL_HALF, PANEL_HALF),
+    );
+    ShapeVariant::Polygon { points: clipped }
 }
 
 fn clipped_signal_circle(center: Vec2, radius: f32) -> ShapeVariant {

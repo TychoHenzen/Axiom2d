@@ -219,3 +219,30 @@ fn when_card_inserted_and_cable_propagated_then_screen_input_jack_holds_signatur
         "screen input jack must receive the SignatureSpace after cable propagation"
     );
 }
+
+// ---------------------------------------------------------------------------
+// TC015 — multi-point signal rendering
+// ---------------------------------------------------------------------------
+
+#[test]
+fn when_signal_has_two_control_points_then_screen_draws_signal_shapes() {
+    // Arrange
+    let sig_a = CardSignature::new([0.3, 0.7, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8]);
+    let sig_b = CardSignature::new([-0.3, 0.2, 0.5, -0.1, 0.3, -0.4, 0.7, 0.1]);
+    let combined = SignatureSpace::combine(
+        &SignatureSpace::from_single(sig_a, 0.2),
+        &SignatureSpace::from_single(sig_b, 0.2),
+    );
+    let (mut world, shape_calls) = make_screen_world(Some(combined));
+
+    // Act
+    run_screen_visuals(&mut world);
+
+    // Assert — body fill + body stroke + socket + 4 panels + 4 signal shapes = 11
+    let calls = shape_calls.lock().unwrap();
+    assert_eq!(
+        calls.len(),
+        11,
+        "screen with 2-point signal must draw body, stroke, socket, 4 panels, and 4 signal shapes"
+    );
+}

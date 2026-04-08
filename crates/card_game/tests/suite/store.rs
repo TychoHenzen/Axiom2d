@@ -4,7 +4,7 @@ use bevy_ecs::prelude::{Schedule, World};
 use card_game::card::jack_cable::Jack;
 use card_game::card::reader::{CardReader, ReaderDragState};
 use card_game::card::reader::{ReaderAccent, ReaderRecess, ReaderRune, SignatureSpace};
-use card_game::card::screen_device::{ScreenDevice, ScreenDragState, ScreenSignalDot};
+use card_game::card::screen_device::{ScreenDevice, ScreenDragState, ScreenSignalShape};
 use card_game::stash::grid::StashGrid;
 use card_game::stash::pages::{stash_tab_click_system, tab_left_x, tab_row_top_y};
 use card_game::stash::store::{
@@ -306,7 +306,7 @@ fn when_selling_screen_then_screen_tree_and_jack_are_removed() {
         world.query::<&Jack<SignatureSpace>>().iter(&world).count(),
         0
     );
-    assert_eq!(world.query::<&ScreenSignalDot>().iter(&world).count(), 0);
+    assert_eq!(world.query::<&ScreenSignalShape>().iter(&world).count(), 0);
 }
 
 // ---------------------------------------------------------------------------
