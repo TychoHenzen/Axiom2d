@@ -257,11 +257,8 @@ impl WrapWire {
                     if let Some(prev) = prev_anchor
                         && prev.vertex_index < n
                     {
-                        let candidate_idx = Self::boundary_neighbor_index(
-                            prev.vertex_index,
-                            prev.boundary_step,
-                            n,
-                        );
+                        let candidate_idx =
+                            Self::boundary_neighbor_index(prev.vertex_index, prev.boundary_step, n);
                         best_idx = Some(candidate_idx);
                     } else {
                         for (j, v) in verts.iter().enumerate() {

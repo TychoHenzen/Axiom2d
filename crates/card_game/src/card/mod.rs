@@ -1,5 +1,6 @@
 pub mod art;
 pub mod art_selection;
+pub mod combiner_device;
 pub mod component;
 pub mod identity;
 pub mod interaction;

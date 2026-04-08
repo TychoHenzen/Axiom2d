@@ -1423,4 +1423,3 @@ fn when_pending_cable_drag_system_runs_then_free_end_position_matches_cursor() {
         "CableFreeEnd position must match cursor world pos {cursor_pos}, got {free_end_pos}"
     );
 }
-

@@ -1,6 +1,7 @@
 mod helpers;
 
 mod card_art_selection;
+mod card_combiner_device;
 mod card_identity_base_type;
 mod card_identity_card_description;
 mod card_identity_card_name;
