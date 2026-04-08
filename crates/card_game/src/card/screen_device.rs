@@ -66,7 +66,7 @@ const SOCKET_COLOR: Color = Color {
     a: 1.0,
 };
 const SOCKET_RADIUS: f32 = 8.0;
-const JACK_OFFSET: Vec2 = Vec2::new(BODY_HALF_W + SOCKET_RADIUS + 4.0, 0.0);
+const JACK_OFFSET: Vec2 = Vec2::new(-(BODY_HALF_W + SOCKET_RADIUS + 4.0), 0.0);
 const SCREEN_LOCAL_SORT: i32 = -1;
 const SCREEN_PANEL_LOCAL_SORT: i32 = 1;
 const SCREEN_DOT_LOCAL_SORT: i32 = 2;
