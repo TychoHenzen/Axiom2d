@@ -4,8 +4,8 @@ use bevy_ecs::prelude::*;
 use card_game::card::identity::signature::CardSignature;
 use card_game::card::jack_cable::{
     Cable, CableCollider, Jack, JackDirection, WireEndpoints, WrapAnchor, WrapWire,
-    point_in_convex_polygon, polyline_to_ribbon, segment_intersects_segment,
-    signature_space_propagation_system, wire_render_system, wrap_detect_system, wrap_update_system,
+    polyline_to_ribbon, segment_intersects_segment, signature_space_propagation_system,
+    wire_render_system, wrap_detect_system, wrap_update_system,
 };
 use card_game::card::reader::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
 use engine_core::prelude::Transform2D;
@@ -535,8 +535,7 @@ fn when_cable_requires_two_corners_of_same_obstacle_then_detect_wraps_inserts_tw
     let indices: Vec<usize> = wire.anchors.iter().map(|a| a.vertex_index).collect();
     assert!(
         indices.windows(2).all(|w| w[0] != w[1]),
-        "anchors on the same obstacle must reference different vertices, got {:?}",
-        indices
+        "anchors on the same obstacle must reference different vertices, got {indices:?}"
     );
 }
 
@@ -579,13 +578,11 @@ fn when_partial_wrap_crosses_same_obstacle_then_detect_wraps_keeps_same_side() {
     let indices: Vec<usize> = wire.anchors.iter().map(|a| a.vertex_index).collect();
     assert!(
         indices.contains(&2),
-        "partial wrap must stay on the same side and choose TR, got {:?}",
-        indices
+        "partial wrap must stay on the same side and choose TR, got {indices:?}"
     );
     assert!(
         !indices.contains(&1),
-        "partial wrap must not flip to BR while the cable is still on the top side, got {:?}",
-        indices
+        "partial wrap must not flip to BR while the cable is still on the top side, got {indices:?}"
     );
 }
 
@@ -666,13 +663,11 @@ fn when_cable_crosses_two_different_obstacles_then_detect_wraps_anchors_both_in_
     let anchored_obstacles: Vec<Entity> = wire.anchors.iter().map(|a| a.obstacle).collect();
     assert!(
         anchored_obstacles.contains(&obstacle_a),
-        "must anchor obstacle_a; got {:?}",
-        anchored_obstacles
+        "must anchor obstacle_a; got {anchored_obstacles:?}"
     );
     assert!(
         anchored_obstacles.contains(&obstacle_b),
-        "must anchor obstacle_b; got {:?}",
-        anchored_obstacles
+        "must anchor obstacle_b; got {anchored_obstacles:?}"
     );
 }
 
