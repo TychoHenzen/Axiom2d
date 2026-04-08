@@ -335,7 +335,7 @@ fn build_signal_polyline(points: &[Vec2], thickness: f32) -> ShapeVariant {
     let closed = n >= 3;
 
     if closed {
-        // Closed loop: offset each vertex outward, then inward.
+        // Closed loop: build annular polygon (outer ring + bridge + inner ring reversed).
         let mut outer = Vec::with_capacity(n);
         let mut inner = Vec::with_capacity(n);
         for i in 0..n {
@@ -346,9 +346,15 @@ fn build_signal_polyline(points: &[Vec2], thickness: f32) -> ShapeVariant {
             outer.push(points[i] + normal * clamped_thickness);
             inner.push(points[i] - normal * clamped_thickness);
         }
-        inner.reverse();
-        let mut polygon = outer;
-        polygon.extend(inner);
+        // Trace outer ring, bridge to inner ring (reversed), bridge back.
+        // The bridge edges cancel during fill, leaving the annular band.
+        let mut polygon = Vec::with_capacity(2 * n + 2);
+        polygon.extend_from_slice(&outer);
+        polygon.push(outer[0]);
+        polygon.push(inner[0]);
+        for i in (0..n).rev() {
+            polygon.push(inner[i]);
+        }
         let clipped = clip_polygon_to_rect(
             &polygon,
             Vec2::new(-PANEL_HALF, -PANEL_HALF),
