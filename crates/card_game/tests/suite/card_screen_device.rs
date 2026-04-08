@@ -338,7 +338,7 @@ fn when_two_point_signal_projects_near_panel_edge_then_capsule_vertices_stay_wit
         "expected 4 signal draw calls (one per display panel)"
     );
     for (panel_idx, (vertices, _, _, _)) in signal_calls.iter().enumerate() {
-        for v in vertices.iter() {
+        for v in vertices {
             assert!(
                 v[0].abs() <= 50.0 + EPSILON,
                 "panel {panel_idx}: vertex x={} exceeds panel half-width 50.0",
@@ -456,7 +456,7 @@ fn when_three_point_signal_projects_near_panel_corner_then_spline_loop_vertices_
         "expected 4 signal draw calls (one per display panel)"
     );
     for (panel_idx, (vertices, _, _, _)) in signal_calls.iter().enumerate() {
-        for v in vertices.iter() {
+        for v in vertices {
             assert!(
                 v[0].abs() <= 50.0 + EPSILON,
                 "panel {panel_idx}: vertex x={} exceeds panel bounds",
