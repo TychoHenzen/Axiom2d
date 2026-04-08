@@ -21,6 +21,7 @@ const DISPLAY_COUNT: usize = 4;
 const PANEL_HALF: f32 = 50.0;
 const PANEL_SPACING: f32 = 110.0;
 const SIGNAL_SEGMENTS: usize = 32;
+const PANEL_SPLINE_SUBDIVISIONS: usize = 8;
 
 const PANEL_OFFSETS: [(f32, f32); DISPLAY_COUNT] = [
     (-PANEL_SPACING * 0.5, -PANEL_SPACING * 0.5),
@@ -83,7 +84,7 @@ pub struct ScreenSignalShape {
 }
 
 /// Project all control points of a signal onto a 2D panel axis pair.
-pub fn project_signal_points(space: &SignatureSpace, display_index: usize) -> Vec<Vec2> {
+pub(crate) fn project_signal_points(space: &SignatureSpace, display_index: usize) -> Vec<Vec2> {
     let x_element = Element::ALL[display_index * 2];
     let y_element = Element::ALL[display_index * 2 + 1];
     space
@@ -335,24 +336,25 @@ fn build_signal_polyline(points: &[Vec2], thickness: f32) -> ShapeVariant {
     let closed = n >= 3;
 
     if closed {
-        // Closed loop: build annular polygon (outer ring + bridge + inner ring reversed).
-        let mut outer = Vec::with_capacity(n);
-        let mut inner = Vec::with_capacity(n);
-        for i in 0..n {
-            let prev = points[(i + n - 1) % n];
-            let next = points[(i + 1) % n];
+        // Closed loop: Catmull-Rom subdivide, then build annular polygon.
+        let dense = catmull_rom_subdivide_closed(points, PANEL_SPLINE_SUBDIVISIONS);
+        let m = dense.len();
+        let mut outer = Vec::with_capacity(m);
+        let mut inner = Vec::with_capacity(m);
+        for i in 0..m {
+            let prev = dense[(i + m - 1) % m];
+            let next = dense[(i + 1) % m];
             let dir = (next - prev).normalize_or_zero();
             let normal = Vec2::new(-dir.y, dir.x);
-            outer.push(points[i] + normal * clamped_thickness);
-            inner.push(points[i] - normal * clamped_thickness);
+            outer.push(dense[i] + normal * clamped_thickness);
+            inner.push(dense[i] - normal * clamped_thickness);
         }
         // Trace outer ring, bridge to inner ring (reversed), bridge back.
-        // The bridge edges cancel during fill, leaving the annular band.
-        let mut polygon = Vec::with_capacity(2 * n + 2);
+        let mut polygon = Vec::with_capacity(2 * m + 2);
         polygon.extend_from_slice(&outer);
         polygon.push(outer[0]);
         polygon.push(inner[0]);
-        for i in (0..n).rev() {
+        for i in (0..m).rev() {
             polygon.push(inner[i]);
         }
         let clipped = clip_polygon_to_rect(
@@ -362,22 +364,25 @@ fn build_signal_polyline(points: &[Vec2], thickness: f32) -> ShapeVariant {
         );
         ShapeVariant::Polygon { points: clipped }
     } else {
-        // Open ribbon for 2 points (capsule).
-        let mut polygon = Vec::new();
-        for i in 0..n {
-            let prev = if i == 0 { points[0] } else { points[i - 1] };
-            let next = if i + 1 < n { points[i + 1] } else { points[i] };
-            let dir = (next - prev).normalize_or_zero();
-            let normal = Vec2::new(-dir.y, dir.x);
-            polygon.push(points[i] + normal * clamped_thickness);
-        }
-        for i in (0..n).rev() {
-            let prev = if i == 0 { points[0] } else { points[i - 1] };
-            let next = if i + 1 < n { points[i + 1] } else { points[i] };
-            let dir = (next - prev).normalize_or_zero();
-            let normal = Vec2::new(-dir.y, dir.x);
-            polygon.push(points[i] - normal * clamped_thickness);
-        }
+        // Capsule: straight ribbon + semicircular endcaps at each endpoint.
+        let a = points[0];
+        let b = points[n - 1];
+        let dir = (b - a).normalize_or_zero();
+        let normal = Vec2::new(-dir.y, dir.x);
+        let half_steps = SIGNAL_SEGMENTS / 2;
+
+        let mut polygon = Vec::with_capacity(2 + 2 * half_steps);
+        // Top edge: a → b along +normal side.
+        polygon.push(a + normal * clamped_thickness);
+        polygon.push(b + normal * clamped_thickness);
+        // Endcap at b: sweep +normal → -normal around b in the forward direction.
+        polygon.extend(semicircle_fan(b, clamped_thickness, dir, half_steps));
+        // Bottom edge: b → a along -normal side.
+        polygon.push(b - normal * clamped_thickness);
+        polygon.push(a - normal * clamped_thickness);
+        // Endcap at a: sweep -normal → +normal around a in the backward direction.
+        polygon.extend(semicircle_fan(a, clamped_thickness, -dir, half_steps));
+
         let clipped = clip_polygon_to_rect(
             &polygon,
             Vec2::new(-PANEL_HALF, -PANEL_HALF),
@@ -385,6 +390,54 @@ fn build_signal_polyline(points: &[Vec2], thickness: f32) -> ShapeVariant {
         );
         ShapeVariant::Polygon { points: clipped }
     }
+}
+
+/// Sweeps a semicircle arc (`half_steps` + 1 points, endpoints inclusive) centred on `center`
+/// with the given `radius`. The arc starts at `-perp(axis)`, pivots around the tip in the
+/// `axis` direction, and ends at `+perp(axis)` — i.e. the outward-facing cap at the end of a
+/// capsule whose long axis is `axis`.
+fn semicircle_fan(center: Vec2, radius: f32, axis: Vec2, half_steps: usize) -> Vec<Vec2> {
+    // Base angle points along +axis (the cap tip direction).
+    let base_angle = axis.y.atan2(axis.x);
+    (1..half_steps)
+        .map(|step| {
+            // Sweep from -π/2 to +π/2 relative to axis (i.e., the outward hemisphere).
+            let t = step as f32 / half_steps as f32;
+            let angle = base_angle + std::f32::consts::PI * (t - 0.5);
+            center + Vec2::new(radius * angle.cos(), radius * angle.sin())
+        })
+        .collect()
+}
+
+/// Catmull-Rom subdivision for a closed loop of control points.
+///
+/// Wraps indices so the spline closes smoothly from the last point back to the first.
+/// Produces `n * subdivisions` output points (no duplicate at the seam).
+fn catmull_rom_subdivide_closed(points: &[Vec2], subdivisions: usize) -> Vec<Vec2> {
+    let n = points.len();
+    if n < 3 {
+        return points.to_vec();
+    }
+    let mut result = Vec::with_capacity(n * subdivisions);
+    for i in 0..n {
+        let p0 = points[(i + n - 1) % n];
+        let p1 = points[i];
+        let p2 = points[(i + 1) % n];
+        let p3 = points[(i + 2) % n];
+
+        for s in 0..subdivisions {
+            let t = s as f32 / subdivisions as f32;
+            let t2 = t * t;
+            let t3 = t2 * t;
+            let pos = 0.5
+                * ((2.0 * p1)
+                    + (-p0 + p2) * t
+                    + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2
+                    + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3);
+            result.push(pos);
+        }
+    }
+    result
 }
 
 fn clipped_signal_circle(center: Vec2, radius: f32) -> ShapeVariant {

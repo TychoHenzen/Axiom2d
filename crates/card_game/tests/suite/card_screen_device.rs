@@ -7,7 +7,7 @@ use card_game::card::identity::signature::{CardSignature, Element};
 use card_game::card::jack_cable::{Cable, Jack, JackDirection, signature_space_propagation_system};
 use card_game::card::reader::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
 use card_game::card::screen_device::{display_axes, screen_render_system, spawn_screen_device};
-use engine_core::prelude::Transform2D;
+use engine_core::prelude::{Color, Transform2D};
 use engine_render::prelude::{Camera2D, RendererRes};
 use engine_render::testing::{ShapeCallLog, SpyRenderer};
 use engine_scene::prelude::{
@@ -244,5 +244,296 @@ fn when_signal_has_two_control_points_then_screen_draws_signal_shapes() {
         calls.len(),
         11,
         "screen with 2-point signal must draw body, stroke, socket, 4 panels, and 4 signal shapes"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TC016 — 2-point signal capsule geometry
+// ---------------------------------------------------------------------------
+
+const EXPECTED_SIGNAL_COLOR: Color = Color {
+    r: 0.4,
+    g: 0.9,
+    b: 0.4,
+    a: 1.0,
+};
+
+/// @doc: A two-control-point signal must render as a capsule with semicircular endcap fans, not
+/// as a bare 4-corner rectangle. Without curved endcaps the signal shape is visually
+/// indistinguishable from a unanimated panel background, losing all directional cue about where
+/// the signal is pointing in 2D element-space. This test guards the endcap implementation by
+/// demanding that every signal draw call contains substantially more tessellated vertices than
+/// a degenerate quad — if any panel regresses to a 4-vertex rectangle, the minimum across all
+/// panels will fall to 4 and the assertion fails.
+#[test]
+fn when_two_point_signal_rendered_then_capsule_has_more_vertices_than_plain_rectangle() {
+    // Arrange
+    let sig_a = CardSignature::new([0.3, 0.7, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8]);
+    let sig_b = CardSignature::new([-0.3, 0.2, 0.5, -0.1, 0.3, -0.4, 0.7, 0.1]);
+    let combined = SignatureSpace::combine(
+        &SignatureSpace::from_single(sig_a, 0.2),
+        &SignatureSpace::from_single(sig_b, 0.2),
+    );
+    let (mut world, shape_calls) = make_screen_world(Some(combined));
+
+    // Act
+    run_screen_visuals(&mut world);
+
+    // Assert — all four signal panels must have capsule geometry, not a minimal rectangle
+    let calls = shape_calls.lock().unwrap();
+    let signal_vertex_counts: Vec<usize> = calls
+        .iter()
+        .filter(|(_, _, color, _)| *color == EXPECTED_SIGNAL_COLOR)
+        .map(|(vertices, _, _, _)| vertices.len())
+        .collect();
+    assert_eq!(
+        signal_vertex_counts.len(),
+        4,
+        "expected 4 signal draw calls (one per display panel)"
+    );
+    let min_vertices = signal_vertex_counts.into_iter().min().unwrap();
+    assert!(
+        min_vertices > 10,
+        "each signal panel must tessellate to a capsule (> 10 vertices), got {min_vertices} — \
+         a plain rectangle produces only 4"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TC017 — capsule clipping near panel edge
+// ---------------------------------------------------------------------------
+
+/// @doc: A capsule whose endpoint projects to Solidum axis 0.9 (pixel x = 45.0) has a
+/// semicircular endcap with radius ~10 px, placing raw vertices as far as x = 55.0 — 5 px
+/// outside the ±50 px panel boundary. The Sutherland-Hodgman clipper in
+/// `build_signal_polyline` must trim every such vertex back to the panel rectangle before
+/// the shape reaches the GPU. Verifying all four panels and both axes ensures a regression
+/// in any one clip-plane pass is caught immediately.
+#[test]
+fn when_two_point_signal_projects_near_panel_edge_then_capsule_vertices_stay_within_panel_bounds() {
+    const EPSILON: f32 = 0.01;
+
+    // Arrange — one endpoint near the Solidum boundary (axis value 0.9 → pixel x = 45.0),
+    // with a signal radius of 0.2 so the endcap fan extends ~10 px beyond that.
+    let sig_a = CardSignature::new([0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    let sig_b = CardSignature::new([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    let combined = SignatureSpace::combine(
+        &SignatureSpace::from_single(sig_a, 0.2),
+        &SignatureSpace::from_single(sig_b, 0.2),
+    );
+    let (mut world, shape_calls) = make_screen_world(Some(combined));
+
+    // Act
+    run_screen_visuals(&mut world);
+
+    // Assert — every vertex of every signal draw call must lie within the panel rectangle
+    let calls = shape_calls.lock().unwrap();
+    let signal_calls: Vec<_> = calls
+        .iter()
+        .filter(|(_, _, color, _)| *color == EXPECTED_SIGNAL_COLOR)
+        .collect();
+    assert_eq!(
+        signal_calls.len(),
+        4,
+        "expected 4 signal draw calls (one per display panel)"
+    );
+    for (panel_idx, (vertices, _, _, _)) in signal_calls.iter().enumerate() {
+        for v in vertices.iter() {
+            assert!(
+                v[0].abs() <= 50.0 + EPSILON,
+                "panel {panel_idx}: vertex x={} exceeds panel half-width 50.0",
+                v[0]
+            );
+            assert!(
+                v[1].abs() <= 50.0 + EPSILON,
+                "panel {panel_idx}: vertex y={} exceeds panel half-height 50.0",
+                v[1]
+            );
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// TC018 — 3-point spline vertex density
+// ---------------------------------------------------------------------------
+
+/// @doc: A three-control-point closed-loop signal must be rendered through Catmull-Rom
+/// subdivision, producing a densely sampled annular polygon rather than the raw 8-vertex
+/// annular ring the unsubdivided path gives. Without subdivision, the signal shape on a
+/// screen panel looks like a sharp-cornered triangle ring instead of a smooth organic
+/// curve, which defeats the purpose of the display — visualising how a combined signal
+/// flows through element space.
+#[test]
+fn when_three_point_signal_rendered_then_spline_polygon_has_many_more_vertices_than_unsubdivided_annular_ring()
+ {
+    // Arrange — three distinct signatures with varied values across all 8 axes so every
+    // panel gets a non-degenerate triangle projection.
+    let sig_a = CardSignature::new([0.2, 0.2, 0.3, 0.1, -0.2, 0.4, 0.1, -0.3]);
+    let sig_b = CardSignature::new([-0.3, 0.4, -0.1, 0.3, 0.3, -0.2, 0.4, 0.2]);
+    let sig_c = CardSignature::new([0.1, -0.3, 0.2, -0.4, 0.1, 0.3, -0.3, 0.1]);
+    let three_point = SignatureSpace::combine(
+        &SignatureSpace::combine(
+            &SignatureSpace::from_single(sig_a, 0.2),
+            &SignatureSpace::from_single(sig_b, 0.2),
+        ),
+        &SignatureSpace::from_single(sig_c, 0.2),
+    );
+    assert_eq!(
+        three_point.control_points.len(),
+        3,
+        "test setup: must have exactly 3 control points"
+    );
+    let (mut world, shape_calls) = make_screen_world(Some(three_point));
+
+    // Act
+    run_screen_visuals(&mut world);
+
+    // Assert — subdivided spline must produce many more vertices than the 8-vertex annular ring
+    let calls = shape_calls.lock().unwrap();
+    let signal_vertex_counts: Vec<usize> = calls
+        .iter()
+        .filter(|(_, _, color, _)| *color == EXPECTED_SIGNAL_COLOR)
+        .map(|(vertices, _, _, _)| vertices.len())
+        .collect();
+    assert_eq!(
+        signal_vertex_counts.len(),
+        4,
+        "expected 4 signal draw calls (one per display panel)"
+    );
+    let min_vertices = signal_vertex_counts.into_iter().min().unwrap();
+    assert!(
+        min_vertices > 12,
+        "spline subdivision must densify the annular ring (> 12 vertices), got {min_vertices} — \
+         the unsubdivided 3-point ring produces ~8 vertices"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TC019 — 3-point spline clipping near panel corner
+// ---------------------------------------------------------------------------
+
+/// @doc: A closed-loop spline whose outer annular ring overshoots the ±50 px panel boundary
+/// must be clipped back before reaching the GPU. Placing one control point at (0.85, 0.85) in
+/// normalised element space puts it at pixel (42.5, 42.5); the annular band's outer ring at
+/// that vertex extends diagonally to ~(52, 52). Without clipping after subdivision, the spline
+/// would draw outside the panel background, visually bleeding into adjacent panels or the
+/// device chassis.
+#[test]
+fn when_three_point_signal_projects_near_panel_corner_then_spline_loop_vertices_stay_within_panel_bounds()
+ {
+    const EPSILON: f32 = 0.01;
+
+    // Arrange — one point near the corner of the Solidum/Febris panel
+    let sig_a = CardSignature::new([0.85, 0.85, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]);
+    let sig_b = CardSignature::new([-0.2, 0.1, -0.3, 0.2, -0.1, 0.3, -0.2, 0.2]);
+    let sig_c = CardSignature::new([0.1, -0.4, 0.2, -0.1, 0.3, -0.2, 0.1, -0.3]);
+    let three_point = SignatureSpace::combine(
+        &SignatureSpace::combine(
+            &SignatureSpace::from_single(sig_a, 0.2),
+            &SignatureSpace::from_single(sig_b, 0.2),
+        ),
+        &SignatureSpace::from_single(sig_c, 0.2),
+    );
+    assert_eq!(
+        three_point.control_points.len(),
+        3,
+        "test setup: must have exactly 3 control points"
+    );
+    let (mut world, shape_calls) = make_screen_world(Some(three_point));
+
+    // Act
+    run_screen_visuals(&mut world);
+
+    // Assert — every vertex must stay inside the panel rectangle
+    let calls = shape_calls.lock().unwrap();
+    let signal_calls: Vec<_> = calls
+        .iter()
+        .filter(|(_, _, color, _)| *color == EXPECTED_SIGNAL_COLOR)
+        .collect();
+    assert_eq!(
+        signal_calls.len(),
+        4,
+        "expected 4 signal draw calls (one per display panel)"
+    );
+    for (panel_idx, (vertices, _, _, _)) in signal_calls.iter().enumerate() {
+        for v in vertices.iter() {
+            assert!(
+                v[0].abs() <= 50.0 + EPSILON,
+                "panel {panel_idx}: vertex x={} exceeds panel bounds",
+                v[0]
+            );
+            assert!(
+                v[1].abs() <= 50.0 + EPSILON,
+                "panel {panel_idx}: vertex y={} exceeds panel bounds",
+                v[1]
+            );
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// TC020 — spline density scales with control point count
+// ---------------------------------------------------------------------------
+
+/// @doc: The Catmull-Rom subdivision produces `n_segments × subdivisions_per_segment` samples per
+/// ring, so a 4-point closed loop must yield a denser polygon than a 3-point loop. If the
+/// subdivision count were hardcoded (e.g., always 24 samples total regardless of segment count),
+/// adding more control points to a signal would not increase curve resolution, making complex
+/// combined signals look just as angular as simple ones. This comparative test catches that
+/// regression by running both worlds through the same pipeline and asserting the vertex count
+/// scales upward.
+#[test]
+fn when_four_point_signal_rendered_then_spline_is_denser_than_three_point_spline() {
+    // Arrange — 3-point signal
+    let sig_a = CardSignature::new([0.2, 0.2, 0.3, 0.1, -0.2, 0.4, 0.1, -0.3]);
+    let sig_b = CardSignature::new([-0.3, 0.4, -0.1, 0.3, 0.3, -0.2, 0.4, 0.2]);
+    let sig_c = CardSignature::new([0.1, -0.3, 0.2, -0.4, 0.1, 0.3, -0.3, 0.1]);
+    let three_point = SignatureSpace::combine(
+        &SignatureSpace::combine(
+            &SignatureSpace::from_single(sig_a, 0.2),
+            &SignatureSpace::from_single(sig_b, 0.2),
+        ),
+        &SignatureSpace::from_single(sig_c, 0.2),
+    );
+    assert_eq!(three_point.control_points.len(), 3);
+    let (mut world_3, shape_calls_3) = make_screen_world(Some(three_point));
+
+    // Arrange — 4-point signal (extend the 3-point set with a 4th distinct point)
+    let sig_d = CardSignature::new([-0.1, -0.2, -0.3, 0.5, -0.4, 0.1, 0.2, 0.4]);
+    let four_point = SignatureSpace::combine(
+        &SignatureSpace::combine(
+            &SignatureSpace::combine(
+                &SignatureSpace::from_single(sig_a, 0.2),
+                &SignatureSpace::from_single(sig_b, 0.2),
+            ),
+            &SignatureSpace::from_single(sig_c, 0.2),
+        ),
+        &SignatureSpace::from_single(sig_d, 0.2),
+    );
+    assert_eq!(four_point.control_points.len(), 4);
+    let (mut world_4, shape_calls_4) = make_screen_world(Some(four_point));
+
+    // Act
+    run_screen_visuals(&mut world_3);
+    run_screen_visuals(&mut world_4);
+
+    // Assert — 4-point spline must be denser than 3-point on the same panel
+    let calls_3 = shape_calls_3.lock().unwrap();
+    let calls_4 = shape_calls_4.lock().unwrap();
+    let verts_3: usize = calls_3
+        .iter()
+        .filter(|(_, _, color, _)| *color == EXPECTED_SIGNAL_COLOR)
+        .map(|(v, _, _, _)| v.len())
+        .max()
+        .expect("3-point signal must produce draw calls");
+    let verts_4: usize = calls_4
+        .iter()
+        .filter(|(_, _, color, _)| *color == EXPECTED_SIGNAL_COLOR)
+        .map(|(v, _, _, _)| v.len())
+        .max()
+        .expect("4-point signal must produce draw calls");
+    assert!(
+        verts_4 > verts_3,
+        "4-point spline ({verts_4} vertices) must be denser than 3-point spline ({verts_3} vertices)"
     );
 }
