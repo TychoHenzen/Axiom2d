@@ -2,6 +2,7 @@ mod card_data;
 
 use axiom2d::prelude::*;
 use card_game::card::art::ShapeRepository;
+use card_game::card::combiner_device::spawn_combiner_device;
 use card_game::card::reader::{
     READER_COLLISION_FILTER, READER_COLLISION_GROUP, READER_HALF_EXTENTS, spawn_reader,
 };
@@ -85,6 +86,11 @@ fn spawn_scene(world: &mut World) {
     // Spawn a screen device — connect to the reader by dragging a cable interactively.
     let screen_pos = Vec2::new(300.0, 150.0);
     let (_screen_entity, _screen_jack) = spawn_screen_device(world, screen_pos);
+
+    // Spawn a combiner device — wire interactively.
+    let combiner_pos = Vec2::new(300.0, -150.0);
+    let (_combiner_entity, _comb_in_a, _comb_in_b, _comb_out) =
+        spawn_combiner_device(world, combiner_pos);
 
     let mut bus = world.resource_mut::<EventBus<PhysicsCommand>>();
     bus.push(PhysicsCommand::AddBody {

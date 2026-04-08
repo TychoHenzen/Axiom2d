@@ -1,3 +1,6 @@
+use crate::card::combiner_device::{
+    CombinerDragState, combiner_drag_system, combiner_release_system, combiner_system,
+};
 use crate::card::identity::base_type::{BaseCardTypeRegistry, populate_default_types};
 use crate::card::interaction::apply::interaction_apply_system;
 use crate::card::interaction::camera_drag::{
@@ -78,6 +81,7 @@ impl Plugin for CardGamePlugin {
         world.insert_resource(DebugSpawnRng::default());
         world.insert_resource(PendingCable::default());
         world.insert_resource(ScreenDragState::default());
+        world.insert_resource(CombinerDragState::default());
         world.insert_resource(EventBus::<InteractionIntent>::default());
         let mut registry = BaseCardTypeRegistry::new();
         populate_default_types(&mut registry);
@@ -122,6 +126,7 @@ fn register_systems(app: &mut App) {
                 card_drag_system,
                 reader_drag_system,
                 screen_drag_system,
+                combiner_drag_system,
                 store_sell_system,
                 stash_boundary_system,
                 card_reader_insert_system,
@@ -129,6 +134,7 @@ fn register_systems(app: &mut App) {
                 interaction_apply_system,
                 reader_release_system,
                 screen_release_system,
+                combiner_release_system,
                 jack_socket_release_system,
                 card_flip_system,
                 flip_animation_system,
@@ -143,6 +149,7 @@ fn register_systems(app: &mut App) {
                 wrap_detect_system,
                 wire_render_system,
                 signature_space_propagation_system,
+                combiner_system,
                 jack_socket_render_system,
                 screen_render_system,
             )
