@@ -254,3 +254,134 @@ fn on_seal_button_clicked(
         pressed.0 = Some(button.machine_entity);
     }
 }
+
+/// Exclusive system that seals a booster pack when the seal button is pressed.
+///
+/// Reads `SealButtonPressed`, samples signatures from the input signal, spawns a
+/// `BoosterPack` in the machine's output slot, and destroys all source cards.
+pub fn booster_seal_system(world: &mut World) {
+    use crate::booster::pack::spawn_booster_pack;
+    use crate::booster::sampling::sample_signatures_from_space;
+    use crate::card::component::Card;
+    use crate::card::identity::signature::Rarity;
+    use crate::card::reader::CardReader;
+    use engine_core::prelude::EventBus;
+    use engine_core::scale_spring::ScaleSpring;
+    use engine_physics::prelude::{PhysicsCommand, RigidBody};
+    use rand::Rng;
+    use rand::SeedableRng;
+    use rand_chacha::ChaCha8Rng;
+
+    // 1. Read and clear SealButtonPressed. If no device entity, return.
+    let device_entity = {
+        let Some(mut pressed) = world.get_resource_mut::<SealButtonPressed>() else {
+            return;
+        };
+        let entity = pressed.0.take();
+        match entity {
+            Some(e) => e,
+            None => return,
+        }
+    };
+
+    // 2. Get BoosterMachine. If output_pack.is_some(), return (slot occupied).
+    let (signal_input, position) = {
+        let Some(machine) = world.get::<BoosterMachine>(device_entity) else {
+            return;
+        };
+        if machine.output_pack.is_some() {
+            return;
+        }
+        let signal_input = machine.signal_input;
+        let position = world
+            .get::<Transform2D>(device_entity)
+            .map_or(Vec2::ZERO, |t| t.position);
+        (signal_input, position)
+    };
+
+    // 3. Read Jack<SignatureSpace> from machine.signal_input. If no data, return.
+    let space = {
+        let Some(jack) = world.get::<Jack<SignatureSpace>>(signal_input) else {
+            return;
+        };
+        match jack.data.clone() {
+            Some(s) => s,
+            None => return,
+        }
+    };
+
+    // 4. If source_cards is empty, return.
+    if space.source_cards.is_empty() {
+        return;
+    }
+
+    // RNG seeding from control points
+    let seed_bytes: u64 = space
+        .control_points
+        .iter()
+        .flat_map(|cp| cp.axes())
+        .fold(0u64, |acc, v| acc.wrapping_add(v.to_bits() as u64));
+    let mut rng = ChaCha8Rng::seed_from_u64(seed_bytes);
+
+    // 5. Determine card count with rarity bonus
+    let base_count: usize = rng.gen_range(5..=15);
+
+    let mut rarity_bonus: usize = 0;
+    for &card_entity in &space.source_cards {
+        if let Some(card) = world.get::<Card>(card_entity) {
+            rarity_bonus += match card.signature.rarity() {
+                Rarity::Common => 0,
+                Rarity::Uncommon => 1,
+                Rarity::Rare => 2,
+                Rarity::Epic => 3,
+                Rarity::Legendary => 4,
+            };
+        }
+    }
+    let count = (base_count + rarity_bonus).min(15);
+
+    // 6. Sample signatures
+    let signatures = sample_signatures_from_space(&space, count, &mut rng);
+
+    // 7. Spawn pack at machine position + offset
+    let pack_position = position + PACK_SLOT_OFFSET;
+    let pack_entity = spawn_booster_pack(world, pack_position, signatures);
+
+    // 8. Scale down the pack in slot
+    world.entity_mut(pack_entity).insert(ScaleSpring::new(0.5));
+
+    // 9. Remove physics from pack while in slot
+    if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
+        bus.push(PhysicsCommand::RemoveBody {
+            entity: pack_entity,
+        });
+    }
+    world.entity_mut(pack_entity).remove::<RigidBody>();
+
+    // 10. Set machine.output_pack
+    if let Some(mut machine) = world.get_mut::<BoosterMachine>(device_entity) {
+        machine.output_pack = Some(pack_entity);
+    }
+
+    // 11. Destroy source cards
+    let source_cards = space.source_cards.clone();
+    for &card_entity in &source_cards {
+        // Find the CardReader that has this card loaded
+        let mut reader_to_clear: Option<(Entity, Entity)> = None;
+        for (reader_entity, reader) in world.query::<(Entity, &CardReader)>().iter(world) {
+            if reader.loaded == Some(card_entity) {
+                reader_to_clear = Some((reader_entity, reader.jack_entity));
+                break;
+            }
+        }
+        if let Some((reader_entity, jack_entity)) = reader_to_clear {
+            if let Some(mut reader) = world.get_mut::<CardReader>(reader_entity) {
+                reader.loaded = None;
+            }
+            if let Some(mut jack) = world.get_mut::<Jack<SignatureSpace>>(jack_entity) {
+                jack.data = None;
+            }
+        }
+        world.despawn(card_entity);
+    }
+}
