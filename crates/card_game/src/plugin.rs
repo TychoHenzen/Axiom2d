@@ -2,7 +2,7 @@ use crate::booster::device::{
     BoosterDragState, SealButtonPressed, booster_drag_system, booster_release_system,
     booster_seal_system,
 };
-use crate::booster::double_click::DoubleClickState;
+use crate::booster::double_click::{DoubleClickState, double_click_detect_system};
 use crate::booster::opening::booster_opening_system;
 use crate::card::combiner_device::{
     CombinerDragState, combiner_drag_system, combiner_release_system, combiner_system,
@@ -120,6 +120,10 @@ impl Plugin for CardGamePlugin {
 
 fn register_systems(app: &mut App) {
     app.add_systems(Phase::Input, click_resolve_system)
+        .add_systems(
+            Phase::Input,
+            double_click_detect_system.after(click_resolve_system),
+        )
         .add_systems(
             Phase::FixedUpdate,
             (
