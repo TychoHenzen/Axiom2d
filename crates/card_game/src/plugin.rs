@@ -1,6 +1,6 @@
 use crate::booster::device::{
-    BoosterDragState, SealButtonPressed, booster_drag_system, booster_release_system,
-    booster_seal_system,
+    BoosterDragState, SealButtonPressed, booster_drag_system, booster_pack_detach_system,
+    booster_release_system, booster_seal_system,
 };
 use crate::booster::double_click::{DoubleClickState, double_click_detect_system};
 use crate::booster::opening::booster_opening_system;
@@ -121,10 +121,6 @@ impl Plugin for CardGamePlugin {
 fn register_systems(app: &mut App) {
     app.add_systems(Phase::Input, click_resolve_system)
         .add_systems(
-            Phase::Input,
-            double_click_detect_system.after(click_resolve_system),
-        )
-        .add_systems(
             Phase::FixedUpdate,
             (
                 card_damping_system.after(physics_sync_system),
@@ -134,26 +130,34 @@ fn register_systems(app: &mut App) {
         .add_systems(
             Phase::Update,
             (
-                store_buy_system,
-                card_reader_eject_system,
-                card_drag_system,
-                reader_drag_system,
-                screen_drag_system,
-                combiner_drag_system,
-                booster_drag_system,
-                store_sell_system,
-                stash_boundary_system,
-                card_reader_insert_system,
-                card_release_system,
-                interaction_apply_system,
-                reader_release_system,
-                screen_release_system,
-                combiner_release_system,
-                booster_release_system,
-                jack_socket_release_system,
-                card_flip_system,
-                flip_animation_system,
-                booster_seal_system,
+                (
+                    store_buy_system,
+                    card_reader_eject_system,
+                    card_drag_system,
+                    reader_drag_system,
+                    screen_drag_system,
+                    combiner_drag_system,
+                    booster_drag_system,
+                    store_sell_system,
+                    stash_boundary_system,
+                    card_reader_insert_system,
+                    card_release_system,
+                    interaction_apply_system,
+                )
+                    .chain(),
+                (
+                    booster_pack_detach_system,
+                    double_click_detect_system,
+                    reader_release_system,
+                    screen_release_system,
+                    combiner_release_system,
+                    booster_release_system,
+                    jack_socket_release_system,
+                    card_flip_system,
+                    flip_animation_system,
+                    booster_seal_system,
+                )
+                    .chain(),
             )
                 .chain(),
         )

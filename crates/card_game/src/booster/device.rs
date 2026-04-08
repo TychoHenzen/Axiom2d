@@ -12,10 +12,12 @@ use engine_scene::prelude::LocalSortOrder;
 use engine_scene::render_order::{RenderLayer, SortOrder};
 use glam::Vec2;
 
+use crate::booster::pack::BoosterPack;
+use crate::card::identity::signature::CardSignature;
 use crate::card::interaction::click_resolve::{ClickHitShape, Clickable, ClickedEntity};
+use crate::card::interaction::drag_state::DragState;
 use crate::card::jack_cable::{CableCollider, Jack, JackDirection};
 use crate::card::jack_socket::{JackSocket, on_socket_clicked};
-use crate::card::identity::signature::CardSignature;
 use crate::card::reader::SignatureSpace;
 
 const BODY_HALF_W: f32 = 50.0;
@@ -245,6 +247,23 @@ pub fn booster_release_system(mouse: Res<MouseState>, mut drag: ResMut<BoosterDr
     }
 }
 
+/// Detach a booster pack from its machine slot when the pack starts being dragged.
+pub fn booster_pack_detach_system(
+    drag: Res<DragState>,
+    packs: Query<(), With<BoosterPack>>,
+    mut machines: Query<&mut BoosterMachine>,
+) {
+    let Some(info) = &drag.dragging else { return };
+    if packs.get(info.entity).is_err() {
+        return;
+    }
+    for mut machine in &mut machines {
+        if machine.output_pack == Some(info.entity) {
+            machine.output_pack = None;
+        }
+    }
+}
+
 fn on_seal_button_clicked(
     trigger: Trigger<ClickedEntity>,
     buttons: Query<&BoosterSealButton>,
@@ -364,8 +383,17 @@ pub fn booster_seal_system(world: &mut World) {
         machine.output_pack = Some(pack_entity);
     }
 
-    // 11. Destroy source cards
+    // 11. Remove physics from source cards before destroying them
     let source_cards = space.source_cards.clone();
+    if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
+        for &card_entity in &source_cards {
+            bus.push(PhysicsCommand::RemoveBody {
+                entity: card_entity,
+            });
+        }
+    }
+
+    // 12. Destroy source cards
     for &card_entity in &source_cards {
         // Find the CardReader that has this card loaded
         let mut reader_to_clear: Option<(Entity, Entity)> = None;

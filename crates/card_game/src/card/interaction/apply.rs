@@ -29,6 +29,7 @@ pub fn interaction_apply_system(
     sort_query: Query<(&CardZone, &SortOrder)>,
     mut grid: Option<ResMut<StashGrid>>,
     transform_collider_query: Query<(&Transform2D, &Collider)>,
+    rigid_body_query: Query<&RigidBody>,
 ) {
     for intent in intents.drain() {
         match intent {
@@ -38,11 +39,13 @@ pub fn interaction_apply_system(
                 collider,
                 grab_offset,
             } => {
+                let has_rigid_body = rigid_body_query.get(entity).is_ok();
                 apply_pick_card(
                     entity,
                     zone,
                     &collider,
                     grab_offset,
+                    has_rigid_body,
                     &mut drag_state,
                     &mut physics_commands,
                     &mut hand,
@@ -134,6 +137,7 @@ fn apply_pick_card(
     zone: CardZone,
     collider: &Collider,
     grab_offset: Vec2,
+    has_rigid_body: bool,
     drag_state: &mut DragState,
     physics_commands: &mut EventBus<PhysicsCommand>,
     hand: &mut Option<ResMut<Hand>>,
@@ -164,11 +168,28 @@ fn apply_pick_card(
     }
 
     if matches!(zone, CardZone::Table) {
-        physics_commands.push(PhysicsCommand::SetCollisionGroup {
-            entity,
-            membership: DRAGGED_COLLISION_GROUP,
-            filter: DRAGGED_COLLISION_FILTER,
-        });
+        if has_rigid_body {
+            physics_commands.push(PhysicsCommand::SetCollisionGroup {
+                entity,
+                membership: DRAGGED_COLLISION_GROUP,
+                filter: DRAGGED_COLLISION_FILTER,
+            });
+        } else {
+            let position = transforms
+                .get(entity)
+                .map(|t| t.0.translation)
+                .unwrap_or(Vec2::ZERO);
+            activate_physics_body(
+                entity,
+                position,
+                collider,
+                physics_commands,
+                DRAGGED_COLLISION_GROUP,
+                DRAGGED_COLLISION_FILTER,
+            );
+            commands.entity(entity).insert(RigidBody::Dynamic);
+            commands.entity(entity).insert(ScaleSpring::new(1.0));
+        }
     }
 
     let max_sort = sort_query

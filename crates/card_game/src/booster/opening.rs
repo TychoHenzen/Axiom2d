@@ -218,6 +218,7 @@ pub fn booster_opening_system(world: &mut World) {
                 if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
                     bus.push(PhysicsCommand::RemoveBody { entity });
                 }
+                world.entity_mut(entity).remove::<RigidBody>();
 
                 opening.spawned_cards.push(entity);
             }
@@ -291,6 +292,11 @@ pub fn booster_opening_system(world: &mut World) {
                         filter: CARD_COLLISION_FILTER,
                     });
                 }
+            }
+
+            // Re-insert RigidBody component on all spawned cards
+            for &(card_entity, _) in &card_positions {
+                world.entity_mut(card_entity).insert(RigidBody::Dynamic);
             }
 
             // Despawn the pack entity
