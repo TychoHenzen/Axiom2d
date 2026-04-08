@@ -2,8 +2,8 @@ use glam::Vec2;
 use lyon::math::point;
 use lyon::path::Path as LyonPath;
 use lyon::tessellation::{
-    BuffersBuilder, FillOptions, FillTessellator, FillVertex, StrokeOptions, StrokeTessellator,
-    StrokeVertex, VertexBuffers,
+    BuffersBuilder, FillOptions, FillRule, FillTessellator, FillVertex, StrokeOptions,
+    StrokeTessellator, StrokeVertex, VertexBuffers,
 };
 
 use super::components::{ShapeVariant, TessellatedMesh};
@@ -36,7 +36,9 @@ pub fn tessellate(variant: &ShapeVariant) -> Result<TessellatedMesh, TessellateE
             if points.len() < 3 {
                 return Ok(empty_mesh());
             }
-            fill_polygon(&mut tess, opts, &mut geo, points)?;
+            // NonZero keeps self-intersecting band polygons solid instead of XOR-ing.
+            let poly_opts = opts.with_fill_rule(FillRule::NonZero);
+            fill_polygon(&mut tess, poly_opts, &mut geo, points)?;
         }
         ShapeVariant::Path { commands } => {
             if commands.is_empty() {

@@ -403,7 +403,7 @@ fn semicircle_fan(center: Vec2, radius: f32, axis: Vec2, half_steps: usize) -> V
         .map(|step| {
             // Sweep from -π/2 to +π/2 relative to axis (i.e., the outward hemisphere).
             let t = step as f32 / half_steps as f32;
-            let angle = base_angle + std::f32::consts::PI * (t - 0.5);
+            let angle = base_angle + std::f32::consts::PI * (0.5 - t);
             center + Vec2::new(radius * angle.cos(), radius * angle.sin())
         })
         .collect()
