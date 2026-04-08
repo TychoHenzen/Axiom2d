@@ -122,6 +122,9 @@ pub fn interaction_apply_system(
                 );
                 drag_state.dragging = None;
             }
+            InteractionIntent::OpenBoosterPack { .. } => {
+                // handled by booster opening system
+            }
         }
     }
 }

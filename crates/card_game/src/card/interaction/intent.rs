@@ -35,6 +35,9 @@ pub enum InteractionIntent {
         row: u8,
         current_position: Vec2,
     },
+    OpenBoosterPack {
+        entity: Entity,
+    },
 }
 
 impl Event for InteractionIntent {}
