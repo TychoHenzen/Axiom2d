@@ -307,41 +307,55 @@ pub fn screen_release_system(mouse: Res<MouseState>, mut screen_drag: ResMut<Scr
 }
 
 fn build_signal_polyline(points: &[Vec2], thickness: f32) -> ShapeVariant {
-    let mut polygon = Vec::new();
+    let n = points.len();
     let clamped_thickness = thickness.max(1.0);
+    let closed = n >= 3;
 
-    // Forward pass: offset left
-    for i in 0..points.len() {
-        let prev = if i == 0 { points[0] } else { points[i - 1] };
-        let next = if i + 1 < points.len() {
-            points[i + 1]
-        } else {
-            points[i]
-        };
-        let dir = (next - prev).normalize_or_zero();
-        let normal = Vec2::new(-dir.y, dir.x);
-        polygon.push(points[i] + normal * clamped_thickness);
+    if closed {
+        // Closed loop: offset each vertex outward, then inward.
+        let mut outer = Vec::with_capacity(n);
+        let mut inner = Vec::with_capacity(n);
+        for i in 0..n {
+            let prev = points[(i + n - 1) % n];
+            let next = points[(i + 1) % n];
+            let dir = (next - prev).normalize_or_zero();
+            let normal = Vec2::new(-dir.y, dir.x);
+            outer.push(points[i] + normal * clamped_thickness);
+            inner.push(points[i] - normal * clamped_thickness);
+        }
+        inner.reverse();
+        let mut polygon = outer;
+        polygon.extend(inner);
+        let clipped = clip_polygon_to_rect(
+            &polygon,
+            Vec2::new(-PANEL_HALF, -PANEL_HALF),
+            Vec2::new(PANEL_HALF, PANEL_HALF),
+        );
+        ShapeVariant::Polygon { points: clipped }
+    } else {
+        // Open ribbon for 2 points (capsule).
+        let mut polygon = Vec::new();
+        for i in 0..n {
+            let prev = if i == 0 { points[0] } else { points[i - 1] };
+            let next = if i + 1 < n { points[i + 1] } else { points[i] };
+            let dir = (next - prev).normalize_or_zero();
+            let normal = Vec2::new(-dir.y, dir.x);
+            polygon.push(points[i] + normal * clamped_thickness);
+        }
+        for i in (0..n).rev() {
+            let prev = if i == 0 { points[0] } else { points[i - 1] };
+            let next = if i + 1 < n { points[i + 1] } else { points[i] };
+            let dir = (next - prev).normalize_or_zero();
+            let normal = Vec2::new(-dir.y, dir.x);
+            polygon.push(points[i] - normal * clamped_thickness);
+        }
+        let clipped = clip_polygon_to_rect(
+            &polygon,
+            Vec2::new(-PANEL_HALF, -PANEL_HALF),
+            Vec2::new(PANEL_HALF, PANEL_HALF),
+        );
+        ShapeVariant::Polygon { points: clipped }
     }
-
-    // Reverse pass: offset right
-    for i in (0..points.len()).rev() {
-        let prev = if i == 0 { points[0] } else { points[i - 1] };
-        let next = if i + 1 < points.len() {
-            points[i + 1]
-        } else {
-            points[i]
-        };
-        let dir = (next - prev).normalize_or_zero();
-        let normal = Vec2::new(-dir.y, dir.x);
-        polygon.push(points[i] - normal * clamped_thickness);
-    }
-
-    let clipped = clip_polygon_to_rect(
-        &polygon,
-        Vec2::new(-PANEL_HALF, -PANEL_HALF),
-        Vec2::new(PANEL_HALF, PANEL_HALF),
-    );
-    ShapeVariant::Polygon { points: clipped }
 }
 
 fn clipped_signal_circle(center: Vec2, radius: f32) -> ShapeVariant {
