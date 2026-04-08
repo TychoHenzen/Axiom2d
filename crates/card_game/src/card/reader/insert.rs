@@ -8,7 +8,7 @@ use crate::card::component::{Card, CardZone};
 use crate::card::interaction::drag_state::DragState;
 use crate::card::jack_cable::Jack;
 use crate::card::reader::components::{CardReader, READER_CARD_SCALE, card_overlaps_reader};
-use crate::card::reader::signature_space::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
+use crate::card::reader::signature_space::{SignatureSpace, signature_radius};
 
 pub fn card_reader_insert_system(
     mouse: Res<MouseState>,
@@ -60,7 +60,7 @@ pub fn card_reader_insert_system(
         if let Ok(mut jack) = jacks.get_mut(reader.jack_entity) {
             jack.data = Some(SignatureSpace::from_single(
                 card.signature,
-                SIGNATURE_SPACE_RADIUS,
+                signature_radius(&card.signature),
             ));
         }
 

@@ -1,9 +1,10 @@
 #![allow(clippy::unwrap_used)]
 
+use card_game::card::identity::signature::CardSignature;
+use card_game::card::reader::signature_radius;
 use card_game::card::reader::volume::{
     polyline_arc_length, solve_tube_radius, sphere_volume_8d, tube_volume_8d,
 };
-use card_game::card::identity::signature::CardSignature;
 
 #[test]
 fn when_sphere_radius_is_zero_then_volume_is_zero() {
@@ -86,4 +87,34 @@ fn when_polyline_has_two_points_then_arc_length_is_euclidean_distance() {
 fn when_polyline_has_one_point_then_arc_length_is_zero() {
     let a = CardSignature::new([0.1; 8]);
     assert_eq!(polyline_arc_length(&[a]), 0.0);
+}
+
+#[test]
+fn when_all_axes_zero_then_radius_is_015() {
+    // Arrange
+    let sig = CardSignature::new([0.0; 8]);
+
+    // Act
+    let r = signature_radius(&sig);
+
+    // Assert
+    assert!((r - 0.15).abs() < 1e-6);
+}
+
+#[test]
+fn when_all_axes_max_intensity_then_radius_is_025() {
+    // Arrange — all axes at ±1.0 (max intensity)
+    let sig = CardSignature::new([1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0]);
+
+    // Act
+    let r = signature_radius(&sig);
+
+    // Assert
+    assert!((r - 0.25).abs() < 1e-6);
+}
+
+#[test]
+fn when_signature_radius_called_twice_then_deterministic() {
+    let sig = CardSignature::new([0.3, -0.7, 0.1, 0.4, -0.2, 0.5, -0.8, 0.6]);
+    assert_eq!(signature_radius(&sig), signature_radius(&sig));
 }

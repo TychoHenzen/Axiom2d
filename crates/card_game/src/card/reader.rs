@@ -6,8 +6,8 @@ mod insert;
 mod pick;
 mod rotation_lock;
 mod signature_space;
-pub mod volume;
 pub mod spawn;
+pub mod volume;
 
 pub use components::{
     CardReader, READER_CARD_SCALE, READER_COLLISION_FILTER, READER_COLLISION_GROUP, ReaderDragInfo,
@@ -19,5 +19,5 @@ pub use glow::{ReaderAccent, ReaderRecess, ReaderRune, reader_glow_system};
 pub use insert::card_reader_insert_system;
 pub use pick::on_reader_clicked;
 pub use rotation_lock::reader_rotation_lock_system;
-pub use signature_space::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
+pub use signature_space::{SIGNATURE_SPACE_RADIUS, SignatureSpace, signature_radius};
 pub use spawn::{READER_HALF_EXTENTS, spawn_reader};

@@ -18,6 +18,7 @@ use card_game::card::reader::{
     CardReader, READER_CARD_SCALE, ReaderDragInfo, ReaderDragState, SIGNATURE_SPACE_RADIUS,
     SignatureSpace, card_overlaps_reader, card_reader_eject_system, card_reader_insert_system,
     on_reader_clicked, reader_drag_system, reader_release_system, reader_rotation_lock_system,
+    signature_radius,
 };
 use card_game::test_helpers::spawn_entity;
 
@@ -467,11 +468,12 @@ fn when_card_inserted_then_jack_emits_signature_space() {
     let jack = world
         .get::<Jack<SignatureSpace>>(setup.jack_entity)
         .unwrap();
+    let expected_sig = CardSignature::new(INSERT_SCENARIO_SIG);
     assert_eq!(
         jack.data,
         Some(SignatureSpace::from_single(
-            CardSignature::new(INSERT_SCENARIO_SIG),
-            SIGNATURE_SPACE_RADIUS,
+            expected_sig,
+            signature_radius(&expected_sig),
         )),
         "jack must emit SignatureSpace centered on the inserted card's signature"
     );

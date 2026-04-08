@@ -1,10 +1,19 @@
 use bevy_ecs::prelude::Component;
 
 use crate::card::identity::signature::CardSignature;
+use crate::card::identity::signature::Element;
 use crate::card::reader::volume::{polyline_arc_length, solve_tube_radius, sphere_volume_8d};
 
 /// Default radius for backward compatibility in tests.
 pub const SIGNATURE_SPACE_RADIUS: f32 = 0.2;
+
+/// Compute the per-card signal sphere radius from signature intensity.
+///
+/// Maps mean absolute intensity [0.0, 1.0] → radius [0.15, 0.25].
+pub fn signature_radius(sig: &CardSignature) -> f32 {
+    let mean_intensity: f32 = Element::ALL.iter().map(|&e| sig.intensity(e)).sum::<f32>() / 8.0;
+    0.15 + mean_intensity * 0.10
+}
 
 #[derive(Component, Debug, Clone, PartialEq)]
 pub struct SignatureSpace {
