@@ -26,6 +26,7 @@ mod card_jack_socket;
 mod card_reader;
 mod card_reader_glow;
 mod card_reader_spawn;
+mod card_reader_volume;
 mod card_rendering_art_shader;
 mod card_rendering_bake;
 mod card_rendering_debug_spawn;

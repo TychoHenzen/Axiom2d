@@ -6,6 +6,7 @@ mod insert;
 mod pick;
 mod rotation_lock;
 mod signature_space;
+pub mod volume;
 pub mod spawn;
 
 pub use components::{
