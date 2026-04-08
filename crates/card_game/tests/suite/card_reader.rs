@@ -469,10 +469,10 @@ fn when_card_inserted_then_jack_emits_signature_space() {
         .unwrap();
     assert_eq!(
         jack.data,
-        Some(SignatureSpace {
-            center: CardSignature::new(INSERT_SCENARIO_SIG),
-            radius: SIGNATURE_SPACE_RADIUS,
-        }),
+        Some(SignatureSpace::from_single(
+            CardSignature::new(INSERT_SCENARIO_SIG),
+            SIGNATURE_SPACE_RADIUS,
+        )),
         "jack must emit SignatureSpace centered on the inserted card's signature"
     );
 }
@@ -870,10 +870,7 @@ fn setup_eject_scenario(world: &mut World) -> EjectTestSetup {
     let jack_entity = world
         .spawn(Jack::<SignatureSpace> {
             direction: JackDirection::Output,
-            data: Some(SignatureSpace {
-                center: sig,
-                radius: SIGNATURE_SPACE_RADIUS,
-            }),
+            data: Some(SignatureSpace::from_single(sig, SIGNATURE_SPACE_RADIUS)),
         })
         .id();
 
@@ -1121,10 +1118,7 @@ fn when_reader_dragged_then_ejected_card_physics_body_placed_at_new_position() {
     let jack_entity = world
         .spawn(Jack::<SignatureSpace> {
             direction: JackDirection::Output,
-            data: Some(SignatureSpace {
-                center: sig,
-                radius: SIGNATURE_SPACE_RADIUS,
-            }),
+            data: Some(SignatureSpace::from_single(sig, SIGNATURE_SPACE_RADIUS)),
         })
         .id();
     let reader_start = Vec2::new(100.0, 100.0);

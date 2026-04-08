@@ -25,10 +25,7 @@ fn run_cable_propagation(world: &mut World) {
 }
 
 fn make_space(center_values: [f32; 8]) -> SignatureSpace {
-    SignatureSpace {
-        center: CardSignature::new(center_values),
-        radius: SIGNATURE_SPACE_RADIUS,
-    }
+    SignatureSpace::from_single(CardSignature::new(center_values), SIGNATURE_SPACE_RADIUS)
 }
 
 /// @doc: The cable propagation system is the signal backbone of the wiring layer: without
@@ -145,10 +142,7 @@ fn when_output_jack_has_no_data_then_input_jack_data_remains_none_after_propagat
 fn when_point_is_center_of_space_then_contains_returns_true() {
     // Arrange
     let center = CardSignature::new([0.3, -0.1, 0.5, 0.0, -0.4, 0.2, -0.7, 0.6]);
-    let space = SignatureSpace {
-        center,
-        radius: SIGNATURE_SPACE_RADIUS,
-    };
+    let space = SignatureSpace::from_single(center, SIGNATURE_SPACE_RADIUS);
 
     // Act
     let result = space.contains(&center);

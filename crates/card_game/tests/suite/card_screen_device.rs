@@ -70,17 +70,14 @@ fn run_screen_visuals(world: &mut World) {
 fn when_display_index_is_zero_then_axes_map_to_solidum_and_febris() {
     // Arrange
     let center = CardSignature::new([0.3, 0.7, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8]);
-    let space = SignatureSpace {
-        center,
-        radius: SIGNATURE_SPACE_RADIUS,
-    };
+    let space = SignatureSpace::from_single(center, SIGNATURE_SPACE_RADIUS);
 
     // Act
     let (x, y) = display_axes(&space, 0);
 
     // Assert
-    assert_eq!(x, space.center[Element::Solidum]);
-    assert_eq!(y, space.center[Element::Febris]);
+    assert_eq!(x, space.control_points[0][Element::Solidum]);
+    assert_eq!(y, space.control_points[0][Element::Febris]);
 }
 
 /// @doc: Display 3 maps to the Subsidium/Spatium element pair — the last two dimensions of the
@@ -93,17 +90,14 @@ fn when_display_index_is_zero_then_axes_map_to_solidum_and_febris() {
 fn when_display_index_is_three_then_axes_map_to_subsidium_and_spatium() {
     // Arrange
     let center = CardSignature::new([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.9, -0.8]);
-    let space = SignatureSpace {
-        center,
-        radius: SIGNATURE_SPACE_RADIUS,
-    };
+    let space = SignatureSpace::from_single(center, SIGNATURE_SPACE_RADIUS);
 
     // Act
     let (x, y) = display_axes(&space, 3);
 
     // Assert
-    assert_eq!(x, space.center[Element::Subsidium]);
-    assert_eq!(y, space.center[Element::Spatium]);
+    assert_eq!(x, space.control_points[0][Element::Subsidium]);
+    assert_eq!(y, space.control_points[0][Element::Spatium]);
 }
 
 // ---------------------------------------------------------------------------
@@ -142,10 +136,10 @@ fn given_input_jack_data_is_none_when_screen_render_system_runs_then_only_panel_
 #[test]
 fn given_input_jack_has_signature_space_when_screen_render_system_runs_then_draws_eight_shapes() {
     // Arrange
-    let signal = SignatureSpace {
-        center: CardSignature::new([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]),
-        radius: SIGNATURE_SPACE_RADIUS,
-    };
+    let signal = SignatureSpace::from_single(
+        CardSignature::new([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]),
+        SIGNATURE_SPACE_RADIUS,
+    );
     let (mut world, shape_calls) = make_screen_world(Some(signal));
 
     // Act
@@ -208,10 +202,7 @@ fn when_card_inserted_and_cable_propagated_then_screen_input_jack_holds_signatur
         .entity_mut(reader_output_jack)
         .get_mut::<Jack<SignatureSpace>>()
         .unwrap()
-        .data = Some(SignatureSpace {
-        center: sig,
-        radius: SIGNATURE_SPACE_RADIUS,
-    });
+        .data = Some(SignatureSpace::from_single(sig, SIGNATURE_SPACE_RADIUS));
 
     // Act — run propagation
     let mut schedule = Schedule::default();
@@ -224,11 +215,7 @@ fn when_card_inserted_and_cable_propagated_then_screen_input_jack_holds_signatur
         .unwrap();
     assert_eq!(
         jack.data,
-        Some(SignatureSpace {
-            center: sig,
-            radius: SIGNATURE_SPACE_RADIUS,
-        }),
+        Some(SignatureSpace::from_single(sig, SIGNATURE_SPACE_RADIUS,)),
         "screen input jack must receive the SignatureSpace after cable propagation"
     );
 }
-

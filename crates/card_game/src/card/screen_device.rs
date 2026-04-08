@@ -84,7 +84,10 @@ pub struct ScreenSignalDot {
 pub fn display_axes(space: &SignatureSpace, display_index: usize) -> (f32, f32) {
     let x_element = Element::ALL[display_index * 2];
     let y_element = Element::ALL[display_index * 2 + 1];
-    (space.center[x_element], space.center[y_element])
+    (
+        space.control_points[0][x_element],
+        space.control_points[0][y_element],
+    )
 }
 
 fn panel_offset(display_index: usize) -> Vec2 {
@@ -416,10 +419,10 @@ mod tests {
     #[test]
     fn when_signal_needs_flattening_then_rendered_polygon_hits_panel_edge() {
         // Arrange
-        let signal = SignatureSpace {
-            center: CardSignature::new([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-            radius: SIGNATURE_SPACE_RADIUS,
-        };
+        let signal = SignatureSpace::from_single(
+            CardSignature::new([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            SIGNATURE_SPACE_RADIUS,
+        );
         let (mut world, shape_calls, _device) = make_world(Some(signal));
 
         // Act

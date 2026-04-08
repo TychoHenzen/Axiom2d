@@ -58,10 +58,10 @@ pub fn card_reader_insert_system(
         reader.loaded = Some(card_entity);
 
         if let Ok(mut jack) = jacks.get_mut(reader.jack_entity) {
-            jack.data = Some(SignatureSpace {
-                center: card.signature,
-                radius: SIGNATURE_SPACE_RADIUS,
-            });
+            jack.data = Some(SignatureSpace::from_single(
+                card.signature,
+                SIGNATURE_SPACE_RADIUS,
+            ));
         }
 
         drag_state.dragging = None;
