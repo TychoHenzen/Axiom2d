@@ -4,14 +4,12 @@ use bevy_ecs::prelude::*;
 use card_game::card::identity::signature::CardSignature;
 use card_game::card::jack_cable::{
     Cable, CableCollider, Jack, JackDirection, WireEndpoints, WrapAnchor, WrapWire,
-    find_wrap_vertex, particles_to_bezier_path, point_in_convex_polygon, polyline_to_ribbon,
-    segment_intersects_segment, signature_space_propagation_system, wire_render_system,
-    wrap_detect_system, wrap_update_system,
+    point_in_convex_polygon, polyline_to_ribbon, segment_intersects_segment,
+    signature_space_propagation_system, wire_render_system, wrap_detect_system, wrap_update_system,
 };
 use card_game::card::reader::{SIGNATURE_SPACE_RADIUS, SignatureSpace};
 use engine_core::prelude::Transform2D;
 use engine_render::prelude::{Shape, ShapeVariant};
-use engine_render::shape::PathCommand;
 use engine_scene::prelude::{SortOrder, Visible};
 use engine_scene::render_order::RenderLayer;
 use glam::Vec2;
@@ -163,93 +161,6 @@ fn when_point_is_center_of_space_then_contains_returns_true() {
 }
 
 // ---------------------------------------------------------------------------
-// TC-F12 — B-spline to bezier conversion produces correct segment count
-// ---------------------------------------------------------------------------
-
-/// @doc: `particles_to_bezier_path` converts waypoint positions into a smooth B-spline
-/// curve represented as cubic bezier `PathCommand`s. For N points, the result must contain
-/// a single `MoveTo` followed by exactly N-1 `CubicTo` commands — one bezier segment per
-/// adjacent point pair. Fewer segments leave gaps in the cable; more segments produce
-/// phantom arcs between non-adjacent points.
-#[test]
-fn given_five_particles_when_bezier_path_computed_then_result_has_move_to_plus_four_cubic_to() {
-    // Arrange
-    let positions = vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(25.0, 10.0),
-        Vec2::new(50.0, 0.0),
-        Vec2::new(75.0, -10.0),
-        Vec2::new(100.0, 0.0),
-    ];
-
-    // Act
-    let commands = particles_to_bezier_path(&positions);
-
-    // Assert
-    let move_count = commands
-        .iter()
-        .filter(|c| matches!(c, PathCommand::MoveTo(_)))
-        .count();
-    let cubic_count = commands
-        .iter()
-        .filter(|c| matches!(c, PathCommand::CubicTo { .. }))
-        .count();
-    assert_eq!(move_count, 1, "path must start with exactly one MoveTo");
-    assert_eq!(
-        cubic_count, 4,
-        "5 particles must produce 4 CubicTo segments, got {cubic_count}"
-    );
-}
-
-// ---------------------------------------------------------------------------
-// TC-F13 — collinear points produce a straight bezier
-// ---------------------------------------------------------------------------
-
-/// @doc: When all points lie on the same line, the B-spline approximation must also lie
-/// on that line — all `CubicTo` control points must have the same Y coordinate as the
-/// points. If control points deviate from the chord, a taut cable would render as a
-/// wavy curve, confusing the player about whether the cable is slack or tight.
-#[test]
-fn given_collinear_particles_when_bezier_path_computed_then_all_control_points_on_same_line() {
-    // Arrange — 4 points on Y=0
-    let positions = vec![
-        Vec2::new(0.0, 0.0),
-        Vec2::new(30.0, 0.0),
-        Vec2::new(60.0, 0.0),
-        Vec2::new(90.0, 0.0),
-    ];
-
-    // Act
-    let commands = particles_to_bezier_path(&positions);
-
-    // Assert
-    for cmd in &commands {
-        if let PathCommand::CubicTo {
-            control1,
-            control2,
-            to,
-        } = cmd
-        {
-            assert!(
-                control1.y.abs() < 1e-4,
-                "control1.y must be ~0.0 for collinear points, got {}",
-                control1.y
-            );
-            assert!(
-                control2.y.abs() < 1e-4,
-                "control2.y must be ~0.0 for collinear points, got {}",
-                control2.y
-            );
-            assert!(
-                to.y.abs() < 1e-4,
-                "to.y must be ~0.0 for collinear points, got {}",
-                to.y
-            );
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
 // WrapWire — shortest_path computation
 // ---------------------------------------------------------------------------
 
@@ -346,42 +257,6 @@ fn when_parallel_segments_then_intersection_returns_none() {
 
     // Assert
     assert!(result.is_none(), "parallel segments must not intersect");
-}
-
-// ---------------------------------------------------------------------------
-// find_wrap_vertex — span crosses polygon
-// ---------------------------------------------------------------------------
-
-/// @doc: `find_wrap_vertex` identifies which vertex of a convex polygon a cable should wrap
-/// around when the cable span crosses the polygon. For a horizontal cable at y=5 crossing a
-/// box centered at (50, 0), the function must pick one of the top vertices (y=10) because
-/// those are on the same side as the cable. The wrap sign indicates whether the cable bends
-/// clockwise or counter-clockwise around that vertex.
-#[test]
-fn when_span_crosses_polygon_then_find_wrap_vertex_returns_correct_corner() {
-    // Arrange — cable spans from left to right across a box centered at (50, 0)
-    let span_a = Vec2::new(0.0, 5.0);
-    let span_b = Vec2::new(100.0, 5.0);
-    // Box vertices CCW: bottom-left, bottom-right, top-right, top-left
-    let verts = vec![
-        Vec2::new(40.0, -10.0),
-        Vec2::new(60.0, -10.0),
-        Vec2::new(60.0, 10.0),
-        Vec2::new(40.0, 10.0),
-    ];
-
-    // Act
-    let result = find_wrap_vertex(span_a, span_b, &verts);
-
-    // Assert — should pick one of the top vertices (y=10 side, same side as the cable at y=5)
-    assert!(result.is_some(), "must find a wrap vertex");
-    let (idx, sign) = result.unwrap();
-    let chosen = verts[idx];
-    assert!(
-        chosen.y > 0.0,
-        "cable at y=5 should wrap around a top vertex, got {chosen}"
-    );
-    assert!(sign.abs() > 0.0, "wrap_sign must be nonzero");
 }
 
 // ---------------------------------------------------------------------------

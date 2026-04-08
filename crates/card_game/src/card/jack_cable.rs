@@ -2,7 +2,6 @@ use bevy_ecs::prelude::{Component, Entity, Query, Without};
 use engine_core::color::Color;
 use engine_core::prelude::Transform2D;
 use engine_render::prelude::{Shape, ShapeVariant};
-use engine_render::shape::PathCommand;
 use engine_scene::prelude::Visible;
 use glam::Vec2;
 
@@ -124,36 +123,6 @@ pub fn signature_space_propagation_system(
     }
 }
 
-/// Convert particle positions to a smooth cubic bezier path using Catmull-Rom interpolation.
-/// Produces one `MoveTo` + (N-1) `CubicTo` commands for N input points.
-pub fn particles_to_bezier_path(points: &[Vec2]) -> Vec<PathCommand> {
-    if points.len() < 2 {
-        return vec![];
-    }
-    let mut commands = vec![PathCommand::MoveTo(points[0])];
-    let n = points.len();
-    for i in 0..n - 1 {
-        let p0 = if i == 0 { points[0] } else { points[i - 1] };
-        let p1 = points[i];
-        let p2 = points[i + 1];
-        let p3 = if i + 2 < n {
-            points[i + 2]
-        } else {
-            points[n - 1]
-        };
-
-        let control1 = p1 + (p2 - p0) / 6.0;
-        let control2 = p2 - (p3 - p1) / 6.0;
-
-        commands.push(PathCommand::CubicTo {
-            control1,
-            control2,
-            to: p2,
-        });
-    }
-    commands
-}
-
 // ---------------------------------------------------------------------------
 // Cable collider (convex polygon for wrap detection)
 // ---------------------------------------------------------------------------
@@ -165,7 +134,7 @@ pub struct CableCollider {
 }
 
 impl CableCollider {
-    /// Construct from AABB half-extents (backward compat for readers/screens).
+    /// Construct from AABB half-extents.
     pub fn from_aabb(half: Vec2) -> Self {
         Self {
             vertices: vec![
@@ -219,10 +188,10 @@ impl WrapWire {
         vertex_count: usize,
     ) -> usize {
         let vertex_count = vertex_count.max(1);
-        match boundary_step.cmp(&0) {
-            std::cmp::Ordering::Greater => (vertex_index + 1) % vertex_count,
-            std::cmp::Ordering::Less => (vertex_index + vertex_count - 1) % vertex_count,
-            std::cmp::Ordering::Equal => (vertex_index + 1) % vertex_count,
+        if boundary_step < 0 {
+            (vertex_index + vertex_count - 1) % vertex_count
+        } else {
+            (vertex_index + 1) % vertex_count
         }
     }
 
@@ -471,39 +440,6 @@ pub fn segment_intersects_segment(a1: Vec2, a2: Vec2, b1: Vec2, b2: Vec2) -> Opt
     } else {
         None
     }
-}
-
-/// Given a cable span (a→b) that crosses a convex polygon, find the vertex to wrap around.
-/// Returns `(vertex_index, wrap_sign)` where `wrap_sign` is +1.0 (CCW) or -1.0 (CW).
-/// Returns `None` if the span doesn't cross the polygon.
-pub fn find_wrap_vertex(a: Vec2, b: Vec2, polygon: &[Vec2]) -> Option<(usize, f32)> {
-    let n = polygon.len();
-    if n < 3 {
-        return None;
-    }
-
-    let has_intersection = (0..n).any(|i| {
-        let e1 = polygon[i];
-        let e2 = polygon[(i + 1) % n];
-        segment_intersects_segment(a, b, e1, e2).is_some()
-    });
-    if !has_intersection {
-        return None;
-    }
-
-    let span_dir = b - a;
-    let mut best_idx = 0;
-    let mut best_detour = f32::MAX;
-    for (i, v) in polygon.iter().enumerate() {
-        let detour = (*v - a).length() + (b - *v).length();
-        if detour < best_detour {
-            best_detour = detour;
-            best_idx = i;
-        }
-    }
-
-    let wrap_sign = span_dir.perp_dot(polygon[best_idx] - a).signum();
-    Some((best_idx, wrap_sign))
 }
 
 // ---------------------------------------------------------------------------

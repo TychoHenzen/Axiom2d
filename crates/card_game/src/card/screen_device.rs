@@ -13,12 +13,9 @@ use std::f32::consts::TAU;
 
 use crate::card::identity::signature::Element;
 use crate::card::interaction::click_resolve::{ClickHitShape, Clickable, ClickedEntity};
-use crate::card::interaction::drag_state::DragState;
 use crate::card::jack_cable::{CableCollider, Jack, JackDirection};
-use crate::card::jack_socket::{JackSocket, PendingCable, on_socket_clicked};
-use crate::card::reader::{ReaderDragState, SignatureSpace};
-use crate::stash::grid::StashGrid;
-use crate::stash::toggle::StashVisible;
+use crate::card::jack_socket::{JackSocket, on_socket_clicked};
+use crate::card::reader::SignatureSpace;
 
 const DISPLAY_COUNT: usize = 4;
 const PANEL_HALF: f32 = 50.0;
@@ -256,45 +253,6 @@ pub fn on_screen_clicked(
         entity,
         grab_offset: cursor - transform.position,
     });
-}
-
-pub fn screen_pick_system(
-    mouse: Res<MouseState>,
-    drag_state: Res<DragState>,
-    reader_drag: Res<ReaderDragState>,
-    pending: Res<PendingCable>,
-    mut screen_drag: ResMut<ScreenDragState>,
-    stash_visible: Option<Res<StashVisible>>,
-    grid: Option<Res<StashGrid>>,
-    screens: Query<(Entity, &Transform2D), With<ScreenDevice>>,
-) {
-    if drag_state.dragging.is_some()
-        || reader_drag.dragging.is_some()
-        || screen_drag.dragging.is_some()
-        || pending.source.is_some()
-    {
-        return;
-    }
-    if !mouse.just_pressed(MouseButton::Left) {
-        return;
-    }
-    if let (Some(stash_visible), Some(grid)) = (stash_visible, grid)
-        && stash_visible.0
-        && crate::stash::pages::stash_ui_contains(mouse.screen_pos(), &grid)
-    {
-        return;
-    }
-    let cursor = mouse.world_pos();
-    for (entity, transform) in &screens {
-        let delta = (cursor - transform.position).abs();
-        if delta.x <= SCREEN_HALF_EXTENTS.x && delta.y <= SCREEN_HALF_EXTENTS.y {
-            screen_drag.dragging = Some(ScreenDragInfo {
-                entity,
-                grab_offset: cursor - transform.position,
-            });
-            return;
-        }
-    }
 }
 
 pub fn screen_drag_system(

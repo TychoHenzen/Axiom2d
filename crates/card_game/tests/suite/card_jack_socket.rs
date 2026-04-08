@@ -344,55 +344,6 @@ fn given_pending_cable_already_active_when_left_mouse_pressed_over_second_socket
 }
 
 // ---------------------------------------------------------------------------
-// TC010 — pending_cable_drag_system draws preview line
-// ---------------------------------------------------------------------------
-
-/// @doc: While a cable drag is in progress, `pending_cable_drag_system` must draw a preview
-/// line from the source socket to the cursor so the player can see the cable they are routing.
-/// Without this visual feedback, cable connection is fully invisible — the player presses a
-/// socket and nothing happens until they release, with no indication that a drag is active.
-#[test]
-fn given_pending_cable_active_and_mouse_pressed_when_drag_system_runs_then_preview_shape_is_drawn()
-{
-    // Arrange
-    let (mut app, shape_calls) = make_preview_app();
-    let source_jack = app
-        .world_mut()
-        .spawn((
-            JackSocket {
-                radius: 8.0,
-                color: Color::WHITE,
-                connected_cable: None,
-            },
-            Transform2D {
-                position: Vec2::new(50.0, 50.0),
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-        ))
-        .id();
-    app.world_mut().insert_resource(PendingCable {
-        source: Some(source_jack),
-        origin_cable: None,
-        free_end: None,
-    });
-    let mut mouse = MouseState::default();
-    mouse.press(MouseButton::Left);
-    mouse.set_world_pos(Vec2::new(150.0, 150.0));
-    app.world_mut().insert_resource(mouse);
-
-    // Act
-    run_pending_preview_visuals(app.world_mut());
-
-    // Assert
-    assert_eq!(
-        shape_calls.lock().unwrap().len(),
-        1,
-        "an active cable drag must draw exactly one preview line from source to cursor"
-    );
-}
-
-// ---------------------------------------------------------------------------
 // TC011 — no preview when no pending cable
 // ---------------------------------------------------------------------------
 
@@ -496,10 +447,26 @@ fn given_pending_cable_and_cursor_over_compatible_socket_when_mouse_released_the
     let mut world = make_pick_world();
     let output_jack = spawn_jack_socket_at(&mut world, Vec2::new(0.0, 0.0));
     let input_jack = spawn_input_socket_at(&mut world, Vec2::new(100.0, 0.0));
+    let free_end = world
+        .spawn((
+            CableFreeEnd,
+            Transform2D {
+                position: Vec2::new(100.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+        ))
+        .id();
+    let wire_entity = world
+        .spawn(WireEndpoints {
+            source: output_jack,
+            dest: free_end,
+        })
+        .id();
     world.insert_resource(PendingCable {
         source: Some(output_jack),
-        origin_cable: None,
-        free_end: None,
+        origin_cable: Some(wire_entity),
+        free_end: Some(free_end),
     });
     let mut mouse = MouseState::default();
     mouse.release(MouseButton::Left);
@@ -513,15 +480,14 @@ fn given_pending_cable_and_cursor_over_compatible_socket_when_mouse_released_the
     schedule.run(&mut world);
 
     // Assert
-    let mut q = world.query::<&Cable>();
-    let cables: Vec<_> = q.iter(&world).collect();
-    assert_eq!(
-        cables.len(),
-        1,
-        "releasing over a compatible socket must spawn exactly one Cable entity"
+    let cable = world.get::<Cable>(wire_entity);
+    assert!(
+        cable.is_some(),
+        "releasing over a compatible socket must add a Cable component to the wire entity"
     );
-    assert_eq!(cables[0].source, output_jack);
-    assert_eq!(cables[0].dest, input_jack);
+    let cable = cable.unwrap();
+    assert_eq!(cable.source, output_jack);
+    assert_eq!(cable.dest, input_jack);
 }
 
 // ---------------------------------------------------------------------------
@@ -690,18 +656,6 @@ fn given_pending_cable_and_preview_when_release_chain_runs_then_cable_cleared_wi
     mouse.release(MouseButton::Left);
     mouse.set_world_pos(Vec2::new(9999.0, 9999.0));
     world.insert_resource(mouse);
-
-    world.spawn((
-        card_game::card::jack_socket::PendingCablePreview,
-        Transform2D::default(),
-        Shape {
-            variant: ShapeVariant::Polygon {
-                points: vec![Vec2::ZERO],
-            },
-            color: Color::WHITE,
-        },
-        Visible(false),
-    ));
 
     let mut schedule = Schedule::default();
     schedule.add_systems((jack_socket_release_system, pending_cable_drag_system).chain());
@@ -999,10 +953,26 @@ fn given_two_free_compatible_sockets_when_cable_connected_then_both_sockets_conn
         ))
         .id();
 
+    let free_end = world
+        .spawn((
+            CableFreeEnd,
+            Transform2D {
+                position: Vec2::new(50.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+        ))
+        .id();
+    let wire_entity = world
+        .spawn(WireEndpoints {
+            source: output_socket,
+            dest: free_end,
+        })
+        .id();
     world.insert_resource(PendingCable {
         source: Some(output_socket),
-        origin_cable: None,
-        free_end: None,
+        origin_cable: Some(wire_entity),
+        free_end: Some(free_end),
     });
     let mut mouse = MouseState::default();
     mouse.release(MouseButton::Left);
@@ -1395,7 +1365,7 @@ fn when_jack_socket_clicked_then_spawned_wire_source_endpoint_matches_socket() {
 /// the player no spatial feedback about where they are routing the cable.
 #[test]
 fn when_pending_cable_drag_system_runs_then_free_end_position_matches_cursor() {
-    // Arrange — use make_preview_app so PendingCablePreview exists (required by the system)
+    // Arrange
     let (mut app, _shape_calls) = make_preview_app();
     let world = app.world_mut();
 
@@ -1454,91 +1424,3 @@ fn when_pending_cable_drag_system_runs_then_free_end_position_matches_cursor() {
     );
 }
 
-// ---------------------------------------------------------------------------
-// TC — cable entity has WrapWire component
-// ---------------------------------------------------------------------------
-
-/// @doc: Every cable entity must carry a `WrapWire` component so that wrap detection
-/// systems can find and operate on all cables uniformly. Without `WrapWire`, a cable
-/// spawned through the release-system fallback path would be invisible to the wrap
-/// subsystem and could never gain anchor points around obstacles.
-#[test]
-fn when_cable_connected_between_sockets_then_cable_entity_has_wrap_wire() {
-    use card_game::card::jack_cable::WrapWire;
-    use engine_scene::prelude::{GlobalTransform2D, SortOrder};
-    use glam::Affine2;
-
-    // Arrange
-    let mut world = make_pick_world();
-
-    let output_socket = world
-        .spawn((
-            Jack::<SignatureSpace> {
-                direction: JackDirection::Output,
-                data: None,
-            },
-            JackSocket {
-                radius: 10.0,
-                color: Color::WHITE,
-                connected_cable: None,
-            },
-            Transform2D {
-                position: Vec2::new(0.0, 0.0),
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
-            SortOrder::default(),
-        ))
-        .id();
-
-    let _input_socket = world
-        .spawn((
-            Jack::<SignatureSpace> {
-                direction: JackDirection::Input,
-                data: None,
-            },
-            JackSocket {
-                radius: 10.0,
-                color: Color::WHITE,
-                connected_cable: None,
-            },
-            Transform2D {
-                position: Vec2::new(50.0, 0.0),
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            GlobalTransform2D(Affine2::from_translation(Vec2::new(50.0, 0.0))),
-            SortOrder::default(),
-        ))
-        .id();
-
-    world.insert_resource(PendingCable {
-        source: Some(output_socket),
-        origin_cable: None,
-        free_end: None,
-    });
-    let mut mouse = MouseState::default();
-    mouse.release(MouseButton::Left);
-    mouse.set_world_pos(Vec2::new(50.0, 0.0));
-    world.insert_resource(mouse);
-
-    let mut schedule = Schedule::default();
-    schedule.add_systems(jack_socket_release_system);
-
-    // Act
-    schedule.run(&mut world);
-
-    // Assert — find the cable entity via the socket's connected_cable
-    let socket = world.get::<JackSocket>(output_socket).unwrap();
-    let cable_entity = socket
-        .connected_cable
-        .expect("socket must have a connected cable");
-    let wrap = world
-        .get::<WrapWire>(cable_entity)
-        .expect("cable entity must have WrapWire component");
-    assert!(
-        wrap.anchors.is_empty(),
-        "new cable must start with no anchors"
-    );
-}
