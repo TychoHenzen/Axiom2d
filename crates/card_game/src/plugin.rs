@@ -12,8 +12,7 @@ use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale
 use crate::card::interaction::intent::InteractionIntent;
 use crate::card::interaction::release::card_release_system;
 use crate::card::jack_cable::{
-    rope_solve_system, signature_space_propagation_system, wire_render_system, wrap_detect_system,
-    wrap_update_system,
+    signature_space_propagation_system, wire_render_system, wrap_detect_system, wrap_update_system,
 };
 use crate::card::jack_socket::{
     PendingCable, jack_socket_release_system, jack_socket_render_system, pending_cable_drag_system,
@@ -144,7 +143,6 @@ fn register_systems(app: &mut App) {
                 pending_cable_drag_system,
                 wrap_update_system,
                 wrap_detect_system,
-                rope_solve_system,
                 wire_render_system,
                 signature_space_propagation_system,
                 jack_socket_render_system,

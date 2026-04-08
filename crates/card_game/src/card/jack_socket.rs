@@ -12,8 +12,7 @@ use glam::Vec2;
 
 use crate::card::interaction::click_resolve::ClickedEntity;
 use crate::card::jack_cable::{
-    CABLE_HALF_THICKNESS, CABLE_LOCAL_SORT, Cable, CableRope, Jack, JackDirection, WireEndpoints,
-    WrapWire,
+    CABLE_HALF_THICKNESS, CABLE_LOCAL_SORT, Cable, Jack, JackDirection, WireEndpoints, WrapWire,
 };
 use crate::card::reader::SignatureSpace;
 
@@ -162,7 +161,6 @@ pub fn on_socket_clicked(
                 SortOrder::default(),
                 LocalSortOrder(CABLE_LOCAL_SORT),
                 WrapWire::new(),
-                CableRope::new(pos, pos),
             ))
             .id();
         pending.origin_cable = Some(cable_entity);
@@ -361,12 +359,6 @@ pub fn jack_socket_release_system(
         }
         return;
     };
-    let source_pos = source_transform.unwrap_or(Vec2::ZERO);
-    let dest_pos = sockets
-        .get(dest_entity)
-        .map(|(_, _, t)| t.position)
-        .unwrap_or(cursor);
-
     // Despawn the free-end cursor tracker
     if let Some(fe) = free_end {
         commands.entity(fe).despawn();
@@ -417,7 +409,6 @@ pub fn jack_socket_release_system(
                 SortOrder::default(),
                 LocalSortOrder(CABLE_LOCAL_SORT),
                 WrapWire::new(),
-                CableRope::new(source_pos, dest_pos),
             ))
             .id();
         if let Ok((_, mut src_socket, _)) = sockets.get_mut(source_entity) {

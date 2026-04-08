@@ -33,7 +33,6 @@ pub use crate::card::interaction::flip_animation::{
 };
 pub use crate::card::interaction::pick::{CARD_COLLISION_FILTER, CARD_COLLISION_GROUP};
 pub use crate::card::interaction::release::card_release_system;
-pub use crate::card::jack_cable::{CableRope, rope_solve_system};
 pub use crate::card::rendering::art_shader::{
     CardArtShader, ConditionEffect, GemShader, TierShaders, VariantShaders,
     register_card_art_shader, register_gem_shader, register_tier_shaders, register_variant_shaders,

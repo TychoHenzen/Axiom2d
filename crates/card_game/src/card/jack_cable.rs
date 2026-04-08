@@ -1,6 +1,6 @@
-use bevy_ecs::prelude::{Component, Entity, Query, Res, Without};
+use bevy_ecs::prelude::{Component, Entity, Query, Without};
 use engine_core::color::Color;
-use engine_core::prelude::{DeltaTime, Seconds, Transform2D};
+use engine_core::prelude::Transform2D;
 use engine_render::prelude::{Shape, ShapeVariant};
 use engine_render::shape::PathCommand;
 use engine_scene::prelude::Visible;
@@ -33,45 +33,6 @@ pub struct Jack<T: Clone + Send + Sync + 'static> {
 pub struct Cable {
     pub source: Entity,
     pub dest: Entity,
-}
-
-const ROPE_SAMPLE_SPACING: f32 = 10.0;
-const ROPE_REEL_SPEED: f32 = 48.0;
-const ROPE_DAMPING: f32 = 0.92;
-const ROPE_GRAVITY: f32 = 18.0;
-const ROPE_OBSTACLE_PADDING: f32 = 0.35;
-
-#[derive(Component, Debug, Clone)]
-pub struct CableRope {
-    pub points: Vec<Vec2>,
-    pub previous_points: Vec<Vec2>,
-    pub sample_spacing: f32,
-    pub reel_speed: f32,
-    pub damping: f32,
-    pub gravity: Vec2,
-}
-
-impl CableRope {
-    pub fn new(start: Vec2, end: Vec2) -> Self {
-        Self {
-            points: vec![start, end],
-            previous_points: vec![start, end],
-            sample_spacing: ROPE_SAMPLE_SPACING,
-            reel_speed: ROPE_REEL_SPEED,
-            damping: ROPE_DAMPING,
-            gravity: Vec2::new(0.0, ROPE_GRAVITY),
-        }
-    }
-}
-
-fn closest_point_on_segment(point: Vec2, a: Vec2, b: Vec2) -> Vec2 {
-    let ab = b - a;
-    let denom = ab.length_squared();
-    if denom <= 1e-12 {
-        return a;
-    }
-    let t = ((point - a).dot(ab) / denom).clamp(0.0, 1.0);
-    a + ab * t
 }
 
 fn polygon_centroid(polygon: &[Vec2]) -> Vec2 {
@@ -142,181 +103,6 @@ pub fn point_in_convex_polygon(point: Vec2, polygon: &[Vec2]) -> bool {
         }
     }
     true
-}
-
-pub fn project_point_outside_convex_polygon(point: Vec2, polygon: &[Vec2]) -> Vec2 {
-    if polygon.len() < 3 || !point_in_convex_polygon(point, polygon) {
-        return point;
-    }
-
-    let centroid = polygon_centroid(polygon);
-    let mut best_point = point;
-    let mut best_dist = f32::MAX;
-    for i in 0..polygon.len() {
-        let a = polygon[i];
-        let b = polygon[(i + 1) % polygon.len()];
-        let candidate = closest_point_on_segment(point, a, b);
-        let dist = (candidate - point).length_squared();
-        if dist < best_dist {
-            best_dist = dist;
-            best_point = candidate;
-        }
-    }
-
-    let outward = (best_point - centroid).normalize_or_zero();
-    if outward.length_squared() <= 1e-8 {
-        return best_point;
-    }
-    best_point + outward * ROPE_OBSTACLE_PADDING
-}
-
-fn resample_polyline(waypoints: &[Vec2], spacing: f32) -> Vec<Vec2> {
-    if waypoints.len() < 2 {
-        return waypoints.to_vec();
-    }
-
-    let mut cumulative = Vec::with_capacity(waypoints.len());
-    cumulative.push(0.0);
-    for pair in waypoints.windows(2) {
-        let next = cumulative.last().copied().unwrap_or(0.0) + (pair[1] - pair[0]).length();
-        cumulative.push(next);
-    }
-
-    let total = *cumulative
-        .last()
-        .expect("waypoints has at least two points");
-    if total <= 1e-6 {
-        return vec![
-            waypoints[0],
-            *waypoints.last().expect("waypoints has at least two points"),
-        ];
-    }
-
-    let sample_count = ((total / spacing).ceil() as usize).max(1) + 1;
-    let mut result = Vec::with_capacity(sample_count);
-    let mut seg = 0;
-    for sample_idx in 0..sample_count {
-        let target = total * sample_idx as f32 / (sample_count - 1) as f32;
-        while seg + 1 < cumulative.len() && cumulative[seg + 1] < target {
-            seg += 1;
-        }
-        let a = waypoints[seg];
-        let b = waypoints[(seg + 1).min(waypoints.len() - 1)];
-        let next_seg = (seg + 1).min(cumulative.len() - 1);
-        let seg_len = (cumulative[next_seg] - cumulative[seg]).max(1e-6);
-        let t = if seg + 1 < cumulative.len() {
-            (target - cumulative[seg]) / seg_len
-        } else {
-            0.0
-        };
-        result.push(a.lerp(b, t.clamp(0.0, 1.0)));
-    }
-    result
-}
-
-pub fn rope_solve_system(
-    dt: Res<DeltaTime>,
-    mut wires: Query<(&WireEndpoints, Option<&WrapWire>, &mut CableRope)>,
-    transforms: Query<&Transform2D, Without<WireEndpoints>>,
-    colliders: Query<(&Transform2D, &CableCollider), Without<WireEndpoints>>,
-) {
-    let Seconds(dt_secs) = dt.0;
-    let dt_secs = dt_secs.clamp(0.0, 1.0 / 30.0);
-    let dt_sq = dt_secs * dt_secs;
-    let obstacles: Vec<Vec<Vec2>> = colliders
-        .iter()
-        .map(|(transform, collider)| {
-            collider
-                .vertices
-                .iter()
-                .map(|v| *v + transform.position)
-                .collect()
-        })
-        .collect();
-
-    for (endpoints, wrap_wire, mut rope) in &mut wires {
-        let Ok(src_t) = transforms.get(endpoints.source) else {
-            continue;
-        };
-        let Ok(dst_t) = transforms.get(endpoints.dest) else {
-            continue;
-        };
-
-        let src = src_t.position;
-        let dst = dst_t.position;
-        let waypoints = if let Some(wrap_wire) = wrap_wire {
-            wrap_wire.waypoints(src, dst)
-        } else {
-            vec![src, dst]
-        };
-        let target_points = resample_polyline(&waypoints, rope.sample_spacing);
-
-        if rope.points.len() != target_points.len() || rope.points.is_empty() {
-            rope.points = target_points.clone();
-            rope.previous_points = target_points.clone();
-        }
-
-        let last_index = rope.points.len().saturating_sub(1);
-        if last_index == 0 {
-            continue;
-        }
-
-        rope.points[0] = src;
-        rope.points[last_index] = dst;
-        rope.previous_points[0] = src;
-        rope.previous_points[last_index] = dst;
-
-        let tighten = (rope.reel_speed * dt_secs).clamp(0.0, 0.35);
-        for i in 1..last_index {
-            let current = rope.points[i];
-            let previous = rope.previous_points[i];
-            let velocity = (current - previous) * rope.damping;
-            rope.previous_points[i] = current;
-            let target = target_points[i];
-            rope.points[i] =
-                current + velocity + (target - current) * tighten + rope.gravity * dt_sq;
-        }
-
-        let iterations = 4;
-        for _ in 0..iterations {
-            rope.points[0] = src;
-            rope.points[last_index] = dst;
-
-            for i in 0..last_index {
-                let p1 = rope.points[i];
-                let p2 = rope.points[i + 1];
-                let delta = p2 - p1;
-                let dist = delta.length();
-                if dist <= 1e-6 {
-                    continue;
-                }
-                let desired = if i + 1 < target_points.len() {
-                    (target_points[i + 1] - target_points[i])
-                        .length()
-                        .max(rope.sample_spacing * 0.5)
-                } else {
-                    rope.sample_spacing
-                };
-                let error = dist - desired;
-                if error.abs() <= 1e-4 {
-                    continue;
-                }
-                let correction = delta * (error / dist) * 0.5;
-                if i > 0 {
-                    rope.points[i] += correction;
-                }
-                if i + 1 < last_index {
-                    rope.points[i + 1] -= correction;
-                }
-            }
-
-            for point in rope.points.iter_mut().take(last_index).skip(1) {
-                for polygon in &obstacles {
-                    *point = project_point_outside_convex_polygon(*point, polygon);
-                }
-            }
-        }
-    }
 }
 
 pub fn signature_space_propagation_system(
@@ -514,37 +300,34 @@ impl WrapWire {
                             .any(|a| a.obstacle == entity && a.vertex_index == vidx)
                     {
                         let v = verts[vidx];
-                        let ccw_prev = verts[(vidx + n - 1) % n];
-                        let ccw_next = verts[(vidx + 1) % n];
-                        let centroid_sign =
-                            span_dir.perp_dot(polygon_centroid(verts) - span_a).signum();
-                        let prev_sign = span_dir.perp_dot(ccw_prev - span_a).signum();
-                        let next_sign = span_dir.perp_dot(ccw_next - span_a).signum();
-                        let prev_dist =
-                            (closest_point_on_segment(hit, v, ccw_prev) - hit).length_squared();
-                        let next_dist =
-                            (closest_point_on_segment(hit, v, ccw_next) - hit).length_squared();
-                        let boundary_step = if centroid_sign.abs() > 1e-6 {
-                            if prev_sign == -centroid_sign && next_sign != -centroid_sign {
-                                -1
-                            } else if next_sign == -centroid_sign && prev_sign != -centroid_sign {
-                                1
-                            } else if prev_dist <= next_dist {
-                                -1
-                            } else {
-                                1
-                            }
-                        } else if prev_dist <= next_dist {
-                            -1
+                        // wrap_sign: expected bend direction at this anchor.
+                        // Computed from the actual bend: (v - prev) × (next - v).
+                        let bend = (v - span_a).perp_dot(span_b - v);
+                        let wrap_sign = if bend.abs() > 1e-6 {
+                            bend.signum()
+                        } else if let Some(last) = last_anchor {
+                            last.wrap_sign
                         } else {
-                            1
+                            // Vertex on cable line, no prior anchor — wrap away
+                            // from polygon interior.
+                            let c = span_dir.perp_dot(polygon_centroid(verts) - span_a);
+                            if c.abs() > 1e-6 { -c.signum() } else { 1.0 }
+                        };
+                        // boundary_step: consistent walk direction for this obstacle.
+                        // Inherit from existing anchor; first anchor derives from wrap_sign.
+                        let boundary_step = if let Some(last) = last_anchor {
+                            last.boundary_step
+                        } else if wrap_sign > 0.0 {
+                            1i8
+                        } else {
+                            -1i8
                         };
                         found = Some(WrapAnchor {
                             position: v,
                             obstacle: entity,
                             vertex_index: vidx,
                             boundary_step,
-                            wrap_sign: boundary_step as f32,
+                            wrap_sign,
                         });
                         break 'obstacle;
                     }
@@ -568,7 +351,7 @@ impl WrapWire {
     /// Remove anchors only after the cable has clearly swung past the wrap point.
     /// We intentionally do not unwrap just because the straight line would be
     /// able to bypass the obstacle, since that causes mid-wrap side flipping.
-    pub fn detect_unwraps(&mut self, src: Vec2, dst: Vec2, _obstacles: &[(Entity, &[Vec2])]) {
+    pub fn detect_unwraps(&mut self, src: Vec2, dst: Vec2, obstacles: &[(Entity, &[Vec2])]) {
         loop {
             let mut changed = false;
             let mut i = self.anchors.len();
@@ -611,7 +394,7 @@ impl WrapWire {
                 } else {
                     prev
                 };
-                let shortcut_clear = _obstacles
+                let shortcut_clear = obstacles
                     .iter()
                     .find(|(entity, _)| *entity == self.anchors[i].obstacle)
                     .is_none_or(|(_, verts)| {
@@ -621,8 +404,6 @@ impl WrapWire {
                 if turn_reversed || shortcut_clear {
                     self.anchors.remove(i);
                     changed = true;
-                } else {
-                    continue;
                 }
             }
 
@@ -883,14 +664,13 @@ pub fn wire_render_system(
     mut wires: Query<(
         &WireEndpoints,
         Option<&WrapWire>,
-        Option<&CableRope>,
         &mut Transform2D,
         &mut Shape,
         &mut Visible,
     )>,
     transforms: Query<&Transform2D, Without<WireEndpoints>>,
 ) {
-    for (endpoints, wrap_wire, rope, mut transform, mut shape, mut visible) in &mut wires {
+    for (endpoints, wrap_wire, mut transform, mut shape, mut visible) in &mut wires {
         let Ok(src_t) = transforms.get(endpoints.source) else {
             visible.0 = false;
             continue;
@@ -900,22 +680,7 @@ pub fn wire_render_system(
             continue;
         };
 
-        let waypoints = if let Some(rope) = rope {
-            if rope.points.len() >= 2 {
-                let mut points = rope.points.clone();
-                if let Some(first) = points.first_mut() {
-                    *first = src_t.position;
-                }
-                if let Some(last) = points.last_mut() {
-                    *last = dst_t.position;
-                }
-                points
-            } else if let Some(wrap) = wrap_wire {
-                wrap.waypoints(src_t.position, dst_t.position)
-            } else {
-                vec![src_t.position, dst_t.position]
-            }
-        } else if let Some(wrap) = wrap_wire {
+        let waypoints = if let Some(wrap) = wrap_wire {
             wrap.waypoints(src_t.position, dst_t.position)
         } else {
             vec![src_t.position, dst_t.position]
