@@ -2,6 +2,7 @@ mod helpers;
 
 mod booster_device;
 mod booster_double_click;
+mod booster_opening;
 mod booster_pack;
 mod booster_sampling;
 mod card_art_selection;
