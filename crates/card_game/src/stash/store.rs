@@ -11,6 +11,9 @@ use engine_render::prelude::{
 use engine_scene::render_order::RenderLayer;
 use glam::Vec2;
 
+use crate::card::combiner_device::{
+    CombinerDevice, CombinerDragInfo, CombinerDragState, spawn_combiner_device,
+};
 use crate::card::component::CardZone;
 use crate::card::interaction::drag_state::DragState;
 use crate::card::reader::{
@@ -125,6 +128,7 @@ impl StoreWallet {
 pub enum StoreItemKind {
     Reader,
     Screen,
+    Combiner,
 }
 
 impl StoreItemKind {
@@ -132,6 +136,7 @@ impl StoreItemKind {
         match self {
             Self::Reader => "Card Reader",
             Self::Screen => "Screen",
+            Self::Combiner => "Combiner",
         }
     }
 
@@ -139,6 +144,7 @@ impl StoreItemKind {
         match self {
             Self::Reader => 30,
             Self::Screen => 20,
+            Self::Combiner => 25,
         }
     }
 
@@ -160,6 +166,12 @@ impl StoreItemKind {
                 b: 0.54,
                 a: 1.0,
             },
+            Self::Combiner => Color {
+                r: 0.36,
+                g: 0.22,
+                b: 0.50,
+                a: 1.0,
+            },
         }
     }
 }
@@ -172,7 +184,11 @@ pub struct StoreCatalog {
 impl Default for StoreCatalog {
     fn default() -> Self {
         Self {
-            items: vec![StoreItemKind::Reader, StoreItemKind::Screen],
+            items: vec![
+                StoreItemKind::Reader,
+                StoreItemKind::Screen,
+                StoreItemKind::Combiner,
+            ],
         }
     }
 }
@@ -386,6 +402,71 @@ fn draw_screen_preview(
     );
 }
 
+fn draw_combiner_preview(
+    renderer: &mut dyn engine_render::renderer::Renderer,
+    camera: &Camera2D,
+    viewport_w: f32,
+    viewport_h: f32,
+    left: f32,
+    top: f32,
+) {
+    draw_screen_rect(
+        renderer,
+        camera,
+        viewport_w,
+        viewport_h,
+        left + 36.0,
+        top + 32.0,
+        72.0,
+        56.0,
+        STORE_PREVIEW_DARK,
+    );
+    draw_screen_rect(
+        renderer,
+        camera,
+        viewport_w,
+        viewport_h,
+        left + 28.0,
+        top + 36.0,
+        10.0,
+        10.0,
+        STORE_PREVIEW_LIGHT,
+    );
+    draw_screen_rect(
+        renderer,
+        camera,
+        viewport_w,
+        viewport_h,
+        left + 28.0,
+        top + 54.0,
+        10.0,
+        10.0,
+        STORE_PREVIEW_LIGHT,
+    );
+    draw_screen_rect(
+        renderer,
+        camera,
+        viewport_w,
+        viewport_h,
+        left + 106.0,
+        top + 45.0,
+        10.0,
+        10.0,
+        STORE_PREVIEW_LIGHT,
+    );
+    draw_screen_rect(
+        renderer,
+        camera,
+        viewport_w,
+        viewport_h,
+        left + 52.0,
+        top + 48.0,
+        40.0,
+        4.0,
+        STORE_PREVIEW_MID,
+    );
+}
+
 fn draw_store_item(
     renderer: &mut dyn engine_render::renderer::Renderer,
     camera: &Camera2D,
@@ -435,6 +516,9 @@ fn draw_store_item(
         }
         StoreItemKind::Screen => {
             draw_screen_preview(renderer, camera, viewport_w, viewport_h, left, top);
+        }
+        StoreItemKind::Combiner => {
+            draw_combiner_preview(renderer, camera, viewport_w, viewport_h, left, top);
         }
     }
 
@@ -508,6 +592,11 @@ fn spawn_reader_purchase(world: &mut World, position: Vec2) -> Entity {
 fn spawn_screen_purchase(world: &mut World, position: Vec2) -> Entity {
     let (screen_entity, _jack_entity) = spawn_screen_device(world, position);
     screen_entity
+}
+
+fn spawn_combiner_purchase(world: &mut World, position: Vec2) -> Entity {
+    let (device_entity, _in_a, _in_b, _out) = spawn_combiner_device(world, position);
+    device_entity
 }
 
 pub(crate) fn render_store_page(
@@ -624,6 +713,9 @@ pub fn store_buy_system(world: &mut World) {
             .is_some_and(|drag| drag.dragging.is_some())
         || world
             .get_resource::<ScreenDragState>()
+            .is_some_and(|drag| drag.dragging.is_some())
+        || world
+            .get_resource::<CombinerDragState>()
             .is_some_and(|drag| drag.dragging.is_some());
     if drag_active || !stash_ui_contains(mouse_screen_pos, &grid) {
         return;
@@ -660,6 +752,13 @@ pub fn store_buy_system(world: &mut World) {
                 grab_offset: Vec2::ZERO,
             });
         }
+        StoreItemKind::Combiner => {
+            let entity = spawn_combiner_purchase(world, spawn_pos);
+            world.resource_mut::<CombinerDragState>().dragging = Some(CombinerDragInfo {
+                entity,
+                grab_offset: Vec2::ZERO,
+            });
+        }
     }
 }
 
@@ -692,17 +791,20 @@ pub fn store_sell_system(world: &mut World) {
     let screen_drag = world
         .get_resource::<ScreenDragState>()
         .and_then(|drag| drag.dragging.clone());
-    let Some(dragged_reader) = reader_drag else {
-        let Some(dragged_screen) = screen_drag else {
-            return;
-        };
+    let combiner_drag = world
+        .get_resource::<CombinerDragState>()
+        .and_then(|drag| drag.dragging.clone());
+
+    if let Some(dragged_reader) = reader_drag {
+        sell_reader(world, dragged_reader.entity);
+        world.resource_mut::<ReaderDragState>().dragging = None;
+    } else if let Some(dragged_screen) = screen_drag {
         sell_screen(world, dragged_screen.entity);
         world.resource_mut::<ScreenDragState>().dragging = None;
-        return;
-    };
-
-    sell_reader(world, dragged_reader.entity);
-    world.resource_mut::<ReaderDragState>().dragging = None;
+    } else if let Some(dragged_combiner) = combiner_drag {
+        sell_combiner(world, dragged_combiner.entity);
+        world.resource_mut::<CombinerDragState>().dragging = None;
+    }
 }
 
 fn sell_screen(world: &mut World, entity: Entity) {
@@ -714,6 +816,24 @@ fn sell_screen(world: &mut World, entity: Entity) {
     };
     despawn_connected_cables(world, &[entity, jack_entity]);
     despawn_entity_tree(world, jack_entity);
+    despawn_entity_tree(world, entity);
+    world.resource_mut::<StoreWallet>().refund(refund);
+}
+
+fn sell_combiner(world: &mut World, entity: Entity) {
+    let (jack_entities, refund) = {
+        let Some(device) = world.get::<CombinerDevice>(entity) else {
+            return;
+        };
+        (
+            [device.input_a, device.input_b, device.output],
+            StoreItemKind::Combiner.refund_value(),
+        )
+    };
+    despawn_connected_cables(world, &jack_entities);
+    for jack in jack_entities {
+        despawn_entity_tree(world, jack);
+    }
     despawn_entity_tree(world, entity);
     world.resource_mut::<StoreWallet>().refund(refund);
 }

@@ -1,6 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
 use bevy_ecs::prelude::{Schedule, World};
+use card_game::card::combiner_device::{CombinerDevice, CombinerDragState};
 use card_game::card::jack_cable::Jack;
 use card_game::card::reader::{CardReader, ReaderDragState};
 use card_game::card::reader::{ReaderAccent, ReaderRecess, ReaderRune, SignatureSpace};
@@ -53,6 +54,7 @@ fn make_store_world() -> World {
     world.insert_resource(MouseState::default());
     world.insert_resource(ReaderDragState::default());
     world.insert_resource(ScreenDragState::default());
+    world.insert_resource(CombinerDragState::default());
     world
 }
 
@@ -174,7 +176,7 @@ fn when_store_page_renders_then_item_prices_land_with_the_item_cards() {
 
     // Assert
     let calls = text_calls.lock().unwrap();
-    assert_eq!(calls.len(), 7);
+    assert_eq!(calls.len(), 9);
 
     let catalog = StoreCatalog::default();
     let grid = world.resource::<StashGrid>();
@@ -307,6 +309,47 @@ fn when_selling_screen_then_screen_tree_and_jack_are_removed() {
         0
     );
     assert_eq!(world.query::<&ScreenSignalShape>().iter(&world).count(), 0);
+}
+
+#[test]
+fn when_click_combiner_tile_then_spawns_combiner_and_spends_coins() {
+    // Arrange
+    let mut world = make_store_world();
+    let catalog = StoreCatalog::default();
+    let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 2).unwrap();
+    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    click_at(&mut world, center, true);
+
+    // Act
+    run_buy_system(&mut world);
+
+    // Assert
+    assert_eq!(world.resource::<StoreWallet>().coins(), 75);
+    assert!(world.resource::<CombinerDragState>().dragging.is_some());
+    assert_eq!(world.query::<&CombinerDevice>().iter(&world).count(), 1);
+}
+
+#[test]
+fn when_selling_combiner_then_combiner_tree_and_jacks_are_removed() {
+    // Arrange
+    let mut world = make_store_world();
+    let catalog = StoreCatalog::default();
+    let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 2).unwrap();
+    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    click_at(&mut world, center, true);
+    run_buy_system(&mut world);
+    click_at(&mut world, center, false);
+
+    // Act
+    run_sell_system(&mut world);
+
+    // Assert
+    assert_eq!(world.query::<&CombinerDevice>().iter(&world).count(), 0);
+    assert_eq!(
+        world.query::<&Jack<SignatureSpace>>().iter(&world).count(),
+        0
+    );
+    assert_eq!(world.resource::<StoreWallet>().coins(), 100);
 }
 
 // ---------------------------------------------------------------------------
