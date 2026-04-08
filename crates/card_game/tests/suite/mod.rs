@@ -1,5 +1,6 @@
 mod helpers;
 
+mod booster_device;
 mod booster_double_click;
 mod booster_pack;
 mod booster_sampling;

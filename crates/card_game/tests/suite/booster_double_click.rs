@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
 use bevy_ecs::entity::Entity;
-use card_game::booster::double_click::{DoubleClickState, DOUBLE_CLICK_WINDOW};
+use card_game::booster::double_click::{DOUBLE_CLICK_WINDOW, DoubleClickState};
 
 #[test]
 fn when_same_entity_clicked_within_window_then_double_click_detected() {
