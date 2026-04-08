@@ -203,6 +203,26 @@ impl CardSignature {
     }
 }
 
+impl Eq for CardSignature {}
+
+impl PartialOrd for CardSignature {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for CardSignature {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        for (a, b) in self.axes.iter().zip(other.axes.iter()) {
+            let ord = f32::total_cmp(a, b);
+            if ord != std::cmp::Ordering::Equal {
+                return ord;
+            }
+        }
+        std::cmp::Ordering::Equal
+    }
+}
+
 impl std::ops::Index<Element> for CardSignature {
     type Output = f32;
 

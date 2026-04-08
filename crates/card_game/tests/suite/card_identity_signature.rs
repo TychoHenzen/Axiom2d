@@ -345,3 +345,18 @@ fn when_rarity_and_card_tier_computed_for_same_signature_then_they_can_differ() 
     });
     assert!(found);
 }
+
+#[test]
+fn when_signatures_sorted_then_lexicographic_on_axes() {
+    // Arrange
+    let a = CardSignature::new([0.1, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    let b = CardSignature::new([0.1, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    let c = CardSignature::new([0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+
+    // Act
+    let mut sigs = vec![c, a, b];
+    sigs.sort();
+
+    // Assert
+    assert_eq!(sigs, vec![a, b, c]);
+}
