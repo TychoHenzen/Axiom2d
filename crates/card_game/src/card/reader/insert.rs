@@ -61,6 +61,7 @@ pub fn card_reader_insert_system(
             jack.data = Some(SignatureSpace::from_single(
                 card.signature,
                 signature_radius(&card.signature),
+                card_entity,
             ));
         }
 

@@ -574,6 +574,7 @@ mod tests {
         let signal = SignatureSpace::from_single(
             CardSignature::new([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             SIGNATURE_SPACE_RADIUS,
+            Entity::from_raw(0),
         );
         let (mut world, shape_calls, _device) = make_world(Some(signal));
 

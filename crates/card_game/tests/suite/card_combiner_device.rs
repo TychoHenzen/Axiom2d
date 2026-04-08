@@ -14,7 +14,7 @@ fn run_combiner(world: &mut World) {
 }
 
 fn make_signal(values: [f32; 8], radius: f32) -> SignatureSpace {
-    SignatureSpace::from_single(CardSignature::new(values), radius)
+    SignatureSpace::from_single(CardSignature::new(values), radius, Entity::from_raw(0))
 }
 
 fn spawn_combiner(world: &mut World) -> (Entity, Entity, Entity, Entity) {
@@ -243,8 +243,8 @@ fn when_capsule_contains_midpoint_then_returns_true_and_far_point_false() {
     let a = CardSignature::new([0.0; 8]);
     let b = CardSignature::new([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
     let capsule = SignatureSpace::combine(
-        &SignatureSpace::from_single(a, 0.2),
-        &SignatureSpace::from_single(b, 0.2),
+        &SignatureSpace::from_single(a, 0.2, Entity::from_raw(0)),
+        &SignatureSpace::from_single(b, 0.2, Entity::from_raw(1)),
     );
 
     // Act / Assert — midpoint of segment is inside the capsule

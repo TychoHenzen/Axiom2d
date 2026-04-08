@@ -70,7 +70,7 @@ fn run_screen_visuals(world: &mut World) {
 fn when_display_index_is_zero_then_axes_map_to_solidum_and_febris() {
     // Arrange
     let center = CardSignature::new([0.3, 0.7, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8]);
-    let space = SignatureSpace::from_single(center, SIGNATURE_SPACE_RADIUS);
+    let space = SignatureSpace::from_single(center, SIGNATURE_SPACE_RADIUS, Entity::from_raw(0));
 
     // Act
     let (x, y) = display_axes(&space, 0);
@@ -90,7 +90,7 @@ fn when_display_index_is_zero_then_axes_map_to_solidum_and_febris() {
 fn when_display_index_is_three_then_axes_map_to_subsidium_and_spatium() {
     // Arrange
     let center = CardSignature::new([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.9, -0.8]);
-    let space = SignatureSpace::from_single(center, SIGNATURE_SPACE_RADIUS);
+    let space = SignatureSpace::from_single(center, SIGNATURE_SPACE_RADIUS, Entity::from_raw(0));
 
     // Act
     let (x, y) = display_axes(&space, 3);
@@ -139,6 +139,7 @@ fn given_input_jack_has_signature_space_when_screen_render_system_runs_then_draw
     let signal = SignatureSpace::from_single(
         CardSignature::new([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]),
         SIGNATURE_SPACE_RADIUS,
+        Entity::from_raw(0),
     );
     let (mut world, shape_calls) = make_screen_world(Some(signal));
 
@@ -202,7 +203,11 @@ fn when_card_inserted_and_cable_propagated_then_screen_input_jack_holds_signatur
         .entity_mut(reader_output_jack)
         .get_mut::<Jack<SignatureSpace>>()
         .unwrap()
-        .data = Some(SignatureSpace::from_single(sig, SIGNATURE_SPACE_RADIUS));
+        .data = Some(SignatureSpace::from_single(
+        sig,
+        SIGNATURE_SPACE_RADIUS,
+        Entity::from_raw(0),
+    ));
 
     // Act — run propagation
     let mut schedule = Schedule::default();
@@ -215,7 +220,11 @@ fn when_card_inserted_and_cable_propagated_then_screen_input_jack_holds_signatur
         .unwrap();
     assert_eq!(
         jack.data,
-        Some(SignatureSpace::from_single(sig, SIGNATURE_SPACE_RADIUS,)),
+        Some(SignatureSpace::from_single(
+            sig,
+            SIGNATURE_SPACE_RADIUS,
+            Entity::from_raw(0)
+        )),
         "screen input jack must receive the SignatureSpace after cable propagation"
     );
 }
@@ -230,8 +239,8 @@ fn when_signal_has_two_control_points_then_screen_draws_signal_shapes() {
     let sig_a = CardSignature::new([0.3, 0.7, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8]);
     let sig_b = CardSignature::new([-0.3, 0.2, 0.5, -0.1, 0.3, -0.4, 0.7, 0.1]);
     let combined = SignatureSpace::combine(
-        &SignatureSpace::from_single(sig_a, 0.2),
-        &SignatureSpace::from_single(sig_b, 0.2),
+        &SignatureSpace::from_single(sig_a, 0.2, Entity::from_raw(0)),
+        &SignatureSpace::from_single(sig_b, 0.2, Entity::from_raw(1)),
     );
     let (mut world, shape_calls) = make_screen_world(Some(combined));
 
@@ -271,8 +280,8 @@ fn when_two_point_signal_rendered_then_capsule_has_more_vertices_than_plain_rect
     let sig_a = CardSignature::new([0.3, 0.7, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8]);
     let sig_b = CardSignature::new([-0.3, 0.2, 0.5, -0.1, 0.3, -0.4, 0.7, 0.1]);
     let combined = SignatureSpace::combine(
-        &SignatureSpace::from_single(sig_a, 0.2),
-        &SignatureSpace::from_single(sig_b, 0.2),
+        &SignatureSpace::from_single(sig_a, 0.2, Entity::from_raw(0)),
+        &SignatureSpace::from_single(sig_b, 0.2, Entity::from_raw(1)),
     );
     let (mut world, shape_calls) = make_screen_world(Some(combined));
 
@@ -318,8 +327,8 @@ fn when_two_point_signal_projects_near_panel_edge_then_capsule_vertices_stay_wit
     let sig_a = CardSignature::new([0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
     let sig_b = CardSignature::new([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
     let combined = SignatureSpace::combine(
-        &SignatureSpace::from_single(sig_a, 0.2),
-        &SignatureSpace::from_single(sig_b, 0.2),
+        &SignatureSpace::from_single(sig_a, 0.2, Entity::from_raw(0)),
+        &SignatureSpace::from_single(sig_b, 0.2, Entity::from_raw(1)),
     );
     let (mut world, shape_calls) = make_screen_world(Some(combined));
 
@@ -373,10 +382,10 @@ fn when_three_point_signal_rendered_then_spline_polygon_has_many_more_vertices_t
     let sig_c = CardSignature::new([0.1, -0.3, 0.2, -0.4, 0.1, 0.3, -0.3, 0.1]);
     let three_point = SignatureSpace::combine(
         &SignatureSpace::combine(
-            &SignatureSpace::from_single(sig_a, 0.2),
-            &SignatureSpace::from_single(sig_b, 0.2),
+            &SignatureSpace::from_single(sig_a, 0.2, Entity::from_raw(0)),
+            &SignatureSpace::from_single(sig_b, 0.2, Entity::from_raw(1)),
         ),
-        &SignatureSpace::from_single(sig_c, 0.2),
+        &SignatureSpace::from_single(sig_c, 0.2, Entity::from_raw(2)),
     );
     assert_eq!(
         three_point.control_points.len(),
@@ -429,10 +438,10 @@ fn when_three_point_signal_projects_near_panel_corner_then_spline_loop_vertices_
     let sig_c = CardSignature::new([0.1, -0.4, 0.2, -0.1, 0.3, -0.2, 0.1, -0.3]);
     let three_point = SignatureSpace::combine(
         &SignatureSpace::combine(
-            &SignatureSpace::from_single(sig_a, 0.2),
-            &SignatureSpace::from_single(sig_b, 0.2),
+            &SignatureSpace::from_single(sig_a, 0.2, Entity::from_raw(0)),
+            &SignatureSpace::from_single(sig_b, 0.2, Entity::from_raw(1)),
         ),
-        &SignatureSpace::from_single(sig_c, 0.2),
+        &SignatureSpace::from_single(sig_c, 0.2, Entity::from_raw(2)),
     );
     assert_eq!(
         three_point.control_points.len(),
@@ -490,10 +499,10 @@ fn when_four_point_signal_rendered_then_spline_is_denser_than_three_point_spline
     let sig_c = CardSignature::new([0.1, -0.3, 0.2, -0.4, 0.1, 0.3, -0.3, 0.1]);
     let three_point = SignatureSpace::combine(
         &SignatureSpace::combine(
-            &SignatureSpace::from_single(sig_a, 0.2),
-            &SignatureSpace::from_single(sig_b, 0.2),
+            &SignatureSpace::from_single(sig_a, 0.2, Entity::from_raw(0)),
+            &SignatureSpace::from_single(sig_b, 0.2, Entity::from_raw(1)),
         ),
-        &SignatureSpace::from_single(sig_c, 0.2),
+        &SignatureSpace::from_single(sig_c, 0.2, Entity::from_raw(2)),
     );
     assert_eq!(three_point.control_points.len(), 3);
     let (mut world_3, shape_calls_3) = make_screen_world(Some(three_point));
@@ -503,12 +512,12 @@ fn when_four_point_signal_rendered_then_spline_is_denser_than_three_point_spline
     let four_point = SignatureSpace::combine(
         &SignatureSpace::combine(
             &SignatureSpace::combine(
-                &SignatureSpace::from_single(sig_a, 0.2),
-                &SignatureSpace::from_single(sig_b, 0.2),
+                &SignatureSpace::from_single(sig_a, 0.2, Entity::from_raw(0)),
+                &SignatureSpace::from_single(sig_b, 0.2, Entity::from_raw(1)),
             ),
-            &SignatureSpace::from_single(sig_c, 0.2),
+            &SignatureSpace::from_single(sig_c, 0.2, Entity::from_raw(2)),
         ),
-        &SignatureSpace::from_single(sig_d, 0.2),
+        &SignatureSpace::from_single(sig_d, 0.2, Entity::from_raw(3)),
     );
     assert_eq!(four_point.control_points.len(), 4);
     let (mut world_4, shape_calls_4) = make_screen_world(Some(four_point));

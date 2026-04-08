@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::Component;
+use bevy_ecs::prelude::{Component, Entity};
 
 use crate::card::identity::signature::CardSignature;
 use crate::card::identity::signature::Element;
@@ -20,16 +20,19 @@ pub struct SignatureSpace {
     pub control_points: Vec<CardSignature>,
     pub radius: f32,
     pub volume: f32,
+    /// Entities of the cards that contributed to this signal.
+    pub source_cards: Vec<Entity>,
 }
 
 impl SignatureSpace {
     /// Create a single-point sphere signal (the common case for one card).
-    pub fn from_single(center: CardSignature, radius: f32) -> Self {
+    pub fn from_single(center: CardSignature, radius: f32, source: Entity) -> Self {
         let volume = sphere_volume_8d(radius);
         Self {
             control_points: vec![center],
             radius,
             volume,
+            source_cards: vec![source],
         }
     }
 
@@ -41,6 +44,14 @@ impl SignatureSpace {
         points.sort();
         points.dedup_by(|x, y| x.distance_to(y) < 1e-6);
 
+        let mut sources = Vec::with_capacity(a.source_cards.len() + b.source_cards.len());
+        sources.extend_from_slice(&a.source_cards);
+        for &e in &b.source_cards {
+            if !sources.contains(&e) {
+                sources.push(e);
+            }
+        }
+
         let volume = a.volume + b.volume;
         let arc_length = polyline_arc_length(&points);
         let radius = solve_tube_radius(volume, arc_length);
@@ -49,6 +60,7 @@ impl SignatureSpace {
             control_points: points,
             radius,
             volume,
+            source_cards: sources,
         }
     }
 
