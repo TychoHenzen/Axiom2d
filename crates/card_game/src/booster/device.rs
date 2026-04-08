@@ -15,6 +15,7 @@ use glam::Vec2;
 use crate::card::interaction::click_resolve::{ClickHitShape, Clickable, ClickedEntity};
 use crate::card::jack_cable::{CableCollider, Jack, JackDirection};
 use crate::card::jack_socket::{JackSocket, on_socket_clicked};
+use crate::card::identity::signature::CardSignature;
 use crate::card::reader::SignatureSpace;
 
 const BODY_HALF_W: f32 = 50.0;
@@ -230,10 +231,10 @@ pub fn booster_drag_system(
             btn_t.position = target + BUTTON_OFFSET;
         }
         // Move output pack if present
-        if let Some(pack_entity) = machine.output_pack {
-            if let Ok(mut pack_t) = other_transforms.get_mut(pack_entity) {
-                pack_t.position = target + PACK_SLOT_OFFSET;
-            }
+        if let Some(pack_entity) = machine.output_pack
+            && let Ok(mut pack_t) = other_transforms.get_mut(pack_entity)
+        {
+            pack_t.position = target + PACK_SLOT_OFFSET;
         }
     }
 }
@@ -319,8 +320,8 @@ pub fn booster_seal_system(world: &mut World) {
     let seed_bytes: u64 = space
         .control_points
         .iter()
-        .flat_map(|cp| cp.axes())
-        .fold(0u64, |acc, v| acc.wrapping_add(v.to_bits() as u64));
+        .flat_map(CardSignature::axes)
+        .fold(0u64, |acc, v: f32| acc.wrapping_add(u64::from(v.to_bits())));
     let mut rng = ChaCha8Rng::seed_from_u64(seed_bytes);
 
     // 5. Determine card count with rarity bonus
