@@ -344,7 +344,7 @@ pub fn booster_seal_system(world: &mut World) {
     let mut rng = ChaCha8Rng::seed_from_u64(seed_bytes);
 
     // 5. Determine card count with rarity bonus
-    let base_count: usize = rng.gen_range(5..=15);
+    let base_count: usize = rng.random_range(5..=15);
 
     let mut rarity_bonus: usize = 0;
     for &card_entity in &space.source_cards {

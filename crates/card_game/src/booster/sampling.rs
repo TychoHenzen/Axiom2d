@@ -55,7 +55,7 @@ fn pick_base_point(space: &SignatureSpace, rng: &mut ChaCha8Rng) -> CardSignatur
             }
 
             // Pick a random distance along the total polyline
-            let target = rng.gen_range(0.0..total);
+            let target = rng.random_range(0.0..total);
             let mut accumulated = 0.0_f32;
             for (i, &seg_len) in lengths.iter().enumerate() {
                 accumulated += seg_len;
@@ -121,7 +121,7 @@ fn random_8d_offset(radius: f32, rng: &mut ChaCha8Rng) -> [f32; 8] {
     }
 
     // Random distance: for uniform sampling in 8D, r = radius * U^(1/8)
-    let u: f32 = rng.gen_range(0.0_f32..1.0_f32);
+    let u: f32 = rng.random_range(0.0_f32..1.0_f32);
     let r = radius * u.powf(1.0 / 8.0);
 
     for v in &mut direction {
@@ -133,7 +133,7 @@ fn random_8d_offset(radius: f32, rng: &mut ChaCha8Rng) -> [f32; 8] {
 
 /// Sample from a standard normal distribution using the Box-Muller transform.
 fn sample_standard_normal(rng: &mut ChaCha8Rng) -> f32 {
-    let u1: f32 = rng.gen_range(f32::EPSILON..1.0_f32);
-    let u2: f32 = rng.gen_range(0.0_f32..std::f32::consts::TAU);
+    let u1: f32 = rng.random_range(f32::EPSILON..1.0_f32);
+    let u2: f32 = rng.random_range(0.0_f32..std::f32::consts::TAU);
     (-2.0 * u1.ln()).sqrt() * u2.cos()
 }

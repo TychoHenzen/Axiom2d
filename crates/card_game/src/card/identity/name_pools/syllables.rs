@@ -1,5 +1,5 @@
 use rand::Rng as _;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use rand_chacha::ChaCha8Rng;
 
 static FIRST_SYLLABLES: &[&str] = &[
@@ -28,7 +28,7 @@ pub fn generate_proper_noun(rng: &mut ChaCha8Rng) -> String {
     let first = FIRST_SYLLABLES.choose(rng).expect("non-empty pool");
     let final_syl = FINAL_SYLLABLES.choose(rng).expect("non-empty pool");
 
-    let use_middle = rng.gen_ratio(2, 5); // 40% chance of 3 syllables
+    let use_middle = rng.random_ratio(2, 5); // 40% chance of 3 syllables
 
     if use_middle {
         let mid = MIDDLE_SYLLABLES.choose(rng).expect("non-empty pool");

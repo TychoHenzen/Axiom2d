@@ -1,5 +1,5 @@
 use super::AspectCluster;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use rand_chacha::ChaCha8Rng;
 
 /// Returns thematic prefixes for compound word generation.

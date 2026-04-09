@@ -108,7 +108,7 @@ impl CardSignature {
 
         let mut axes = [0.0; 8];
         for v in &mut axes {
-            *v = rng.gen_range(-1.0..=1.0);
+            *v = rng.random_range(-1.0..=1.0);
         }
         Self { axes }
     }

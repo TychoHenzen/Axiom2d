@@ -1,5 +1,6 @@
 [workspace]
-members = ["crates/*", "tools/*"]
+members = ["crates/*"]
+exclude = ["tools/*"]
 resolver = "3"
 
 [workspace.package]
@@ -23,8 +24,8 @@ fundsp = { version = "0.21", default-features = false, features = ["std"] }
 crossbeam = "0.8"
 rapier2d = "0.22"
 proptest = { version = "1", default-features = false, features = ["std"] }
-rand = "0.8"
-rand_chacha = "0.3"
+rand = "0.9"
+rand_chacha = "0.9"
 image-compare = "0.4"
 insta = { version = "1", features = ["ron"] }
 ron = "0.9"

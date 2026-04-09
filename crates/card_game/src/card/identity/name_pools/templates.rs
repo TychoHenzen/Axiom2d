@@ -13,7 +13,7 @@ pub struct TitleParts<'a> {
 pub fn weighted_choose(rng: &mut ChaCha8Rng, weights: &[u32]) -> usize {
     use rand::Rng;
     let total: u32 = weights.iter().sum();
-    let roll = rng.gen_range(0..total);
+    let roll = rng.random_range(0..total);
     let mut cumulative = 0;
     for (i, &w) in weights.iter().enumerate() {
         cumulative += w;

@@ -44,12 +44,12 @@ pub fn generate_card_visuals(
         .map_or(Color::new(0.5, 0.5, 0.5, 1.0), element_base_color);
 
     let art_color = Color::new(
-        (element_tint.r + rng.gen_range(-COLOR_NOISE..=COLOR_NOISE)).clamp(0.0, 1.0),
-        (element_tint.g + rng.gen_range(-COLOR_NOISE..=COLOR_NOISE)).clamp(0.0, 1.0),
-        (element_tint.b + rng.gen_range(-COLOR_NOISE..=COLOR_NOISE)).clamp(0.0, 1.0),
+        (element_tint.r + rng.random_range(-COLOR_NOISE..=COLOR_NOISE)).clamp(0.0, 1.0),
+        (element_tint.g + rng.random_range(-COLOR_NOISE..=COLOR_NOISE)).clamp(0.0, 1.0),
+        (element_tint.b + rng.random_range(-COLOR_NOISE..=COLOR_NOISE)).clamp(0.0, 1.0),
         1.0,
     );
-    let pattern_index = rng.gen_range(0..PATTERN_COUNT);
+    let pattern_index = rng.random_range(0..PATTERN_COUNT);
     let shader_variant = ShaderVariant::from_rarity(profile.rarity);
     let tier_detail = profile.tier;
 

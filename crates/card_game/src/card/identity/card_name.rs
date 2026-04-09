@@ -1,5 +1,5 @@
 use rand::SeedableRng;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use rand_chacha::ChaCha8Rng;
 
 use crate::card::identity::name_pools::{

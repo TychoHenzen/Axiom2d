@@ -59,7 +59,7 @@ pub fn debug_spawn_system(world: &mut World) {
         let position = {
             use rand::Rng;
             let rng = &mut world.resource_mut::<DebugSpawnRng>().0;
-            Vec2::new(rng.gen_range(-300.0..300.0), rng.gen_range(-200.0..200.0))
+            Vec2::new(rng.random_range(-300.0..300.0), rng.random_range(-200.0..200.0))
         };
 
         let entity = spawn_visual_card(
