@@ -22,6 +22,7 @@ use engine_input::prelude::MouseState;
 use engine_render::prelude::{Camera2D, RendererRes, ShaderRegistry, Shape, ShapeVariant};
 use engine_render::testing::{ShapeCallLog, SpyRenderer};
 use engine_scene::prelude::{Visible, transform_propagation_system, visibility_system};
+use engine_ui::draw_command::DrawQueue;
 use engine_ui::unified_render::unified_render_system;
 use glam::Vec2;
 
@@ -34,6 +35,7 @@ fn run_socket_visual_sync(world: &mut World) {
 fn make_preview_app() -> (App, ShapeCallLog) {
     let mut app = App::new();
     app.world_mut().insert_resource(ShaderRegistry::default());
+    app.world_mut().insert_resource(DrawQueue::default());
     app.add_plugin(CardGamePlugin);
 
     let shape_calls: ShapeCallLog = Arc::new(Mutex::new(Vec::new()));

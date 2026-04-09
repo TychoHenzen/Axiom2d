@@ -423,3 +423,126 @@ fn when_shape_has_stroke_then_fill_drawn_before_stroke() {
     assert_eq!(calls[0].2, Color::WHITE);
     assert_eq!(calls[1].2, Color::new(0.0, 0.0, 0.0, 1.0));
 }
+
+#[test]
+fn when_shape_fully_outside_camera_view_then_not_drawn() {
+    use engine_render::camera::Camera2D;
+    use engine_render::testing::insert_spy_with_viewport;
+    use engine_ui::draw_command::DrawQueue;
+
+    // Arrange
+    let mut world = World::new();
+    world.insert_resource(DrawQueue::default());
+    let log = insert_spy_with_viewport(&mut world, 800, 600);
+    world.spawn(Camera2D {
+        position: Vec2::new(400.0, 300.0),
+        zoom: 1.0,
+    });
+    world.spawn((
+        Shape {
+            variant: ShapeVariant::Circle { radius: 10.0 },
+            color: Color::RED,
+        },
+        GlobalTransform2D(Affine2::from_translation(Vec2::new(2000.0, 300.0))),
+        SortOrder::new(0),
+    ));
+
+    // Act
+    let mut schedule = Schedule::default();
+    schedule.add_systems(unified_render_system);
+    schedule.run(&mut world);
+
+    // Assert
+    let count = log
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|s| s.as_str() == "draw_shape")
+        .count();
+    assert_eq!(count, 0);
+}
+
+#[test]
+fn when_sprite_fully_outside_camera_view_then_not_drawn() {
+    use engine_core::types::{Pixels, TextureId};
+    use engine_render::camera::Camera2D;
+    use engine_render::sprite::Sprite;
+    use engine_render::testing::insert_spy_with_viewport;
+    use engine_ui::draw_command::DrawQueue;
+
+    // Arrange
+    let mut world = World::new();
+    world.insert_resource(DrawQueue::default());
+    let log = insert_spy_with_viewport(&mut world, 800, 600);
+    world.spawn(Camera2D {
+        position: Vec2::new(400.0, 300.0),
+        zoom: 1.0,
+    });
+    world.spawn((
+        Sprite {
+            texture: TextureId(0),
+            uv_rect: [0.0, 0.0, 1.0, 1.0],
+            color: Color::WHITE,
+            width: Pixels(32.0),
+            height: Pixels(32.0),
+        },
+        GlobalTransform2D(Affine2::from_translation(Vec2::new(2000.0, 300.0))),
+        SortOrder::new(0),
+    ));
+
+    // Act
+    let mut schedule = Schedule::default();
+    schedule.add_systems(unified_render_system);
+    schedule.run(&mut world);
+
+    // Assert
+    let count = log
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|s| s.as_str() == "draw_sprite")
+        .count();
+    assert_eq!(count, 0);
+}
+
+#[test]
+fn when_sprite_and_shape_share_blend_mode_then_set_blend_mode_called_once() {
+    use engine_core::types::{Pixels, TextureId};
+    use engine_render::sprite::Sprite;
+    use engine_render::testing::insert_spy_with_blend_capture;
+    use engine_ui::draw_command::DrawQueue;
+
+    // Arrange
+    let mut world = World::new();
+    world.insert_resource(DrawQueue::default());
+    let blend_calls = insert_spy_with_blend_capture(&mut world);
+    world.spawn((
+        Shape {
+            variant: ShapeVariant::Circle { radius: 10.0 },
+            color: Color::RED,
+        },
+        GlobalTransform2D(Affine2::IDENTITY),
+        SortOrder::new(0),
+    ));
+    world.spawn((
+        Sprite {
+            texture: TextureId(0),
+            uv_rect: [0.0, 0.0, 1.0, 1.0],
+            color: Color::WHITE,
+            width: Pixels(32.0),
+            height: Pixels(32.0),
+        },
+        GlobalTransform2D(Affine2::IDENTITY),
+        SortOrder::new(1),
+    ));
+
+    // Act
+    let mut schedule = Schedule::default();
+    schedule.add_systems(unified_render_system);
+    schedule.run(&mut world);
+
+    // Assert — both default to Alpha, so set_blend_mode called once
+    let calls = blend_calls.lock().unwrap();
+    assert_eq!(calls.len(), 1);
+    assert_eq!(calls[0], engine_render::material::BlendMode::Alpha);
+}

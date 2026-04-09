@@ -26,12 +26,13 @@ fn when_transform_propagation_runs_then_root_entity_gets_global_transform() {
 }
 
 #[test]
-fn when_sprite_render_system_runs_then_draw_sprite_called_for_player() {
+fn when_unified_render_system_runs_then_draw_sprite_called_for_player() {
     // Arrange
     let log = Arc::new(Mutex::new(Vec::new()));
     let spy = SpyRenderer::new(log.clone());
     let mut world = World::new();
     world.insert_resource(RendererRes::new(Box::new(spy)));
+    world.insert_resource(DrawQueue::default());
     world.spawn((
         Sprite {
             texture: TextureId(0),
@@ -43,7 +44,7 @@ fn when_sprite_render_system_runs_then_draw_sprite_called_for_player() {
         GlobalTransform2D(Affine2::from_translation(Vec2::new(490.0, 260.0))),
     ));
     let mut schedule = Schedule::default();
-    schedule.add_systems(sprite_render_system);
+    schedule.add_systems(unified_render_system);
 
     // Act
     schedule.run(&mut world);
@@ -59,13 +60,14 @@ fn when_sprite_render_system_runs_then_draw_sprite_called_for_player() {
 }
 
 #[test]
-fn when_render_phase_runs_then_clear_before_camera_before_sprite() {
+fn when_render_phase_runs_then_clear_before_camera_before_draw() {
     // Arrange
     let log = Arc::new(Mutex::new(Vec::new()));
     let spy = SpyRenderer::new(log.clone()).with_viewport(800, 600);
     let mut world = World::new();
     world.insert_resource(RendererRes::new(Box::new(spy)));
     world.insert_resource(ClearColor::default());
+    world.insert_resource(DrawQueue::default());
     world.spawn(Camera2D::default());
     world.spawn((
         Sprite {
@@ -78,7 +80,9 @@ fn when_render_phase_runs_then_clear_before_camera_before_sprite() {
         GlobalTransform2D(Affine2::from_translation(Vec2::new(400.0, 300.0))),
     ));
     let mut schedule = Schedule::default();
-    schedule.add_systems((clear_system, camera_prepare_system, sprite_render_system).chain());
+    schedule.add_systems(
+        (clear_system, camera_prepare_system, unified_render_system).chain(),
+    );
 
     // Act
     schedule.run(&mut world);

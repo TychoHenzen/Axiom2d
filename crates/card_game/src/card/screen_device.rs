@@ -529,6 +529,7 @@ mod tests {
     use engine_scene::prelude::{
         hierarchy_maintenance_system, transform_propagation_system, visibility_system,
     };
+    use engine_ui::draw_command::DrawQueue;
     use engine_ui::unified_render::unified_render_system;
     use std::sync::{Arc, Mutex};
 
@@ -545,6 +546,7 @@ mod tests {
             .with_shape_capture(shape_calls.clone())
             .with_viewport(1024, 768);
         world.insert_resource(RendererRes::new(Box::new(spy)));
+        world.insert_resource(DrawQueue::default());
         world.spawn(Camera2D {
             position: Vec2::ZERO,
             zoom: 1.0,

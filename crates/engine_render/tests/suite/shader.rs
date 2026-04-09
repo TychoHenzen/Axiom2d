@@ -232,46 +232,6 @@ fn when_shader_registry_absent_from_world_and_system_runs_then_no_panic() {
 }
 
 #[test]
-fn when_shader_prepare_runs_before_shape_render_then_compile_precedes_draw_in_log() {
-    use bevy_ecs::prelude::{Schedule, World};
-    use bevy_ecs::schedule::IntoScheduleConfigs;
-    use engine_render::shape::{Shape, ShapeVariant, shape_render_system};
-    use engine_render::testing::insert_spy;
-    use engine_scene::prelude::GlobalTransform2D;
-    use glam::Affine2;
-
-    // Arrange
-    let mut world = World::new();
-    let log = insert_spy(&mut world);
-    let mut registry = ShaderRegistry::default();
-    registry.register("test_shader");
-    world.insert_resource(registry);
-    world.spawn((
-        Shape {
-            variant: ShapeVariant::Circle { radius: 10.0 },
-            color: engine_core::color::Color::WHITE,
-        },
-        GlobalTransform2D(Affine2::IDENTITY),
-    ));
-    let mut schedule = Schedule::default();
-    schedule.add_systems((shader_prepare_system, shape_render_system).chain());
-
-    // Act
-    schedule.run(&mut world);
-
-    // Assert
-    let log = log.lock().unwrap();
-    let compile_pos = log.iter().position(|s| s == "compile_shader");
-    let draw_pos = log.iter().position(|s| s == "draw_shape");
-    assert!(compile_pos.is_some(), "compile_shader should appear in log");
-    assert!(draw_pos.is_some(), "draw_shape should appear in log");
-    assert!(
-        compile_pos.unwrap() < draw_pos.unwrap(),
-        "compile_shader must run before draw_shape"
-    );
-}
-
-#[test]
 fn when_preprocessing_multiple_lines_then_separated_by_newlines() {
     // Arrange
     let source = "line_one\nline_two\nline_three";
