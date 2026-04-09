@@ -11,31 +11,58 @@ fn make_entry(element: Element, aspect: Aspect) -> ArtEntry {
     ArtEntry::new(vec![], element, aspect, CardSignature::default())
 }
 
+fn make_entry_at(element: Element, aspect: Aspect, sig: [f32; 8]) -> ArtEntry {
+    ArtEntry::new(vec![], element, aspect, CardSignature::new(sig))
+}
+
 // --- select_art_for_signature ---
 
-/// @doc: Art selection matches the card's dominant element — the axis with
-/// the largest absolute value determines which art set to use. Negative
-/// axes map to the same element as positive, so a deeply cold card still
-/// gets the Ordinem art rather than falling back to a random entry.
+/// @doc: When one art entry's signature nearly matches the query and all others
+/// are far away, the close entry is overwhelmingly likely to be selected.
+/// This verifies the Gaussian distance weighting picks nearby art.
 #[test]
-fn when_selecting_art_with_negative_dominant_axis_then_returns_entry_for_that_element() {
-    // Arrange
+fn when_one_entry_is_close_and_others_far_then_close_entry_selected() {
+    // Arrange — Ordinem entry close to query, all others far away
     let mut repo = ShapeRepository::new();
-    repo.insert("solidum", make_entry(Element::Solidum, Aspect::Solid));
-    repo.insert("febris", make_entry(Element::Febris, Aspect::Heat));
-    repo.insert("ordinem", make_entry(Element::Ordinem, Aspect::Order));
-    repo.insert("lumines", make_entry(Element::Lumines, Aspect::Light));
-    repo.insert("varias", make_entry(Element::Varias, Aspect::Change));
-    repo.insert("inertiae", make_entry(Element::Inertiae, Aspect::Force));
-    repo.insert("subsidium", make_entry(Element::Subsidium, Aspect::Growth));
-    repo.insert("spatium", make_entry(Element::Spatium, Aspect::Expansion));
+    repo.insert(
+        "solidum",
+        make_entry_at(
+            Element::Solidum,
+            Aspect::Solid,
+            [0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9],
+        ),
+    );
+    repo.insert(
+        "febris",
+        make_entry_at(
+            Element::Febris,
+            Aspect::Heat,
+            [-0.9, -0.9, -0.9, -0.9, -0.9, -0.9, -0.9, -0.9],
+        ),
+    );
+    repo.insert(
+        "ordinem",
+        make_entry_at(
+            Element::Ordinem,
+            Aspect::Order,
+            [0.1, 0.2, -0.9, 0.3, 0.0, 0.1, 0.2, 0.1],
+        ),
+    );
+    repo.insert(
+        "lumines",
+        make_entry_at(
+            Element::Lumines,
+            Aspect::Light,
+            [0.9, -0.9, 0.9, -0.9, 0.9, -0.9, 0.9, -0.9],
+        ),
+    );
     let signature = CardSignature::new([0.1, 0.2, -0.95, 0.3, 0.0, 0.1, 0.2, 0.1]);
 
     // Act
     let result = select_art_for_signature(&signature, &repo);
 
     // Assert
-    let entry = result.expect("expected Some for dominant negative Ordinem");
+    let entry = result.expect("expected Some");
     assert_eq!(entry.element(), Element::Ordinem);
 }
 
@@ -52,12 +79,10 @@ fn when_selecting_art_from_empty_repository_then_returns_none() {
     assert!(result.is_none());
 }
 
-/// @doc: When the repository lacks art for the dominant element, selection
-/// falls back to the closest entry by signature distance. This ensures every
-/// card gets some art even with a partially populated repository, avoiding
-/// blank card faces during early development or modding.
+/// @doc: When the repository has a single entry, it is always selected
+/// regardless of signature distance — there is no competing art.
 #[test]
-fn when_no_element_match_then_falls_back_to_closest_by_signature() {
+fn when_single_entry_in_repo_then_always_selected() {
     // Arrange
     let mut repo = ShapeRepository::new();
     repo.insert("febris", make_entry(Element::Febris, Aspect::Heat));
@@ -69,6 +94,150 @@ fn when_no_element_match_then_falls_back_to_closest_by_signature() {
     // Assert
     let entry = result.expect("expected Some when repo is non-empty");
     assert_eq!(entry.element(), Element::Febris);
+}
+
+/// @doc: Art selection is probabilistic — even when multiple entries are
+/// equidistant from the query, different signatures produce different picks
+/// due to the signature-seeded RNG. This prevents booster packs from having
+/// all cards with identical art.
+#[test]
+fn when_many_nearby_signatures_then_not_all_select_same_entry() {
+    // Arrange — 5 entries at moderate distances from the query region
+    let mut repo = ShapeRepository::new();
+    repo.insert(
+        "a",
+        make_entry_at(Element::Solidum, Aspect::Solid, [0.0; 8]),
+    );
+    repo.insert(
+        "b",
+        make_entry_at(
+            Element::Febris,
+            Aspect::Heat,
+            [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ),
+    );
+    repo.insert(
+        "c",
+        make_entry_at(
+            Element::Ordinem,
+            Aspect::Order,
+            [0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ),
+    );
+    repo.insert(
+        "d",
+        make_entry_at(
+            Element::Lumines,
+            Aspect::Light,
+            [0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ),
+    );
+    repo.insert(
+        "e",
+        make_entry_at(
+            Element::Varias,
+            Aspect::Change,
+            [0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0],
+        ),
+    );
+
+    // Act — generate 50 signatures near the origin, each seeds a different RNG
+    let mut elements_seen = std::collections::HashSet::new();
+    for i in 0..50 {
+        let delta = (i as f32) * 0.002 - 0.05;
+        let sig = CardSignature::new([delta, 0.001 * (i as f32), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        if let Some(entry) = select_art_for_signature(&sig, &repo) {
+            elements_seen.insert(entry.element());
+        }
+    }
+
+    // Assert — at least 2 different art entries were selected
+    assert!(
+        elements_seen.len() >= 2,
+        "expected variety in art selection, but only saw {elements_seen:?}"
+    );
+}
+
+/// @doc: Art selection favors nearby entries — when one entry sits right on
+/// the query signature and another is far away, the near entry is picked
+/// more often across many nearby signatures. This validates the Gaussian
+/// distance weighting produces a proximity bias.
+#[test]
+fn when_entry_nearby_then_selected_more_often_than_distant_entry() {
+    // Arrange — "near" at origin, "far" at distance ~2.83
+    let mut repo = ShapeRepository::new();
+    repo.insert(
+        "near",
+        make_entry_at(Element::Solidum, Aspect::Solid, [0.0; 8]),
+    );
+    repo.insert(
+        "far",
+        make_entry_at(
+            Element::Febris,
+            Aspect::Heat,
+            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        ),
+    );
+
+    // Act — sample 200 signatures near the origin
+    let mut near_count = 0u32;
+    let mut far_count = 0u32;
+    for i in 0..200 {
+        let delta = (i as f32) * 0.0005 - 0.05;
+        let sig = CardSignature::new([delta, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        if let Some(entry) = select_art_for_signature(&sig, &repo) {
+            if entry.element() == Element::Solidum {
+                near_count += 1;
+            } else {
+                far_count += 1;
+            }
+        }
+    }
+
+    // Assert — near should be selected significantly more often
+    assert!(
+        near_count > far_count,
+        "expected near ({near_count}) > far ({far_count})"
+    );
+}
+
+/// @doc: Art selection is deterministic per signature — the same card
+/// signature always selects the same art entry, providing hash-like stability.
+#[test]
+fn when_same_signature_called_twice_then_same_result() {
+    // Arrange
+    let mut repo = ShapeRepository::new();
+    repo.insert(
+        "a",
+        make_entry_at(Element::Solidum, Aspect::Solid, [0.0; 8]),
+    );
+    repo.insert(
+        "b",
+        make_entry_at(
+            Element::Febris,
+            Aspect::Heat,
+            [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ),
+    );
+    repo.insert(
+        "c",
+        make_entry_at(
+            Element::Ordinem,
+            Aspect::Order,
+            [0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ),
+    );
+    let sig = CardSignature::new([0.1, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+
+    // Act
+    let result1 = select_art_for_signature(&sig, &repo);
+    let result2 = select_art_for_signature(&sig, &repo);
+
+    // Assert
+    assert_eq!(
+        result1.map(ArtEntry::element),
+        result2.map(ArtEntry::element)
+    );
 }
 
 // --- art_bounding_box ---
