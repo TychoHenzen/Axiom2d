@@ -26,6 +26,7 @@ pub struct Shape {
     pub color: Color,
 }
 
+#[derive(Clone)]
 pub struct TessellatedMesh {
     pub vertices: Vec<[f32; 2]>,
     pub indices: Vec<u32>,
