@@ -6,6 +6,7 @@ pub mod text_render;
 pub mod theme;
 pub mod ui_event;
 pub mod unified_render;
+pub mod draw_command;
 pub mod widget;
 
 use engine_scene::prelude::EffectiveVisibility;
