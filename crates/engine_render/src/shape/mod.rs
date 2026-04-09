@@ -16,5 +16,5 @@ pub use geometry::{
 pub use path::{
     PathCommand, resolve_commands, reverse_path, sample_cubic, sample_quadratic, split_contours,
 };
-pub use render::{ShapeRenderDisabled, affine2_to_mat4, is_shape_culled, shape_render_system};
+pub use render::{affine2_to_mat4, is_shape_culled};
 pub use tessellate::{TessellateError, shape_aabb, tessellate, tessellate_stroke};
