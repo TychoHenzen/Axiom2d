@@ -62,7 +62,7 @@ pub struct DrawQueue {
 
 impl DrawQueue {
     /// Push a draw command with explicit sort position.
-    /// Systems in Phase::Render push here; unified_render_system drains in Phase::PostRender.
+    /// Systems in `Phase::Render` push here; `unified_render_system` drains in `Phase::PostRender`.
     pub fn push(&mut self, layer: RenderLayer, order: SortOrder, command: DrawCommand) {
         self.commands.push(SortedDrawCommand {
             sort_key: (layer, order),

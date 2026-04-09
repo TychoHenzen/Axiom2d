@@ -1,23 +1,28 @@
-use bevy_ecs::prelude::{Entity, Local, Query, ResMut};
+use bevy_ecs::prelude::{Local, Query, ResMut};
+use engine_core::color::Color;
 use engine_core::profiler::FrameProfiler;
+use engine_core::types::Pixels;
 use engine_render::camera::{Camera2D, CameraRotation};
-use engine_render::culling::compute_view_rect;
+use engine_render::culling::{aabb_intersects_view_rect, compute_view_rect};
 use engine_render::font::{GlyphCache, measure_text, render_text_transformed, wrap_text};
-use engine_render::material::{Material2d, apply_material};
+use engine_render::material::{apply_material, BlendMode, Material2d};
 use engine_render::prelude::RendererRes;
+use engine_render::rect::Rect;
+use engine_render::shader::ShaderHandle;
 use engine_render::shape::{
     CachedMesh, ColorMesh, MeshOverlays, PersistentColorMesh, Shape, Stroke, affine2_to_mat4,
     is_shape_culled, tessellate, tessellate_stroke,
 };
+use engine_render::sprite::Sprite;
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 
+use crate::draw_command::{DrawCommand, DrawQueue, OverlayCommand, SortedDrawCommand, StrokeCommand};
 use crate::widget::Text;
 
 const LINE_HEIGHT_FACTOR: f32 = 1.3;
 
 type ShapeItem<'w> = (
-    Entity,
     &'w Shape,
     &'w GlobalTransform2D,
     Option<&'w RenderLayer>,
@@ -29,7 +34,6 @@ type ShapeItem<'w> = (
 );
 
 type TextItem<'w> = (
-    Entity,
     &'w Text,
     &'w GlobalTransform2D,
     Option<&'w RenderLayer>,
@@ -38,17 +42,16 @@ type TextItem<'w> = (
 );
 
 type ColorMeshItem<'w> = (
-    Entity,
     &'w ColorMesh,
     &'w GlobalTransform2D,
     Option<&'w RenderLayer>,
     Option<&'w SortOrder>,
     Option<&'w EffectiveVisibility>,
     Option<&'w MeshOverlays>,
+    Option<&'w Material2d>,
 );
 
 type PersistentMeshItem<'w> = (
-    Entity,
     &'w PersistentColorMesh,
     &'w GlobalTransform2D,
     Option<&'w RenderLayer>,
@@ -58,243 +61,322 @@ type PersistentMeshItem<'w> = (
     Option<&'w Material2d>,
 );
 
-#[derive(Clone, Copy)]
-enum DrawKind {
-    Shape,
-    Text,
-    ColorMesh,
-    PersistentMesh,
+type SpriteItem<'w> = (
+    &'w Sprite,
+    &'w GlobalTransform2D,
+    Option<&'w RenderLayer>,
+    Option<&'w SortOrder>,
+    Option<&'w EffectiveVisibility>,
+    Option<&'w Material2d>,
+);
+
+fn key(layer: Option<&RenderLayer>, order: Option<&SortOrder>) -> (RenderLayer, SortOrder) {
+    (
+        layer.copied().unwrap_or(RenderLayer::World),
+        order.copied().unwrap_or_default(),
+    )
 }
 
-struct SortedDrawItem {
-    entity: Entity,
-    sort_key: (RenderLayer, SortOrder),
-    kind: DrawKind,
+fn is_hidden(vis: Option<&EffectiveVisibility>) -> bool {
+    vis.is_some_and(|v| !v.0)
 }
 
-fn collect_draw_items(
+fn collect_overlays(overlays: Option<&MeshOverlays>) -> Vec<OverlayCommand> {
+    overlays.map_or_else(Vec::new, |o| {
+        o.0.iter()
+            .filter(|e| e.visible)
+            .map(|e| OverlayCommand {
+                mesh: e.mesh.clone(),
+                material: e.material.clone(),
+            })
+            .collect()
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_draw_commands(
     shape_query: &Query<ShapeItem>,
     text_query: &Query<TextItem>,
     color_mesh_query: &Query<ColorMeshItem>,
     persistent_mesh_query: &Query<PersistentMeshItem>,
-) -> Vec<SortedDrawItem> {
-    let mut items: Vec<SortedDrawItem> = Vec::new();
-    for (entity, _, _, layer, sort, vis, _, _, _) in shape_query.iter() {
-        if vis.is_some_and(|v| !v.0) {
+    sprite_query: &Query<SpriteItem>,
+    draw_queue: &mut DrawQueue,
+    view_rect: Option<(Vec2, Vec2)>,
+) -> Vec<SortedDrawCommand> {
+    let capacity = shape_query.iter().len()
+        + text_query.iter().len()
+        + color_mesh_query.iter().len()
+        + persistent_mesh_query.iter().len()
+        + sprite_query.iter().len();
+
+    let mut commands = draw_queue.drain();
+    commands.reserve(capacity);
+
+    for (shape, transform, layer, order, vis, mat, stroke, cached) in shape_query.iter() {
+        if is_hidden(vis) {
             continue;
         }
-        items.push(SortedDrawItem {
-            entity,
-            sort_key: (
-                layer.copied().unwrap_or(RenderLayer::World),
-                sort.copied().unwrap_or_default(),
-            ),
-            kind: DrawKind::Shape,
-        });
-    }
-    for (entity, _, _, layer, sort, vis) in text_query.iter() {
-        if vis.is_some_and(|v| !v.0) {
+        if is_shape_culled(transform.0.translation, &shape.variant, view_rect) {
             continue;
         }
-        items.push(SortedDrawItem {
-            entity,
-            sort_key: (
-                layer.copied().unwrap_or(RenderLayer::World),
-                sort.copied().unwrap_or_default(),
-            ),
-            kind: DrawKind::Text,
+        let mesh = if let Some(cached) = cached {
+            cached.0.clone()
+        } else if let Ok(m) = tessellate(&shape.variant) {
+            m
+        } else {
+            continue;
+        };
+        let stroke_cmd = stroke.and_then(|s| {
+            tessellate_stroke(&shape.variant, s.width)
+                .ok()
+                .map(|sm| StrokeCommand {
+                    mesh: sm,
+                    color: s.color,
+                })
+        });
+        commands.push(SortedDrawCommand {
+            sort_key: key(layer, order),
+            command: DrawCommand::Shape {
+                mesh,
+                color: shape.color,
+                model: affine2_to_mat4(&transform.0),
+                material: mat.cloned(),
+                stroke: stroke_cmd,
+            },
         });
     }
-    for (entity, _, _, layer, sort, vis, _) in color_mesh_query.iter() {
-        if vis.is_some_and(|v| !v.0) {
+
+    for (text, transform, layer, order, vis) in text_query.iter() {
+        if is_hidden(vis) {
             continue;
         }
-        items.push(SortedDrawItem {
-            entity,
-            sort_key: (
-                layer.copied().unwrap_or(RenderLayer::World),
-                sort.copied().unwrap_or_default(),
-            ),
-            kind: DrawKind::ColorMesh,
+        commands.push(SortedDrawCommand {
+            sort_key: key(layer, order),
+            command: DrawCommand::Text {
+                content: text.content.clone(),
+                font_size: text.font_size,
+                color: text.color,
+                max_width: text.max_width,
+                transform: transform.0,
+            },
         });
     }
-    for (entity, _, _, layer, sort, vis, _, _) in persistent_mesh_query.iter() {
-        if vis.is_some_and(|v| !v.0) {
+
+    for (mesh, transform, layer, order, vis, overlays, mat) in color_mesh_query.iter() {
+        if is_hidden(vis) || mesh.is_empty() {
             continue;
         }
-        items.push(SortedDrawItem {
-            entity,
-            sort_key: (
-                layer.copied().unwrap_or(RenderLayer::World),
-                sort.copied().unwrap_or_default(),
-            ),
-            kind: DrawKind::PersistentMesh,
+        commands.push(SortedDrawCommand {
+            sort_key: key(layer, order),
+            command: DrawCommand::ColorMesh {
+                mesh: mesh.0.clone(),
+                model: affine2_to_mat4(&transform.0),
+                material: mat.cloned(),
+                overlays: collect_overlays(overlays),
+            },
         });
     }
-    items.sort_by_key(|item| item.sort_key);
-    items
+
+    for (pcm, transform, layer, order, vis, overlays, mat) in persistent_mesh_query.iter() {
+        if is_hidden(vis) {
+            continue;
+        }
+        commands.push(SortedDrawCommand {
+            sort_key: key(layer, order),
+            command: DrawCommand::PersistentMesh {
+                handle: pcm.0,
+                model: affine2_to_mat4(&transform.0),
+                material: mat.cloned(),
+                overlays: collect_overlays(overlays),
+            },
+        });
+    }
+
+    for (sprite, transform, layer, order, vis, mat) in sprite_query.iter() {
+        if is_hidden(vis) {
+            continue;
+        }
+        let pos = transform.0.translation;
+        if let Some((view_min, view_max)) = view_rect {
+            let entity_min = pos;
+            let entity_max = Vec2::new(pos.x + sprite.width.0, pos.y + sprite.height.0);
+            if !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max) {
+                continue;
+            }
+        }
+        commands.push(SortedDrawCommand {
+            sort_key: key(layer, order),
+            command: DrawCommand::Sprite {
+                rect: Rect {
+                    x: Pixels(pos.x),
+                    y: Pixels(pos.y),
+                    width: sprite.width,
+                    height: sprite.height,
+                    color: sprite.color,
+                },
+                uv_rect: sprite.uv_rect,
+                material: mat.cloned(),
+            },
+        });
+    }
+
+    commands.sort_unstable_by_key(|cmd| cmd.sort_key);
+    commands
 }
 
-/// Unified render system that draws both shapes and text in a single sorted
-/// pass, preventing text from rendering on top of shapes that should occlude it.
-pub fn unified_render_system(
-    shape_query: Query<ShapeItem>,
-    text_query: Query<TextItem>,
-    color_mesh_query: Query<ColorMeshItem>,
-    persistent_mesh_query: Query<PersistentMeshItem>,
-    camera_query: Query<(&Camera2D, Option<&CameraRotation>)>,
-    mut renderer: ResMut<RendererRes>,
-    mut cache: Local<GlyphCache>,
-    mut profiler: Option<ResMut<FrameProfiler>>,
+fn draw_commands(
+    renderer: &mut dyn engine_render::renderer::Renderer,
+    cache: &mut GlyphCache,
+    commands: &[SortedDrawCommand],
 ) {
-    let view_rect = compute_view_rect(&camera_query, &renderer);
-
-    let t_sort = std::time::Instant::now();
-    let items = collect_draw_items(
-        &shape_query,
-        &text_query,
-        &color_mesh_query,
-        &persistent_mesh_query,
-    );
-    let sort_us = t_sort.elapsed().as_micros() as u64;
-
-    let t_draw = std::time::Instant::now();
-
     let mut last_shader = None;
     let mut last_blend_mode = None;
 
-    for item in &items {
-        match item.kind {
-            DrawKind::Shape => {
-                let Ok((_, shape, transform, _, _, _, mat, stroke, cached)) =
-                    shape_query.get(item.entity)
-                else {
-                    continue;
-                };
-                if is_shape_culled(transform.0.translation, &shape.variant, view_rect) {
-                    continue;
-                }
-                apply_material(&mut **renderer, mat, &mut last_shader, &mut last_blend_mode);
-                let model = affine2_to_mat4(&transform.0);
-                if let Some(cached) = cached {
-                    renderer.draw_shape(&cached.0.vertices, &cached.0.indices, shape.color, model);
-                } else {
-                    let Ok(mesh) = tessellate(&shape.variant) else {
-                        continue;
-                    };
-                    renderer.draw_shape(&mesh.vertices, &mesh.indices, shape.color, model);
-                }
-                if let Some(stroke) = stroke
-                    && let Ok(sm) = tessellate_stroke(&shape.variant, stroke.width)
-                {
-                    renderer.draw_shape(&sm.vertices, &sm.indices, stroke.color, model);
+    for cmd in commands {
+        match &cmd.command {
+            DrawCommand::Shape {
+                mesh,
+                color,
+                model,
+                material,
+                stroke,
+            } => {
+                apply_material(renderer, material.as_ref(), &mut last_shader, &mut last_blend_mode);
+                renderer.draw_shape(&mesh.vertices, &mesh.indices, *color, *model);
+                if let Some(s) = stroke {
+                    renderer.draw_shape(&s.mesh.vertices, &s.mesh.indices, s.color, *model);
                 }
             }
-            DrawKind::Text => {
-                let Ok((_, text, global_transform, _, _, _)) = text_query.get(item.entity) else {
-                    continue;
-                };
-                draw_text(&mut **renderer, &mut cache, text, global_transform);
+            DrawCommand::Text {
+                content,
+                font_size,
+                color,
+                max_width,
+                transform,
+            } => {
+                draw_text(renderer, cache, content, *font_size, *color, *max_width, transform);
             }
-            DrawKind::ColorMesh => {
-                let Ok((_, mesh, transform, _, _, _, overlays)) = color_mesh_query.get(item.entity)
-                else {
-                    continue;
-                };
-                if mesh.is_empty() {
-                    continue;
-                }
-                apply_material(
-                    &mut **renderer,
-                    None,
-                    &mut last_shader,
-                    &mut last_blend_mode,
-                );
-                let model = affine2_to_mat4(&transform.0);
-                renderer.draw_colored_mesh(&mesh.vertices, &mesh.indices, model);
-                if let Some(overlays) = overlays {
-                    for entry in overlays.0.iter().filter(|e| e.visible) {
-                        apply_material(
-                            &mut **renderer,
-                            Some(&entry.material),
-                            &mut last_shader,
-                            &mut last_blend_mode,
-                        );
-                        renderer.draw_colored_mesh(
-                            &entry.mesh.vertices,
-                            &entry.mesh.indices,
-                            model,
-                        );
-                    }
-                }
+            DrawCommand::ColorMesh {
+                mesh,
+                model,
+                material,
+                overlays,
+            } => {
+                apply_material(renderer, material.as_ref(), &mut last_shader, &mut last_blend_mode);
+                renderer.draw_colored_mesh(&mesh.vertices, &mesh.indices, *model);
+                draw_overlays(renderer, overlays, *model, &mut last_shader, &mut last_blend_mode);
             }
-            DrawKind::PersistentMesh => {
-                let Ok((_, pcm, transform, _, _, _, overlays, mat)) =
-                    persistent_mesh_query.get(item.entity)
-                else {
-                    continue;
-                };
-                apply_material(&mut **renderer, mat, &mut last_shader, &mut last_blend_mode);
-                let model = affine2_to_mat4(&transform.0);
-                renderer.draw_persistent_colored_mesh(pcm.0, model);
-                if let Some(overlays) = overlays {
-                    for entry in overlays.0.iter().filter(|e| e.visible) {
-                        apply_material(
-                            &mut **renderer,
-                            Some(&entry.material),
-                            &mut last_shader,
-                            &mut last_blend_mode,
-                        );
-                        renderer.draw_colored_mesh(
-                            &entry.mesh.vertices,
-                            &entry.mesh.indices,
-                            model,
-                        );
-                    }
-                }
+            DrawCommand::PersistentMesh {
+                handle,
+                model,
+                material,
+                overlays,
+            } => {
+                apply_material(renderer, material.as_ref(), &mut last_shader, &mut last_blend_mode);
+                renderer.draw_persistent_colored_mesh(*handle, *model);
+                draw_overlays(renderer, overlays, *model, &mut last_shader, &mut last_blend_mode);
+            }
+            DrawCommand::Sprite {
+                rect,
+                uv_rect,
+                material,
+            } => {
+                apply_material(renderer, material.as_ref(), &mut last_shader, &mut last_blend_mode);
+                renderer.draw_sprite(*rect, *uv_rect);
             }
         }
     }
+}
 
-    let draw_us = t_draw.elapsed().as_micros() as u64;
-
-    if let Some(p) = profiler.as_deref_mut() {
-        p.record_phase("render_sort", sort_us);
-        p.record_phase("render_draw", draw_us);
+fn draw_overlays(
+    renderer: &mut dyn engine_render::renderer::Renderer,
+    overlays: &[OverlayCommand],
+    model: [[f32; 4]; 4],
+    last_shader: &mut Option<ShaderHandle>,
+    last_blend_mode: &mut Option<BlendMode>,
+) {
+    for entry in overlays {
+        apply_material(
+            renderer,
+            Some(&entry.material),
+            last_shader,
+            last_blend_mode,
+        );
+        renderer.draw_colored_mesh(&entry.mesh.vertices, &entry.mesh.indices, model);
     }
 }
 
 fn draw_text(
     renderer: &mut dyn engine_render::renderer::Renderer,
     cache: &mut GlyphCache,
-    text: &Text,
-    global_transform: &GlobalTransform2D,
+    content: &str,
+    font_size: f32,
+    color: Color,
+    max_width: Option<f32>,
+    transform: &glam::Affine2,
 ) {
-    if let Some(max_width) = text.max_width {
-        let lines = wrap_text(&text.content, text.font_size, max_width);
-        let line_height = text.font_size * LINE_HEIGHT_FACTOR;
+    if let Some(max_w) = max_width {
+        let lines = wrap_text(content, font_size, max_w);
+        let line_height = font_size * LINE_HEIGHT_FACTOR;
         let total_height = (lines.len() as f32 - 1.0) * line_height;
         let start_y = -total_height * 0.5;
         for (i, line) in lines.iter().enumerate() {
-            let line_width = measure_text(line, text.font_size);
+            let line_width = measure_text(line, font_size);
             let y_offset = start_y + i as f32 * line_height;
             let offset = glam::Affine2::from_translation(Vec2::new(-line_width * 0.5, y_offset));
-            let line_transform = global_transform.0 * offset;
+            let line_transform = *transform * offset;
             let model = affine2_to_mat4(&line_transform);
-            render_text_transformed(renderer, cache, line, &model, text.font_size, text.color);
+            render_text_transformed(renderer, cache, line, &model, font_size, color);
         }
     } else {
-        let text_width = measure_text(&text.content, text.font_size);
+        let text_width = measure_text(content, font_size);
         let center_offset = glam::Affine2::from_translation(Vec2::new(-text_width * 0.5, 0.0));
-        let centered_transform = global_transform.0 * center_offset;
+        let centered_transform = *transform * center_offset;
         let model = affine2_to_mat4(&centered_transform);
-        render_text_transformed(
-            renderer,
-            cache,
-            &text.content,
-            &model,
-            text.font_size,
-            text.color,
-        );
+        render_text_transformed(renderer, cache, content, &model, font_size, color);
+    }
+}
+
+/// Unified render system that draws shapes, text, sprites, color meshes, and
+/// persistent meshes in a single sorted pass. Draw order is determined by
+/// `(RenderLayer, SortOrder)` --- the scene hierarchy decides what draws on top.
+///
+/// Also drains the `DrawQueue` resource, merging immediate-mode commands into
+/// the same sorted pass. Systems that push to `DrawQueue` in `Phase::Render`
+/// are guaranteed to complete before this system runs in `Phase::PostRender`.
+#[allow(clippy::too_many_arguments)]
+pub fn unified_render_system(
+    shape_query: Query<ShapeItem>,
+    text_query: Query<TextItem>,
+    color_mesh_query: Query<ColorMeshItem>,
+    persistent_mesh_query: Query<PersistentMeshItem>,
+    sprite_query: Query<SpriteItem>,
+    camera_query: Query<(&Camera2D, Option<&CameraRotation>)>,
+    mut renderer: ResMut<RendererRes>,
+    mut draw_queue: ResMut<DrawQueue>,
+    mut cache: Local<GlyphCache>,
+    mut profiler: Option<ResMut<FrameProfiler>>,
+) {
+    let view_rect = compute_view_rect(&camera_query, &renderer);
+
+    let t_sort = std::time::Instant::now();
+    let commands = collect_draw_commands(
+        &shape_query,
+        &text_query,
+        &color_mesh_query,
+        &persistent_mesh_query,
+        &sprite_query,
+        &mut draw_queue,
+        view_rect,
+    );
+    let sort_us = t_sort.elapsed().as_micros() as u64;
+
+    let t_draw = std::time::Instant::now();
+    draw_commands(&mut **renderer, &mut cache, &commands);
+    let draw_us = t_draw.elapsed().as_micros() as u64;
+
+    if let Some(p) = profiler.as_deref_mut() {
+        p.record_phase("render_sort", sort_us);
+        p.record_phase("render_draw", draw_us);
     }
 }

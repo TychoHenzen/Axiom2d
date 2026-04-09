@@ -15,6 +15,7 @@ use engine_ui::unified_render::unified_render_system;
 use glam::{Affine2, Vec2};
 
 fn run_system(world: &mut World) -> ShapeCallLog {
+    world.insert_resource(engine_ui::draw_command::DrawQueue::default());
     let shape_calls = insert_spy_with_shape_capture(world);
     let mut schedule = Schedule::default();
     schedule.add_systems(unified_render_system);
@@ -109,6 +110,7 @@ fn when_text_has_lower_sort_order_then_drawn_before_shape() {
 }
 
 fn run_system_colored(world: &mut World) -> ColoredMeshCallLog {
+    world.insert_resource(engine_ui::draw_command::DrawQueue::default());
     let calls = insert_spy_with_colored_mesh_capture(world);
     let mut schedule = Schedule::default();
     schedule.add_systems(unified_render_system);
