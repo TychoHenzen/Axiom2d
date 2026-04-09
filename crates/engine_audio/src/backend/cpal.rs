@@ -49,7 +49,7 @@ impl CpalBackend {
         };
         let config = device.default_output_config().ok()?;
         let sample_format = config.sample_format();
-        let sample_rate = config.sample_rate().0;
+        let sample_rate = config.sample_rate();
         let config: cpal::StreamConfig = config.into();
 
         let stream = match sample_format {

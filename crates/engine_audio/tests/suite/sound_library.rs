@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
-use fundsp::hacker32::*;
 use fundsp::prelude::AudioUnit;
+use fundsp::prelude32::*;
 
 use engine_audio::sound::{SoundEffect, SoundLibrary};
 

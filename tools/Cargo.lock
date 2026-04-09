@@ -562,7 +562,7 @@ dependencies = [
  "downcast-rs 2.0.2",
  "erased-serde",
  "foldhash",
- "glam",
+ "glam 0.29.3",
  "serde",
  "smallvec",
  "smol_str",
@@ -1208,7 +1208,7 @@ name = "engine_core"
 version = "0.1.0"
 dependencies = [
  "bevy_ecs",
- "glam",
+ "glam 0.30.10",
  "serde",
  "thiserror 2.0.18",
 ]
@@ -1221,7 +1221,7 @@ dependencies = [
  "bytemuck",
  "engine_core",
  "engine_scene",
- "glam",
+ "glam 0.30.10",
  "guillotiere",
  "image",
  "lyon",
@@ -1240,7 +1240,7 @@ version = "0.1.0"
 dependencies = [
  "bevy_ecs",
  "engine_core",
- "glam",
+ "glam 0.30.10",
  "serde",
 ]
 
@@ -1607,6 +1607,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "glam"
+version = "0.30.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19fc433e8437a212d1b6f1e68c7824af3aed907da60afa994e7f542d18d12aa9"
+dependencies = [
+ "serde_core",
+]
+
+[[package]]
 name = "glow"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1946,7 +1955,7 @@ version = "0.1.0"
 dependencies = [
  "engine_core",
  "engine_render",
- "glam",
+ "glam 0.30.10",
  "image",
  "serde",
  "serde_json",
@@ -1961,7 +1970,7 @@ dependencies = [
  "egui",
  "engine_core",
  "engine_render",
- "glam",
+ "glam 0.30.10",
  "image",
  "img-to-shape",
  "lyon",

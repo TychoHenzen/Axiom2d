@@ -1,7 +1,7 @@
 use std::collections::HashMap;
+use std::sync::{Mutex, mpsc};
 
 use bevy_ecs::prelude::Entity;
-use crossbeam::channel::Receiver;
 use engine_core::prelude::Seconds;
 use glam::Vec2;
 use rapier2d::prelude::*;
@@ -26,7 +26,7 @@ pub struct RapierBackend {
     entity_to_handle: HashMap<Entity, RigidBodyHandle>,
     collider_to_entity: HashMap<ColliderHandle, Entity>,
     event_collector: ChannelEventCollector,
-    collision_recv: Receiver<rapier2d::geometry::CollisionEvent>,
+    collision_recv: Mutex<mpsc::Receiver<rapier2d::geometry::CollisionEvent>>,
 }
 
 impl RapierBackend {
@@ -51,8 +51,8 @@ impl RapierBackend {
 
     #[must_use]
     pub fn new(gravity: Vec2) -> Self {
-        let (collision_send, collision_recv) = crossbeam::channel::unbounded();
-        let contact_force_send = crossbeam::channel::unbounded().0;
+        let (collision_send, collision_recv) = mpsc::channel();
+        let (contact_force_send, _) = mpsc::channel();
         let event_collector = ChannelEventCollector::new(collision_send, contact_force_send);
         Self {
             gravity,
@@ -69,7 +69,7 @@ impl RapierBackend {
             entity_to_handle: HashMap::new(),
             collider_to_entity: HashMap::new(),
             event_collector,
-            collision_recv,
+            collision_recv: Mutex::new(collision_recv),
         }
     }
 }
@@ -78,7 +78,7 @@ impl PhysicsBackend for RapierBackend {
     fn step(&mut self, dt: Seconds) {
         self.integration_parameters.dt = dt.0;
         self.pipeline.step(
-            &vector![self.gravity.x, self.gravity.y],
+            Vec2::new(self.gravity.x, self.gravity.y),
             &self.integration_parameters,
             &mut self.island_manager,
             &mut self.broad_phase,
@@ -88,7 +88,6 @@ impl PhysicsBackend for RapierBackend {
             &mut self.impulse_joints,
             &mut self.multibody_joints,
             &mut self.ccd_solver,
-            None,
             &(),
             &self.event_collector,
         );
@@ -104,7 +103,7 @@ impl PhysicsBackend for RapierBackend {
             RigidBody::Static => RigidBodyBuilder::fixed(),
             RigidBody::Kinematic => RigidBodyBuilder::kinematic_position_based(),
         }
-        .translation(vector![position.x, position.y])
+        .translation(Vec2::new(position.x, position.y))
         .build();
         let handle = self.bodies.insert(rb);
         self.entity_to_handle.insert(entity, handle);
@@ -119,7 +118,7 @@ impl PhysicsBackend for RapierBackend {
             Collider::Circle(radius) => ColliderBuilder::ball(*radius),
             Collider::Aabb(half_extents) => ColliderBuilder::cuboid(half_extents.x, half_extents.y),
             Collider::ConvexPolygon(points) => {
-                let rapier_points: Vec<_> = points.iter().map(|p| point![p.x, p.y]).collect();
+                let rapier_points: Vec<Vec2> = points.iter().copied().collect();
                 let Some(builder) = ColliderBuilder::convex_hull(&rapier_points) else {
                     tracing::warn!(?entity, "add_collider: convex hull build failed — points may be collinear or degenerate");
                     return false;
@@ -180,7 +179,7 @@ impl PhysicsBackend for RapierBackend {
             .bodies
             .get_mut(handle)
             .ok_or(PhysicsError::EntityNotFound(entity))?;
-        body.set_linvel(vector![velocity.x, velocity.y], true);
+        body.set_linvel(Vec2::new(velocity.x, velocity.y), true);
         Ok(())
     }
 
@@ -222,8 +221,8 @@ impl PhysicsBackend for RapierBackend {
             .get_mut(handle)
             .ok_or(PhysicsError::EntityNotFound(entity))?;
         body.add_force_at_point(
-            vector![force.x, force.y],
-            point![world_point.x, world_point.y],
+            Vec2::new(force.x, force.y),
+            Vec2::new(world_point.x, world_point.y),
             true,
         );
         Ok(())
@@ -261,6 +260,7 @@ impl PhysicsBackend for RapierBackend {
         let groups = InteractionGroups::new(
             Group::from_bits_truncate(membership),
             Group::from_bits_truncate(filter),
+            InteractionTestMode::And,
         );
         let body = self
             .bodies
@@ -283,13 +283,20 @@ impl PhysicsBackend for RapierBackend {
             .bodies
             .get_mut(handle)
             .ok_or(PhysicsError::EntityNotFound(entity))?;
-        body.set_next_kinematic_position(Isometry::translation(position.x, position.y));
+        body.set_next_kinematic_position(Pose {
+            rotation: Rot2::IDENTITY,
+            translation: Vec2::new(position.x, position.y),
+        });
         Ok(())
     }
 
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
         let mut events = Vec::new();
-        while let Ok(rapier_event) = self.collision_recv.try_recv() {
+        let recv = self
+            .collision_recv
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        while let Ok(rapier_event) = recv.try_recv() {
             let (h1, h2, kind) = match rapier_event {
                 rapier2d::geometry::CollisionEvent::Started(h1, h2, _) => {
                     (h1, h2, CollisionKind::Started)

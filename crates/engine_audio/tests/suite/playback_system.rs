@@ -62,8 +62,8 @@ impl AudioBackend for SpyAudioBackend {
 }
 
 fn test_effect() -> SoundEffect {
-    use fundsp::hacker32::*;
     use fundsp::prelude::AudioUnit;
+    use fundsp::prelude32::*;
     SoundEffect::new(|| Box::new(dc(0.5)) as Box<dyn AudioUnit>)
 }
 
