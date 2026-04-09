@@ -58,11 +58,9 @@ use engine_app::prelude::{App, Phase, Plugin};
 use engine_core::prelude::{Color, EventBus};
 use engine_core::scale_spring::scale_spring_system;
 use engine_physics::prelude::physics_sync_system;
-use engine_render::prelude::{
-    ClearColor, ShaderRegistry, ShapeRenderDisabled, shape_render_system,
-};
+use engine_render::prelude::{ClearColor, ShaderRegistry};
 use engine_scene::sort_propagation::hierarchy_sort_system;
-use engine_ui::unified_render::unified_render_system;
+
 
 pub struct CardGamePlugin;
 
@@ -95,8 +93,6 @@ impl Plugin for CardGamePlugin {
         let mut registry = BaseCardTypeRegistry::new();
         populate_default_types(&mut registry);
         world.insert_resource(registry);
-
-        world.insert_resource(ShapeRenderDisabled);
 
         {
             let (art_shader, variant_shaders, tier_shaders, gem_shader) = {
@@ -197,19 +193,8 @@ fn register_systems(app: &mut App) {
         )
         .add_systems(
             Phase::Render,
-            stash_render_system.after(shape_render_system),
+            (stash_render_system, stash_tab_render_system, stash_hover_preview_render_system).chain(),
         )
-        .add_systems(
-            Phase::Render,
-            (stash_tab_render_system, stash_hover_preview_render_system).after(stash_render_system),
-        )
-        .add_systems(
-            Phase::Render,
-            unified_render_system.after(shape_render_system),
-        )
-        .add_systems(Phase::LateUpdate, sync_card_persistent_mesh)
-        .add_systems(
-            Phase::Render,
-            hand_drop_zone_render_system.after(shape_render_system),
-        );
+        .add_systems(Phase::Render, hand_drop_zone_render_system)
+        .add_systems(Phase::LateUpdate, sync_card_persistent_mesh);
 }

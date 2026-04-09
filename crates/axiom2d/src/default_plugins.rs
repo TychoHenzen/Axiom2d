@@ -22,7 +22,7 @@ use engine_physics::prelude::{
 #[cfg(feature = "render")]
 use engine_render::prelude::{
     ClearColor, ShaderRegistry, camera_prepare_system, clear_system, post_process_system,
-    shader_prepare_system, shape_render_system, sprite_render_system, upload_atlas_system,
+    shader_prepare_system, upload_atlas_system,
 };
 #[cfg(feature = "render")]
 use engine_render::shape::mesh_cache_system;
@@ -137,6 +137,8 @@ fn register_render(app: &mut App) {
     {
         app.world_mut().insert_resource(ClearColor::default());
         app.world_mut().insert_resource(ShaderRegistry::default());
+        app.world_mut()
+            .insert_resource(engine_ui::draw_command::DrawQueue::default());
         app.add_systems(Phase::LateUpdate, mesh_cache_system);
         app.add_systems(
             Phase::Render,
@@ -146,8 +148,13 @@ fn register_render(app: &mut App) {
                 camera_prepare_system,
                 shader_prepare_system,
                 splash_render_system,
-                sprite_render_system,
-                shape_render_system,
+            )
+                .chain(),
+        );
+        app.add_systems(
+            Phase::PostRender,
+            (
+                engine_ui::unified_render::unified_render_system,
                 post_process_system,
             )
                 .chain(),
