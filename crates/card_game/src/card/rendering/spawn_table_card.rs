@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::{Entity, World};
 use engine_core::prelude::{EventBus, TextureId, Transform2D};
 use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
-use engine_render::shape::ColorMesh;
+use engine_render::shape::{ColorMesh, PersistentColorMesh};
 use engine_scene::prelude::{RenderLayer, SortOrder};
 use glam::Vec2;
 
@@ -136,7 +136,8 @@ pub fn spawn_visual_card(
     let mut entity_mut = world.entity_mut(root);
     entity_mut.insert((baked, mesh_overlays));
     if let Some(gpu) = gpu_mesh {
-        entity_mut.insert(gpu);
+        let active_handle = if face_up { gpu.front } else { gpu.back };
+        entity_mut.insert((gpu, PersistentColorMesh(active_handle)));
     } else {
         entity_mut.insert(ColorMesh(initial_mesh));
     }

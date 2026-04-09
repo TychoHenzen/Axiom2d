@@ -100,28 +100,31 @@ pub fn double_click_detect_system(world: &mut World) {
         });
     }
 
-    // 8. Gather pack position and cards
-    let pack_position = world
+    // 8. Gather pack position, rotation, and cards
+    let (pack_position, pack_rotation) = world
         .get::<engine_core::prelude::Transform2D>(pack_entity)
-        .map_or(Vec2::ZERO, |t| t.position);
+        .map_or((Vec2::ZERO, 0.0), |t| (t.position, t.rotation));
 
     let cards = world
         .get::<BoosterPack>(pack_entity)
         .map_or_else(Vec::new, |bp| bp.cards.clone());
 
-    // 9. Determine screen center: use the Camera2D entity position if available,
-    //    otherwise fall back to Vec2::ZERO.
-    let screen_center = world
+    // 9. Capture current camera position — the camera will pan from here
+    //    to center on the pack.
+    let camera_start_pos = world
         .query::<&Camera2D>()
         .iter(world)
         .next()
         .map_or(Vec2::ZERO, |cam| cam.position);
 
-    // 10. Insert the BoosterOpening resource to start the animation
+    // 10. Insert the BoosterOpening resource to start the animation.
+    //     screen_center is the pack position — the camera pans to it.
     world.insert_resource(BoosterOpening::new(
         pack_entity,
         cards,
         pack_position,
-        screen_center,
+        pack_position,
+        pack_rotation,
+        camera_start_pos,
     ));
 }

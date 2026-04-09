@@ -79,6 +79,7 @@ incremental = true     # keep for iteration speed, cargo clean periodically
 [profile.dev.package."*"]
 debug = false          # no debug info for dependencies
 opt-level = 0
+incremental = false    # deps don't change — skip incremental cache bloat
 
 [profile.release]
 opt-level = "z"       # optimize for size ("z" measured 14% smaller than "s")

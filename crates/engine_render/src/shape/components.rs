@@ -122,6 +122,12 @@ pub struct MeshOverlays(pub Vec<OverlayEntry>);
 #[derive(Component, Clone, Debug, Default)]
 pub struct ColorMesh(pub TessellatedColorMesh);
 
+/// ECS component wrapping a persistent GPU mesh handle for direct rendering.
+/// The unified render system draws this via `draw_persistent_colored_mesh`,
+/// using a pre-uploaded GPU buffer instead of re-uploading vertices each frame.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PersistentColorMesh(pub crate::renderer::GpuMeshHandle);
+
 impl Deref for ColorMesh {
     type Target = TessellatedColorMesh;
     fn deref(&self) -> &Self::Target {

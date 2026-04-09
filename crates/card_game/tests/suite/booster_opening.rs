@@ -16,6 +16,8 @@ fn when_opening_advances_then_phases_progress_in_order() {
         cards,
         Vec2::new(100.0, 200.0),
         Vec2::ZERO,
+        0.5,                   // start_rotation
+        Vec2::new(50.0, 50.0), // camera_start_pos
     );
 
     // Act & Assert — walk through each phase
@@ -40,7 +42,8 @@ fn when_opening_advances_then_phases_progress_in_order() {
         opening.advance(0.6);
     }
     assert!(matches!(opening.phase, BoosterOpenPhase::Completing { .. }));
-    opening.advance(0.4);
+    // Completing needs enough time for the last card's fan animation too
+    opening.advance(1.0);
     assert!(matches!(opening.phase, BoosterOpenPhase::Done));
 }
 
@@ -55,6 +58,8 @@ fn when_opening_reveals_cards_then_card_index_advances() {
         Entity::PLACEHOLDER,
         cards,
         Vec2::new(100.0, 200.0),
+        Vec2::ZERO,
+        0.0,
         Vec2::ZERO,
     );
 
@@ -85,6 +90,8 @@ fn when_fan_position_then_spread_around_original() {
         Entity::PLACEHOLDER,
         vec![],
         Vec2::new(100.0, 100.0),
+        Vec2::ZERO,
+        0.0,
         Vec2::ZERO,
     );
 

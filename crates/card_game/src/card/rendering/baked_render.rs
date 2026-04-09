@@ -1,68 +1,48 @@
-use bevy_ecs::prelude::{Query, ResMut};
-use engine_render::material::apply_material;
-use engine_render::prelude::RendererRes;
-use engine_render::shape::{MeshOverlays, affine2_to_mat4};
-use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D};
+use bevy_ecs::prelude::{Commands, Entity, Query, With, Without};
+use engine_render::shape::{MeshOverlays, PersistentColorMesh};
 
 use super::gpu_card_mesh::GpuCardMesh;
 use crate::card::component::Card;
 use crate::card::component::CardItemForm;
 
-/// Draws cards that have a `GpuCardMesh` component using persistent GPU buffers.
-/// Cards with `CardItemForm` are skipped — they are rendered as stash grid slots,
-/// not as full-size world cards. Cards with `EffectiveVisibility(false)` are also skipped.
+/// Keeps the `PersistentColorMesh` handle in sync with the card's face-up state
+/// and manages overlay visibility for front-only overlays. This replaces the old
+/// `baked_card_render_system` — cards now render through `unified_render_system`
+/// via `PersistentColorMesh`, participating in proper `SortOrder`-based z-sorting.
 #[allow(clippy::type_complexity)]
-pub fn baked_card_render_system(
-    query: Query<(
-        &Card,
-        &GpuCardMesh,
-        &GlobalTransform2D,
-        Option<&EffectiveVisibility>,
-        Option<&MeshOverlays>,
-        Option<&CardItemForm>,
-    )>,
-    mut renderer: ResMut<RendererRes>,
+pub fn sync_card_persistent_mesh(
+    mut active: Query<
+        (
+            &Card,
+            &GpuCardMesh,
+            &mut PersistentColorMesh,
+            Option<&mut MeshOverlays>,
+        ),
+        Without<CardItemForm>,
+    >,
+    needs_pcm: Query<
+        (Entity, &Card, &GpuCardMesh),
+        (Without<PersistentColorMesh>, Without<CardItemForm>),
+    >,
+    remove_pcm: Query<Entity, (With<PersistentColorMesh>, With<CardItemForm>)>,
+    mut commands: Commands,
 ) {
-    let mut last_shader = None;
-    let mut last_blend_mode = None;
-
-    for (card, gpu_mesh, transform, vis, overlays, item_form) in query.iter() {
-        if item_form.is_some() {
-            continue;
-        }
-        if vis.is_some_and(|v| !v.0) {
-            continue;
-        }
-        apply_material(
-            &mut **renderer,
-            None,
-            &mut last_shader,
-            &mut last_blend_mode,
-        );
-        let model = affine2_to_mat4(&transform.0);
-        let handle = if card.face_up {
-            gpu_mesh.front
-        } else {
-            gpu_mesh.back
-        };
-        renderer.draw_persistent_colored_mesh(handle, model);
-
-        if let Some(overlays) = overlays {
-            for entry in &overlays.0 {
-                if !entry.visible {
-                    continue;
+    for (card, gpu, mut pcm, overlays) in &mut active {
+        let target = if card.face_up { gpu.front } else { gpu.back };
+        pcm.0 = target;
+        if let Some(mut overlays) = overlays {
+            for entry in &mut overlays.0 {
+                if entry.front_only {
+                    entry.visible = card.face_up;
                 }
-                if entry.front_only && !card.face_up {
-                    continue;
-                }
-                apply_material(
-                    &mut **renderer,
-                    Some(&entry.material),
-                    &mut last_shader,
-                    &mut last_blend_mode,
-                );
-                renderer.draw_colored_mesh(&entry.mesh.vertices, &entry.mesh.indices, model);
             }
         }
+    }
+    for (entity, card, gpu) in &needs_pcm {
+        let handle = if card.face_up { gpu.front } else { gpu.back };
+        commands.entity(entity).insert(PersistentColorMesh(handle));
+    }
+    for entity in &remove_pcm {
+        commands.entity(entity).remove::<PersistentColorMesh>();
     }
 }

@@ -7,8 +7,8 @@ mod tessellate;
 
 pub use cache::{CachedMesh, mesh_cache_system};
 pub use components::{
-    ColorMesh, ColorVertex, MeshOverlays, OverlayEntry, Shape, ShapeVariant, Stroke,
-    TessellatedColorMesh, TessellatedMesh,
+    ColorMesh, ColorVertex, MeshOverlays, OverlayEntry, PersistentColorMesh, Shape, ShapeVariant,
+    Stroke, TessellatedColorMesh, TessellatedMesh,
 };
 pub use geometry::{
     QUAD_INDICES, UNIT_QUAD, rect_polygon, rect_vertices, rounded_rect_path, unit_quad_model,

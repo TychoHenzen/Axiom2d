@@ -6,8 +6,8 @@ use engine_render::font::{GlyphCache, measure_text, render_text_transformed, wra
 use engine_render::material::{Material2d, apply_material};
 use engine_render::prelude::RendererRes;
 use engine_render::shape::{
-    CachedMesh, ColorMesh, MeshOverlays, Shape, Stroke, affine2_to_mat4, is_shape_culled,
-    tessellate, tessellate_stroke,
+    CachedMesh, ColorMesh, MeshOverlays, PersistentColorMesh, Shape, Stroke, affine2_to_mat4,
+    is_shape_culled, tessellate, tessellate_stroke,
 };
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
@@ -47,11 +47,23 @@ type ColorMeshItem<'w> = (
     Option<&'w MeshOverlays>,
 );
 
+type PersistentMeshItem<'w> = (
+    Entity,
+    &'w PersistentColorMesh,
+    &'w GlobalTransform2D,
+    Option<&'w RenderLayer>,
+    Option<&'w SortOrder>,
+    Option<&'w EffectiveVisibility>,
+    Option<&'w MeshOverlays>,
+    Option<&'w Material2d>,
+);
+
 #[derive(Clone, Copy)]
 enum DrawKind {
     Shape,
     Text,
     ColorMesh,
+    PersistentMesh,
 }
 
 struct SortedDrawItem {
@@ -64,6 +76,7 @@ fn collect_draw_items(
     shape_query: &Query<ShapeItem>,
     text_query: &Query<TextItem>,
     color_mesh_query: &Query<ColorMeshItem>,
+    persistent_mesh_query: &Query<PersistentMeshItem>,
 ) -> Vec<SortedDrawItem> {
     let mut items: Vec<SortedDrawItem> = Vec::new();
     for (entity, _, _, layer, sort, vis, _, _, _) in shape_query.iter() {
@@ -105,6 +118,19 @@ fn collect_draw_items(
             kind: DrawKind::ColorMesh,
         });
     }
+    for (entity, _, _, layer, sort, vis, _, _) in persistent_mesh_query.iter() {
+        if vis.is_some_and(|v| !v.0) {
+            continue;
+        }
+        items.push(SortedDrawItem {
+            entity,
+            sort_key: (
+                layer.copied().unwrap_or(RenderLayer::World),
+                sort.copied().unwrap_or_default(),
+            ),
+            kind: DrawKind::PersistentMesh,
+        });
+    }
     items.sort_by_key(|item| item.sort_key);
     items
 }
@@ -115,6 +141,7 @@ pub fn unified_render_system(
     shape_query: Query<ShapeItem>,
     text_query: Query<TextItem>,
     color_mesh_query: Query<ColorMeshItem>,
+    persistent_mesh_query: Query<PersistentMeshItem>,
     camera_query: Query<(&Camera2D, Option<&CameraRotation>)>,
     mut renderer: ResMut<RendererRes>,
     mut cache: Local<GlyphCache>,
@@ -123,7 +150,12 @@ pub fn unified_render_system(
     let view_rect = compute_view_rect(&camera_query, &renderer);
 
     let t_sort = std::time::Instant::now();
-    let items = collect_draw_items(&shape_query, &text_query, &color_mesh_query);
+    let items = collect_draw_items(
+        &shape_query,
+        &text_query,
+        &color_mesh_query,
+        &persistent_mesh_query,
+    );
     let sort_us = t_sort.elapsed().as_micros() as u64;
 
     let t_draw = std::time::Instant::now();
@@ -180,6 +212,31 @@ pub fn unified_render_system(
                 );
                 let model = affine2_to_mat4(&transform.0);
                 renderer.draw_colored_mesh(&mesh.vertices, &mesh.indices, model);
+                if let Some(overlays) = overlays {
+                    for entry in overlays.0.iter().filter(|e| e.visible) {
+                        apply_material(
+                            &mut **renderer,
+                            Some(&entry.material),
+                            &mut last_shader,
+                            &mut last_blend_mode,
+                        );
+                        renderer.draw_colored_mesh(
+                            &entry.mesh.vertices,
+                            &entry.mesh.indices,
+                            model,
+                        );
+                    }
+                }
+            }
+            DrawKind::PersistentMesh => {
+                let Ok((_, pcm, transform, _, _, _, overlays, mat)) =
+                    persistent_mesh_query.get(item.entity)
+                else {
+                    continue;
+                };
+                apply_material(&mut **renderer, mat, &mut last_shader, &mut last_blend_mode);
+                let model = affine2_to_mat4(&transform.0);
+                renderer.draw_persistent_colored_mesh(pcm.0, model);
                 if let Some(overlays) = overlays {
                     for entry in overlays.0.iter().filter(|e| e.visible) {
                         apply_material(
