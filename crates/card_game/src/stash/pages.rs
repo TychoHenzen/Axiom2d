@@ -3,6 +3,9 @@ use engine_core::color::Color;
 use engine_input::prelude::MouseState;
 use engine_render::font::measure_text;
 use engine_render::prelude::{Camera2D, RendererRes, screen_to_world};
+use engine_render::shape::TessellatedMesh;
+use engine_scene::prelude::{RenderLayer, SortOrder};
+use engine_ui::draw_command::{DrawCommand, DrawQueue};
 use glam::Vec2;
 
 use crate::stash::constants::{
@@ -38,7 +41,9 @@ const TAB_LABEL_COLOR: Color = Color {
 };
 
 fn draw_centered_screen_text(
-    renderer: &mut dyn engine_render::renderer::Renderer,
+    queue: &mut DrawQueue,
+    layer: RenderLayer,
+    order: SortOrder,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -55,12 +60,16 @@ fn draw_centered_screen_text(
         viewport_w,
         viewport_h,
     );
-    renderer.draw_text(
-        text,
-        world_pos.x,
-        world_pos.y,
-        font_size / camera.zoom,
-        color,
+    queue.push(
+        layer,
+        order,
+        DrawCommand::RawText {
+            text: text.to_owned(),
+            x: world_pos.x,
+            y: world_pos.y,
+            font_size: font_size / camera.zoom,
+            color,
+        },
     );
 }
 
@@ -144,7 +153,8 @@ pub fn stash_tab_render_system(
     grid: Res<StashGrid>,
     visible: Res<StashVisible>,
     camera_query: Query<&Camera2D>,
-    mut renderer: ResMut<RendererRes>,
+    renderer: Res<RendererRes>,
+    mut draw_queue: ResMut<DrawQueue>,
 ) {
     if !visible.0 {
         return;
@@ -170,11 +180,19 @@ pub fn stash_tab_render_system(
         let tab_w = TAB_WIDTH / camera.zoom;
         let tab_h = TAB_HEIGHT / camera.zoom;
         let verts = rect_vertices(origin.x, origin.y, tab_w, tab_h);
-        renderer.draw_shape(
-            &verts,
-            &QUAD_INDICES,
-            color,
-            engine_render::prelude::IDENTITY_MODEL,
+        draw_queue.push(
+            RenderLayer::UI,
+            SortOrder::new(500),
+            DrawCommand::Shape {
+                mesh: TessellatedMesh {
+                    vertices: verts.to_vec(),
+                    indices: QUAD_INDICES.to_vec(),
+                },
+                color,
+                model: engine_render::prelude::IDENTITY_MODEL,
+                material: None,
+                stroke: None,
+            },
         );
 
         let label = match i {
@@ -184,7 +202,9 @@ pub fn stash_tab_render_system(
         };
         let label_font = 12.0;
         draw_centered_screen_text(
-            &mut **renderer,
+            &mut draw_queue,
+            RenderLayer::UI,
+            SortOrder::new(501),
             &camera,
             vw,
             vh,

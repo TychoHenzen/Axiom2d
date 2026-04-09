@@ -39,9 +39,14 @@ fn run_tab_click_system(world: &mut World) {
 }
 
 fn run_store_render_system(world: &mut World) {
+    world.insert_resource(engine_ui::draw_command::DrawQueue::default());
     let mut schedule = Schedule::default();
     schedule.add_systems(card_game::stash::store::store_render_system);
     schedule.run(world);
+    // Drain the DrawQueue through unified_render to produce spy draw_text calls
+    let mut render_schedule = Schedule::default();
+    render_schedule.add_systems(engine_ui::unified_render::unified_render_system);
+    render_schedule.run(world);
 }
 
 fn make_store_world() -> World {

@@ -320,6 +320,15 @@ fn draw_commands(
                 );
                 renderer.draw_sprite(*rect, *uv_rect);
             }
+            DrawCommand::RawText {
+                text,
+                x,
+                y,
+                font_size,
+                color,
+            } => {
+                renderer.draw_text(text, *x, *y, *font_size, *color);
+            }
         }
     }
 }

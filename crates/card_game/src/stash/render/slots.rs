@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 
 use engine_core::color::Color;
+use engine_render::material::Material2d;
 use engine_render::prelude::{
     Camera2D, QUAD_INDICES, ShaderHandle, UNIT_QUAD, screen_to_world, unit_quad_model,
 };
+use engine_render::shape::TessellatedMesh;
+use engine_scene::prelude::{RenderLayer, SortOrder};
+use engine_ui::draw_command::{DrawCommand, DrawQueue};
 use glam::Vec2;
 
 use crate::card::rendering::baked_mesh::BakedCardMesh;
@@ -16,7 +20,9 @@ use crate::stash::grid::StashGrid;
 use bevy_ecs::prelude::Entity;
 
 pub(super) fn draw_slots(
-    renderer: &mut dyn engine_render::prelude::Renderer,
+    queue: &mut DrawQueue,
+    layer: RenderLayer,
+    order: SortOrder,
     camera: &Camera2D,
     vw: f32,
     vh: f32,
@@ -45,19 +51,54 @@ pub(super) fn draw_slots(
                 if let Some(baked) = baked_meshes.get(&entity) {
                     let model =
                         super::models::miniature_card_model(camera.zoom, center.x, center.y);
-                    renderer.set_shader(ShaderHandle(0));
-                    renderer.draw_colored_mesh(&baked.front.vertices, &baked.front.indices, model);
+                    queue.push(
+                        layer,
+                        order,
+                        DrawCommand::ColorMesh {
+                            mesh: baked.front.clone(),
+                            model,
+                            material: None,
+                            overlays: vec![],
+                        },
+                    );
                 } else {
                     let color = icon_colors.get(&entity).copied().unwrap_or(SLOT_COLOR);
                     if let Some(art) = renderer_art_shader {
-                        renderer.set_shader(art);
                         let model = art_quad_model(world_slot_w, world_slot_h, center.x, center.y);
-                        renderer.draw_shape(&ART_QUAD, &QUAD_INDICES, color, model);
+                        queue.push(
+                            layer,
+                            order,
+                            DrawCommand::Shape {
+                                mesh: TessellatedMesh {
+                                    vertices: ART_QUAD.to_vec(),
+                                    indices: QUAD_INDICES.to_vec(),
+                                },
+                                color,
+                                model,
+                                material: Some(Material2d {
+                                    shader: art,
+                                    ..Material2d::default()
+                                }),
+                                stroke: None,
+                            },
+                        );
                     } else {
                         let model = unit_quad_model(world_slot_w, world_slot_h, center.x, center.y);
-                        renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, color, model);
+                        queue.push(
+                            layer,
+                            order,
+                            DrawCommand::Shape {
+                                mesh: TessellatedMesh {
+                                    vertices: UNIT_QUAD.to_vec(),
+                                    indices: QUAD_INDICES.to_vec(),
+                                },
+                                color,
+                                model,
+                                material: None,
+                                stroke: None,
+                            },
+                        );
                     }
-                    renderer.set_shader(ShaderHandle(0));
                 }
             } else {
                 let slot_color = if highlight_slot == Some((col, row)) {
@@ -66,7 +107,20 @@ pub(super) fn draw_slots(
                     SLOT_COLOR
                 };
                 let model = unit_quad_model(world_slot_w, world_slot_h, center.x, center.y);
-                renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, slot_color, model);
+                queue.push(
+                    layer,
+                    order,
+                    DrawCommand::Shape {
+                        mesh: TessellatedMesh {
+                            vertices: UNIT_QUAD.to_vec(),
+                            indices: QUAD_INDICES.to_vec(),
+                        },
+                        color: slot_color,
+                        model,
+                        material: None,
+                        stroke: None,
+                    },
+                );
             }
         }
     }

@@ -48,6 +48,13 @@ pub enum DrawCommand {
         uv_rect: [f32; 4],
         material: Option<Material2d>,
     },
+    RawText {
+        text: String,
+        x: f32,
+        y: f32,
+        font_size: f32,
+        color: Color,
+    },
 }
 
 pub struct SortedDrawCommand {

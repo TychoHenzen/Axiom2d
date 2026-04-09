@@ -2,6 +2,8 @@ use bevy_ecs::prelude::{Entity, Local, Query, Res, ResMut, Resource};
 use engine_core::prelude::DeltaTime;
 use engine_input::prelude::{InputState, KeyCode, MouseState};
 use engine_render::prelude::{Camera2D, RendererRes, resolve_viewport_camera, screen_to_world};
+use engine_scene::prelude::{RenderLayer, SortOrder};
+use engine_ui::draw_command::{DrawCommand, DrawQueue, OverlayCommand};
 use glam::Vec2;
 
 use crate::card::interaction::drag_state::DragState;
@@ -10,7 +12,6 @@ use crate::card::rendering::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
 use crate::stash::constants::{GRID_MARGIN, SLOT_STRIDE_H};
 use crate::stash::grid::{StashGrid, find_stash_slot_at};
 use crate::stash::toggle::StashVisible;
-use engine_render::material::apply_material;
 use engine_render::shape::MeshOverlays;
 
 pub const ORBIT_PERIOD_X: f32 = 3.8;
@@ -68,7 +69,8 @@ pub fn stash_hover_preview_render_system(
     dt: Res<DeltaTime>,
     camera_query: Query<&Camera2D>,
     baked_query: Query<(&BakedCardMesh, Option<&MeshOverlays>)>,
-    mut renderer: ResMut<RendererRes>,
+    renderer: Res<RendererRes>,
+    mut draw_queue: ResMut<DrawQueue>,
     mut elapsed: Local<f32>,
 ) {
     *elapsed += dt.0.0;
@@ -104,25 +106,43 @@ pub fn stash_hover_preview_render_system(
             [0.0, 0.0, 1.0, 0.0],
             [preview_center.x, preview_center.y, 0.0, 1.0],
         ];
-        renderer.set_shader(engine_render::prelude::ShaderHandle(0));
-        renderer.draw_colored_mesh(&baked.front.vertices, &baked.front.indices, model);
-        if let Some(overlays) = overlays {
+
+        // Build overlay commands with modified uniforms for fake pointer
+        let overlay_cmds = if let Some(overlays) = overlays {
             let half_w_world = preview_screen_w / (2.0 * camera.zoom);
             let half_h_world = preview_screen_h / (2.0 * camera.zoom);
             let orbit = lissajous_offset(*elapsed, half_w_world, half_h_world);
             let fake_ptr = preview_center + orbit;
 
-            for entry in &overlays.0 {
-                apply_material(&mut **renderer, Some(&entry.material), &mut None, &mut None);
-                if entry.material.uniforms.len() >= 16 {
-                    let mut uniforms = entry.material.uniforms.clone();
-                    uniforms[8..12].copy_from_slice(&fake_ptr.x.to_le_bytes());
-                    uniforms[12..16].copy_from_slice(&fake_ptr.y.to_le_bytes());
-                    renderer.set_material_uniforms(&uniforms);
-                }
-                renderer.draw_colored_mesh(&entry.mesh.vertices, &entry.mesh.indices, model);
-            }
-            renderer.set_shader(engine_render::prelude::ShaderHandle(0));
-        }
+            overlays
+                .0
+                .iter()
+                .filter(|e| e.visible)
+                .map(|entry| {
+                    let mut mat = entry.material.clone();
+                    if mat.uniforms.len() >= 16 {
+                        mat.uniforms[8..12].copy_from_slice(&fake_ptr.x.to_le_bytes());
+                        mat.uniforms[12..16].copy_from_slice(&fake_ptr.y.to_le_bytes());
+                    }
+                    OverlayCommand {
+                        mesh: entry.mesh.clone(),
+                        material: mat,
+                    }
+                })
+                .collect()
+        } else {
+            vec![]
+        };
+
+        draw_queue.push(
+            RenderLayer::UI,
+            SortOrder::new(400),
+            DrawCommand::ColorMesh {
+                mesh: baked.front.clone(),
+                model,
+                material: None,
+                overlays: overlay_cmds,
+            },
+        );
     }
 }

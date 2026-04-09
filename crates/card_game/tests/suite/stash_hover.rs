@@ -23,9 +23,14 @@ fn run_system(world: &mut World) {
 }
 
 fn run_render_system(world: &mut World) {
+    world.insert_resource(engine_ui::draw_command::DrawQueue::default());
     let mut schedule = Schedule::default();
     schedule.add_systems(stash_hover_preview_render_system);
     schedule.run(world);
+    // Drain the DrawQueue through unified_render to produce spy draw calls
+    let mut render_schedule = Schedule::default();
+    render_schedule.add_systems(engine_ui::unified_render::unified_render_system);
+    render_schedule.run(world);
 }
 
 fn make_world_with_occupied_slot() -> (World, Entity) {

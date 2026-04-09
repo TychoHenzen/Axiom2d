@@ -1,9 +1,11 @@
 use bevy_ecs::prelude::{Query, Res, ResMut};
 use engine_core::color::Color;
 use engine_render::prelude::{
-    Camera2D, QUAD_INDICES, RendererRes, UNIT_QUAD, resolve_viewport_camera, screen_to_world,
-    unit_quad_model,
+    Camera2D, RendererRes, resolve_viewport_camera, screen_to_world, unit_quad_model,
 };
+use engine_render::shape::TessellatedMesh;
+use engine_scene::prelude::{RenderLayer, SortOrder};
+use engine_ui::draw_command::{DrawCommand, DrawQueue};
 
 use glam::Vec2;
 
@@ -21,7 +23,8 @@ pub(crate) const HAND_ZONE_GLOW_COLOR: Color = Color {
 pub fn hand_drop_zone_render_system(
     drag_state: Res<DragState>,
     camera_query: Query<&Camera2D>,
-    mut renderer: ResMut<RendererRes>,
+    renderer: Res<RendererRes>,
+    mut draw_queue: ResMut<DrawQueue>,
 ) {
     if drag_state.dragging.is_none() {
         return;
@@ -39,5 +42,18 @@ pub fn hand_drop_zone_render_system(
     let cy = (top_left.y + bottom_right.y) * 0.5;
 
     let model = unit_quad_model(width, height, cx, cy);
-    renderer.draw_shape(&UNIT_QUAD, &QUAD_INDICES, HAND_ZONE_GLOW_COLOR, model);
+    draw_queue.push(
+        RenderLayer::UI,
+        SortOrder::new(0),
+        DrawCommand::Shape {
+            mesh: TessellatedMesh {
+                vertices: engine_render::prelude::UNIT_QUAD.to_vec(),
+                indices: engine_render::prelude::QUAD_INDICES.to_vec(),
+            },
+            color: HAND_ZONE_GLOW_COLOR,
+            model,
+            material: None,
+            stroke: None,
+        },
+    );
 }

@@ -3,12 +3,13 @@ use engine_core::color::Color;
 use engine_core::prelude::EventBus;
 use engine_core::prelude::Transform2D;
 use engine_input::prelude::{MouseButton, MouseState};
-use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
 use engine_render::font::measure_text;
 use engine_render::prelude::{
     Camera2D, QUAD_INDICES, RendererRes, rect_vertices, resolve_viewport_camera, screen_to_world,
 };
-use engine_scene::render_order::RenderLayer;
+use engine_render::shape::TessellatedMesh;
+use engine_scene::prelude::{RenderLayer, SortOrder};
+use engine_ui::draw_command::{DrawCommand, DrawQueue};
 use glam::Vec2;
 
 use crate::booster::device::{
@@ -29,6 +30,7 @@ use crate::stash::grid::StashGrid;
 use crate::stash::pages::stash_ui_contains;
 use crate::stash::toggle::StashVisible;
 use engine_core::scale_spring::ScaleSpring;
+use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
 use engine_scene::prelude::ChildOf;
 
 pub const STORE_STARTING_COINS: u32 = 100;
@@ -244,7 +246,9 @@ fn store_item_layout(grid_width: u8, item_count: usize, index: usize) -> (f32, f
 }
 
 fn draw_screen_rect(
-    renderer: &mut dyn engine_render::renderer::Renderer,
+    queue: &mut DrawQueue,
+    layer: RenderLayer,
+    order: SortOrder,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -261,16 +265,26 @@ fn draw_screen_rect(
         width / camera.zoom,
         height / camera.zoom,
     );
-    renderer.draw_shape(
-        &verts,
-        &QUAD_INDICES,
-        color,
-        engine_render::prelude::IDENTITY_MODEL,
+    queue.push(
+        layer,
+        order,
+        DrawCommand::Shape {
+            mesh: TessellatedMesh {
+                vertices: verts.to_vec(),
+                indices: QUAD_INDICES.to_vec(),
+            },
+            color,
+            model: engine_render::prelude::IDENTITY_MODEL,
+            material: None,
+            stroke: None,
+        },
     );
 }
 
 fn draw_centered_screen_text(
-    renderer: &mut dyn engine_render::renderer::Renderer,
+    queue: &mut DrawQueue,
+    layer: RenderLayer,
+    order: SortOrder,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -287,17 +301,23 @@ fn draw_centered_screen_text(
         viewport_w,
         viewport_h,
     );
-    renderer.draw_text(
-        text,
-        world_pos.x,
-        world_pos.y,
-        font_size / camera.zoom,
-        color,
+    queue.push(
+        layer,
+        order,
+        DrawCommand::RawText {
+            text: text.to_owned(),
+            x: world_pos.x,
+            y: world_pos.y,
+            font_size: font_size / camera.zoom,
+            color,
+        },
     );
 }
 
 fn draw_reader_preview(
-    renderer: &mut dyn engine_render::renderer::Renderer,
+    queue: &mut DrawQueue,
+    layer: RenderLayer,
+    order: SortOrder,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -305,7 +325,9 @@ fn draw_reader_preview(
     top: f32,
 ) {
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -316,7 +338,9 @@ fn draw_reader_preview(
         STORE_PREVIEW_DARK,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -327,7 +351,9 @@ fn draw_reader_preview(
         STORE_PREVIEW_MID,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -340,7 +366,9 @@ fn draw_reader_preview(
 }
 
 fn draw_screen_preview(
-    renderer: &mut dyn engine_render::renderer::Renderer,
+    queue: &mut DrawQueue,
+    layer: RenderLayer,
+    order: SortOrder,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -348,7 +376,9 @@ fn draw_screen_preview(
     top: f32,
 ) {
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -359,7 +389,9 @@ fn draw_screen_preview(
         STORE_PREVIEW_DARK,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -370,7 +402,9 @@ fn draw_screen_preview(
         STORE_PREVIEW_MID,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -381,7 +415,9 @@ fn draw_screen_preview(
         STORE_PREVIEW_LIGHT,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -392,7 +428,9 @@ fn draw_screen_preview(
         STORE_PREVIEW_LIGHT,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -403,7 +441,9 @@ fn draw_screen_preview(
         STORE_PREVIEW_LIGHT,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -416,7 +456,9 @@ fn draw_screen_preview(
 }
 
 fn draw_combiner_preview(
-    renderer: &mut dyn engine_render::renderer::Renderer,
+    queue: &mut DrawQueue,
+    layer: RenderLayer,
+    order: SortOrder,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -424,7 +466,9 @@ fn draw_combiner_preview(
     top: f32,
 ) {
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -435,7 +479,9 @@ fn draw_combiner_preview(
         STORE_PREVIEW_DARK,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -446,7 +492,9 @@ fn draw_combiner_preview(
         STORE_PREVIEW_LIGHT,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -457,7 +505,9 @@ fn draw_combiner_preview(
         STORE_PREVIEW_LIGHT,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -468,7 +518,9 @@ fn draw_combiner_preview(
         STORE_PREVIEW_LIGHT,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -481,7 +533,9 @@ fn draw_combiner_preview(
 }
 
 fn draw_booster_preview(
-    renderer: &mut dyn engine_render::renderer::Renderer,
+    queue: &mut DrawQueue,
+    layer: RenderLayer,
+    order: SortOrder,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -489,7 +543,9 @@ fn draw_booster_preview(
     top: f32,
 ) {
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -500,7 +556,9 @@ fn draw_booster_preview(
         STORE_PREVIEW_DARK,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -513,7 +571,9 @@ fn draw_booster_preview(
 }
 
 fn draw_store_item(
-    renderer: &mut dyn engine_render::renderer::Renderer,
+    queue: &mut DrawQueue,
+    layer: RenderLayer,
+    order: SortOrder,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -522,7 +582,9 @@ fn draw_store_item(
     top: f32,
 ) {
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -533,7 +595,9 @@ fn draw_store_item(
         STORE_PANEL_FILL,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -544,7 +608,9 @@ fn draw_store_item(
         STORE_HIGHLIGHT_COLOR,
     );
     draw_screen_rect(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -557,22 +623,32 @@ fn draw_store_item(
 
     match item {
         StoreItemKind::Reader => {
-            draw_reader_preview(renderer, camera, viewport_w, viewport_h, left, top);
+            draw_reader_preview(
+                queue, layer, order, camera, viewport_w, viewport_h, left, top,
+            );
         }
         StoreItemKind::Screen => {
-            draw_screen_preview(renderer, camera, viewport_w, viewport_h, left, top);
+            draw_screen_preview(
+                queue, layer, order, camera, viewport_w, viewport_h, left, top,
+            );
         }
         StoreItemKind::Combiner => {
-            draw_combiner_preview(renderer, camera, viewport_w, viewport_h, left, top);
+            draw_combiner_preview(
+                queue, layer, order, camera, viewport_w, viewport_h, left, top,
+            );
         }
         StoreItemKind::BoosterMachine => {
-            draw_booster_preview(renderer, camera, viewport_w, viewport_h, left, top);
+            draw_booster_preview(
+                queue, layer, order, camera, viewport_w, viewport_h, left, top,
+            );
         }
     }
 
     let center_x = left + STORE_ITEM_WIDTH * 0.5;
     draw_centered_screen_text(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -583,7 +659,9 @@ fn draw_store_item(
         STORE_TEXT_COLOR,
     );
     draw_centered_screen_text(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -653,7 +731,9 @@ fn spawn_booster_purchase(world: &mut World, position: Vec2) -> Entity {
 }
 
 pub(crate) fn render_store_page(
-    renderer: &mut dyn engine_render::renderer::Renderer,
+    queue: &mut DrawQueue,
+    layer: RenderLayer,
+    order: SortOrder,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -662,7 +742,9 @@ pub(crate) fn render_store_page(
     catalog: &StoreCatalog,
 ) {
     draw_centered_screen_text(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -673,7 +755,9 @@ pub(crate) fn render_store_page(
         STORE_TEXT_COLOR,
     );
     draw_centered_screen_text(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -684,7 +768,9 @@ pub(crate) fn render_store_page(
         STORE_TEXT_COLOR,
     );
     draw_centered_screen_text(
-        renderer,
+        queue,
+        layer,
+        order,
         camera,
         viewport_w,
         viewport_h,
@@ -698,7 +784,9 @@ pub(crate) fn render_store_page(
     let items = catalog.items();
     for (index, item) in items.iter().copied().enumerate() {
         let (left, top) = store_item_layout(grid.width(), items.len(), index);
-        draw_store_item(renderer, camera, viewport_w, viewport_h, item, left, top);
+        draw_store_item(
+            queue, layer, order, camera, viewport_w, viewport_h, item, left, top,
+        );
     }
 }
 
@@ -988,7 +1076,8 @@ pub fn store_render_system(
     wallet: Res<StoreWallet>,
     catalog: Res<StoreCatalog>,
     camera_query: Query<&Camera2D>,
-    mut renderer: ResMut<RendererRes>,
+    renderer: Res<RendererRes>,
+    mut draw_queue: ResMut<DrawQueue>,
 ) {
     if !visible.0 || !grid.is_store_page() {
         return;
@@ -997,7 +1086,17 @@ pub fn store_render_system(
     let Some((vw, vh, camera)) = resolve_viewport_camera(&renderer, &camera_query) else {
         return;
     };
-    render_store_page(&mut **renderer, &camera, vw, vh, &grid, &wallet, &catalog);
+    render_store_page(
+        &mut draw_queue,
+        RenderLayer::UI,
+        SortOrder::new(200),
+        &camera,
+        vw,
+        vh,
+        &grid,
+        &wallet,
+        &catalog,
+    );
 }
 
 pub fn store_item_screen_bounds(

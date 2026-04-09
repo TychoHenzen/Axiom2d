@@ -12,9 +12,14 @@ use card_game::card::interaction::drag_state::{DragInfo, DragState};
 use card_game::card::rendering::drop_zone_glow::hand_drop_zone_render_system;
 
 fn run_system(world: &mut World) {
+    world.insert_resource(engine_ui::draw_command::DrawQueue::default());
     let mut schedule = Schedule::default();
     schedule.add_systems(hand_drop_zone_render_system);
     schedule.run(world);
+    // Drain the DrawQueue through unified_render to produce spy draw calls
+    let mut render_schedule = Schedule::default();
+    render_schedule.add_systems(engine_ui::unified_render::unified_render_system);
+    render_schedule.run(world);
 }
 
 fn make_world_with_spy(viewport_w: u32, viewport_h: u32) -> (World, ShapeCallLog) {

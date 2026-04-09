@@ -4,6 +4,9 @@ use bevy_ecs::prelude::{Entity, Query, Res, ResMut};
 use bevy_ecs::system::SystemParam;
 use engine_core::color::Color;
 use engine_render::prelude::{Camera2D, QUAD_INDICES, RendererRes, rect_vertices, screen_to_world};
+use engine_render::shape::TessellatedMesh;
+use engine_scene::prelude::{RenderLayer, SortOrder};
+use engine_ui::draw_command::{DrawCommand, DrawQueue};
 use glam::Vec2;
 
 use crate::card::component::Card;
@@ -34,13 +37,12 @@ pub struct StashRenderParams<'w> {
     catalog: Option<Res<'w, StoreCatalog>>,
 }
 
-pub(crate) use helpers::reset_default_shader;
-
 pub fn stash_render_system(
     params: StashRenderParams,
     card_query: Query<(Entity, &Card, Option<&BakedCardMesh>)>,
     camera_query: Query<&Camera2D>,
-    mut renderer: ResMut<RendererRes>,
+    renderer: Res<RendererRes>,
+    mut draw_queue: ResMut<DrawQueue>,
 ) {
     let renderer_art_shader = params.art_shader.map(|s| s.0);
     if !params.visible.0 {
@@ -51,8 +53,6 @@ pub fn stash_render_system(
         return;
     };
 
-    reset_default_shader(&mut **renderer);
-
     let bg_screen_w = f32::from(params.grid.width()) * SLOT_STRIDE_W - SLOT_GAP;
     let bg_screen_h = f32::from(params.grid.height()) * SLOT_STRIDE_H - SLOT_GAP;
     let bg_origin = screen_to_world(Vec2::new(GRID_MARGIN, GRID_MARGIN), &camera, vw, vh);
@@ -62,17 +62,27 @@ pub fn stash_render_system(
         bg_screen_w / camera.zoom,
         bg_screen_h / camera.zoom,
     );
-    renderer.draw_shape(
-        &bg_verts,
-        &QUAD_INDICES,
-        BACKGROUND_COLOR,
-        engine_render::prelude::IDENTITY_MODEL,
+    draw_queue.push(
+        RenderLayer::UI,
+        SortOrder::new(100),
+        DrawCommand::Shape {
+            mesh: TessellatedMesh {
+                vertices: bg_verts.to_vec(),
+                indices: QUAD_INDICES.to_vec(),
+            },
+            color: BACKGROUND_COLOR,
+            model: engine_render::prelude::IDENTITY_MODEL,
+            material: None,
+            stroke: None,
+        },
     );
 
     if params.grid.is_store_page() {
         if let (Some(wallet), Some(catalog)) = (params.wallet, params.catalog) {
             render_store_page(
-                &mut **renderer,
+                &mut draw_queue,
+                RenderLayer::UI,
+                SortOrder::new(200),
                 &camera,
                 vw,
                 vh,
@@ -113,7 +123,9 @@ pub fn stash_render_system(
     };
 
     slots::draw_slots(
-        &mut **renderer,
+        &mut draw_queue,
+        RenderLayer::UI,
+        SortOrder::new(200),
         &camera,
         vw,
         vh,
@@ -128,7 +140,9 @@ pub fn stash_render_system(
     // Draw the dragged card's icon on top of the stash grid at the cursor position
     if let Some(info) = params.drag_state.dragging {
         drag_preview::draw_drag_preview(
-            &mut **renderer,
+            &mut draw_queue,
+            RenderLayer::UI,
+            SortOrder::new(300),
             &camera,
             &params.grid,
             info,
