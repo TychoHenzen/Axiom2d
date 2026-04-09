@@ -61,7 +61,6 @@ use engine_physics::prelude::physics_sync_system;
 use engine_render::prelude::{ClearColor, ShaderRegistry};
 use engine_scene::sort_propagation::hierarchy_sort_system;
 
-
 pub struct CardGamePlugin;
 
 impl Plugin for CardGamePlugin {
@@ -193,7 +192,12 @@ fn register_systems(app: &mut App) {
         )
         .add_systems(
             Phase::Render,
-            (stash_render_system, stash_tab_render_system, stash_hover_preview_render_system).chain(),
+            (
+                stash_render_system,
+                stash_tab_render_system,
+                stash_hover_preview_render_system,
+            )
+                .chain(),
         )
         .add_systems(Phase::Render, hand_drop_zone_render_system)
         .add_systems(Phase::LateUpdate, sync_card_persistent_mesh);

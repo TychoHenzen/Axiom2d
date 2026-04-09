@@ -5,7 +5,7 @@ use engine_core::types::Pixels;
 use engine_render::camera::{Camera2D, CameraRotation};
 use engine_render::culling::{aabb_intersects_view_rect, compute_view_rect};
 use engine_render::font::{GlyphCache, measure_text, render_text_transformed, wrap_text};
-use engine_render::material::{apply_material, BlendMode, Material2d};
+use engine_render::material::{BlendMode, Material2d, apply_material};
 use engine_render::prelude::RendererRes;
 use engine_render::rect::Rect;
 use engine_render::shader::ShaderHandle;
@@ -17,7 +17,9 @@ use engine_render::sprite::Sprite;
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 
-use crate::draw_command::{DrawCommand, DrawQueue, OverlayCommand, SortedDrawCommand, StrokeCommand};
+use crate::draw_command::{
+    DrawCommand, DrawQueue, OverlayCommand, SortedDrawCommand, StrokeCommand,
+};
 use crate::widget::Text;
 
 const LINE_HEIGHT_FACTOR: f32 = 1.3;
@@ -241,7 +243,12 @@ fn draw_commands(
                 material,
                 stroke,
             } => {
-                apply_material(renderer, material.as_ref(), &mut last_shader, &mut last_blend_mode);
+                apply_material(
+                    renderer,
+                    material.as_ref(),
+                    &mut last_shader,
+                    &mut last_blend_mode,
+                );
                 renderer.draw_shape(&mesh.vertices, &mesh.indices, *color, *model);
                 if let Some(s) = stroke {
                     renderer.draw_shape(&s.mesh.vertices, &s.mesh.indices, s.color, *model);
@@ -254,7 +261,9 @@ fn draw_commands(
                 max_width,
                 transform,
             } => {
-                draw_text(renderer, cache, content, *font_size, *color, *max_width, transform);
+                draw_text(
+                    renderer, cache, content, *font_size, *color, *max_width, transform,
+                );
             }
             DrawCommand::ColorMesh {
                 mesh,
@@ -262,9 +271,20 @@ fn draw_commands(
                 material,
                 overlays,
             } => {
-                apply_material(renderer, material.as_ref(), &mut last_shader, &mut last_blend_mode);
+                apply_material(
+                    renderer,
+                    material.as_ref(),
+                    &mut last_shader,
+                    &mut last_blend_mode,
+                );
                 renderer.draw_colored_mesh(&mesh.vertices, &mesh.indices, *model);
-                draw_overlays(renderer, overlays, *model, &mut last_shader, &mut last_blend_mode);
+                draw_overlays(
+                    renderer,
+                    overlays,
+                    *model,
+                    &mut last_shader,
+                    &mut last_blend_mode,
+                );
             }
             DrawCommand::PersistentMesh {
                 handle,
@@ -272,16 +292,32 @@ fn draw_commands(
                 material,
                 overlays,
             } => {
-                apply_material(renderer, material.as_ref(), &mut last_shader, &mut last_blend_mode);
+                apply_material(
+                    renderer,
+                    material.as_ref(),
+                    &mut last_shader,
+                    &mut last_blend_mode,
+                );
                 renderer.draw_persistent_colored_mesh(*handle, *model);
-                draw_overlays(renderer, overlays, *model, &mut last_shader, &mut last_blend_mode);
+                draw_overlays(
+                    renderer,
+                    overlays,
+                    *model,
+                    &mut last_shader,
+                    &mut last_blend_mode,
+                );
             }
             DrawCommand::Sprite {
                 rect,
                 uv_rect,
                 material,
             } => {
-                apply_material(renderer, material.as_ref(), &mut last_shader, &mut last_blend_mode);
+                apply_material(
+                    renderer,
+                    material.as_ref(),
+                    &mut last_shader,
+                    &mut last_blend_mode,
+                );
                 renderer.draw_sprite(*rect, *uv_rect);
             }
         }

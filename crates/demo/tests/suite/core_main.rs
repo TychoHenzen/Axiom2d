@@ -80,9 +80,7 @@ fn when_render_phase_runs_then_clear_before_camera_before_draw() {
         GlobalTransform2D(Affine2::from_translation(Vec2::new(400.0, 300.0))),
     ));
     let mut schedule = Schedule::default();
-    schedule.add_systems(
-        (clear_system, camera_prepare_system, unified_render_system).chain(),
-    );
+    schedule.add_systems((clear_system, camera_prepare_system, unified_render_system).chain());
 
     // Act
     schedule.run(&mut world);
