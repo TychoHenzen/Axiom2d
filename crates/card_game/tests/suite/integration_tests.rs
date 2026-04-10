@@ -22,7 +22,7 @@ use card_game::card::rendering::spawn_table_card::spawn_visual_card;
 use card_game::hand::Hand;
 use card_game::plugin::CardGamePlugin;
 use card_game::stash::toggle::StashVisible;
-use card_game::test_helpers::SpyPhysicsBackend;
+use crate::test_helpers::SpyPhysicsBackend;
 
 // ── Helpers ──────────────────────────────────────────────────────
 

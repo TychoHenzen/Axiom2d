@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Entity;
 use engine_core::prelude::Event;
 
@@ -11,3 +12,4 @@ pub enum UiEvent {
 }
 
 impl Event for UiEvent {}
+// EVOLVE-BLOCK-END

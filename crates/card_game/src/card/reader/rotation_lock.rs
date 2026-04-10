@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, ResMut, With};
 use engine_core::prelude::EventBus;
 use engine_physics::prelude::PhysicsCommand;
@@ -15,3 +16,4 @@ pub fn reader_rotation_lock_system(
         });
     }
 }
+// EVOLVE-BLOCK-END

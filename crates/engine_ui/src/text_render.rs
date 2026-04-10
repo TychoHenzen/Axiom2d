@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Local, Query, ResMut};
 use engine_render::font::{GlyphCache, measure_text, render_text_transformed, wrap_text};
 use engine_render::prelude::RendererRes;
@@ -56,3 +57,4 @@ pub fn text_render_system(
         }
     }
 }
+// EVOLVE-BLOCK-END

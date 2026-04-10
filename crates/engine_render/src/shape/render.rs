@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use glam::Vec2;
 
 use super::components::ShapeVariant;
@@ -25,3 +26,4 @@ pub fn is_shape_culled(pos: Vec2, variant: &ShapeVariant, view_rect: Option<(Vec
     let entity_max = Vec2::new(pos.x + r, pos.y + r);
     !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max)
 }
+// EVOLVE-BLOCK-END

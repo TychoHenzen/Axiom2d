@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Entity, World};
 use engine_core::prelude::{EventBus, TextureId, Transform2D};
 use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
@@ -144,3 +145,4 @@ pub fn spawn_visual_card(
 
     root
 }
+// EVOLVE-BLOCK-END

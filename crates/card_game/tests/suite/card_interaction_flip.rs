@@ -10,7 +10,7 @@ use card_game::card::component::{Card, CardZone};
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
 use card_game::card::interaction::flip::card_flip_system;
 use card_game::card::interaction::flip_animation::{FLIP_DURATION, FlipAnimation};
-use card_game::test_helpers::make_test_card;
+use crate::test_helpers::make_test_card;
 
 use super::helpers::default_card_collider;
 

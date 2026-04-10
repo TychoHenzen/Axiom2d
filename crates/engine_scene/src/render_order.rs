@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -32,3 +33,4 @@ impl SortOrder {
         self.0 = value;
     }
 }
+// EVOLVE-BLOCK-END

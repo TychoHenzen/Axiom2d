@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Commands, Entity, Query, With, Without};
 use engine_render::shape::{MeshOverlays, PersistentColorMesh};
 
@@ -46,3 +47,4 @@ pub fn sync_card_persistent_mesh(
         commands.entity(entity).remove::<PersistentColorMesh>();
     }
 }
+// EVOLVE-BLOCK-END

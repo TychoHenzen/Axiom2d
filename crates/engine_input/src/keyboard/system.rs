@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::ResMut;
 use engine_core::prelude::EventBus;
 
@@ -14,3 +15,4 @@ pub fn input_system(mut bus: ResMut<EventBus<KeyInputEvent>>, mut state: ResMut<
         }
     }
 }
+// EVOLVE-BLOCK-END

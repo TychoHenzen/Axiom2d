@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use engine_core::color::Color;
 
 use crate::rect::Rect;
@@ -668,3 +669,4 @@ impl Renderer for WgpuRenderer {
         }
     }
 }
+// EVOLVE-BLOCK-END

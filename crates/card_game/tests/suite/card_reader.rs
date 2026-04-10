@@ -20,7 +20,7 @@ use card_game::card::reader::{
     on_reader_clicked, reader_drag_system, reader_release_system, reader_rotation_lock_system,
     signature_radius,
 };
-use card_game::test_helpers::spawn_entity;
+use crate::test_helpers::spawn_entity;
 
 fn run_rotation_lock(world: &mut World) {
     let mut schedule = Schedule::default();

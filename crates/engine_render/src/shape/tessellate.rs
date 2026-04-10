@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use glam::Vec2;
 use lyon::math::point;
 use lyon::path::Path as LyonPath;
@@ -289,3 +290,4 @@ fn path_aabb(commands: &[PathCommand]) -> (Vec2, Vec2) {
     };
     iter.fold((first, first), |(min, max), p| (min.min(p), max.max(p)))
 }
+// EVOLVE-BLOCK-END

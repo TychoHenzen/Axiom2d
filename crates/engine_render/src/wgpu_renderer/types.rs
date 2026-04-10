@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use engine_core::color::Color;
 use engine_core::types::Pixels;
 
@@ -297,3 +298,4 @@ pub(super) struct FullscreenBuffers<'a> {
     pub(super) vertex: &'a wgpu::Buffer,
     pub(super) index: &'a wgpu::Buffer,
 }
+// EVOLVE-BLOCK-END

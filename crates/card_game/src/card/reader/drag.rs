@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, Res, ResMut, With, Without};
 use engine_core::prelude::{EventBus, Transform2D};
 use engine_input::mouse_button::MouseButton;
@@ -68,3 +69,4 @@ pub fn reader_release_system(
         reader_drag.dragging = None;
     }
 }
+// EVOLVE-BLOCK-END

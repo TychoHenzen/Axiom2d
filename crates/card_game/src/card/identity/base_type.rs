@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Resource;
 use serde::{Deserialize, Serialize};
 
@@ -165,3 +166,4 @@ pub fn populate_default_types(registry: &mut BaseCardTypeRegistry) {
         ],
     });
 }
+// EVOLVE-BLOCK-END

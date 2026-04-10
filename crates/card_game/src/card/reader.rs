@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 mod components;
 mod drag;
 mod eject;
@@ -21,3 +22,4 @@ pub use pick::on_reader_clicked;
 pub use rotation_lock::reader_rotation_lock_system;
 pub use signature_space::{SIGNATURE_SPACE_RADIUS, SignatureSpace, signature_radius};
 pub use spawn::{READER_HALF_EXTENTS, spawn_reader};
+// EVOLVE-BLOCK-END

@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, Res, ResMut};
 use engine_core::prelude::Transform2D;
 use engine_core::profiler::FrameProfiler;
@@ -40,3 +41,4 @@ pub fn stash_layout_system(
         }
     }
 }
+// EVOLVE-BLOCK-END

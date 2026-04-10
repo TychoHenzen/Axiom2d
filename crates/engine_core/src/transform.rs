@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Component;
 use glam::{Affine2, Vec2};
 use serde::{Deserialize, Serialize};
@@ -24,3 +25,4 @@ impl Default for Transform2D {
         }
     }
 }
+// EVOLVE-BLOCK-END

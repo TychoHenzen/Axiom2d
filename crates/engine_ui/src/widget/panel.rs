@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::component::Component;
 use bevy_ecs::prelude::{Query, ResMut};
 use engine_core::prelude::{Color, Pixels};
@@ -79,3 +80,4 @@ fn draw_borders(
         color,
     });
 }
+// EVOLVE-BLOCK-END

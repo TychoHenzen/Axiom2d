@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Commands, Entity, Query, Res, ResMut, Without};
 use engine_core::prelude::{EventBus, Transform2D};
 use engine_input::mouse_button::MouseButton;
@@ -69,3 +70,4 @@ pub fn card_reader_insert_system(
         return;
     }
 }
+// EVOLVE-BLOCK-END

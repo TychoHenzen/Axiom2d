@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
@@ -28,3 +29,4 @@ pub fn anchor_offset(anchor: Anchor, size: Vec2) -> Vec2 {
         Anchor::BottomRight => -size,
     }
 }
+// EVOLVE-BLOCK-END

@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use crate::booster::device::{
     BoosterDragState, SealButtonPressed, booster_drag_system, booster_pack_detach_system,
     booster_release_system, booster_seal_system,
@@ -202,3 +203,4 @@ fn register_systems(app: &mut App) {
         .add_systems(Phase::Render, hand_drop_zone_render_system)
         .add_systems(Phase::LateUpdate, sync_card_persistent_mesh);
 }
+// EVOLVE-BLOCK-END

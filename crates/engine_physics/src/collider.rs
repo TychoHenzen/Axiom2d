@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Component;
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
@@ -8,3 +9,4 @@ pub enum Collider {
     Aabb(Vec2),
     ConvexPolygon(Vec<Vec2>),
 }
+// EVOLVE-BLOCK-END

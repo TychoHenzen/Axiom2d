@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Component, Entity, Resource};
 use glam::Vec2;
 
@@ -27,3 +28,4 @@ pub struct ReaderDragInfo {
     pub entity: Entity,
     pub grab_offset: Vec2,
 }
+// EVOLVE-BLOCK-END

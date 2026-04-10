@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::Resource;
@@ -82,3 +83,4 @@ impl<T: Send + Sync + 'static> AssetServer<T> {
         true
     }
 }
+// EVOLVE-BLOCK-END

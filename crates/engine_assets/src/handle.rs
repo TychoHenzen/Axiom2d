@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use std::marker::PhantomData;
 
 /// Type-safe asset handle. The phantom type parameter prevents mixing handles
@@ -55,3 +56,4 @@ impl<T> std::fmt::Debug for Handle<T> {
         f.debug_struct("Handle").field("id", &self.id).finish()
     }
 }
+// EVOLVE-BLOCK-END

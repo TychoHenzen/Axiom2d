@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Resource;
 use engine_core::prelude::Color;
 use serde::{Deserialize, Serialize};
@@ -24,3 +25,4 @@ impl Default for UiTheme {
         }
     }
 }
+// EVOLVE-BLOCK-END

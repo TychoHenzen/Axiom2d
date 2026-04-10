@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{
     Component, Entity, Query, Res, ResMut, Resource, Trigger, With, Without, World,
 };
@@ -624,3 +625,4 @@ mod tests {
         }
     }
 }
+// EVOLVE-BLOCK-END

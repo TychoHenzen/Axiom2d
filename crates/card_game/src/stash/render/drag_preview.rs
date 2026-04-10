@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use std::collections::HashMap;
 
 use engine_core::color::Color;
@@ -100,3 +101,4 @@ pub(super) fn draw_drag_preview(
         }
     }
 }
+// EVOLVE-BLOCK-END

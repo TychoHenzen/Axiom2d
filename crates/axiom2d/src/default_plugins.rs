@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 #[cfg(feature = "render")]
 use crate::splash::splash_render_system;
 use crate::splash::{SkipSplash, SplashPlugin};
@@ -161,3 +162,4 @@ fn register_render(app: &mut App) {
         );
     }
 }
+// EVOLVE-BLOCK-END

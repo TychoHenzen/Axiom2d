@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Local, Query, ResMut};
 use engine_core::color::Color;
 use engine_core::profiler::FrameProfiler;
@@ -425,3 +426,4 @@ pub fn unified_render_system(
         p.record_phase("render_draw", draw_us);
     }
 }
+// EVOLVE-BLOCK-END

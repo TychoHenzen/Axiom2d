@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Component;
 use engine_render::renderer::GpuMeshHandle;
 
@@ -9,3 +10,4 @@ pub struct GpuCardMesh {
     pub front: GpuMeshHandle,
     pub back: GpuMeshHandle,
 }
+// EVOLVE-BLOCK-END

@@ -5,7 +5,7 @@ use card_game::card::component::{Card, CardZone};
 use card_game::card::interaction::damping::{
     BASE_ANGULAR_DRAG, BASE_LINEAR_DRAG, card_damping_system, compute_card_damping,
 };
-use card_game::test_helpers::SpyPhysicsBackend;
+use crate::test_helpers::SpyPhysicsBackend;
 use engine_core::prelude::{EventBus, TextureId};
 use engine_physics::prelude::{PhysicsCommand, PhysicsRes};
 

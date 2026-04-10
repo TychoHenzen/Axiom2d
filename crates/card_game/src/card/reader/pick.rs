@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, ResMut, Trigger, With};
 use engine_core::prelude::Transform2D;
 
@@ -20,3 +21,4 @@ pub fn on_reader_clicked(
         grab_offset: cursor - transform.position,
     });
 }
+// EVOLVE-BLOCK-END

@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use std::collections::HashMap;
 
 use engine_core::color::Color;
@@ -125,3 +126,4 @@ pub(super) fn draw_slots(
         }
     }
 }
+// EVOLVE-BLOCK-END

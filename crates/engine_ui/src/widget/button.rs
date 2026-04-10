@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::component::Component;
 use bevy_ecs::prelude::{Query, Res, ResMut};
 use engine_render::prelude::RendererRes;
@@ -45,3 +46,4 @@ pub fn button_render_system(
         renderer.draw_rect(node_rect(node, transform, color));
     }
 }
+// EVOLVE-BLOCK-END

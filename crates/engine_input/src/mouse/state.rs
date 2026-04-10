@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use std::collections::HashSet;
 
 use bevy_ecs::prelude::Resource;
@@ -83,3 +84,4 @@ impl MouseState {
             .any(|btn| self.just_pressed(*btn))
     }
 }
+// EVOLVE-BLOCK-END

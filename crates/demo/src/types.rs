@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use axiom2d::prelude::*;
 
 #[derive(Resource, Default)]
@@ -51,3 +52,4 @@ pub mod action {
     pub const ZOOM_IN: &str = "zoom_in";
     pub const ZOOM_OUT: &str = "zoom_out";
 }
+// EVOLVE-BLOCK-END

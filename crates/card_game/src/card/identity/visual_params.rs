@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use crate::card::identity::signature::{CardSignature, Element, compute_seed};
 use crate::card::identity::signature_profile::{SignatureProfile, Tier};
 use crate::card::rendering::art_shader::ShaderVariant;
@@ -61,3 +62,4 @@ pub fn generate_card_visuals(
         shader_variant,
     }
 }
+// EVOLVE-BLOCK-END

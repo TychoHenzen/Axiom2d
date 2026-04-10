@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use crate::card::identity::signature::CardSignature;
 
 use std::f32::consts::PI;
@@ -74,3 +75,4 @@ pub fn polyline_arc_length(points: &[CardSignature]) -> f32 {
     }
     total
 }
+// EVOLVE-BLOCK-END

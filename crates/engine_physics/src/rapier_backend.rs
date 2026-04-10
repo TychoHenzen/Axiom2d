@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use std::collections::HashMap;
 use std::sync::{Mutex, mpsc};
 
@@ -319,3 +320,4 @@ impl PhysicsBackend for RapierBackend {
         events
     }
 }
+// EVOLVE-BLOCK-END

@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -90,3 +91,4 @@ fn propagate_visibility(
         }
     }
 }
+// EVOLVE-BLOCK-END

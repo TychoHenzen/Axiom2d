@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Commands, Query, Res, ResMut};
 use engine_core::prelude::EventBus;
 use engine_input::prelude::MouseState;
@@ -70,3 +71,4 @@ pub fn stash_boundary_system(
         });
     }
 }
+// EVOLVE-BLOCK-END

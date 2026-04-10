@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::*;
 use engine_core::prelude::{Color, Transform2D};
 use engine_physics::prelude::{Collider, RigidBody};
@@ -253,3 +254,4 @@ pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
 
 /// The reader's half-extents used for physics registration.
 pub const READER_HALF_EXTENTS: Vec2 = Vec2::new(READER_HALF_W, READER_HALF_H);
+// EVOLVE-BLOCK-END

@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Resource, World};
 use engine_core::prelude::EventBus;
 use engine_input::prelude::{InputState, KeyCode};
@@ -85,3 +86,4 @@ pub fn debug_spawn_system(world: &mut World) {
         });
     }
 }
+// EVOLVE-BLOCK-END

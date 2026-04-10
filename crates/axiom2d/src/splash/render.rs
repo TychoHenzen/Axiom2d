@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 #![cfg(feature = "render")]
 
 use bevy_ecs::prelude::{Res, ResMut};
@@ -302,3 +303,4 @@ pub fn splash_render_system(
     let uniform = engine_render::prelude::CameraUniform::from_camera(&splash_camera, vw, vh);
     renderer.set_view_projection(uniform.view_proj);
 }
+// EVOLVE-BLOCK-END

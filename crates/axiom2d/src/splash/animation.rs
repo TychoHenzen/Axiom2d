@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, Res, ResMut, With, World};
 use engine_app::prelude::{App, Phase, Plugin};
 use engine_core::prelude::DeltaTime;
@@ -78,3 +79,4 @@ pub fn splash_tick_system(
         }
     }
 }
+// EVOLVE-BLOCK-END

@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Entity, Query, Res, With};
 use engine_core::prelude::Transform2D;
 
@@ -17,3 +18,4 @@ pub fn physics_sync_system(
         }
     }
 }
+// EVOLVE-BLOCK-END

@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use std::ops::{Add, Mul, Sub};
 
 use serde::{Deserialize, Serialize};
@@ -52,3 +53,4 @@ impl Mul<f32> for Seconds {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TextureId(pub u32);
+// EVOLVE-BLOCK-END

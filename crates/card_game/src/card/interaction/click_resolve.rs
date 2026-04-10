@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res, ResMut, Trigger};
 use engine_core::prelude::EventBus;
 use engine_input::prelude::{MouseButton, MouseState};
@@ -147,3 +148,4 @@ pub fn on_card_clicked(
 pub fn aabb_hit_shape_from_collider(collider: &Collider) -> Option<ClickHitShape> {
     collider_half_extents(collider).map(ClickHitShape::Aabb)
 }
+// EVOLVE-BLOCK-END

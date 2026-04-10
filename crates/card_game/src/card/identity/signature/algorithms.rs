@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use super::types::CardSignature;
 
 /// Hash a `CardSignature` into a stable 64-bit seed.
@@ -29,3 +30,4 @@ pub fn geometric_level(value: f32, advance_rate: f32, max_levels: usize) -> usiz
     }
     max_levels - 1
 }
+// EVOLVE-BLOCK-END

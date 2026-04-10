@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Entity;
 use engine_core::prelude::EventBus;
 use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
@@ -35,3 +36,4 @@ pub(crate) fn activate_physics_body(
         filter,
     });
 }
+// EVOLVE-BLOCK-END

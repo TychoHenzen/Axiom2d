@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 macro_rules! define_key_code {
     ($($variant:ident),* $(,)?) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -213,3 +214,4 @@ define_key_code! {
     F34,
     F35,
 }
+// EVOLVE-BLOCK-END

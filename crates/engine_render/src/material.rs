@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Component;
 use engine_core::types::TextureId;
 use serde::{Deserialize, Serialize};
@@ -83,3 +84,4 @@ pub fn apply_material(
         }
     }
 }
+// EVOLVE-BLOCK-END

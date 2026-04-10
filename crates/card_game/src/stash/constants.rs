@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use engine_core::color::Color;
 
 pub const SLOT_WIDTH: f32 = 50.0;
@@ -24,3 +25,4 @@ pub const BACKGROUND_COLOR: Color = Color {
     b: 0.15,
     a: 1.0,
 };
+// EVOLVE-BLOCK-END

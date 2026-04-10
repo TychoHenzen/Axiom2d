@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::component::Component;
 
 use crate::card::identity::base_type::BaseCardTypeRegistry;
@@ -62,3 +63,4 @@ impl SignatureProfile {
         }
     }
 }
+// EVOLVE-BLOCK-END

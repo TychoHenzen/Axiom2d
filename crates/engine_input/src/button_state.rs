@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ButtonState {
     Pressed,
@@ -12,3 +13,4 @@ impl From<winit::event::ElementState> for ButtonState {
         }
     }
 }
+// EVOLVE-BLOCK-END

@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Res, ResMut, Resource};
 use engine_input::prelude::{InputState, KeyCode};
 use serde::{Deserialize, Serialize};
@@ -10,3 +11,4 @@ pub fn stash_toggle_system(input: Res<InputState>, mut visible: ResMut<StashVisi
         visible.0 = !visible.0;
     }
 }
+// EVOLVE-BLOCK-END

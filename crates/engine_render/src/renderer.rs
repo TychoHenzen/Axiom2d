@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Resource;
 use engine_core::color::Color;
 
@@ -149,3 +150,4 @@ impl Renderer for NullRenderer {
     fn present(&mut self) {}
     fn resize(&mut self, _width: u32, _height: u32) {}
 }
+// EVOLVE-BLOCK-END

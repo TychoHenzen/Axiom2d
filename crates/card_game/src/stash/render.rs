@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::{Entity, Query, Res, ResMut};
@@ -22,7 +23,6 @@ use crate::stash::toggle::StashVisible;
 use engine_render::prelude::resolve_viewport_camera;
 
 mod drag_preview;
-mod helpers;
 mod models;
 mod slots;
 
@@ -154,3 +154,4 @@ pub fn stash_render_system(
         );
     }
 }
+// EVOLVE-BLOCK-END

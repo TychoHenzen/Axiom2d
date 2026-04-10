@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use std::f32::consts::TAU;
 
 use engine_core::color::Color;
@@ -154,3 +155,4 @@ pub fn gem_specular_intensity(intensity: f32) -> f32 {
     let t = intensity.clamp(0.0, 1.0);
     0.15 + t * 0.85
 }
+// EVOLVE-BLOCK-END

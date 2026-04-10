@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, Res, ResMut};
 use engine_input::mouse::MouseState;
 use engine_render::camera::{Camera2D, screen_to_world};
@@ -18,3 +19,4 @@ pub fn mouse_world_pos_system(
     );
     mouse.set_world_pos(world_pos);
 }
+// EVOLVE-BLOCK-END

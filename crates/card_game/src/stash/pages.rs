@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, Res, ResMut};
 use engine_core::color::Color;
 use engine_input::prelude::MouseState;
@@ -216,3 +217,4 @@ pub fn stash_tab_render_system(
         );
     }
 }
+// EVOLVE-BLOCK-END

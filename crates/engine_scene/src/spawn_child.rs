@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::*;
 
 use crate::hierarchy::ChildOf;
@@ -11,3 +12,4 @@ impl SpawnChildExt for World {
         self.spawn((ChildOf(parent), bundle)).id()
     }
 }
+// EVOLVE-BLOCK-END

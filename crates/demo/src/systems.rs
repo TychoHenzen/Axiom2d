@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use axiom2d::prelude::*;
 
 use crate::types::{
@@ -79,3 +80,4 @@ pub fn synodic_camera_system(
     camera.position = translation;
     camera_rotation.0 = rotation;
 }
+// EVOLVE-BLOCK-END

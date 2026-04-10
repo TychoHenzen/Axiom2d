@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Entity, Resource};
 use glam::Vec2;
 use std::collections::HashMap;
@@ -124,3 +125,4 @@ pub fn find_stash_slot_at(screen_pos: Vec2, grid_width: u8, grid_height: u8) -> 
     }
     Some((col, row))
 }
+// EVOLVE-BLOCK-END

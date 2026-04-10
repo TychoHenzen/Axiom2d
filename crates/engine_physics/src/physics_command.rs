@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Entity;
 use engine_core::prelude::Event;
 use glam::Vec2;
@@ -49,3 +50,4 @@ pub enum PhysicsCommand {
 }
 
 impl Event for PhysicsCommand {}
+// EVOLVE-BLOCK-END

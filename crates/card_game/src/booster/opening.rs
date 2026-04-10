@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 // Booster pack opening animation state machine
 
 use bevy_ecs::prelude::{Entity, Resource, World};
@@ -437,3 +438,4 @@ pub fn booster_opening_system(world: &mut World) {
 
     world.insert_resource(opening);
 }
+// EVOLVE-BLOCK-END

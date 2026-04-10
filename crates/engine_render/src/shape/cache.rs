@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Added, Changed, Commands, Component, Entity, Or, Query};
 
 use crate::shape::components::{Shape, TessellatedMesh};
@@ -17,3 +18,4 @@ pub fn mesh_cache_system(
         }
     }
 }
+// EVOLVE-BLOCK-END

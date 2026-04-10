@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -7,3 +8,4 @@ pub enum EngineError {
     #[error("invalid input: {0}")]
     InvalidInput(String),
 }
+// EVOLVE-BLOCK-END

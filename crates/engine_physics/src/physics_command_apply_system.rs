@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::ResMut;
 use engine_core::prelude::EventBus;
 
@@ -59,3 +60,4 @@ pub fn physics_command_apply_system(
         }
     }
 }
+// EVOLVE-BLOCK-END

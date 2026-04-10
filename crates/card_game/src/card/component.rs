@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Component, Entity};
 use engine_core::prelude::TextureId;
 use serde::{Deserialize, Serialize};
@@ -52,3 +53,4 @@ pub enum CardZone {
     #[serde(skip)]
     Reader(Entity),
 }
+// EVOLVE-BLOCK-END

@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 // Double-click detection system
 use bevy_ecs::prelude::{Entity, Resource, World};
 use engine_core::prelude::EventBus;
@@ -128,3 +129,4 @@ pub fn double_click_detect_system(world: &mut World) {
         camera_start_pos,
     ));
 }
+// EVOLVE-BLOCK-END

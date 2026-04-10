@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -441,3 +442,4 @@ mod tests {
         assert_eq!(tex.uv_rect, [0.1, 0.2, 0.3, 0.4]);
     }
 }
+// EVOLVE-BLOCK-END

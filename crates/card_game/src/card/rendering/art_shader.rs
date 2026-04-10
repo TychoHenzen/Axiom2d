@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, Res, Resource};
 use engine_input::prelude::MouseState;
 use engine_render::prelude::{ShaderHandle, ShaderRegistry};
@@ -127,3 +128,4 @@ pub fn register_variant_shaders(registry: &mut ShaderRegistry) -> VariantShaders
         foil: registry.register(FOIL_WGSL),
     }
 }
+// EVOLVE-BLOCK-END

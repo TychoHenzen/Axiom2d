@@ -1,3 +1,4 @@
+// EVOLVE-BLOCK-START
 use crate::renderer::RendererRes;
 use bevy_ecs::prelude::{Component, Query, ResMut, Resource};
 use glam::{Mat2, Mat4, Vec2, Vec3};
@@ -149,3 +150,4 @@ pub fn resolve_viewport_camera(
         .unwrap_or(Camera2D::default());
     Some((vw as f32, vh as f32, camera))
 }
+// EVOLVE-BLOCK-END
