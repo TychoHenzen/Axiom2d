@@ -16,7 +16,7 @@ use engine_core::prelude::{TextureId, Transform2D};
 use engine_render::renderer::GpuMeshHandle;
 use engine_render::renderer::RendererRes;
 use engine_render::shape::{ColorMesh, PersistentColorMesh};
-use engine_render::testing::{PersistentMeshCallLog, SpyRenderer};
+use engine_render::testing::SpyRenderer;
 use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
 use glam::Vec2;
 

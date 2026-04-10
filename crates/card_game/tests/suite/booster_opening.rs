@@ -6,7 +6,7 @@ use card_game::card::identity::signature::CardSignature;
 use glam::Vec2;
 
 /// @doc: The opening state machine progresses through all five animation phases
-/// in order: MovingToCenter -> Ripping -> LoweringPack -> RevealingCards -> Completing -> Done.
+/// in order: `MovingToCenter` -> Ripping -> `LoweringPack` -> `RevealingCards` -> Completing -> Done.
 #[test]
 fn when_opening_advances_then_phases_progress_in_order() {
     // Arrange
@@ -47,7 +47,7 @@ fn when_opening_advances_then_phases_progress_in_order() {
     assert!(matches!(opening.phase, BoosterOpenPhase::Done));
 }
 
-/// @doc: During the RevealingCards phase, card_index advances each time
+/// @doc: During the `RevealingCards` phase, `card_index` advances each time
 /// a single card's reveal duration elapses, allowing each card to animate
 /// individually before the next begins.
 #[test]
@@ -81,7 +81,7 @@ fn when_opening_reveals_cards_then_card_index_advances() {
 }
 
 /// @doc: Fan positions spread cards evenly around the original position
-/// at FAN_RADIUS distance (80 pixels), ensuring all cards are visible
+/// at `FAN_RADIUS` distance (80 pixels), ensuring all cards are visible
 /// and distinct after the animation completes.
 #[test]
 fn when_fan_position_then_spread_around_original() {

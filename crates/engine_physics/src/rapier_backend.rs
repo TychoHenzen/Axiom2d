@@ -118,7 +118,7 @@ impl PhysicsBackend for RapierBackend {
             Collider::Circle(radius) => ColliderBuilder::ball(*radius),
             Collider::Aabb(half_extents) => ColliderBuilder::cuboid(half_extents.x, half_extents.y),
             Collider::ConvexPolygon(points) => {
-                let rapier_points: Vec<Vec2> = points.iter().copied().collect();
+                let rapier_points: Vec<Vec2> = points.clone();
                 let Some(builder) = ColliderBuilder::convex_hull(&rapier_points) else {
                     tracing::warn!(?entity, "add_collider: convex hull build failed — points may be collinear or degenerate");
                     return false;
