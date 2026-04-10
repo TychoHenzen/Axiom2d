@@ -13,5 +13,10 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+criterion = { workspace = true }
 proptest = { workspace = true }
 ron = { workspace = true }
+
+[[bench]]
+name = "spring"
+harness = false

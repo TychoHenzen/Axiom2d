@@ -17,5 +17,11 @@ tracing.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
+bevy_ecs = { workspace = true }
+criterion = { workspace = true }
 insta.workspace = true
 ron.workspace = true
+
+[[bench]]
+name = "physics"
+harness = false

@@ -28,9 +28,19 @@ ttf-parser = { workspace = true }
 image-compare = { workspace = true, optional = true }
 
 [dev-dependencies]
+criterion = { workspace = true }
 engine_render = { path = ".", features = ["testing"] }
 image-compare = { workspace = true }
 insta = { workspace = true }
 naga = { workspace = true }
 proptest = { workspace = true }
 ron = { workspace = true }
+ttf-parser = { workspace = true }
+
+[[bench]]
+name = "tessellation"
+harness = false
+
+[[bench]]
+name = "font"
+harness = false
