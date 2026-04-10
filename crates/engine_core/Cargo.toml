@@ -20,3 +20,7 @@ ron = { workspace = true }
 [[bench]]
 name = "spring"
 harness = false
+
+[[bench]]
+name = "stress"
+harness = false

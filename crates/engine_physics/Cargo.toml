@@ -25,3 +25,7 @@ ron.workspace = true
 [[bench]]
 name = "physics"
 harness = false
+
+[[bench]]
+name = "stress"
+harness = false

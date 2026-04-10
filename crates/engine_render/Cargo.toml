@@ -44,3 +44,7 @@ harness = false
 [[bench]]
 name = "font"
 harness = false
+
+[[bench]]
+name = "stress"
+harness = false
