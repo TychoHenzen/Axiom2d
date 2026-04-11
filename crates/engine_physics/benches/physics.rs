@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
+use std::time::Duration;
+
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use engine_core::prelude::Seconds;
 use engine_physics::collider::Collider;
@@ -35,6 +37,8 @@ fn setup_backend(body_count: u32) -> RapierBackend {
 
 fn bench_physics_step(c: &mut Criterion) {
     let mut group = c.benchmark_group("rapier_step");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     for count in [10, 50, 100, 200] {
         group.bench_function(format!("{count}_bodies"), |b| {
@@ -50,6 +54,8 @@ fn bench_physics_step(c: &mut Criterion) {
 
 fn bench_physics_add_body(c: &mut Criterion) {
     let mut group = c.benchmark_group("rapier_add_body");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     group.bench_function("add_single_body", |b| {
         let entity = make_entity_id(0);

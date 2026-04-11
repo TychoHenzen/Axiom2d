@@ -1,11 +1,15 @@
 #![allow(clippy::unwrap_used)]
 
+use std::time::Duration;
+
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use engine_render::prelude::*;
 use glam::Vec2;
 
 fn bench_tessellate_circle(c: &mut Criterion) {
     let mut group = c.benchmark_group("tessellate_fill");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     group.bench_function("circle_r50", |b| {
         let variant = ShapeVariant::Circle { radius: 50.0 };
@@ -22,6 +26,8 @@ fn bench_tessellate_circle(c: &mut Criterion) {
 
 fn bench_tessellate_polygon(c: &mut Criterion) {
     let mut group = c.benchmark_group("tessellate_fill");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     // Hexagon (6 vertices) — used for gem sockets on cards
     group.bench_function("hexagon_6v", |b| {
@@ -52,6 +58,8 @@ fn bench_tessellate_polygon(c: &mut Criterion) {
 
 fn bench_tessellate_path(c: &mut Criterion) {
     let mut group = c.benchmark_group("tessellate_fill");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     // Rounded rect with bezier corners — the card border shape
     group.bench_function("rounded_rect", |b| {
@@ -81,6 +89,8 @@ fn bench_tessellate_path(c: &mut Criterion) {
 
 fn bench_tessellate_stroke(c: &mut Criterion) {
     let mut group = c.benchmark_group("tessellate_stroke");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     group.bench_function("circle_r50_w2", |b| {
         let variant = ShapeVariant::Circle { radius: 50.0 };

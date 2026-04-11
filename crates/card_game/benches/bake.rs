@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
+use std::time::Duration;
+
 use card_game::card::component::CardLabel;
 use card_game::card::identity::signature::CardSignature;
 use card_game::card::rendering::bake::{bake_back_face, bake_front_face};
@@ -8,6 +10,8 @@ use glam::Vec2;
 
 fn bench_bake_front_face(c: &mut Criterion) {
     let mut group = c.benchmark_group("card_bake");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     let card_size = Vec2::new(60.0, 90.0);
 
@@ -48,6 +52,8 @@ fn bench_bake_front_face(c: &mut Criterion) {
 
 fn bench_bake_back_face(c: &mut Criterion) {
     let mut group = c.benchmark_group("card_bake");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
     let card_size = Vec2::new(60.0, 90.0);
 
     group.bench_function("back_face", |b| {
