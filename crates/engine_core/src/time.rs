@@ -127,11 +127,20 @@ impl FixedTimestep {
         }
     }
 
+    /// Maximum physics steps per frame. Prevents spiral-of-death when a slow
+    /// frame (e.g. 200ms) causes the accumulator to request 12+ steps, which
+    /// makes the next frame even slower. Excess accumulation is discarded.
+    pub const MAX_STEPS: u32 = 4;
+
     pub fn tick(&mut self, delta: Seconds) -> u32 {
         self.accumulator = self.accumulator + delta;
         let steps = (self.accumulator.0 / self.step_size.0) as u32;
+        let capped = steps.min(Self::MAX_STEPS);
+        // Always drain the full step count from the accumulator, even when
+        // capped. This discards excess time rather than letting it build up
+        // (spiral-of-death prevention).
         self.accumulator = Seconds(self.accumulator.0 - steps as f32 * self.step_size.0);
-        steps
+        capped
     }
 }
 

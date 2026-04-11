@@ -1,8 +1,8 @@
 // EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, Res, ResMut};
-use engine_core::prelude::{EventBus, Transform2D};
+use engine_core::prelude::Transform2D;
 use engine_input::prelude::{MouseButton, MouseState};
-use engine_physics::prelude::{PhysicsCommand, PhysicsRes};
+use engine_physics::prelude::PhysicsRes;
 use glam::Vec2;
 
 use crate::card::interaction::drag_state::DragState;
@@ -10,11 +10,16 @@ use crate::card::interaction::drag_state::DragState;
 pub const DRAG_GAIN: f32 = 20.0;
 pub const MAX_ANGULAR_VELOCITY: f32 = 15.0;
 
+/// Applies a proportional velocity to the dragged card so it tracks the cursor.
+///
+/// Uses **direct** `PhysicsRes` mutation (not deferred `EventBus<PhysicsCommand>`)
+/// because the velocity must be set immediately before the next physics step.
+/// Deferred commands add a tick of latency that causes the proportional controller
+/// to overshoot and oscillate when multiple `FixedUpdate` steps run per frame.
 pub fn card_drag_system(
     mouse: Res<MouseState>,
     drag_state: Res<DragState>,
-    physics: Res<PhysicsRes>,
-    mut physics_commands: ResMut<EventBus<PhysicsCommand>>,
+    mut physics: ResMut<PhysicsRes>,
     mut transforms: Query<&mut Transform2D>,
 ) {
     let Some(info) = &drag_state.dragging else {
@@ -44,23 +49,14 @@ pub fn card_drag_system(
     let arm_len_sq = arm.length_squared();
 
     if arm_len_sq < 1e-4 {
-        physics_commands.push(PhysicsCommand::SetLinearVelocity {
-            entity: info.entity,
-            velocity: desired,
-        });
+        let _ = physics.set_linear_velocity(info.entity, desired);
     } else {
         let raw_omega = arm.perp_dot(desired) / arm_len_sq;
         let omega = raw_omega.clamp(-MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY);
         let perp_arm = Vec2::new(-arm.y, arm.x);
         let v_center = desired - omega * perp_arm;
-        physics_commands.push(PhysicsCommand::SetLinearVelocity {
-            entity: info.entity,
-            velocity: v_center,
-        });
-        physics_commands.push(PhysicsCommand::SetAngularVelocity {
-            entity: info.entity,
-            angular_velocity: omega,
-        });
+        let _ = physics.set_linear_velocity(info.entity, v_center);
+        let _ = physics.set_angular_velocity(info.entity, omega);
     }
 }
 // EVOLVE-BLOCK-END
