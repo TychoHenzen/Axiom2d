@@ -11,7 +11,7 @@ use glam::Vec2;
 use card_game::card::component::CardZone;
 use card_game::card::interaction::drag::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
-use card_game::test_helpers::{AngularVelocityLog, SpyPhysicsBackend, VelocityLog, spawn_entity};
+use crate::test_helpers::{AngularVelocityLog, SpyPhysicsBackend, VelocityLog, spawn_entity};
 
 fn run_system(world: &mut World) {
     let mut schedule = Schedule::default();

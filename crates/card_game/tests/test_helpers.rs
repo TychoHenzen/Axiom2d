@@ -10,8 +10,8 @@ pub fn spawn_entity() -> Entity {
     World::new().spawn_empty().id()
 }
 
-pub fn make_test_card() -> card_game::card::Card {
-    card_game::card::Card::face_down(
+pub fn make_test_card() -> card_game::card::component::Card {
+    card_game::card::component::Card::face_down(
         engine_core::prelude::TextureId(1),
         engine_core::prelude::TextureId(2),
     )
