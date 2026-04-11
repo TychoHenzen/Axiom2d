@@ -118,6 +118,7 @@ fn register_systems(app: &mut App) {
         .add_systems(
             Phase::FixedUpdate,
             (
+                card_drag_system.after(physics_sync_system),
                 card_damping_system.after(physics_sync_system),
                 reader_rotation_lock_system.after(physics_sync_system),
             ),
@@ -128,7 +129,6 @@ fn register_systems(app: &mut App) {
                 (
                     store_buy_system,
                     card_reader_eject_system,
-                    card_drag_system,
                     reader_drag_system,
                     screen_drag_system,
                     combiner_drag_system,

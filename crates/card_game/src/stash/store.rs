@@ -317,7 +317,7 @@ fn draw_centered_screen_text(
 fn draw_reader_preview(
     queue: &mut DrawQueue,
     layer: RenderLayer,
-    order: SortOrder,
+    base: i32,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -327,7 +327,7 @@ fn draw_reader_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base),
         camera,
         viewport_w,
         viewport_h,
@@ -340,7 +340,7 @@ fn draw_reader_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 1),
         camera,
         viewport_w,
         viewport_h,
@@ -353,7 +353,7 @@ fn draw_reader_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 2),
         camera,
         viewport_w,
         viewport_h,
@@ -368,7 +368,7 @@ fn draw_reader_preview(
 fn draw_screen_preview(
     queue: &mut DrawQueue,
     layer: RenderLayer,
-    order: SortOrder,
+    base: i32,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -378,7 +378,7 @@ fn draw_screen_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base),
         camera,
         viewport_w,
         viewport_h,
@@ -391,7 +391,7 @@ fn draw_screen_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 1),
         camera,
         viewport_w,
         viewport_h,
@@ -404,7 +404,7 @@ fn draw_screen_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 2),
         camera,
         viewport_w,
         viewport_h,
@@ -417,7 +417,7 @@ fn draw_screen_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 2),
         camera,
         viewport_w,
         viewport_h,
@@ -430,7 +430,7 @@ fn draw_screen_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 2),
         camera,
         viewport_w,
         viewport_h,
@@ -443,7 +443,7 @@ fn draw_screen_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 2),
         camera,
         viewport_w,
         viewport_h,
@@ -458,7 +458,7 @@ fn draw_screen_preview(
 fn draw_combiner_preview(
     queue: &mut DrawQueue,
     layer: RenderLayer,
-    order: SortOrder,
+    base: i32,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -468,7 +468,7 @@ fn draw_combiner_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base),
         camera,
         viewport_w,
         viewport_h,
@@ -481,7 +481,7 @@ fn draw_combiner_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 1),
         camera,
         viewport_w,
         viewport_h,
@@ -494,7 +494,7 @@ fn draw_combiner_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 1),
         camera,
         viewport_w,
         viewport_h,
@@ -507,7 +507,7 @@ fn draw_combiner_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 1),
         camera,
         viewport_w,
         viewport_h,
@@ -520,7 +520,7 @@ fn draw_combiner_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 1),
         camera,
         viewport_w,
         viewport_h,
@@ -535,7 +535,7 @@ fn draw_combiner_preview(
 fn draw_booster_preview(
     queue: &mut DrawQueue,
     layer: RenderLayer,
-    order: SortOrder,
+    base: i32,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -545,7 +545,7 @@ fn draw_booster_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base),
         camera,
         viewport_w,
         viewport_h,
@@ -558,7 +558,7 @@ fn draw_booster_preview(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base + 1),
         camera,
         viewport_w,
         viewport_h,
@@ -570,10 +570,17 @@ fn draw_booster_preview(
     );
 }
 
+/// Sub-order layout within each store item (10 slots per item):
+/// +0: outer panel background
+/// +1: highlight border
+/// +2: inner panel fill
+/// +3..+5: preview shapes (dark, mid, light layers)
+/// +6: label text
+/// +7: price text
 fn draw_store_item(
     queue: &mut DrawQueue,
     layer: RenderLayer,
-    order: SortOrder,
+    base_order: i32,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -584,7 +591,7 @@ fn draw_store_item(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base_order),
         camera,
         viewport_w,
         viewport_h,
@@ -597,7 +604,7 @@ fn draw_store_item(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base_order + 1),
         camera,
         viewport_w,
         viewport_h,
@@ -610,7 +617,7 @@ fn draw_store_item(
     draw_screen_rect(
         queue,
         layer,
-        order,
+        SortOrder::new(base_order + 2),
         camera,
         viewport_w,
         viewport_h,
@@ -621,25 +628,54 @@ fn draw_store_item(
         STORE_PANEL_FILL,
     );
 
+    let preview_base = base_order + 3;
     match item {
         StoreItemKind::Reader => {
             draw_reader_preview(
-                queue, layer, order, camera, viewport_w, viewport_h, left, top,
+                queue,
+                layer,
+                preview_base,
+                camera,
+                viewport_w,
+                viewport_h,
+                left,
+                top,
             );
         }
         StoreItemKind::Screen => {
             draw_screen_preview(
-                queue, layer, order, camera, viewport_w, viewport_h, left, top,
+                queue,
+                layer,
+                preview_base,
+                camera,
+                viewport_w,
+                viewport_h,
+                left,
+                top,
             );
         }
         StoreItemKind::Combiner => {
             draw_combiner_preview(
-                queue, layer, order, camera, viewport_w, viewport_h, left, top,
+                queue,
+                layer,
+                preview_base,
+                camera,
+                viewport_w,
+                viewport_h,
+                left,
+                top,
             );
         }
         StoreItemKind::BoosterMachine => {
             draw_booster_preview(
-                queue, layer, order, camera, viewport_w, viewport_h, left, top,
+                queue,
+                layer,
+                preview_base,
+                camera,
+                viewport_w,
+                viewport_h,
+                left,
+                top,
             );
         }
     }
@@ -648,7 +684,7 @@ fn draw_store_item(
     draw_centered_screen_text(
         queue,
         layer,
-        order,
+        SortOrder::new(base_order + 6),
         camera,
         viewport_w,
         viewport_h,
@@ -661,7 +697,7 @@ fn draw_store_item(
     draw_centered_screen_text(
         queue,
         layer,
-        order,
+        SortOrder::new(base_order + 7),
         camera,
         viewport_w,
         viewport_h,
@@ -730,10 +766,13 @@ fn spawn_booster_purchase(world: &mut World, position: Vec2) -> Entity {
     device_entity
 }
 
+/// Each store item occupies 10 sort-order slots (see `draw_store_item`).
+/// Items are assigned non-overlapping ranges starting at `base_order + 10`.
+/// Header text uses `base_order`.
 pub(crate) fn render_store_page(
     queue: &mut DrawQueue,
     layer: RenderLayer,
-    order: SortOrder,
+    base_order: SortOrder,
     camera: &Camera2D,
     viewport_w: f32,
     viewport_h: f32,
@@ -741,10 +780,11 @@ pub(crate) fn render_store_page(
     wallet: &StoreWallet,
     catalog: &StoreCatalog,
 ) {
+    let base = base_order.value();
     draw_centered_screen_text(
         queue,
         layer,
-        order,
+        SortOrder::new(base),
         camera,
         viewport_w,
         viewport_h,
@@ -757,7 +797,7 @@ pub(crate) fn render_store_page(
     draw_centered_screen_text(
         queue,
         layer,
-        order,
+        SortOrder::new(base),
         camera,
         viewport_w,
         viewport_h,
@@ -770,7 +810,7 @@ pub(crate) fn render_store_page(
     draw_centered_screen_text(
         queue,
         layer,
-        order,
+        SortOrder::new(base),
         camera,
         viewport_w,
         viewport_h,
@@ -784,8 +824,9 @@ pub(crate) fn render_store_page(
     let items = catalog.items();
     for (index, item) in items.iter().copied().enumerate() {
         let (left, top) = store_item_layout(grid.width(), items.len(), index);
+        let item_base = base + 10 + (index as i32) * 10;
         draw_store_item(
-            queue, layer, order, camera, viewport_w, viewport_h, item, left, top,
+            queue, layer, item_base, camera, viewport_w, viewport_h, item, left, top,
         );
     }
 }
