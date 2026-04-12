@@ -81,27 +81,30 @@ pub struct ScreenDevice {
 #[derive(Component)]
 pub struct ScreenSignalShape {
     display_index: usize,
-    logged: bool,
 }
 
-/// Project all control points of a signal onto a 2D panel axis pair.
+/// Project all control points of a signal into panel space using the selected axis pair.
 pub(crate) fn project_signal_points(space: &SignatureSpace, display_index: usize) -> Vec<Vec2> {
-    let x_element = Element::ALL[display_index * 2];
-    let y_element = Element::ALL[display_index * 2 + 1];
+    let (x_element, y_element) = panel_axes(display_index);
     space
         .control_points
         .iter()
-        .map(|cp| Vec2::new(cp[x_element], cp[y_element]))
+        .map(|cp| Vec2::new(cp[x_element] * PANEL_HALF, cp[y_element] * PANEL_HALF))
         .collect()
 }
 
 pub fn display_axes(space: &SignatureSpace, display_index: usize) -> (f32, f32) {
-    let x_element = Element::ALL[display_index * 2];
-    let y_element = Element::ALL[display_index * 2 + 1];
+    let (x_element, y_element) = panel_axes(display_index);
     (
         space.control_points[0][x_element],
         space.control_points[0][y_element],
     )
+}
+
+fn panel_axes(display_index: usize) -> (Element, Element) {
+    let x_element = Element::ALL[display_index * 2];
+    let y_element = Element::ALL[display_index * 2 + 1];
+    (x_element, y_element)
 }
 
 fn panel_offset(display_index: usize) -> Vec2 {
@@ -112,50 +115,29 @@ fn panel_offset(display_index: usize) -> Vec2 {
 pub fn screen_render_system(
     devices: Query<&ScreenDevice>,
     jacks: Query<&Jack<SignatureSpace>>,
-    mut shapes: Query<(&mut ScreenSignalShape, &ChildOf, &mut Shape, &mut Visible)>,
+    mut shapes: Query<(&ScreenSignalShape, &ChildOf, &mut Shape, &mut Visible)>,
 ) {
-    for (mut signal_shape, parent, mut shape, mut visible) in &mut shapes {
+    for (signal_shape, parent, mut shape, mut visible) in &mut shapes {
         let Ok(device) = devices.get(parent.0) else {
             visible.0 = false;
-            signal_shape.logged = false;
             continue;
         };
         let Ok(jack) = jacks.get(device.signature_input) else {
             visible.0 = false;
-            signal_shape.logged = false;
             continue;
         };
         let Some(space) = jack.data.as_ref() else {
             visible.0 = false;
-            signal_shape.logged = false;
             continue;
         };
 
-        let display_index = signal_shape.display_index;
-        let projected = project_signal_points(space, display_index);
+        let projected = project_signal_points(space, signal_shape.display_index);
         let visual_radius = space.radius * PANEL_HALF;
 
-        if !signal_shape.logged {
-            let x_elem = Element::ALL[display_index * 2];
-            let y_elem = Element::ALL[display_index * 2 + 1];
-            tracing::warn!(
-                "Screen panel {}: {:?}/{:?} — {} control point(s), projected: {:?}, radius: {:.4}",
-                display_index,
-                x_elem,
-                y_elem,
-                projected.len(),
-                projected,
-                visual_radius,
-            );
-            signal_shape.logged = true;
-        }
-
         if projected.len() == 1 {
-            let center = projected[0] * PANEL_HALF;
-            shape.variant = clipped_signal_circle(center, visual_radius);
+            shape.variant = clipped_signal_circle(projected[0], visual_radius);
         } else {
-            let scaled: Vec<Vec2> = projected.iter().map(|p| *p * PANEL_HALF).collect();
-            shape.variant = build_signal_polyline(&scaled, visual_radius);
+            shape.variant = build_signal_polyline(&projected, visual_radius);
         }
         shape.color = SIGNAL_COLOR;
         visible.0 = true;
@@ -247,10 +229,7 @@ pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity
         world.spawn_child(
             device_entity,
             (
-                ScreenSignalShape {
-                    display_index,
-                    logged: false,
-                },
+                ScreenSignalShape { display_index },
                 Transform2D {
                     position: panel_offset(display_index),
                     ..Default::default()
@@ -359,7 +338,7 @@ fn build_signal_polyline(points: &[Vec2], thickness: f32) -> ShapeVariant {
             polygon.push(inner[i]);
         }
         let clipped = clip_polygon_to_rect(
-            &polygon,
+            polygon,
             Vec2::new(-PANEL_HALF, -PANEL_HALF),
             Vec2::new(PANEL_HALF, PANEL_HALF),
         );
@@ -385,7 +364,7 @@ fn build_signal_polyline(points: &[Vec2], thickness: f32) -> ShapeVariant {
         polygon.extend(semicircle_fan(a, clamped_thickness, -dir, half_steps));
 
         let clipped = clip_polygon_to_rect(
-            &polygon,
+            polygon,
             Vec2::new(-PANEL_HALF, -PANEL_HALF),
             Vec2::new(PANEL_HALF, PANEL_HALF),
         );
@@ -444,7 +423,7 @@ fn catmull_rom_subdivide_closed(points: &[Vec2], subdivisions: usize) -> Vec<Vec
 fn clipped_signal_circle(center: Vec2, radius: f32) -> ShapeVariant {
     let circle = circle_polygon(center, radius, SIGNAL_SEGMENTS);
     let clipped = clip_polygon_to_rect(
-        &circle,
+        circle,
         Vec2::new(-PANEL_HALF, -PANEL_HALF),
         Vec2::new(PANEL_HALF, PANEL_HALF),
     );
@@ -460,9 +439,9 @@ fn circle_polygon(center: Vec2, radius: f32, segments: usize) -> Vec<Vec2> {
         .collect()
 }
 
-fn clip_polygon_to_rect(points: &[Vec2], min: Vec2, max: Vec2) -> Vec<Vec2> {
+fn clip_polygon_to_rect(points: Vec<Vec2>, min: Vec2, max: Vec2) -> Vec<Vec2> {
     let left = clip_polygon(
-        points.to_vec(),
+        points,
         |p| p.x >= min.x,
         |a, b| intersect_x(a, b, min.x),
     );
@@ -479,7 +458,7 @@ where
     let Some(mut previous) = points.last().copied() else {
         return points;
     };
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(points.len().saturating_mul(2));
     let mut previous_inside = is_inside(previous);
 
     for current in points {

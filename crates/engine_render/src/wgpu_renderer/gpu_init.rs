@@ -80,6 +80,22 @@ fn configure_surface(
 ) -> wgpu::SurfaceConfiguration {
     let size = window.inner_size();
     let caps = surface.get_capabilities(adapter);
+    let fallback_format = caps
+        .formats
+        .first()
+        .copied()
+        .expect("surface reported no supported formats");
+    let format = caps
+        .formats
+        .iter()
+        .copied()
+        .find(|format| format.is_srgb())
+        .unwrap_or(fallback_format);
+    let alpha_mode = caps
+        .alpha_modes
+        .first()
+        .copied()
+        .expect("surface reported no alpha modes");
     let present_mode = if config.vsync {
         wgpu::PresentMode::AutoVsync
     } else {
@@ -87,11 +103,11 @@ fn configure_surface(
     };
     wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        format: caps.formats[0],
+        format,
         width: size.width.max(1),
         height: size.height.max(1),
         present_mode,
-        alpha_mode: caps.alpha_modes[0],
+        alpha_mode,
         view_formats: vec![],
         desired_maximum_frame_latency: 2,
     }
@@ -271,6 +287,33 @@ pub(super) fn create_pipeline(
     })
 }
 
+fn create_pipeline_set<'a>(
+    device: &wgpu::Device,
+    layout: &wgpu::PipelineLayout,
+    shader: &wgpu::ShaderModule,
+    format: wgpu::TextureFormat,
+    sample_count: u32,
+    vertex_layouts: &'a [wgpu::VertexBufferLayout<'a>],
+    vs_entry: &'static str,
+    fs_entry: &'static str,
+) -> [wgpu::RenderPipeline; 3] {
+    crate::material::BlendMode::ALL.map(|mode| {
+        create_pipeline(
+            device,
+            layout,
+            &PipelineDesc {
+                shader,
+                vs_entry,
+                fs_entry,
+                format,
+                blend: blend_mode_to_blend_state(mode),
+                vertex_layouts,
+                sample_count,
+            },
+        )
+    })
+}
+
 pub(super) fn create_quad_pipeline_set(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
@@ -278,24 +321,17 @@ pub(super) fn create_quad_pipeline_set(
     format: wgpu::TextureFormat,
     sample_count: u32,
 ) -> [wgpu::RenderPipeline; 3] {
-    let vl = quad_vertex_layout();
-    let il = instance_vertex_layout();
-    let layouts = [vl, il];
-    crate::material::BlendMode::ALL.map(|mode| {
-        create_pipeline(
-            device,
-            layout,
-            &PipelineDesc {
-                shader,
-                vs_entry: "vs_main",
-                fs_entry: "fs_main",
-                format,
-                blend: blend_mode_to_blend_state(mode),
-                vertex_layouts: &layouts,
-                sample_count,
-            },
-        )
-    })
+    let layouts = [quad_vertex_layout(), instance_vertex_layout()];
+    create_pipeline_set(
+        device,
+        layout,
+        shader,
+        format,
+        sample_count,
+        &layouts,
+        "vs_main",
+        "fs_main",
+    )
 }
 
 pub(super) fn create_shape_pipeline_set(
@@ -305,23 +341,17 @@ pub(super) fn create_shape_pipeline_set(
     format: wgpu::TextureFormat,
     sample_count: u32,
 ) -> [wgpu::RenderPipeline; 3] {
-    let sl = shape_vertex_layout();
-    let layouts = [sl];
-    crate::material::BlendMode::ALL.map(|mode| {
-        create_pipeline(
-            device,
-            layout,
-            &PipelineDesc {
-                shader,
-                vs_entry: "vs_shape",
-                fs_entry: "fs_shape",
-                format,
-                blend: blend_mode_to_blend_state(mode),
-                vertex_layouts: &layouts,
-                sample_count,
-            },
-        )
-    })
+    let layouts = [shape_vertex_layout()];
+    create_pipeline_set(
+        device,
+        layout,
+        shader,
+        format,
+        sample_count,
+        &layouts,
+        "vs_shape",
+        "fs_shape",
+    )
 }
 
 fn model_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {

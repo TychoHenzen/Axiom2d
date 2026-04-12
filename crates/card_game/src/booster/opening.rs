@@ -99,23 +99,24 @@ impl BoosterOpening {
     pub fn advance(&mut self, dt: f32) {
         match &mut self.phase {
             BoosterOpenPhase::MovingToCenter { progress, .. } => {
-                *progress += dt / MOVE_TO_CENTER_DURATION;
-                if *progress >= 1.0 {
+                if Self::advance_progress(progress, dt, MOVE_TO_CENTER_DURATION) {
                     self.phase = BoosterOpenPhase::Ripping { progress: 0.0 };
                 }
             }
             BoosterOpenPhase::Ripping { progress } => {
-                *progress += dt / RIPPING_DURATION;
-                if *progress >= 1.0 {
+                if Self::advance_progress(progress, dt, RIPPING_DURATION) {
                     self.phase = BoosterOpenPhase::LoweringPack { progress: 0.0 };
                 }
             }
             BoosterOpenPhase::LoweringPack { progress } => {
-                *progress += dt / LOWERING_DURATION;
-                if *progress >= 1.0 {
-                    self.phase = BoosterOpenPhase::RevealingCards {
-                        card_index: 0,
-                        card_progress: 0.0,
+                if Self::advance_progress(progress, dt, LOWERING_DURATION) {
+                    self.phase = if self.cards.is_empty() {
+                        BoosterOpenPhase::Done
+                    } else {
+                        BoosterOpenPhase::RevealingCards {
+                            card_index: 0,
+                            card_progress: 0.0,
+                        }
                     };
                 }
             }
@@ -123,15 +124,8 @@ impl BoosterOpening {
                 card_index,
                 card_progress,
             } => {
-                *card_progress += dt / REVEAL_DURATION;
-
-                // Advance fan progress for already-revealed cards
-                for p in &mut self.card_fan_progress {
-                    *p = (*p + dt / FAN_MOVE_DURATION).min(1.0);
-                }
-
-                if *card_progress >= 1.0 {
-                    // This card's upward reveal is done — start its fan movement
+                if Self::advance_progress(card_progress, dt, REVEAL_DURATION) {
+                    // This card's upward reveal is done - start its fan movement.
                     self.card_fan_progress.push(0.0);
 
                     let next_index = *card_index + 1;
@@ -142,17 +136,15 @@ impl BoosterOpening {
                         *card_progress = 0.0;
                     }
                 }
+
+                Self::advance_fan_progress(&mut self.card_fan_progress, dt);
             }
             BoosterOpenPhase::Completing { progress } => {
-                *progress += dt / COMPLETING_DURATION;
+                Self::advance_fan_progress(&mut self.card_fan_progress, dt);
 
-                // Continue fan animation for all cards
-                for p in &mut self.card_fan_progress {
-                    *p = (*p + dt / FAN_MOVE_DURATION).min(1.0);
-                }
-
-                let all_fanned = self.card_fan_progress.iter().all(|p| *p >= 1.0);
-                if *progress >= 1.0 && all_fanned {
+                if Self::advance_progress(progress, dt, COMPLETING_DURATION)
+                    && self.card_fan_progress.iter().all(|p| *p >= 1.0)
+                {
                     self.phase = BoosterOpenPhase::Done;
                 }
             }
@@ -183,6 +175,18 @@ impl BoosterOpening {
     #[must_use]
     pub fn fan_rotation(index: usize, total: usize) -> f32 {
         Self::fan_angle(index, total)
+    }
+
+    fn advance_fan_progress(progresses: &mut [f32], dt: f32) {
+        let fan_delta = dt / FAN_MOVE_DURATION;
+        for progress in progresses {
+            *progress = (*progress + fan_delta).min(1.0);
+        }
+    }
+
+    fn advance_progress(progress: &mut f32, dt: f32, duration: f32) -> bool {
+        *progress = (*progress + dt / duration).min(1.0);
+        *progress >= 1.0
     }
 
     #[must_use]
@@ -379,16 +383,13 @@ pub fn booster_opening_system(world: &mut World) {
         }
         BoosterOpenPhase::Done => {
             let half = TABLE_CARD_SIZE * 0.5;
-            let card_positions: Vec<(Entity, Vec2)> = opening
-                .spawned_cards
-                .iter()
-                .map(|&e| {
-                    let pos = world
-                        .get::<Transform2D>(e)
-                        .map_or(opening.original_position, |t| t.position);
-                    (e, pos)
-                })
-                .collect();
+            let mut card_positions = Vec::with_capacity(opening.spawned_cards.len());
+            for &entity in &opening.spawned_cards {
+                let pos = world
+                    .get::<Transform2D>(entity)
+                    .map_or(opening.original_position, |t| t.position);
+                card_positions.push((entity, pos));
+            }
 
             // Reset sort order, scale, and rotation on all cards
             for &(entity, _) in &card_positions {
