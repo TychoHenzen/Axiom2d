@@ -11,6 +11,7 @@ use engine_render::testing::SpyRenderer;
 use engine_scene::prelude::RenderLayer;
 use glam::Vec2;
 
+use crate::test_helpers::SpyPhysicsBackend;
 use card_game::card::component::CardItemForm;
 use card_game::card::component::CardZone;
 use card_game::card::interaction::apply::interaction_apply_system;
@@ -19,7 +20,6 @@ use card_game::card::interaction::intent::InteractionIntent;
 use card_game::card::interaction::release::card_release_system;
 use card_game::hand::cards::Hand;
 use card_game::stash::grid::StashGrid;
-use crate::test_helpers::SpyPhysicsBackend;
 
 fn run_system(world: &mut World) {
     let mut schedule = Schedule::default();

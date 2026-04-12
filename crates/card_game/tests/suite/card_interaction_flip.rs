@@ -6,11 +6,11 @@ use engine_input::prelude::{MouseButton, MouseState};
 use engine_scene::prelude::{GlobalTransform2D, SortOrder};
 use glam::{Affine2, Vec2};
 
+use crate::test_helpers::make_test_card;
 use card_game::card::component::{Card, CardZone};
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
 use card_game::card::interaction::flip::card_flip_system;
 use card_game::card::interaction::flip_animation::{FLIP_DURATION, FlipAnimation};
-use crate::test_helpers::make_test_card;
 
 use super::helpers::default_card_collider;
 
