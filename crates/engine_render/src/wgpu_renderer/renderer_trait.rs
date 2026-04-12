@@ -160,6 +160,19 @@ impl WgpuRenderer {
         Some((material_upload.bind_group.clone(), slot_size))
     }
 
+    fn push_shape_draw(&mut self, source: MeshSource, model: [[f32; 4]; 4]) {
+        let material_uniforms = self.pending_material.take_uniforms();
+        let material_textures = self.pending_material.take_textures();
+        self.shape_draws.push(ShapeDrawRecord {
+            blend_mode: self.current_blend_mode,
+            shader_handle: self.active_shader,
+            source,
+            model,
+            material_uniforms,
+            material_textures,
+        });
+    }
+
     fn select_shape_pipeline(
         &self,
         key: (ShaderHandle, crate::material::BlendMode),
@@ -325,12 +338,9 @@ impl WgpuRenderer {
 }
 
 fn pack_model_uniform_data(draws: &[ShapeDrawRecord], aligned_entry: usize) -> Vec<u8> {
-    let buf_size = draws.len() * aligned_entry;
-    let mut data = vec![0u8; buf_size];
-    for (i, draw) in draws.iter().enumerate() {
-        let offset = i * aligned_entry;
-        let bytes: &[u8; 64] = bytemuck::cast_ref(&draw.model);
-        data[offset..offset + 64].copy_from_slice(bytes);
+    let mut data = vec![0u8; draws.len() * aligned_entry];
+    for (slot, draw) in data.chunks_exact_mut(aligned_entry).zip(draws) {
+        slot[..64].copy_from_slice(bytemuck::bytes_of(&draw.model));
     }
     data
 }
@@ -429,24 +439,18 @@ impl Renderer for WgpuRenderer {
         color: Color,
         model: [[f32; 4]; 4],
     ) {
-        let material_uniforms = self.pending_material.take_uniforms();
-        let material_textures = self.pending_material.take_textures();
         #[allow(clippy::cast_possible_truncation)]
         let index_start = self.shape_batch.index_count() as u32;
         self.shape_batch.push(vertices, indices, color);
         #[allow(clippy::cast_possible_truncation)]
         let index_count = (self.shape_batch.index_count() as u32) - index_start;
-        self.shape_draws.push(ShapeDrawRecord {
-            blend_mode: self.current_blend_mode,
-            shader_handle: self.active_shader,
-            source: MeshSource::Batched {
+        self.push_shape_draw(
+            MeshSource::Batched {
                 index_start,
                 index_count,
             },
             model,
-            material_uniforms,
-            material_textures,
-        });
+        );
     }
 
     fn draw_colored_mesh(
@@ -455,25 +459,19 @@ impl Renderer for WgpuRenderer {
         indices: &[u32],
         model: [[f32; 4]; 4],
     ) {
-        let material_uniforms = self.pending_material.take_uniforms();
-        let material_textures = self.pending_material.take_textures();
         #[allow(clippy::cast_possible_truncation)]
         let index_start = self.shape_batch.index_count() as u32;
         let shape_verts: &[ShapeVertex] = bytemuck::cast_slice(vertices);
         self.shape_batch.push_colored(shape_verts, indices);
         #[allow(clippy::cast_possible_truncation)]
         let index_count = (self.shape_batch.index_count() as u32) - index_start;
-        self.shape_draws.push(ShapeDrawRecord {
-            blend_mode: self.current_blend_mode,
-            shader_handle: self.active_shader,
-            source: MeshSource::Batched {
+        self.push_shape_draw(
+            MeshSource::Batched {
                 index_start,
                 index_count,
             },
             model,
-            material_uniforms,
-            material_textures,
-        });
+        );
     }
 
     fn upload_persistent_colored_mesh(
@@ -516,16 +514,7 @@ impl Renderer for WgpuRenderer {
         handle: crate::renderer::GpuMeshHandle,
         model: [[f32; 4]; 4],
     ) {
-        let material_uniforms = self.pending_material.take_uniforms();
-        let material_textures = self.pending_material.take_textures();
-        self.shape_draws.push(ShapeDrawRecord {
-            blend_mode: self.current_blend_mode,
-            shader_handle: self.active_shader,
-            source: MeshSource::Persistent { handle },
-            model,
-            material_uniforms,
-            material_textures,
-        });
+        self.push_shape_draw(MeshSource::Persistent { handle }, model);
     }
 
     fn free_persistent_colored_mesh(&mut self, handle: crate::renderer::GpuMeshHandle) {

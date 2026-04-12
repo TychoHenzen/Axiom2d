@@ -440,11 +440,7 @@ fn circle_polygon(center: Vec2, radius: f32, segments: usize) -> Vec<Vec2> {
 }
 
 fn clip_polygon_to_rect(points: Vec<Vec2>, min: Vec2, max: Vec2) -> Vec<Vec2> {
-    let left = clip_polygon(
-        points,
-        |p| p.x >= min.x,
-        |a, b| intersect_x(a, b, min.x),
-    );
+    let left = clip_polygon(points, |p| p.x >= min.x, |a, b| intersect_x(a, b, min.x));
     let right = clip_polygon(left, |p| p.x <= max.x, |a, b| intersect_x(a, b, max.x));
     let bottom = clip_polygon(right, |p| p.y >= min.y, |a, b| intersect_y(a, b, min.y));
     clip_polygon(bottom, |p| p.y <= max.y, |a, b| intersect_y(a, b, max.y))

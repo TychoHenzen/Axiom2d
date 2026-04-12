@@ -228,19 +228,19 @@ pub fn store_ui_bounds(grid_width: u8, grid_height: u8) -> (f32, f32, f32, f32) 
     (left, top, right, bottom)
 }
 
-fn item_columns(item_count: usize) -> u8 {
-    STORE_COLUMNS.min(item_count.max(1) as u8)
+fn item_columns(item_count: usize) -> usize {
+    (STORE_COLUMNS as usize).min(item_count.max(1))
 }
 
 fn store_item_layout(grid_width: u8, item_count: usize, index: usize) -> (f32, f32) {
     let columns = item_columns(item_count);
-    let total_w = f32::from(columns) * STORE_ITEM_WIDTH
-        + f32::from(columns.saturating_sub(1)) * STORE_ITEM_GAP_X;
+    let total_w =
+        columns as f32 * STORE_ITEM_WIDTH + columns.saturating_sub(1) as f32 * STORE_ITEM_GAP_X;
     let grid_w = f32::from(grid_width) * SLOT_STRIDE_W - SLOT_GAP;
     let start_x = GRID_MARGIN + (grid_w - total_w).max(0.0) * 0.5;
     let start_y = GRID_MARGIN + STORE_HEADER_HEIGHT;
-    let col = f32::from(index as u8 % columns);
-    let row = f32::from(index as u8 / columns);
+    let col = (index % columns) as f32;
+    let row = (index / columns) as f32;
     let left = start_x + col * (STORE_ITEM_WIDTH + STORE_ITEM_GAP_X);
     let top = start_y + row * (STORE_ITEM_HEIGHT + STORE_ITEM_GAP_Y);
     (left, top)
@@ -716,19 +716,32 @@ fn store_item_at(
     catalog: &StoreCatalog,
 ) -> Option<StoreItemKind> {
     let items = catalog.items();
-    for (index, &item) in items.iter().enumerate() {
-        let (left, top) = store_item_layout(grid.width(), items.len(), index);
-        let right = left + STORE_ITEM_WIDTH;
-        let bottom = top + STORE_ITEM_HEIGHT;
-        if screen_pos.x >= left
-            && screen_pos.x <= right
-            && screen_pos.y >= top
-            && screen_pos.y <= bottom
-        {
-            return Some(item);
-        }
+    let columns = item_columns(items.len());
+    let item_stride_w = STORE_ITEM_WIDTH + STORE_ITEM_GAP_X;
+    let item_stride_h = STORE_ITEM_HEIGHT + STORE_ITEM_GAP_Y;
+    let total_w =
+        columns as f32 * STORE_ITEM_WIDTH + columns.saturating_sub(1) as f32 * STORE_ITEM_GAP_X;
+    let grid_w = f32::from(grid.width()) * SLOT_STRIDE_W - SLOT_GAP;
+    let start_x = GRID_MARGIN + (grid_w - total_w).max(0.0) * 0.5;
+    let start_y = GRID_MARGIN + STORE_HEADER_HEIGHT;
+    if screen_pos.x < start_x || screen_pos.y < start_y {
+        return None;
     }
-    None
+
+    let col = ((screen_pos.x - start_x) / item_stride_w).floor() as usize;
+    let row = ((screen_pos.y - start_y) / item_stride_h).floor() as usize;
+    if col >= columns {
+        return None;
+    }
+
+    let index = row * columns + col;
+    let &item = items.get(index)?;
+    let (left, top) = store_item_layout(grid.width(), items.len(), index);
+    if screen_pos.x <= left + STORE_ITEM_WIDTH && screen_pos.y <= top + STORE_ITEM_HEIGHT {
+        Some(item)
+    } else {
+        None
+    }
 }
 
 fn spawn_reader_purchase(world: &mut World, position: Vec2) -> Entity {
