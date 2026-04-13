@@ -220,6 +220,52 @@ impl StoreCatalog {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StoreDragTarget {
+    Any,
+    Reader(Entity),
+    Screen(Entity),
+    Combiner(Entity),
+    Booster(Entity),
+}
+
+fn active_store_drag_target(world: &World) -> Option<StoreDragTarget> {
+    if world
+        .get_resource::<DragState>()
+        .is_some_and(|drag| drag.dragging.is_some())
+    {
+        return Some(StoreDragTarget::Any);
+    }
+
+    if let Some(entity) = world
+        .get_resource::<ReaderDragState>()
+        .and_then(|state| state.dragging.as_ref().map(|drag| drag.entity))
+    {
+        return Some(StoreDragTarget::Reader(entity));
+    }
+
+    if let Some(entity) = world
+        .get_resource::<ScreenDragState>()
+        .and_then(|state| state.dragging.as_ref().map(|drag| drag.entity))
+    {
+        return Some(StoreDragTarget::Screen(entity));
+    }
+
+    if let Some(entity) = world
+        .get_resource::<CombinerDragState>()
+        .and_then(|state| state.dragging.as_ref().map(|drag| drag.entity))
+    {
+        return Some(StoreDragTarget::Combiner(entity));
+    }
+
+    world.get_resource::<BoosterDragState>().and_then(|state| {
+        state
+            .dragging
+            .as_ref()
+            .map(|drag| StoreDragTarget::Booster(drag.entity))
+    })
+}
+
 pub fn storage_tab_purchase_cost(storage_tab_count: u8) -> u32 {
     let exponent = u32::from(storage_tab_count.saturating_sub(1).min(30));
     STORE_TAB_BASE_COST.saturating_mul(1u32 << exponent)
@@ -405,45 +451,25 @@ fn draw_store_item(
     left: f32,
     top: f32,
 ) {
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base_order),
-        camera,
-        viewport_w,
-        viewport_h,
-        left,
-        top,
-        STORE_ITEM_WIDTH,
-        STORE_ITEM_HEIGHT,
-        STORE_PANEL_FILL,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base_order + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 2.0,
-        top + 2.0,
-        STORE_ITEM_WIDTH - 4.0,
-        STORE_ITEM_HEIGHT - 4.0,
-        STORE_HIGHLIGHT_COLOR,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base_order + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 4.0,
-        top + 4.0,
-        STORE_ITEM_WIDTH - 8.0,
-        STORE_ITEM_HEIGHT - 8.0,
-        STORE_PANEL_FILL,
-    );
+    for (offset, inset, color) in [
+        (0_i32, 0.0, STORE_PANEL_FILL),
+        (1_i32, 2.0, STORE_HIGHLIGHT_COLOR),
+        (2_i32, 4.0, STORE_PANEL_FILL),
+    ] {
+        draw_screen_rect(
+            queue,
+            layer,
+            SortOrder::new(base_order + offset),
+            camera,
+            viewport_w,
+            viewport_h,
+            left + inset,
+            top + inset,
+            STORE_ITEM_WIDTH - inset * 2.0,
+            STORE_ITEM_HEIGHT - inset * 2.0,
+            color,
+        );
+    }
 
     let preview_base = base_order + 3;
     draw_preview_rects(
@@ -493,28 +519,33 @@ fn store_item_at(
     catalog: &StoreCatalog,
 ) -> Option<StoreItemKind> {
     let items = catalog.items();
-    let columns = item_columns(items.len());
-    let item_stride_w = STORE_ITEM_WIDTH + STORE_ITEM_GAP_X;
-    let item_stride_h = STORE_ITEM_HEIGHT + STORE_ITEM_GAP_Y;
-    let (start_x, start_y) = store_item_origin(grid.width(), items.len());
-    if screen_pos.x < start_x || screen_pos.y < start_y {
+    let item_count = items.len();
+    if item_count == 0 {
         return None;
     }
 
-    let col = ((screen_pos.x - start_x) / item_stride_w).floor() as usize;
-    let row = ((screen_pos.y - start_y) / item_stride_h).floor() as usize;
+    let columns = item_columns(item_count);
+    let (start_x, start_y) = store_item_origin(grid.width(), item_count);
+    let local_x = screen_pos.x - start_x;
+    let local_y = screen_pos.y - start_y;
+    if local_x < 0.0 || local_y < 0.0 {
+        return None;
+    }
+
+    let stride_x = STORE_ITEM_WIDTH + STORE_ITEM_GAP_X;
+    let stride_y = STORE_ITEM_HEIGHT + STORE_ITEM_GAP_Y;
+    let col = (local_x / stride_x) as usize;
     if col >= columns {
         return None;
     }
 
+    let row = (local_y / stride_y) as usize;
     let index = row * columns + col;
-    let &item = items.get(index)?;
-    let (_, _, right, bottom) = store_item_bounds(grid.width(), items.len(), index);
-    if screen_pos.x >= right || screen_pos.y >= bottom {
-        None
-    } else {
-        Some(item)
-    }
+    let item = items.get(index).copied()?;
+    let item_x = local_x - col as f32 * stride_x;
+    let item_y = local_y - row as f32 * stride_y;
+
+    (item_x < STORE_ITEM_WIDTH && item_y < STORE_ITEM_HEIGHT).then_some(item)
 }
 
 fn spawn_reader_purchase(world: &mut World, position: Vec2) -> Entity {
@@ -674,22 +705,7 @@ pub fn store_buy_system(world: &mut World) {
         return;
     }
 
-    let drag_active = world
-        .get_resource::<DragState>()
-        .is_some_and(|drag| drag.dragging.is_some())
-        || world
-            .get_resource::<ReaderDragState>()
-            .is_some_and(|drag| drag.dragging.is_some())
-        || world
-            .get_resource::<ScreenDragState>()
-            .is_some_and(|drag| drag.dragging.is_some())
-        || world
-            .get_resource::<CombinerDragState>()
-            .is_some_and(|drag| drag.dragging.is_some())
-        || world
-            .get_resource::<BoosterDragState>()
-            .is_some_and(|drag| drag.dragging.is_some());
-    if drag_active || !stash_ui_contains(mouse_screen_pos, &grid) {
+    if active_store_drag_target(world).is_some() || !stash_ui_contains(mouse_screen_pos, &grid) {
         return;
     }
 
@@ -764,31 +780,24 @@ pub fn store_sell_system(world: &mut World) {
         return;
     }
 
-    let reader_drag = world
-        .get_resource::<ReaderDragState>()
-        .and_then(|drag| drag.dragging.clone());
-    let screen_drag = world
-        .get_resource::<ScreenDragState>()
-        .and_then(|drag| drag.dragging.clone());
-    let combiner_drag = world
-        .get_resource::<CombinerDragState>()
-        .and_then(|drag| drag.dragging.clone());
-    let booster_drag = world
-        .get_resource::<BoosterDragState>()
-        .and_then(|drag| drag.dragging.clone());
-
-    if let Some(dragged_reader) = reader_drag {
-        sell_reader(world, dragged_reader.entity);
-        world.resource_mut::<ReaderDragState>().dragging = None;
-    } else if let Some(dragged_screen) = screen_drag {
-        sell_screen(world, dragged_screen.entity);
-        world.resource_mut::<ScreenDragState>().dragging = None;
-    } else if let Some(dragged_combiner) = combiner_drag {
-        sell_combiner(world, dragged_combiner.entity);
-        world.resource_mut::<CombinerDragState>().dragging = None;
-    } else if let Some(dragged_booster) = booster_drag {
-        sell_booster(world, dragged_booster.entity);
-        world.resource_mut::<BoosterDragState>().dragging = None;
+    match active_store_drag_target(world) {
+        Some(StoreDragTarget::Reader(entity)) => {
+            sell_reader(world, entity);
+            world.resource_mut::<ReaderDragState>().dragging = None;
+        }
+        Some(StoreDragTarget::Screen(entity)) => {
+            sell_screen(world, entity);
+            world.resource_mut::<ScreenDragState>().dragging = None;
+        }
+        Some(StoreDragTarget::Combiner(entity)) => {
+            sell_combiner(world, entity);
+            world.resource_mut::<CombinerDragState>().dragging = None;
+        }
+        Some(StoreDragTarget::Booster(entity)) => {
+            sell_booster(world, entity);
+            world.resource_mut::<BoosterDragState>().dragging = None;
+        }
+        Some(StoreDragTarget::Any) | None => {}
     }
 }
 

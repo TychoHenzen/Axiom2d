@@ -17,7 +17,6 @@ pub(super) struct GpuContext {
     pub(super) device: wgpu::Device,
     pub(super) queue: wgpu::Queue,
     pub(super) config: wgpu::SurfaceConfiguration,
-    pub(super) format: wgpu::TextureFormat,
 }
 
 pub(super) struct CameraResources {
@@ -61,14 +60,12 @@ pub(super) fn init_gpu(window: Arc<Window>, config: &WindowConfig) -> GpuContext
         .expect("failed to create surface");
     let (adapter, device, queue) = request_adapter_and_device(&instance, &surface);
     let surface_config = configure_surface(&surface, &adapter, config, &window);
-    let format = surface_config.format;
     surface.configure(&device, &surface_config);
     GpuContext {
         surface,
         device,
         queue,
         config: surface_config,
-        format,
     }
 }
 
@@ -80,17 +77,17 @@ fn configure_surface(
 ) -> wgpu::SurfaceConfiguration {
     let size = window.inner_size();
     let caps = surface.get_capabilities(adapter);
-    let fallback_format = caps
-        .formats
-        .first()
-        .copied()
-        .expect("surface reported no supported formats");
     let format = caps
         .formats
         .iter()
         .copied()
         .find(wgpu::TextureFormat::is_srgb)
-        .unwrap_or(fallback_format);
+        .unwrap_or_else(|| {
+            caps.formats
+                .first()
+                .copied()
+                .expect("surface reported no supported formats")
+        });
     let alpha_mode = caps
         .alpha_modes
         .first()
@@ -456,7 +453,6 @@ pub(super) fn load_quad_shader(device: &wgpu::Device) -> wgpu::ShaderModule {
 
 pub(super) struct RendererParts {
     pub(super) gpu: GpuContext,
-    pub(super) gpu_format: wgpu::TextureFormat,
     pub(super) tex_layout: wgpu::BindGroupLayout,
     pub(super) cam: CameraResources,
     pub(super) quad_pipelines: [wgpu::RenderPipeline; 3],
@@ -475,7 +471,7 @@ pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -
     let pl = create_quad_pipeline_layout(&gpu.device, &tex_layout, &cam_layout);
     let sample_count = 4;
     let quad_pipelines =
-        create_quad_pipeline_set(&gpu.device, &pl, &shader, gpu.format, sample_count);
+        create_quad_pipeline_set(&gpu.device, &pl, &shader, gpu.config.format, sample_count);
     let (quad_vertex_buffer, index_buffer) = create_static_buffers(&gpu.device);
     let tex_bg = create_texture_bind_group(
         &gpu.device,
@@ -491,13 +487,11 @@ pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -
         &gpu.device,
         &cam_layout,
         &tex_layout,
-        gpu.format,
+        gpu.config.format,
         sample_count,
     );
-    let fmt = gpu.format;
     RendererParts {
         gpu,
-        gpu_format: fmt,
         tex_layout,
         cam,
         quad_pipelines,

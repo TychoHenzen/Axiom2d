@@ -23,6 +23,12 @@ struct PreparedShapeResources {
     batched_buffers: Option<(wgpu::Buffer, wgpu::Buffer)>,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum BoundShapeSource {
+    Batched,
+    Persistent(crate::renderer::GpuMeshHandle),
+}
+
 const MODEL_UNIFORM_SIZE: usize = std::mem::size_of::<[[f32; 4]; 4]>();
 
 impl WgpuRenderer {
@@ -199,7 +205,7 @@ impl WgpuRenderer {
         batched_buffers: Option<&(wgpu::Buffer, wgpu::Buffer)>,
     ) {
         let mut last_key: Option<(ShaderHandle, crate::material::BlendMode)> = None;
-        let mut batched_bound = false;
+        let mut last_source: Option<BoundShapeSource> = None;
 
         for (i, draw) in self.shape_draws.iter().enumerate() {
             let key = (draw.shader_handle, draw.blend_mode);
@@ -217,23 +223,25 @@ impl WgpuRenderer {
                     index_start,
                     index_count,
                 } => {
-                    if !batched_bound {
+                    if last_source != Some(BoundShapeSource::Batched) {
                         if let Some((vb, ib)) = batched_buffers {
                             pass.set_vertex_buffer(0, vb.slice(..));
                             pass.set_index_buffer(ib.slice(..), wgpu::IndexFormat::Uint32);
                         }
-                        batched_bound = true;
+                        last_source = Some(BoundShapeSource::Batched);
                     }
                     pass.draw_indexed(*index_start..*index_start + *index_count, 0, 0..1);
                 }
                 MeshSource::Persistent { handle } => {
                     if let Some(mesh) = self.persistent_meshes.get(handle) {
-                        pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-                        pass.set_index_buffer(
-                            mesh.index_buffer.slice(..),
-                            wgpu::IndexFormat::Uint32,
-                        );
-                        batched_bound = false;
+                        if last_source != Some(BoundShapeSource::Persistent(*handle)) {
+                            pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+                            pass.set_index_buffer(
+                                mesh.index_buffer.slice(..),
+                                wgpu::IndexFormat::Uint32,
+                            );
+                            last_source = Some(BoundShapeSource::Persistent(*handle));
+                        }
                         pass.draw_indexed(0..mesh.index_count, 0, 0..1);
                     }
                 }

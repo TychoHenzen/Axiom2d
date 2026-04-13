@@ -243,12 +243,14 @@ impl WgpuRenderer {
     }
 
     fn from_parts(p: gpu_init::RendererParts) -> Self {
+        let surface_format = p.gpu.config.format;
+        let sample_count = p.sample_count;
         let msaa_view = Self::create_msaa_texture(
             &p.gpu.device,
-            p.gpu_format,
+            surface_format,
             p.gpu.config.width,
             p.gpu.config.height,
-            p.sample_count,
+            sample_count,
         );
         Self {
             surface: p.gpu.surface,
@@ -268,7 +270,7 @@ impl WgpuRenderer {
             model_bind_group_layout: p.shape.model_bind_group_layout,
             material_bind_group_layout: p.shape.material_bind_group_layout,
             model_uniform_align: p.shape.model_uniform_align,
-            surface_format: p.gpu_format,
+            surface_format,
             clear_color: Color::BLACK,
             pending_instances: Vec::new(),
             instance_blend_modes: Vec::new(),
@@ -286,7 +288,7 @@ impl WgpuRenderer {
             bloom_intensity: 0.3,
             glyph_cache: crate::font::GlyphCache::new(),
             msaa_view,
-            sample_count: p.sample_count,
+            sample_count,
             instance_upload_buffer: None,
             shape_vertex_upload_buffer: None,
             shape_index_upload_buffer: None,

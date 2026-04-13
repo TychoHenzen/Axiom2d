@@ -72,6 +72,8 @@ const SCREEN_LOCAL_SORT: i32 = -1;
 const SCREEN_PANEL_LOCAL_SORT: i32 = 1;
 const SCREEN_DOT_LOCAL_SORT: i32 = 2;
 const SCREEN_SOCKET_LOCAL_SORT: i32 = 1;
+const PANEL_CLIP_MIN: Vec2 = Vec2::new(-PANEL_HALF, -PANEL_HALF);
+const PANEL_CLIP_MAX: Vec2 = Vec2::new(PANEL_HALF, PANEL_HALF);
 
 #[derive(Component)]
 pub struct ScreenDevice {
@@ -311,64 +313,48 @@ pub fn screen_release_system(mouse: Res<MouseState>, mut screen_drag: ResMut<Scr
 }
 
 fn build_signal_polyline(points: &[Vec2], thickness: f32) -> ShapeVariant {
-    let n = points.len();
-    let clamped_thickness = thickness.max(1.0);
-    let closed = n >= 3;
-
-    if closed {
-        // Closed loop: Catmull-Rom subdivide, then build annular polygon.
-        let dense = catmull_rom_subdivide_closed(points, PANEL_SPLINE_SUBDIVISIONS);
-        let m = dense.len();
-        let mut outer = Vec::with_capacity(m);
-        let mut inner = Vec::with_capacity(m);
-        for i in 0..m {
-            let prev = dense[(i + m - 1) % m];
-            let next = dense[(i + 1) % m];
-            let dir = (next - prev).normalize_or_zero();
+    let thickness = thickness.max(1.0);
+    let polygon = match points {
+        [] => Vec::new(),
+        [point] => circle_polygon(*point, thickness, SIGNAL_SEGMENTS),
+        [a, b] => {
+            let dir = (*b - *a).normalize_or_zero();
             let normal = Vec2::new(-dir.y, dir.x);
-            outer.push(dense[i] + normal * clamped_thickness);
-            inner.push(dense[i] - normal * clamped_thickness);
+            let half_steps = SIGNAL_SEGMENTS / 2;
+            let mut polygon = Vec::with_capacity(SIGNAL_SEGMENTS + 2);
+            polygon.push(*a + normal * thickness);
+            polygon.push(*b + normal * thickness);
+            polygon.extend(semicircle_fan(*b, thickness, dir, half_steps));
+            polygon.push(*b - normal * thickness);
+            polygon.push(*a - normal * thickness);
+            polygon.extend(semicircle_fan(*a, thickness, -dir, half_steps));
+            polygon
         }
-        // Trace outer ring, bridge to inner ring (reversed), bridge back.
-        let mut polygon = Vec::with_capacity(2 * m + 2);
-        polygon.extend_from_slice(&outer);
-        polygon.push(outer[0]);
-        polygon.push(inner[0]);
-        for i in (0..m).rev() {
-            polygon.push(inner[i]);
+        _ => {
+            let dense = catmull_rom_subdivide_closed(points, PANEL_SPLINE_SUBDIVISIONS);
+            let m = dense.len();
+            let mut outer = Vec::with_capacity(m);
+            let mut inner = Vec::with_capacity(m);
+            for i in 0..m {
+                let prev = dense[(i + m - 1) % m];
+                let next = dense[(i + 1) % m];
+                let dir = (next - prev).normalize_or_zero();
+                let normal = Vec2::new(-dir.y, dir.x);
+                outer.push(dense[i] + normal * thickness);
+                inner.push(dense[i] - normal * thickness);
+            }
+            let mut polygon = Vec::with_capacity(2 * m + 2);
+            polygon.extend_from_slice(&outer);
+            polygon.push(outer[0]);
+            polygon.push(inner[0]);
+            for i in (0..m).rev() {
+                polygon.push(inner[i]);
+            }
+            polygon
         }
-        let clipped = clip_polygon_to_rect(
-            polygon,
-            Vec2::new(-PANEL_HALF, -PANEL_HALF),
-            Vec2::new(PANEL_HALF, PANEL_HALF),
-        );
-        ShapeVariant::Polygon { points: clipped }
-    } else {
-        // Capsule: straight ribbon + semicircular endcaps at each endpoint.
-        let a = points[0];
-        let b = points[n - 1];
-        let dir = (b - a).normalize_or_zero();
-        let normal = Vec2::new(-dir.y, dir.x);
-        let half_steps = SIGNAL_SEGMENTS / 2;
-
-        let mut polygon = Vec::with_capacity(2 + 2 * half_steps);
-        // Top edge: a → b along +normal side.
-        polygon.push(a + normal * clamped_thickness);
-        polygon.push(b + normal * clamped_thickness);
-        // Endcap at b: sweep +normal → -normal around b in the forward direction.
-        polygon.extend(semicircle_fan(b, clamped_thickness, dir, half_steps));
-        // Bottom edge: b → a along -normal side.
-        polygon.push(b - normal * clamped_thickness);
-        polygon.push(a - normal * clamped_thickness);
-        // Endcap at a: sweep -normal → +normal around a in the backward direction.
-        polygon.extend(semicircle_fan(a, clamped_thickness, -dir, half_steps));
-
-        let clipped = clip_polygon_to_rect(
-            polygon,
-            Vec2::new(-PANEL_HALF, -PANEL_HALF),
-            Vec2::new(PANEL_HALF, PANEL_HALF),
-        );
-        ShapeVariant::Polygon { points: clipped }
+    };
+    ShapeVariant::Polygon {
+        points: clip_to_panel(polygon),
     }
 }
 
@@ -421,13 +407,13 @@ fn catmull_rom_subdivide_closed(points: &[Vec2], subdivisions: usize) -> Vec<Vec
 }
 
 fn clipped_signal_circle(center: Vec2, radius: f32) -> ShapeVariant {
-    let circle = circle_polygon(center, radius, SIGNAL_SEGMENTS);
-    let clipped = clip_polygon_to_rect(
-        circle,
-        Vec2::new(-PANEL_HALF, -PANEL_HALF),
-        Vec2::new(PANEL_HALF, PANEL_HALF),
-    );
-    ShapeVariant::Polygon { points: clipped }
+    ShapeVariant::Polygon {
+        points: clip_to_panel(circle_polygon(center, radius, SIGNAL_SEGMENTS)),
+    }
+}
+
+fn clip_to_panel(points: Vec<Vec2>) -> Vec<Vec2> {
+    clip_polygon_to_rect(points, PANEL_CLIP_MIN, PANEL_CLIP_MAX)
 }
 
 fn circle_polygon(center: Vec2, radius: f32, segments: usize) -> Vec<Vec2> {

@@ -94,16 +94,20 @@ pub fn point_in_convex_polygon(point: Vec2, polygon: &[Vec2]) -> bool {
         return false;
     }
 
-    let mut sign = 0.0;
+    let mut sign: Option<f32> = None;
     for (a, b) in polygon_edges(polygon) {
         let cross = (b - a).perp_dot(point - a);
         if cross.abs() <= 1e-5 {
             continue;
         }
-        if sign == 0.0 {
-            sign = cross.signum();
-        } else if sign * cross < 0.0 {
-            return false;
+
+        let edge_sign = cross.signum();
+        if let Some(expected) = sign {
+            if expected != edge_sign {
+                return false;
+            }
+        } else {
+            sign = Some(edge_sign);
         }
     }
     true
