@@ -245,7 +245,8 @@ impl WgpuRenderer {
         if self.shape_draws.is_empty() {
             return None;
         }
-        let aligned_entry = align_to_uniform_offset(MODEL_UNIFORM_SIZE, self.model_uniform_align as usize);
+        let aligned_entry =
+            align_to_uniform_offset(MODEL_UNIFORM_SIZE, self.model_uniform_align as usize);
         let model_bg = self.prepare_model_bind_group(aligned_entry)?;
         let (material_bg, material_entry_size) = self.prepare_material_bind_group()?;
         let batched_buffers = if self.shape_batch.is_empty() {

@@ -118,7 +118,7 @@ impl StoreWallet {
     }
 
     pub fn spend(&mut self, cost: u32) -> bool {
-        if !self.can_afford(cost) {
+        if self.coins < cost {
             return false;
         }
         self.coins -= cost;
@@ -139,22 +139,57 @@ pub enum StoreItemKind {
 }
 
 impl StoreItemKind {
+    pub const ALL: [Self; 4] = [
+        Self::Reader,
+        Self::Screen,
+        Self::Combiner,
+        Self::BoosterMachine,
+    ];
+
+    const LABELS: [&'static str; 4] = ["Card Reader", "Screen", "Combiner", "Booster Machine"];
+    const COSTS: [u32; 4] = [30, 20, 25, 35];
+    const PRICE_TEXTS: [&'static str; 4] = ["30 coins", "20 coins", "25 coins", "35 coins"];
+    const PREVIEW_COLORS: [Color; 4] = [
+        Color {
+            r: 0.56,
+            g: 0.44,
+            b: 0.26,
+            a: 1.0,
+        },
+        Color {
+            r: 0.14,
+            g: 0.34,
+            b: 0.54,
+            a: 1.0,
+        },
+        Color {
+            r: 0.36,
+            g: 0.22,
+            b: 0.50,
+            a: 1.0,
+        },
+        Color {
+            r: 0.56,
+            g: 0.44,
+            b: 0.12,
+            a: 1.0,
+        },
+    ];
+
+    fn index(self) -> usize {
+        self as usize
+    }
+
     pub fn label(self) -> &'static str {
-        match self {
-            Self::Reader => "Card Reader",
-            Self::Screen => "Screen",
-            Self::Combiner => "Combiner",
-            Self::BoosterMachine => "Booster Machine",
-        }
+        Self::LABELS[self.index()]
     }
 
     pub fn cost(self) -> u32 {
-        match self {
-            Self::Reader => 30,
-            Self::Screen => 20,
-            Self::Combiner => 25,
-            Self::BoosterMachine => 35,
-        }
+        Self::COSTS[self.index()]
+    }
+
+    pub fn price_text(self) -> &'static str {
+        Self::PRICE_TEXTS[self.index()]
     }
 
     pub fn refund_value(self) -> u32 {
@@ -162,49 +197,19 @@ impl StoreItemKind {
     }
 
     pub fn preview_color(self) -> Color {
-        match self {
-            Self::Reader => Color {
-                r: 0.56,
-                g: 0.44,
-                b: 0.26,
-                a: 1.0,
-            },
-            Self::Screen => Color {
-                r: 0.14,
-                g: 0.34,
-                b: 0.54,
-                a: 1.0,
-            },
-            Self::Combiner => Color {
-                r: 0.36,
-                g: 0.22,
-                b: 0.50,
-                a: 1.0,
-            },
-            Self::BoosterMachine => Color {
-                r: 0.56,
-                g: 0.44,
-                b: 0.12,
-                a: 1.0,
-            },
-        }
+        Self::PREVIEW_COLORS[self.index()]
     }
 }
 
 #[derive(Resource, Debug, Clone, PartialEq, Eq)]
 pub struct StoreCatalog {
-    items: Vec<StoreItemKind>,
+    items: [StoreItemKind; 4],
 }
 
 impl Default for StoreCatalog {
     fn default() -> Self {
         Self {
-            items: vec![
-                StoreItemKind::Reader,
-                StoreItemKind::Screen,
-                StoreItemKind::Combiner,
-                StoreItemKind::BoosterMachine,
-            ],
+            items: StoreItemKind::ALL,
         }
     }
 }
@@ -232,18 +237,28 @@ fn item_columns(item_count: usize) -> usize {
     (STORE_COLUMNS as usize).min(item_count.max(1))
 }
 
-fn store_item_layout(grid_width: u8, item_count: usize, index: usize) -> (f32, f32) {
+fn store_item_origin(grid_width: u8, item_count: usize) -> (f32, f32) {
     let columns = item_columns(item_count);
     let total_w =
         columns as f32 * STORE_ITEM_WIDTH + columns.saturating_sub(1) as f32 * STORE_ITEM_GAP_X;
     let grid_w = f32::from(grid_width) * SLOT_STRIDE_W - SLOT_GAP;
     let start_x = GRID_MARGIN + (grid_w - total_w).max(0.0) * 0.5;
-    let start_y = GRID_MARGIN + STORE_HEADER_HEIGHT;
+    (start_x, GRID_MARGIN + STORE_HEADER_HEIGHT)
+}
+
+fn store_item_layout(grid_width: u8, item_count: usize, index: usize) -> (f32, f32) {
+    let columns = item_columns(item_count);
+    let (start_x, start_y) = store_item_origin(grid_width, item_count);
     let col = (index % columns) as f32;
     let row = (index / columns) as f32;
     let left = start_x + col * (STORE_ITEM_WIDTH + STORE_ITEM_GAP_X);
     let top = start_y + row * (STORE_ITEM_HEIGHT + STORE_ITEM_GAP_Y);
     (left, top)
+}
+
+fn store_item_bounds(grid_width: u8, item_count: usize, index: usize) -> (f32, f32, f32, f32) {
+    let (left, top) = store_item_layout(grid_width, item_count, index);
+    (left, top, left + STORE_ITEM_WIDTH, top + STORE_ITEM_HEIGHT)
 }
 
 fn draw_screen_rect(
@@ -464,7 +479,7 @@ fn draw_store_item(
         camera,
         viewport_w,
         viewport_h,
-        &format!("{} coins", item.cost()),
+        item.price_text(),
         center_x,
         top + STORE_ITEM_HEIGHT - 20.0,
         STORE_PRICE_FONT,
@@ -481,11 +496,7 @@ fn store_item_at(
     let columns = item_columns(items.len());
     let item_stride_w = STORE_ITEM_WIDTH + STORE_ITEM_GAP_X;
     let item_stride_h = STORE_ITEM_HEIGHT + STORE_ITEM_GAP_Y;
-    let total_w =
-        columns as f32 * STORE_ITEM_WIDTH + columns.saturating_sub(1) as f32 * STORE_ITEM_GAP_X;
-    let grid_w = f32::from(grid.width()) * SLOT_STRIDE_W - SLOT_GAP;
-    let start_x = GRID_MARGIN + (grid_w - total_w).max(0.0) * 0.5;
-    let start_y = GRID_MARGIN + STORE_HEADER_HEIGHT;
+    let (start_x, start_y) = store_item_origin(grid.width(), items.len());
     if screen_pos.x < start_x || screen_pos.y < start_y {
         return None;
     }
@@ -498,8 +509,8 @@ fn store_item_at(
 
     let index = row * columns + col;
     let &item = items.get(index)?;
-    let (left, top) = store_item_layout(grid.width(), items.len(), index);
-    if screen_pos.x >= left + STORE_ITEM_WIDTH || screen_pos.y >= top + STORE_ITEM_HEIGHT {
+    let (_, _, right, bottom) = store_item_bounds(grid.width(), items.len(), index);
+    if screen_pos.x >= right || screen_pos.y >= bottom {
         None
     } else {
         Some(item)
@@ -925,7 +936,6 @@ pub fn store_item_screen_bounds(
     if index >= items.len() {
         return None;
     }
-    let (left, top) = store_item_layout(grid.width(), items.len(), index);
-    Some((left, top, left + STORE_ITEM_WIDTH, top + STORE_ITEM_HEIGHT))
+    Some(store_item_bounds(grid.width(), items.len(), index))
 }
 // EVOLVE-BLOCK-END
