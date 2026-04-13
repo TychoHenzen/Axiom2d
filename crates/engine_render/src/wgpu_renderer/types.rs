@@ -83,8 +83,10 @@ impl ShapeBatch {
     }
 
     pub(crate) fn push(&mut self, positions: &[[f32; 2]], indices: &[u32], color: Color) {
-        let base = self.vertices.len() as u32;
+        let base = u32::try_from(self.vertices.len()).expect("shape vertex count exceeds u32 range");
         let color = [color.r, color.g, color.b, color.a];
+        self.vertices.reserve(positions.len());
+        self.indices.reserve(indices.len());
         self.vertices
             .extend(positions.iter().map(|&position| ShapeVertex {
                 position,
@@ -95,7 +97,9 @@ impl ShapeBatch {
     }
 
     pub(crate) fn push_colored(&mut self, vertices: &[ShapeVertex], indices: &[u32]) {
-        let base = self.vertices.len() as u32;
+        let base = u32::try_from(self.vertices.len()).expect("shape vertex count exceeds u32 range");
+        self.vertices.reserve(vertices.len());
+        self.indices.reserve(indices.len());
         self.vertices.extend_from_slice(vertices);
         self.indices.extend(indices.iter().map(|&i| i + base));
     }
@@ -215,6 +219,10 @@ fn upload_texture(
     let desc = rgba_texture_descriptor(tex);
     let size = desc.size;
     let texture = device.create_texture(&desc);
+    let bytes_per_row = tex
+        .width
+        .checked_mul(4)
+        .expect("texture row size exceeds u32 range");
     queue.write_texture(
         wgpu::TexelCopyTextureInfo {
             texture: &texture,
@@ -225,7 +233,7 @@ fn upload_texture(
         tex.data,
         wgpu::TexelCopyBufferLayout {
             offset: 0,
-            bytes_per_row: Some(4 * tex.width),
+            bytes_per_row: Some(bytes_per_row),
             rows_per_image: Some(tex.height),
         },
         size,
@@ -271,12 +279,14 @@ pub(super) struct FullscreenPass<'a> {
     pub(super) params_bg: &'a wgpu::BindGroup,
 }
 
-#[allow(clippy::cast_possible_truncation)]
 pub(super) fn run_fullscreen_pass(
     encoder: &mut wgpu::CommandEncoder,
     buffers: &FullscreenBuffers<'_>,
     desc: &FullscreenPass<'_>,
 ) {
+    let quad_index_count =
+        u32::try_from(QUAD_INDICES.len()).expect("quad index count exceeds u32 range");
+
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: None,
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -296,7 +306,7 @@ pub(super) fn run_fullscreen_pass(
     pass.set_bind_group(1, desc.params_bg, &[]);
     pass.set_vertex_buffer(0, buffers.vertex.slice(..));
     pass.set_index_buffer(buffers.index.slice(..), wgpu::IndexFormat::Uint16);
-    pass.draw_indexed(0..QUAD_INDICES.len() as u32, 0, 0..1);
+    pass.draw_indexed(0..quad_index_count, 0, 0..1);
 }
 
 pub(super) struct FullscreenBuffers<'a> {
