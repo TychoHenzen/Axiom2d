@@ -23,6 +23,8 @@ struct PreparedShapeResources {
     batched_buffers: Option<(wgpu::Buffer, wgpu::Buffer)>,
 }
 
+const MODEL_UNIFORM_SIZE: usize = std::mem::size_of::<[[f32; 4]; 4]>();
+
 impl WgpuRenderer {
     fn begin_scene_pass<'a>(
         encoder: &'a mut wgpu::CommandEncoder,
@@ -117,14 +119,14 @@ impl WgpuRenderer {
             UploadBindGroupBuffer::new(
                 &self.device,
                 &self.model_bind_group_layout,
-                64,
+                MODEL_UNIFORM_SIZE as u64,
                 model_data.len(),
             )
         });
         model_upload.ensure_capacity(
             &self.device,
             &self.model_bind_group_layout,
-            64,
+            MODEL_UNIFORM_SIZE as u64,
             model_data.len(),
         );
         self.queue
@@ -243,12 +245,14 @@ impl WgpuRenderer {
         if self.shape_draws.is_empty() {
             return None;
         }
-        let aligned_entry = align_to_uniform_offset(64, self.model_uniform_align as usize);
+        let aligned_entry = align_to_uniform_offset(MODEL_UNIFORM_SIZE, self.model_uniform_align as usize);
         let model_bg = self.prepare_model_bind_group(aligned_entry)?;
         let (material_bg, material_entry_size) = self.prepare_material_bind_group()?;
-        let batched_buffers = (!self.shape_batch.is_empty())
-            .then(|| self.prepare_shape_buffers())
-            .flatten();
+        let batched_buffers = if self.shape_batch.is_empty() {
+            None
+        } else {
+            self.prepare_shape_buffers()
+        };
         Some(PreparedShapeResources {
             aligned_entry,
             material_entry_size,
@@ -340,7 +344,7 @@ impl WgpuRenderer {
 fn pack_model_uniform_data(draws: &[ShapeDrawRecord], aligned_entry: usize) -> Vec<u8> {
     let mut data = vec![0u8; draws.len() * aligned_entry];
     for (slot, draw) in data.chunks_exact_mut(aligned_entry).zip(draws) {
-        slot[..64].copy_from_slice(bytemuck::bytes_of(&draw.model));
+        slot[..MODEL_UNIFORM_SIZE].copy_from_slice(bytemuck::bytes_of(&draw.model));
     }
     data
 }

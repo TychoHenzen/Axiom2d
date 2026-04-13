@@ -315,7 +315,7 @@ fn draw_centered_screen_text(
     );
 }
 
-fn draw_reader_preview(
+fn draw_preview_rects(
     queue: &mut DrawQueue,
     layer: RenderLayer,
     base: i32,
@@ -324,251 +324,52 @@ fn draw_reader_preview(
     viewport_h: f32,
     left: f32,
     top: f32,
+    rects: &[(i32, f32, f32, f32, f32, Color)],
 ) {
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 38.0,
-        top + 22.0,
-        66.0,
-        86.0,
-        STORE_PREVIEW_DARK,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 50.0,
-        top + 40.0,
-        42.0,
-        50.0,
-        STORE_PREVIEW_MID,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 58.0,
-        top + 12.0,
-        26.0,
-        6.0,
-        STORE_PREVIEW_LIGHT,
-    );
+    for &(offset, x, y, width, height, color) in rects {
+        draw_screen_rect(
+            queue,
+            layer,
+            SortOrder::new(base + offset),
+            camera,
+            viewport_w,
+            viewport_h,
+            left + x,
+            top + y,
+            width,
+            height,
+            color,
+        );
+    }
 }
 
-fn draw_screen_preview(
-    queue: &mut DrawQueue,
-    layer: RenderLayer,
-    base: i32,
-    camera: &Camera2D,
-    viewport_w: f32,
-    viewport_h: f32,
-    left: f32,
-    top: f32,
-) {
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 32.0,
-        top + 22.0,
-        80.0,
-        96.0,
-        STORE_PREVIEW_DARK,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 40.0,
-        top + 30.0,
-        64.0,
-        80.0,
-        STORE_PREVIEW_MID,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 48.0,
-        top + 38.0,
-        18.0,
-        18.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 72.0,
-        top + 38.0,
-        18.0,
-        18.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 48.0,
-        top + 62.0,
-        18.0,
-        18.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 72.0,
-        top + 62.0,
-        18.0,
-        18.0,
-        STORE_PREVIEW_LIGHT,
-    );
-}
-
-fn draw_combiner_preview(
-    queue: &mut DrawQueue,
-    layer: RenderLayer,
-    base: i32,
-    camera: &Camera2D,
-    viewport_w: f32,
-    viewport_h: f32,
-    left: f32,
-    top: f32,
-) {
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 36.0,
-        top + 32.0,
-        72.0,
-        56.0,
-        STORE_PREVIEW_DARK,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 28.0,
-        top + 36.0,
-        10.0,
-        10.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 28.0,
-        top + 54.0,
-        10.0,
-        10.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 106.0,
-        top + 45.0,
-        10.0,
-        10.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 52.0,
-        top + 48.0,
-        40.0,
-        4.0,
-        STORE_PREVIEW_MID,
-    );
-}
-
-fn draw_booster_preview(
-    queue: &mut DrawQueue,
-    layer: RenderLayer,
-    base: i32,
-    camera: &Camera2D,
-    viewport_w: f32,
-    viewport_h: f32,
-    left: f32,
-    top: f32,
-) {
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 40.0,
-        top + 32.0,
-        64.0,
-        50.0,
-        STORE_PREVIEW_DARK,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 30.0,
-        top + 40.0,
-        10.0,
-        10.0,
-        STORE_PREVIEW_LIGHT,
-    );
+fn preview_rects_for(item: StoreItemKind) -> &'static [(i32, f32, f32, f32, f32, Color)] {
+    match item {
+        StoreItemKind::Reader => &[
+            (0, 38.0, 22.0, 66.0, 86.0, STORE_PREVIEW_DARK),
+            (1, 50.0, 40.0, 42.0, 50.0, STORE_PREVIEW_MID),
+            (2, 58.0, 12.0, 26.0, 6.0, STORE_PREVIEW_LIGHT),
+        ],
+        StoreItemKind::Screen => &[
+            (0, 32.0, 22.0, 80.0, 96.0, STORE_PREVIEW_DARK),
+            (1, 40.0, 30.0, 64.0, 80.0, STORE_PREVIEW_MID),
+            (2, 48.0, 38.0, 18.0, 18.0, STORE_PREVIEW_LIGHT),
+            (2, 72.0, 38.0, 18.0, 18.0, STORE_PREVIEW_LIGHT),
+            (2, 48.0, 62.0, 18.0, 18.0, STORE_PREVIEW_LIGHT),
+            (2, 72.0, 62.0, 18.0, 18.0, STORE_PREVIEW_LIGHT),
+        ],
+        StoreItemKind::Combiner => &[
+            (0, 36.0, 32.0, 72.0, 56.0, STORE_PREVIEW_DARK),
+            (1, 28.0, 36.0, 10.0, 10.0, STORE_PREVIEW_LIGHT),
+            (1, 28.0, 54.0, 10.0, 10.0, STORE_PREVIEW_LIGHT),
+            (1, 106.0, 45.0, 10.0, 10.0, STORE_PREVIEW_LIGHT),
+            (1, 52.0, 48.0, 40.0, 4.0, STORE_PREVIEW_MID),
+        ],
+        StoreItemKind::BoosterMachine => &[
+            (0, 40.0, 32.0, 64.0, 50.0, STORE_PREVIEW_DARK),
+            (1, 30.0, 40.0, 10.0, 10.0, STORE_PREVIEW_LIGHT),
+        ],
+    }
 }
 
 /// Sub-order layout within each store item (10 slots per item):
@@ -630,56 +431,17 @@ fn draw_store_item(
     );
 
     let preview_base = base_order + 3;
-    match item {
-        StoreItemKind::Reader => {
-            draw_reader_preview(
-                queue,
-                layer,
-                preview_base,
-                camera,
-                viewport_w,
-                viewport_h,
-                left,
-                top,
-            );
-        }
-        StoreItemKind::Screen => {
-            draw_screen_preview(
-                queue,
-                layer,
-                preview_base,
-                camera,
-                viewport_w,
-                viewport_h,
-                left,
-                top,
-            );
-        }
-        StoreItemKind::Combiner => {
-            draw_combiner_preview(
-                queue,
-                layer,
-                preview_base,
-                camera,
-                viewport_w,
-                viewport_h,
-                left,
-                top,
-            );
-        }
-        StoreItemKind::BoosterMachine => {
-            draw_booster_preview(
-                queue,
-                layer,
-                preview_base,
-                camera,
-                viewport_w,
-                viewport_h,
-                left,
-                top,
-            );
-        }
-    }
+    draw_preview_rects(
+        queue,
+        layer,
+        preview_base,
+        camera,
+        viewport_w,
+        viewport_h,
+        left,
+        top,
+        preview_rects_for(item),
+    );
 
     let center_x = left + STORE_ITEM_WIDTH * 0.5;
     draw_centered_screen_text(
@@ -737,10 +499,10 @@ fn store_item_at(
     let index = row * columns + col;
     let &item = items.get(index)?;
     let (left, top) = store_item_layout(grid.width(), items.len(), index);
-    if screen_pos.x <= left + STORE_ITEM_WIDTH && screen_pos.y <= top + STORE_ITEM_HEIGHT {
-        Some(item)
-    } else {
+    if screen_pos.x >= left + STORE_ITEM_WIDTH || screen_pos.y >= top + STORE_ITEM_HEIGHT {
         None
+    } else {
+        Some(item)
     }
 }
 
@@ -811,20 +573,20 @@ pub(crate) fn render_store_page(
     draw_centered_screen_text(
         queue,
         layer,
-        SortOrder::new(base),
+        SortOrder::new(base + 1),
         camera,
         viewport_w,
         viewport_h,
         &format!("Coins: {}", wallet.coins()),
         GRID_MARGIN + 360.0,
         GRID_MARGIN + 4.0,
-        STORE_TITLE_FONT,
+        STORE_COIN_FONT,
         STORE_TEXT_COLOR,
     );
     draw_centered_screen_text(
         queue,
         layer,
-        SortOrder::new(base),
+        SortOrder::new(base + 2),
         camera,
         viewport_w,
         viewport_h,

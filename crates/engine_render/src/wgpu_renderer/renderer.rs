@@ -330,7 +330,9 @@ pub fn pack_material_bindings<S: std::hash::BuildHasher>(
     textures: &[(TextureId, u32)],
     lookups: &HashMap<TextureId, [f32; 4], S>,
 ) -> Vec<u8> {
-    let mut packed = uniforms.to_vec();
+    let mut packed =
+        Vec::with_capacity(packed_material_binding_len(uniforms.len(), textures.len()));
+    packed.extend_from_slice(uniforms);
     if packed.len() < 32 {
         packed.resize(32, 0);
     }
@@ -346,6 +348,10 @@ pub fn pack_material_bindings<S: std::hash::BuildHasher>(
     packed
 }
 
+fn packed_material_binding_len(uniform_len: usize, texture_len: usize) -> usize {
+    uniform_len.max(32) + texture_len * std::mem::size_of::<PackedTextureBinding>()
+}
+
 pub(super) fn align_to_uniform_offset(size: usize, alignment: usize) -> usize {
     let alignment = alignment.max(1);
     size.div_ceil(alignment) * alignment
@@ -356,23 +362,23 @@ pub(super) fn pack_material_frame_data(
     lookups: &HashMap<TextureId, [f32; 4]>,
     alignment: usize,
 ) -> (usize, Vec<u8>) {
-    let packed_materials: Vec<Vec<u8>> = draws
+    let max_len = draws
         .iter()
         .map(|draw| {
-            pack_material_bindings(&draw.material_uniforms, &draw.material_textures, lookups)
+            packed_material_binding_len(draw.material_uniforms.len(), draw.material_textures.len())
         })
-        .collect();
-    let max_len = packed_materials
-        .iter()
-        .map(Vec::len)
         .max()
-        .unwrap_or(32)
-        .max(32);
+        .unwrap_or(32);
     let slot_size = align_to_uniform_offset(max_len, alignment);
-    let mut frame_data = vec![0u8; packed_materials.len() * slot_size];
-    for (i, packed) in packed_materials.iter().enumerate() {
-        let offset = i * slot_size;
-        frame_data[offset..offset + packed.len()].copy_from_slice(packed);
+    let total_bytes = draws
+        .len()
+        .checked_mul(slot_size)
+        .expect("material frame buffer size overflow");
+    let mut frame_data = vec![0u8; total_bytes];
+    for (slot, draw) in frame_data.chunks_exact_mut(slot_size).zip(draws) {
+        let packed =
+            pack_material_bindings(&draw.material_uniforms, &draw.material_textures, lookups);
+        slot[..packed.len()].copy_from_slice(&packed);
     }
     (slot_size, frame_data)
 }

@@ -2,6 +2,7 @@
 use engine_core::color::Color;
 use engine_core::types::Pixels;
 
+use crate::material::BlendMode;
 use crate::rect::Rect;
 
 #[repr(C)]
@@ -134,6 +135,31 @@ pub(crate) fn rect_to_instance(rect: &Rect) -> Instance {
     }
 }
 
+pub(crate) fn compute_batch_ranges(modes: &[BlendMode]) -> Vec<(BlendMode, std::ops::Range<u32>)> {
+    let Some((&first_mode, _)) = modes.split_first() else {
+        return Vec::new();
+    };
+
+    let mut batches = Vec::new();
+    let mut batch_mode = first_mode;
+    let mut batch_start = 0usize;
+
+    for (index, &mode) in modes.iter().enumerate().skip(1) {
+        if mode != batch_mode {
+            let start = u32::try_from(batch_start).expect("batch start exceeds u32 range");
+            let end = u32::try_from(index).expect("batch end exceeds u32 range");
+            batches.push((batch_mode, start..end));
+            batch_mode = mode;
+            batch_start = index;
+        }
+    }
+
+    let start = u32::try_from(batch_start).expect("batch start exceeds u32 range");
+    let end = u32::try_from(modes.len()).expect("batch end exceeds u32 range");
+    batches.push((batch_mode, start..end));
+    batches
+}
+
 pub(crate) struct TextureData<'a> {
     pub(crate) width: u32,
     pub(crate) height: u32,
@@ -205,27 +231,6 @@ fn upload_texture(
         size,
     );
     texture.create_view(&wgpu::TextureViewDescriptor::default())
-}
-
-#[allow(clippy::cast_possible_truncation)]
-pub(crate) fn compute_batch_ranges(
-    modes: &[crate::material::BlendMode],
-) -> Vec<(crate::material::BlendMode, std::ops::Range<u32>)> {
-    let mut batches = Vec::new();
-    let Some(&first) = modes.first() else {
-        return batches;
-    };
-    let mut current_mode = first;
-    let mut start = 0u32;
-    for (i, &mode) in modes.iter().enumerate().skip(1) {
-        if mode != current_mode {
-            batches.push((current_mode, start..i as u32));
-            current_mode = mode;
-            start = i as u32;
-        }
-    }
-    batches.push((current_mode, start..modes.len() as u32));
-    batches
 }
 
 pub(crate) fn blend_mode_to_blend_state(mode: crate::material::BlendMode) -> wgpu::BlendState {

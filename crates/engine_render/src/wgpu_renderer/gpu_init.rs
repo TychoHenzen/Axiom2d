@@ -89,7 +89,7 @@ fn configure_surface(
         .formats
         .iter()
         .copied()
-        .find(|format| format.is_srgb())
+        .find(wgpu::TextureFormat::is_srgb)
         .unwrap_or(fallback_format);
     let alpha_mode = caps
         .alpha_modes
