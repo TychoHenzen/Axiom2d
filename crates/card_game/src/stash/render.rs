@@ -22,7 +22,6 @@ use crate::stash::toggle::StashVisible;
 use engine_render::prelude::resolve_viewport_camera;
 
 mod drag_preview;
-mod helpers;
 mod models;
 mod slots;
 

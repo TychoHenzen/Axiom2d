@@ -31,7 +31,7 @@ use crate::stash::pages::stash_ui_contains;
 use crate::stash::toggle::StashVisible;
 use engine_core::scale_spring::ScaleSpring;
 use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
-use engine_scene::prelude::ChildOf;
+use engine_scene::prelude::{ChildOf, Children};
 
 pub const STORE_STARTING_COINS: u32 = 100;
 pub const STORE_TAB_BASE_COST: u32 = 25;
@@ -117,7 +117,7 @@ impl StoreWallet {
     }
 
     pub fn spend(&mut self, cost: u32) -> bool {
-        if !self.can_afford(cost) {
+        if self.coins < cost {
             return false;
         }
         self.coins -= cost;
@@ -138,22 +138,57 @@ pub enum StoreItemKind {
 }
 
 impl StoreItemKind {
+    pub const ALL: [Self; 4] = [
+        Self::Reader,
+        Self::Screen,
+        Self::Combiner,
+        Self::BoosterMachine,
+    ];
+
+    const LABELS: [&'static str; 4] = ["Card Reader", "Screen", "Combiner", "Booster Machine"];
+    const COSTS: [u32; 4] = [30, 20, 25, 35];
+    const PRICE_TEXTS: [&'static str; 4] = ["30 coins", "20 coins", "25 coins", "35 coins"];
+    const PREVIEW_COLORS: [Color; 4] = [
+        Color {
+            r: 0.56,
+            g: 0.44,
+            b: 0.26,
+            a: 1.0,
+        },
+        Color {
+            r: 0.14,
+            g: 0.34,
+            b: 0.54,
+            a: 1.0,
+        },
+        Color {
+            r: 0.36,
+            g: 0.22,
+            b: 0.50,
+            a: 1.0,
+        },
+        Color {
+            r: 0.56,
+            g: 0.44,
+            b: 0.12,
+            a: 1.0,
+        },
+    ];
+
+    fn index(self) -> usize {
+        self as usize
+    }
+
     pub fn label(self) -> &'static str {
-        match self {
-            Self::Reader => "Card Reader",
-            Self::Screen => "Screen",
-            Self::Combiner => "Combiner",
-            Self::BoosterMachine => "Booster Machine",
-        }
+        Self::LABELS[self.index()]
     }
 
     pub fn cost(self) -> u32 {
-        match self {
-            Self::Reader => 30,
-            Self::Screen => 20,
-            Self::Combiner => 25,
-            Self::BoosterMachine => 35,
-        }
+        Self::COSTS[self.index()]
+    }
+
+    pub fn price_text(self) -> &'static str {
+        Self::PRICE_TEXTS[self.index()]
     }
 
     pub fn refund_value(self) -> u32 {
@@ -161,49 +196,19 @@ impl StoreItemKind {
     }
 
     pub fn preview_color(self) -> Color {
-        match self {
-            Self::Reader => Color {
-                r: 0.56,
-                g: 0.44,
-                b: 0.26,
-                a: 1.0,
-            },
-            Self::Screen => Color {
-                r: 0.14,
-                g: 0.34,
-                b: 0.54,
-                a: 1.0,
-            },
-            Self::Combiner => Color {
-                r: 0.36,
-                g: 0.22,
-                b: 0.50,
-                a: 1.0,
-            },
-            Self::BoosterMachine => Color {
-                r: 0.56,
-                g: 0.44,
-                b: 0.12,
-                a: 1.0,
-            },
-        }
+        Self::PREVIEW_COLORS[self.index()]
     }
 }
 
 #[derive(Resource, Debug, Clone, PartialEq, Eq)]
 pub struct StoreCatalog {
-    items: Vec<StoreItemKind>,
+    items: [StoreItemKind; 4],
 }
 
 impl Default for StoreCatalog {
     fn default() -> Self {
         Self {
-            items: vec![
-                StoreItemKind::Reader,
-                StoreItemKind::Screen,
-                StoreItemKind::Combiner,
-                StoreItemKind::BoosterMachine,
-            ],
+            items: StoreItemKind::ALL,
         }
     }
 }
@@ -212,6 +217,52 @@ impl StoreCatalog {
     pub fn items(&self) -> &[StoreItemKind] {
         &self.items
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StoreDragTarget {
+    Any,
+    Reader(Entity),
+    Screen(Entity),
+    Combiner(Entity),
+    Booster(Entity),
+}
+
+fn active_store_drag_target(world: &World) -> Option<StoreDragTarget> {
+    if world
+        .get_resource::<DragState>()
+        .is_some_and(|drag| drag.dragging.is_some())
+    {
+        return Some(StoreDragTarget::Any);
+    }
+
+    if let Some(entity) = world
+        .get_resource::<ReaderDragState>()
+        .and_then(|state| state.dragging.as_ref().map(|drag| drag.entity))
+    {
+        return Some(StoreDragTarget::Reader(entity));
+    }
+
+    if let Some(entity) = world
+        .get_resource::<ScreenDragState>()
+        .and_then(|state| state.dragging.as_ref().map(|drag| drag.entity))
+    {
+        return Some(StoreDragTarget::Screen(entity));
+    }
+
+    if let Some(entity) = world
+        .get_resource::<CombinerDragState>()
+        .and_then(|state| state.dragging.as_ref().map(|drag| drag.entity))
+    {
+        return Some(StoreDragTarget::Combiner(entity));
+    }
+
+    world.get_resource::<BoosterDragState>().and_then(|state| {
+        state
+            .dragging
+            .as_ref()
+            .map(|drag| StoreDragTarget::Booster(drag.entity))
+    })
 }
 
 pub fn storage_tab_purchase_cost(storage_tab_count: u8) -> u32 {
@@ -227,22 +278,32 @@ pub fn store_ui_bounds(grid_width: u8, grid_height: u8) -> (f32, f32, f32, f32) 
     (left, top, right, bottom)
 }
 
-fn item_columns(item_count: usize) -> u8 {
-    STORE_COLUMNS.min(item_count.max(1) as u8)
+fn item_columns(item_count: usize) -> usize {
+    (STORE_COLUMNS as usize).min(item_count.max(1))
+}
+
+fn store_item_origin(grid_width: u8, item_count: usize) -> (f32, f32) {
+    let columns = item_columns(item_count);
+    let total_w =
+        columns as f32 * STORE_ITEM_WIDTH + columns.saturating_sub(1) as f32 * STORE_ITEM_GAP_X;
+    let grid_w = f32::from(grid_width) * SLOT_STRIDE_W - SLOT_GAP;
+    let start_x = GRID_MARGIN + (grid_w - total_w).max(0.0) * 0.5;
+    (start_x, GRID_MARGIN + STORE_HEADER_HEIGHT)
 }
 
 fn store_item_layout(grid_width: u8, item_count: usize, index: usize) -> (f32, f32) {
     let columns = item_columns(item_count);
-    let total_w = f32::from(columns) * STORE_ITEM_WIDTH
-        + f32::from(columns.saturating_sub(1)) * STORE_ITEM_GAP_X;
-    let grid_w = f32::from(grid_width) * SLOT_STRIDE_W - SLOT_GAP;
-    let start_x = GRID_MARGIN + (grid_w - total_w).max(0.0) * 0.5;
-    let start_y = GRID_MARGIN + STORE_HEADER_HEIGHT;
-    let col = f32::from(index as u8 % columns);
-    let row = f32::from(index as u8 / columns);
+    let (start_x, start_y) = store_item_origin(grid_width, item_count);
+    let col = (index % columns) as f32;
+    let row = (index / columns) as f32;
     let left = start_x + col * (STORE_ITEM_WIDTH + STORE_ITEM_GAP_X);
     let top = start_y + row * (STORE_ITEM_HEIGHT + STORE_ITEM_GAP_Y);
     (left, top)
+}
+
+fn store_item_bounds(grid_width: u8, item_count: usize, index: usize) -> (f32, f32, f32, f32) {
+    let (left, top) = store_item_layout(grid_width, item_count, index);
+    (left, top, left + STORE_ITEM_WIDTH, top + STORE_ITEM_HEIGHT)
 }
 
 fn draw_screen_rect(
@@ -314,7 +375,7 @@ fn draw_centered_screen_text(
     );
 }
 
-fn draw_reader_preview(
+fn draw_preview_rects(
     queue: &mut DrawQueue,
     layer: RenderLayer,
     base: i32,
@@ -323,251 +384,52 @@ fn draw_reader_preview(
     viewport_h: f32,
     left: f32,
     top: f32,
+    rects: &[(i32, f32, f32, f32, f32, Color)],
 ) {
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 38.0,
-        top + 22.0,
-        66.0,
-        86.0,
-        STORE_PREVIEW_DARK,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 50.0,
-        top + 40.0,
-        42.0,
-        50.0,
-        STORE_PREVIEW_MID,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 58.0,
-        top + 12.0,
-        26.0,
-        6.0,
-        STORE_PREVIEW_LIGHT,
-    );
+    for &(offset, x, y, width, height, color) in rects {
+        draw_screen_rect(
+            queue,
+            layer,
+            SortOrder::new(base + offset),
+            camera,
+            viewport_w,
+            viewport_h,
+            left + x,
+            top + y,
+            width,
+            height,
+            color,
+        );
+    }
 }
 
-fn draw_screen_preview(
-    queue: &mut DrawQueue,
-    layer: RenderLayer,
-    base: i32,
-    camera: &Camera2D,
-    viewport_w: f32,
-    viewport_h: f32,
-    left: f32,
-    top: f32,
-) {
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 32.0,
-        top + 22.0,
-        80.0,
-        96.0,
-        STORE_PREVIEW_DARK,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 40.0,
-        top + 30.0,
-        64.0,
-        80.0,
-        STORE_PREVIEW_MID,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 48.0,
-        top + 38.0,
-        18.0,
-        18.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 72.0,
-        top + 38.0,
-        18.0,
-        18.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 48.0,
-        top + 62.0,
-        18.0,
-        18.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 72.0,
-        top + 62.0,
-        18.0,
-        18.0,
-        STORE_PREVIEW_LIGHT,
-    );
-}
-
-fn draw_combiner_preview(
-    queue: &mut DrawQueue,
-    layer: RenderLayer,
-    base: i32,
-    camera: &Camera2D,
-    viewport_w: f32,
-    viewport_h: f32,
-    left: f32,
-    top: f32,
-) {
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 36.0,
-        top + 32.0,
-        72.0,
-        56.0,
-        STORE_PREVIEW_DARK,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 28.0,
-        top + 36.0,
-        10.0,
-        10.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 28.0,
-        top + 54.0,
-        10.0,
-        10.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 106.0,
-        top + 45.0,
-        10.0,
-        10.0,
-        STORE_PREVIEW_LIGHT,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 52.0,
-        top + 48.0,
-        40.0,
-        4.0,
-        STORE_PREVIEW_MID,
-    );
-}
-
-fn draw_booster_preview(
-    queue: &mut DrawQueue,
-    layer: RenderLayer,
-    base: i32,
-    camera: &Camera2D,
-    viewport_w: f32,
-    viewport_h: f32,
-    left: f32,
-    top: f32,
-) {
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 40.0,
-        top + 32.0,
-        64.0,
-        50.0,
-        STORE_PREVIEW_DARK,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 30.0,
-        top + 40.0,
-        10.0,
-        10.0,
-        STORE_PREVIEW_LIGHT,
-    );
+fn preview_rects_for(item: StoreItemKind) -> &'static [(i32, f32, f32, f32, f32, Color)] {
+    match item {
+        StoreItemKind::Reader => &[
+            (0, 38.0, 22.0, 66.0, 86.0, STORE_PREVIEW_DARK),
+            (1, 50.0, 40.0, 42.0, 50.0, STORE_PREVIEW_MID),
+            (2, 58.0, 12.0, 26.0, 6.0, STORE_PREVIEW_LIGHT),
+        ],
+        StoreItemKind::Screen => &[
+            (0, 32.0, 22.0, 80.0, 96.0, STORE_PREVIEW_DARK),
+            (1, 40.0, 30.0, 64.0, 80.0, STORE_PREVIEW_MID),
+            (2, 48.0, 38.0, 18.0, 18.0, STORE_PREVIEW_LIGHT),
+            (2, 72.0, 38.0, 18.0, 18.0, STORE_PREVIEW_LIGHT),
+            (2, 48.0, 62.0, 18.0, 18.0, STORE_PREVIEW_LIGHT),
+            (2, 72.0, 62.0, 18.0, 18.0, STORE_PREVIEW_LIGHT),
+        ],
+        StoreItemKind::Combiner => &[
+            (0, 36.0, 32.0, 72.0, 56.0, STORE_PREVIEW_DARK),
+            (1, 28.0, 36.0, 10.0, 10.0, STORE_PREVIEW_LIGHT),
+            (1, 28.0, 54.0, 10.0, 10.0, STORE_PREVIEW_LIGHT),
+            (1, 106.0, 45.0, 10.0, 10.0, STORE_PREVIEW_LIGHT),
+            (1, 52.0, 48.0, 40.0, 4.0, STORE_PREVIEW_MID),
+        ],
+        StoreItemKind::BoosterMachine => &[
+            (0, 40.0, 32.0, 64.0, 50.0, STORE_PREVIEW_DARK),
+            (1, 30.0, 40.0, 10.0, 10.0, STORE_PREVIEW_LIGHT),
+        ],
+    }
 }
 
 /// Sub-order layout within each store item (10 slots per item):
@@ -588,97 +450,38 @@ fn draw_store_item(
     left: f32,
     top: f32,
 ) {
-    draw_screen_rect(
+    for (offset, inset, color) in [
+        (0_i32, 0.0, STORE_PANEL_FILL),
+        (1_i32, 2.0, STORE_HIGHLIGHT_COLOR),
+        (2_i32, 4.0, STORE_PANEL_FILL),
+    ] {
+        draw_screen_rect(
+            queue,
+            layer,
+            SortOrder::new(base_order + offset),
+            camera,
+            viewport_w,
+            viewport_h,
+            left + inset,
+            top + inset,
+            STORE_ITEM_WIDTH - inset * 2.0,
+            STORE_ITEM_HEIGHT - inset * 2.0,
+            color,
+        );
+    }
+
+    let preview_base = base_order + 3;
+    draw_preview_rects(
         queue,
         layer,
-        SortOrder::new(base_order),
+        preview_base,
         camera,
         viewport_w,
         viewport_h,
         left,
         top,
-        STORE_ITEM_WIDTH,
-        STORE_ITEM_HEIGHT,
-        STORE_PANEL_FILL,
+        preview_rects_for(item),
     );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base_order + 1),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 2.0,
-        top + 2.0,
-        STORE_ITEM_WIDTH - 4.0,
-        STORE_ITEM_HEIGHT - 4.0,
-        STORE_HIGHLIGHT_COLOR,
-    );
-    draw_screen_rect(
-        queue,
-        layer,
-        SortOrder::new(base_order + 2),
-        camera,
-        viewport_w,
-        viewport_h,
-        left + 4.0,
-        top + 4.0,
-        STORE_ITEM_WIDTH - 8.0,
-        STORE_ITEM_HEIGHT - 8.0,
-        STORE_PANEL_FILL,
-    );
-
-    let preview_base = base_order + 3;
-    match item {
-        StoreItemKind::Reader => {
-            draw_reader_preview(
-                queue,
-                layer,
-                preview_base,
-                camera,
-                viewport_w,
-                viewport_h,
-                left,
-                top,
-            );
-        }
-        StoreItemKind::Screen => {
-            draw_screen_preview(
-                queue,
-                layer,
-                preview_base,
-                camera,
-                viewport_w,
-                viewport_h,
-                left,
-                top,
-            );
-        }
-        StoreItemKind::Combiner => {
-            draw_combiner_preview(
-                queue,
-                layer,
-                preview_base,
-                camera,
-                viewport_w,
-                viewport_h,
-                left,
-                top,
-            );
-        }
-        StoreItemKind::BoosterMachine => {
-            draw_booster_preview(
-                queue,
-                layer,
-                preview_base,
-                camera,
-                viewport_w,
-                viewport_h,
-                left,
-                top,
-            );
-        }
-    }
 
     let center_x = left + STORE_ITEM_WIDTH * 0.5;
     draw_centered_screen_text(
@@ -701,7 +504,7 @@ fn draw_store_item(
         camera,
         viewport_w,
         viewport_h,
-        &format!("{} coins", item.cost()),
+        item.price_text(),
         center_x,
         top + STORE_ITEM_HEIGHT - 20.0,
         STORE_PRICE_FONT,
@@ -715,19 +518,19 @@ fn store_item_at(
     catalog: &StoreCatalog,
 ) -> Option<StoreItemKind> {
     let items = catalog.items();
-    for (index, &item) in items.iter().enumerate() {
-        let (left, top) = store_item_layout(grid.width(), items.len(), index);
-        let right = left + STORE_ITEM_WIDTH;
-        let bottom = top + STORE_ITEM_HEIGHT;
-        if screen_pos.x >= left
-            && screen_pos.x <= right
-            && screen_pos.y >= top
-            && screen_pos.y <= bottom
-        {
-            return Some(item);
-        }
+    let item_count = items.len();
+    if item_count == 0 {
+        return None;
     }
-    None
+
+    items.iter().copied().enumerate().find_map(|(index, item)| {
+        let (left, top, right, bottom) = store_item_bounds(grid.width(), item_count, index);
+        (screen_pos.x >= left
+            && screen_pos.x < right
+            && screen_pos.y >= top
+            && screen_pos.y < bottom)
+            .then_some(item)
+    })
 }
 
 fn spawn_reader_purchase(world: &mut World, position: Vec2) -> Entity {
@@ -797,20 +600,20 @@ pub(crate) fn render_store_page(
     draw_centered_screen_text(
         queue,
         layer,
-        SortOrder::new(base),
+        SortOrder::new(base + 1),
         camera,
         viewport_w,
         viewport_h,
         &format!("Coins: {}", wallet.coins()),
         GRID_MARGIN + 360.0,
         GRID_MARGIN + 4.0,
-        STORE_TITLE_FONT,
+        STORE_COIN_FONT,
         STORE_TEXT_COLOR,
     );
     draw_centered_screen_text(
         queue,
         layer,
-        SortOrder::new(base),
+        SortOrder::new(base + 2),
         camera,
         viewport_w,
         viewport_h,
@@ -851,19 +654,26 @@ fn despawn_connected_cables(world: &mut World, endpoints: &[Entity]) {
 }
 
 fn despawn_entity_tree(world: &mut World, entity: Entity) {
-    let children: Vec<Entity> = {
-        let mut query = world.query::<(Entity, &ChildOf)>();
-        query
-            .iter(world)
-            .filter_map(|(child, parent)| (parent.0 == entity).then_some(child))
-            .collect()
-    };
+    let mut stack = vec![(entity, false)];
 
-    for child in children {
-        despawn_entity_tree(world, child);
+    while let Some((current, expanded)) = stack.pop() {
+        if expanded {
+            let _ = world.despawn(current);
+            continue;
+        }
+
+        stack.push((current, true));
+        let children = if let Some(children) = world.get::<Children>(current) {
+            children.0.clone()
+        } else {
+            let mut query = world.query::<(Entity, &ChildOf)>();
+            query
+                .iter(world)
+                .filter_map(|(child, parent)| (parent.0 == current).then_some(child))
+                .collect()
+        };
+        stack.extend(children.into_iter().map(|child| (child, false)));
     }
-
-    let _ = world.despawn(entity);
 }
 
 pub fn store_buy_system(world: &mut World) {
@@ -887,22 +697,7 @@ pub fn store_buy_system(world: &mut World) {
         return;
     }
 
-    let drag_active = world
-        .get_resource::<DragState>()
-        .is_some_and(|drag| drag.dragging.is_some())
-        || world
-            .get_resource::<ReaderDragState>()
-            .is_some_and(|drag| drag.dragging.is_some())
-        || world
-            .get_resource::<ScreenDragState>()
-            .is_some_and(|drag| drag.dragging.is_some())
-        || world
-            .get_resource::<CombinerDragState>()
-            .is_some_and(|drag| drag.dragging.is_some())
-        || world
-            .get_resource::<BoosterDragState>()
-            .is_some_and(|drag| drag.dragging.is_some());
-    if drag_active || !stash_ui_contains(mouse_screen_pos, &grid) {
+    if active_store_drag_target(world).is_some() || !stash_ui_contains(mouse_screen_pos, &grid) {
         return;
     }
 
@@ -977,31 +772,24 @@ pub fn store_sell_system(world: &mut World) {
         return;
     }
 
-    let reader_drag = world
-        .get_resource::<ReaderDragState>()
-        .and_then(|drag| drag.dragging.clone());
-    let screen_drag = world
-        .get_resource::<ScreenDragState>()
-        .and_then(|drag| drag.dragging.clone());
-    let combiner_drag = world
-        .get_resource::<CombinerDragState>()
-        .and_then(|drag| drag.dragging.clone());
-    let booster_drag = world
-        .get_resource::<BoosterDragState>()
-        .and_then(|drag| drag.dragging.clone());
-
-    if let Some(dragged_reader) = reader_drag {
-        sell_reader(world, dragged_reader.entity);
-        world.resource_mut::<ReaderDragState>().dragging = None;
-    } else if let Some(dragged_screen) = screen_drag {
-        sell_screen(world, dragged_screen.entity);
-        world.resource_mut::<ScreenDragState>().dragging = None;
-    } else if let Some(dragged_combiner) = combiner_drag {
-        sell_combiner(world, dragged_combiner.entity);
-        world.resource_mut::<CombinerDragState>().dragging = None;
-    } else if let Some(dragged_booster) = booster_drag {
-        sell_booster(world, dragged_booster.entity);
-        world.resource_mut::<BoosterDragState>().dragging = None;
+    match active_store_drag_target(world) {
+        Some(StoreDragTarget::Reader(entity)) => {
+            sell_reader(world, entity);
+            world.resource_mut::<ReaderDragState>().dragging = None;
+        }
+        Some(StoreDragTarget::Screen(entity)) => {
+            sell_screen(world, entity);
+            world.resource_mut::<ScreenDragState>().dragging = None;
+        }
+        Some(StoreDragTarget::Combiner(entity)) => {
+            sell_combiner(world, entity);
+            world.resource_mut::<CombinerDragState>().dragging = None;
+        }
+        Some(StoreDragTarget::Booster(entity)) => {
+            sell_booster(world, entity);
+            world.resource_mut::<BoosterDragState>().dragging = None;
+        }
+        Some(StoreDragTarget::Any) | None => {}
     }
 }
 
@@ -1146,9 +934,7 @@ pub fn store_item_screen_bounds(
     index: usize,
 ) -> Option<(f32, f32, f32, f32)> {
     let items = catalog.items();
-    if index >= items.len() {
-        return None;
-    }
-    let (left, top) = store_item_layout(grid.width(), items.len(), index);
-    Some((left, top, left + STORE_ITEM_WIDTH, top + STORE_ITEM_HEIGHT))
+    items
+        .get(index)
+        .map(|_| store_item_bounds(grid.width(), items.len(), index))
 }

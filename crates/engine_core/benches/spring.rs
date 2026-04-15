@@ -1,10 +1,14 @@
 #![allow(clippy::unwrap_used)]
 
+use std::time::Duration;
+
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use engine_core::spring::spring_step;
 
 fn bench_spring_step(c: &mut Criterion) {
     let mut group = c.benchmark_group("spring");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     group.bench_function("single_step", |b| {
         b.iter(|| {

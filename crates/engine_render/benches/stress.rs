@@ -7,15 +7,15 @@ use engine_render::font::bake_text_into_mesh;
 use engine_render::prelude::*;
 use glam::Vec2;
 
-/// 3000 complex bezier paths (100 cubics each) — heavy lyon tessellation workload.
+/// 500 complex bezier paths (100 cubics each) — heavy lyon tessellation workload.
 fn bench_tessellation_stress(c: &mut Criterion) {
     let mut group = c.benchmark_group("stress_tessellation");
     group.sample_size(10);
-    group.warm_up_time(Duration::from_secs(1));
-    group.measurement_time(Duration::from_secs(5));
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(3));
 
-    group.bench_function("3000_bezier_paths_100_cubics", |b| {
-        let paths: Vec<ShapeVariant> = (0..3000)
+    group.bench_function("500_bezier_paths_100_cubics", |b| {
+        let paths: Vec<ShapeVariant> = (0..500)
             .map(|seed| {
                 let s = seed as f32;
                 let mut commands = Vec::with_capacity(102);
@@ -43,15 +43,15 @@ fn bench_tessellation_stress(c: &mut Criterion) {
     group.finish();
 }
 
-/// Bulk text baking — 5000 paragraphs through the full glyph tessellation pipeline.
+/// Bulk text baking — 1000 paragraphs through the full glyph tessellation pipeline.
 fn bench_font_stress(c: &mut Criterion) {
     let mut group = c.benchmark_group("stress_font");
     group.sample_size(10);
-    group.warm_up_time(Duration::from_secs(1));
-    group.measurement_time(Duration::from_secs(5));
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(3));
 
-    group.bench_function("bake_5000_paragraphs", |b| {
-        let paragraphs: Vec<String> = (0..5000)
+    group.bench_function("bake_1000_paragraphs", |b| {
+        let paragraphs: Vec<String> = (0..1000)
             .map(|i| {
                 format!(
                     "Card #{i}: Deals {att} fire damage to target creature and {spl} splash damage \

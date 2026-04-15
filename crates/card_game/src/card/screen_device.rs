@@ -71,6 +71,8 @@ const SCREEN_LOCAL_SORT: i32 = -1;
 const SCREEN_PANEL_LOCAL_SORT: i32 = 1;
 const SCREEN_DOT_LOCAL_SORT: i32 = 2;
 const SCREEN_SOCKET_LOCAL_SORT: i32 = 1;
+const PANEL_CLIP_MIN: Vec2 = Vec2::new(-PANEL_HALF, -PANEL_HALF);
+const PANEL_CLIP_MAX: Vec2 = Vec2::new(PANEL_HALF, PANEL_HALF);
 
 #[derive(Component)]
 pub struct ScreenDevice {
@@ -80,27 +82,33 @@ pub struct ScreenDevice {
 #[derive(Component)]
 pub struct ScreenSignalShape {
     display_index: usize,
-    logged: bool,
 }
 
-/// Project all control points of a signal onto a 2D panel axis pair.
+/// Project all control points of a signal into panel space using the selected axis pair.
 pub(crate) fn project_signal_points(space: &SignatureSpace, display_index: usize) -> Vec<Vec2> {
-    let x_element = Element::ALL[display_index * 2];
-    let y_element = Element::ALL[display_index * 2 + 1];
-    space
-        .control_points
-        .iter()
-        .map(|cp| Vec2::new(cp[x_element], cp[y_element]))
-        .collect()
+    let (x_element, y_element) = panel_axes(display_index);
+    let mut projected = Vec::with_capacity(space.control_points.len());
+    for cp in &space.control_points {
+        projected.push(Vec2::new(
+            cp[x_element] * PANEL_HALF,
+            cp[y_element] * PANEL_HALF,
+        ));
+    }
+    projected
 }
 
 pub fn display_axes(space: &SignatureSpace, display_index: usize) -> (f32, f32) {
-    let x_element = Element::ALL[display_index * 2];
-    let y_element = Element::ALL[display_index * 2 + 1];
+    let (x_element, y_element) = panel_axes(display_index);
     (
         space.control_points[0][x_element],
         space.control_points[0][y_element],
     )
+}
+
+fn panel_axes(display_index: usize) -> (Element, Element) {
+    let x_element = Element::ALL[display_index * 2];
+    let y_element = Element::ALL[display_index * 2 + 1];
+    (x_element, y_element)
 }
 
 fn panel_offset(display_index: usize) -> Vec2 {
@@ -111,50 +119,29 @@ fn panel_offset(display_index: usize) -> Vec2 {
 pub fn screen_render_system(
     devices: Query<&ScreenDevice>,
     jacks: Query<&Jack<SignatureSpace>>,
-    mut shapes: Query<(&mut ScreenSignalShape, &ChildOf, &mut Shape, &mut Visible)>,
+    mut shapes: Query<(&ScreenSignalShape, &ChildOf, &mut Shape, &mut Visible)>,
 ) {
-    for (mut signal_shape, parent, mut shape, mut visible) in &mut shapes {
+    for (signal_shape, parent, mut shape, mut visible) in &mut shapes {
         let Ok(device) = devices.get(parent.0) else {
             visible.0 = false;
-            signal_shape.logged = false;
             continue;
         };
         let Ok(jack) = jacks.get(device.signature_input) else {
             visible.0 = false;
-            signal_shape.logged = false;
             continue;
         };
         let Some(space) = jack.data.as_ref() else {
             visible.0 = false;
-            signal_shape.logged = false;
             continue;
         };
 
-        let display_index = signal_shape.display_index;
-        let projected = project_signal_points(space, display_index);
+        let projected = project_signal_points(space, signal_shape.display_index);
         let visual_radius = space.radius * PANEL_HALF;
 
-        if !signal_shape.logged {
-            let x_elem = Element::ALL[display_index * 2];
-            let y_elem = Element::ALL[display_index * 2 + 1];
-            tracing::warn!(
-                "Screen panel {}: {:?}/{:?} — {} control point(s), projected: {:?}, radius: {:.4}",
-                display_index,
-                x_elem,
-                y_elem,
-                projected.len(),
-                projected,
-                visual_radius,
-            );
-            signal_shape.logged = true;
-        }
-
         if projected.len() == 1 {
-            let center = projected[0] * PANEL_HALF;
-            shape.variant = clipped_signal_circle(center, visual_radius);
+            shape.variant = clipped_signal_circle(projected[0], visual_radius);
         } else {
-            let scaled: Vec<Vec2> = projected.iter().map(|p| *p * PANEL_HALF).collect();
-            shape.variant = build_signal_polyline(&scaled, visual_radius);
+            shape.variant = build_signal_polyline(&projected, visual_radius);
         }
         shape.color = SIGNAL_COLOR;
         visible.0 = true;
@@ -226,11 +213,13 @@ pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity
     world.entity_mut(jack_entity).observe(on_socket_clicked);
 
     for display_index in 0..DISPLAY_COUNT {
+        let offset = panel_offset(display_index);
+
         world.spawn_child(
             device_entity,
             (
                 Transform2D {
-                    position: panel_offset(display_index),
+                    position: offset,
                     ..Default::default()
                 },
                 Shape {
@@ -246,12 +235,9 @@ pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity
         world.spawn_child(
             device_entity,
             (
-                ScreenSignalShape {
-                    display_index,
-                    logged: false,
-                },
+                ScreenSignalShape { display_index },
                 Transform2D {
-                    position: panel_offset(display_index),
+                    position: offset,
                     ..Default::default()
                 },
                 Shape {
@@ -331,82 +317,68 @@ pub fn screen_release_system(mouse: Res<MouseState>, mut screen_drag: ResMut<Scr
 }
 
 fn build_signal_polyline(points: &[Vec2], thickness: f32) -> ShapeVariant {
-    let n = points.len();
-    let clamped_thickness = thickness.max(1.0);
-    let closed = n >= 3;
-
-    if closed {
-        // Closed loop: Catmull-Rom subdivide, then build annular polygon.
-        let dense = catmull_rom_subdivide_closed(points, PANEL_SPLINE_SUBDIVISIONS);
-        let m = dense.len();
-        let mut outer = Vec::with_capacity(m);
-        let mut inner = Vec::with_capacity(m);
-        for i in 0..m {
-            let prev = dense[(i + m - 1) % m];
-            let next = dense[(i + 1) % m];
-            let dir = (next - prev).normalize_or_zero();
+    let thickness = thickness.max(1.0);
+    match points {
+        [] => ShapeVariant::Polygon { points: Vec::new() },
+        [point] => clipped_signal_circle(*point, thickness),
+        [a, b] => {
+            let dir = (*b - *a).normalize_or_zero();
             let normal = Vec2::new(-dir.y, dir.x);
-            outer.push(dense[i] + normal * clamped_thickness);
-            inner.push(dense[i] - normal * clamped_thickness);
+            let half_steps = SIGNAL_SEGMENTS / 2;
+            let polygon = [*a + normal * thickness, *b + normal * thickness]
+                .into_iter()
+                .chain(semicircle_fan(*b, thickness, dir, half_steps))
+                .chain([*b - normal * thickness, *a - normal * thickness])
+                .chain(semicircle_fan(*a, thickness, -dir, half_steps))
+                .collect::<Vec<_>>();
+            ShapeVariant::Polygon {
+                points: clip_to_panel(polygon),
+            }
         }
-        // Trace outer ring, bridge to inner ring (reversed), bridge back.
-        let mut polygon = Vec::with_capacity(2 * m + 2);
-        polygon.extend_from_slice(&outer);
-        polygon.push(outer[0]);
-        polygon.push(inner[0]);
-        for i in (0..m).rev() {
-            polygon.push(inner[i]);
+        _ => {
+            let dense = catmull_rom_subdivide_closed(points, PANEL_SPLINE_SUBDIVISIONS);
+            let m = dense.len();
+            let mut inner = Vec::with_capacity(m);
+            let mut polygon = Vec::with_capacity(2 * m + 2);
+            for i in 0..m {
+                let prev = dense[(i + m - 1) % m];
+                let next = dense[(i + 1) % m];
+                let dir = (next - prev).normalize_or_zero();
+                let normal = Vec2::new(-dir.y, dir.x);
+                polygon.push(dense[i] + normal * thickness);
+                inner.push(dense[i] - normal * thickness);
+            }
+            polygon.push(polygon[0]);
+            polygon.push(inner[0]);
+            for i in (0..m).rev() {
+                let prev = dense[(i + m - 1) % m];
+                let next = dense[(i + 1) % m];
+                let dir = (next - prev).normalize_or_zero();
+                let normal = Vec2::new(-dir.y, dir.x);
+                polygon.push(dense[i] - normal * thickness);
+            }
+            ShapeVariant::Polygon {
+                points: clip_to_panel(polygon),
+            }
         }
-        let clipped = clip_polygon_to_rect(
-            &polygon,
-            Vec2::new(-PANEL_HALF, -PANEL_HALF),
-            Vec2::new(PANEL_HALF, PANEL_HALF),
-        );
-        ShapeVariant::Polygon { points: clipped }
-    } else {
-        // Capsule: straight ribbon + semicircular endcaps at each endpoint.
-        let a = points[0];
-        let b = points[n - 1];
-        let dir = (b - a).normalize_or_zero();
-        let normal = Vec2::new(-dir.y, dir.x);
-        let half_steps = SIGNAL_SEGMENTS / 2;
-
-        let mut polygon = Vec::with_capacity(2 + 2 * half_steps);
-        // Top edge: a → b along +normal side.
-        polygon.push(a + normal * clamped_thickness);
-        polygon.push(b + normal * clamped_thickness);
-        // Endcap at b: sweep +normal → -normal around b in the forward direction.
-        polygon.extend(semicircle_fan(b, clamped_thickness, dir, half_steps));
-        // Bottom edge: b → a along -normal side.
-        polygon.push(b - normal * clamped_thickness);
-        polygon.push(a - normal * clamped_thickness);
-        // Endcap at a: sweep -normal → +normal around a in the backward direction.
-        polygon.extend(semicircle_fan(a, clamped_thickness, -dir, half_steps));
-
-        let clipped = clip_polygon_to_rect(
-            &polygon,
-            Vec2::new(-PANEL_HALF, -PANEL_HALF),
-            Vec2::new(PANEL_HALF, PANEL_HALF),
-        );
-        ShapeVariant::Polygon { points: clipped }
     }
 }
 
-/// Sweeps a semicircle arc (`half_steps` + 1 points, endpoints inclusive) centred on `center`
-/// with the given `radius`. The arc starts at `-perp(axis)`, pivots around the tip in the
-/// `axis` direction, and ends at `+perp(axis)` — i.e. the outward-facing cap at the end of a
-/// capsule whose long axis is `axis`.
-fn semicircle_fan(center: Vec2, radius: f32, axis: Vec2, half_steps: usize) -> Vec<Vec2> {
-    // Base angle points along +axis (the cap tip direction).
+/// Sweeps the interior semicircle samples for a capsule cap around `center`.
+/// The caller adds the two endpoints, so this only yields the intermediate arc points.
+fn semicircle_fan(
+    center: Vec2,
+    radius: f32,
+    axis: Vec2,
+    half_steps: usize,
+) -> impl Iterator<Item = Vec2> {
     let base_angle = axis.y.atan2(axis.x);
-    (1..half_steps)
-        .map(|step| {
-            // Sweep from -π/2 to +π/2 relative to axis (i.e., the outward hemisphere).
-            let t = step as f32 / half_steps as f32;
-            let angle = base_angle + std::f32::consts::PI * (0.5 - t);
-            center + Vec2::new(radius * angle.cos(), radius * angle.sin())
-        })
-        .collect()
+    (1..half_steps).map(move |step| {
+        // Sweep from -π/2 to +π/2 relative to axis (i.e., the outward hemisphere).
+        let t = step as f32 / half_steps as f32;
+        let angle = base_angle + std::f32::consts::PI * (0.5 - t);
+        center + Vec2::new(radius * angle.cos(), radius * angle.sin())
+    })
 }
 
 /// Catmull-Rom subdivision for a closed loop of control points.
@@ -441,30 +413,38 @@ fn catmull_rom_subdivide_closed(points: &[Vec2], subdivisions: usize) -> Vec<Vec
 }
 
 fn clipped_signal_circle(center: Vec2, radius: f32) -> ShapeVariant {
-    let circle = circle_polygon(center, radius, SIGNAL_SEGMENTS);
-    let clipped = clip_polygon_to_rect(
-        &circle,
-        Vec2::new(-PANEL_HALF, -PANEL_HALF),
-        Vec2::new(PANEL_HALF, PANEL_HALF),
-    );
-    ShapeVariant::Polygon { points: clipped }
+    let points = circle_polygon(center, radius, SIGNAL_SEGMENTS);
+    ShapeVariant::Polygon {
+        points: if circle_fits_rect(center, radius, PANEL_CLIP_MIN, PANEL_CLIP_MAX) {
+            points
+        } else {
+            clip_to_panel(points)
+        },
+    }
+}
+
+fn clip_to_panel(points: Vec<Vec2>) -> Vec<Vec2> {
+    clip_polygon_to_rect(points, PANEL_CLIP_MIN, PANEL_CLIP_MAX)
+}
+
+fn circle_fits_rect(center: Vec2, radius: f32, min: Vec2, max: Vec2) -> bool {
+    center.x - radius >= min.x
+        && center.x + radius <= max.x
+        && center.y - radius >= min.y
+        && center.y + radius <= max.y
 }
 
 fn circle_polygon(center: Vec2, radius: f32, segments: usize) -> Vec<Vec2> {
-    (0..segments)
-        .map(|index| {
-            let angle = TAU * index as f32 / segments as f32;
-            center + Vec2::new(radius * angle.cos(), radius * angle.sin())
-        })
-        .collect()
+    let mut points = Vec::with_capacity(segments);
+    for index in 0..segments {
+        let angle = TAU * index as f32 / segments as f32;
+        points.push(center + Vec2::new(radius * angle.cos(), radius * angle.sin()));
+    }
+    points
 }
 
-fn clip_polygon_to_rect(points: &[Vec2], min: Vec2, max: Vec2) -> Vec<Vec2> {
-    let left = clip_polygon(
-        points.to_vec(),
-        |p| p.x >= min.x,
-        |a, b| intersect_x(a, b, min.x),
-    );
+fn clip_polygon_to_rect(points: Vec<Vec2>, min: Vec2, max: Vec2) -> Vec<Vec2> {
+    let left = clip_polygon(points, |p| p.x >= min.x, |a, b| intersect_x(a, b, min.x));
     let right = clip_polygon(left, |p| p.x <= max.x, |a, b| intersect_x(a, b, max.x));
     let bottom = clip_polygon(right, |p| p.y >= min.y, |a, b| intersect_y(a, b, min.y));
     clip_polygon(bottom, |p| p.y <= max.y, |a, b| intersect_y(a, b, max.y))
@@ -478,7 +458,7 @@ where
     let Some(mut previous) = points.last().copied() else {
         return points;
     };
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(points.len().saturating_mul(2));
     let mut previous_inside = is_inside(previous);
 
     for current in points {

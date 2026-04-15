@@ -15,8 +15,8 @@ fn setup_backend(body_count: u32) -> RapierBackend {
     let mut world = bevy_ecs::world::World::new();
     for i in 0..body_count {
         let entity = world.spawn_empty().id();
-        let row = i / 50;
-        let col = i % 50;
+        let row = i / 20;
+        let col = i % 20;
         let x = col as f32 * 1.5;
         let y = row as f32 * 1.5 + 10.0;
         backend.add_body(entity, &RigidBody::Dynamic, Vec2::new(x, y));
@@ -25,19 +25,19 @@ fn setup_backend(body_count: u32) -> RapierBackend {
     backend
 }
 
-/// 5000 bodies stepping for 2000 frames — sustained broadphase + solver pressure.
+/// 1000 bodies stepping for 500 frames — sustained broadphase + solver pressure.
 fn bench_physics_stress(c: &mut Criterion) {
     let mut group = c.benchmark_group("stress_physics");
     group.sample_size(10);
-    group.warm_up_time(Duration::from_secs(1));
-    group.measurement_time(Duration::from_secs(5));
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(3));
 
-    group.bench_function("5000_bodies_2000_steps", |b| {
+    group.bench_function("1000_bodies_500_steps", |b| {
         b.iter_batched(
-            || setup_backend(5000),
+            || setup_backend(1000),
             |mut backend| {
                 let dt = Seconds(1.0 / 60.0);
-                for _ in 0..2000 {
+                for _ in 0..500 {
                     backend.step(black_box(dt));
                 }
             },

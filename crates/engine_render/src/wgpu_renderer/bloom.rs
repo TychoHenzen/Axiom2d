@@ -1,6 +1,6 @@
 use wgpu::util::DeviceExt;
 
-use super::gpu_init::{PipelineDesc, create_pipeline};
+use super::gpu_init::create_pipeline;
 use super::shaders::{BLOOM_PREAMBLE, BLOOM_SHADER_FRAG, COMPOSITE_SHADER_FRAG};
 use super::types::{BloomParamsUniform, FULLSCREEN_QUAD_VERTICES, QuadVertex};
 
@@ -174,11 +174,21 @@ fn create_bloom_layouts(device: &wgpu::Device) -> BloomLayouts {
     }
 }
 
+fn safe_extent(value: u32) -> u32 {
+    value.max(1)
+}
+
+fn half_extent(safe_value: u32) -> u32 {
+    safe_value.div_ceil(2)
+}
+
 #[allow(clippy::similar_names)]
 fn create_bloom_textures(device: &wgpu::Device, cfg: &BloomConfig) -> BloomTextures {
-    let half_w = (cfg.width / 2).max(1);
-    let half_h = (cfg.height / 2).max(1);
-    let scene = create_render_texture(device, cfg.format, cfg.width, cfg.height);
+    let scene_w = safe_extent(cfg.width);
+    let scene_h = safe_extent(cfg.height);
+    let half_w = half_extent(scene_w);
+    let half_h = half_extent(scene_h);
+    let scene = create_render_texture(device, cfg.format, scene_w, scene_h);
     let ping = create_render_texture(device, cfg.format, half_w, half_h);
     let pong = create_render_texture(device, cfg.format, half_w, half_h);
     BloomTextures {
@@ -252,10 +262,12 @@ fn create_bloom_params(
     layout: &wgpu::BindGroupLayout,
     cfg: &BloomConfig,
 ) -> BloomParams {
-    let scene_texel = [1.0 / cfg.width as f32, 1.0 / cfg.height as f32];
-    let half_w = (cfg.width / 2).max(1) as f32;
-    let half_h = (cfg.height / 2).max(1) as f32;
-    let half_texel = [1.0 / half_w, 1.0 / half_h];
+    let scene_w = safe_extent(cfg.width);
+    let scene_h = safe_extent(cfg.height);
+    let half_w = half_extent(scene_w);
+    let half_h = half_extent(scene_h);
+    let scene_texel = [1.0 / scene_w as f32, 1.0 / scene_h as f32];
+    let half_texel = [1.0 / half_w as f32, 1.0 / half_h as f32];
     BloomParams {
         brightness: create_params_buf(device, layout, cfg.threshold, [0.0, 0.0], scene_texel),
         h_blur: create_params_buf(device, layout, 0.0, [1.0, 0.0], half_texel),
@@ -360,35 +372,36 @@ fn create_bloom_pipelines(
         brightness: create_pipeline(
             device,
             &single_pl,
-            &bloom_desc(&bloom_shader, "fs_brightness", format, &vl),
+            &bloom_shader,
+            "vs_fullscreen",
+            "fs_brightness",
+            format,
+            wgpu::BlendState::REPLACE,
+            &vl,
+            1,
         ),
         blur: create_pipeline(
             device,
             &single_pl,
-            &bloom_desc(&bloom_shader, "fs_blur", format, &vl),
+            &bloom_shader,
+            "vs_fullscreen",
+            "fs_blur",
+            format,
+            wgpu::BlendState::REPLACE,
+            &vl,
+            1,
         ),
         composite: create_pipeline(
             device,
             &dual_pl,
-            &bloom_desc(&composite_shader, "fs_composite", format, &vl),
+            &composite_shader,
+            "vs_fullscreen",
+            "fs_composite",
+            format,
+            wgpu::BlendState::REPLACE,
+            &vl,
+            1,
         ),
-    }
-}
-
-fn bloom_desc<'a>(
-    shader: &'a wgpu::ShaderModule,
-    fs_entry: &'a str,
-    format: wgpu::TextureFormat,
-    vertex_layouts: &'a [wgpu::VertexBufferLayout<'a>],
-) -> PipelineDesc<'a> {
-    PipelineDesc {
-        shader,
-        vs_entry: "vs_fullscreen",
-        fs_entry,
-        format,
-        blend: wgpu::BlendState::REPLACE,
-        vertex_layouts,
-        sample_count: 1,
     }
 }
 

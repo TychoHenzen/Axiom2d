@@ -4,20 +4,24 @@ use bevy_ecs::prelude::{
     Component, Entity, Query, Res, ResMut, Resource, Trigger, With, Without, World,
 };
 use engine_core::color::Color;
-use engine_core::prelude::Transform2D;
+use engine_core::prelude::{EventBus, Transform2D};
 use engine_input::mouse_button::MouseButton;
 use engine_input::prelude::MouseState;
+use engine_physics::prelude::PhysicsCommand;
 use engine_render::prelude::{Shape, ShapeVariant, Stroke, rounded_rect_path};
 use engine_scene::prelude::LocalSortOrder;
 use engine_scene::render_order::{RenderLayer, SortOrder};
 use glam::Vec2;
+use std::collections::HashSet;
 
 use crate::booster::pack::BoosterPack;
 use crate::card::identity::signature::CardSignature;
+use crate::card::identity::signature::Rarity;
 use crate::card::interaction::click_resolve::{ClickHitShape, Clickable, ClickedEntity};
 use crate::card::interaction::drag_state::DragState;
 use crate::card::jack_cable::{CableCollider, Jack, JackDirection};
 use crate::card::jack_socket::{JackSocket, on_socket_clicked};
+use crate::card::reader::CardReader;
 use crate::card::reader::SignatureSpace;
 
 const BODY_HALF_W: f32 = 50.0;
@@ -283,11 +287,8 @@ pub fn booster_seal_system(world: &mut World) {
     use crate::booster::pack::spawn_booster_pack;
     use crate::booster::sampling::sample_signatures_from_space;
     use crate::card::component::Card;
-    use crate::card::identity::signature::Rarity;
-    use crate::card::reader::CardReader;
-    use engine_core::prelude::EventBus;
     use engine_core::scale_spring::ScaleSpring;
-    use engine_physics::prelude::{PhysicsCommand, RigidBody};
+    use engine_physics::prelude::RigidBody;
     use rand::Rng;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
@@ -346,18 +347,18 @@ pub fn booster_seal_system(world: &mut World) {
     // 5. Determine card count with rarity bonus
     let base_count: usize = rng.random_range(5..=15);
 
-    let mut rarity_bonus: usize = 0;
-    for &card_entity in &space.source_cards {
-        if let Some(card) = world.get::<Card>(card_entity) {
-            rarity_bonus += match card.signature.rarity() {
-                Rarity::Common => 0,
-                Rarity::Uncommon => 1,
-                Rarity::Rare => 2,
-                Rarity::Epic => 3,
-                Rarity::Legendary => 4,
-            };
-        }
-    }
+    let rarity_bonus: usize = space
+        .source_cards
+        .iter()
+        .filter_map(|&card_entity| world.get::<Card>(card_entity))
+        .map(|card| match card.signature.rarity() {
+            Rarity::Common => 0,
+            Rarity::Uncommon => 1,
+            Rarity::Rare => 2,
+            Rarity::Epic => 3,
+            Rarity::Legendary => 4,
+        })
+        .sum();
     let count = (base_count + rarity_bonus).min(15);
 
     // 6. Sample signatures
@@ -385,8 +386,9 @@ pub fn booster_seal_system(world: &mut World) {
 
     // 11. Remove physics from source cards before destroying them
     let source_cards = space.source_cards.clone();
-    if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
-        for &card_entity in &source_cards {
+    let source_card_set: HashSet<Entity> = source_cards.iter().copied().collect();
+    for &card_entity in &source_cards {
+        if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
             bus.push(PhysicsCommand::RemoveBody {
                 entity: card_entity,
             });
@@ -394,23 +396,25 @@ pub fn booster_seal_system(world: &mut World) {
     }
 
     // 12. Destroy source cards
+    let mut reader_query = world.query::<(Entity, &CardReader)>();
+    let mut readers_to_clear = Vec::new();
+    for (reader_entity, reader) in reader_query.iter(world) {
+        if reader
+            .loaded
+            .is_some_and(|card_entity| source_card_set.contains(&card_entity))
+        {
+            readers_to_clear.push((reader_entity, reader.jack_entity));
+        }
+    }
+    for (reader_entity, jack_entity) in readers_to_clear {
+        if let Some(mut reader) = world.get_mut::<CardReader>(reader_entity) {
+            reader.loaded = None;
+        }
+        if let Some(mut jack) = world.get_mut::<Jack<SignatureSpace>>(jack_entity) {
+            jack.data = None;
+        }
+    }
     for &card_entity in &source_cards {
-        // Find the CardReader that has this card loaded
-        let mut reader_to_clear: Option<(Entity, Entity)> = None;
-        for (reader_entity, reader) in world.query::<(Entity, &CardReader)>().iter(world) {
-            if reader.loaded == Some(card_entity) {
-                reader_to_clear = Some((reader_entity, reader.jack_entity));
-                break;
-            }
-        }
-        if let Some((reader_entity, jack_entity)) = reader_to_clear {
-            if let Some(mut reader) = world.get_mut::<CardReader>(reader_entity) {
-                reader.loaded = None;
-            }
-            if let Some(mut jack) = world.get_mut::<Jack<SignatureSpace>>(jack_entity) {
-                jack.data = None;
-            }
-        }
         world.despawn(card_entity);
     }
 }

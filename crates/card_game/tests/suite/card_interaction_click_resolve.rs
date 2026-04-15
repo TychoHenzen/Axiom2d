@@ -67,7 +67,7 @@ fn when_card_and_reader_overlap_then_topmost_card_picked() {
     // Spawn a card entity at the same position with higher SortOrder
     let card = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             Collider::Aabb(half),
             Clickable(ClickHitShape::Aabb(half)),

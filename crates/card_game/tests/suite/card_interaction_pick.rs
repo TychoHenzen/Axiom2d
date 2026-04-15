@@ -47,7 +47,7 @@ fn insert_pick_resources(world: &mut World) {
 fn spawn_clickable_card(world: &mut World, pos: Vec2, sort: i32) -> Entity {
     let card = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             card_game::card::component::CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(pos)),
@@ -157,7 +157,7 @@ fn when_card_picked_at_offset_then_local_grab_offset_is_inverse_rotated() {
     let transform = Affine2::from_scale_angle_translation(Vec2::ONE, angle, Vec2::new(100.0, 50.0));
     let card = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(transform),
@@ -204,7 +204,7 @@ fn when_card_picked_at_center_then_local_grab_offset_is_zero() {
     let mut world = World::new();
     let card = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::new(100.0, 50.0))),
@@ -269,7 +269,7 @@ fn when_rotated_card_clicked_inside_obb_then_picked() {
     let angle = std::f32::consts::FRAC_PI_4;
     let card = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_scale_angle_translation(
@@ -304,7 +304,7 @@ fn when_rotated_card_clicked_outside_obb_then_not_picked() {
     let angle = std::f32::consts::FRAC_PI_4;
     let card = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_scale_angle_translation(
@@ -416,7 +416,7 @@ fn when_stash_hidden_and_slot_clicked_then_pick_not_triggered() {
     // col=0, row=0 center at (45, 45)
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Stash {
                 page: 0,
                 col: 0,
@@ -461,7 +461,7 @@ fn when_table_card_picked_then_pick_intent_emitted_not_drag_state() {
     let collider = default_card_collider();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             collider.clone(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),

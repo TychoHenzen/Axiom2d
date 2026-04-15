@@ -1,6 +1,7 @@
 use engine_core::color::Color;
 use engine_core::types::Pixels;
 
+use crate::material::BlendMode;
 use crate::rect::Rect;
 
 #[repr(C)]
@@ -80,22 +81,40 @@ impl ShapeBatch {
         }
     }
 
+    fn append_indices(&mut self, indices: &[u32], base: u32) {
+        self.indices.reserve(indices.len());
+        self.indices.extend(indices.iter().map(|index| {
+            base.checked_add(*index)
+                .expect("shape index exceeds u32 range")
+        }));
+    }
+
+    fn push_indexed_vertices(
+        &mut self,
+        vertices: impl ExactSizeIterator<Item = ShapeVertex>,
+        indices: &[u32],
+    ) {
+        let base =
+            u32::try_from(self.vertices.len()).expect("shape vertex count exceeds u32 range");
+        self.vertices.reserve(vertices.len());
+        self.vertices.extend(vertices);
+        self.append_indices(indices, base);
+    }
+
     pub(crate) fn push(&mut self, positions: &[[f32; 2]], indices: &[u32], color: Color) {
-        let base = self.vertices.len() as u32;
         let color = [color.r, color.g, color.b, color.a];
-        self.vertices
-            .extend(positions.iter().map(|&position| ShapeVertex {
+        self.push_indexed_vertices(
+            positions.iter().copied().map(|position| ShapeVertex {
                 position,
                 color,
                 uv: [0.0, 0.0],
-            }));
-        self.indices.extend(indices.iter().map(|&i| i + base));
+            }),
+            indices,
+        );
     }
 
     pub(crate) fn push_colored(&mut self, vertices: &[ShapeVertex], indices: &[u32]) {
-        let base = self.vertices.len() as u32;
-        self.vertices.extend_from_slice(vertices);
-        self.indices.extend(indices.iter().map(|&i| i + base));
+        self.push_indexed_vertices(vertices.iter().copied(), indices);
     }
 
     pub(crate) fn index_count(&self) -> usize {
@@ -116,7 +135,7 @@ impl ShapeBatch {
     }
 
     pub(crate) fn is_empty(&self) -> bool {
-        self.vertices.is_empty()
+        self.indices.is_empty()
     }
 }
 
@@ -131,6 +150,29 @@ pub(crate) fn rect_to_instance(rect: &Rect) -> Instance {
         uv_rect: [0.0, 0.0, 1.0, 1.0],
         color: [rect.color.r, rect.color.g, rect.color.b, rect.color.a],
     }
+}
+
+pub(crate) fn compute_batch_ranges(modes: &[BlendMode]) -> Vec<(BlendMode, std::ops::Range<u32>)> {
+    let mut batches = Vec::with_capacity(modes.len());
+    let Some((&first_mode, _)) = modes.split_first() else {
+        return batches;
+    };
+
+    let to_u32 = |value: usize| u32::try_from(value).expect("batch index exceeds u32 range");
+    let mut batch_mode = first_mode;
+    let mut batch_start = 0usize;
+
+    for (index, pair) in modes.windows(2).enumerate() {
+        if pair[0] != pair[1] {
+            let end = index + 1;
+            batches.push((batch_mode, to_u32(batch_start)..to_u32(end)));
+            batch_mode = pair[1];
+            batch_start = end;
+        }
+    }
+
+    batches.push((batch_mode, to_u32(batch_start)..to_u32(modes.len())));
+    batches
 }
 
 pub(crate) struct TextureData<'a> {
@@ -188,6 +230,10 @@ fn upload_texture(
     let desc = rgba_texture_descriptor(tex);
     let size = desc.size;
     let texture = device.create_texture(&desc);
+    let bytes_per_row = tex
+        .width
+        .checked_mul(4)
+        .expect("texture row size exceeds u32 range");
     queue.write_texture(
         wgpu::TexelCopyTextureInfo {
             texture: &texture,
@@ -198,33 +244,12 @@ fn upload_texture(
         tex.data,
         wgpu::TexelCopyBufferLayout {
             offset: 0,
-            bytes_per_row: Some(4 * tex.width),
+            bytes_per_row: Some(bytes_per_row),
             rows_per_image: Some(tex.height),
         },
         size,
     );
     texture.create_view(&wgpu::TextureViewDescriptor::default())
-}
-
-#[allow(clippy::cast_possible_truncation)]
-pub(crate) fn compute_batch_ranges(
-    modes: &[crate::material::BlendMode],
-) -> Vec<(crate::material::BlendMode, std::ops::Range<u32>)> {
-    let mut batches = Vec::new();
-    let Some(&first) = modes.first() else {
-        return batches;
-    };
-    let mut current_mode = first;
-    let mut start = 0u32;
-    for (i, &mode) in modes.iter().enumerate().skip(1) {
-        if mode != current_mode {
-            batches.push((current_mode, start..i as u32));
-            current_mode = mode;
-            start = i as u32;
-        }
-    }
-    batches.push((current_mode, start..modes.len() as u32));
-    batches
 }
 
 pub(crate) fn blend_mode_to_blend_state(mode: crate::material::BlendMode) -> wgpu::BlendState {
@@ -265,12 +290,14 @@ pub(super) struct FullscreenPass<'a> {
     pub(super) params_bg: &'a wgpu::BindGroup,
 }
 
-#[allow(clippy::cast_possible_truncation)]
 pub(super) fn run_fullscreen_pass(
     encoder: &mut wgpu::CommandEncoder,
     buffers: &FullscreenBuffers<'_>,
     desc: &FullscreenPass<'_>,
 ) {
+    let quad_index_count =
+        u32::try_from(QUAD_INDICES.len()).expect("quad index count exceeds u32 range");
+
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: None,
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -290,7 +317,7 @@ pub(super) fn run_fullscreen_pass(
     pass.set_bind_group(1, desc.params_bg, &[]);
     pass.set_vertex_buffer(0, buffers.vertex.slice(..));
     pass.set_index_buffer(buffers.index.slice(..), wgpu::IndexFormat::Uint16);
-    pass.draw_indexed(0..QUAD_INDICES.len() as u32, 0, 0..1);
+    pass.draw_indexed(0..quad_index_count, 0, 0..1);
 }
 
 pub(super) struct FullscreenBuffers<'a> {

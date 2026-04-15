@@ -42,6 +42,14 @@ fn polygon_centroid(polygon: &[Vec2]) -> Vec2 {
     sum / polygon.len() as f32
 }
 
+fn polygon_edges(polygon: &[Vec2]) -> impl Iterator<Item = (Vec2, Vec2)> + '_ {
+    polygon
+        .iter()
+        .copied()
+        .zip(polygon.iter().copied().cycle().skip(1))
+        .take(polygon.len())
+}
+
 fn segment_intersects_convex_polygon(a: Vec2, b: Vec2, polygon: &[Vec2]) -> bool {
     if polygon.len() < 3 {
         return false;
@@ -49,8 +57,7 @@ fn segment_intersects_convex_polygon(a: Vec2, b: Vec2, polygon: &[Vec2]) -> bool
     if point_in_convex_polygon(a, polygon) || point_in_convex_polygon(b, polygon) {
         return true;
     }
-    polygon.iter().enumerate().any(|(i, &p1)| {
-        let p2 = polygon[(i + 1) % polygon.len()];
+    polygon_edges(polygon).any(|(p1, p2)| {
         segment_intersects_segment(a, b, p1, p2).is_some_and(|t| t > 1e-4 && t < 1.0 - 1e-4)
     })
 }
@@ -61,22 +68,21 @@ fn segment_crosses_convex_polygon(a: Vec2, b: Vec2, polygon: &[Vec2]) -> Option<
     }
 
     let endpoint_on_vertex = |p: Vec2| polygon.iter().any(|v| (p - *v).length_squared() <= 1e-6);
-    let mut first_t = f32::MAX;
-    let mut hit_count = 0;
-    for i in 0..polygon.len() {
-        let p1 = polygon[i];
-        let p2 = polygon[(i + 1) % polygon.len()];
+    let mut first_t: Option<f32> = None;
+    for (p1, p2) in polygon_edges(polygon) {
         if let Some(t) = segment_intersects_segment(a, b, p1, p2)
             && t > 1e-4
             && t < 1.0 - 1e-4
         {
-            hit_count += 1;
-            first_t = first_t.min(t);
+            if let Some(prev_t) = first_t {
+                return Some(prev_t.min(t));
+            }
+            first_t = Some(t);
         }
     }
 
-    if hit_count >= 2 || (hit_count == 1 && (endpoint_on_vertex(a) || endpoint_on_vertex(b))) {
-        Some(first_t)
+    if first_t.is_some() && (endpoint_on_vertex(a) || endpoint_on_vertex(b)) {
+        first_t
     } else {
         None
     }
@@ -87,18 +93,20 @@ pub fn point_in_convex_polygon(point: Vec2, polygon: &[Vec2]) -> bool {
         return false;
     }
 
-    let mut sign = 0.0;
-    for i in 0..polygon.len() {
-        let a = polygon[i];
-        let b = polygon[(i + 1) % polygon.len()];
+    let mut sign: Option<f32> = None;
+    for (a, b) in polygon_edges(polygon) {
         let cross = (b - a).perp_dot(point - a);
         if cross.abs() <= 1e-5 {
             continue;
         }
-        if sign == 0.0 {
-            sign = cross.signum();
-        } else if sign * cross < 0.0 {
-            return false;
+
+        let edge_sign = cross.signum();
+        if let Some(expected) = sign {
+            if expected != edge_sign {
+                return false;
+            }
+        } else {
+            sign = Some(edge_sign);
         }
     }
     true
@@ -187,12 +195,35 @@ impl WrapWire {
         boundary_step: i8,
         vertex_count: usize,
     ) -> usize {
-        let vertex_count = vertex_count.max(1);
-        if boundary_step < 0 {
-            (vertex_index + vertex_count - 1) % vertex_count
-        } else {
-            (vertex_index + 1) % vertex_count
+        let vertex_count = vertex_count.max(1) as isize;
+        let next = vertex_index as isize + boundary_step as isize;
+        next.rem_euclid(vertex_count) as usize
+    }
+
+    fn select_wrap_vertex(
+        verts: &[Vec2],
+        hit: Vec2,
+        prev_anchor: Option<&WrapAnchor>,
+    ) -> Option<usize> {
+        let n = verts.len();
+        if let Some(prev) = prev_anchor {
+            if prev.vertex_index < n {
+                return Some(Self::boundary_neighbor_index(
+                    prev.vertex_index,
+                    prev.boundary_step,
+                    n,
+                ));
+            }
+            return None;
         }
+
+        verts
+            .iter()
+            .enumerate()
+            .min_by(|(_, a), (_, b)| {
+                ((*a - hit).length_squared()).total_cmp(&((*b - hit).length_squared()))
+            })
+            .map(|(idx, _)| idx)
     }
 
     /// Check each span for polygon intersections and insert wrap anchors.
@@ -237,7 +268,7 @@ impl WrapWire {
                         continue 'obstacle;
                     };
                     let span_dir = span_b - span_a;
-                    let hit = span_a + (span_b - span_a) * first_t;
+                    let hit = span_a + span_dir * first_t;
 
                     // Only use boundary-neighbor logic when the anchor
                     // immediately preceding this span belongs to the same
@@ -252,23 +283,7 @@ impl WrapWire {
                         None
                     };
 
-                    let mut best_idx: Option<usize> = None;
-                    let mut best_dist = f32::MAX;
-                    if let Some(prev) = prev_anchor
-                        && prev.vertex_index < n
-                    {
-                        let candidate_idx =
-                            Self::boundary_neighbor_index(prev.vertex_index, prev.boundary_step, n);
-                        best_idx = Some(candidate_idx);
-                    } else {
-                        for (j, v) in verts.iter().enumerate() {
-                            let dist = (*v - hit).length_squared();
-                            if dist < best_dist {
-                                best_dist = dist;
-                                best_idx = Some(j);
-                            }
-                        }
-                    }
+                    let best_idx = Self::select_wrap_vertex(verts, hit, prev_anchor);
 
                     if let Some(vidx) = best_idx
                         && !self
@@ -393,26 +408,19 @@ impl WrapWire {
 
     /// Compute the shortest geometric path from `src` through all anchors to `dst`.
     pub fn shortest_path(&self, src: Vec2, dst: Vec2) -> f32 {
-        if self.anchors.is_empty() {
-            return (dst - src).length();
-        }
-        let mut total = (self.anchors[0].position - src).length();
-        for i in 0..self.anchors.len() - 1 {
-            total += (self.anchors[i + 1].position - self.anchors[i].position).length();
-        }
-        total += (dst - self.anchors.last().expect("checked non-empty").position).length();
-        total
+        self.waypoints(src, dst)
+            .windows(2)
+            .map(|pair| (pair[1] - pair[0]).length())
+            .sum()
     }
 
     /// Return the full waypoint list: `[src, anchor1, ..., anchorN, dst]`.
     pub fn waypoints(&self, src: Vec2, dst: Vec2) -> Vec<Vec2> {
-        let mut pts = Vec::with_capacity(self.anchors.len() + 2);
-        pts.push(src);
-        for anchor in &self.anchors {
-            pts.push(anchor.position);
-        }
-        pts.push(dst);
-        pts
+        let mut waypoints = Vec::with_capacity(self.anchors.len() + 2);
+        waypoints.push(src);
+        waypoints.extend(self.anchors.iter().map(|anchor| anchor.position));
+        waypoints.push(dst);
+        waypoints
     }
 }
 
@@ -585,6 +593,8 @@ pub fn wrap_detect_system(
             (entity, world_verts)
         })
         .collect();
+    let obstacle_refs: Vec<(Entity, &[Vec2])> =
+        obstacles.iter().map(|(e, v)| (*e, v.as_slice())).collect();
 
     for (mut wrap, endpoints) in &mut wires {
         let Ok(src_t) = transforms.get(endpoints.source) else {
@@ -595,9 +605,6 @@ pub fn wrap_detect_system(
         };
         let src = src_t.position;
         let dst = dst_t.position;
-
-        let obstacle_refs: Vec<(Entity, &[Vec2])> =
-            obstacles.iter().map(|(e, v)| (*e, v.as_slice())).collect();
 
         wrap.detect_unwraps(src, dst, &obstacle_refs);
         wrap.detect_wraps(src, dst, &obstacle_refs);

@@ -58,7 +58,8 @@ impl PendingMaterialBindings {
     }
 
     pub fn set_uniforms(&mut self, data: &[u8]) {
-        self.uniforms = data.to_vec();
+        self.uniforms.clear();
+        self.uniforms.extend_from_slice(data);
     }
 
     pub fn bind_texture(&mut self, texture: TextureId, binding: u32) {
@@ -100,11 +101,12 @@ impl UploadBuffer {
         }
     }
 
-    pub(super) fn ensure_capacity(&mut self, device: &wgpu::Device, min_capacity: usize) {
+    pub(super) fn ensure_capacity(&mut self, device: &wgpu::Device, min_capacity: usize) -> bool {
         if min_capacity <= self.capacity {
-            return;
+            return false;
         }
         *self = Self::new(device, self.usage, min_capacity);
+        true
     }
 }
 
@@ -137,15 +139,23 @@ impl UploadBindGroupBuffer {
         binding_size: u64,
         min_capacity: usize,
     ) {
-        if min_capacity <= self.storage.capacity && binding_size == self.binding_size {
-            return;
+        let needs_storage_resize = min_capacity > self.storage.capacity;
+        if needs_storage_resize {
+            self.storage.ensure_capacity(device, min_capacity);
         }
-        *self = Self::new(device, layout, binding_size, min_capacity);
+        if needs_storage_resize || binding_size != self.binding_size {
+            self.bind_group =
+                create_uniform_bind_group(device, layout, &self.storage.buffer, binding_size);
+            self.binding_size = binding_size;
+        }
     }
 }
 
 fn next_upload_capacity(min_capacity: usize) -> usize {
-    min_capacity.max(64).next_power_of_two()
+    let min_capacity = min_capacity.max(64);
+    min_capacity
+        .checked_next_power_of_two()
+        .unwrap_or(usize::MAX)
 }
 
 fn create_uniform_bind_group(
@@ -242,12 +252,14 @@ impl WgpuRenderer {
     }
 
     fn from_parts(p: gpu_init::RendererParts) -> Self {
+        let surface_format = p.gpu.config.format;
+        let sample_count = p.sample_count;
         let msaa_view = Self::create_msaa_texture(
             &p.gpu.device,
-            p.gpu_format,
+            surface_format,
             p.gpu.config.width,
             p.gpu.config.height,
-            p.sample_count,
+            sample_count,
         );
         Self {
             surface: p.gpu.surface,
@@ -267,7 +279,7 @@ impl WgpuRenderer {
             model_bind_group_layout: p.shape.model_bind_group_layout,
             material_bind_group_layout: p.shape.material_bind_group_layout,
             model_uniform_align: p.shape.model_uniform_align,
-            surface_format: p.gpu_format,
+            surface_format,
             clear_color: Color::BLACK,
             pending_instances: Vec::new(),
             instance_blend_modes: Vec::new(),
@@ -285,7 +297,7 @@ impl WgpuRenderer {
             bloom_intensity: 0.3,
             glyph_cache: crate::font::GlyphCache::new(),
             msaa_view,
-            sample_count: p.sample_count,
+            sample_count,
             instance_upload_buffer: None,
             shape_vertex_upload_buffer: None,
             shape_index_upload_buffer: None,
@@ -329,10 +341,26 @@ pub fn pack_material_bindings<S: std::hash::BuildHasher>(
     textures: &[(TextureId, u32)],
     lookups: &HashMap<TextureId, [f32; 4], S>,
 ) -> Vec<u8> {
-    let mut packed = uniforms.to_vec();
-    if packed.len() < 32 {
-        packed.resize(32, 0);
-    }
+    let packed_len = packed_material_binding_len(uniforms.len(), textures.len());
+    let mut packed = vec![0u8; packed_len];
+    write_packed_material_bindings(&mut packed, uniforms, textures, lookups);
+    packed
+}
+
+fn write_packed_material_bindings<S: std::hash::BuildHasher>(
+    dst: &mut [u8],
+    uniforms: &[u8],
+    textures: &[(TextureId, u32)],
+    lookups: &HashMap<TextureId, [f32; 4], S>,
+) -> usize {
+    let uniform_len = uniforms.len().max(32);
+    let packed_len = packed_material_binding_len(uniforms.len(), textures.len());
+    debug_assert!(dst.len() >= packed_len);
+
+    dst[..uniforms.len()].copy_from_slice(uniforms);
+    dst[uniforms.len()..uniform_len].fill(0);
+
+    let mut offset = uniform_len;
     for &(texture_id, binding) in textures {
         let binding_data = PackedTextureBinding {
             texture_id: texture_id.0,
@@ -340,14 +368,24 @@ pub fn pack_material_bindings<S: std::hash::BuildHasher>(
             uv_rect: lookups.get(&texture_id).copied().unwrap_or([0.0; 4]),
             _pad: [0; 2],
         };
-        packed.extend_from_slice(bytemuck::bytes_of(&binding_data));
+        let bytes = bytemuck::bytes_of(&binding_data);
+        dst[offset..offset + bytes.len()].copy_from_slice(bytes);
+        offset += bytes.len();
     }
-    packed
+
+    packed_len
+}
+
+fn packed_material_binding_len(uniform_len: usize, texture_len: usize) -> usize {
+    uniform_len
+        .max(32)
+        .saturating_add(texture_len.saturating_mul(std::mem::size_of::<PackedTextureBinding>()))
 }
 
 pub(super) fn align_to_uniform_offset(size: usize, alignment: usize) -> usize {
     let alignment = alignment.max(1);
-    size.div_ceil(alignment) * alignment
+    let padded = size.saturating_add(alignment - 1) / alignment;
+    padded.saturating_mul(alignment)
 }
 
 pub(super) fn pack_material_frame_data(
@@ -355,23 +393,26 @@ pub(super) fn pack_material_frame_data(
     lookups: &HashMap<TextureId, [f32; 4]>,
     alignment: usize,
 ) -> (usize, Vec<u8>) {
-    let packed_materials: Vec<Vec<u8>> = draws
+    let max_len = draws
         .iter()
         .map(|draw| {
-            pack_material_bindings(&draw.material_uniforms, &draw.material_textures, lookups)
+            packed_material_binding_len(draw.material_uniforms.len(), draw.material_textures.len())
         })
-        .collect();
-    let max_len = packed_materials
-        .iter()
-        .map(Vec::len)
         .max()
-        .unwrap_or(32)
-        .max(32);
+        .unwrap_or(32);
     let slot_size = align_to_uniform_offset(max_len, alignment);
-    let mut frame_data = vec![0u8; packed_materials.len() * slot_size];
-    for (i, packed) in packed_materials.iter().enumerate() {
-        let offset = i * slot_size;
-        frame_data[offset..offset + packed.len()].copy_from_slice(packed);
+    let total_bytes = draws
+        .len()
+        .checked_mul(slot_size)
+        .expect("material frame buffer size overflow");
+    let mut frame_data = vec![0u8; total_bytes];
+    for (slot, draw) in frame_data.chunks_exact_mut(slot_size).zip(draws) {
+        write_packed_material_bindings(
+            slot,
+            &draw.material_uniforms,
+            &draw.material_textures,
+            lookups,
+        );
     }
     (slot_size, frame_data)
 }

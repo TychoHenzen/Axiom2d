@@ -37,7 +37,7 @@ fn when_pick_card_table_intent_applied_then_drag_state_set_with_correct_entity_a
     let mut world = World::new();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::new(10.0, 20.0))),
@@ -77,7 +77,7 @@ fn when_pick_card_table_intent_applied_then_physics_bus_contains_set_collision_g
     let mut world = World::new();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -129,7 +129,7 @@ fn when_pick_card_intent_applied_then_intent_bus_drained_and_entity_has_sort_and
     let mut world = World::new();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -179,7 +179,7 @@ fn when_pick_from_stash_intent_applied_then_drag_state_set_and_slot_vacated() {
     let mut world = World::new();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Stash {
                 page: 0,
                 col: 2,
@@ -247,7 +247,7 @@ fn when_pick_card_hand_intent_applied_then_removed_from_hand_and_physics_body_ad
     let mut world = World::new();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Hand(0),
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::new(50.0, 200.0))),
@@ -313,7 +313,7 @@ fn when_release_on_table_intent_applied_then_drag_state_cleared_and_physics_rest
     let mut world = World::new();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::new(100.0, 200.0))),
@@ -364,7 +364,7 @@ fn when_release_on_table_with_snap_back_then_position_restored() {
     let mut world = World::new();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::new(300.0, 400.0))),
@@ -412,7 +412,7 @@ fn when_release_on_hand_intent_applied_then_card_added_to_hand_and_physics_remov
     let mut world = World::new();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -460,7 +460,7 @@ fn when_release_on_hand_face_down_then_flip_animation_inserted() {
     let mut world = World::new();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -502,7 +502,7 @@ fn when_release_on_hand_but_hand_full_then_card_stays_on_table() {
     let mut world = World::new();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -552,7 +552,7 @@ fn when_release_on_stash_intent_applied_then_card_placed_in_grid() {
     let mut world = World::new();
     let card_entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -601,7 +601,7 @@ fn when_picking_table_card_with_higher_sort_hand_card_present_then_local_sort_is
     let mut world = World::new();
     let table_card = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             default_card_collider(),
             GlobalTransform2D(Affine2::from_translation(Vec2::ZERO)),
@@ -609,7 +609,7 @@ fn when_picking_table_card_with_higher_sort_hand_card_present_then_local_sort_is
         ))
         .id();
     world.spawn((
-        card_game::test_helpers::make_test_card(),
+        crate::test_helpers::make_test_card(),
         CardZone::Hand(0),
         SortOrder::new(10),
     ));

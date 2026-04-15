@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
+use std::time::Duration;
+
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use engine_render::font::{
     GlyphCache, bake_text_into_mesh, balanced_wrap_text, measure_text, wrap_text,
@@ -8,6 +10,8 @@ use engine_render::shape::TessellatedColorMesh;
 
 fn bench_measure_text(c: &mut Criterion) {
     let mut group = c.benchmark_group("font_measure");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     group.bench_function("short_5_chars", |b| {
         b.iter(|| measure_text(black_box("Hello"), black_box(14.0)));
@@ -27,6 +31,8 @@ fn bench_measure_text(c: &mut Criterion) {
 
 fn bench_wrap_text(c: &mut Criterion) {
     let mut group = c.benchmark_group("font_wrap");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     group.bench_function("short_no_wrap", |b| {
         b.iter(|| wrap_text(black_box("Fire"), black_box(8.0), black_box(200.0)));
@@ -44,6 +50,8 @@ fn bench_wrap_text(c: &mut Criterion) {
 
 fn bench_balanced_wrap(c: &mut Criterion) {
     let mut group = c.benchmark_group("font_balanced_wrap");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     group.bench_function("card_name_2_words", |b| {
         b.iter(|| balanced_wrap_text(black_box("Fire Drake"), black_box(7.0), black_box(50.0)));
@@ -64,6 +72,8 @@ fn bench_balanced_wrap(c: &mut Criterion) {
 
 fn bench_bake_text(c: &mut Criterion) {
     let mut group = c.benchmark_group("font_bake");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     group.bench_function("short_name", |b| {
         b.iter(|| {
@@ -100,6 +110,8 @@ fn bench_bake_text(c: &mut Criterion) {
 
 fn bench_glyph_cache(c: &mut Criterion) {
     let mut group = c.benchmark_group("font_glyph_cache");
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(2));
 
     group.bench_function("cold_cache_10_glyphs", |b| {
         let face = ttf_parser::Face::parse(engine_render::font::FONT_BYTES, 0).expect("valid font");

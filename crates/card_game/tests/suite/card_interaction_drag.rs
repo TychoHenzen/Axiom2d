@@ -8,10 +8,10 @@ use engine_input::prelude::{MouseButton, MouseState};
 use engine_physics::prelude::PhysicsRes;
 use glam::Vec2;
 
+use crate::test_helpers::{AngularVelocityLog, SpyPhysicsBackend, VelocityLog, spawn_entity};
 use card_game::card::component::CardZone;
 use card_game::card::interaction::drag::{DRAG_GAIN, MAX_ANGULAR_VELOCITY, card_drag_system};
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
-use card_game::test_helpers::{AngularVelocityLog, SpyPhysicsBackend, VelocityLog, spawn_entity};
 
 fn run_system(world: &mut World) {
     let mut schedule = Schedule::default();

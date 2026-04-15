@@ -11,6 +11,7 @@ use engine_render::testing::SpyRenderer;
 use engine_scene::prelude::RenderLayer;
 use glam::Vec2;
 
+use crate::test_helpers::SpyPhysicsBackend;
 use card_game::card::component::CardItemForm;
 use card_game::card::component::CardZone;
 use card_game::card::interaction::apply::interaction_apply_system;
@@ -19,7 +20,6 @@ use card_game::card::interaction::intent::InteractionIntent;
 use card_game::card::interaction::release::card_release_system;
 use card_game::hand::cards::Hand;
 use card_game::stash::grid::StashGrid;
-use card_game::test_helpers::SpyPhysicsBackend;
 
 fn run_system(world: &mut World) {
     let mut schedule = Schedule::default();
@@ -194,7 +194,7 @@ impl ReleaseTestBuilder {
         world.insert_resource(StashGrid::new(10, 10, 1));
         world.insert_resource(card_game::stash::toggle::StashVisible(self.stash_visible));
 
-        let mut card = card_game::test_helpers::make_test_card();
+        let mut card = crate::test_helpers::make_test_card();
         card.face_up = self.face_up;
 
         let transform = Transform2D {
@@ -402,7 +402,7 @@ fn when_table_card_dropped_on_stash_slot_then_only_dragged_entity_gains_card_ite
         .build();
     let bystander = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             Transform2D {
                 position: Vec2::new(200.0, 200.0),
@@ -606,7 +606,7 @@ fn when_mouse_not_released_then_no_release_intent_emitted() {
     let mut world = World::new();
     let entity = world
         .spawn((
-            card_game::test_helpers::make_test_card(),
+            crate::test_helpers::make_test_card(),
             CardZone::Table,
             Collider::Aabb(Vec2::new(30.0, 45.0)),
             Transform2D {

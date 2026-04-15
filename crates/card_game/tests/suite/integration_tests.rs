@@ -11,6 +11,7 @@ use engine_core::time::FixedDeltaClock;
 use engine_render::testing::SpyRenderer;
 use glam::Vec2;
 
+use crate::test_helpers::SpyPhysicsBackend;
 use card_game::card::component::CardItemForm;
 use card_game::card::component::CardZone;
 use card_game::card::identity::definition::{
@@ -22,7 +23,6 @@ use card_game::card::rendering::spawn_table_card::spawn_visual_card;
 use card_game::hand::Hand;
 use card_game::plugin::CardGamePlugin;
 use card_game::stash::toggle::StashVisible;
-use card_game::test_helpers::SpyPhysicsBackend;
 
 // ── Helpers ──────────────────────────────────────────────────────
 

@@ -40,6 +40,19 @@ pub(crate) const READER_JACK_OFFSET: Vec2 =
 const ACCENT_HALF_W: f32 = 25.0;
 const ACCENT_THICKNESS: f32 = 2.0;
 const ACCENT_Y: f32 = -50.0;
+const ACCENT_POINTS: [Vec2; 4] = [
+    Vec2::new(-ACCENT_HALF_W, ACCENT_Y - ACCENT_THICKNESS * 0.5),
+    Vec2::new(ACCENT_HALF_W, ACCENT_Y - ACCENT_THICKNESS * 0.5),
+    Vec2::new(ACCENT_HALF_W, ACCENT_Y + ACCENT_THICKNESS * 0.5),
+    Vec2::new(-ACCENT_HALF_W, ACCENT_Y + ACCENT_THICKNESS * 0.5),
+];
+
+const READER_RUNE_POSITIONS: [Vec2; 4] = [
+    Vec2::new(-RECESS_HALF_W, -RECESS_HALF_H),
+    Vec2::new(RECESS_HALF_W, -RECESS_HALF_H),
+    Vec2::new(-RECESS_HALF_W, RECESS_HALF_H),
+    Vec2::new(RECESS_HALF_W, RECESS_HALF_H),
+];
 
 // --- Colors ---------------------------------------------------------------
 
@@ -140,7 +153,7 @@ pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
         ))
         .id();
 
-    let half = Vec2::new(READER_HALF_W, READER_HALF_H);
+    let half = READER_HALF_EXTENTS;
 
     let reader_entity = world
         .spawn((
@@ -195,12 +208,6 @@ pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
     );
 
     // Accent line (thin rectangle across the top)
-    let accent_points = vec![
-        Vec2::new(-ACCENT_HALF_W, ACCENT_Y - ACCENT_THICKNESS * 0.5),
-        Vec2::new(ACCENT_HALF_W, ACCENT_Y - ACCENT_THICKNESS * 0.5),
-        Vec2::new(ACCENT_HALF_W, ACCENT_Y + ACCENT_THICKNESS * 0.5),
-        Vec2::new(-ACCENT_HALF_W, ACCENT_Y + ACCENT_THICKNESS * 0.5),
-    ];
     world.spawn_child(
         reader_entity,
         (
@@ -208,7 +215,7 @@ pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
             Transform2D::default(),
             Shape {
                 variant: ShapeVariant::Polygon {
-                    points: accent_points,
+                    points: ACCENT_POINTS.to_vec(),
                 },
                 color: ACCENT_COLOR_DIM,
             },
@@ -219,14 +226,7 @@ pub fn spawn_reader(world: &mut World, position: Vec2) -> (Entity, Entity) {
     );
 
     // Corner runes
-    let rune_positions = [
-        Vec2::new(-RECESS_HALF_W, -RECESS_HALF_H), // top-left
-        Vec2::new(RECESS_HALF_W, -RECESS_HALF_H),  // top-right
-        Vec2::new(-RECESS_HALF_W, RECESS_HALF_H),  // bottom-left
-        Vec2::new(RECESS_HALF_W, RECESS_HALF_H),   // bottom-right
-    ];
-
-    for &pos in &rune_positions {
+    for pos in READER_RUNE_POSITIONS {
         world.spawn_child(
             reader_entity,
             (
