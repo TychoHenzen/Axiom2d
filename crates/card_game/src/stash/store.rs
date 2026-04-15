@@ -32,7 +32,7 @@ use crate::stash::pages::stash_ui_contains;
 use crate::stash::toggle::StashVisible;
 use engine_core::scale_spring::ScaleSpring;
 use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
-use engine_scene::prelude::ChildOf;
+use engine_scene::prelude::{ChildOf, Children};
 
 pub const STORE_STARTING_COINS: u32 = 100;
 pub const STORE_TAB_BASE_COST: u32 = 25;
@@ -524,28 +524,14 @@ fn store_item_at(
         return None;
     }
 
-    let columns = item_columns(item_count);
-    let (start_x, start_y) = store_item_origin(grid.width(), item_count);
-    let local_x = screen_pos.x - start_x;
-    let local_y = screen_pos.y - start_y;
-    if local_x < 0.0 || local_y < 0.0 {
-        return None;
-    }
-
-    let stride_x = STORE_ITEM_WIDTH + STORE_ITEM_GAP_X;
-    let stride_y = STORE_ITEM_HEIGHT + STORE_ITEM_GAP_Y;
-    let col = (local_x / stride_x) as usize;
-    if col >= columns {
-        return None;
-    }
-
-    let row = (local_y / stride_y) as usize;
-    let index = row * columns + col;
-    let item = items.get(index).copied()?;
-    let item_x = local_x - col as f32 * stride_x;
-    let item_y = local_y - row as f32 * stride_y;
-
-    (item_x < STORE_ITEM_WIDTH && item_y < STORE_ITEM_HEIGHT).then_some(item)
+    items.iter().copied().enumerate().find_map(|(index, item)| {
+        let (left, top, right, bottom) = store_item_bounds(grid.width(), item_count, index);
+        (screen_pos.x >= left
+            && screen_pos.x < right
+            && screen_pos.y >= top
+            && screen_pos.y < bottom)
+            .then_some(item)
+    })
 }
 
 fn spawn_reader_purchase(world: &mut World, position: Vec2) -> Entity {
@@ -669,19 +655,26 @@ fn despawn_connected_cables(world: &mut World, endpoints: &[Entity]) {
 }
 
 fn despawn_entity_tree(world: &mut World, entity: Entity) {
-    let children: Vec<Entity> = {
-        let mut query = world.query::<(Entity, &ChildOf)>();
-        query
-            .iter(world)
-            .filter_map(|(child, parent)| (parent.0 == entity).then_some(child))
-            .collect()
-    };
+    let mut stack = vec![(entity, false)];
 
-    for child in children {
-        despawn_entity_tree(world, child);
+    while let Some((current, expanded)) = stack.pop() {
+        if expanded {
+            let _ = world.despawn(current);
+            continue;
+        }
+
+        stack.push((current, true));
+        let children = if let Some(children) = world.get::<Children>(current) {
+            children.0.clone()
+        } else {
+            let mut query = world.query::<(Entity, &ChildOf)>();
+            query
+                .iter(world)
+                .filter_map(|(child, parent)| (parent.0 == current).then_some(child))
+                .collect()
+        };
+        stack.extend(children.into_iter().map(|child| (child, false)));
     }
-
-    let _ = world.despawn(entity);
 }
 
 pub fn store_buy_system(world: &mut World) {
@@ -942,9 +935,8 @@ pub fn store_item_screen_bounds(
     index: usize,
 ) -> Option<(f32, f32, f32, f32)> {
     let items = catalog.items();
-    if index >= items.len() {
-        return None;
-    }
-    Some(store_item_bounds(grid.width(), items.len(), index))
+    items
+        .get(index)
+        .map(|_| store_item_bounds(grid.width(), items.len(), index))
 }
 // EVOLVE-BLOCK-END

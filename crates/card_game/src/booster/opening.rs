@@ -177,6 +177,13 @@ impl BoosterOpening {
         Self::fan_angle(index, total)
     }
 
+    fn card_layout(&self) -> (Vec2, Vec2, Vec2) {
+        let lowered_pos = self.screen_center + Vec2::new(0.0, LOWERING_OFFSET);
+        let card_spawn = lowered_pos + Vec2::new(0.0, CARD_SPAWN_BELOW);
+        let card_reveal = lowered_pos - Vec2::new(0.0, CARD_REVEAL_ABOVE);
+        (lowered_pos, card_spawn, card_reveal)
+    }
+
     fn advance_fan_progress(progresses: &mut [f32], dt: f32) {
         let fan_delta = dt / FAN_MOVE_DURATION;
         for progress in progresses {
@@ -239,6 +246,29 @@ fn set_pack_transform(world: &mut World, entity: Entity, pos: Vec2, rot: f32, sc
     }
 }
 
+fn set_card_transform(world: &mut World, entity: Entity, pos: Vec2, scale: f32, rotation: f32) {
+    if let Some(mut t) = world.get_mut::<Transform2D>(entity) {
+        t.position = pos;
+        t.scale = Vec2::splat(scale);
+        t.rotation = rotation;
+    }
+}
+
+fn fan_card_transform(
+    opening: &BoosterOpening,
+    index: usize,
+    total_cards: usize,
+    card_reveal: Vec2,
+) -> (Vec2, f32, f32) {
+    let fan_progress = opening.card_fan_progress.get(index).copied().unwrap_or(0.0);
+    let fan_target = opening.fan_position(index, total_cards);
+    let fan_rot = BoosterOpening::fan_rotation(index, total_cards);
+    let pos = lerp(card_reveal, fan_target, fan_progress);
+    let scale = lerp_f32(OPENING_SCALE, 1.0, fan_progress);
+    let rotation = lerp_f32(0.0, fan_rot, fan_progress);
+    (pos, scale, rotation)
+}
+
 /// Exclusive system that drives the booster opening animation.
 ///
 /// Runs in `Phase::Animate`. Removes the `BoosterOpening` resource, advances
@@ -293,9 +323,7 @@ pub fn booster_opening_system(world: &mut World) {
         } => {
             let card_index = *card_index;
             let card_progress = *card_progress;
-            let lowered_pos = opening.screen_center + Vec2::new(0.0, LOWERING_OFFSET);
-            let card_spawn = lowered_pos + Vec2::new(0.0, CARD_SPAWN_BELOW);
-            let card_reveal = lowered_pos - Vec2::new(0.0, CARD_REVEAL_ABOVE);
+            let (lowered_pos, card_spawn, card_reveal) = opening.card_layout();
             let total_cards = opening.cards.len();
 
             // Keep pack at lowered position, full scale
@@ -329,28 +357,15 @@ pub fn booster_opening_system(world: &mut World) {
             // Animate the current card upward
             if let Some(&card_entity) = opening.spawned_cards.get(card_index) {
                 let pos = lerp(card_spawn, card_reveal, card_progress);
-                if let Some(mut transform) = world.get_mut::<Transform2D>(card_entity) {
-                    transform.position = pos;
-                    transform.scale = Vec2::splat(OPENING_SCALE);
-                }
+                set_card_transform(world, card_entity, pos, OPENING_SCALE, 0.0);
             }
 
-            // Animate already-revealed cards toward their fan positions
+            // Animate already-revealed cards toward their fan positions.
             for i in 0..card_index {
-                if let (Some(&card_entity), Some(&fan_progress)) = (
-                    opening.spawned_cards.get(i),
-                    opening.card_fan_progress.get(i),
-                ) {
-                    let fan_target = opening.fan_position(i, total_cards);
-                    let fan_rot = BoosterOpening::fan_rotation(i, total_cards);
-                    let pos = lerp(card_reveal, fan_target, fan_progress);
-                    let scale = lerp_f32(OPENING_SCALE, 1.0, fan_progress);
-                    let rotation = lerp_f32(0.0, fan_rot, fan_progress);
-                    if let Some(mut transform) = world.get_mut::<Transform2D>(card_entity) {
-                        transform.position = pos;
-                        transform.scale = Vec2::splat(scale);
-                        transform.rotation = rotation;
-                    }
+                if let Some(&card_entity) = opening.spawned_cards.get(i) {
+                    let (pos, scale, rotation) =
+                        fan_card_transform(&opening, i, total_cards, card_reveal);
+                    set_card_transform(world, card_entity, pos, scale, rotation);
                 }
             }
         }
@@ -362,17 +377,8 @@ pub fn booster_opening_system(world: &mut World) {
 
             // Continue animating all cards toward their fan positions
             for (i, &card_entity) in opening.spawned_cards.iter().enumerate() {
-                let fan_progress = opening.card_fan_progress.get(i).copied().unwrap_or(0.0);
-                let fan_target = opening.fan_position(i, total);
-                let fan_rot = BoosterOpening::fan_rotation(i, total);
-                let pos = lerp(card_reveal, fan_target, fan_progress);
-                let scale = lerp_f32(OPENING_SCALE, 1.0, fan_progress);
-                let rotation = lerp_f32(0.0, fan_rot, fan_progress);
-                if let Some(mut transform) = world.get_mut::<Transform2D>(card_entity) {
-                    transform.position = pos;
-                    transform.scale = Vec2::splat(scale);
-                    transform.rotation = rotation;
-                }
+                let (pos, scale, rotation) = fan_card_transform(&opening, i, total, card_reveal);
+                set_card_transform(world, card_entity, pos, scale, rotation);
             }
 
             // Slide pack off-screen downward
@@ -383,52 +389,44 @@ pub fn booster_opening_system(world: &mut World) {
         }
         BoosterOpenPhase::Done => {
             let half = TABLE_CARD_SIZE * 0.5;
-            let mut card_positions = Vec::with_capacity(opening.spawned_cards.len());
-            for &entity in &opening.spawned_cards {
-                let pos = world
-                    .get::<Transform2D>(entity)
-                    .map_or(opening.original_position, |t| t.position);
-                card_positions.push((entity, pos));
-            }
 
-            // Reset sort order, scale, and rotation on all cards
-            for &(entity, _) in &card_positions {
-                if let Some(mut transform) = world.get_mut::<Transform2D>(entity) {
-                    transform.scale = Vec2::ONE;
-                    transform.rotation = 0.0;
-                }
-                let mut em = world.entity_mut(entity);
+            for &card_entity in &opening.spawned_cards {
+                let position = match world.get_mut::<Transform2D>(card_entity) {
+                    Some(mut transform) => {
+                        let position = transform.position;
+                        transform.scale = Vec2::ONE;
+                        transform.rotation = 0.0;
+                        position
+                    }
+                    None => opening.original_position,
+                };
+
+                let mut em = world.entity_mut(card_entity);
                 em.insert(SortOrder::default());
                 em.remove::<LocalSortOrder>();
-            }
+                em.insert(RigidBody::Dynamic);
 
-            // Give all spawned cards physics bodies
-            if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
-                for (card_entity, position) in &card_positions {
+                if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
                     bus.push(PhysicsCommand::AddBody {
-                        entity: *card_entity,
+                        entity: card_entity,
                         body_type: RigidBody::Dynamic,
-                        position: *position,
+                        position,
                     });
                     bus.push(PhysicsCommand::AddCollider {
-                        entity: *card_entity,
+                        entity: card_entity,
                         collider: Collider::Aabb(half),
                     });
                     bus.push(PhysicsCommand::SetDamping {
-                        entity: *card_entity,
+                        entity: card_entity,
                         linear: BASE_LINEAR_DRAG,
                         angular: BASE_ANGULAR_DRAG,
                     });
                     bus.push(PhysicsCommand::SetCollisionGroup {
-                        entity: *card_entity,
+                        entity: card_entity,
                         membership: CARD_COLLISION_GROUP,
                         filter: CARD_COLLISION_FILTER,
                     });
                 }
-            }
-
-            for &(card_entity, _) in &card_positions {
-                world.entity_mut(card_entity).insert(RigidBody::Dynamic);
             }
 
             world.despawn(opening.pack_entity);

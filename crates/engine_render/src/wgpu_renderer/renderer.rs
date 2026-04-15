@@ -59,7 +59,8 @@ impl PendingMaterialBindings {
     }
 
     pub fn set_uniforms(&mut self, data: &[u8]) {
-        self.uniforms = data.to_vec();
+        self.uniforms.clear();
+        self.uniforms.extend_from_slice(data);
     }
 
     pub fn bind_texture(&mut self, texture: TextureId, binding: u32) {
@@ -101,11 +102,12 @@ impl UploadBuffer {
         }
     }
 
-    pub(super) fn ensure_capacity(&mut self, device: &wgpu::Device, min_capacity: usize) {
+    pub(super) fn ensure_capacity(&mut self, device: &wgpu::Device, min_capacity: usize) -> bool {
         if min_capacity <= self.capacity {
-            return;
+            return false;
         }
         *self = Self::new(device, self.usage, min_capacity);
+        true
     }
 }
 
@@ -138,15 +140,23 @@ impl UploadBindGroupBuffer {
         binding_size: u64,
         min_capacity: usize,
     ) {
-        if min_capacity <= self.storage.capacity && binding_size == self.binding_size {
-            return;
+        let needs_storage_resize = min_capacity > self.storage.capacity;
+        if needs_storage_resize {
+            self.storage.ensure_capacity(device, min_capacity);
         }
-        *self = Self::new(device, layout, binding_size, min_capacity);
+        if needs_storage_resize || binding_size != self.binding_size {
+            self.bind_group =
+                create_uniform_bind_group(device, layout, &self.storage.buffer, binding_size);
+            self.binding_size = binding_size;
+        }
     }
 }
 
 fn next_upload_capacity(min_capacity: usize) -> usize {
-    min_capacity.max(64).next_power_of_two()
+    let min_capacity = min_capacity.max(64);
+    min_capacity
+        .checked_next_power_of_two()
+        .unwrap_or(usize::MAX)
 }
 
 fn create_uniform_bind_group(
@@ -332,12 +342,26 @@ pub fn pack_material_bindings<S: std::hash::BuildHasher>(
     textures: &[(TextureId, u32)],
     lookups: &HashMap<TextureId, [f32; 4], S>,
 ) -> Vec<u8> {
-    let mut packed =
-        Vec::with_capacity(packed_material_binding_len(uniforms.len(), textures.len()));
-    packed.extend_from_slice(uniforms);
-    if packed.len() < 32 {
-        packed.resize(32, 0);
-    }
+    let packed_len = packed_material_binding_len(uniforms.len(), textures.len());
+    let mut packed = vec![0u8; packed_len];
+    write_packed_material_bindings(&mut packed, uniforms, textures, lookups);
+    packed
+}
+
+fn write_packed_material_bindings<S: std::hash::BuildHasher>(
+    dst: &mut [u8],
+    uniforms: &[u8],
+    textures: &[(TextureId, u32)],
+    lookups: &HashMap<TextureId, [f32; 4], S>,
+) -> usize {
+    let uniform_len = uniforms.len().max(32);
+    let packed_len = packed_material_binding_len(uniforms.len(), textures.len());
+    debug_assert!(dst.len() >= packed_len);
+
+    dst[..uniforms.len()].copy_from_slice(uniforms);
+    dst[uniforms.len()..uniform_len].fill(0);
+
+    let mut offset = uniform_len;
     for &(texture_id, binding) in textures {
         let binding_data = PackedTextureBinding {
             texture_id: texture_id.0,
@@ -345,18 +369,24 @@ pub fn pack_material_bindings<S: std::hash::BuildHasher>(
             uv_rect: lookups.get(&texture_id).copied().unwrap_or([0.0; 4]),
             _pad: [0; 2],
         };
-        packed.extend_from_slice(bytemuck::bytes_of(&binding_data));
+        let bytes = bytemuck::bytes_of(&binding_data);
+        dst[offset..offset + bytes.len()].copy_from_slice(bytes);
+        offset += bytes.len();
     }
-    packed
+
+    packed_len
 }
 
 fn packed_material_binding_len(uniform_len: usize, texture_len: usize) -> usize {
-    uniform_len.max(32) + texture_len * std::mem::size_of::<PackedTextureBinding>()
+    uniform_len
+        .max(32)
+        .saturating_add(texture_len.saturating_mul(std::mem::size_of::<PackedTextureBinding>()))
 }
 
 pub(super) fn align_to_uniform_offset(size: usize, alignment: usize) -> usize {
     let alignment = alignment.max(1);
-    size.div_ceil(alignment) * alignment
+    let padded = size.saturating_add(alignment - 1) / alignment;
+    padded.saturating_mul(alignment)
 }
 
 pub(super) fn pack_material_frame_data(
@@ -378,9 +408,12 @@ pub(super) fn pack_material_frame_data(
         .expect("material frame buffer size overflow");
     let mut frame_data = vec![0u8; total_bytes];
     for (slot, draw) in frame_data.chunks_exact_mut(slot_size).zip(draws) {
-        let packed =
-            pack_material_bindings(&draw.material_uniforms, &draw.material_textures, lookups);
-        slot[..packed.len()].copy_from_slice(&packed);
+        write_packed_material_bindings(
+            slot,
+            &draw.material_uniforms,
+            &draw.material_textures,
+            lookups,
+        );
     }
     (slot_size, frame_data)
 }

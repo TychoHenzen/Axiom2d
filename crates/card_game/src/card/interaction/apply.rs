@@ -19,6 +19,20 @@ use crate::hand::layout::HandSpring;
 use crate::stash::grid::StashGrid;
 use engine_core::scale_spring::ScaleSpring;
 
+fn entity_position(transforms: &Query<&GlobalTransform2D>, entity: Entity) -> Vec2 {
+    transforms
+        .get(entity)
+        .map_or(Vec2::ZERO, |transform| transform.0.translation)
+}
+
+fn table_sort_ceiling(sort_query: &Query<(&CardZone, &SortOrder)>) -> i32 {
+    sort_query
+        .iter()
+        .filter_map(|(zone, sort)| (*zone == CardZone::Table).then_some(sort.value()))
+        .max()
+        .unwrap_or_default()
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn interaction_apply_system(
     mut intents: ResMut<EventBus<InteractionIntent>>,
@@ -64,9 +78,11 @@ pub fn interaction_apply_system(
                 if let Some(grid) = &mut grid {
                     grid.take(page, col, row);
                 }
-                commands.entity(entity).insert(CardZone::Table);
-                commands.entity(entity).remove::<CardItemForm>();
-                commands.entity(entity).insert(ScaleSpring::new(DRAG_SCALE));
+                commands
+                    .entity(entity)
+                    .insert(CardZone::Table)
+                    .remove::<CardItemForm>()
+                    .insert(ScaleSpring::new(DRAG_SCALE));
                 drag_state.dragging = Some(DragInfo {
                     entity,
                     local_grab_offset: Vec2::ZERO,
@@ -95,12 +111,12 @@ pub fn interaction_apply_system(
             InteractionIntent::ReleaseOnHand {
                 entity,
                 face_up,
-                origin_position,
+                origin_position: position,
             } => {
                 apply_release_on_hand(
                     entity,
                     face_up,
-                    origin_position,
+                    position,
                     &mut hand,
                     &mut physics_commands,
                     &mut commands,
@@ -146,14 +162,12 @@ fn apply_pick_card(
     transforms: &Query<&GlobalTransform2D>,
     sort_query: &Query<(&CardZone, &SortOrder)>,
 ) {
+    let position = entity_position(transforms, entity);
+
     if let CardZone::Hand(_) = zone {
         if let Some(hand) = hand {
             hand.remove(entity);
         }
-        let position = transforms
-            .get(entity)
-            .map(|t| t.0.translation)
-            .unwrap_or(Vec2::ZERO);
         activate_physics_body(
             entity,
             position,
@@ -162,10 +176,11 @@ fn apply_pick_card(
             DRAGGED_COLLISION_GROUP,
             DRAGGED_COLLISION_FILTER,
         );
-        commands.entity(entity).insert(RigidBody::Dynamic);
-        commands.entity(entity).insert(RenderLayer::World);
-        commands.entity(entity).remove::<HandSpring>();
-        commands.entity(entity).insert(ScaleSpring::new(1.0));
+        let mut ec = commands.entity(entity);
+        ec.insert(RigidBody::Dynamic)
+            .insert(RenderLayer::World)
+            .remove::<HandSpring>()
+            .insert(ScaleSpring::new(1.0));
     }
 
     if matches!(zone, CardZone::Table) {
@@ -176,10 +191,6 @@ fn apply_pick_card(
                 filter: DRAGGED_COLLISION_FILTER,
             });
         } else {
-            let position = transforms
-                .get(entity)
-                .map(|t| t.0.translation)
-                .unwrap_or(Vec2::ZERO);
             activate_physics_body(
                 entity,
                 position,
@@ -188,33 +199,27 @@ fn apply_pick_card(
                 DRAGGED_COLLISION_GROUP,
                 DRAGGED_COLLISION_FILTER,
             );
-            commands.entity(entity).insert(RigidBody::Dynamic);
-            commands.entity(entity).insert(ScaleSpring::new(1.0));
+            commands
+                .entity(entity)
+                .insert(RigidBody::Dynamic)
+                .insert(ScaleSpring::new(1.0));
         }
     }
 
-    let max_sort = sort_query
-        .iter()
-        .filter(|(z, _)| **z == CardZone::Table)
-        .map(|(_, s)| s.value())
-        .max()
-        .unwrap_or(0);
-
-    let origin_position = transforms
-        .get(entity)
-        .map(|t| t.0.translation)
-        .unwrap_or(Vec2::ZERO);
+    let max_sort = table_sort_ceiling(sort_query);
 
     drag_state.dragging = Some(DragInfo {
         entity,
         local_grab_offset: grab_offset,
         origin_zone: zone,
         stash_cursor_follow: false,
-        origin_position,
+        origin_position: position,
     });
 
-    commands.entity(entity).insert(LocalSortOrder(max_sort + 1));
-    commands.entity(entity).insert(ScaleSpring::new(DRAG_SCALE));
+    commands
+        .entity(entity)
+        .insert(LocalSortOrder(max_sort + 1))
+        .insert(ScaleSpring::new(DRAG_SCALE));
 }
 
 fn apply_release_on_table(
@@ -280,15 +285,19 @@ fn apply_release_on_hand(
     } else {
         CardZone::Table
     };
+    let is_hand = matches!(zone, CardZone::Hand(_));
 
     let mut ec = commands.entity(entity);
     ec.remove::<RigidBody>()
         .insert(zone)
-        .insert(RenderLayer::UI)
-        .remove::<CardItemForm>()
-        .insert(HandSpring::new());
-    if !face_up {
-        ec.insert(FlipAnimation::start(true));
+        .remove::<CardItemForm>();
+    if is_hand {
+        ec.insert(RenderLayer::UI).insert(HandSpring::new());
+        if !face_up {
+            ec.insert(FlipAnimation::start(true));
+        }
+    } else {
+        ec.insert(RenderLayer::World).insert(ScaleSpring::new(1.0));
     }
 }
 

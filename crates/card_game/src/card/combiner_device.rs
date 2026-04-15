@@ -88,10 +88,42 @@ pub fn combiner_system(
     }
 }
 
+fn spawn_socket(world: &mut World, position: Vec2, direction: JackDirection) -> Entity {
+    world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction,
+                data: None,
+            },
+            JackSocket {
+                radius: SOCKET_RADIUS,
+                color: SOCKET_COLOR,
+                connected_cable: None,
+            },
+            Transform2D {
+                position,
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            Shape {
+                variant: ShapeVariant::Circle {
+                    radius: SOCKET_RADIUS,
+                },
+                color: SOCKET_COLOR,
+            },
+            RenderLayer::World,
+            SortOrder::default(),
+            LocalSortOrder(COMBINER_SOCKET_LOCAL_SORT),
+            Clickable(ClickHitShape::Circle(SOCKET_RADIUS)),
+        ))
+        .id()
+}
+
 fn s_curve_points() -> Vec<Vec2> {
-    let left_top = Vec2::new(INPUT_X + SOCKET_RADIUS, SOCKET_SPACING * 0.5);
-    let left_bot = Vec2::new(INPUT_X + SOCKET_RADIUS, -SOCKET_SPACING * 0.5);
-    let right = Vec2::new(OUTPUT_X - SOCKET_RADIUS, 0.0);
+    let [(_, left_top), (_, left_bot), (_, right)] = socket_layout();
+    let left_top = left_top + Vec2::new(SOCKET_RADIUS, 0.0);
+    let left_bot = left_bot + Vec2::new(SOCKET_RADIUS, 0.0);
+    let right = right - Vec2::new(SOCKET_RADIUS, 0.0);
     let mid_x = (left_top.x + right.x) * 0.5;
     vec![
         left_top,
@@ -104,99 +136,28 @@ fn s_curve_points() -> Vec<Vec2> {
     ]
 }
 
-/// Spawns a combiner device at `position`.
-///
-/// Returns `(device_entity, input_a_jack, input_b_jack, output_jack)`.
+fn socket_layout() -> [(JackDirection, Vec2); 3] {
+    [
+        (
+            JackDirection::Input,
+            Vec2::new(INPUT_X, SOCKET_SPACING * 0.5),
+        ),
+        (
+            JackDirection::Input,
+            Vec2::new(INPUT_X, -SOCKET_SPACING * 0.5),
+        ),
+        (JackDirection::Output, Vec2::new(OUTPUT_X, 0.0)),
+    ]
+}
+
 pub fn spawn_combiner_device(
     world: &mut World,
     position: Vec2,
 ) -> (Entity, Entity, Entity, Entity) {
-    let input_a = world
-        .spawn((
-            Jack::<SignatureSpace> {
-                direction: JackDirection::Input,
-                data: None,
-            },
-            JackSocket {
-                radius: SOCKET_RADIUS,
-                color: SOCKET_COLOR,
-                connected_cable: None,
-            },
-            Transform2D {
-                position: position + Vec2::new(INPUT_X, SOCKET_SPACING * 0.5),
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            Shape {
-                variant: ShapeVariant::Circle {
-                    radius: SOCKET_RADIUS,
-                },
-                color: SOCKET_COLOR,
-            },
-            RenderLayer::World,
-            SortOrder::default(),
-            LocalSortOrder(COMBINER_SOCKET_LOCAL_SORT),
-            Clickable(ClickHitShape::Circle(SOCKET_RADIUS)),
-        ))
-        .id();
-
-    let input_b = world
-        .spawn((
-            Jack::<SignatureSpace> {
-                direction: JackDirection::Input,
-                data: None,
-            },
-            JackSocket {
-                radius: SOCKET_RADIUS,
-                color: SOCKET_COLOR,
-                connected_cable: None,
-            },
-            Transform2D {
-                position: position + Vec2::new(INPUT_X, -SOCKET_SPACING * 0.5),
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            Shape {
-                variant: ShapeVariant::Circle {
-                    radius: SOCKET_RADIUS,
-                },
-                color: SOCKET_COLOR,
-            },
-            RenderLayer::World,
-            SortOrder::default(),
-            LocalSortOrder(COMBINER_SOCKET_LOCAL_SORT),
-            Clickable(ClickHitShape::Circle(SOCKET_RADIUS)),
-        ))
-        .id();
-
-    let output = world
-        .spawn((
-            Jack::<SignatureSpace> {
-                direction: JackDirection::Output,
-                data: None,
-            },
-            JackSocket {
-                radius: SOCKET_RADIUS,
-                color: SOCKET_COLOR,
-                connected_cable: None,
-            },
-            Transform2D {
-                position: position + Vec2::new(OUTPUT_X, 0.0),
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            Shape {
-                variant: ShapeVariant::Circle {
-                    radius: SOCKET_RADIUS,
-                },
-                color: SOCKET_COLOR,
-            },
-            RenderLayer::World,
-            SortOrder::default(),
-            LocalSortOrder(COMBINER_SOCKET_LOCAL_SORT),
-            Clickable(ClickHitShape::Circle(SOCKET_RADIUS)),
-        ))
-        .id();
+    let [(_, input_a_offset), (_, input_b_offset), (_, output_offset)] = socket_layout();
+    let input_a = spawn_socket(world, position + input_a_offset, JackDirection::Input);
+    let input_b = spawn_socket(world, position + input_b_offset, JackDirection::Input);
+    let output = spawn_socket(world, position + output_offset, JackDirection::Output);
 
     let device_entity = world
         .spawn((
@@ -225,7 +186,6 @@ pub fn spawn_combiner_device(
             CableCollider::from_aabb(COMBINER_HALF_EXTENTS),
         ))
         .id();
-
     world.entity_mut(device_entity).observe(on_combiner_clicked);
     world.entity_mut(input_a).observe(on_socket_clicked);
     world.entity_mut(input_b).observe(on_socket_clicked);
@@ -249,6 +209,15 @@ pub fn spawn_combiner_device(
     );
 
     (device_entity, input_a, input_b, output)
+}
+
+fn socket_entities(device: &CombinerDevice) -> [(Entity, Vec2); 3] {
+    let [(_, input_a_offset), (_, input_b_offset), (_, output_offset)] = socket_layout();
+    [
+        (device.input_a, input_a_offset),
+        (device.input_b, input_b_offset),
+        (device.output, output_offset),
+    ]
 }
 
 #[derive(Resource, Debug, Default)]
@@ -296,12 +265,7 @@ pub fn combiner_drag_system(
         transform.position = target;
     }
     if let Ok(device) = combiners.get(info.entity) {
-        let jack_offsets = [
-            (device.input_a, Vec2::new(INPUT_X, SOCKET_SPACING * 0.5)),
-            (device.input_b, Vec2::new(INPUT_X, -SOCKET_SPACING * 0.5)),
-            (device.output, Vec2::new(OUTPUT_X, 0.0)),
-        ];
-        for (jack_entity, offset) in jack_offsets {
+        for (jack_entity, offset) in socket_entities(device) {
             if let Ok(mut jack_t) = other_transforms.get_mut(jack_entity) {
                 jack_t.position = target + offset;
             }

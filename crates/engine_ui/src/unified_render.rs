@@ -84,15 +84,43 @@ fn is_hidden(vis: Option<&EffectiveVisibility>) -> bool {
     vis.is_some_and(|v| !v.0)
 }
 
+fn push_sorted_command(
+    commands: &mut Vec<SortedDrawCommand>,
+    layer: Option<&RenderLayer>,
+    order: Option<&SortOrder>,
+    command: DrawCommand,
+) {
+    commands.push(SortedDrawCommand {
+        sort_key: key(layer, order),
+        command,
+    });
+}
+
+fn sprite_intersects_view(
+    sprite: &Sprite,
+    transform: &GlobalTransform2D,
+    view_rect: Option<(Vec2, Vec2)>,
+) -> bool {
+    view_rect.is_none_or(|(view_min, view_max)| {
+        let pos = transform.0.translation;
+        let entity_min = pos;
+        let entity_max = Vec2::new(pos.x + sprite.width.0, pos.y + sprite.height.0);
+        aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max)
+    })
+}
+
 fn collect_overlays(overlays: Option<&MeshOverlays>) -> Vec<OverlayCommand> {
     overlays.map_or_else(Vec::new, |o| {
-        o.0.iter()
-            .filter(|e| e.visible)
-            .map(|e| OverlayCommand {
-                mesh: e.mesh.clone(),
-                material: e.material.clone(),
-            })
-            .collect()
+        let mut collected = Vec::with_capacity(o.0.len());
+        for entry in &o.0 {
+            if entry.visible {
+                collected.push(OverlayCommand {
+                    mesh: entry.mesh.clone(),
+                    material: entry.material.clone(),
+                });
+            }
+        }
+        collected
     })
 }
 
@@ -106,14 +134,7 @@ fn collect_draw_commands(
     draw_queue: &mut DrawQueue,
     view_rect: Option<(Vec2, Vec2)>,
 ) -> Vec<SortedDrawCommand> {
-    let capacity = shape_query.iter().len()
-        + text_query.iter().len()
-        + color_mesh_query.iter().len()
-        + persistent_mesh_query.iter().len()
-        + sprite_query.iter().len();
-
     let mut commands = draw_queue.drain();
-    commands.reserve(capacity);
 
     for (shape, transform, layer, order, vis, mat, stroke, cached) in shape_query.iter() {
         if is_hidden(vis) {
@@ -137,79 +158,82 @@ fn collect_draw_commands(
                     color: s.color,
                 })
         });
-        commands.push(SortedDrawCommand {
-            sort_key: key(layer, order),
-            command: DrawCommand::Shape {
+        push_sorted_command(
+            &mut commands,
+            layer,
+            order,
+            DrawCommand::Shape {
                 mesh,
                 color: shape.color,
                 model: affine2_to_mat4(&transform.0),
                 material: mat.cloned(),
                 stroke: stroke_cmd,
             },
-        });
+        );
     }
 
     for (text, transform, layer, order, vis) in text_query.iter() {
         if is_hidden(vis) {
             continue;
         }
-        commands.push(SortedDrawCommand {
-            sort_key: key(layer, order),
-            command: DrawCommand::Text {
+        push_sorted_command(
+            &mut commands,
+            layer,
+            order,
+            DrawCommand::Text {
                 content: text.content.clone(),
                 font_size: text.font_size,
                 color: text.color,
                 max_width: text.max_width,
                 transform: transform.0,
             },
-        });
+        );
     }
 
     for (mesh, transform, layer, order, vis, overlays, mat) in color_mesh_query.iter() {
         if is_hidden(vis) || mesh.is_empty() {
             continue;
         }
-        commands.push(SortedDrawCommand {
-            sort_key: key(layer, order),
-            command: DrawCommand::ColorMesh {
+        push_sorted_command(
+            &mut commands,
+            layer,
+            order,
+            DrawCommand::ColorMesh {
                 mesh: mesh.0.clone(),
                 model: affine2_to_mat4(&transform.0),
                 material: mat.cloned(),
                 overlays: collect_overlays(overlays),
             },
-        });
+        );
     }
 
     for (pcm, transform, layer, order, vis, overlays, mat) in persistent_mesh_query.iter() {
         if is_hidden(vis) {
             continue;
         }
-        commands.push(SortedDrawCommand {
-            sort_key: key(layer, order),
-            command: DrawCommand::PersistentMesh {
+        push_sorted_command(
+            &mut commands,
+            layer,
+            order,
+            DrawCommand::PersistentMesh {
                 handle: pcm.0,
                 model: affine2_to_mat4(&transform.0),
                 material: mat.cloned(),
                 overlays: collect_overlays(overlays),
             },
-        });
+        );
     }
 
     for (sprite, transform, layer, order, vis, mat) in sprite_query.iter() {
-        if is_hidden(vis) {
+        if is_hidden(vis) || !sprite_intersects_view(sprite, transform, view_rect) {
             continue;
         }
         let pos = transform.0.translation;
-        if let Some((view_min, view_max)) = view_rect {
-            let entity_min = pos;
-            let entity_max = Vec2::new(pos.x + sprite.width.0, pos.y + sprite.height.0);
-            if !aabb_intersects_view_rect(entity_min, entity_max, view_min, view_max) {
-                continue;
-            }
-        }
-        commands.push(SortedDrawCommand {
-            sort_key: key(layer, order),
-            command: DrawCommand::Sprite {
+        push_sorted_command(
+            &mut commands,
+            layer,
+            order,
+            DrawCommand::Sprite {
                 rect: Rect {
                     x: Pixels(pos.x),
                     y: Pixels(pos.y),
@@ -220,10 +244,10 @@ fn collect_draw_commands(
                 uv_rect: sprite.uv_rect,
                 material: mat.cloned(),
             },
-        });
+        );
     }
 
-    commands.sort_unstable_by_key(|cmd| cmd.sort_key);
+    commands.sort_by_key(|cmd| cmd.sort_key);
     commands
 }
 
@@ -364,7 +388,7 @@ fn draw_text(
     if let Some(max_w) = max_width {
         let lines = wrap_text(content, font_size, max_w);
         let line_height = font_size * LINE_HEIGHT_FACTOR;
-        let total_height = (lines.len() as f32 - 1.0) * line_height;
+        let total_height = lines.len().saturating_sub(1) as f32 * line_height;
         let start_y = -total_height * 0.5;
         for (i, line) in lines.iter().enumerate() {
             let line_width = measure_text(line, font_size);
@@ -385,7 +409,8 @@ fn draw_text(
 
 /// Unified render system that draws shapes, text, sprites, color meshes, and
 /// persistent meshes in a single sorted pass. Draw order is determined by
-/// `(RenderLayer, SortOrder)` --- the scene hierarchy decides what draws on top.
+/// `(RenderLayer, SortOrder)` with insertion order used as a deterministic tie
+/// breaker.
 ///
 /// Also drains the `DrawQueue` resource, merging immediate-mode commands into
 /// the same sorted pass. Systems that push to `DrawQueue` in `Phase::Render`

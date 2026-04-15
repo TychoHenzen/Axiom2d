@@ -82,26 +82,40 @@ impl ShapeBatch {
         }
     }
 
-    pub(crate) fn push(&mut self, positions: &[[f32; 2]], indices: &[u32], color: Color) {
-        let base = u32::try_from(self.vertices.len()).expect("shape vertex count exceeds u32 range");
-        let color = [color.r, color.g, color.b, color.a];
-        self.vertices.reserve(positions.len());
+    fn append_indices(&mut self, indices: &[u32], base: u32) {
         self.indices.reserve(indices.len());
-        self.vertices
-            .extend(positions.iter().map(|&position| ShapeVertex {
+        self.indices.extend(indices.iter().map(|index| {
+            base.checked_add(*index)
+                .expect("shape index exceeds u32 range")
+        }));
+    }
+
+    fn push_indexed_vertices(
+        &mut self,
+        vertices: impl ExactSizeIterator<Item = ShapeVertex>,
+        indices: &[u32],
+    ) {
+        let base =
+            u32::try_from(self.vertices.len()).expect("shape vertex count exceeds u32 range");
+        self.vertices.reserve(vertices.len());
+        self.vertices.extend(vertices);
+        self.append_indices(indices, base);
+    }
+
+    pub(crate) fn push(&mut self, positions: &[[f32; 2]], indices: &[u32], color: Color) {
+        let color = [color.r, color.g, color.b, color.a];
+        self.push_indexed_vertices(
+            positions.iter().copied().map(|position| ShapeVertex {
                 position,
                 color,
                 uv: [0.0, 0.0],
-            }));
-        self.indices.extend(indices.iter().map(|&i| i + base));
+            }),
+            indices,
+        );
     }
 
     pub(crate) fn push_colored(&mut self, vertices: &[ShapeVertex], indices: &[u32]) {
-        let base = u32::try_from(self.vertices.len()).expect("shape vertex count exceeds u32 range");
-        self.vertices.reserve(vertices.len());
-        self.indices.reserve(indices.len());
-        self.vertices.extend_from_slice(vertices);
-        self.indices.extend(indices.iter().map(|&i| i + base));
+        self.push_indexed_vertices(vertices.iter().copied(), indices);
     }
 
     pub(crate) fn index_count(&self) -> usize {
@@ -122,7 +136,7 @@ impl ShapeBatch {
     }
 
     pub(crate) fn is_empty(&self) -> bool {
-        self.vertices.is_empty()
+        self.indices.is_empty()
     }
 }
 
@@ -140,27 +154,25 @@ pub(crate) fn rect_to_instance(rect: &Rect) -> Instance {
 }
 
 pub(crate) fn compute_batch_ranges(modes: &[BlendMode]) -> Vec<(BlendMode, std::ops::Range<u32>)> {
+    let mut batches = Vec::with_capacity(modes.len());
     let Some((&first_mode, _)) = modes.split_first() else {
-        return Vec::new();
+        return batches;
     };
 
-    let mut batches = Vec::new();
+    let to_u32 = |value: usize| u32::try_from(value).expect("batch index exceeds u32 range");
     let mut batch_mode = first_mode;
     let mut batch_start = 0usize;
 
-    for (index, &mode) in modes.iter().enumerate().skip(1) {
-        if mode != batch_mode {
-            let start = u32::try_from(batch_start).expect("batch start exceeds u32 range");
-            let end = u32::try_from(index).expect("batch end exceeds u32 range");
-            batches.push((batch_mode, start..end));
-            batch_mode = mode;
-            batch_start = index;
+    for (index, pair) in modes.windows(2).enumerate() {
+        if pair[0] != pair[1] {
+            let end = index + 1;
+            batches.push((batch_mode, to_u32(batch_start)..to_u32(end)));
+            batch_mode = pair[1];
+            batch_start = end;
         }
     }
 
-    let start = u32::try_from(batch_start).expect("batch start exceeds u32 range");
-    let end = u32::try_from(modes.len()).expect("batch end exceeds u32 range");
-    batches.push((batch_mode, start..end));
+    batches.push((batch_mode, to_u32(batch_start)..to_u32(modes.len())));
     batches
 }
 

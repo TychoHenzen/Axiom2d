@@ -8,6 +8,10 @@ use crate::shape::{PathCommand, ShapeVariant, TessellatedColorMesh, TessellatedM
 
 pub const FONT_BYTES: &[u8] = include_bytes!("../assets/JetBrainsMono-Regular.ttf");
 
+fn embedded_font_face() -> ttf_parser::Face<'static> {
+    ttf_parser::Face::parse(FONT_BYTES, 0).expect("embedded font is valid")
+}
+
 struct OutlineBuilder {
     commands: Vec<PathCommand>,
     scale: f32,
@@ -64,7 +68,7 @@ pub fn outline_glyph(
 
 #[derive(Default)]
 pub struct GlyphCache {
-    entries: HashMap<(GlyphId, u16), TessellatedMesh>,
+    entries: HashMap<(GlyphId, u32), TessellatedMesh>,
 }
 
 impl GlyphCache {
@@ -78,7 +82,7 @@ impl GlyphCache {
         glyph_id: GlyphId,
         font_size: f32,
     ) -> &TessellatedMesh {
-        let key = (glyph_id, font_size.round() as u16);
+        let key = (glyph_id, font_size.to_bits());
         self.entries.entry(key).or_insert_with(|| {
             let commands = outline_glyph(face, glyph_id, font_size);
             tessellate_glyph(&commands)
@@ -103,7 +107,7 @@ pub struct LayoutGlyph {
 pub fn layout_text(face: &ttf_parser::Face, text: &str, font_size: f32) -> Vec<LayoutGlyph> {
     let scale = font_size / f32::from(face.units_per_em());
     let mut x = 0.0_f32;
-    let mut glyphs = Vec::new();
+    let mut glyphs = Vec::with_capacity(text.len());
     for ch in text.chars() {
         let Some(glyph_id) = face.glyph_index(ch) else {
             continue;
@@ -120,9 +124,7 @@ pub fn layout_text(face: &ttf_parser::Face, text: &str, font_size: f32) -> Vec<L
 }
 
 pub fn measure_text(text: &str, font_size: f32) -> f32 {
-    // INVARIANT: FONT_BYTES is a compile-time embedded TTF file.
-    // Parsing cannot fail unless the binary is corrupted.
-    let face = ttf_parser::Face::parse(FONT_BYTES, 0).expect("embedded font is valid");
+    let face = embedded_font_face();
     measure_text_with_face(&face, text, font_size)
 }
 
@@ -143,8 +145,7 @@ fn measure_text_with_face(face: &ttf_parser::Face, text: &str, font_size: f32) -
 /// Wraps at word boundaries (spaces). Words that exceed `max_width` on their own
 /// are placed on a line by themselves (no mid-word breaking).
 pub fn wrap_text(text: &str, font_size: f32, max_width: f32) -> Vec<String> {
-    // INVARIANT: FONT_BYTES is a compile-time embedded TTF file.
-    let face = ttf_parser::Face::parse(FONT_BYTES, 0).expect("embedded font is valid");
+    let face = embedded_font_face();
     let words: Vec<&str> = text.split(' ').collect();
     let mut lines = Vec::new();
     let mut current_line = String::new();
@@ -182,41 +183,51 @@ pub fn wrap_text(text: &str, font_size: f32, max_width: f32) -> Vec<String> {
 /// line lengths roughly equal. Falls back to greedy `wrap_text` if
 /// the text fits on 1 line or has only 1 word.
 pub fn balanced_wrap_text(text: &str, font_size: f32, max_width: f32) -> Vec<String> {
-    let full_width = measure_text(text, font_size);
+    let face = embedded_font_face();
+    let full_width = measure_text_with_face(&face, text, font_size);
     if full_width <= max_width {
         return vec![text.to_string()];
     }
-    let words: Vec<&str> = text.split(' ').collect();
-    if words.len() <= 1 {
-        return vec![text.to_string()];
+    let words: Vec<&str> = text.split_whitespace().collect();
+    if words.is_empty() {
+        return vec![String::new()];
     }
-    // Try splitting at each word boundary, pick the split where both lines
-    // are closest in width (and both fit within max_width)
-    let face = ttf_parser::Face::parse(FONT_BYTES, 0).expect("embedded font is valid");
-    let mut best_split = 1;
+    if words.len() == 1 {
+        return vec![words[0].to_string()];
+    }
+    let space_width = measure_text_with_face(&face, " ", font_size);
+    let mut prefix_widths = Vec::with_capacity(words.len() + 1);
+    prefix_widths.push(0.0_f32);
+    for word in &words {
+        let width = measure_text_with_face(&face, word, font_size);
+        let previous_width = prefix_widths
+            .last()
+            .copied()
+            .expect("prefix widths always starts with a zero entry");
+        prefix_widths.push(previous_width + width);
+    }
+    let total_word_width = prefix_widths
+        .last()
+        .copied()
+        .expect("prefix widths always contains a total width");
+    let mut best_split = None;
     let mut best_diff = f32::MAX;
-    for split in 1..words.len() {
-        let line1: String = words[..split].join(" ");
-        let line2: String = words[split..].join(" ");
-        let w1 = measure_text_with_face(&face, &line1, font_size);
-        let w2 = measure_text_with_face(&face, &line2, font_size);
-        if w1 <= max_width && w2 <= max_width {
-            let diff = (w1 - w2).abs();
+    for (split, _) in prefix_widths.iter().enumerate().take(words.len()).skip(1) {
+        let left_width = prefix_widths[split] + space_width * (split - 1) as f32;
+        let right_width = (total_word_width - prefix_widths[split])
+            + space_width * (words.len() - split - 1) as f32;
+        if left_width <= max_width && right_width <= max_width {
+            let diff = (left_width - right_width).abs();
             if diff < best_diff {
                 best_diff = diff;
-                best_split = split;
+                best_split = Some(split);
             }
         }
     }
-    let line1 = words[..best_split].join(" ");
-    let line2 = words[best_split..].join(" ");
-    // If no valid split found (both lines too wide), fall back to greedy
-    if measure_text_with_face(&face, &line1, font_size) > max_width
-        || measure_text_with_face(&face, &line2, font_size) > max_width
-    {
+    let Some(best_split) = best_split else {
         return wrap_text(text, font_size, max_width);
-    }
-    vec![line1, line2]
+    };
+    vec![words[..best_split].join(" "), words[best_split..].join(" ")]
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -247,8 +258,7 @@ pub fn render_text_transformed(
     font_size: f32,
     color: engine_core::color::Color,
 ) {
-    // INVARIANT: FONT_BYTES is a compile-time embedded TTF file.
-    let face = ttf_parser::Face::parse(FONT_BYTES, 0).expect("embedded font is valid");
+    let face = embedded_font_face();
     let glyphs = layout_text(&face, text, font_size);
     for glyph in &glyphs {
         let mesh = cache.get_or_tessellate(&face, glyph.glyph_id, font_size);
@@ -294,7 +304,7 @@ pub fn bake_text_into_mesh(
     base_x: f32,
     base_y: f32,
 ) {
-    let face = ttf_parser::Face::parse(FONT_BYTES, 0).expect("embedded font is valid");
+    let face = embedded_font_face();
     let text_width = measure_text_with_face(&face, text, font_size);
     let center_x = base_x - text_width * 0.5;
     let glyphs = layout_text(&face, text, font_size);

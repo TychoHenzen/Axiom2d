@@ -159,6 +159,34 @@ fn nebula_polygons() -> [(Vec2, Vec<Vec2>, Color); 2] {
     ]
 }
 
+fn orbit_transform(rotation: f32) -> Transform2D {
+    Transform2D {
+        rotation,
+        ..Transform2D::default()
+    }
+}
+
+fn translated(position: Vec2) -> Transform2D {
+    Transform2D {
+        position,
+        ..Transform2D::default()
+    }
+}
+
+fn circle_shape(radius: f32, color: Color) -> Shape {
+    Shape {
+        variant: ShapeVariant::Circle { radius },
+        color,
+    }
+}
+
+fn polygon_shape(points: Vec<Vec2>, color: Color) -> Shape {
+    Shape {
+        variant: ShapeVariant::Polygon { points },
+        color,
+    }
+}
+
 pub fn spawn_synodic_frame(world: &mut World) -> Entity {
     world.spawn((Transform2D::default(), SynodicFrame)).id()
 }
@@ -168,10 +196,7 @@ pub fn spawn_sun(world: &mut World, parent: Entity) {
         parent,
         (
             Transform2D::default(),
-            Shape {
-                variant: ShapeVariant::Circle { radius: 40.0 },
-                color: SUN_COLOR,
-            },
+            circle_shape(40.0, SUN_COLOR),
             Sun,
             RenderLayer::World,
         ),
@@ -182,68 +207,35 @@ fn spawn_planet(world: &mut World, parent: Entity, planet_def: PlanetDef) {
     let pivot = world.spawn_child(
         parent,
         (
-            Transform2D {
-                rotation: planet_def.phase,
-                ..Transform2D::default()
-            },
+            orbit_transform(planet_def.phase),
             OrbitalSpeed(planet_def.angular_speed),
         ),
     );
-    let planet = if planet_def.is_earth {
-        world.spawn_child(
-            pivot,
-            (
-                Transform2D {
-                    position: Vec2::new(planet_def.orbit_radius, 0.0),
-                    ..Transform2D::default()
-                },
-                Shape {
-                    variant: ShapeVariant::Circle {
-                        radius: planet_def.size / 2.0,
-                    },
-                    color: planet_def.color,
-                },
-                Earth,
-                RenderLayer::World,
-            ),
-        )
-    } else {
-        world.spawn_child(
-            pivot,
-            (
-                Transform2D {
-                    position: Vec2::new(planet_def.orbit_radius, 0.0),
-                    ..Transform2D::default()
-                },
-                Shape {
-                    variant: ShapeVariant::Circle {
-                        radius: planet_def.size / 2.0,
-                    },
-                    color: planet_def.color,
-                },
-                RenderLayer::World,
-            ),
-        )
-    };
+    let planet = world.spawn_child(
+        pivot,
+        (
+            translated(Vec2::new(planet_def.orbit_radius, 0.0)),
+            circle_shape(planet_def.size / 2.0, planet_def.color),
+            RenderLayer::World,
+        ),
+    );
+
+    if planet_def.is_earth {
+        world.entity_mut(planet).insert((Earth,));
+    }
 
     if let Some(moon_def) = planet_def.moon {
         let moon_pivot = world.spawn_child(
             planet,
             (
-                Transform2D {
-                    rotation: moon_def.phase,
-                    ..Transform2D::default()
-                },
+                orbit_transform(moon_def.phase),
                 OrbitalSpeed(moon_def.angular_speed),
             ),
         );
         world.spawn_child(
             moon_pivot,
             (
-                Transform2D {
-                    position: Vec2::new(moon_def.orbit_radius, 0.0),
-                    ..Transform2D::default()
-                },
+                translated(Vec2::new(moon_def.orbit_radius, 0.0)),
                 Sprite {
                     texture: TextureId(0),
                     uv_rect: [0.0, 0.0, 1.0, 1.0],
@@ -271,28 +263,16 @@ pub fn spawn_nebula(world: &mut World) {
     };
     for (pos, radius, color) in nebula_circles() {
         world.spawn((
-            Transform2D {
-                position: pos,
-                ..Transform2D::default()
-            },
-            Shape {
-                variant: ShapeVariant::Circle { radius },
-                color,
-            },
+            translated(pos),
+            circle_shape(radius, color),
             RenderLayer::Background,
             additive_material.clone(),
         ));
     }
     for (pos, points, color) in nebula_polygons() {
         world.spawn((
-            Transform2D {
-                position: pos,
-                ..Transform2D::default()
-            },
-            Shape {
-                variant: ShapeVariant::Polygon { points },
-                color,
-            },
+            translated(pos),
+            polygon_shape(points, color),
             RenderLayer::Background,
             additive_material.clone(),
         ));

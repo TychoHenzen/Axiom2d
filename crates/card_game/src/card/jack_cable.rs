@@ -409,18 +409,10 @@ impl WrapWire {
 
     /// Compute the shortest geometric path from `src` through all anchors to `dst`.
     pub fn shortest_path(&self, src: Vec2, dst: Vec2) -> f32 {
-        let Some(first) = self.anchors.first() else {
-            return (dst - src).length();
-        };
-
-        let mut total = (first.position - src).length();
-        total += self
-            .anchors
+        self.waypoints(src, dst)
             .windows(2)
-            .map(|pair| (pair[1].position - pair[0].position).length())
-            .sum::<f32>();
-        total += (dst - self.anchors.last().expect("checked non-empty").position).length();
-        total
+            .map(|pair| (pair[1] - pair[0]).length())
+            .sum()
     }
 
     /// Return the full waypoint list: `[src, anchor1, ..., anchorN, dst]`.
