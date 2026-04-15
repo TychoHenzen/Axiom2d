@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
@@ -162,4 +161,3 @@ pub fn sample_cubic(from: Vec2, c1: Vec2, c2: Vec2, to: Vec2, n: usize) -> Vec<V
         })
         .collect()
 }
-// EVOLVE-BLOCK-END

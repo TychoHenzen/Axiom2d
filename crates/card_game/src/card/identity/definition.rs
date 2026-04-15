@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Component;
 use engine_core::prelude::Color;
 use serde::{Deserialize, Serialize};
@@ -159,4 +158,3 @@ pub fn art_descriptor_default(card_type: CardType) -> ArtDescriptor {
     };
     ArtDescriptor { background }
 }
-// EVOLVE-BLOCK-END

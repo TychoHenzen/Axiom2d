@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 mod card_data;
 
 use axiom2d::prelude::*;
@@ -151,4 +150,3 @@ fn main() {
     setup(&mut app);
     app.run();
 }
-// EVOLVE-BLOCK-END

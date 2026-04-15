@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
@@ -125,4 +124,3 @@ impl Drop for ProfileScope<'_> {
         });
     }
 }
-// EVOLVE-BLOCK-END

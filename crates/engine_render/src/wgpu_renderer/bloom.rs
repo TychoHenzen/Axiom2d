@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use wgpu::util::DeviceExt;
 
 use super::gpu_init::create_pipeline;
@@ -427,4 +426,3 @@ fn create_render_texture(
         view_formats: &[],
     })
 }
-// EVOLVE-BLOCK-END

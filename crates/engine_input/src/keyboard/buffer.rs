@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use crate::button_state::ButtonState;
 use crate::key_code::KeyCode;
 use engine_core::prelude::Event;
@@ -10,4 +9,3 @@ pub struct KeyInputEvent {
 }
 
 impl Event for KeyInputEvent {}
-// EVOLVE-BLOCK-END

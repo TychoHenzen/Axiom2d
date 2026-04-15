@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Resource;
 use engine_core::types::Pixels;
 
@@ -16,4 +15,3 @@ impl Default for WindowSize {
         }
     }
 }
-// EVOLVE-BLOCK-END

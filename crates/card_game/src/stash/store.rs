@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Entity, Query, Res, ResMut, Resource, World};
 use engine_core::color::Color;
 use engine_core::prelude::EventBus;
@@ -939,4 +938,3 @@ pub fn store_item_screen_bounds(
         .get(index)
         .map(|_| store_item_bounds(grid.width(), items.len(), index))
 }
-// EVOLVE-BLOCK-END

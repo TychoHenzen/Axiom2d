@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Resource;
 use engine_core::color::Color;
 use engine_render::material::Material2d;
@@ -82,4 +81,3 @@ impl DrawQueue {
         std::mem::take(&mut self.commands)
     }
 }
-// EVOLVE-BLOCK-END

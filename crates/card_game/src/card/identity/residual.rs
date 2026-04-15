@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Component;
 use serde::{Deserialize, Serialize};
 
@@ -83,4 +82,3 @@ impl ResidualStats {
         stats
     }
 }
-// EVOLVE-BLOCK-END

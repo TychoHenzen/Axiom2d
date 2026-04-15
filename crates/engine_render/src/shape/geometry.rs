@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use super::ShapeVariant;
 use super::path::PathCommand;
 use glam::Vec2;
@@ -81,4 +80,3 @@ pub fn rounded_rect_path(half_w: f32, half_h: f32, radius: f32) -> ShapeVariant 
 pub fn rect_vertices(x: f32, y: f32, w: f32, h: f32) -> [[f32; 2]; 4] {
     [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]
 }
-// EVOLVE-BLOCK-END

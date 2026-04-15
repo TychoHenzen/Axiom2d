@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use crate::button_state::ButtonState;
 use crate::mouse_button::MouseButton;
 use engine_core::prelude::Event;
@@ -19,4 +18,3 @@ pub enum MouseInputEvent {
 }
 
 impl Event for MouseInputEvent {}
-// EVOLVE-BLOCK-END

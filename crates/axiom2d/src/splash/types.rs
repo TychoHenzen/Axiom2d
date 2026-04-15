@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Component, Resource};
 use bevy_ecs::schedule::{IntoScheduleConfigs, Schedule};
 use bevy_ecs::system::ScheduleSystem;
@@ -105,4 +104,3 @@ impl Default for PostSplashSetup {
 /// Insert this before calling `app.add_plugin(DefaultPlugins)`.
 #[derive(Resource)]
 pub struct SkipSplash;
-// EVOLVE-BLOCK-END

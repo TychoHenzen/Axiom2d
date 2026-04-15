@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, Res, ResMut};
 use engine_core::prelude::{EventBus, Transform2D};
 use engine_input::prelude::{MouseButton, MouseState};
@@ -126,4 +125,3 @@ pub fn card_release_system(
     };
     intents.push(intent);
 }
-// EVOLVE-BLOCK-END

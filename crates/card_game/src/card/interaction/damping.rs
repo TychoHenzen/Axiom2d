@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Entity, Query, Res, ResMut, With};
 use engine_core::prelude::EventBus;
 use engine_physics::prelude::{PhysicsCommand, PhysicsRes};
@@ -39,4 +38,3 @@ pub fn card_damping_system(
         });
     }
 }
-// EVOLVE-BLOCK-END

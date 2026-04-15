@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::Resource;
@@ -29,4 +28,3 @@ impl ActionMap {
         self.mouse_bindings.get(action).map_or(&[], Vec::as_slice)
     }
 }
-// EVOLVE-BLOCK-END

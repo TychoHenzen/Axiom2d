@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::ops::{Deref, DerefMut};
 
 use bevy_ecs::prelude::{ResMut, Resource};
@@ -147,4 +146,3 @@ impl FixedTimestep {
 pub fn time_system(mut clock: ResMut<ClockRes>, mut dt: ResMut<DeltaTime>) {
     dt.0 = clock.delta();
 }
-// EVOLVE-BLOCK-END

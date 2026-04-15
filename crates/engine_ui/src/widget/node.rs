@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::component::Component;
 use engine_core::prelude::{Color, Pixels};
 use engine_render::prelude::Rect;
@@ -40,4 +39,3 @@ pub(crate) fn node_rect(node: &UiNode, transform: &GlobalTransform2D, color: Col
         color,
     }
 }
-// EVOLVE-BLOCK-END

@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Component;
 use serde::{Deserialize, Serialize};
 
@@ -8,4 +7,3 @@ pub enum RigidBody {
     Static,
     Kinematic,
 }
-// EVOLVE-BLOCK-END

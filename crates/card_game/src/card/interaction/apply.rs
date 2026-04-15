@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Commands, Entity, Query, ResMut};
 use engine_core::prelude::{EventBus, Transform2D};
 use engine_physics::prelude::{Collider, PhysicsCommand, RigidBody};
@@ -327,4 +326,3 @@ fn apply_release_on_stash(
             scale: Vec2::ONE,
         });
 }
-// EVOLVE-BLOCK-END

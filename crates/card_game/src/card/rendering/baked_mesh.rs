@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Component;
 use engine_render::material::Material2d;
 use engine_render::shape::TessellatedColorMesh;
@@ -25,4 +24,3 @@ pub struct CardOverlays {
     pub foil: Option<CardOverlay>,
     pub back: Option<CardOverlay>,
 }
-// EVOLVE-BLOCK-END

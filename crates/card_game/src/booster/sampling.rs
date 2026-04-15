@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 // Card signature sampling from SignatureSpace regions
 
 use rand::Rng;
@@ -138,4 +137,3 @@ fn sample_standard_normal(rng: &mut ChaCha8Rng) -> f32 {
     let u2: f32 = rng.random_range(0.0_f32..std::f32::consts::TAU);
     (-2.0 * u1.ln()).sqrt() * u2.cos()
 }
-// EVOLVE-BLOCK-END

@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 #[derive(Debug, thiserror::Error)]
 pub enum AtlasError {
     #[error("atlas is full")]
@@ -26,4 +25,3 @@ pub fn load_image_bytes(bytes: &[u8]) -> Result<ImageData, AtlasError> {
         data: rgba.into_raw(),
     })
 }
-// EVOLVE-BLOCK-END

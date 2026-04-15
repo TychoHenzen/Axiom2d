@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Res, ResMut};
 use engine_core::prelude::{DeltaTime, EventBus};
 use engine_core::profiler::FrameProfiler;
@@ -21,4 +20,3 @@ pub fn physics_step_system(
         p.record_phase("physics_step", t.elapsed().as_micros() as u64);
     }
 }
-// EVOLVE-BLOCK-END

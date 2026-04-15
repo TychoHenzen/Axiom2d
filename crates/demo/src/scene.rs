@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use axiom2d::prelude::*;
 
 use crate::types::{
@@ -288,4 +287,3 @@ pub fn spawn_camera(world: &mut World) {
         CameraRotation::default(),
     ));
 }
-// EVOLVE-BLOCK-END

@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use rand::SeedableRng;
 use rand::seq::IndexedRandom;
 use rand_chacha::ChaCha8Rng;
@@ -124,4 +123,3 @@ pub fn subtitle_phrase(tier: Tier, cluster: AspectCluster) -> &'static str {
         (Tier::Intense, AspectCluster::Arcane) => "Torn from the fabric of space",
     }
 }
-// EVOLVE-BLOCK-END

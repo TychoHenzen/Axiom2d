@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Query;
 use engine_core::prelude::Transform2D;
 use engine_scene::prelude::{Children, GlobalTransform2D};
@@ -33,4 +32,3 @@ pub fn ui_layout_system(
         }
     }
 }
-// EVOLVE-BLOCK-END

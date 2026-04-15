@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res, ResMut};
 use bevy_ecs::system::SystemParam;
 use engine_core::prelude::{DeltaTime, Seconds, Transform2D};
@@ -147,4 +146,3 @@ fn apply_spring_motion(
     spring.velocity = Vec2::new(vx, vy);
     spring.angular_velocity = av;
 }
-// EVOLVE-BLOCK-END

@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 // BoosterPack entity — spawn, pickup, physics
 
 use bevy_ecs::prelude::{Component, Entity, World};
@@ -135,4 +134,3 @@ pub fn spawn_booster_pack(world: &mut World, position: Vec2, cards: Vec<CardSign
 
     root
 }
-// EVOLVE-BLOCK-END

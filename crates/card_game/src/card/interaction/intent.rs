@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Entity;
 use engine_core::event_bus::Event;
 use engine_physics::prelude::Collider;
@@ -42,4 +41,3 @@ pub enum InteractionIntent {
 }
 
 impl Event for InteractionIntent {}
-// EVOLVE-BLOCK-END

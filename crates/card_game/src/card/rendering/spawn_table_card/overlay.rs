@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::World;
 use glam::Vec2;
 
@@ -244,4 +243,3 @@ pub(crate) fn build_gem_overlay(
         front_only: true,
     }
 }
-// EVOLVE-BLOCK-END

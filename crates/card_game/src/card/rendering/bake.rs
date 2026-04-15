@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use engine_render::font::{bake_balanced_text_into_mesh, bake_wrapped_text_into_mesh};
 use engine_render::prelude::{rect_polygon, rounded_rect_path, tessellate};
 use engine_render::shape::{Shape, ShapeVariant, TessellatedColorMesh};
@@ -165,4 +164,3 @@ pub fn bake_back_face(card_size: Vec2) -> TessellatedColorMesh {
 
     mesh
 }
-// EVOLVE-BLOCK-END

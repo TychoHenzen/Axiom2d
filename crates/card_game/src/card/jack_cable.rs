@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Component, Entity, Query, Without};
 use engine_core::color::Color;
 use engine_core::prelude::Transform2D;
@@ -649,4 +648,3 @@ pub fn wire_render_system(
         visible.0 = true;
     }
 }
-// EVOLVE-BLOCK-END

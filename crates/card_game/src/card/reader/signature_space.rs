@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Component, Entity};
 
 use crate::card::identity::signature::CardSignature;
@@ -120,4 +119,3 @@ fn point_to_segment_distance(p: &CardSignature, a: &CardSignature, b: &CardSigna
     }
     dist_sq.sqrt()
 }
-// EVOLVE-BLOCK-END

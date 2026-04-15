@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, ResMut};
 use engine_render::prelude::RendererRes;
 use engine_scene::prelude::{EffectiveVisibility, GlobalTransform2D};
@@ -22,4 +21,3 @@ pub fn ui_render_system(
         renderer.draw_rect(node_rect(node, global_transform, color));
     }
 }
-// EVOLVE-BLOCK-END

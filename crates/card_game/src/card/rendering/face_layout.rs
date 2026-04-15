@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use engine_core::prelude::Color;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -77,4 +76,3 @@ impl FaceRegion {
         (half_w, half_h, offset_y)
     }
 }
-// EVOLVE-BLOCK-END

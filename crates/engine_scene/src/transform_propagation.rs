@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::*;
 use engine_core::prelude::Transform2D;
 use glam::Affine2;
@@ -77,4 +76,3 @@ fn propagate_to_children(
         }
     }
 }
-// EVOLVE-BLOCK-END

@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Res, ResMut};
 use bevy_ecs::system::SystemParam;
 use engine_core::prelude::EventBus;
@@ -17,4 +16,3 @@ pub struct CardGameState<'w> {
     pub stash_visible: Res<'w, StashVisible>,
     pub grid: ResMut<'w, StashGrid>,
 }
-// EVOLVE-BLOCK-END

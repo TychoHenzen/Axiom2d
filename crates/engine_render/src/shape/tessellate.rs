@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use glam::Vec2;
 use lyon::math::point;
 use lyon::path::Path as LyonPath;
@@ -280,4 +279,3 @@ fn bounds_from_points(mut points: impl Iterator<Item = Vec2>) -> (Vec2, Vec2) {
     };
     points.fold((first, first), |(min, max), p| (min.min(p), max.max(p)))
 }
-// EVOLVE-BLOCK-END

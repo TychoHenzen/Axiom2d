@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::prelude::{Query, Res, ResMut, Resource};
@@ -91,4 +90,3 @@ fn update_focus(entity: Entity, focus: &mut FocusState, events: &mut EventBus<Ui
         focus.focused = Some(entity);
     }
 }
-// EVOLVE-BLOCK-END

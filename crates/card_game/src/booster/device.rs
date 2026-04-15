@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 // BoosterMachine device — spawn, drag, seal button
 
 use bevy_ecs::prelude::{
@@ -419,4 +418,3 @@ pub fn booster_seal_system(world: &mut World) {
         world.despawn(card_entity);
     }
 }
-// EVOLVE-BLOCK-END

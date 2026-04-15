@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::ops::{Deref, DerefMut};
 
 use bevy_ecs::prelude::Component;
@@ -142,4 +141,3 @@ impl DerefMut for ColorMesh {
         &mut self.0
     }
 }
-// EVOLVE-BLOCK-END

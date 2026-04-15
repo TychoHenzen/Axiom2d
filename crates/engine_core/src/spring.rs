@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 #[allow(clippy::too_many_arguments)]
 pub fn spring_step(
     current: f32,
@@ -14,4 +13,3 @@ pub fn spring_step(
     let new_position = current + new_velocity * dt;
     (new_position, new_velocity)
 }
-// EVOLVE-BLOCK-END

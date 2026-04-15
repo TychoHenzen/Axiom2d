@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 pub(crate) const TEXT_COLOR: engine_core::color::Color = engine_core::color::Color {
     r: 0.1,
     g: 0.1,
@@ -49,4 +48,3 @@ pub(crate) fn fit_name_font_size(
         width_size * max_height / two_line_height
     }
 }
-// EVOLVE-BLOCK-END

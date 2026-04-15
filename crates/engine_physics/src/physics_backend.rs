@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::collections::HashSet;
 
 use bevy_ecs::prelude::Entity;
@@ -165,4 +164,3 @@ impl PhysicsBackend for NullPhysicsBackend {
         Ok(())
     }
 }
-// EVOLVE-BLOCK-END

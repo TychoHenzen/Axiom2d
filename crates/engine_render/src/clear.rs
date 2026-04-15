@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Res, ResMut, Resource};
 use engine_core::color::Color;
 
@@ -16,4 +15,3 @@ impl Default for ClearColor {
 pub fn clear_system(color: Res<ClearColor>, mut renderer: ResMut<RendererRes>) {
     renderer.clear(color.0);
 }
-// EVOLVE-BLOCK-END

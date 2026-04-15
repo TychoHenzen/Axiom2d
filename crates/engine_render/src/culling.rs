@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Query;
 use glam::Vec2;
 
@@ -62,4 +61,3 @@ pub fn aabb_intersects_view_rect(
         && entity_max.y >= view_min.y
         && entity_min.y <= view_max.y
 }
-// EVOLVE-BLOCK-END

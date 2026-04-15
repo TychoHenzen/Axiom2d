@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use axiom2d::prelude::App;
 use demo::setup;
 
@@ -7,4 +6,3 @@ fn main() {
     setup(&mut app);
     app.run();
 }
-// EVOLVE-BLOCK-END

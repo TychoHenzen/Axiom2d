@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::path::PathBuf;
 
 use engine_core::profiler::FrameProfiler;
@@ -35,4 +34,3 @@ impl Plugin for FrameProfilerPlugin {
         ));
     }
 }
-// EVOLVE-BLOCK-END

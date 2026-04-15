@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -60,4 +59,3 @@ impl Color {
         }
     }
 }
-// EVOLVE-BLOCK-END

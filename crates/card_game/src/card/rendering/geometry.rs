@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use glam::Vec2;
 
 pub const TABLE_CARD_WIDTH: f32 = 60.0;
@@ -32,4 +31,3 @@ pub(crate) fn art_quad_model(world_w: f32, world_h: f32, cx: f32, cy: f32) -> [[
         [cx, cy, 0.0, 1.0],
     ]
 }
-// EVOLVE-BLOCK-END

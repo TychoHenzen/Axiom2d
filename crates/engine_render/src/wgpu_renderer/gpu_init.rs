@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::sync::Arc;
 
 use wgpu::util::DeviceExt;
@@ -497,4 +496,3 @@ pub(super) fn build_renderer_parts(window: Arc<Window>, config: &WindowConfig) -
         sample_count,
     }
 }
-// EVOLVE-BLOCK-END

@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::component::Component;
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
@@ -47,4 +46,3 @@ pub fn compute_flex_offsets(layout: &FlexLayout, children: &[(Vec2, Margin)]) ->
 
     offsets
 }
-// EVOLVE-BLOCK-END

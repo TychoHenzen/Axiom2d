@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, Res, ResMut, Resource};
 use engine_input::prelude::{MouseButton, MouseState};
 use engine_render::prelude::Camera2D;
@@ -48,4 +47,3 @@ pub fn camera_zoom_system(mouse: Res<MouseState>, mut query: Query<&mut Camera2D
         camera.zoom = (camera.zoom + ZOOM_SPEED * scroll).max(ZOOM_MIN);
     }
 }
-// EVOLVE-BLOCK-END

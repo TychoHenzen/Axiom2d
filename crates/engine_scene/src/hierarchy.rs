@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
@@ -41,4 +40,3 @@ pub fn hierarchy_maintenance_system(
         commands.entity(parent).insert(Children(children));
     }
 }
-// EVOLVE-BLOCK-END

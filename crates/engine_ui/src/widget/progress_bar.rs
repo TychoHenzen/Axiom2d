@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::component::Component;
 use bevy_ecs::prelude::{Query, Res, ResMut};
 use engine_core::prelude::Pixels;
@@ -66,4 +65,3 @@ fn fill_width(bar: ProgressBar, node_width: f32) -> f32 {
         (bar.value / bar.max).clamp(0.0, 1.0) * node_width
     }
 }
-// EVOLVE-BLOCK-END

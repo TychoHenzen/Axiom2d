@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use super::residual::{ModifierType, ResidualStats};
 
 const EFFECT_SCALE: f32 = 20.0;
@@ -45,4 +44,3 @@ pub fn generate_card_description(stats: &ResidualStats) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
-// EVOLVE-BLOCK-END

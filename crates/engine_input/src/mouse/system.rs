@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::ResMut;
 use engine_core::prelude::EventBus;
 
@@ -26,4 +25,3 @@ pub fn mouse_input_system(
 pub fn scroll_clear_system(mut state: ResMut<MouseState>) {
     state.clear_scroll_delta();
 }
-// EVOLVE-BLOCK-END

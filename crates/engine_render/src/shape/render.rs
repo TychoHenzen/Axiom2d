@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use glam::Vec2;
 
 use super::components::ShapeVariant;
@@ -28,4 +27,3 @@ pub fn is_shape_culled(pos: Vec2, variant: &ShapeVariant, view_rect: Option<(Vec
 
     max.x < view_min.x || min.x > view_max.x || max.y < view_min.y || min.y > view_max.y
 }
-// EVOLVE-BLOCK-END

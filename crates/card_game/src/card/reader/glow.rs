@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::*;
 use engine_render::prelude::{Shape, Stroke};
 use engine_scene::prelude::Children;
@@ -65,4 +64,3 @@ pub fn reader_glow_system(
         }
     }
 }
-// EVOLVE-BLOCK-END

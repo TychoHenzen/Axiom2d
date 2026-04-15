@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::collections::{HashMap, HashSet};
 
 use bevy_ecs::prelude::Resource;
@@ -76,4 +75,3 @@ pub fn shader_prepare_system(
             .expect("shader compilation should succeed");
     }
 }
-// EVOLVE-BLOCK-END

@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct WindowConfig {
     pub title: &'static str,
@@ -19,4 +18,3 @@ impl Default for WindowConfig {
         }
     }
 }
-// EVOLVE-BLOCK-END

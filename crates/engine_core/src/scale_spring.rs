@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Commands, Component, Entity, Query, Res, ResMut};
 use serde::{Deserialize, Serialize};
 
@@ -76,4 +75,3 @@ pub fn scale_spring_system(
         }
     }
 }
-// EVOLVE-BLOCK-END

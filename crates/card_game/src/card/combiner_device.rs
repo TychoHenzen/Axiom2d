@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{
     Component, Entity, Query, Res, ResMut, Resource, Trigger, With, Without, World,
 };
@@ -278,4 +277,3 @@ pub fn combiner_release_system(mouse: Res<MouseState>, mut drag: ResMut<Combiner
         drag.dragging = None;
     }
 }
-// EVOLVE-BLOCK-END

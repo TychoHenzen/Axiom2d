@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Entity;
 use engine_core::prelude::Event;
 
@@ -16,4 +15,3 @@ pub struct CollisionEvent {
 }
 
 impl Event for CollisionEvent {}
-// EVOLVE-BLOCK-END

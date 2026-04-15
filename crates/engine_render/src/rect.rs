@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use engine_core::color::Color;
 use engine_core::types::Pixels;
 use serde::{Deserialize, Serialize};
@@ -23,4 +22,3 @@ impl Default for Rect {
         }
     }
 }
-// EVOLVE-BLOCK-END

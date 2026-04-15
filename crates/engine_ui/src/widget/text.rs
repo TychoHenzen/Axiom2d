@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::component::Component;
 use engine_core::prelude::Color;
 use serde::{Deserialize, Serialize};
@@ -23,4 +22,3 @@ impl Default for Text {
         }
     }
 }
-// EVOLVE-BLOCK-END

@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Component, Entity, Query, ResMut, With, Without};
 use engine_core::profiler::FrameProfiler;
 use serde::{Deserialize, Serialize};
@@ -63,4 +62,3 @@ fn assign_sort(
         }
     }
 }
-// EVOLVE-BLOCK-END

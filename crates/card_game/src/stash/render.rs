@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::{Entity, Query, Res, ResMut};
@@ -154,4 +153,3 @@ pub fn stash_render_system(
         );
     }
 }
-// EVOLVE-BLOCK-END

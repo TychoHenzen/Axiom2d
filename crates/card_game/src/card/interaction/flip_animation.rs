@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Commands, Component, Entity, Has, Query, Res};
 use engine_core::prelude::{DeltaTime, Seconds, Transform2D};
 use engine_core::scale_spring::ScaleSpring;
@@ -55,4 +54,3 @@ pub fn sync_scale_spring_lock_x(mut query: Query<(&mut ScaleSpring, Has<FlipAnim
         spring.lock_x = has_flip;
     }
 }
-// EVOLVE-BLOCK-END

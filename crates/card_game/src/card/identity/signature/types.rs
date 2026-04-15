@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use serde::{Deserialize, Serialize};
 
 use super::algorithms::{compute_seed, geometric_level};
@@ -231,4 +230,3 @@ impl std::ops::Index<Element> for CardSignature {
         &self.axes[element.index()]
     }
 }
-// EVOLVE-BLOCK-END

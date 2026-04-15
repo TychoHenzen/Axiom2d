@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, Res, ResMut};
 use engine_core::prelude::Transform2D;
 use engine_input::prelude::{MouseButton, MouseState};
@@ -59,4 +58,3 @@ pub fn card_drag_system(
         let _ = physics.set_angular_velocity(info.entity, omega);
     }
 }
-// EVOLVE-BLOCK-END

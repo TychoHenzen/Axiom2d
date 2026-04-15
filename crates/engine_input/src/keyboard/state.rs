@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::collections::HashSet;
 
 use bevy_ecs::prelude::Resource;
@@ -53,4 +52,3 @@ impl InputState {
         self.just_released.clear();
     }
 }
-// EVOLVE-BLOCK-END

@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Query, Res, ResMut};
 use engine_core::color::Color;
 use engine_render::prelude::{
@@ -58,4 +57,3 @@ pub fn hand_drop_zone_render_system(
         },
     );
 }
-// EVOLVE-BLOCK-END

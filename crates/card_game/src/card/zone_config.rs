@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 //! Data-driven zone transition configuration.
 //!
 //! `ZoneConfig` describes the properties a card should have when in a given zone.
@@ -46,4 +45,3 @@ impl ZoneConfig {
         }
     }
 }
-// EVOLVE-BLOCK-END

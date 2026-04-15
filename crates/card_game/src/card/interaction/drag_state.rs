@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Entity, Resource};
 use glam::Vec2;
 
@@ -17,4 +16,3 @@ pub struct DragInfo {
 pub struct DragState {
     pub dragging: Option<DragInfo>,
 }
-// EVOLVE-BLOCK-END

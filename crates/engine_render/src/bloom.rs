@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Res, ResMut, Resource};
 use serde::{Deserialize, Serialize};
 
@@ -47,4 +46,3 @@ pub fn compute_gaussian_weights(radius: u32) -> Vec<f32> {
     }
     weights
 }
-// EVOLVE-BLOCK-END

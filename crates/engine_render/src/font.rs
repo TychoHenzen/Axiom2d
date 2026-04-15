@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::collections::HashMap;
 
 use glam::Vec2;
@@ -379,4 +378,3 @@ fn bake_lines_into_mesh(
         bake_text_into_mesh(mesh, line, font_size, color, base_x, y_offset);
     }
 }
-// EVOLVE-BLOCK-END

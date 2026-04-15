@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Entity, Resource};
 
 #[derive(Debug)]
@@ -57,4 +56,3 @@ impl Hand {
         self.cards.is_empty()
     }
 }
-// EVOLVE-BLOCK-END

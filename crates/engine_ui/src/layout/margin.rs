@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
@@ -8,4 +7,3 @@ pub struct Margin {
     pub bottom: f32,
     pub left: f32,
 }
-// EVOLVE-BLOCK-END

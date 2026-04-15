@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::{Commands, Res, ResMut, Resource};
@@ -167,4 +166,3 @@ impl AtlasBuilder {
         }
     }
 }
-// EVOLVE-BLOCK-END

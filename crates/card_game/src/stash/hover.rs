@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::{Entity, Local, Query, Res, ResMut, Resource};
 use engine_core::prelude::DeltaTime;
 use engine_input::prelude::{InputState, KeyCode, MouseState};
@@ -147,4 +146,3 @@ pub fn stash_hover_preview_render_system(
         );
     }
 }
-// EVOLVE-BLOCK-END

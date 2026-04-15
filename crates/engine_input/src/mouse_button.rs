@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum MouseButton {
@@ -22,4 +21,3 @@ impl From<winit::event::MouseButton> for MouseButton {
         }
     }
 }
-// EVOLVE-BLOCK-END

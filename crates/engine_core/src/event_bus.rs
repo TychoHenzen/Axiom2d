@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::prelude::Resource;
 
 pub trait Event: Send + Sync + 'static {}
@@ -46,4 +45,3 @@ impl<'a, T: Event> IntoIterator for &'a mut EventBus<T> {
         self.iter_mut()
     }
 }
-// EVOLVE-BLOCK-END

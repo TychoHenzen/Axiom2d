@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use card_game::prelude::*;
 use glam::Vec2;
 use rand_chacha::ChaCha8Rng;
@@ -85,4 +84,3 @@ pub fn starter_deck(rng: &mut ChaCha8Rng) -> Vec<StarterCard> {
     }
     cards
 }
-// EVOLVE-BLOCK-END

@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use bevy_ecs::schedule::ScheduleLabel;
 
 pub const PHASE_COUNT: usize = 18;
@@ -76,4 +75,3 @@ impl Phase {
         }
     }
 }
-// EVOLVE-BLOCK-END

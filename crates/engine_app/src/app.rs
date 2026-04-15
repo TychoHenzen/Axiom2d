@@ -1,4 +1,3 @@
-// EVOLVE-BLOCK-START
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -321,4 +320,3 @@ pub fn format_window_title(base_title: &str, frame_time: Duration) -> String {
     };
     format!("{base_title} - {fps:.0} FPS")
 }
-// EVOLVE-BLOCK-END
