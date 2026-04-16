@@ -1,9 +1,9 @@
 #![allow(clippy::unwrap_used)] // viewer binary, not library
 
 use axiom2d::prelude::*;
-use bevy_ecs::prelude::*;
 use bytemuck::bytes_of;
 use engine_ecs::schedule::Phase;
+use engine_input::mouse::MouseState;
 use engine_render::camera::Camera2D;
 use engine_render::material::Material2d;
 use engine_render::shader::ShaderRegistry;
@@ -20,6 +20,10 @@ struct SelectedTerrain(usize);
 /// Entity that displays the terrain quad.
 #[derive(Resource, Debug)]
 struct TerrainQuadEntity(Entity);
+
+/// Entity for the HUD text overlay.
+#[derive(Resource, Debug)]
+struct HudTextEntity(Entity);
 
 fn main() {
     tracing_subscriber::fmt()
@@ -59,7 +63,11 @@ fn setup(app: &mut App) {
         .resource_mut::<PostSplashSetup>()
         .add_systems(spawn_viewer_scene);
 
-    app.add_systems(Phase::Update, terrain_input_system);
+    app.add_systems(
+        Phase::Update,
+        (terrain_input_system, hud_update_system).chain(),
+    );
+    app.add_systems(Phase::Update, camera_zoom_system);
 }
 
 fn spawn_viewer_scene(world: &mut World) {
@@ -120,6 +128,40 @@ fn spawn_viewer_scene(world: &mut World) {
         .id();
 
     world.insert_resource(TerrainQuadEntity(entity));
+
+    let hud = world
+        .spawn((
+            engine_ui::widget::Text {
+                content: format_hud(&materials.0[selected]),
+                font_size: 16.0,
+                color: Color::WHITE,
+                max_width: None,
+            },
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(-480.0, 350.0))),
+            RenderLayer::UI,
+            SortOrder::new(100),
+        ))
+        .id();
+    world.insert_resource(HudTextEntity(hud));
+}
+
+fn format_hud(mat: &TerrainMaterial) -> String {
+    format!(
+        "{} | freq:{:.1} amp:{:.2} warp:{:.2} scale:{:.1}\n\
+         color_a: ({:.2},{:.2},{:.2})  color_b: ({:.2},{:.2},{:.2})\n\
+         [1-6] type  [Q/W] freq  [E/R] amp  [T/Y] warp  [Shift] fast",
+        mat.kind.name(),
+        mat.params[0],
+        mat.params[1],
+        mat.params[2],
+        mat.params[3],
+        mat.color_a[0],
+        mat.color_a[1],
+        mat.color_a[2],
+        mat.color_b[0],
+        mat.color_b[1],
+        mat.color_b[2],
+    )
 }
 
 /// Pack a single `TerrainMaterial` into the uniform buffer for Phase 1.
@@ -141,13 +183,14 @@ fn build_single_material_uniform(mat: &TerrainMaterial) -> Vec<u8> {
 fn terrain_input_system(
     input: Res<InputState>,
     mut selected: ResMut<SelectedTerrain>,
-    materials: Res<TerrainMaterials>,
+    mut materials: ResMut<TerrainMaterials>,
     quad: Res<TerrainQuadEntity>,
     mut query: Query<&mut Material2d>,
 ) {
     let count = materials.0.len();
     let mut changed = false;
 
+    // --- Terrain type switching ---
     if input.just_pressed(KeyCode::ArrowRight) || input.just_pressed(KeyCode::KeyD) {
         selected.0 = (selected.0 + 1) % count;
         changed = true;
@@ -156,8 +199,6 @@ fn terrain_input_system(
         selected.0 = (selected.0 + count - 1) % count;
         changed = true;
     }
-
-    // Number keys 1-6 for direct selection
     let key_map = [
         KeyCode::Digit1,
         KeyCode::Digit2,
@@ -173,9 +214,69 @@ fn terrain_input_system(
         }
     }
 
+    // --- Parameter adjustment ---
+    let step = if input.pressed(KeyCode::ShiftLeft) {
+        0.5
+    } else {
+        0.1
+    };
+    let mat = &mut materials.0[selected.0];
+
+    // Q/W: frequency
+    if input.just_pressed(KeyCode::KeyQ) {
+        mat.params[0] = (mat.params[0] - step).max(0.1);
+        changed = true;
+    }
+    if input.just_pressed(KeyCode::KeyW) {
+        mat.params[0] += step;
+        changed = true;
+    }
+    // E/R: amplitude
+    if input.just_pressed(KeyCode::KeyE) {
+        mat.params[1] = (mat.params[1] - step * 0.5).max(0.0);
+        changed = true;
+    }
+    if input.just_pressed(KeyCode::KeyR) {
+        mat.params[1] += step * 0.5;
+        changed = true;
+    }
+    // T/Y: warp strength
+    if input.just_pressed(KeyCode::KeyT) {
+        mat.params[2] = (mat.params[2] - step * 0.5).max(0.0);
+        changed = true;
+    }
+    if input.just_pressed(KeyCode::KeyY) {
+        mat.params[2] += step * 0.5;
+        changed = true;
+    }
+
     if changed {
-        if let Ok(mut mat) = query.get_mut(quad.0) {
-            mat.uniforms = build_single_material_uniform(&materials.0[selected.0]);
+        if let Ok(mut mat2d) = query.get_mut(quad.0) {
+            mat2d.uniforms = build_single_material_uniform(&materials.0[selected.0]);
         }
+    }
+}
+
+fn hud_update_system(
+    selected: Res<SelectedTerrain>,
+    materials: Res<TerrainMaterials>,
+    hud: Res<HudTextEntity>,
+    mut query: Query<&mut engine_ui::widget::Text>,
+) {
+    if let Ok(mut text) = query.get_mut(hud.0) {
+        let new_content = format_hud(&materials.0[selected.0]);
+        if text.content != new_content {
+            text.content = new_content;
+        }
+    }
+}
+
+fn camera_zoom_system(mouse: Res<MouseState>, mut query: Query<&mut Camera2D>) {
+    let scroll = mouse.scroll_delta().y;
+    if scroll == 0.0 {
+        return;
+    }
+    if let Ok(mut camera) = query.single_mut() {
+        camera.zoom = (camera.zoom + 0.1 * scroll).max(0.1);
     }
 }
