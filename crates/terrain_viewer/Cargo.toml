@@ -1,0 +1,26 @@
+[package]
+name = "terrain_viewer"
+edition.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "terrain_viewer"
+path = "src/main.rs"
+
+[dependencies]
+terrain = { path = "../terrain" }
+axiom2d = { path = "../axiom2d" }
+engine_app = { path = "../engine_app" }
+engine_core = { path = "../engine_core" }
+engine_ecs = { path = "../engine_ecs" }
+engine_input = { path = "../engine_input" }
+engine_render = { path = "../engine_render" }
+engine_scene = { path = "../engine_scene" }
+engine_ui = { path = "../engine_ui" }
+bevy_ecs = { workspace = true }
+bytemuck = { workspace = true }
+glam = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[lints]
+workspace = true

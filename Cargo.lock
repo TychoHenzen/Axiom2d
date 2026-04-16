@@ -3430,6 +3430,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "terrain"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "bytemuck",
+ "engine_core",
+ "engine_ecs",
+ "engine_render",
+ "glam 0.30.10",
+ "proptest",
+ "rand",
+ "rand_chacha",
+]
+
+[[package]]
+name = "terrain_viewer"
+version = "0.1.0"
+dependencies = [
+ "axiom2d",
+ "bevy_ecs",
+ "bytemuck",
+ "engine_app",
+ "engine_core",
+ "engine_ecs",
+ "engine_input",
+ "engine_render",
+ "engine_scene",
+ "engine_ui",
+ "glam 0.30.10",
+ "terrain",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "thingbuf"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
