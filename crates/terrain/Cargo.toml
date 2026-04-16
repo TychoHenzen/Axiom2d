@@ -1,0 +1,20 @@
+[package]
+name = "terrain"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+engine_core = { path = "../engine_core" }
+engine_render = { path = "../engine_render" }
+engine_ecs = { path = "../engine_ecs" }
+bevy_ecs = { workspace = true }
+bytemuck = { workspace = true }
+glam = { workspace = true }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+
+[lints]
+workspace = true
