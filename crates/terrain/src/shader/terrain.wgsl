@@ -31,8 +31,14 @@ struct VertexOutput {
 //         [13..15] = MaterialParams for corner 3 (partial, expand if needed)
 // For Phase 1 (single material preview), we only use material[1..4].
 
-fn unpack_type_id() -> u32 {
-    return bitcast<u32>(material[0].x);
+fn unpack_corner_types() -> vec4<u32> {
+    let packed = bitcast<u32>(material[0].x);
+    return vec4<u32>(
+        packed & 0xFFu,
+        (packed >> 8u) & 0xFFu,
+        (packed >> 16u) & 0xFFu,
+        (packed >> 24u) & 0xFFu,
+    );
 }
 
 fn unpack_world_pos() -> vec2<f32> {
@@ -258,6 +264,48 @@ fn eval_terrain(uv: vec2<f32>, type_id: u32, p: MaterialParams) -> vec3<f32> {
 }
 
 // ============================================================
+// Auto-tile boundary SDF (corner16 patterns)
+// ============================================================
+
+fn autotile_sdf(uv: vec2<f32>, bitmask: u32) -> f32 {
+    let x = uv.x;
+    let y = uv.y;
+
+    switch bitmask {
+        case 0u { return -1.0; }
+        case 15u { return 1.0; }
+        case 1u { return corner_sdf(x, 1.0 - y); }
+        case 2u { return corner_sdf(x, y); }
+        case 4u { return corner_sdf(1.0 - x, y); }
+        case 8u { return corner_sdf(1.0 - x, 1.0 - y); }
+        case 3u { return 0.5 - x; }
+        case 6u { return y - 0.5; }
+        case 12u { return x - 0.5; }
+        case 9u { return 0.5 - y; }
+        case 5u { return diagonal_sdf(x, y); }
+        case 10u { return diagonal_sdf(y, x); }
+        case 7u { return -corner_sdf(1.0 - x, 1.0 - y); }
+        case 11u { return -corner_sdf(1.0 - x, y); }
+        case 13u { return -corner_sdf(x, y); }
+        case 14u { return -corner_sdf(x, 1.0 - y); }
+        default { return 0.0; }
+    }
+}
+
+fn corner_sdf(x: f32, y: f32) -> f32 {
+    return length(vec2<f32>(x, y) - vec2<f32>(1.0, 1.0)) - 0.7;
+}
+
+fn diagonal_sdf(x: f32, y: f32) -> f32 {
+    return (x + y - 1.0) * 0.7071;
+}
+
+fn displace_boundary(sdf: f32, world_uv: vec2<f32>, strength: f32) -> f32 {
+    let noise = gradient_noise(world_uv * 8.0) * 2.0 - 1.0;
+    return sdf + noise * strength;
+}
+
+// ============================================================
 // Vertex / Fragment entry
 // ============================================================
 
@@ -272,13 +320,43 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let type_id = unpack_type_id();
+    let corners = unpack_corner_types();
     let world_pos = unpack_world_pos();
     let seed = unpack_seed();
-    let params = unpack_params(1u);
 
-    // Phase 1: single material on full quad
-    let world_uv = world_pos + in.uv * 10.0 + vec2<f32>(seed * 17.0, seed * 31.0);
-    let color = eval_terrain(world_uv, type_id, params);
-    return vec4<f32>(color, 1.0);
+    let world_uv = world_pos + in.uv * 10.0 + vec2<f32>(seed * 0.17, seed * 0.31);
+
+    // Check if all corners are the same type (uniform tile or Phase 1 single-material)
+    if corners.x == corners.y && corners.y == corners.z && corners.z == corners.w {
+        let params = unpack_params(1u);
+        let color = eval_terrain(world_uv, corners.x, params);
+        return vec4<f32>(color, 1.0);
+    }
+
+    // Dual-grid: determine primary type (most common corner) and compute bitmask
+    let primary = corners.x; // simplified: use NE as primary
+    var bitmask = 0u;
+    if corners.x != primary { bitmask |= 1u; }
+    if corners.y != primary { bitmask |= 2u; }
+    if corners.z != primary { bitmask |= 4u; }
+    if corners.w != primary { bitmask |= 8u; }
+
+    let raw_sdf = autotile_sdf(in.uv, bitmask);
+    let sdf = displace_boundary(raw_sdf, world_uv, 0.06);
+
+    let params_primary = unpack_params(1u);
+
+    // Find the other type
+    var other_type = corners.y;
+    if corners.y == primary { other_type = corners.z; }
+    if other_type == primary { other_type = corners.w; }
+
+    if sdf < 0.0 {
+        let color = eval_terrain(world_uv, primary, params_primary);
+        return vec4<f32>(color, 1.0);
+    } else {
+        let params_other = unpack_params(5u);
+        let color = eval_terrain(world_uv, other_type, params_other);
+        return vec4<f32>(color, 1.0);
+    }
 }

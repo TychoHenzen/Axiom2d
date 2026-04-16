@@ -1,4 +1,4 @@
-use terrain::dual_grid::{corner_bitmask, DualGrid};
+use terrain::dual_grid::{DualGrid, corner_bitmask};
 use terrain::material::TerrainId;
 
 #[test]

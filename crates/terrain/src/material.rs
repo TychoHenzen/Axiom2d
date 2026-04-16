@@ -64,6 +64,12 @@ pub struct MaterialParams {
     pub extra: [f32; 4],   // type-specific
 }
 
+impl Default for MaterialParams {
+    fn default() -> Self {
+        Self::zeroed()
+    }
+}
+
 impl TerrainMaterial {
     /// Pack into GPU-compatible `MaterialParams`.
     #[must_use]
