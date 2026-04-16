@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used)] // viewer binary, not library
 
+use std::fmt::Write as _;
+
 use axiom2d::prelude::*;
 use bytemuck::bytes_of;
 use engine_ecs::schedule::Phase;
@@ -215,16 +217,14 @@ fn format_hud(mat: &TerrainMaterial, mode: ViewerMode, seed: Option<u64>) -> Str
         mat.color_b[2],
     );
     if let Some(seed) = seed {
-        s.push_str(&format!(
-            "\nseed: {seed}  [G] generate  [N] re-roll  [RMB] pan"
-        ));
+        let _ = write!(s, "\nseed: {seed}  [G] generate  [N] re-roll  [RMB] pan");
     }
     s
 }
 
 /// Pack a single `TerrainMaterial` into the uniform buffer.
-/// Layout: material[0] = (packed_corners, world_x, world_y, seed)
-///         material[1..4] = MaterialParams
+/// Layout: `material[0]` = (packed corners, world x, world y, seed),
+/// `material[1..4]` = `MaterialParams`.
 fn build_single_material_uniform(mat: &TerrainMaterial) -> Vec<u8> {
     let gpu = mat.to_gpu_params();
     let kind = u32::from(mat.kind as u8);
@@ -240,9 +240,9 @@ fn build_single_material_uniform(mat: &TerrainMaterial) -> Vec<u8> {
 }
 
 /// Pack a `VisualTile` into the uniform buffer for dual-grid rendering.
-/// Layout: material[0] = (packed_corners, world_x, world_y, seed)
-///         material[1..4] = primary MaterialParams
-///         material[5..8] = secondary MaterialParams
+/// Layout: `material[0]` = (packed corners, world x, world y, seed),
+/// `material[1..4]` = primary `MaterialParams`,
+/// `material[5..8]` = secondary `MaterialParams`.
 fn build_tile_uniform(
     tile: &terrain::dual_grid::VisualTile,
     materials: &[TerrainMaterial],
@@ -503,10 +503,11 @@ fn terrain_input_system(
     }
 
     // Only update the single quad in SingleMaterial mode
-    if changed && *mode == ViewerMode::SingleMaterial {
-        if let Ok(mut mat2d) = query.get_mut(quad.0) {
-            mat2d.uniforms = build_single_material_uniform(&materials.0[selected.0]);
-        }
+    if changed
+        && *mode == ViewerMode::SingleMaterial
+        && let Ok(mut mat2d) = query.get_mut(quad.0)
+    {
+        mat2d.uniforms = build_single_material_uniform(&materials.0[selected.0]);
     }
 }
 
@@ -654,15 +655,15 @@ fn camera_drag_system(
         drag_state.anchor = Some(mouse.screen_pos());
         return;
     }
-    if mouse.pressed(MouseButton::Right) {
-        if let Some(anchor) = drag_state.anchor {
-            let delta = mouse.screen_pos() - anchor;
-            if let Ok(mut camera) = query.single_mut() {
-                let zoom = camera.zoom;
-                camera.position -= delta / zoom;
-            }
-            drag_state.anchor = Some(mouse.screen_pos());
+    if mouse.pressed(MouseButton::Right)
+        && let Some(anchor) = drag_state.anchor
+    {
+        let delta = mouse.screen_pos() - anchor;
+        if let Ok(mut camera) = query.single_mut() {
+            let zoom = camera.zoom;
+            camera.position -= delta / zoom;
         }
+        drag_state.anchor = Some(mouse.screen_pos());
     }
 }
 
