@@ -264,6 +264,48 @@ fn eval_terrain(uv: vec2<f32>, type_id: u32, p: MaterialParams) -> vec3<f32> {
 }
 
 // ============================================================
+// Per-pair transition effects
+// ============================================================
+
+fn transition_effect(
+    base_color: vec3<f32>,
+    world_uv: vec2<f32>,
+    my_type: u32,
+    neighbor_type: u32,
+    dist_to_edge: f32,
+) -> vec3<f32> {
+    // Only apply effects within a narrow band near the boundary
+    let band = 0.15;
+    if dist_to_edge > band { return base_color; }
+    let t = 1.0 - dist_to_edge / band; // 1.0 at edge, 0.0 at band limit
+
+    // Stone -> Sand: scattered pebbles
+    if my_type == 3u && neighbor_type == 1u {
+        let pebble = step(0.85, hash21(floor(world_uv * 25.0)));
+        return mix(base_color, base_color * 0.65, pebble * t);
+    }
+
+    // Lava -> Grass: singed/darkened
+    if my_type == 0u && neighbor_type == 4u {
+        return mix(base_color, base_color * vec3<f32>(0.4, 0.3, 0.2), t * 0.8);
+    }
+
+    // Water -> Sand: wet sand darkening
+    if my_type == 3u && neighbor_type == 2u {
+        return mix(base_color, base_color * 0.7, t * 0.6);
+    }
+
+    // Grass -> Stone: moss/soil strip
+    if my_type == 1u && neighbor_type == 0u {
+        let moss = gradient_noise(world_uv * 15.0) * t;
+        return mix(base_color, vec3<f32>(0.25, 0.35, 0.18), moss * 0.4);
+    }
+
+    // Generic fallback: subtle darkening at boundary
+    return mix(base_color, base_color * 0.85, t * 0.3);
+}
+
+// ============================================================
 // Auto-tile boundary SDF (corner16 patterns)
 // ============================================================
 
@@ -351,12 +393,16 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     if corners.y == primary { other_type = corners.z; }
     if other_type == primary { other_type = corners.w; }
 
+    let abs_sdf = abs(sdf);
+
     if sdf < 0.0 {
         let color = eval_terrain(world_uv, primary, params_primary);
-        return vec4<f32>(color, 1.0);
+        let result = transition_effect(color, world_uv, primary, other_type, abs_sdf);
+        return vec4<f32>(result, 1.0);
     } else {
         let params_other = unpack_params(5u);
         let color = eval_terrain(world_uv, other_type, params_other);
-        return vec4<f32>(color, 1.0);
+        let result = transition_effect(color, world_uv, other_type, primary, abs_sdf);
+        return vec4<f32>(result, 1.0);
     }
 }
