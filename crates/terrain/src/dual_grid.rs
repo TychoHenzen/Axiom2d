@@ -31,10 +31,12 @@ impl DualGrid {
         }
     }
 
+    #[must_use]
     pub fn width(&self) -> usize {
         self.width
     }
 
+    #[must_use]
     pub fn height(&self) -> usize {
         self.height
     }
@@ -49,7 +51,11 @@ impl DualGrid {
         }
     }
 
-    /// Set the terrain type at `(x, y)`. Panics if out of bounds.
+    /// Set the terrain type at `(x, y)`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `x >= width` or `y >= height`.
     pub fn set(&mut self, x: usize, y: usize, id: TerrainId) {
         self.cells[y * self.width + x] = id;
     }

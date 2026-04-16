@@ -12,6 +12,7 @@ bytemuck = { workspace = true }
 glam = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 proptest = { workspace = true }

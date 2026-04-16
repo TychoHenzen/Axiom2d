@@ -119,17 +119,8 @@ fn setup(app: &mut App) {
     );
 }
 
-fn spawn_viewer_scene(world: &mut World) {
-    // Camera
-    world.spawn(Camera2D::default());
-
-    let shader = world.resource::<TerrainShader>().0;
-    let materials = world.resource::<TerrainMaterials>().clone();
-    let selected = world.resource::<SelectedTerrain>().0;
-
-    // Build terrain quad -- large quad centered at origin
-    let half = 350.0_f32;
-    let mesh = TessellatedColorMesh {
+fn build_quad_mesh(half: f32) -> TessellatedColorMesh {
+    TessellatedColorMesh {
         vertices: vec![
             ColorVertex {
                 position: [-half, -half],
@@ -153,8 +144,19 @@ fn spawn_viewer_scene(world: &mut World) {
             },
         ],
         indices: vec![0, 1, 2, 0, 2, 3],
-    };
+    }
+}
 
+fn spawn_viewer_scene(world: &mut World) {
+    // Camera
+    world.spawn(Camera2D::default());
+
+    let shader = world.resource::<TerrainShader>().0;
+    let materials = world.resource::<TerrainMaterials>().clone();
+    let selected = world.resource::<SelectedTerrain>().0;
+
+    // Build terrain quad -- large quad centered at origin
+    let mesh = build_quad_mesh(350.0);
     let uniforms = build_single_material_uniform(&materials.0[selected]);
 
     let entity = world
@@ -305,32 +307,7 @@ fn spawn_grid_tiles(
     let mut entities = Vec::new();
     for tile in &tiles {
         let pos = grid_offset + Vec2::new(tile.x * tile_size, tile.y * tile_size);
-        let mesh = TessellatedColorMesh {
-            vertices: vec![
-                ColorVertex {
-                    position: [-half, -half],
-                    color: [1.0; 4],
-                    uv: [0.0, 0.0],
-                },
-                ColorVertex {
-                    position: [half, -half],
-                    color: [1.0; 4],
-                    uv: [1.0, 0.0],
-                },
-                ColorVertex {
-                    position: [half, half],
-                    color: [1.0; 4],
-                    uv: [1.0, 1.0],
-                },
-                ColorVertex {
-                    position: [-half, half],
-                    color: [1.0; 4],
-                    uv: [0.0, 1.0],
-                },
-            ],
-            indices: vec![0, 1, 2, 0, 2, 3],
-        };
-
+        let mesh = build_quad_mesh(half);
         let uniforms = build_tile_uniform(tile, materials);
 
         let entity = world
@@ -556,33 +533,7 @@ fn mode_switch_system(world: &mut World) {
     // Set up target mode
     match target {
         ViewerMode::SingleMaterial => {
-            let half = 350.0_f32;
-            let mesh = TessellatedColorMesh {
-                vertices: vec![
-                    ColorVertex {
-                        position: [-half, -half],
-                        color: [1.0; 4],
-                        uv: [0.0, 0.0],
-                    },
-                    ColorVertex {
-                        position: [half, -half],
-                        color: [1.0; 4],
-                        uv: [1.0, 0.0],
-                    },
-                    ColorVertex {
-                        position: [half, half],
-                        color: [1.0; 4],
-                        uv: [1.0, 1.0],
-                    },
-                    ColorVertex {
-                        position: [-half, half],
-                        color: [1.0; 4],
-                        uv: [0.0, 1.0],
-                    },
-                ],
-                indices: vec![0, 1, 2, 0, 2, 3],
-            };
-
+            let mesh = build_quad_mesh(350.0);
             let uniforms = build_single_material_uniform(&materials.0[selected]);
 
             let entity = world

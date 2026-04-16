@@ -1,5 +1,6 @@
 pub mod dual_grid;
 pub mod material;
+pub mod prelude;
 pub mod shader;
 pub mod wfc;
 

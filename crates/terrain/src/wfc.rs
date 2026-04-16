@@ -5,8 +5,9 @@ use rand_chacha::ChaCha8Rng;
 
 use crate::material::TerrainId;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum WfcError {
+    #[error("WFC contradiction: no valid assignment exists")]
     Contradiction,
 }
 
