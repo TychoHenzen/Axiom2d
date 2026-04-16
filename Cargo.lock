@@ -3459,6 +3459,8 @@ dependencies = [
  "engine_scene",
  "engine_ui",
  "glam 0.30.10",
+ "rand",
+ "rand_chacha",
  "terrain",
  "tracing-subscriber",
 ]

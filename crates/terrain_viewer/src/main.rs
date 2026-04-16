@@ -3,14 +3,18 @@
 use axiom2d::prelude::*;
 use bytemuck::bytes_of;
 use engine_ecs::schedule::Phase;
-use engine_input::mouse::MouseState;
+use engine_input::mouse::{MouseButton, MouseState};
 use engine_render::camera::Camera2D;
 use engine_render::material::Material2d;
 use engine_render::shader::ShaderRegistry;
 use engine_render::shape::{ColorMesh, ColorVertex, TessellatedColorMesh};
 use glam::{Affine2, Vec2};
+use rand::SeedableRng;
+use rand_chacha::ChaCha8Rng;
+use terrain::dual_grid::DualGrid;
 use terrain::material::{TerrainId, TerrainMaterial, default_materials};
 use terrain::shader::register_terrain_shader;
+use terrain::wfc::{ConstraintTable, Grid as WfcGrid, collapse};
 use terrain::{TerrainMaterials, TerrainShader};
 
 /// Currently selected terrain type index.
@@ -30,7 +34,24 @@ struct HudTextEntity(Entity);
 enum ViewerMode {
     SingleMaterial,
     DualGrid,
+    WfcGrid,
 }
+
+/// WFC generation state (seed for deterministic replay).
+#[derive(Resource, Debug)]
+struct WfcState {
+    seed: u64,
+}
+
+/// Camera drag state for right-mouse-button panning.
+#[derive(Resource, Debug, Default)]
+struct CameraDragState {
+    anchor: Option<Vec2>,
+}
+
+/// Flag requesting a WFC grid generation on next frame.
+#[derive(Resource, Debug, Default)]
+struct WfcGenerateRequested(bool);
 
 /// Tracks all tile entities for cleanup when switching modes.
 #[derive(Resource, Debug, Default)]
@@ -75,6 +96,9 @@ fn setup(app: &mut App) {
         world.insert_resource(ViewerMode::SingleMaterial);
         world.insert_resource(GridTileEntities::default());
         world.insert_resource(ModeSwitchRequested::default());
+        world.insert_resource(WfcState { seed: 42 });
+        world.insert_resource(CameraDragState::default());
+        world.insert_resource(WfcGenerateRequested::default());
     }
 
     app.world_mut()
@@ -86,6 +110,7 @@ fn setup(app: &mut App) {
         (terrain_input_system, hud_update_system).chain(),
     );
     app.add_systems(Phase::Update, camera_zoom_system);
+    app.add_systems(Phase::Update, camera_drag_system);
     app.add_systems(
         Phase::Update,
         mode_switch_system.after(terrain_input_system),
@@ -154,7 +179,7 @@ fn spawn_viewer_scene(world: &mut World) {
     let hud = world
         .spawn((
             engine_ui::widget::Text {
-                content: format_hud(&materials.0[selected], ViewerMode::SingleMaterial),
+                content: format_hud(&materials.0[selected], ViewerMode::SingleMaterial, None),
                 font_size: 16.0,
                 color: Color::WHITE,
                 max_width: None,
@@ -167,12 +192,13 @@ fn spawn_viewer_scene(world: &mut World) {
     world.insert_resource(HudTextEntity(hud));
 }
 
-fn format_hud(mat: &TerrainMaterial, mode: ViewerMode) -> String {
+fn format_hud(mat: &TerrainMaterial, mode: ViewerMode, seed: Option<u64>) -> String {
     let mode_str = match mode {
         ViewerMode::SingleMaterial => "Single",
         ViewerMode::DualGrid => "DualGrid",
+        ViewerMode::WfcGrid => "WFC",
     };
-    format!(
+    let mut s = format!(
         "[{mode_str}] {} | freq:{:.1} amp:{:.2} warp:{:.2} scale:{:.1}\n\
          color_a: ({:.2},{:.2},{:.2})  color_b: ({:.2},{:.2},{:.2})\n\
          [1-6] type  [Q/W] freq  [E/R] amp  [T/Y] warp  [Tab] mode  [Shift] fast",
@@ -187,7 +213,13 @@ fn format_hud(mat: &TerrainMaterial, mode: ViewerMode) -> String {
         mat.color_b[0],
         mat.color_b[1],
         mat.color_b[2],
-    )
+    );
+    if let Some(seed) = seed {
+        s.push_str(&format!(
+            "\nseed: {seed}  [G] generate  [N] re-roll  [RMB] pan"
+        ));
+    }
+    s
 }
 
 /// Pack a single `TerrainMaterial` into the uniform buffer.
@@ -256,26 +288,14 @@ fn build_tile_uniform(
     buf
 }
 
-fn spawn_dual_grid(
+fn spawn_grid_tiles(
     world: &mut World,
+    grid: &DualGrid,
     shader: engine_render::shader::ShaderHandle,
     materials: &[TerrainMaterial],
+    tile_size: f32,
 ) -> Vec<Entity> {
-    use terrain::dual_grid::DualGrid;
-
-    let mut grid = DualGrid::new(4, 4, TerrainId(0));
-    // Bottom half: Stone
-    for x in 0..4 {
-        for y in 2..4 {
-            grid.set(x, y, TerrainId(1));
-        }
-    }
-    // Some sand patches
-    grid.set(1, 1, TerrainId(3));
-    grid.set(2, 2, TerrainId(3));
-
     let tiles = grid.visual_tiles();
-    let tile_size = 120.0_f32;
     let half = tile_size / 2.0;
     let grid_offset = Vec2::new(
         -(grid.width() as f32) * tile_size / 2.0,
@@ -336,6 +356,63 @@ fn spawn_dual_grid(
     entities
 }
 
+fn spawn_dual_grid(
+    world: &mut World,
+    shader: engine_render::shader::ShaderHandle,
+    materials: &[TerrainMaterial],
+) -> Vec<Entity> {
+    let mut grid = DualGrid::new(4, 4, TerrainId(0));
+    // Bottom half: Stone
+    for x in 0..4 {
+        for y in 2..4 {
+            grid.set(x, y, TerrainId(1));
+        }
+    }
+    // Some sand patches
+    grid.set(1, 1, TerrainId(3));
+    grid.set(2, 2, TerrainId(3));
+
+    spawn_grid_tiles(world, &grid, shader, materials, 120.0)
+}
+
+fn default_constraints(materials: &[TerrainMaterial]) -> ConstraintTable {
+    let types: Vec<TerrainId> = materials.iter().map(|m| m.id).collect();
+    let mut table = ConstraintTable::new(types.clone());
+    // Allow all pairs for now
+    for &a in &types {
+        for &b in &types {
+            table.allow(a, b);
+        }
+    }
+    table
+}
+
+fn generate_wfc_grid(
+    materials: &[TerrainMaterial],
+    width: usize,
+    height: usize,
+    seed: u64,
+) -> DualGrid {
+    let constraints = default_constraints(materials);
+    let mut wfc_grid = WfcGrid::new(width, height);
+    let mut rng = ChaCha8Rng::seed_from_u64(seed);
+
+    match collapse(&mut wfc_grid, &constraints, &mut rng) {
+        Ok(()) => {
+            let mut dual = DualGrid::new(width, height, TerrainId(0));
+            for y in 0..height {
+                for x in 0..width {
+                    if let Some(id) = wfc_grid.get(x, y) {
+                        dual.set(x, y, id);
+                    }
+                }
+            }
+            dual
+        }
+        Err(_) => DualGrid::new(width, height, TerrainId(0)),
+    }
+}
+
 fn terrain_input_system(
     input: Res<InputState>,
     mut selected: ResMut<SelectedTerrain>,
@@ -343,11 +420,23 @@ fn terrain_input_system(
     quad: Res<TerrainQuadEntity>,
     mut mode_switch: ResMut<ModeSwitchRequested>,
     mode: Res<ViewerMode>,
+    mut wfc_state: ResMut<WfcState>,
+    mut wfc_generate: ResMut<WfcGenerateRequested>,
     mut query: Query<&mut Material2d>,
 ) {
     // Mode toggle
     if input.just_pressed(KeyCode::Tab) {
         mode_switch.0 = true;
+    }
+
+    // G: generate WFC grid (current seed)
+    if input.just_pressed(KeyCode::KeyG) {
+        wfc_generate.0 = true;
+    }
+    // N: re-roll seed and generate
+    if input.just_pressed(KeyCode::KeyN) {
+        wfc_state.seed += 1;
+        wfc_generate.0 = true;
     }
 
     let count = materials.0.len();
@@ -422,35 +511,50 @@ fn terrain_input_system(
 }
 
 fn mode_switch_system(world: &mut World) {
-    let requested = world.resource::<ModeSwitchRequested>().0;
-    if !requested {
+    let tab_pressed = world.resource::<ModeSwitchRequested>().0;
+    let gen_requested = world.resource::<WfcGenerateRequested>().0;
+
+    if !tab_pressed && !gen_requested {
         return;
     }
+
     world.resource_mut::<ModeSwitchRequested>().0 = false;
+    world.resource_mut::<WfcGenerateRequested>().0 = false;
 
     let current_mode = *world.resource::<ViewerMode>();
     let shader = world.resource::<TerrainShader>().0;
     let materials = world.resource::<TerrainMaterials>().clone();
     let selected = world.resource::<SelectedTerrain>().0;
 
+    // Determine target mode
+    let target = if gen_requested {
+        ViewerMode::WfcGrid
+    } else {
+        // Tab cycles
+        match current_mode {
+            ViewerMode::SingleMaterial => ViewerMode::DualGrid,
+            ViewerMode::DualGrid => ViewerMode::WfcGrid,
+            ViewerMode::WfcGrid => ViewerMode::SingleMaterial,
+        }
+    };
+
+    // Clean up current mode
     match current_mode {
         ViewerMode::SingleMaterial => {
-            // Switch to DualGrid
             let quad_entity = world.resource::<TerrainQuadEntity>().0;
             world.despawn(quad_entity);
-
-            let entities = spawn_dual_grid(world, shader, &materials.0);
-            world.insert_resource(GridTileEntities(entities));
-            world.insert_resource(ViewerMode::DualGrid);
         }
-        ViewerMode::DualGrid => {
-            // Switch to SingleMaterial
+        ViewerMode::DualGrid | ViewerMode::WfcGrid => {
             let tile_entities = std::mem::take(&mut world.resource_mut::<GridTileEntities>().0);
             for entity in tile_entities {
                 world.despawn(entity);
             }
+        }
+    }
 
-            // Respawn single quad
+    // Set up target mode
+    match target {
+        ViewerMode::SingleMaterial => {
             let half = 350.0_f32;
             let mesh = TessellatedColorMesh {
                 vertices: vec![
@@ -500,22 +604,64 @@ fn mode_switch_system(world: &mut World) {
                 .id();
 
             world.insert_resource(TerrainQuadEntity(entity));
-            world.insert_resource(ViewerMode::SingleMaterial);
+        }
+        ViewerMode::DualGrid => {
+            let entities = spawn_dual_grid(world, shader, &materials.0);
+            world.insert_resource(GridTileEntities(entities));
+        }
+        ViewerMode::WfcGrid => {
+            let seed = world.resource::<WfcState>().seed;
+            let grid = generate_wfc_grid(&materials.0, 20, 15, seed);
+            let entities = spawn_grid_tiles(world, &grid, shader, &materials.0, 60.0);
+            world.insert_resource(GridTileEntities(entities));
         }
     }
+
+    world.insert_resource(target);
 }
 
 fn hud_update_system(
     selected: Res<SelectedTerrain>,
     materials: Res<TerrainMaterials>,
     mode: Res<ViewerMode>,
+    wfc_state: Res<WfcState>,
     hud: Res<HudTextEntity>,
     mut query: Query<&mut engine_ui::widget::Text>,
 ) {
+    let seed = if *mode == ViewerMode::WfcGrid {
+        Some(wfc_state.seed)
+    } else {
+        None
+    };
     if let Ok(mut text) = query.get_mut(hud.0) {
-        let new_content = format_hud(&materials.0[selected.0], *mode);
+        let new_content = format_hud(&materials.0[selected.0], *mode, seed);
         if text.content != new_content {
             text.content = new_content;
+        }
+    }
+}
+
+fn camera_drag_system(
+    mouse: Res<MouseState>,
+    mut drag_state: ResMut<CameraDragState>,
+    mut query: Query<&mut Camera2D>,
+) {
+    if mouse.just_released(MouseButton::Right) {
+        drag_state.anchor = None;
+        return;
+    }
+    if mouse.just_pressed(MouseButton::Right) {
+        drag_state.anchor = Some(mouse.screen_pos());
+        return;
+    }
+    if mouse.pressed(MouseButton::Right) {
+        if let Some(anchor) = drag_state.anchor {
+            let delta = mouse.screen_pos() - anchor;
+            if let Ok(mut camera) = query.single_mut() {
+                let zoom = camera.zoom;
+                camera.position -= delta / zoom;
+            }
+            drag_state.anchor = Some(mouse.screen_pos());
         }
     }
 }

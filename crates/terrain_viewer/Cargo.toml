@@ -20,6 +20,8 @@ engine_ui = { path = "../engine_ui" }
 bevy_ecs = { workspace = true }
 bytemuck = { workspace = true }
 glam = { workspace = true }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 [lints]
