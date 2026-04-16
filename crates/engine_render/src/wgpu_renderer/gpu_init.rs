@@ -373,7 +373,7 @@ fn material_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device,
         wgpu::ShaderStages::FRAGMENT,
         true,
-        wgpu::BufferSize::new(32),
+        None,
     )
 }
 
