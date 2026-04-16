@@ -1,6 +1,7 @@
 pub mod dual_grid;
 pub mod material;
 pub mod shader;
+pub mod wfc;
 
 use bevy_ecs::prelude::Resource;
 use engine_render::shader::ShaderHandle;
