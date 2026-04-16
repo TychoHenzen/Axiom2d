@@ -1,3 +1,4 @@
+pub mod dual_grid;
 pub mod material;
 pub mod shader;
 
