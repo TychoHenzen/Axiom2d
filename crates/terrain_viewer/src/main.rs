@@ -394,7 +394,7 @@ fn terrain_input_system(
     input: Res<InputState>,
     mut selected: ResMut<SelectedTerrain>,
     mut materials: ResMut<TerrainMaterials>,
-    quad: Res<TerrainQuadEntity>,
+    quad: Option<Res<TerrainQuadEntity>>,
     mut mode_switch: ResMut<ModeSwitchRequested>,
     mode: Res<ViewerMode>,
     mut wfc_state: ResMut<WfcState>,
@@ -482,6 +482,7 @@ fn terrain_input_system(
     // Only update the single quad in SingleMaterial mode
     if changed
         && *mode == ViewerMode::SingleMaterial
+        && let Some(ref quad) = quad
         && let Ok(mut mat2d) = query.get_mut(quad.0)
     {
         mat2d.uniforms = build_single_material_uniform(&materials.0[selected.0]);
@@ -577,9 +578,10 @@ fn hud_update_system(
     materials: Res<TerrainMaterials>,
     mode: Res<ViewerMode>,
     wfc_state: Res<WfcState>,
-    hud: Res<HudTextEntity>,
+    hud: Option<Res<HudTextEntity>>,
     mut query: Query<&mut engine_ui::widget::Text>,
 ) {
+    let Some(hud) = hud else { return };
     let seed = if *mode == ViewerMode::WfcGrid {
         Some(wfc_state.seed)
     } else {
