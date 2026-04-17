@@ -83,7 +83,7 @@ fn when_reader_clicked_then_starts_reader_drag() {
     trigger_reader_click(&mut world, reader, cursor);
 
     // Assert
-    let dragging = world.resource::<ReaderDragState>().dragging.clone();
+    let dragging = world.resource::<ReaderDragState>().dragging;
     assert_eq!(
         dragging,
         Some(DeviceDragInfo {
