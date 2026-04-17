@@ -27,6 +27,7 @@ axiom2d = { path = "../axiom2d" }
 criterion = { workspace = true }
 engine_render = { path = "../engine_render", features = ["testing"] }
 naga = { workspace = true }
+proptest = { workspace = true }
 ron = { workspace = true }
 serde_json = { workspace = true }
 
