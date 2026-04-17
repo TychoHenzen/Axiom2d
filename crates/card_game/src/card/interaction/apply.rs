@@ -21,7 +21,9 @@ use engine_core::scale_spring::ScaleSpring;
 fn entity_position(transforms: &Query<&GlobalTransform2D>, entity: Entity) -> Vec2 {
     transforms
         .get(entity)
-        .map_or(Vec2::ZERO, |transform| transform.0.translation)
+        .expect("picked entity must have GlobalTransform2D")
+        .0
+        .translation
 }
 
 fn table_sort_ceiling(sort_query: &Query<(&CardZone, &SortOrder)>) -> i32 {

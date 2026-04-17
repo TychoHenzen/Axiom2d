@@ -369,12 +369,7 @@ fn model_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
 }
 
 fn material_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    uniform_bind_group_layout(
-        device,
-        wgpu::ShaderStages::FRAGMENT,
-        true,
-        None,
-    )
+    uniform_bind_group_layout(device, wgpu::ShaderStages::FRAGMENT, true, None)
 }
 
 pub(super) fn create_shape_resources(

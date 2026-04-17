@@ -12,14 +12,13 @@ use glam::Vec2;
 use crate::test_helpers::spawn_entity;
 use card_game::card::component::{Card, CardZone};
 use card_game::card::identity::signature::CardSignature;
-use card_game::card::interaction::drag_state::{DragInfo, DragState};
+use card_game::card::interaction::drag_state::{DeviceDragInfo, DragInfo, DragState};
 use card_game::card::interaction::pick::{DRAGGED_COLLISION_FILTER, DRAGGED_COLLISION_GROUP};
 use card_game::card::jack_cable::{Jack, JackDirection};
 use card_game::card::reader::{
-    CardReader, READER_CARD_SCALE, ReaderDragInfo, ReaderDragState, SIGNATURE_SPACE_RADIUS,
-    SignatureSpace, card_overlaps_reader, card_reader_eject_system, card_reader_insert_system,
-    on_reader_clicked, reader_drag_system, reader_release_system, reader_rotation_lock_system,
-    signature_radius,
+    CardReader, READER_CARD_SCALE, ReaderDragState, SIGNATURE_SPACE_RADIUS, SignatureSpace,
+    card_overlaps_reader, card_reader_eject_system, card_reader_insert_system, on_reader_clicked,
+    reader_drag_system, reader_release_system, reader_rotation_lock_system, signature_radius,
 };
 
 fn run_rotation_lock(world: &mut World) {
@@ -87,7 +86,7 @@ fn when_reader_clicked_then_starts_reader_drag() {
     let dragging = world.resource::<ReaderDragState>().dragging.clone();
     assert_eq!(
         dragging,
-        Some(ReaderDragInfo {
+        Some(DeviceDragInfo {
             entity: reader,
             grab_offset: Vec2::new(10.0, -5.0),
         })
@@ -100,7 +99,7 @@ fn when_mouse_released_while_reader_dragging_then_clears_reader_drag() {
     let mut world = World::new();
     let reader = world.spawn_empty().id();
     world.insert_resource(ReaderDragState {
-        dragging: Some(ReaderDragInfo {
+        dragging: Some(DeviceDragInfo {
             entity: reader,
             grab_offset: Vec2::new(2.0, 3.0),
         }),
@@ -711,7 +710,7 @@ fn when_reader_dragged_then_loaded_card_moves_by_same_delta() {
     world.insert_resource(mouse);
 
     world.insert_resource(ReaderDragState {
-        dragging: Some(ReaderDragInfo {
+        dragging: Some(DeviceDragInfo {
             entity: reader_entity,
             grab_offset: Vec2::ZERO,
         }),
@@ -769,7 +768,7 @@ fn when_reader_dragged_then_queues_set_body_position_command() {
     world.insert_resource(mouse);
 
     world.insert_resource(ReaderDragState {
-        dragging: Some(ReaderDragInfo {
+        dragging: Some(DeviceDragInfo {
             entity: reader_entity,
             grab_offset: Vec2::ZERO,
         }),
@@ -835,7 +834,7 @@ fn when_empty_reader_dragged_then_no_panic() {
     world.insert_resource(mouse);
 
     world.insert_resource(ReaderDragState {
-        dragging: Some(ReaderDragInfo {
+        dragging: Some(DeviceDragInfo {
             entity: reader_entity,
             grab_offset: Vec2::ZERO,
         }),
@@ -1177,7 +1176,7 @@ fn when_reader_dragged_then_ejected_card_physics_body_placed_at_new_position() {
     world.insert_resource(mouse);
 
     world.insert_resource(ReaderDragState {
-        dragging: Some(ReaderDragInfo {
+        dragging: Some(DeviceDragInfo {
             entity: reader_entity,
             grab_offset: Vec2::ZERO,
         }),

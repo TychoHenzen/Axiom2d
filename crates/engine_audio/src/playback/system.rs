@@ -2,11 +2,11 @@ use bevy_ecs::prelude::{Res, ResMut};
 use engine_core::prelude::EventBus;
 
 use super::buffer::PlaySound;
+use super::buffer::SpatialGains;
 use crate::audio_res::AudioRes;
 use crate::mixer::MixerState;
 use crate::sound::SoundData;
 use crate::sound::SoundLibrary;
-use crate::spatial::SpatialGains;
 
 const DEFAULT_SAMPLE_RATE: u32 = 44_100;
 const DEFAULT_DURATION: f32 = 0.5;

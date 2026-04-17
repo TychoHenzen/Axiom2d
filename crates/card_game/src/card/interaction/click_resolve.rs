@@ -71,7 +71,9 @@ pub fn click_resolve_system(
             && let Some((col, row)) =
                 find_stash_slot_at(mouse.screen_pos(), grid.width(), grid.height())
         {
-            let page = grid.current_storage_page().unwrap_or(0);
+            let page = grid
+                .current_storage_page()
+                .expect("not on store page, so storage page must exist");
             if let Some(entity) = grid.get(page, col, row) {
                 intents.push(InteractionIntent::PickFromStash {
                     entity: *entity,

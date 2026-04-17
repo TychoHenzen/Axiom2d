@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use engine_scene::prelude::GlobalTransform2D;
 
-use crate::playback::PlaySound;
+use crate::playback::{PlaySound, SpatialGains};
 use engine_core::prelude::EventBus;
 
 /// Linear distance attenuation: 1.0 at distance 0, 0.0 at `max_distance`, clamped.
@@ -41,12 +41,6 @@ pub struct AudioListener;
 pub struct AudioEmitter {
     pub volume: f32,
     pub max_distance: f32,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct SpatialGains {
-    pub left: f32,
-    pub right: f32,
 }
 
 /// Computes spatial gains for an emitter relative to a listener.

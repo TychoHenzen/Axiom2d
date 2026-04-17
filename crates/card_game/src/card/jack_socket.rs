@@ -131,8 +131,8 @@ pub fn on_socket_clicked(
         pending.source = Some(clicked);
         let pos = transforms
             .get(clicked)
-            .map(|t| t.position)
-            .unwrap_or(Vec2::ZERO);
+            .expect("socket entity must have Transform2D")
+            .position;
         let free_end = spawn_free_end(&mut commands, pos);
         let cable_entity = commands
             .spawn((
@@ -183,17 +183,18 @@ pub fn on_socket_clicked(
     // Spawn a free end at the clicked socket's position and rewire the rope to it
     let pos = transforms
         .get(clicked)
-        .map(|t| t.position)
-        .unwrap_or(Vec2::ZERO);
+        .expect("socket entity must have Transform2D")
+        .position;
     let free_end = spawn_free_end(&mut commands, pos);
 
     // Rewire the wire endpoint from the clicked socket to the free end
-    if let Ok(mut endpoints) = wire_endpoints.get_mut(cable_entity) {
-        if endpoints.dest == clicked {
-            endpoints.dest = free_end;
-        } else {
-            endpoints.source = free_end;
-        }
+    let mut endpoints = wire_endpoints
+        .get_mut(cable_entity)
+        .expect("cable entity must have WireEndpoints");
+    if endpoints.dest == clicked {
+        endpoints.dest = free_end;
+    } else {
+        endpoints.source = free_end;
     }
 
     pending.source = Some(other_socket);

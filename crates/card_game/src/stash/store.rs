@@ -12,19 +12,15 @@ use engine_scene::prelude::{RenderLayer, SortOrder};
 use engine_ui::draw_command::{DrawCommand, DrawQueue};
 use glam::Vec2;
 
-use crate::booster::device::{
-    BoosterDragInfo, BoosterDragState, BoosterMachine, spawn_booster_machine,
-};
-use crate::card::combiner_device::{
-    CombinerDevice, CombinerDragInfo, CombinerDragState, spawn_combiner_device,
-};
+use crate::booster::device::{BoosterDragState, BoosterMachine, spawn_booster_machine};
+use crate::card::combiner_device::{CombinerDevice, CombinerDragState, spawn_combiner_device};
 use crate::card::component::CardZone;
-use crate::card::interaction::drag_state::DragState;
+use crate::card::interaction::drag_state::{DeviceDragInfo, DragState};
 use crate::card::reader::{
-    READER_COLLISION_FILTER, READER_COLLISION_GROUP, READER_HALF_EXTENTS, ReaderDragInfo,
-    ReaderDragState, spawn_reader,
+    READER_COLLISION_FILTER, READER_COLLISION_GROUP, READER_HALF_EXTENTS, ReaderDragState,
+    spawn_reader,
 };
-use crate::card::screen_device::{ScreenDragInfo, ScreenDragState, spawn_screen_device};
+use crate::card::screen_device::{ScreenDragState, spawn_screen_device};
 use crate::stash::constants::{GRID_MARGIN, SLOT_GAP, SLOT_STRIDE_W};
 use crate::stash::grid::StashGrid;
 use crate::stash::pages::stash_ui_contains;
@@ -717,34 +713,26 @@ pub fn store_buy_system(world: &mut World) {
     }
 
     let spawn_pos = mouse_world_pos;
+    let drag_info = |entity| DeviceDragInfo {
+        entity,
+        grab_offset: Vec2::ZERO,
+    };
     match item {
         StoreItemKind::Reader => {
             let entity = spawn_reader_purchase(world, spawn_pos);
-            world.resource_mut::<ReaderDragState>().dragging = Some(ReaderDragInfo {
-                entity,
-                grab_offset: Vec2::ZERO,
-            });
+            world.resource_mut::<ReaderDragState>().dragging = Some(drag_info(entity));
         }
         StoreItemKind::Screen => {
             let entity = spawn_screen_purchase(world, spawn_pos);
-            world.resource_mut::<ScreenDragState>().dragging = Some(ScreenDragInfo {
-                entity,
-                grab_offset: Vec2::ZERO,
-            });
+            world.resource_mut::<ScreenDragState>().dragging = Some(drag_info(entity));
         }
         StoreItemKind::Combiner => {
             let entity = spawn_combiner_purchase(world, spawn_pos);
-            world.resource_mut::<CombinerDragState>().dragging = Some(CombinerDragInfo {
-                entity,
-                grab_offset: Vec2::ZERO,
-            });
+            world.resource_mut::<CombinerDragState>().dragging = Some(drag_info(entity));
         }
         StoreItemKind::BoosterMachine => {
             let entity = spawn_booster_purchase(world, spawn_pos);
-            world.resource_mut::<BoosterDragState>().dragging = Some(BoosterDragInfo {
-                entity,
-                grab_offset: Vec2::ZERO,
-            });
+            world.resource_mut::<BoosterDragState>().dragging = Some(drag_info(entity));
         }
     }
 }

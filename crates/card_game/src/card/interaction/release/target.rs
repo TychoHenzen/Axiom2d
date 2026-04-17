@@ -37,7 +37,9 @@ fn resolve_drop_target(
         if !grid.is_store_page()
             && let Some((col, row)) = find_stash_slot_at(screen_pos, grid.width(), grid.height())
         {
-            let page = grid.current_storage_page().unwrap_or(0);
+            let page = grid
+                .current_storage_page()
+                .expect("not on store page, so storage page must exist");
             if grid.get(page, col, row).is_none() {
                 return DropTarget::Stash { page, col, row };
             }
@@ -96,8 +98,9 @@ pub fn card_release_system(
         DropTarget::Stash { page, col, row } => {
             let current_position = transform_query
                 .get(info.entity)
-                .map(|(t, _)| t.position)
-                .unwrap_or(Vec2::ZERO);
+                .expect("dragged entity must have Transform2D and Collider")
+                .0
+                .position;
             InteractionIntent::ReleaseOnStash {
                 entity: info.entity,
                 page,

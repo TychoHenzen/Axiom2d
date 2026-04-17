@@ -2,7 +2,13 @@ use bevy_ecs::entity::Entity;
 use engine_core::prelude::Event;
 
 use crate::mixer::MixerTrack;
-use crate::spatial::SpatialGains;
+
+/// Per-channel gain factors computed by the spatial audio system.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SpatialGains {
+    pub left: f32,
+    pub right: f32,
+}
 
 #[derive(Debug, Clone)]
 pub struct PlaySound {

@@ -92,7 +92,7 @@ pub fn default_materials() -> Vec<TerrainMaterial> {
             kind: TerrainKind::Grass,
             color_a: [0.18, 0.42, 0.12],
             color_b: [0.30, 0.58, 0.20],
-            params: [6.0, 0.4, 0.3, 1.0],
+            params: [1.6, 1.0, 0.3, 1.0],
             extra: [0.3, 0.0, 0.0, 0.0], // wind direction
         },
         TerrainMaterial {
@@ -100,7 +100,7 @@ pub fn default_materials() -> Vec<TerrainMaterial> {
             kind: TerrainKind::Stone,
             color_a: [0.45, 0.42, 0.38],
             color_b: [0.58, 0.55, 0.50],
-            params: [4.0, 0.3, 0.1, 8.0],
+            params: [4.0, 0.3, 0.1, 16.0],
             extra: [0.0, 0.0, 0.0, 0.0],
         },
         TerrainMaterial {
@@ -108,7 +108,7 @@ pub fn default_materials() -> Vec<TerrainMaterial> {
             kind: TerrainKind::Water,
             color_a: [0.10, 0.25, 0.55],
             color_b: [0.20, 0.45, 0.70],
-            params: [3.0, 0.5, 0.6, 6.0],
+            params: [1.2, 3.0, 0.6, 6.0],
             extra: [1.0, 0.0, 0.0, 0.0], // animation speed
         },
         TerrainMaterial {
@@ -116,7 +116,7 @@ pub fn default_materials() -> Vec<TerrainMaterial> {
             kind: TerrainKind::Sand,
             color_a: [0.76, 0.65, 0.42],
             color_b: [0.85, 0.75, 0.52],
-            params: [8.0, 0.2, 0.1, 1.0],
+            params: [0.7, 0.8, 0.1, 1.0],
             extra: [0.5, 0.0, 0.0, 0.0], // ripple direction
         },
         TerrainMaterial {
@@ -124,7 +124,7 @@ pub fn default_materials() -> Vec<TerrainMaterial> {
             kind: TerrainKind::Lava,
             color_a: [0.25, 0.05, 0.02],
             color_b: [1.0, 0.35, 0.05],
-            params: [5.0, 0.6, 0.4, 6.0],
+            params: [5.0, 3.0, 0.4, 16.0],
             extra: [0.3, 0.0, 0.0, 0.0], // drift speed
         },
         TerrainMaterial {
@@ -132,7 +132,7 @@ pub fn default_materials() -> Vec<TerrainMaterial> {
             kind: TerrainKind::Snow,
             color_a: [0.90, 0.92, 0.95],
             color_b: [0.80, 0.85, 0.92],
-            params: [4.0, 0.08, 0.05, 1.0],
+            params: [0.4, 7.0, 0.05, 1.0],
             extra: [0.0, 0.0, 0.0, 0.0],
         },
     ]

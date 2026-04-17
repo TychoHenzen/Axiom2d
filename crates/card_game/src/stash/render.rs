@@ -109,7 +109,10 @@ pub fn stash_render_system(
         .filter_map(|(entity, _card, baked)| baked.map(|b| (entity, b)))
         .collect();
 
-    let page = params.grid.current_storage_page().unwrap_or(0);
+    let page = params
+        .grid
+        .current_storage_page()
+        .expect("store page returns early above, so storage page must exist");
 
     let highlight_slot = if params.drag_state.dragging.is_some() {
         find_stash_slot_at(

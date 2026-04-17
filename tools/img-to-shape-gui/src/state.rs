@@ -144,7 +144,7 @@ impl AppState {
         unique_shape_color_count(&self.raw_shapes)
     }
 
-    /// Generate Rust source code for the current shapes (legacy vec literal).
+    /// Generate a raw `vec![...]` literal of the current shapes (used in tests).
     pub fn generate_export_code(&self) -> String {
         shapes_to_vec_literal(&self.shapes)
     }

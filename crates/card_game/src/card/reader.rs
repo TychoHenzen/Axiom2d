@@ -10,7 +10,7 @@ pub mod spawn;
 pub mod volume;
 
 pub use components::{
-    CardReader, READER_CARD_SCALE, READER_COLLISION_FILTER, READER_COLLISION_GROUP, ReaderDragInfo,
+    CardReader, READER_CARD_SCALE, READER_COLLISION_FILTER, READER_COLLISION_GROUP,
     ReaderDragState, card_overlaps_reader,
 };
 pub use drag::{reader_drag_system, reader_release_system};

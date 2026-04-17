@@ -3,6 +3,16 @@ use glam::Vec2;
 
 use crate::card::component::CardZone;
 
+/// Shared drag info for device entities (reader, screen, combiner, booster).
+///
+/// All devices track the same two fields when dragged: the entity being dragged
+/// and the grab offset from the entity's origin to the cursor.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DeviceDragInfo {
+    pub entity: Entity,
+    pub grab_offset: Vec2,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DragInfo {
     pub entity: Entity,

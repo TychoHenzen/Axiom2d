@@ -221,13 +221,7 @@ fn socket_entities(device: &CombinerDevice) -> [(Entity, Vec2); 3] {
 
 #[derive(Resource, Debug, Default)]
 pub struct CombinerDragState {
-    pub dragging: Option<CombinerDragInfo>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct CombinerDragInfo {
-    pub entity: Entity,
-    pub grab_offset: Vec2,
+    pub dragging: Option<crate::card::interaction::drag_state::DeviceDragInfo>,
 }
 
 pub fn on_combiner_clicked(
@@ -240,7 +234,7 @@ pub fn on_combiner_clicked(
     let Ok(transform) = combiners.get(entity) else {
         return;
     };
-    drag.dragging = Some(CombinerDragInfo {
+    drag.dragging = Some(crate::card::interaction::drag_state::DeviceDragInfo {
         entity,
         grab_offset: cursor - transform.position,
     });

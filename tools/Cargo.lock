@@ -1220,7 +1220,6 @@ dependencies = [
  "bevy_ecs",
  "bytemuck",
  "engine_core",
- "engine_scene",
  "glam 0.30.10",
  "guillotiere",
  "image",
@@ -1232,16 +1231,6 @@ dependencies = [
  "ttf-parser",
  "wgpu",
  "winit",
-]
-
-[[package]]
-name = "engine_scene"
-version = "0.1.0"
-dependencies = [
- "bevy_ecs",
- "engine_core",
- "glam 0.30.10",
- "serde",
 ]
 
 [[package]]

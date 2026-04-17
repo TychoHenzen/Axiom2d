@@ -260,13 +260,7 @@ pub const SCREEN_HALF_EXTENTS: Vec2 = Vec2::new(BODY_HALF_W, BODY_HALF_H);
 
 #[derive(Resource, Debug, Default)]
 pub struct ScreenDragState {
-    pub dragging: Option<ScreenDragInfo>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ScreenDragInfo {
-    pub entity: Entity,
-    pub grab_offset: Vec2,
+    pub dragging: Option<crate::card::interaction::drag_state::DeviceDragInfo>,
 }
 
 /// Observer registered on each `ScreenDevice` entity at spawn time.
@@ -280,7 +274,7 @@ pub fn on_screen_clicked(
     let Ok(transform) = screens.get(entity) else {
         return;
     };
-    screen_drag.dragging = Some(ScreenDragInfo {
+    screen_drag.dragging = Some(crate::card::interaction::drag_state::DeviceDragInfo {
         entity,
         grab_offset: cursor - transform.position,
     });

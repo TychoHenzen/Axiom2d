@@ -7,9 +7,8 @@ use bevy_ecs::prelude::{Schedule, World};
 use engine_audio::audio_res::AudioRes;
 use engine_audio::backend::AudioBackend;
 use engine_audio::mixer::{MixerState, MixerTrack};
-use engine_audio::playback::{PlaySound, PlaybackId, play_sound_system};
+use engine_audio::playback::{PlaySound, PlaybackId, SpatialGains, play_sound_system};
 use engine_audio::sound::{SoundData, SoundEffect, SoundLibrary};
-use engine_audio::spatial::SpatialGains;
 use engine_core::prelude::EventBus;
 
 struct SpyAudioBackend {
@@ -262,14 +261,6 @@ fn when_spatial_gains_present_then_play_sound_applies_them() {
     // Assert
     assert_eq!(*play_count.lock().unwrap(), 1);
 }
-
-// TODO: needs pub promotion — apply_spatial_gains is private in playback::system
-// #[test]
-// fn when_apply_spatial_gains_mono_then_stereo_samples_scaled()
-
-// TODO: needs pub promotion — apply_spatial_gains is private in playback::system
-// #[test]
-// fn when_apply_spatial_gains_stereo_then_channels_scaled_independently()
 
 /// @doc: Single-channel silence does not cull — only both gains zero triggers skip (asymmetric panning valid)
 #[test]

@@ -26,23 +26,3 @@ fn when_play_called_twice_then_ids_are_unique() {
     // Assert
     assert_ne!(id1, id2);
 }
-
-// TODO: needs pub promotion — CpalBackend::active_sound_count() is #[cfg(test)] only
-// #[test]
-// fn when_play_called_then_active_sound_added()
-
-// TODO: needs pub promotion — CpalBackend::active_sound_count() is #[cfg(test)] only
-// #[test]
-// fn when_stop_called_then_sound_removed_from_active_list()
-
-// TODO: needs pub promotion — CpalBackend::active_sound_count() is #[cfg(test)] only
-// #[test]
-// fn when_two_sounds_and_stop_one_then_other_remains()
-
-// TODO: needs pub promotion — CpalBackend::track_volume() is #[cfg(test)] only
-// #[test]
-// fn when_set_track_volume_on_cpal_then_internal_state_updated()
-
-// TODO: needs pub promotion — CpalBackend::volume() is #[cfg(test)] only
-// #[test]
-// fn when_set_volume_called_then_volume_changes()

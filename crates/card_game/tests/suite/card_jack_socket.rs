@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex};
 use bevy_ecs::prelude::*;
 use card_game::card::component::CardZone;
 use card_game::card::interaction::click_resolve::{ClickHitShape, Clickable, click_resolve_system};
+use card_game::card::interaction::drag_state::DeviceDragInfo;
 use card_game::card::interaction::drag_state::{DragInfo, DragState};
 use card_game::card::interaction::intent::InteractionIntent;
 use card_game::card::jack_cable::{Cable, Jack, JackDirection, WireEndpoints};
@@ -12,7 +13,7 @@ use card_game::card::jack_socket::{
     CableFreeEnd, JackSocket, PendingCable, jack_socket_release_system, jack_socket_render_system,
     on_socket_clicked, pending_cable_drag_system,
 };
-use card_game::card::reader::{ReaderDragInfo, ReaderDragState, SignatureSpace};
+use card_game::card::reader::{ReaderDragState, SignatureSpace};
 use card_game::plugin::CardGamePlugin;
 use engine_app::prelude::App;
 use engine_core::color::Color;
@@ -289,7 +290,7 @@ fn given_reader_drag_active_when_left_mouse_pressed_over_socket_then_pending_cab
     let dummy = world.spawn_empty().id();
     spawn_jack_socket_at(&mut world, Vec2::new(100.0, 100.0));
     world.insert_resource(ReaderDragState {
-        dragging: Some(ReaderDragInfo {
+        dragging: Some(DeviceDragInfo {
             entity: dummy,
             grab_offset: Vec2::ZERO,
         }),
@@ -1046,10 +1047,16 @@ fn given_occupied_socket_when_clicked_with_no_active_pending_cable_then_disconne
     // placeholder input socket; will have a proper id assigned below
     let input_socket_placeholder = world.spawn_empty().id();
     let cable_entity = world
-        .spawn(Cable {
-            source: output_socket,
-            dest: input_socket_placeholder,
-        })
+        .spawn((
+            Cable {
+                source: output_socket,
+                dest: input_socket_placeholder,
+            },
+            WireEndpoints {
+                source: output_socket,
+                dest: input_socket_placeholder,
+            },
+        ))
         .id();
 
     let input_socket = world
@@ -1079,6 +1086,11 @@ fn given_occupied_socket_when_clicked_with_no_active_pending_cable_then_disconne
     world
         .entity_mut(cable_entity)
         .get_mut::<Cable>()
+        .unwrap()
+        .dest = input_socket;
+    world
+        .entity_mut(cable_entity)
+        .get_mut::<WireEndpoints>()
         .unwrap()
         .dest = input_socket;
     // mark output socket occupied

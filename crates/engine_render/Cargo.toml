@@ -12,7 +12,6 @@ testing = ["dep:image-compare"]
 [dependencies]
 bevy_ecs = { workspace = true }
 engine_core = { path = "../engine_core" }
-engine_scene = { path = "../engine_scene" }
 glam = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }

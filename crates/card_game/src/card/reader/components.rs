@@ -1,6 +1,8 @@
 use bevy_ecs::prelude::{Component, Entity, Resource};
 use glam::Vec2;
 
+use crate::card::interaction::drag_state::DeviceDragInfo;
+
 pub const READER_CARD_SCALE: f32 = 0.6;
 pub const READER_COLLISION_GROUP: u32 = 0b0010;
 pub const READER_COLLISION_FILTER: u32 = 0b0001;
@@ -19,11 +21,5 @@ pub fn card_overlaps_reader(card_pos: Vec2, reader_pos: Vec2, reader_half: Vec2)
 
 #[derive(Resource, Debug, Default)]
 pub struct ReaderDragState {
-    pub dragging: Option<ReaderDragInfo>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ReaderDragInfo {
-    pub entity: Entity,
-    pub grab_offset: Vec2,
+    pub dragging: Option<DeviceDragInfo>,
 }

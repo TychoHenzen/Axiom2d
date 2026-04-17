@@ -4,7 +4,7 @@ use crate::card::identity::signature::CardSignature;
 use crate::card::identity::signature::Element;
 use crate::card::reader::volume::{polyline_arc_length, solve_tube_radius, sphere_volume_8d};
 
-/// Default radius for backward compatibility in tests.
+/// Default radius used as a convenience constant in tests.
 pub const SIGNATURE_SPACE_RADIUS: f32 = 0.2;
 
 /// Compute the per-card signal sphere radius from signature intensity.

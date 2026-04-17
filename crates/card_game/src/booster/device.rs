@@ -185,13 +185,7 @@ pub fn spawn_booster_machine(world: &mut World, position: Vec2) -> (Entity, Enti
 
 #[derive(Resource, Debug, Default)]
 pub struct BoosterDragState {
-    pub dragging: Option<BoosterDragInfo>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct BoosterDragInfo {
-    pub entity: Entity,
-    pub grab_offset: Vec2,
+    pub dragging: Option<crate::card::interaction::drag_state::DeviceDragInfo>,
 }
 
 pub fn on_booster_clicked(
@@ -204,7 +198,7 @@ pub fn on_booster_clicked(
     let Ok(transform) = boosters.get(entity) else {
         return;
     };
-    drag.dragging = Some(BoosterDragInfo {
+    drag.dragging = Some(crate::card::interaction::drag_state::DeviceDragInfo {
         entity,
         grab_offset: cursor - transform.position,
     });
