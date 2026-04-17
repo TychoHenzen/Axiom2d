@@ -8,7 +8,6 @@ workspace = true
 
 [dependencies]
 bevy_ecs.workspace = true
-crossbeam.workspace = true
 engine_core = { path = "../engine_core" }
 glam.workspace = true
 rapier2d.workspace = true
