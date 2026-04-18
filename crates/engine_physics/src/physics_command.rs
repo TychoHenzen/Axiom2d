@@ -46,6 +46,12 @@ pub enum PhysicsCommand {
         force: Vec2,
         world_point: Vec2,
     },
+    SleepBody {
+        entity: Entity,
+    },
+    WakeBody {
+        entity: Entity,
+    },
 }
 
 impl Event for PhysicsCommand {}

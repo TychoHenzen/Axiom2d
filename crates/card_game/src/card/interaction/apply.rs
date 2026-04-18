@@ -186,6 +186,7 @@ fn apply_pick_card(
 
     if matches!(zone, CardZone::Table) {
         if has_rigid_body {
+            physics_commands.push(PhysicsCommand::WakeBody { entity });
             physics_commands.push(PhysicsCommand::SetCollisionGroup {
                 entity,
                 membership: DRAGGED_COLLISION_GROUP,

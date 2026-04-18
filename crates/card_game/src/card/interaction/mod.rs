@@ -11,3 +11,4 @@ pub mod intent;
 pub(crate) mod physics_helpers;
 pub mod pick;
 pub mod release;
+pub mod sleep;

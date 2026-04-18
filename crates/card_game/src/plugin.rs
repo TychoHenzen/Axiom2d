@@ -20,6 +20,7 @@ use crate::card::interaction::flip::card_flip_system;
 use crate::card::interaction::flip_animation::{flip_animation_system, sync_scale_spring_lock_x};
 use crate::card::interaction::intent::InteractionIntent;
 use crate::card::interaction::release::card_release_system;
+use crate::card::interaction::sleep::card_sleep_system;
 use crate::card::jack_cable::{
     signature_space_propagation_system, wire_render_system, wrap_detect_system, wrap_update_system,
 };
@@ -35,6 +36,7 @@ use crate::card::rendering::art_shader::{
     shader_pointer_system,
 };
 use crate::card::rendering::baked_render::sync_card_persistent_mesh;
+use crate::card::rendering::debug_sleep_indicator::debug_sleep_indicator_system;
 use crate::card::rendering::debug_spawn::{DebugSpawnRng, debug_spawn_system};
 use crate::card::rendering::drop_zone_glow::hand_drop_zone_render_system;
 use crate::card::rendering::render_layer::card_render_layer_system;
@@ -110,6 +112,7 @@ impl Plugin for CardGamePlugin {
 
         register_systems(app);
         app.add_systems(Phase::Update, debug_spawn_system);
+        app.add_systems(Phase::Update, debug_sleep_indicator_system);
     }
 }
 
@@ -120,6 +123,7 @@ fn register_systems(app: &mut App) {
             (
                 card_drag_system.after(physics_sync_system),
                 card_damping_system.after(physics_sync_system),
+                card_sleep_system.after(physics_sync_system),
                 reader_rotation_lock_system.after(physics_sync_system),
             ),
         )

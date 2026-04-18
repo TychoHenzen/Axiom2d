@@ -53,6 +53,10 @@ pub trait PhysicsBackend: Send + Sync {
 
     fn set_body_position(&mut self, entity: Entity, position: Vec2) -> Result<(), PhysicsError>;
 
+    fn is_body_sleeping(&self, entity: Entity) -> Option<bool>;
+    fn sleep_body(&mut self, entity: Entity) -> Result<(), PhysicsError>;
+    fn wake_body(&mut self, entity: Entity) -> Result<(), PhysicsError>;
+
     fn body_point_to_world(&self, entity: Entity, local_point: Vec2) -> Option<Vec2> {
         let pos = self.body_position(entity)?;
         let rot = self.body_rotation(entity)?;
@@ -161,6 +165,18 @@ impl PhysicsBackend for NullPhysicsBackend {
     }
 
     fn set_body_position(&mut self, _entity: Entity, _position: Vec2) -> Result<(), PhysicsError> {
+        Ok(())
+    }
+
+    fn is_body_sleeping(&self, _entity: Entity) -> Option<bool> {
+        None
+    }
+
+    fn sleep_body(&mut self, _entity: Entity) -> Result<(), PhysicsError> {
+        Ok(())
+    }
+
+    fn wake_body(&mut self, _entity: Entity) -> Result<(), PhysicsError> {
         Ok(())
     }
 }

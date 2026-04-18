@@ -2,6 +2,7 @@ pub mod art_shader;
 pub mod bake;
 pub mod baked_mesh;
 pub mod baked_render;
+pub mod debug_sleep_indicator;
 pub mod debug_spawn;
 pub mod drop_zone_glow;
 pub mod face_layout;

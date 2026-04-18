@@ -56,6 +56,12 @@ pub fn physics_command_apply_system(
             } => {
                 let _ = physics.add_force_at_point(entity, force, world_point);
             }
+            PhysicsCommand::SleepBody { entity } => {
+                let _ = physics.sleep_body(entity);
+            }
+            PhysicsCommand::WakeBody { entity } => {
+                let _ = physics.wake_body(entity);
+            }
         }
     }
 }

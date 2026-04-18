@@ -189,3 +189,72 @@ fn when_system_runs_twice_then_commands_do_not_replay() {
         "command must be applied once, not replayed on second run; got: {recorded:?}"
     );
 }
+
+/// @doc: The `SleepBody` command must route through `physics_command_apply_system`
+/// to call `backend.sleep_body()`. The auto-sleep system and forced-sleep-on-release
+/// both emit this command — if the dispatch arm is missing, sleeping cards would
+/// remain awake and keep consuming physics budget indefinitely.
+#[test]
+fn when_sleep_body_command_queued_then_backend_sleep_body_called() {
+    // Arrange
+    let (mut world, calls) = make_world();
+    let entity = world.spawn(()).id();
+    world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .push(PhysicsCommand::SleepBody { entity });
+    let mut schedule = Schedule::default();
+    schedule.add_systems(physics_command_apply_system);
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert
+    let recorded = calls.lock().unwrap();
+    assert_eq!(*recorded, vec!["sleep_body"]);
+}
+
+/// @doc: The `WakeBody` command must route to `backend.wake_body()`. The pick-up
+/// system emits this when grabbing a sleeping card — without the dispatch arm,
+/// the drag system would apply forces to a body that rapier still considers
+/// sleeping, making the card unresponsive to player input.
+#[test]
+fn when_wake_body_command_queued_then_backend_wake_body_called() {
+    // Arrange
+    let (mut world, calls) = make_world();
+    let entity = world.spawn(()).id();
+    world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .push(PhysicsCommand::WakeBody { entity });
+    let mut schedule = Schedule::default();
+    schedule.add_systems(physics_command_apply_system);
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert
+    let recorded = calls.lock().unwrap();
+    assert_eq!(*recorded, vec!["wake_body"]);
+}
+
+/// @doc: Sleep and wake commands queued in the same frame must execute in insertion
+/// order. A card that is force-slept then immediately picked up in the same frame
+/// would queue `SleepBody` followed by `WakeBody` — reversing the order would
+/// leave the card sleeping when the player expects it to be draggable.
+#[test]
+fn when_sleep_then_wake_commands_queued_then_both_called_in_order() {
+    // Arrange
+    let (mut world, calls) = make_world();
+    let entity = world.spawn(()).id();
+    let bus = &mut *world.resource_mut::<EventBus<PhysicsCommand>>();
+    bus.push(PhysicsCommand::SleepBody { entity });
+    bus.push(PhysicsCommand::WakeBody { entity });
+    let mut schedule = Schedule::default();
+    schedule.add_systems(physics_command_apply_system);
+
+    // Act
+    schedule.run(&mut world);
+
+    // Assert
+    let recorded = calls.lock().unwrap();
+    assert_eq!(*recorded, vec!["sleep_body", "wake_body"]);
+}

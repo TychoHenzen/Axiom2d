@@ -135,6 +135,15 @@ pub mod test_helpers {
         fn set_body_position(&mut self, _: Entity, _: Vec2) -> Result<(), PhysicsError> {
             Ok(())
         }
+        fn is_body_sleeping(&self, _: Entity) -> Option<bool> {
+            None
+        }
+        fn sleep_body(&mut self, _: Entity) -> Result<(), PhysicsError> {
+            Ok(())
+        }
+        fn wake_body(&mut self, _: Entity) -> Result<(), PhysicsError> {
+            Ok(())
+        }
     }
 
     pub struct RecordingPhysicsBackend {
@@ -226,6 +235,27 @@ pub mod test_helpers {
         }
         fn body_angular_velocity(&self, _: Entity) -> Option<f32> {
             None
+        }
+        fn is_body_sleeping(&self, _: Entity) -> Option<bool> {
+            self.calls
+                .lock()
+                .expect("lock poisoned")
+                .push("is_body_sleeping".into());
+            None
+        }
+        fn sleep_body(&mut self, _: Entity) -> Result<(), PhysicsError> {
+            self.calls
+                .lock()
+                .expect("lock poisoned")
+                .push("sleep_body".into());
+            Ok(())
+        }
+        fn wake_body(&mut self, _: Entity) -> Result<(), PhysicsError> {
+            self.calls
+                .lock()
+                .expect("lock poisoned")
+                .push("wake_body".into());
+            Ok(())
         }
     }
 }

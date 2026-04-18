@@ -285,3 +285,35 @@ fn when_unknown_entity_then_body_point_to_world_returns_none() {
     // Assert
     assert!(result.is_none());
 }
+
+/// @doc: `NullPhysicsBackend` must return `None` for `is_body_sleeping` — it has
+/// no real body registry, so any sleep query is meaningless. Systems that check
+/// sleep state use `None` as a "no body exists" signal and skip the entity, which
+/// is the correct behavior when running tests without real physics.
+#[test]
+fn when_is_body_sleeping_on_null_backend_then_returns_none() {
+    // Arrange
+    let backend = NullPhysicsBackend::default();
+    let entity = spawn_entity();
+
+    // Act
+    let result = backend.is_body_sleeping(entity);
+
+    // Assert
+    assert_eq!(result, None);
+}
+
+/// @doc: `NullPhysicsBackend` sleep/wake must return `Ok` unconditionally — they
+/// are no-ops that allow tests to run full system schedules without a real physics
+/// engine. Returning `Err` would cause panics in `physics_command_apply_system`
+/// when it unwraps sleep/wake results during integration tests.
+#[test]
+fn when_sleep_and_wake_on_null_backend_then_both_return_ok() {
+    // Arrange
+    let mut backend = NullPhysicsBackend::default();
+    let entity = spawn_entity();
+
+    // Act & Assert
+    assert!(backend.sleep_body(entity).is_ok());
+    assert!(backend.wake_body(entity).is_ok());
+}

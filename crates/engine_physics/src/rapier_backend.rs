@@ -290,6 +290,45 @@ impl PhysicsBackend for RapierBackend {
         Ok(())
     }
 
+    fn is_body_sleeping(&self, entity: Entity) -> Option<bool> {
+        let handle = self.entity_to_handle.get(&entity)?;
+        let body = self.bodies.get(*handle)?;
+        Some(body.is_sleeping())
+    }
+
+    fn sleep_body(&mut self, entity: Entity) -> Result<(), PhysicsError> {
+        let &handle = self.entity_to_handle.get(&entity).ok_or_else(|| {
+            tracing::warn!(?entity, "sleep_body: entity not found");
+            PhysicsError::EntityNotFound(entity)
+        })?;
+        let body = self
+            .bodies
+            .get_mut(handle)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        // Don't call body.sleep() — it marks the body as sleeping while leaving
+        // it in an active island, causing rapier's update_islands to panic.
+        // Instead, zero velocities and exceed the auto-sleep timer so rapier
+        // transitions the body through its own island management.
+        body.set_linvel(Vec2::ZERO, false);
+        body.set_angvel(0.0, false);
+        let activation = body.activation_mut();
+        activation.time_since_can_sleep = activation.time_until_sleep + 1.0;
+        Ok(())
+    }
+
+    fn wake_body(&mut self, entity: Entity) -> Result<(), PhysicsError> {
+        let &handle = self.entity_to_handle.get(&entity).ok_or_else(|| {
+            tracing::warn!(?entity, "wake_body: entity not found");
+            PhysicsError::EntityNotFound(entity)
+        })?;
+        let body = self
+            .bodies
+            .get_mut(handle)
+            .ok_or(PhysicsError::EntityNotFound(entity))?;
+        body.wake_up(true);
+        Ok(())
+    }
+
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
         let mut events = Vec::new();
         let recv = self

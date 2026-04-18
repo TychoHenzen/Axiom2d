@@ -636,3 +636,151 @@ fn when_picking_table_card_with_higher_sort_hand_card_present_then_local_sort_is
         "sort order must be table max (5) + 1 = 6, not hand max (10) + 1 = 11"
     );
 }
+
+/// @doc: Release-to-table must NOT emit `SleepBody` inline — rapier panics if a
+/// freshly-added body is put to sleep before the island manager processes it.
+/// The auto-sleep system (`card_sleep_system`) handles sleeping on the next
+/// FixedUpdate tick once the body is properly registered.
+#[test]
+fn when_release_on_table_then_no_inline_sleep_command() {
+    use engine_core::prelude::Transform2D;
+
+    // Arrange
+    let mut world = World::new();
+    let card_entity = world
+        .spawn((
+            crate::test_helpers::make_test_card(),
+            CardZone::Table,
+            default_card_collider(),
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(100.0, 200.0))),
+            SortOrder::new(0),
+            Transform2D {
+                position: Vec2::new(100.0, 200.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+        ))
+        .id();
+    insert_apply_resources(&mut world);
+    setup_active_drag(&mut world, card_entity);
+    world
+        .resource_mut::<EventBus<InteractionIntent>>()
+        .push(InteractionIntent::ReleaseOnTable {
+            entity: card_entity,
+            snap_back: false,
+        });
+
+    // Act
+    run_system(&mut world);
+
+    // Assert
+    let physics: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    let has_sleep = physics
+        .iter()
+        .any(|cmd| matches!(cmd, PhysicsCommand::SleepBody { .. }));
+    assert!(
+        !has_sleep,
+        "must NOT emit SleepBody inline — auto-sleep handles it; got: {physics:?}"
+    );
+}
+
+/// @doc: Picking a table card that already has a physics body must emit `WakeBody`
+/// so rapier resumes simulating it. Without this, a sleeping card would ignore drag
+/// forces — the player would click a card and it wouldn't move, because rapier
+/// skips force integration on sleeping bodies.
+#[test]
+fn when_pick_table_card_with_existing_body_then_wake_body_emitted() {
+    use engine_physics::prelude::RigidBody;
+
+    // Arrange
+    let mut world = World::new();
+    let card_entity = world
+        .spawn((
+            crate::test_helpers::make_test_card(),
+            CardZone::Table,
+            default_card_collider(),
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(10.0, 20.0))),
+            SortOrder::new(0),
+            RigidBody::Dynamic,
+        ))
+        .id();
+    insert_apply_resources(&mut world);
+    world
+        .resource_mut::<EventBus<InteractionIntent>>()
+        .push(InteractionIntent::PickCard {
+            entity: card_entity,
+            zone: CardZone::Table,
+            collider: default_card_collider(),
+            grab_offset: Vec2::ZERO,
+        });
+
+    // Act
+    run_system(&mut world);
+
+    // Assert
+    let physics: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    let has_wake = physics
+        .iter()
+        .any(|cmd| matches!(cmd, PhysicsCommand::WakeBody { entity } if *entity == card_entity));
+    assert!(
+        has_wake,
+        "must emit WakeBody when picking a table card with existing body; got: {physics:?}"
+    );
+}
+
+/// @doc: Picking a hand card creates a new physics body via `activate_physics_body` —
+/// new bodies start awake by default, so emitting `WakeBody` would be redundant.
+/// This test ensures the pick path for hand cards does NOT emit a wake command,
+/// keeping the physics command bus clean.
+#[test]
+fn when_pick_hand_card_then_no_wake_body_emitted() {
+    use card_game::hand::cards::Hand;
+    use engine_scene::prelude::RenderLayer;
+
+    // Arrange
+    let mut world = World::new();
+    let card_entity = world
+        .spawn((
+            crate::test_helpers::make_test_card(),
+            CardZone::Hand(0),
+            default_card_collider(),
+            GlobalTransform2D(Affine2::from_translation(Vec2::new(50.0, 200.0))),
+            SortOrder::new(0),
+            RenderLayer::UI,
+        ))
+        .id();
+    let mut hand = Hand::new(10);
+    hand.add(card_entity).unwrap();
+    world.insert_resource(hand);
+    insert_apply_resources(&mut world);
+    world
+        .resource_mut::<EventBus<InteractionIntent>>()
+        .push(InteractionIntent::PickCard {
+            entity: card_entity,
+            zone: CardZone::Hand(0),
+            collider: default_card_collider(),
+            grab_offset: Vec2::ZERO,
+        });
+
+    // Act
+    run_system(&mut world);
+
+    // Assert
+    let physics: Vec<_> = world
+        .resource_mut::<EventBus<PhysicsCommand>>()
+        .drain()
+        .collect();
+    let has_wake = physics
+        .iter()
+        .any(|cmd| matches!(cmd, PhysicsCommand::WakeBody { .. }));
+    assert!(
+        !has_wake,
+        "hand card pick should NOT emit WakeBody — new body starts awake"
+    );
+}

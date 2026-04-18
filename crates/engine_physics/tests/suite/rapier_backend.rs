@@ -822,3 +822,112 @@ fn when_add_collider_with_degenerate_hull_then_returns_false() {
     // Assert
     assert!(!result, "degenerate convex hull must return false");
 }
+
+/// @doc: A freshly registered dynamic body must be awake, and must transition to
+/// sleeping after `sleep_body` is called. The auto-sleep system relies on
+/// `is_body_sleeping` to skip already-sleeping cards — if new bodies reported
+/// sleeping by default, every card would be born frozen and never simulate.
+#[test]
+fn when_sleep_body_called_then_transitions_from_awake_to_sleeping() {
+    // Arrange
+    let mut backend = RapierBackend::new(Vec2::ZERO);
+    let entity = spawn_entity();
+    backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+    backend.add_collider(entity, &Collider::Circle(1.0));
+    backend.step(Seconds(1.0 / 60.0));
+
+    assert_eq!(
+        backend.is_body_sleeping(entity),
+        Some(false),
+        "newly added body should be awake"
+    );
+
+    // Act — sleep_body makes the body eligible; rapier auto-sleeps on next step
+    backend.sleep_body(entity).unwrap();
+    backend.step(Seconds(1.0 / 60.0));
+
+    // Assert
+    assert_eq!(
+        backend.is_body_sleeping(entity),
+        Some(true),
+        "body should report sleeping after sleep_body + step"
+    );
+}
+
+/// @doc: A sleeping body must wake when `wake_body` is called so that the physics
+/// engine resumes simulating it. Without this, picking up a sleeping card would
+/// leave it frozen — the drag system applies forces to a body that rapier ignores,
+/// making the card appear stuck until something else accidentally wakes it.
+#[test]
+fn when_wake_body_called_on_sleeping_body_then_is_body_sleeping_returns_false() {
+    // Arrange
+    let mut backend = RapierBackend::new(Vec2::ZERO);
+    let entity = spawn_entity();
+    backend.add_body(entity, &RigidBody::Dynamic, Vec2::ZERO);
+    backend.add_collider(entity, &Collider::Circle(1.0));
+    backend.step(Seconds(1.0 / 60.0));
+    backend.sleep_body(entity).unwrap();
+    backend.step(Seconds(1.0 / 60.0));
+    assert_eq!(backend.is_body_sleeping(entity), Some(true));
+
+    // Act
+    backend.wake_body(entity).unwrap();
+
+    // Assert
+    assert_eq!(
+        backend.is_body_sleeping(entity),
+        Some(false),
+        "body should be awake after wake_body"
+    );
+}
+
+/// @doc: `sleep_body` on an unknown entity must return `EntityNotFound` so callers
+/// can distinguish "entity was never registered" from "sleep succeeded". Silent
+/// no-ops would hide bugs where a system tries to sleep a card whose body was
+/// already removed during a zone transition.
+#[test]
+fn when_sleep_body_on_unknown_entity_then_returns_entity_not_found() {
+    // Arrange
+    let mut backend = RapierBackend::new(Vec2::ZERO);
+    let entity = spawn_entity();
+
+    // Act
+    let result = backend.sleep_body(entity);
+
+    // Assert
+    assert!(result.is_err());
+}
+
+/// @doc: `wake_body` on an unknown entity must return `EntityNotFound` — same
+/// reasoning as `sleep_body`: silent success on a missing entity masks bugs in
+/// the pick-up flow where the physics body was removed before the wake command.
+#[test]
+fn when_wake_body_on_unknown_entity_then_returns_entity_not_found() {
+    // Arrange
+    let mut backend = RapierBackend::new(Vec2::ZERO);
+    let entity = spawn_entity();
+
+    // Act
+    let result = backend.wake_body(entity);
+
+    // Assert
+    assert!(result.is_err());
+}
+
+/// @doc: `is_body_sleeping` must return `None` for unknown entities, matching the
+/// convention of all other read-only queries (`body_position`, `body_linear_velocity`).
+/// The card sleep system uses the `None` return to skip entities whose physics body
+/// hasn't been registered yet — returning `Some(false)` would incorrectly make
+/// such entities eligible for sleep threshold checks.
+#[test]
+fn when_is_body_sleeping_on_unknown_entity_then_returns_none() {
+    // Arrange
+    let backend = RapierBackend::new(Vec2::ZERO);
+    let entity = spawn_entity();
+
+    // Act
+    let result = backend.is_body_sleeping(entity);
+
+    // Assert
+    assert_eq!(result, None);
+}

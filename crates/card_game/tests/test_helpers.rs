@@ -34,6 +34,8 @@ pub struct SpyPhysicsBackend {
     pub positions: HashMap<Entity, Vec2>,
     pub rotations: HashMap<Entity, f32>,
     pub angular_velocities: HashMap<Entity, f32>,
+    pub linear_velocities: HashMap<Entity, Vec2>,
+    pub sleeping: HashMap<Entity, bool>,
     pub add_body_log: AddBodyLog,
     pub collider_log: ColliderLog,
     pub remove_body_log: RemoveBodyLog,
@@ -56,6 +58,8 @@ impl SpyPhysicsBackend {
             positions: HashMap::new(),
             rotations: HashMap::new(),
             angular_velocities: HashMap::new(),
+            linear_velocities: HashMap::new(),
+            sleeping: HashMap::new(),
             add_body_log: Arc::new(Mutex::new(Vec::new())),
             collider_log: Arc::new(Mutex::new(Vec::new())),
             remove_body_log: Arc::new(Mutex::new(Vec::new())),
@@ -107,6 +111,16 @@ impl SpyPhysicsBackend {
         self.angular_velocity_log = log;
         self
     }
+
+    pub fn with_linear_velocity(mut self, entity: Entity, velocity: Vec2) -> Self {
+        self.linear_velocities.insert(entity, velocity);
+        self
+    }
+
+    pub fn with_body_sleeping(mut self, entity: Entity, sleeping: bool) -> Self {
+        self.sleeping.insert(entity, sleeping);
+        self
+    }
 }
 
 #[allow(clippy::unwrap_used)]
@@ -133,8 +147,13 @@ impl PhysicsBackend for SpyPhysicsBackend {
     fn drain_collision_events(&mut self) -> Vec<CollisionEvent> {
         Vec::new()
     }
-    fn body_linear_velocity(&self, _: Entity) -> Option<Vec2> {
-        Some(Vec2::ZERO)
+    fn body_linear_velocity(&self, entity: Entity) -> Option<Vec2> {
+        Some(
+            self.linear_velocities
+                .get(&entity)
+                .copied()
+                .unwrap_or(Vec2::ZERO),
+        )
     }
     fn set_linear_velocity(&mut self, entity: Entity, velocity: Vec2) -> Result<(), PhysicsError> {
         self.velocity_log.lock().unwrap().push((entity, velocity));
@@ -183,6 +202,15 @@ impl PhysicsBackend for SpyPhysicsBackend {
     }
     fn set_body_position(&mut self, entity: Entity, position: Vec2) -> Result<(), PhysicsError> {
         self.position_log.lock().unwrap().push((entity, position));
+        Ok(())
+    }
+    fn is_body_sleeping(&self, entity: Entity) -> Option<bool> {
+        self.sleeping.get(&entity).copied()
+    }
+    fn sleep_body(&mut self, _: Entity) -> Result<(), PhysicsError> {
+        Ok(())
+    }
+    fn wake_body(&mut self, _: Entity) -> Result<(), PhysicsError> {
         Ok(())
     }
 }
