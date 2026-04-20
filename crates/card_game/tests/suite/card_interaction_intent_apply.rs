@@ -640,7 +640,7 @@ fn when_picking_table_card_with_higher_sort_hand_card_present_then_local_sort_is
 /// @doc: Release-to-table must NOT emit `SleepBody` inline — rapier panics if a
 /// freshly-added body is put to sleep before the island manager processes it.
 /// The auto-sleep system (`card_sleep_system`) handles sleeping on the next
-/// FixedUpdate tick once the body is properly registered.
+/// `FixedUpdate` tick once the body is properly registered.
 #[test]
 fn when_release_on_table_then_no_inline_sleep_command() {
     use engine_core::prelude::Transform2D;
