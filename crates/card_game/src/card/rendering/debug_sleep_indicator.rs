@@ -1,46 +1,60 @@
-use bevy_ecs::prelude::{Component, Entity, World};
+use bevy_ecs::prelude::{Entity, Local, Query, Res, ResMut};
+use engine_core::color::Color;
 use engine_input::prelude::{InputState, KeyCode};
 use engine_physics::prelude::PhysicsRes;
+use engine_render::prelude::{QUAD_INDICES, UNIT_QUAD, affine2_to_mat4};
+use engine_render::shape::TessellatedMesh;
+use engine_scene::prelude::{GlobalTransform2D, RenderLayer, SortOrder};
+use engine_ui::draw_command::{DrawCommand, DrawQueue};
 
 use crate::card::component::CardZone;
+use crate::card::rendering::geometry::{TABLE_CARD_HEIGHT, TABLE_CARD_WIDTH};
 
-#[derive(Component)]
-pub struct DebugSleepTint;
+const TINT_COLOR: Color = Color {
+    r: 1.0,
+    g: 0.0,
+    b: 0.0,
+    a: 0.3,
+};
 
-pub fn debug_sleep_indicator_system(world: &mut World) {
-    let active = world
-        .get_resource::<InputState>()
-        .is_some_and(|input| input.just_pressed(KeyCode::F9));
-
-    if !active {
+pub fn debug_sleep_indicator_system(
+    query: Query<(Entity, &CardZone, &GlobalTransform2D, Option<&SortOrder>)>,
+    input: Res<InputState>,
+    physics: Res<PhysicsRes>,
+    mut draw_queue: ResMut<DrawQueue>,
+    mut enabled: Local<bool>,
+) {
+    if input.just_pressed(KeyCode::F9) {
+        *enabled = !*enabled;
+    }
+    if !*enabled {
         return;
     }
 
-    let mut table_cards: Vec<(Entity, bool)> = Vec::new();
-    let mut query = world.query::<(Entity, &CardZone, Option<&DebugSleepTint>)>();
-    for (entity, zone, tint) in query.iter(world) {
-        if matches!(zone, CardZone::Table) {
-            table_cards.push((entity, tint.is_some()));
+    for (entity, zone, transform, sort) in &query {
+        if !matches!(zone, CardZone::Table) {
+            continue;
         }
-    }
-
-    let mut to_add = Vec::new();
-    let mut to_remove = Vec::new();
-
-    let physics = world.resource::<PhysicsRes>();
-    for (entity, has_tint) in table_cards {
-        let sleeping = physics.is_body_sleeping(entity) == Some(true);
-        if sleeping && !has_tint {
-            to_add.push(entity);
-        } else if !sleeping && has_tint {
-            to_remove.push(entity);
+        if physics.is_body_sleeping(entity) != Some(true) {
+            continue;
         }
-    }
-
-    for entity in to_add {
-        world.entity_mut(entity).insert(DebugSleepTint);
-    }
-    for entity in to_remove {
-        world.entity_mut(entity).remove::<DebugSleepTint>();
+        let scaled = transform.0
+            * glam::Affine2::from_scale(glam::Vec2::new(TABLE_CARD_WIDTH, TABLE_CARD_HEIGHT));
+        let model = affine2_to_mat4(&scaled);
+        let sort_order = sort.copied().unwrap_or_default();
+        draw_queue.push(
+            RenderLayer::World,
+            SortOrder::new(sort_order.value() + 1),
+            DrawCommand::Shape {
+                mesh: TessellatedMesh {
+                    vertices: UNIT_QUAD.to_vec(),
+                    indices: QUAD_INDICES.to_vec(),
+                },
+                color: TINT_COLOR,
+                model,
+                material: None,
+                stroke: None,
+            },
+        );
     }
 }

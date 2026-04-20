@@ -77,6 +77,16 @@ impl DrawQueue {
         });
     }
 
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.commands.len()
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.commands.is_empty()
+    }
+
     pub(crate) fn drain(&mut self) -> Vec<SortedDrawCommand> {
         std::mem::take(&mut self.commands)
     }

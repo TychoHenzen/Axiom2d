@@ -112,7 +112,7 @@ impl Plugin for CardGamePlugin {
 
         register_systems(app);
         app.add_systems(Phase::Update, debug_spawn_system);
-        app.add_systems(Phase::Update, debug_sleep_indicator_system);
+        app.add_systems(Phase::Render, debug_sleep_indicator_system);
     }
 }
 
