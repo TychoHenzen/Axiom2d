@@ -14,14 +14,14 @@ The card game's core implementation (Phases A–H2) is **complete** — physics 
 
 ### Working on new features
 
-1. **Wire new systems into `card_game_bin/src/main.rs`**. Every new ECS system must be registered in the `setup()` function with the correct `Phase` and ordering constraints (`.after()`, `.chain()`). A system that only exists in the library crate with tests but is never added to a schedule in the binary **does not exist in the game**. Always verify with `cargo.exe build -p card_game_bin`.
+1. **Wire new systems into `card_game_bin/src/main.rs`**. Every new ECS system must be registered in the `setup()` function with the correct `Phase` and ordering constraints (`.after()`, `.chain()`). A system that only exists in the library crate with tests but is never added to a schedule in the binary **does not exist in the game**. Always verify with `cargo build -p card_game_bin`.
 2. Update the memory file if new public types/traits/systems were added.
-3. Run `cargo.exe fmt --all`.
+3. Run `cargo fmt --all`.
 4. If new workspace dependencies were added, mention them in the Development Environment section.
 
 ### Before committing
 
-Run `cargo.exe clean` periodically (e.g., weekly or when `target/` exceeds ~5 GB). The single-binary test consolidation keeps `target/` around 2.5 GB after a full build, but incremental caches still grow over time.
+Run `cargo clean` periodically (e.g., weekly or when `target/` exceeds ~5 GB). The single-binary test consolidation keeps `target/` around 2.5 GB after a full build, but incremental caches still grow over time.
 
 ### Engine changes
 
@@ -29,31 +29,26 @@ When modifying engine crates (e.g. `engine_physics`), keep the engine's test sui
 
 ## Development Environment
 
-This project is developed with **RustRover on Windows** while **Claude Code runs in WSL2 (Ubuntu 24.04)**. The repo lives on the Windows filesystem at `/mnt/c/Users/siriu/RustroverProjects/Axiom2d`.
+This project is developed with **RustRover on Windows**. **Claude Code also runs on Windows natively** (PowerShell). The repo lives at `C:\Users\siriu\RustroverProjects\Axiom2d`.
 
-**Rust is installed on the Windows side only** (stable-x86_64-pc-windows-msvc). There is no WSL-native Rust toolchain. To run cargo commands from WSL:
+**Rust toolchain**: stable-x86_64-pc-windows-msvc. Standard cargo commands:
 
-```bash
-cargo.exe build              # Build the library
-cargo.exe test               # Run all tests
-cargo.exe test <test_name>   # Run a single test by name
-cargo.exe clippy             # Lint (pedantic, workspace-configured)
-cargo.exe fmt --all          # Format all crates
+```powershell
+cargo build              # Build the library
+cargo test               # Run all tests
+cargo test <test_name>   # Run a single test by name
+cargo clippy             # Lint (pedantic, workspace-configured)
+cargo fmt --all          # Format all crates
 ```
-
-Always use `cargo.exe` (not `cargo`) since the Rust toolchain is Windows-only. The same applies to `rustc.exe`, `rustfmt.exe`, etc.
 
 The project uses Rust edition 2024. Dependencies are declared at the workspace level: `glam` (math), `thiserror` (errors), `winit` (windowing), `wgpu` (GPU rendering), `pollster` (async blocking), `bytemuck` (safe type casting for GPU buffers), `bevy_ecs` (standalone ECS), `guillotiere` (2D texture atlas rect packing), `image` (PNG decoding for embedded assets), `lyon` (2D vector path tessellation), `fundsp` (audio DSP graph synthesis), `rapier2d` (2D physics engine), `proptest` (property-based testing, dev-dep across 7 crates), `insta` (snapshot testing with RON feature, dev-dep across 3 crates), `image-compare` (SSIM visual regression comparison, optional dep in engine_render behind `testing` feature + dev-dep), `ttf-parser` (TTF font outline parsing for vector text rendering), `rand` + `rand_chacha` (seeded RNG for card signature generation).
 
-### WSL/Windows Gotchas
+### Windows Environment Notes
 
-- **Use `cargo.exe` not `cargo`**: The Rust toolchain lives at `/mnt/c/Users/siriu/.cargo/bin/` and is a Windows installation. WSL has no native Rust.
-- **Filesystem performance**: The project is on a `/mnt/c` drvfs mount. File I/O from WSL is slower than native. Build artifacts in `target/` are written through this mount.
-- **Line endings**: Git and editors should be configured for consistent line endings. RustRover on Windows may default to CRLF; ensure `.gitattributes` or git config handles this.
-- **Path formats**: WSL sees `/mnt/c/...` paths; Windows/RustRover sees `C:\...` paths. Cargo and rustc invoked via `.exe` will interpret paths as Windows paths. When passing paths to `cargo.exe`, use Windows-style paths or rely on the working directory.
-- **File locking**: Both RustRover (Windows) and Claude Code (WSL) access the same files. Avoid concurrent builds — RustRover's build and `cargo.exe` from WSL share the same `target/` directory and lock file.
-- **Target triple**: The Windows toolchain compiles for `x86_64-pc-windows-msvc` by default. Any platform-specific code or dependencies should target Windows, not Linux.
-- **Snapshot testing (insta)**: `INSTA_UPDATE=always` does not propagate from WSL env vars to Windows `cargo.exe`. To accept new snapshots, rename `.snap.new` → `.snap` manually (e.g., `for f in $(find crates -name "*.snap.new"); do mv "$f" "${f%.new}"; done`).
+- **File locking**: Both RustRover and Claude Code access the same files. Avoid concurrent builds — they share the same `target/` directory and lock file.
+- **Target triple**: The toolchain compiles for `x86_64-pc-windows-msvc` by default. Any platform-specific code or dependencies should target Windows.
+- **Line endings**: Git and editors should be configured for consistent line endings. RustRover may default to CRLF; ensure `.gitattributes` or git config handles this.
+- **Snapshot testing (insta)**: To accept new snapshots, use `cargo insta accept` or rename `.snap.new` → `.snap` manually.
 
 ### Clippy Configuration
 
@@ -145,7 +140,7 @@ Spy-based tests (SpyRenderer, SpyPhysicsBackend captures) are acceptable for ver
 ### Rules
 
 1. **First attempt wins or gets documented.** If you try approach A, it fails, and approach B works — write a memory note explaining why B is correct and why A fails. Next session should never repeat A.
-2. **Record environment-specific gotchas immediately.** WSL/Windows path issues, cargo.exe quirks, bevy_ecs version-specific API differences, clippy false positives — anything that cost time to figure out goes into memory the moment it's resolved.
+2. **Record environment-specific gotchas immediately.** Windows environment issues, cargo quirks, bevy_ecs version-specific API differences, clippy false positives — anything that cost time to figure out goes into memory the moment it's resolved.
 3. **No re-discovery.** Before starting any non-trivial task, check memory for prior solutions. If a memory exists, use it. Don't re-derive from first principles what a previous session already learned.
 4. **Compact lessons, not journals.** Memory entries should be actionable: "X doesn't work because Y — do Z instead." Not a narrative of the debugging session.
 5. **Update stale lessons.** If a previously recorded workaround is no longer needed (e.g., a dependency updated), delete or update the memory entry rather than leaving it to confuse future sessions.
