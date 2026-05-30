@@ -360,3 +360,58 @@ fn when_signatures_sorted_then_lexicographic_on_axes() {
     // Assert
     assert_eq!(sigs, vec![a, b, c]);
 }
+
+proptest::proptest! {
+    #[test]
+    fn when_any_f32_axes_then_signature_clamps_to_unit_range(
+        a0 in proptest::num::f32::ANY,
+        a1 in proptest::num::f32::ANY,
+        a2 in proptest::num::f32::ANY,
+        a3 in proptest::num::f32::ANY,
+        a4 in proptest::num::f32::ANY,
+        a5 in proptest::num::f32::ANY,
+        a6 in proptest::num::f32::ANY,
+        a7 in proptest::num::f32::ANY,
+    ) {
+        let sig = CardSignature::new([a0, a1, a2, a3, a4, a5, a6, a7]);
+        for (i, &v) in sig.axes().iter().enumerate() {
+            assert!(
+                (-1.0..=1.0).contains(&v) || v.is_nan(),
+                "axis {i} = {v} out of [-1, 1]"
+            );
+        }
+    }
+
+    #[test]
+    fn when_any_two_signatures_then_distance_is_non_negative(
+        a in proptest::array::uniform8(-1.0_f32..=1.0),
+        b in proptest::array::uniform8(-1.0_f32..=1.0),
+    ) {
+        let sa = CardSignature::new(a);
+        let sb = CardSignature::new(b);
+        let dist = sa.distance_to(&sb);
+        assert!(dist >= 0.0, "distance was negative: {dist}");
+    }
+
+    #[test]
+    fn when_any_two_signatures_then_distance_is_symmetric(
+        a in proptest::array::uniform8(-1.0_f32..=1.0),
+        b in proptest::array::uniform8(-1.0_f32..=1.0),
+    ) {
+        let sa = CardSignature::new(a);
+        let sb = CardSignature::new(b);
+        let ab = sa.distance_to(&sb);
+        let ba = sb.distance_to(&sa);
+        assert!((ab - ba).abs() < 1e-5, "a→b={ab}, b→a={ba}");
+    }
+
+    #[test]
+    fn when_any_valid_inputs_then_geometric_level_is_below_max(
+        value in 0.0_f32..=1.0,
+        advance_rate in 0.01_f32..=0.99,
+        max_levels in 1_usize..=10,
+    ) {
+        let level = geometric_level(value, advance_rate, max_levels);
+        assert!(level < max_levels, "level {level} >= max {max_levels}");
+    }
+}

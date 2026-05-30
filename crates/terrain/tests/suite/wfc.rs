@@ -95,3 +95,28 @@ fn when_impossible_constraints_then_returns_error() {
     // Assert
     assert!(result.is_err());
 }
+
+proptest::proptest! {
+    #[test]
+    fn when_any_seed_with_full_adjacency_then_collapse_fills_all_cells(seed in proptest::num::u64::ANY) {
+        let a = TerrainId(0);
+        let b = TerrainId(1);
+        let mut table = ConstraintTable::new(vec![a, b]);
+        table.allow(a, a);
+        table.allow(a, b);
+        table.allow(b, a);
+        table.allow(b, b);
+
+        let mut grid = Grid::new(4, 4);
+        let mut rng = ChaCha8Rng::seed_from_u64(seed);
+
+        let result = collapse(&mut grid, &table, &mut rng);
+
+        assert!(result.is_ok(), "collapse failed with seed {seed}");
+        for y in 0..4 {
+            for x in 0..4 {
+                assert!(grid.get(x, y).is_some(), "cell ({x},{y}) unfilled, seed {seed}");
+            }
+        }
+    }
+}

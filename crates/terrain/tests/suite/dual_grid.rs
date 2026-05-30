@@ -69,3 +69,28 @@ fn when_visual_tile_straddles_edge_then_corners_include_border_default() {
     // All corners should be TerrainId(0) since the whole grid is uniform
     assert_eq!(tl.corners, [TerrainId(0); 4]);
 }
+
+proptest::proptest! {
+    #[test]
+    fn when_any_corners_and_primary_then_bitmask_is_4_bit(
+        c0 in proptest::num::u8::ANY,
+        c1 in proptest::num::u8::ANY,
+        c2 in proptest::num::u8::ANY,
+        c3 in proptest::num::u8::ANY,
+        primary in proptest::num::u8::ANY,
+    ) {
+        let corners = [TerrainId(c0), TerrainId(c1), TerrainId(c2), TerrainId(c3)];
+        let mask = corner_bitmask(corners, TerrainId(primary));
+        assert!(mask <= 15, "bitmask {mask} exceeds 4-bit range");
+    }
+
+    #[test]
+    fn when_any_grid_dimensions_then_visual_tile_count_is_w_plus_1_times_h_plus_1(
+        w in 1_usize..=16,
+        h in 1_usize..=16,
+    ) {
+        let grid = DualGrid::new(w, h, TerrainId(0));
+        let tiles = grid.visual_tiles();
+        assert_eq!(tiles.len(), (w + 1) * (h + 1));
+    }
+}
