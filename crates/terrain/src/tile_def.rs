@@ -178,10 +178,7 @@ pub const fn bitmask_to_variant(bitmask: u8) -> (TilePattern, u16) {
 /// given quad corners \[SW, SE, NE, NW\].
 fn bilinear(u: f32, v: f32, corners: [Vec2; 4]) -> Vec2 {
     let [sw, se, ne, nw] = corners;
-    (1.0 - u) * (1.0 - v) * sw
-        + u * (1.0 - v) * se
-        + (1.0 - u) * v * nw
-        + u * v * ne
+    (1.0 - u) * (1.0 - v) * sw + u * (1.0 - v) * se + (1.0 - u) * v * nw + u * v * ne
 }
 
 /// Transforms path commands from normalized \[0,1\]² tile space to world space

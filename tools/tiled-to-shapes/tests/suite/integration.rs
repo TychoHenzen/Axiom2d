@@ -38,10 +38,10 @@ fn write_test_tsx(path: &std::path::Path, png_name: &str) {
     // Map bitmask 0..15 → tile_id 0..15 (one-to-one for test)
     for bitmask in 0u8..16u8 {
         // Encode as wangid string from bitmask (NE=1, SE=2, SW=4, NW=8)
-        let ne = if bitmask & 1 != 0 { 1u8 } else { 0 };
-        let se = if bitmask & 2 != 0 { 1u8 } else { 0 };
-        let sw = if bitmask & 4 != 0 { 1u8 } else { 0 };
-        let nw = if bitmask & 8 != 0 { 1u8 } else { 0 };
+        let ne = u8::from(bitmask & 1 != 0);
+        let se = u8::from(bitmask & 2 != 0);
+        let sw = u8::from(bitmask & 4 != 0);
+        let nw = u8::from(bitmask & 8 != 0);
         wangtiles.push_str(&format!(
             "   <wangtile tileid=\"{bitmask}\" wangid=\"0,{ne},0,{se},0,{sw},0,{nw}\"/>\n"
         ));

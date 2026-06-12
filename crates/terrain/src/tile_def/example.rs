@@ -71,12 +71,7 @@ fn stone_definition() -> TerrainTileDefinition {
 fn make_solid(color: [f32; 4], tag: &str) -> TileVariant {
     TileVariant {
         pattern: TilePattern::Solid,
-        shapes: vec![rect_shape(
-            Vec2::ZERO,
-            Vec2::ONE,
-            color,
-            tag,
-        )],
+        shapes: vec![rect_shape(Vec2::ZERO, Vec2::ONE, color, tag)],
         edge_ids: [EdgeId::NONE; 4],
     }
 }
@@ -100,12 +95,7 @@ fn make_outer_corner(color: [f32; 4], tag: &str) -> TileVariant {
 fn make_edge(color: [f32; 4], tag: &str) -> TileVariant {
     TileVariant {
         pattern: TilePattern::Edge,
-        shapes: vec![rect_shape(
-            Vec2::ZERO,
-            Vec2::new(1.0, 0.5),
-            color,
-            tag,
-        )],
+        shapes: vec![rect_shape(Vec2::ZERO, Vec2::new(1.0, 0.5), color, tag)],
         edge_ids: [EdgeId::NONE, EdgeId(2), EdgeId(2), EdgeId::NONE],
     }
 }

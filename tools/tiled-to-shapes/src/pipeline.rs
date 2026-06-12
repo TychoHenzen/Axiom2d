@@ -261,7 +261,7 @@ mod tests {
         img
     }
 
-    /// Build a ParsedWangSet with a complete 16-tile mapping.
+    /// Build a `ParsedWangSet` with a complete 16-tile mapping.
     fn full_wang_set() -> ParsedWangSet {
         // For a complete set, each of the 16 bitmasks 0-15 maps to a tile.
         // We use a single-color tilesheet, so all tiles look the same.
