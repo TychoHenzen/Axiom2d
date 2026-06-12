@@ -1,0 +1,59 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.4",
+  "osm3s": {
+    "timestamp_osm_base": "2026-06-11T12:00:00Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org."
+  },
+  "elements": [
+    {
+      "type": "way",
+      "id": 111,
+      "tags": {
+        "landuse": "forest",
+        "name": "Sample Woods"
+      },
+      "geometry": [
+        {"lat": 51.500, "lon": -0.120},
+        {"lat": 51.502, "lon": -0.120},
+        {"lat": 51.502, "lon": -0.117},
+        {"lat": 51.500, "lon": -0.117},
+        {"lat": 51.500, "lon": -0.120}
+      ]
+    },
+    {
+      "type": "way",
+      "id": 222,
+      "tags": {
+        "natural": "water",
+        "name": "Sample Pond"
+      },
+      "geometry": [
+        {"lat": 51.501, "lon": -0.119},
+        {"lat": 51.5015, "lon": -0.119},
+        {"lat": 51.5015, "lon": -0.118},
+        {"lat": 51.501, "lon": -0.118},
+        {"lat": 51.501, "lon": -0.119}
+      ]
+    },
+    {
+      "type": "node",
+      "id": 333,
+      "lat": 51.5012,
+      "lon": -0.1185,
+      "tags": {
+        "amenity": "fountain"
+      }
+    },
+    {
+      "type": "node",
+      "id": 444,
+      "lat": 51.5025,
+      "lon": -0.121,
+      "tags": {
+        "historic": "monument",
+        "name": "Sample Monument"
+      }
+    }
+  ]
+}

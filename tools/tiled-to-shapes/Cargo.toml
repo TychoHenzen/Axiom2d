@@ -1,0 +1,21 @@
+[package]
+name = "tiled-to-shapes"
+edition.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "tiled-to-shapes"
+path = "src/main.rs"
+
+[dependencies]
+img-to-shape = { path = "../img-to-shape" }
+terrain = { path = "../../crates/terrain" }
+engine_render = { path = "../../crates/engine_render" }
+engine_core = { path = "../../crates/engine_core" }
+image = { workspace = true }
+glam = { workspace = true }
+thiserror = { workspace = true }
+quick-xml = { workspace = true }
+
+[lints]
+workspace = true

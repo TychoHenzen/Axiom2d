@@ -56,3 +56,4 @@ mod stash_pages;
 mod stash_render;
 mod stash_toggle;
 mod store;
+mod terrain;

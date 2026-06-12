@@ -1,5 +1,5 @@
 [workspace]
-members = ["img-to-shape", "img-to-shape-gui", "living-docs"]
+members = ["img-to-shape", "img-to-shape-gui", "living-docs", "tiled-to-shapes"]
 resolver = "3"
 
 [workspace.package]
@@ -13,6 +13,7 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 lyon = "1.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+quick-xml = { version = "0.37", features = ["serialize"] }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }

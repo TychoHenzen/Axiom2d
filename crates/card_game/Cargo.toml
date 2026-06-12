@@ -15,6 +15,7 @@ engine_render = { path = "../engine_render" }
 engine_physics = { path = "../engine_physics" }
 engine_scene = { path = "../engine_scene" }
 engine_ui = { path = "../engine_ui" }
+terrain = { path = "../terrain" }
 glam = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
@@ -30,6 +31,9 @@ naga = { workspace = true }
 proptest = { workspace = true }
 ron = { workspace = true }
 serde_json = { workspace = true }
+
+[build-dependencies]
+tiled-to-shapes = { path = "../../tools/tiled-to-shapes" }
 
 [[bench]]
 name = "bake"

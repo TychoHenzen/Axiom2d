@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cleartext permitted so the LAN booster transfer can open ws:// to a user-scanned
+     local IP. Map tiles (OpenStreetMap) still go over HTTPS regardless. Android 9+
+     blocks cleartext by default; without this the transfer feature fails at runtime. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true"/>
+</network-security-config>

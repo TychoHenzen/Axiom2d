@@ -2,6 +2,7 @@ pub mod dual_grid;
 pub mod material;
 pub mod prelude;
 pub mod shader;
+pub mod tile_def;
 pub mod wfc;
 
 use bevy_ecs::prelude::Resource;
