@@ -296,8 +296,10 @@ install_hooks() {
 
     echo ""
     echo "Hooks installed:"
-    echo "  pre-commit  → quality gate --soft (fast, <1s)"
-    echo "  pre-push    → quality gate full   (clippy + docs + dead-code + ratchets)"
+    echo "  pre-commit  → quality gate --soft (fast, <1s grep-based)"
+    echo "  pre-push    → quality gate --soft (same fast check)"
+    echo ""
+    echo "Hard gates (clippy, docs, dead-code) run in CI via quality.yml — not in hooks."
     echo ""
     echo "To bypass hooks in an emergency:"
     echo "  git commit --no-verify ..."

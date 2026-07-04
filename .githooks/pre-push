@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Pre-push: full quality gate (hard + soft).
-# Block push if quality has regressed.
+# Pre-push: soft ratchet check (same as pre-commit — fast, no cargo build).
+# Hard gates (clippy, docs, dead-code) run in CI via quality.yml.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -8,8 +8,8 @@ GATE_SCRIPT="$REPO_ROOT/scripts/quality-gate-check.sh"
 
 if [ -f "$GATE_SCRIPT" ]; then
     echo ""
-    echo "Running quality gate before push..."
-    bash "$GATE_SCRIPT" full
+    echo "Running quality gate (soft ratchets) before push..."
+    bash "$GATE_SCRIPT" --soft
 else
     echo "WARNING: quality-gate-check.sh not found, skipping pre-push quality gate"
 fi
