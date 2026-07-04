@@ -12,6 +12,9 @@ const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
 const MAX_PARTICLES: u32 = 100_000;
 const WORKGROUP_SIZE: u32 = 256;
+const GRID_W: u32 = 160;
+const GRID_H: u32 = 160;
+const TOTAL_GRID_CELLS: u32 = GRID_W * GRID_H;
 
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
@@ -53,12 +56,18 @@ struct Buffers {
     velocities: wgpu::Buffer,
     species: wgpu::Buffer,
     params: wgpu::Buffer,
+    cell_indices: wgpu::Buffer,
+    cell_counts: wgpu::Buffer,
+    cell_offsets: wgpu::Buffer,
+    sorted_indices: wgpu::Buffer,
 }
 
-struct ComputeState {
-    integrate_pipeline: wgpu::ComputePipeline,
-    bind_group: wgpu::BindGroup,
-    _bind_group_layout: wgpu::BindGroupLayout,
+struct ComputePipelines {
+    integrate: wgpu::ComputePipeline,
+    clear_cells: wgpu::ComputePipeline,
+    assign_cells: wgpu::ComputePipeline,
+    prefix_scan: wgpu::ComputePipeline,
+    scatter: wgpu::ComputePipeline,
 }
 
 struct State {
@@ -68,18 +77,21 @@ struct State {
     surface: wgpu::Surface<'static>,
     surface_config: wgpu::SurfaceConfiguration,
     buffers: Buffers,
-    compute: ComputeState,
+    particle_bg: wgpu::BindGroup,
+    grid_bg: wgpu::BindGroup,
+    pipelines: ComputePipelines,
     sim_params: SimParams,
 }
 
-fn create_particle_buffers(device: &wgpu::Device) -> Buffers {
-    let storage_rw =
+fn create_buffers(device: &wgpu::Device) -> Buffers {
+    let particle_storage =
         wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::VERTEX;
+    let grid_storage = wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST;
     Buffers {
         positions: device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("positions"),
-            size: u64::from(MAX_PARTICLES) * 8, // vec2<f32>
-            usage: storage_rw,
+            size: u64::from(MAX_PARTICLES) * 8,
+            usage: particle_storage,
             mapped_at_creation: false,
         }),
         velocities: device.create_buffer(&wgpu::BufferDescriptor {
@@ -90,14 +102,38 @@ fn create_particle_buffers(device: &wgpu::Device) -> Buffers {
         }),
         species: device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("species"),
-            size: u64::from(MAX_PARTICLES) * 4, // u32
-            usage: storage_rw,
+            size: u64::from(MAX_PARTICLES) * 4,
+            usage: particle_storage,
             mapped_at_creation: false,
         }),
         params: device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("sim_params"),
             size: size_of::<SimParams>() as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        }),
+        cell_indices: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("cell_indices"),
+            size: u64::from(MAX_PARTICLES) * 4,
+            usage: grid_storage,
+            mapped_at_creation: false,
+        }),
+        cell_counts: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("cell_counts"),
+            size: u64::from(TOTAL_GRID_CELLS) * 4,
+            usage: grid_storage,
+            mapped_at_creation: false,
+        }),
+        cell_offsets: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("cell_offsets"),
+            size: u64::from(TOTAL_GRID_CELLS) * 4,
+            usage: grid_storage,
+            mapped_at_creation: false,
+        }),
+        sorted_indices: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("sorted_indices"),
+            size: u64::from(MAX_PARTICLES) * 4,
+            usage: grid_storage,
             mapped_at_creation: false,
         }),
     }
@@ -129,8 +165,8 @@ fn uniform_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
     }
 }
 
-fn create_compute_state(device: &wgpu::Device, buffers: &Buffers) -> ComputeState {
-    let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+fn create_particle_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("particle_bgl"),
         entries: &[
             storage_entry(0, false), // positions
@@ -138,31 +174,30 @@ fn create_compute_state(device: &wgpu::Device, buffers: &Buffers) -> ComputeStat
             storage_entry(2, false), // species
             uniform_entry(7),        // params
         ],
-    });
+    })
+}
 
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("integrate_pl"),
-        bind_group_layouts: &[&bind_group_layout],
-        push_constant_ranges: &[],
-    });
+fn create_grid_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("grid_bgl"),
+        entries: &[
+            storage_entry(0, false), // cell_indices
+            storage_entry(1, false), // cell_counts
+            storage_entry(2, false), // cell_offsets
+            storage_entry(3, false), // sorted_indices
+        ],
+    })
+}
 
-    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("integrate"),
-        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/integrate.wgsl").into()),
-    });
-
-    let integrate_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("integrate"),
-        layout: Some(&pipeline_layout),
-        module: &shader,
-        entry_point: Some("main"),
-        compilation_options: wgpu::PipelineCompilationOptions::default(),
-        cache: None,
-    });
-
-    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+fn create_bind_groups(
+    device: &wgpu::Device,
+    buffers: &Buffers,
+    particle_bgl: &wgpu::BindGroupLayout,
+    grid_bgl: &wgpu::BindGroupLayout,
+) -> (wgpu::BindGroup, wgpu::BindGroup) {
+    let particle_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("particle_bg"),
-        layout: &bind_group_layout,
+        layout: particle_bgl,
         entries: &[
             wgpu::BindGroupEntry {
                 binding: 0,
@@ -182,11 +217,109 @@ fn create_compute_state(device: &wgpu::Device, buffers: &Buffers) -> ComputeStat
             },
         ],
     });
+    let grid_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("grid_bg"),
+        layout: grid_bgl,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: buffers.cell_indices.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: buffers.cell_counts.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: buffers.cell_offsets.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: buffers.sorted_indices.as_entire_binding(),
+            },
+        ],
+    });
+    (particle_bg, grid_bg)
+}
 
-    ComputeState {
-        integrate_pipeline,
-        bind_group,
-        _bind_group_layout: bind_group_layout,
+fn make_compute_pipeline(
+    device: &wgpu::Device,
+    layout: &wgpu::PipelineLayout,
+    module: &wgpu::ShaderModule,
+    entry: &str,
+    label: &str,
+) -> wgpu::ComputePipeline {
+    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some(label),
+        layout: Some(layout),
+        module,
+        entry_point: Some(entry),
+        compilation_options: wgpu::PipelineCompilationOptions::default(),
+        cache: None,
+    })
+}
+
+fn create_pipelines(
+    device: &wgpu::Device,
+    particle_bgl: &wgpu::BindGroupLayout,
+    grid_bgl: &wgpu::BindGroupLayout,
+) -> ComputePipelines {
+    let integrate_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("integrate_pl"),
+        bind_group_layouts: &[particle_bgl],
+        push_constant_ranges: &[],
+    });
+    let spatial_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("spatial_pl"),
+        bind_group_layouts: &[particle_bgl, grid_bgl],
+        push_constant_ranges: &[],
+    });
+
+    let integrate_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("integrate"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/integrate.wgsl").into()),
+    });
+    let spatial_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("spatial_hash"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/spatial_hash.wgsl").into()),
+    });
+
+    ComputePipelines {
+        integrate: make_compute_pipeline(
+            device,
+            &integrate_layout,
+            &integrate_shader,
+            "main",
+            "integrate",
+        ),
+        clear_cells: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &spatial_shader,
+            "clear_cells",
+            "clear_cells",
+        ),
+        assign_cells: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &spatial_shader,
+            "assign_cells",
+            "assign_cells",
+        ),
+        prefix_scan: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &spatial_shader,
+            "prefix_scan",
+            "prefix_scan",
+        ),
+        scatter: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &spatial_shader,
+            "scatter",
+            "scatter",
+        ),
     }
 }
 
@@ -232,8 +365,12 @@ impl State {
         };
         surface.configure(&device, &surface_config);
 
-        let buffers = create_particle_buffers(&device);
-        let compute = create_compute_state(&device, &buffers);
+        let buffers = create_buffers(&device);
+        let particle_bgl = create_particle_bgl(&device);
+        let grid_bgl = create_grid_bgl(&device);
+        let (particle_bg, grid_bg) =
+            create_bind_groups(&device, &buffers, &particle_bgl, &grid_bgl);
+        let pipelines = create_pipelines(&device, &particle_bgl, &grid_bgl);
 
         let sim_params = SimParams {
             particle_count: 0,
@@ -248,8 +385,8 @@ impl State {
             damping: 100.0,
             friction_mu: 0.3,
             grid_cell_size: 0.01,
-            grid_width: 160,
-            grid_height: 160,
+            grid_width: GRID_W,
+            grid_height: GRID_H,
             _pad: [0; 2],
         };
 
@@ -260,7 +397,9 @@ impl State {
             surface,
             surface_config,
             buffers,
-            compute,
+            particle_bg,
+            grid_bg,
+            pipelines,
             sim_params,
         }
     }
@@ -274,8 +413,16 @@ impl State {
     }
 
     fn simulate(&mut self) {
-        self.queue
-            .write_buffer(&self.buffers.params, 0, bytemuck::bytes_of(&self.sim_params));
+        self.queue.write_buffer(
+            &self.buffers.params,
+            0,
+            bytemuck::bytes_of(&self.sim_params),
+        );
+
+        let pc = self.sim_params.particle_count;
+        let particle_wg = (pc + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
+        let grid_wg = (TOTAL_GRID_CELLS + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
+
         let mut encoder =
             self.device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -283,13 +430,32 @@ impl State {
                 });
         {
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("spatial_hash"),
+                ..Default::default()
+            });
+            pass.set_bind_group(0, &self.particle_bg, &[]);
+            pass.set_bind_group(1, &self.grid_bg, &[]);
+
+            pass.set_pipeline(&self.pipelines.clear_cells);
+            pass.dispatch_workgroups(grid_wg, 1, 1);
+
+            pass.set_pipeline(&self.pipelines.assign_cells);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
+
+            pass.set_pipeline(&self.pipelines.prefix_scan);
+            pass.dispatch_workgroups(1, 1, 1);
+
+            pass.set_pipeline(&self.pipelines.scatter);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
+        }
+        {
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 label: Some("integrate"),
                 ..Default::default()
             });
-            pass.set_pipeline(&self.compute.integrate_pipeline);
-            pass.set_bind_group(0, &self.compute.bind_group, &[]);
-            let workgroups = (self.sim_params.particle_count + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
-            pass.dispatch_workgroups(workgroups, 1, 1);
+            pass.set_bind_group(0, &self.particle_bg, &[]);
+            pass.set_pipeline(&self.pipelines.integrate);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
     }
