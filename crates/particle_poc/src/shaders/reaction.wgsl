@@ -7,8 +7,6 @@ struct Params {
     wall_min_y: f32,
     wall_max_x: f32,
     wall_max_y: f32,
-    spring_k: f32,
-    damping: f32,
     friction_mu: f32,
     grid_cell_size: f32,
     grid_width: u32,
@@ -17,9 +15,16 @@ struct Params {
     _pad1: u32,
 }
 
+const MAX_SPECIES: u32 = 8u;
+
+struct ReactionMatrix {
+    results: array<u32, 64>, // MAX_SPECIES * MAX_SPECIES = 64
+}
+
 @group(0) @binding(0) var<storage, read_write> positions: array<vec2<f32>>;
 @group(0) @binding(2) var<storage, read_write> species: array<u32>;
 @group(0) @binding(7) var<uniform> params: Params;
+@group(0) @binding(9) var<storage, read> reaction_matrix: ReactionMatrix;
 
 @group(1) @binding(0) var<storage, read_write> cell_indices: array<u32>;
 @group(1) @binding(1) var<storage, read_write> cell_counts: array<u32>;
@@ -34,20 +39,39 @@ fn cell_id(cx: i32, cy: i32) -> u32 {
     return u32(cy) * params.grid_width + u32(cx);
 }
 
-// Red(0) + Blue(1) in contact → both transmute to Green(2)
+fn morton_encode(x: u32, y: u32) -> u32 {
+    var result = 0u;
+    for (var i = 0u; i < 8u; i++) {
+        result |= ((x >> i) & 1u) << (2u * i);
+        result |= ((y >> i) & 1u) << (2u * i + 1u);
+    }
+    return result;
+}
+
+fn morton_decode(key: u32) -> vec2<i32> {
+    var x = 0u;
+    var y = 0u;
+    for (var i = 0u; i < 8u; i++) {
+        x |= ((key >> (2u * i)) & 1u) << i;
+        y |= ((key >> (2u * i + 1u)) & 1u) << i;
+    }
+    return vec2<i32>(i32(x), i32(y));
+}
+
+// Data-driven reaction: lookup result from reaction_matrix[si * MAX_SPECIES + sj].
+// A result of 0 means no reaction. Default setup: Red(0)+Blue(1) → Green(2).
 @compute @workgroup_size(256)
 fn react(@builtin(global_invocation_id) id: vec3<u32>) {
     let i = id.x;
     if i >= params.particle_count { return; }
 
     let si = species[i];
-    // Only Red or Blue can react; Green is inert
-    if si > 1u { return; }
+    if si >= MAX_SPECIES { return; }
 
     let pos_i = positions[i];
     let contact_dist = 2.0 * params.particle_radius;
-    let my_cell = cell_indices[i];
-    let cc = cell_coords(my_cell);
+    let my_morton = cell_indices[i];
+    let cc = morton_decode(my_morton);
 
     for (var dy = -1; dy <= 1; dy++) {
         for (var dx = -1; dx <= 1; dx++) {
@@ -56,22 +80,26 @@ fn react(@builtin(global_invocation_id) id: vec3<u32>) {
             if nx < 0 || ny < 0 || nx >= i32(params.grid_width) || ny >= i32(params.grid_height) {
                 continue;
             }
-            let neighbor_cell = cell_id(nx, ny);
-            let start = cell_offsets[neighbor_cell];
-            let count = cell_counts[neighbor_cell];
+            let neighbor_cell = morton_encode(u32(nx), u32(ny));
+            let bucket = neighbor_cell % (params.grid_width * params.grid_height);
+            let start = cell_offsets[bucket];
+            let count = cell_counts[bucket];
 
             for (var k = 0u; k < count; k++) {
                 let j = sorted_indices[start + k];
                 if j == i { continue; }
 
                 let sj = species[j];
-                // Need opposite species: Red(0)+Blue(1) or Blue(1)+Red(0)
-                if si == sj || sj > 1u { continue; }
+                if sj >= MAX_SPECIES { continue; }
 
-                let dist = distance(pos_i, positions[j]);
-                if dist < contact_dist {
-                    // Transmute both to Green
-                    species[i] = 2u;
+                let result = reaction_matrix.results[si * MAX_SPECIES + sj];
+                if result == 0u { continue; }
+
+                let delta = pos_i - positions[j];
+                let dist_sq = dot(delta, delta);
+                let contact_sq = contact_dist * contact_dist;
+                if dist_sq < contact_sq {
+                    species[i] = result;
                     return;
                 }
             }

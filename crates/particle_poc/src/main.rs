@@ -22,14 +22,21 @@ const HOPPER_RIGHT_HALF: f32 = 0.2;
 const HOPPER_Y: f32 = 0.75;
 const CONVEYOR_PIVOT_X: f32 = 0.0;
 const CONVEYOR_PIVOT_Y: f32 = -0.5;
-const GRID_W: u32 = 160;
-const GRID_H: u32 = 160;
+const GRID_W: u32 = 256;
+const GRID_H: u32 = 256;
 const TOTAL_GRID_CELLS: u32 = GRID_W * GRID_H;
-// 16 substeps of dt=1/960 → exactly 1/60 s of simulated time per frame (real
-// time at 60 FPS). Many small substeps with one constraint iteration each
-// converge far better than few substeps with many iterations (Macklin et al.,
-// "Small Steps in Physics Simulation"): constraint error scales with dt².
+// 8 substeps of dt=1/480 = exactly 1/60s per frame.
 const SUB_STEPS: u32 = 16;
+
+const MAX_SPECIES: u32 = 8;
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+struct ReactionMatrix {
+    // Dense 8×8 flat array: result[species_A * MAX_SPECIES + species_B].
+    // Row/col 0 = Red, 1 = Blue, 2 = Green, 3-7 = reserved.
+    results: [u32; (MAX_SPECIES * MAX_SPECIES) as usize],
+}
 
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
@@ -42,8 +49,6 @@ struct SimParams {
     wall_min_y: f32,
     wall_max_x: f32,
     wall_max_y: f32,
-    spring_k: f32,
-    damping: f32,
     friction_mu: f32,
     grid_cell_size: f32,
     grid_width: u32,
@@ -73,14 +78,30 @@ struct RenderParams {
     particle_count: u32,
 }
 
+fn parse_flag_arg(name: &str, default: u32) -> u32 {
+    let mut args = std::env::args();
+    while let Some(arg) = args.next() {
+        if arg == name {
+            if let Some(val) = args.next() {
+                if let Ok(n) = val.parse::<u32>() {
+                    return n;
+                }
+            }
+        }
+    }
+    default
+}
+
 fn main() {
     let benchmark = std::env::args().any(|a| a == "--benchmark");
     let diagnose = std::env::args().any(|a| a == "--diagnose");
+    let sub_steps = parse_flag_arg("--substeps", SUB_STEPS);
     let event_loop = EventLoop::new().expect("event loop");
     let mut app = App {
         state: None,
         benchmark,
         diagnose,
+        sub_steps,
     };
     event_loop.run_app(&mut app).expect("run");
 }
@@ -89,6 +110,7 @@ struct App {
     state: Option<State>,
     benchmark: bool,
     diagnose: bool,
+    sub_steps: u32,
 }
 
 struct Buffers {
@@ -102,17 +124,20 @@ struct Buffers {
     cell_counts: wgpu::Buffer,
     cell_offsets: wgpu::Buffer,
     sorted_indices: wgpu::Buffer,
+    morton_keys: wgpu::Buffer,
+    reaction_matrix: wgpu::Buffer,
 }
 
 struct ComputePipelines {
     predict: wgpu::ComputePipeline,
     clear_cells: wgpu::ComputePipeline,
-    assign_cells: wgpu::ComputePipeline,
     prefix_scan: wgpu::ComputePipeline,
-    scatter: wgpu::ComputePipeline,
     project: wgpu::ComputePipeline,
     apply: wgpu::ComputePipeline,
     reaction: wgpu::ComputePipeline,
+    morton_keys: wgpu::ComputePipeline,
+    morton_count: wgpu::ComputePipeline,
+    morton_scatter: wgpu::ComputePipeline,
 }
 
 struct RenderState {
@@ -143,6 +168,7 @@ struct State {
     diag_staging: Option<wgpu::Buffer>,
     conveyor_time: f32,
     conveyor_buf: wgpu::Buffer,
+    sub_steps: u32,
 }
 
 struct FpsTracker {
@@ -253,6 +279,18 @@ fn create_buffers(device: &wgpu::Device) -> Buffers {
             usage: grid_storage,
             mapped_at_creation: false,
         }),
+        morton_keys: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("morton_keys"),
+            size: u64::from(MAX_PARTICLES) * 4,
+            usage: grid_storage,
+            mapped_at_creation: false,
+        }),
+        reaction_matrix: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("reaction_matrix"),
+            size: size_of::<ReactionMatrix>() as u64,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        }),
     }
 }
 
@@ -293,6 +331,7 @@ fn create_particle_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
             storage_entry(4, false), // prev_positions
             uniform_entry(7),        // params
             uniform_entry(8),        // conveyor
+            storage_entry(9, true),  // reaction_matrix (read-only storage)
         ],
     })
 }
@@ -305,6 +344,7 @@ fn create_grid_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
             storage_entry(1, false), // cell_counts
             storage_entry(2, false), // cell_offsets
             storage_entry(3, false), // sorted_indices
+            storage_entry(4, false), // morton_keys
         ],
     })
 }
@@ -348,6 +388,10 @@ fn create_bind_groups(
                 binding: 8,
                 resource: conveyor_buf.as_entire_binding(),
             },
+            wgpu::BindGroupEntry {
+                binding: 9,
+                resource: buffers.reaction_matrix.as_entire_binding(),
+            },
         ],
     });
     let grid_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -369,6 +413,10 @@ fn create_bind_groups(
             wgpu::BindGroupEntry {
                 binding: 3,
                 resource: buffers.sorted_indices.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: buffers.morton_keys.as_entire_binding(),
             },
         ],
     });
@@ -424,6 +472,10 @@ fn create_pipelines(
         label: Some("project"),
         source: wgpu::ShaderSource::Wgsl(include_str!("shaders/project.wgsl").into()),
     });
+    let morton_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("morton_sort"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/morton_sort.wgsl").into()),
+    });
 
     ComputePipelines {
         predict: make_compute_pipeline(
@@ -440,26 +492,12 @@ fn create_pipelines(
             "clear_cells",
             "clear_cells",
         ),
-        assign_cells: make_compute_pipeline(
-            device,
-            &spatial_layout,
-            &spatial_shader,
-            "assign_cells",
-            "assign_cells",
-        ),
         prefix_scan: make_compute_pipeline(
             device,
             &spatial_layout,
             &spatial_shader,
             "prefix_scan",
             "prefix_scan",
-        ),
-        scatter: make_compute_pipeline(
-            device,
-            &spatial_layout,
-            &spatial_shader,
-            "scatter",
-            "scatter",
         ),
         project: make_compute_pipeline(
             device,
@@ -475,6 +513,27 @@ fn create_pipelines(
             &reaction_shader,
             "react",
             "reaction",
+        ),
+        morton_keys: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &morton_shader,
+            "morton_keys_kernel",
+            "morton_keys",
+        ),
+        morton_count: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &morton_shader,
+            "morton_count",
+            "morton_count",
+        ),
+        morton_scatter: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &morton_shader,
+            "morton_scatter",
+            "morton_scatter",
         ),
     }
 }
@@ -594,7 +653,7 @@ fn create_render_state(
 }
 
 impl State {
-    fn new(window: Arc<Window>, benchmark: bool, diagnose: bool) -> Self {
+    fn new(window: Arc<Window>, benchmark: bool, diagnose: bool, sub_steps: u32) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let surface = instance.create_surface(window.clone()).expect("surface");
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -665,17 +724,24 @@ impl State {
             wall_min_y: -0.8,
             wall_max_x: 0.8,
             wall_max_y: 0.8,
-            // spring_k / damping are unused since the PBD rewrite (contacts are
-            // position constraints, not spring forces). Kept as zeroed fields so
-            // the uniform layout shared by all shaders stays unchanged.
-            spring_k: 0.0,
-            damping: 0.0,
             friction_mu: 0.3,
-            grid_cell_size: 0.01,
+            grid_cell_size: 1.6 / GRID_W as f32,
             grid_width: GRID_W,
             grid_height: GRID_H,
             _pad: [0; 2],
         };
+
+        // Initialize reaction matrix: Red(0)+Blue(1) → Green(2), symmetric.
+        let mut reaction_matrix = ReactionMatrix {
+            results: [0u32; (MAX_SPECIES * MAX_SPECIES) as usize],
+        };
+        reaction_matrix.results[(0 * MAX_SPECIES + 1) as usize] = 2; // Red + Blue → Green
+        reaction_matrix.results[(1 * MAX_SPECIES + 0) as usize] = 2; // Blue + Red → Green
+        queue.write_buffer(
+            &buffers.reaction_matrix,
+            0,
+            bytemuck::bytes_of(&reaction_matrix),
+        );
 
         Self {
             window,
@@ -699,7 +765,61 @@ impl State {
             diag_staging: None,
             conveyor_time: 0.0,
             conveyor_buf,
+            sub_steps,
         }
+    }
+
+    fn verify_pile(&mut self) -> bool {
+        let n = self.sim_params.particle_count as usize;
+        let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("pile_staging"),
+            size: u64::from(MAX_PARTICLES) * 8,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("pile"),
+            });
+        encoder.copy_buffer_to_buffer(
+            &self.buffers.positions,
+            0,
+            &staging,
+            0,
+            u64::from(MAX_PARTICLES) * 8,
+        );
+        self.queue.submit(std::iter::once(encoder.finish()));
+        let slice = staging.slice(..);
+        slice.map_async(wgpu::MapMode::Read, |r| r.expect("map pile staging"));
+        self.device.poll(wgpu::Maintain::Wait);
+        let data = slice.get_mapped_range();
+        let positions: &[[f32; 2]] = bytemuck::cast_slice(&data[..n * 8]);
+        let mut min_y = f32::MAX;
+        let mut max_y = f32::MIN;
+        let mut sum_y = 0.0;
+        let walls = &self.sim_params;
+        for p in positions.iter().take(n) {
+            min_y = min_y.min(p[1]);
+            max_y = max_y.max(p[1]);
+            sum_y += p[1] as f64;
+        }
+        let avg_y = sum_y / n as f64;
+        let pile_floor = walls.wall_min_y + 5.0 * walls.particle_radius;
+        let above = positions
+            .iter()
+            .take(n)
+            .filter(|p| p[1] > pile_floor)
+            .count();
+        let pct = above as f32 / n as f32 * 100.0;
+        let ok = pct >= 90.0;
+        println!(
+            "Pile: min_y={min_y:.3} max_y={max_y:.3} avg_y={avg_y:.3} {above}/{n} ({pct:.1}%) above y={pile_floor:.3} — {}",
+            if ok { "PASS" } else { "FAIL" }
+        );
+        drop(data);
+        staging.unmap();
+        ok
     }
 
     fn read_diagnostics(&mut self) {
@@ -961,7 +1081,7 @@ impl State {
                 label: Some("compute"),
             });
 
-        for _ in 0..SUB_STEPS {
+        for _ in 0..self.sub_steps {
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 label: Some("pbd_substep"),
                 ..Default::default()
@@ -969,21 +1089,22 @@ impl State {
             pass.set_bind_group(0, &self.particle_bg, &[]);
             pass.set_bind_group(1, &self.grid_bg, &[]);
 
-            // Predict positions first so the hash grid matches where
-            // particles actually are during constraint projection.
             pass.set_pipeline(&self.pipelines.predict);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
+
+            pass.set_pipeline(&self.pipelines.morton_keys);
             pass.dispatch_workgroups(particle_wg, 1, 1);
 
             pass.set_pipeline(&self.pipelines.clear_cells);
             pass.dispatch_workgroups(grid_wg, 1, 1);
 
-            pass.set_pipeline(&self.pipelines.assign_cells);
+            pass.set_pipeline(&self.pipelines.morton_count);
             pass.dispatch_workgroups(particle_wg, 1, 1);
 
             pass.set_pipeline(&self.pipelines.prefix_scan);
             pass.dispatch_workgroups(1, 1, 1);
 
-            pass.set_pipeline(&self.pipelines.scatter);
+            pass.set_pipeline(&self.pipelines.morton_scatter);
             pass.dispatch_workgroups(particle_wg, 1, 1);
 
             pass.set_pipeline(&self.pipelines.project);
@@ -1097,10 +1218,15 @@ impl State {
                 self.device.poll(wgpu::Maintain::Wait);
                 let elapsed = self.bench_start.unwrap().elapsed();
                 let measured_frames = self.bench_frame - WARMUP_FRAMES;
-                let avg_ms = elapsed.as_secs_f64() * 1000.0 / f64::from(measured_frames);
                 let count = self.sim_params.particle_count;
-                let verdict = if avg_ms < 16.67 { "PASS" } else { "FAIL" };
-                println!("Benchmark: {measured_frames} frames in {:.2}s, {count} particles", elapsed.as_secs_f64());
+                let avg_ms = elapsed.as_secs_f64() * 1000.0 / f64::from(measured_frames);
+                let frame_ok = avg_ms < 16.67;
+                let pile_ok = self.verify_pile();
+                let verdict = if frame_ok && pile_ok { "PASS" } else { "FAIL" };
+                println!(
+                    "Benchmark: {measured_frames} frames in {:.2}s, {count} particles",
+                    elapsed.as_secs_f64()
+                );
                 println!("Average frame time: {avg_ms:.2}ms");
                 println!("Result: {verdict}");
                 self.bench_done = true;
@@ -1128,7 +1254,12 @@ impl ApplicationHandler for App {
                 )
                 .expect("window"),
         );
-        self.state = Some(State::new(window, self.benchmark, self.diagnose));
+        self.state = Some(State::new(
+            window,
+            self.benchmark,
+            self.diagnose,
+            self.sub_steps,
+        ));
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {

@@ -7,8 +7,6 @@ struct Params {
     wall_min_y: f32,
     wall_max_x: f32,
     wall_max_y: f32,
-    spring_k: f32,
-    damping: f32,
     friction_mu: f32,
     grid_cell_size: f32,
     grid_width: u32,

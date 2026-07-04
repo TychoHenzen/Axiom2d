@@ -7,8 +7,6 @@ struct Params {
     wall_min_y: f32,
     wall_max_x: f32,
     wall_max_y: f32,
-    spring_k: f32,
-    damping: f32,
     friction_mu: f32,
     grid_cell_size: f32,
     grid_width: u32,
@@ -48,6 +46,26 @@ fn cell_id(cx: i32, cy: i32) -> u32 {
     return u32(cy) * params.grid_width + u32(cx);
 }
 
+// Morton (Z-order) encode for 8-bit grid coords (grid up to 256×256).
+fn morton_encode(x: u32, y: u32) -> u32 {
+    var result = 0u;
+    for (var i = 0u; i < 8u; i++) {
+        result |= ((x >> i) & 1u) << (2u * i);
+        result |= ((y >> i) & 1u) << (2u * i + 1u);
+    }
+    return result;
+}
+
+fn morton_decode(key: u32) -> vec2<i32> {
+    var x = 0u;
+    var y = 0u;
+    for (var i = 0u; i < 8u; i++) {
+        x |= ((key >> (2u * i)) & 1u) << i;
+        y |= ((key >> (2u * i + 1u)) & 1u) << i;
+    }
+    return vec2<i32>(i32(x), i32(y));
+}
+
 // SOR factor for the contact-count-averaged Jacobi update (Macklin et al.).
 // Corrections are averaged over contacts (ω/n), not summed: summing makes a
 // particle with ~6 neighbors overshoot 3× and oscillate (measured as KE
@@ -77,8 +95,8 @@ fn project(@builtin(global_invocation_id) id: vec3<u32>) {
     var correction = vec2<f32>(0.0);
     var contact_count = 0u;
 
-    let my_cell = cell_indices[i];
-    let cc = cell_coords(my_cell);
+    let my_morton = cell_indices[i];
+    let cc = morton_decode(my_morton);
 
     for (var dy = -1; dy <= 1; dy++) {
         for (var dx = -1; dx <= 1; dx++) {
@@ -87,9 +105,10 @@ fn project(@builtin(global_invocation_id) id: vec3<u32>) {
             if nx < 0 || ny < 0 || nx >= i32(params.grid_width) || ny >= i32(params.grid_height) {
                 continue;
             }
-            let neighbor_cell = cell_id(nx, ny);
-            let start = cell_offsets[neighbor_cell];
-            let count = cell_counts[neighbor_cell];
+            let neighbor_cell = morton_encode(u32(nx), u32(ny));
+            let bucket = neighbor_cell % (params.grid_width * params.grid_height);
+            let start = cell_offsets[bucket];
+            let count = cell_counts[bucket];
 
             for (var k = 0u; k < count; k++) {
                 let j = sorted_indices[start + k];
@@ -97,9 +116,11 @@ fn project(@builtin(global_invocation_id) id: vec3<u32>) {
 
                 let pos_j = positions[j];
                 let delta = pos_i - pos_j;
-                let dist = length(delta);
-                if dist >= contact_dist { continue; }
+                let dist_sq = dot(delta, delta);
+                let contact_sq = contact_dist * contact_dist;
+                if dist_sq >= contact_sq { continue; }
 
+                let dist = sqrt(dist_sq);
                 let overlap = contact_dist - dist;
                 contact_count += 1u;
 

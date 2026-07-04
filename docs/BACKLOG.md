@@ -20,6 +20,19 @@ Nothing is currently in progress. Pick one of these next.
 
 ---
 
+## Particle Idle Lessons Learned
+
+Captured from the standalone GPU PBD particle simulation proof-of-concept (`crates/particle_poc/`).
+
+- `PL-001` (`Open`): PBD over DEM for real-time particle simulation. DEM spring-dashpot requires impractically small timesteps for stiff contacts; PBD position projection with SOR (ω=1.2) converges faster and is inherently stable. Reference: Ten Minute Physics by Matthias Müller.
+- `PL-002` (`Open`): SoA buffer layout mandatory for GPU compute. Separate position/velocity/species buffers beat interleaved AoS by 30-45% throughput — verified in MDPI 2025 spatial-hash SPH benchmarks and confirmed in the PoC.
+- `PL-003` (`Open`): Count-sort + parallel prefix-scan spatial hash is the O(n) neighbor-search baseline. Grid cell size ≥ interaction radius; each particle checks 9 neighbor cells (2D). PoC sustains 100k particles at 60 FPS with this approach.
+- `PL-004` (`Open`): Morton code (Z-order curve) spatial reordering improves cache coherency. Reorder sorted_indices by Morton key every N frames to keep particles spatially clustered in the neighbor-search traversal. Reference: gpu-physics-engine project reorders every 4 seconds.
+
+---
+
+---
+
 ## Priority 2 — Card Game Features
 
 - `I11` (`Open`): Game session state machine.

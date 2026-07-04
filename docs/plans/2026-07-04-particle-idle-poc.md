@@ -1,4 +1,4 @@
-# Particle Idle PoC — GPU DEM Solver — Requirements Spec
+# Particle Idle PoC — GPU PBD Solver — Requirements Spec
 
 <claude_instructions>
 **For Claude (/goal):** Work through each incomplete step below.
@@ -26,7 +26,7 @@ Claude cannot self-confirm them, and an unrequested one holds the DoD at INCOMPL
 A confirmed verdict is recorded until the proof changes.
 </claude_instructions>
 
-**Goal:** Prove a GPU compute DEM particle solver sustains 100k particles at 60 FPS with gravity, containment, reactions, and a Rapier2D kinematic conveyor on the Axiom2d wgpu stack.
+**Goal:** Prove a GPU compute PBD particle solver sustains 100k particles at 60 FPS with gravity, containment, reactions, and a rotating kinematic conveyor on the Axiom2d wgpu stack.
 
 **Date:** 2026-07-04
 **Target:** `C:\Users\siriu\RustroverProjects\Axiom2d`
@@ -38,7 +38,7 @@ A confirmed verdict is recorded until the proof changes.
 ## Decisions (locked with user)
 
 <decisions>
-- **Algorithm**: GPU DEM (spring-dashpot normal + Coulomb friction), not PBD/XPBD
+- **Algorithm**: GPU PBD (position-based dynamics with SOR contact projection), per Ten Minute Physics reference
 - **Spatial search**: Count-sort + prefix-scan spatial hash on GPU
 - **Rendering**: Instanced colored circles, species→color
 - **Scene**: Hopper spawns Red/Blue particles into a box; 1 reaction (Red+Blue→Green)
@@ -54,7 +54,7 @@ A confirmed verdict is recorded until the proof changes.
 ## Functional
 - Particles spawn from a hopper region at screen top, fall under gravity into a box container
 - Two species: Red (0) and Blue (1). Reaction: Red + Blue within contact radius → Green (2)
-- DEM contact forces: Hertzian spring-dashpot normal force + Coulomb tangential friction
+- PBD contact projection: SOR-accelerated Jacobi position correction + positional Coulomb friction
 - Spatial hash grid (cell size ≥ interaction radius) for O(n) neighbor search
 - Box boundaries (4 walls) as collision constraints
 - Particle cap: 100k
@@ -63,7 +63,7 @@ A confirmed verdict is recorded until the proof changes.
 ## Non-Functional
 - 100k particles at 60 FPS sustained (avg frame time < 16.67ms) on RTX 3060+
 - SoA GPU buffer layout (position, velocity, species — no CPU readback in hot path)
-- Fixed timestep sub-stepping for DEM stability
+- Fixed timestep sub-stepping for PBD stability
 - Performance overlay: FPS, particle count, sim time per frame
 - Windows native (x86_64-pc-windows-msvc, DX12 via wgpu)
 
