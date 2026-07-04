@@ -69,7 +69,7 @@ A 3-tier ratcheting gate enforces that code quality only improves over time. Ful
 - **Trend advisories** (warn only): magic literals, function length, nesting depth, file length
 
 **Local check**: `./scripts/quality-gate-check.sh [--diff|--soft|--hard|--update|--install-hooks]`
-**Git hooks**: `./scripts/quality-gate-check.sh --install-hooks` sets up `pre-commit` (soft ratchets, <1s) and `pre-push` (full gate). Hooks live in tracked `.githooks/` configured via `core.hooksPath`.
+**Git hooks**: `./scripts/quality-gate-check.sh --install-hooks` sets up `pre-commit` (soft ratchets, <1s). Hooks live in tracked `.githooks/` configured via `core.hooksPath`. Hard gates run in CI only — no pre-push hook (commit+push always paired, pre-commit sufficient).
 
 When quality improves (e.g., test count increases), run `--update` to ratchet the baseline down. Intentional regressions require an override entry in the baseline RON file with a reason.
 

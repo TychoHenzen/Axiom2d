@@ -292,12 +292,11 @@ install_hooks() {
     fi
 
     # Ensure hook scripts are executable
-    chmod +x "$PROJECT_ROOT/.githooks/pre-commit" "$PROJECT_ROOT/.githooks/pre-push" 2>/dev/null || true
+    chmod +x "$PROJECT_ROOT/.githooks/pre-commit" 2>/dev/null || true
 
     echo ""
     echo "Hooks installed:"
     echo "  pre-commit  → quality gate --soft (fast, <1s grep-based)"
-    echo "  pre-push    → quality gate --soft (same fast check)"
     echo ""
     echo "Hard gates (clippy, docs, dead-code) run in CI via quality.yml — not in hooks."
     echo ""

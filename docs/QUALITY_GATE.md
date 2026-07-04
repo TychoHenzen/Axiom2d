@@ -114,29 +114,21 @@ Rationale: These have false positives (data tables, trait definitions, vertex co
 
 ### Local Check
 
-Run before pushing:
-
 ```bash
-# Full gate (all tiers)
-cargo run --bin quality-gate -- check
+# Show current vs baseline diff
+./scripts/quality-gate-check.sh --diff
+
+# Soft ratchets only (fast, <1s)
+./scripts/quality-gate-check.sh --soft
+
+# Full gate (hard + soft — slow, runs cargo builds)
+./scripts/quality-gate-check.sh
 
 # Auto-update baseline after improvement
-cargo run --bin quality-gate -- update-baseline
+./scripts/quality-gate-check.sh --update
 
-# Show current vs baseline diff
-cargo run --bin quality-gate -- diff
-```
-
-Without the binary (lightweight check):
-
-```bash
-# Hard gates
-cargo clippy --workspace --all-targets -- -D warnings
-cargo doc --workspace --no-deps 2>&1 | grep -c "warning"
-
-# Soft ratchets
-grep -rn "TODO\|FIXME\|HACK" crates/ --include="*.rs" | grep -v "tests/" | wc -l
-grep -rn "\.unwrap()" crates/ --include="*.rs" | grep -v "tests/" | wc -l
+# Install git pre-commit hook
+./scripts/quality-gate-check.sh --install-hooks
 ```
 
 ### Auto-Baseline Updates
