@@ -12,6 +12,7 @@ wgpu = { workspace = true }
 winit = { workspace = true }
 pollster = { workspace = true }
 bytemuck = { workspace = true }
+rapier2d = { workspace = true }
 
 [lints]
 workspace = true

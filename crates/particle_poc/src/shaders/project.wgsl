@@ -17,11 +17,23 @@ struct Params {
     _pad1: u32,
 }
 
+struct Conveyor {
+    pivot_x: f32,
+    pivot_y: f32,
+    cos_angle: f32,
+    sin_angle: f32,
+    half_width: f32,
+    half_height: f32,
+    angular_velocity: f32,
+    _pad0: u32,
+}
+
 @group(0) @binding(0) var<storage, read_write> positions: array<vec2<f32>>;
 @group(0) @binding(1) var<storage, read_write> velocities: array<vec2<f32>>;
 @group(0) @binding(3) var<storage, read_write> corrections: array<vec2<f32>>;
 @group(0) @binding(4) var<storage, read_write> prev_positions: array<vec2<f32>>;
 @group(0) @binding(7) var<uniform> params: Params;
+@group(0) @binding(8) var<uniform> conveyor: Conveyor;
 
 @group(1) @binding(0) var<storage, read_write> cell_indices: array<u32>;
 @group(1) @binding(1) var<storage, read_write> cell_counts: array<u32>;
@@ -140,6 +152,55 @@ fn apply(@builtin(global_invocation_id) id: vec3<u32>) {
     let r = params.particle_radius;
     pos.x = clamp(pos.x, params.wall_min_x + r, params.wall_max_x - r);
     pos.y = clamp(pos.y, params.wall_min_y + r, params.wall_max_y - r);
+
+    // Rotating arm collision: transform particle into arm's local space,
+    // resolve against the axis-aligned box there, then rotate back.
+    let to_particle = pos - vec2(conveyor.pivot_x, conveyor.pivot_y);
+    // Inverse rotation by -angle
+    let local_x =  to_particle.x * conveyor.cos_angle + to_particle.y * conveyor.sin_angle;
+    let local_y = -to_particle.x * conveyor.sin_angle + to_particle.y * conveyor.cos_angle;
+
+    // Arm occupies x in [-hw, hw], y in [-hh, hh] in local space (centered on pivot)
+    let hw = conveyor.half_width;
+    let local_closest_x = clamp(local_x, -hw, hw);
+    let local_closest_y = clamp(local_y, -conveyor.half_height, conveyor.half_height);
+    let local_delta = vec2(local_x - local_closest_x, local_y - local_closest_y);
+    let dist = length(local_delta);
+
+    if dist < r {
+        var local_correction: vec2<f32>;
+        if dist > 1e-9 {
+            local_correction = (r - dist) * local_delta / dist;
+        } else {
+            // Particle center inside arm — push to nearest edge in local space.
+            let to_left   = local_x + hw;
+            let to_right  = hw - local_x;
+            let to_bottom = local_y + conveyor.half_height;
+            let to_top    = conveyor.half_height - local_y;
+            let min_edge = min(min(to_left, to_right), min(to_bottom, to_top));
+            if min_edge == to_left {
+                local_correction = vec2(-(r + local_x + hw), 0.0);
+            } else if min_edge == to_right {
+                local_correction = vec2(hw - local_x + r, 0.0);
+            } else if min_edge == to_bottom {
+                local_correction = vec2(0.0, -(r + local_y + conveyor.half_height));
+            } else {
+                local_correction = vec2(0.0, conveyor.half_height - local_y + r);
+            }
+        }
+
+        // Rotate correction back to world space
+        let wx = local_correction.x * conveyor.cos_angle - local_correction.y * conveyor.sin_angle;
+        let wy = local_correction.x * conveyor.sin_angle + local_correction.y * conveyor.cos_angle;
+        pos += vec2(wx, wy);
+
+        // Velocity transfer: v = ω × r where r = pos - pivot
+        // ω × (rx, ry) = (-ω·ry, ω·rx)
+        let rx = pos.x - conveyor.pivot_x;
+        let ry = pos.y - conveyor.pivot_y;
+        pos.x += -conveyor.angular_velocity * ry * params.dt * 0.5;
+        pos.y +=  conveyor.angular_velocity * rx * params.dt * 0.5;
+    }
 
     positions[i] = pos;
     velocities[i] = (pos - prev_positions[i]) / params.dt;

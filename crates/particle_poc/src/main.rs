@@ -14,9 +14,14 @@ const WINDOW_HEIGHT: u32 = 720;
 const MAX_PARTICLES: u32 = 100000;
 const WORKGROUP_SIZE: u32 = 256;
 const SPAWN_RATE: u32 = 130;
-const HOPPER_X_MIN: f32 = -0.3;
-const HOPPER_X_MAX: f32 = 0.3;
+// Two hoppers: Red on left, Blue on right. Particles meet in center where mixer spins.
+const HOPPER_LEFT_X: f32 = -0.45;
+const HOPPER_LEFT_HALF: f32 = 0.2;
+const HOPPER_RIGHT_X: f32 = 0.45;
+const HOPPER_RIGHT_HALF: f32 = 0.2;
 const HOPPER_Y: f32 = 0.75;
+const CONVEYOR_PIVOT_X: f32 = 0.0;
+const CONVEYOR_PIVOT_Y: f32 = -0.5;
 const GRID_W: u32 = 160;
 const GRID_H: u32 = 160;
 const TOTAL_GRID_CELLS: u32 = GRID_W * GRID_H;
@@ -44,6 +49,19 @@ struct SimParams {
     grid_width: u32,
     grid_height: u32,
     _pad: [u32; 2],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+struct ConveyorParams {
+    pivot_x: f32,
+    pivot_y: f32,
+    cos_angle: f32,
+    sin_angle: f32,
+    half_width: f32,
+    half_height: f32,
+    angular_velocity: f32,
+    _pad: u32,
 }
 
 #[repr(C)]
@@ -123,6 +141,8 @@ struct State {
     diagnose: bool,
     diag_frame: u32,
     diag_staging: Option<wgpu::Buffer>,
+    conveyor_time: f32,
+    conveyor_buf: wgpu::Buffer,
 }
 
 struct FpsTracker {
@@ -272,6 +292,7 @@ fn create_particle_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
             storage_entry(3, false), // forces
             storage_entry(4, false), // prev_positions
             uniform_entry(7),        // params
+            uniform_entry(8),        // conveyor
         ],
     })
 }
@@ -291,6 +312,7 @@ fn create_grid_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
 fn create_bind_groups(
     device: &wgpu::Device,
     buffers: &Buffers,
+    conveyor_buf: &wgpu::Buffer,
     particle_bgl: &wgpu::BindGroupLayout,
     grid_bgl: &wgpu::BindGroupLayout,
 ) -> (wgpu::BindGroup, wgpu::BindGroup) {
@@ -321,6 +343,10 @@ fn create_bind_groups(
             wgpu::BindGroupEntry {
                 binding: 7,
                 resource: buffers.params.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 8,
+                resource: conveyor_buf.as_entire_binding(),
             },
         ],
     });
@@ -611,8 +637,16 @@ impl State {
         let buffers = create_buffers(&device);
         let particle_bgl = create_particle_bgl(&device);
         let grid_bgl = create_grid_bgl(&device);
+
+        let conveyor_buf = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("conveyor_params"),
+            size: size_of::<ConveyorParams>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         let (particle_bg, grid_bg) =
-            create_bind_groups(&device, &buffers, &particle_bgl, &grid_bgl);
+            create_bind_groups(&device, &buffers, &conveyor_buf, &particle_bgl, &grid_bgl);
         let pipelines = create_pipelines(&device, &particle_bgl, &grid_bgl);
         let render = create_render_state(&device, &buffers, surface_config.format);
 
@@ -663,6 +697,8 @@ impl State {
             diagnose,
             diag_frame: 0,
             diag_staging: None,
+            conveyor_time: 0.0,
+            conveyor_buf,
         }
     }
 
@@ -793,6 +829,36 @@ impl State {
         }
     }
 
+    fn update_conveyor(&mut self) {
+        let dt = 1.0 / 60.0;
+        self.conveyor_time += dt;
+
+        // Slow spin: ~0.6 rad/s, one full rotation every ~10.5 seconds.
+        let angular_velocity = 0.6;
+        let angle = self.conveyor_time * angular_velocity;
+
+        let pivot_x = CONVEYOR_PIVOT_X;
+        let pivot_y = CONVEYOR_PIVOT_Y;
+        let hw = 0.2;
+        let hh = 0.007;
+
+        let conveyor_params = ConveyorParams {
+            pivot_x,
+            pivot_y,
+            cos_angle: angle.cos(),
+            sin_angle: angle.sin(),
+            half_width: hw,
+            half_height: hh,
+            angular_velocity,
+            _pad: 0,
+        };
+        self.queue.write_buffer(
+            &self.conveyor_buf,
+            0,
+            bytemuck::bytes_of(&conveyor_params),
+        );
+    }
+
     fn spawn(&mut self) {
         let current = self.sim_params.particle_count;
         let to_spawn = SPAWN_RATE.min(MAX_PARTICLES - current);
@@ -804,21 +870,30 @@ impl State {
         let mut velocities = Vec::with_capacity(to_spawn as usize);
         let mut species = Vec::with_capacity(to_spawn as usize);
 
-        // One row per frame. Row spacing check: particles fall v*dt_frame ≈ 0.5/60 = 8.3mm
-        // per frame, spawn spacing 0.6/130 = 4.6mm > contact_dist 4mm → no overlap at spawn.
-        let hopper_width = HOPPER_X_MAX - HOPPER_X_MIN;
-        let spacing = hopper_width / SPAWN_RATE as f32;
         let r = self.sim_params.particle_radius;
-        let max_jitter = 0.5 * (spacing - 2.0 * r);
-        for i in 0..to_spawn {
-            let hash = (current + i).wrapping_mul(0x9E37_79B9);
-            let jitter = (((hash >> 16) ^ hash) as f32 / u32::MAX as f32) - 0.5;
-            let t = (i as f32 + 0.5) / to_spawn as f32;
-            let x = HOPPER_X_MIN + t * hopper_width + jitter * max_jitter;
-            positions.push([x, HOPPER_Y]);
-            velocities.push([0.0f32, -0.5]);
-            species.push(u32::from(!(current + i).is_multiple_of(2)));
-        }
+        // Each hopper gets roughly half. Alternating which hopper fires first
+        // keeps the split even over time.
+        let left_count = to_spawn / 2;
+        let right_count = to_spawn - left_count;
+
+        // Helper: fill one hopper's row
+        let mut spawn_hopper = |count: u32, center_x: f32, half_w: f32, sp: u32| {
+            let hopper_width = 2.0 * half_w;
+            let spacing = hopper_width / count as f32;
+            let max_jitter = 0.5 * (spacing - 2.0 * r).max(0.0);
+            for i in 0..count {
+                let hash = (current + i + sp * SPAWN_RATE).wrapping_mul(0x9E37_79B9);
+                let jitter = (((hash >> 16) ^ hash) as f32 / u32::MAX as f32) - 0.5;
+                let t = (i as f32 + 0.5) / count as f32;
+                let x = center_x - half_w + t * hopper_width + jitter * max_jitter;
+                positions.push([x, HOPPER_Y]);
+                velocities.push([0.0f32, -0.5]);
+                species.push(sp);
+            }
+        };
+
+        spawn_hopper(left_count, HOPPER_LEFT_X, HOPPER_LEFT_HALF, 0);
+        spawn_hopper(right_count, HOPPER_RIGHT_X, HOPPER_RIGHT_HALF, 1);
 
         let offset = u64::from(current);
         self.queue.write_buffer(
@@ -856,7 +931,8 @@ impl State {
             let y = self.sim_params.wall_max_y - r - row as f32 * spacing;
             positions.push([x, y]);
             velocities.push([0.0f32, 0.0]);
-            species.push(i % 2);
+            // Left half of box = Red (0), right half = Blue (1)
+            species.push(u32::from(x >= 0.0));
         }
 
         self.queue
@@ -935,6 +1011,8 @@ impl State {
     fn render(&mut self) {
         const WARMUP_FRAMES: u32 = 10;
         const MEASURED_FRAMES: u32 = 300;
+
+        self.update_conveyor();
 
         if self.benchmark {
             if self.bench_frame == 0 {

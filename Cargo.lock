@@ -2659,6 +2659,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "pollster",
+ "rapier2d",
  "wgpu",
  "winit",
 ]
