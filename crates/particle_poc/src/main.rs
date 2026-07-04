@@ -63,11 +63,12 @@ struct Buffers {
 }
 
 struct ComputePipelines {
-    integrate: wgpu::ComputePipeline,
+    _integrate: wgpu::ComputePipeline,
     clear_cells: wgpu::ComputePipeline,
     assign_cells: wgpu::ComputePipeline,
     prefix_scan: wgpu::ComputePipeline,
     scatter: wgpu::ComputePipeline,
+    dem_solver: wgpu::ComputePipeline,
 }
 
 struct State {
@@ -283,9 +284,13 @@ fn create_pipelines(
         label: Some("spatial_hash"),
         source: wgpu::ShaderSource::Wgsl(include_str!("shaders/spatial_hash.wgsl").into()),
     });
+    let dem_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("dem_solver"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/dem_solver.wgsl").into()),
+    });
 
     ComputePipelines {
-        integrate: make_compute_pipeline(
+        _integrate: make_compute_pipeline(
             device,
             &integrate_layout,
             &integrate_shader,
@@ -319,6 +324,13 @@ fn create_pipelines(
             &spatial_shader,
             "scatter",
             "scatter",
+        ),
+        dem_solver: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &dem_shader,
+            "solve",
+            "dem_solver",
         ),
     }
 }
@@ -450,11 +462,12 @@ impl State {
         }
         {
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                label: Some("integrate"),
+                label: Some("dem_solve"),
                 ..Default::default()
             });
             pass.set_bind_group(0, &self.particle_bg, &[]);
-            pass.set_pipeline(&self.pipelines.integrate);
+            pass.set_bind_group(1, &self.grid_bg, &[]);
+            pass.set_pipeline(&self.pipelines.dem_solver);
             pass.dispatch_workgroups(particle_wg, 1, 1);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
