@@ -1092,7 +1092,7 @@ impl State {
             if self.bench_frame >= WARMUP_FRAMES
                 && self
                     .bench_start
-                    .map_or(false, |s| s.elapsed().as_secs_f64() >= BENCH_DURATION_SECS)
+                    .is_some_and(|s| s.elapsed().as_secs_f64() >= BENCH_DURATION_SECS)
             {
                 self.device.poll(wgpu::Maintain::Wait);
                 let elapsed = self.bench_start.unwrap().elapsed();
@@ -1100,7 +1100,10 @@ impl State {
                 let avg_ms = elapsed.as_secs_f64() * 1000.0 / f64::from(measured_frames);
                 let count = self.sim_params.particle_count;
                 let verdict = if avg_ms < 16.67 { "PASS" } else { "FAIL" };
-                println!("Benchmark: {measured_frames} frames in {:.2}s, {count} particles", elapsed.as_secs_f64());
+                println!(
+                    "Benchmark: {measured_frames} frames in {:.2}s, {count} particles",
+                    elapsed.as_secs_f64()
+                );
                 println!("Average frame time: {avg_ms:.2}ms");
                 println!("Result: {verdict}");
                 self.bench_done = true;
