@@ -435,7 +435,13 @@ fn create_pipelines(
             "scatter",
             "scatter",
         ),
-        project: make_compute_pipeline(device, &spatial_layout, &project_shader, "project", "project"),
+        project: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &project_shader,
+            "project",
+            "project",
+        ),
         apply: make_compute_pipeline(device, &spatial_layout, &project_shader, "apply", "apply"),
         reaction: make_compute_pipeline(
             device,
@@ -811,7 +817,7 @@ impl State {
             let x = HOPPER_X_MIN + t * hopper_width + jitter * max_jitter;
             positions.push([x, HOPPER_Y]);
             velocities.push([0.0f32, -0.5]);
-            species.push(if (current + i) % 2 == 0 { 0u32 } else { 1u32 });
+            species.push(u32::from(!(current + i).is_multiple_of(2)));
         }
 
         let offset = u64::from(current);
@@ -873,8 +879,8 @@ impl State {
         );
 
         let pc = self.sim_params.particle_count;
-        let particle_wg = (pc + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
-        let grid_wg = (TOTAL_GRID_CELLS + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
+        let particle_wg = pc.div_ceil(WORKGROUP_SIZE);
+        let grid_wg = TOTAL_GRID_CELLS.div_ceil(WORKGROUP_SIZE);
 
         let mut encoder = self
             .device
@@ -945,7 +951,7 @@ impl State {
         }
 
         if self.diagnose {
-            if self.diag_frame % 10 == 0 {
+            if self.diag_frame.is_multiple_of(10) {
                 self.read_diagnostics();
             }
             self.diag_frame += 1;
@@ -966,12 +972,11 @@ impl State {
             bytemuck::bytes_of(&render_params),
         );
 
-        let frame = match self.surface.get_current_texture() {
-            Ok(f) => f,
-            Err(_) => {
-                self.surface.configure(&self.device, &self.surface_config);
-                return;
-            }
+        let frame = if let Ok(f) = self.surface.get_current_texture() {
+            f
+        } else {
+            self.surface.configure(&self.device, &self.surface_config);
+            return;
         };
         let view = frame
             .texture
