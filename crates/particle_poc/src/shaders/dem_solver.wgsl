@@ -46,7 +46,6 @@ fn solve(@builtin(global_invocation_id) id: vec3<u32>) {
 
     var force = vec2<f32>(0.0, params.gravity);
 
-    // Neighbor search via spatial hash — check 3x3 cells around particle
     let my_cell = cell_indices[i];
     let cc = cell_coords(my_cell);
 
@@ -73,18 +72,16 @@ fn solve(@builtin(global_invocation_id) id: vec3<u32>) {
                 let overlap = contact_dist - dist;
                 let n = delta / dist;
 
-                // Spring-dashpot normal force (Hertzian)
                 let rel_vel = vel_i - velocities[j];
                 let vn = dot(rel_vel, n);
                 let fn_mag = params.spring_k * overlap - params.damping * vn;
                 let f_normal = max(fn_mag, 0.0) * n;
 
-                // Coulomb tangential friction
                 let vt = rel_vel - vn * n;
                 let vt_mag = length(vt);
                 var f_tangential = vec2<f32>(0.0);
                 if vt_mag > 1e-8 {
-                    let ft_mag = min(params.friction_mu * max(fn_mag, 0.0), params.spring_k * vt_mag);
+                    let ft_mag = min(params.friction_mu * max(fn_mag, 0.0), params.damping * vt_mag);
                     f_tangential = -ft_mag * (vt / vt_mag);
                 }
 
@@ -93,28 +90,6 @@ fn solve(@builtin(global_invocation_id) id: vec3<u32>) {
         }
     }
 
-    // Wall collisions — spring-dashpot against each boundary
-    let wall_k = params.spring_k;
-    let wall_d = params.damping;
-    if pos_i.x - r < params.wall_min_x {
-        let overlap = params.wall_min_x - (pos_i.x - r);
-        force.x += wall_k * overlap - wall_d * vel_i.x;
-    }
-    if pos_i.x + r > params.wall_max_x {
-        let overlap = (pos_i.x + r) - params.wall_max_x;
-        force.x -= wall_k * overlap + wall_d * vel_i.x;
-    }
-    if pos_i.y - r < params.wall_min_y {
-        let overlap = params.wall_min_y - (pos_i.y - r);
-        force.y += wall_k * overlap - wall_d * vel_i.y;
-    }
-    if pos_i.y + r > params.wall_max_y {
-        let overlap = (pos_i.y + r) - params.wall_max_y;
-        force.y -= wall_k * overlap + wall_d * vel_i.y;
-    }
-
-    // Symplectic Euler integration
-    let new_vel = vel_i + force * params.dt;
-    velocities[i] = new_vel;
-    positions[i] = pos_i + new_vel * params.dt;
+    // Velocity update only — position update happens in integrate pass
+    velocities[i] = vel_i + force * params.dt;
 }

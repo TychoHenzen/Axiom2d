@@ -13,13 +13,14 @@ const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
 const MAX_PARTICLES: u32 = 100000;
 const WORKGROUP_SIZE: u32 = 256;
-const SPAWN_RATE: u32 = 500;
+const SPAWN_RATE: u32 = 150;
 const HOPPER_X_MIN: f32 = -0.3;
 const HOPPER_X_MAX: f32 = 0.3;
 const HOPPER_Y: f32 = 0.75;
 const GRID_W: u32 = 160;
 const GRID_H: u32 = 160;
 const TOTAL_GRID_CELLS: u32 = GRID_W * GRID_H;
+const SUB_STEPS: u32 = 2;
 
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
@@ -77,7 +78,7 @@ struct Buffers {
 }
 
 struct ComputePipelines {
-    _integrate: wgpu::ComputePipeline,
+    integrate: wgpu::ComputePipeline,
     clear_cells: wgpu::ComputePipeline,
     assign_cells: wgpu::ComputePipeline,
     prefix_scan: wgpu::ComputePipeline,
@@ -105,6 +106,10 @@ struct State {
     render: RenderState,
     sim_params: SimParams,
     fps_tracker: FpsTracker,
+    benchmark: bool,
+    bench_frame: u32,
+    bench_start: Option<Instant>,
+    bench_done: bool,
 }
 
 struct FpsTracker {
@@ -356,7 +361,7 @@ fn create_pipelines(
     });
 
     ComputePipelines {
-        _integrate: make_compute_pipeline(
+        integrate: make_compute_pipeline(
             device,
             &integrate_layout,
             &integrate_shader,
@@ -526,13 +531,12 @@ impl State {
     fn new(window: Arc<Window>, benchmark: bool) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let surface = instance.create_surface(window.clone()).expect("surface");
-        let adapter =
-            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-                compatible_surface: Some(&surface),
-                power_preference: wgpu::PowerPreference::HighPerformance,
-                ..Default::default()
-            }))
-            .expect("no compatible GPU adapter");
+        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            compatible_surface: Some(&surface),
+            power_preference: wgpu::PowerPreference::HighPerformance,
+            ..Default::default()
+        }))
+        .expect("no compatible GPU adapter");
 
         let (device, queue) =
             pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default(), None))
@@ -574,7 +578,7 @@ impl State {
 
         let sim_params = SimParams {
             particle_count: 0,
-            dt: 1.0 / 240.0,
+            dt: 1.0 / 480.0,
             gravity: -9.81,
             particle_radius: 0.002,
             wall_min_x: -0.8,
@@ -582,7 +586,7 @@ impl State {
             wall_max_x: 0.8,
             wall_max_y: 0.8,
             spring_k: 50_000.0,
-            damping: 100.0,
+            damping: 300.0,
             friction_mu: 0.3,
             grid_cell_size: 0.01,
             grid_width: GRID_W,
@@ -603,6 +607,10 @@ impl State {
             render,
             sim_params,
             fps_tracker: FpsTracker::new(),
+            benchmark,
+            bench_frame: 0,
+            bench_start: None,
+            bench_done: false,
         }
     }
 
@@ -656,6 +664,38 @@ impl State {
         self.sim_params.particle_count = current + to_spawn;
     }
 
+    fn spawn_all(&mut self) {
+        let r = self.sim_params.particle_radius;
+        let spacing = 2.1 * r;
+        let usable_w = self.sim_params.wall_max_x - self.sim_params.wall_min_x - 2.0 * r;
+        let cols = (usable_w / spacing) as u32;
+
+        let mut positions = Vec::with_capacity(MAX_PARTICLES as usize);
+        let mut velocities = Vec::with_capacity(MAX_PARTICLES as usize);
+        let mut species = Vec::with_capacity(MAX_PARTICLES as usize);
+
+        for i in 0..MAX_PARTICLES {
+            let col = i % cols;
+            let row = i / cols;
+            let x = self.sim_params.wall_min_x + r + col as f32 * spacing;
+            let y = self.sim_params.wall_max_y - r - row as f32 * spacing;
+            positions.push([x, y]);
+            velocities.push([0.0f32, 0.0]);
+            species.push(i % 2);
+        }
+
+        self.queue
+            .write_buffer(&self.buffers.positions, 0, bytemuck::cast_slice(&positions));
+        self.queue.write_buffer(
+            &self.buffers.velocities,
+            0,
+            bytemuck::cast_slice(&velocities),
+        );
+        self.queue
+            .write_buffer(&self.buffers.species, 0, bytemuck::cast_slice(&species));
+        self.sim_params.particle_count = MAX_PARTICLES;
+    }
+
     fn simulate(&mut self) {
         self.queue.write_buffer(
             &self.buffers.params,
@@ -667,40 +707,52 @@ impl State {
         let particle_wg = (pc + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
         let grid_wg = (TOTAL_GRID_CELLS + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
 
-        let mut encoder =
-            self.device
-                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("compute"),
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("compute"),
+            });
+
+        for _ in 0..SUB_STEPS {
+            {
+                let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                    label: Some("spatial_hash"),
+                    ..Default::default()
                 });
-        {
-            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                label: Some("spatial_hash"),
-                ..Default::default()
-            });
-            pass.set_bind_group(0, &self.particle_bg, &[]);
-            pass.set_bind_group(1, &self.grid_bg, &[]);
+                pass.set_bind_group(0, &self.particle_bg, &[]);
+                pass.set_bind_group(1, &self.grid_bg, &[]);
 
-            pass.set_pipeline(&self.pipelines.clear_cells);
-            pass.dispatch_workgroups(grid_wg, 1, 1);
+                pass.set_pipeline(&self.pipelines.clear_cells);
+                pass.dispatch_workgroups(grid_wg, 1, 1);
 
-            pass.set_pipeline(&self.pipelines.assign_cells);
-            pass.dispatch_workgroups(particle_wg, 1, 1);
+                pass.set_pipeline(&self.pipelines.assign_cells);
+                pass.dispatch_workgroups(particle_wg, 1, 1);
 
-            pass.set_pipeline(&self.pipelines.prefix_scan);
-            pass.dispatch_workgroups(1, 1, 1);
+                pass.set_pipeline(&self.pipelines.prefix_scan);
+                pass.dispatch_workgroups(1, 1, 1);
 
-            pass.set_pipeline(&self.pipelines.scatter);
-            pass.dispatch_workgroups(particle_wg, 1, 1);
-        }
-        {
-            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                label: Some("dem_solve"),
-                ..Default::default()
-            });
-            pass.set_bind_group(0, &self.particle_bg, &[]);
-            pass.set_bind_group(1, &self.grid_bg, &[]);
-            pass.set_pipeline(&self.pipelines.dem_solver);
-            pass.dispatch_workgroups(particle_wg, 1, 1);
+                pass.set_pipeline(&self.pipelines.scatter);
+                pass.dispatch_workgroups(particle_wg, 1, 1);
+            }
+            {
+                let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                    label: Some("dem_solve"),
+                    ..Default::default()
+                });
+                pass.set_bind_group(0, &self.particle_bg, &[]);
+                pass.set_bind_group(1, &self.grid_bg, &[]);
+                pass.set_pipeline(&self.pipelines.dem_solver);
+                pass.dispatch_workgroups(particle_wg, 1, 1);
+            }
+            {
+                let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                    label: Some("integrate"),
+                    ..Default::default()
+                });
+                pass.set_bind_group(0, &self.particle_bg, &[]);
+                pass.set_pipeline(&self.pipelines.integrate);
+                pass.dispatch_workgroups(particle_wg, 1, 1);
+            }
         }
         {
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -716,9 +768,22 @@ impl State {
     }
 
     fn render(&mut self) {
-        self.fps_tracker.begin_frame();
-        self.spawn();
-        self.simulate();
+        const WARMUP_FRAMES: u32 = 10;
+        const MEASURED_FRAMES: u32 = 300;
+
+        if self.benchmark {
+            if self.bench_frame == 0 {
+                self.spawn_all();
+            }
+            if self.bench_frame == WARMUP_FRAMES {
+                self.bench_start = Some(Instant::now());
+            }
+            self.simulate();
+        } else {
+            self.fps_tracker.begin_frame();
+            self.spawn();
+            self.simulate();
+        }
 
         let render_params = RenderParams {
             screen_width: self.surface_config.width as f32,
@@ -735,19 +800,18 @@ impl State {
         let frame = match self.surface.get_current_texture() {
             Ok(f) => f,
             Err(_) => {
-                self.surface
-                    .configure(&self.device, &self.surface_config);
+                self.surface.configure(&self.device, &self.surface_config);
                 return;
             }
         };
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-        let mut encoder =
-            self.device
-                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("render"),
-                });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("render"),
+            });
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("particles"),
@@ -776,12 +840,24 @@ impl State {
         self.queue.submit(std::iter::once(encoder.finish()));
         frame.present();
 
-        if self.fps_tracker.end_frame() {
+        if self.benchmark {
+            self.bench_frame += 1;
+            let total_needed = WARMUP_FRAMES + MEASURED_FRAMES;
+            if self.bench_frame >= total_needed {
+                self.device.poll(wgpu::Maintain::Wait);
+                let elapsed = self.bench_start.unwrap().elapsed();
+                let avg_ms = elapsed.as_secs_f64() * 1000.0 / f64::from(MEASURED_FRAMES);
+                let count = self.sim_params.particle_count;
+                let verdict = if avg_ms < 16.67 { "PASS" } else { "FAIL" };
+                println!("Benchmark: {MEASURED_FRAMES} frames, {count} particles");
+                println!("Average frame time: {avg_ms:.2}ms");
+                println!("Result: {verdict}");
+                self.bench_done = true;
+            }
+        } else if self.fps_tracker.end_frame() {
             self.window.set_title(&format!(
                 "Particle Idle PoC | FPS: {:.0} | Particles: {} | Sim: {:.2}ms",
-                self.fps_tracker.fps,
-                self.sim_params.particle_count,
-                self.fps_tracker.sim_time_ms,
+                self.fps_tracker.fps, self.sim_params.particle_count, self.fps_tracker.sim_time_ms,
             ));
         }
     }
@@ -804,12 +880,7 @@ impl ApplicationHandler for App {
         self.state = Some(State::new(window, self.benchmark));
     }
 
-    fn window_event(
-        &mut self,
-        event_loop: &ActiveEventLoop,
-        _id: WindowId,
-        event: WindowEvent,
-    ) {
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         let Some(state) = &mut self.state else {
             return;
         };
@@ -818,7 +889,11 @@ impl ApplicationHandler for App {
             WindowEvent::Resized(size) => state.resize(size),
             WindowEvent::RedrawRequested => {
                 state.render();
-                state.window.request_redraw();
+                if state.bench_done {
+                    event_loop.exit();
+                } else {
+                    state.window.request_redraw();
+                }
             }
             _ => {}
         }

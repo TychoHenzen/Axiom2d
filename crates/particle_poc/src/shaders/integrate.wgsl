@@ -25,5 +25,29 @@ struct Params {
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     let i = id.x;
     if i >= params.particle_count { return; }
-    positions[i] = positions[i] + velocities[i] * params.dt;
+
+    var vel = velocities[i];
+    var pos = positions[i] + vel * params.dt;
+    let r = params.particle_radius;
+    let restitution = 0.3;
+
+    if pos.x - r < params.wall_min_x {
+        pos.x = params.wall_min_x + r;
+        vel.x = abs(vel.x) * restitution;
+    }
+    if pos.x + r > params.wall_max_x {
+        pos.x = params.wall_max_x - r;
+        vel.x = -abs(vel.x) * restitution;
+    }
+    if pos.y - r < params.wall_min_y {
+        pos.y = params.wall_min_y + r;
+        vel.y = abs(vel.y) * restitution;
+    }
+    if pos.y + r > params.wall_max_y {
+        pos.y = params.wall_max_y - r;
+        vel.y = -abs(vel.y) * restitution;
+    }
+
+    positions[i] = pos;
+    velocities[i] = vel;
 }
