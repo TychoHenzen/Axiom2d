@@ -82,6 +82,7 @@ struct ComputePipelines {
     prefix_scan: wgpu::ComputePipeline,
     scatter: wgpu::ComputePipeline,
     dem_solver: wgpu::ComputePipeline,
+    reaction: wgpu::ComputePipeline,
 }
 
 struct RenderState {
@@ -308,6 +309,10 @@ fn create_pipelines(
         label: Some("dem_solver"),
         source: wgpu::ShaderSource::Wgsl(include_str!("shaders/dem_solver.wgsl").into()),
     });
+    let reaction_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("reaction"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/reaction.wgsl").into()),
+    });
 
     ComputePipelines {
         _integrate: make_compute_pipeline(
@@ -351,6 +356,13 @@ fn create_pipelines(
             &dem_shader,
             "solve",
             "dem_solver",
+        ),
+        reaction: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &reaction_shader,
+            "react",
+            "reaction",
         ),
     }
 }
@@ -646,6 +658,16 @@ impl State {
             pass.set_bind_group(0, &self.particle_bg, &[]);
             pass.set_bind_group(1, &self.grid_bg, &[]);
             pass.set_pipeline(&self.pipelines.dem_solver);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
+        }
+        {
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("reaction"),
+                ..Default::default()
+            });
+            pass.set_bind_group(0, &self.particle_bg, &[]);
+            pass.set_bind_group(1, &self.grid_bg, &[]);
+            pass.set_pipeline(&self.pipelines.reaction);
             pass.dispatch_workgroups(particle_wg, 1, 1);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
