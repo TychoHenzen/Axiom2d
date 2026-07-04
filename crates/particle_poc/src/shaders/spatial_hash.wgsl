@@ -57,13 +57,46 @@ fn assign_cells(@builtin(global_invocation_id) id: vec3<u32>) {
     atomicAdd(&cell_counts[cell], 1u);
 }
 
-// Pass 3: prefix sum over cell_counts → cell_offsets, then clear cell_counts
-// Sequential scan — 25600 cells is trivial for one thread.
-@compute @workgroup_size(1)
-fn prefix_scan() {
+// Pass 3: prefix sum over cell_counts → cell_offsets, then clear cell_counts.
+// Single workgroup of 256 threads: each thread serially scans its chunk of
+// ~100 cells, a Hillis-Steele scan combines the 256 chunk totals, then each
+// thread writes final offsets for its chunk. (The previous single-thread
+// version serialized 25 600 iterations on one GPU lane and dominated frame
+// time once run every substep.)
+var<workgroup> chunk_sums: array<u32, 256>;
+
+@compute @workgroup_size(256)
+fn prefix_scan(@builtin(local_invocation_id) lid: vec3<u32>) {
+    let t = lid.x;
     let total_cells = params.grid_width * params.grid_height;
+    let chunk = (total_cells + 255u) / 256u;
+    let start = t * chunk;
+    let end = min(start + chunk, total_cells);
+
+    var sum = 0u;
+    for (var i = start; i < end; i++) {
+        sum += atomicLoad(&cell_counts[i]);
+    }
+    chunk_sums[t] = sum;
+    workgroupBarrier();
+
+    // Hillis-Steele inclusive scan over the 256 chunk totals
+    for (var offset = 1u; offset < 256u; offset <<= 1u) {
+        var v = chunk_sums[t];
+        if t >= offset {
+            v += chunk_sums[t - offset];
+        }
+        workgroupBarrier();
+        chunk_sums[t] = v;
+        workgroupBarrier();
+    }
+
+    // Exclusive offset for this chunk = inclusive sum of preceding chunks
     var running = 0u;
-    for (var i = 0u; i < total_cells; i++) {
+    if t > 0u {
+        running = chunk_sums[t - 1u];
+    }
+    for (var i = start; i < end; i++) {
         let count = atomicLoad(&cell_counts[i]);
         cell_offsets[i] = running;
         running += count;

@@ -13,14 +13,18 @@ const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
 const MAX_PARTICLES: u32 = 100000;
 const WORKGROUP_SIZE: u32 = 256;
-const SPAWN_RATE: u32 = 150;
+const SPAWN_RATE: u32 = 130;
 const HOPPER_X_MIN: f32 = -0.3;
 const HOPPER_X_MAX: f32 = 0.3;
 const HOPPER_Y: f32 = 0.75;
 const GRID_W: u32 = 160;
 const GRID_H: u32 = 160;
 const TOTAL_GRID_CELLS: u32 = GRID_W * GRID_H;
-const SUB_STEPS: u32 = 2;
+// 16 substeps of dt=1/960 → exactly 1/60 s of simulated time per frame (real
+// time at 60 FPS). Many small substeps with one constraint iteration each
+// converge far better than few substeps with many iterations (Macklin et al.,
+// "Small Steps in Physics Simulation"): constraint error scales with dt².
+const SUB_STEPS: u32 = 16;
 
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
@@ -53,10 +57,12 @@ struct RenderParams {
 
 fn main() {
     let benchmark = std::env::args().any(|a| a == "--benchmark");
+    let diagnose = std::env::args().any(|a| a == "--diagnose");
     let event_loop = EventLoop::new().expect("event loop");
     let mut app = App {
         state: None,
         benchmark,
+        diagnose,
     };
     event_loop.run_app(&mut app).expect("run");
 }
@@ -64,11 +70,14 @@ fn main() {
 struct App {
     state: Option<State>,
     benchmark: bool,
+    diagnose: bool,
 }
 
 struct Buffers {
     positions: wgpu::Buffer,
     velocities: wgpu::Buffer,
+    forces: wgpu::Buffer,
+    prev_positions: wgpu::Buffer,
     species: wgpu::Buffer,
     params: wgpu::Buffer,
     cell_indices: wgpu::Buffer,
@@ -78,12 +87,13 @@ struct Buffers {
 }
 
 struct ComputePipelines {
-    integrate: wgpu::ComputePipeline,
+    predict: wgpu::ComputePipeline,
     clear_cells: wgpu::ComputePipeline,
     assign_cells: wgpu::ComputePipeline,
     prefix_scan: wgpu::ComputePipeline,
     scatter: wgpu::ComputePipeline,
-    dem_solver: wgpu::ComputePipeline,
+    project: wgpu::ComputePipeline,
+    apply: wgpu::ComputePipeline,
     reaction: wgpu::ComputePipeline,
 }
 
@@ -110,6 +120,9 @@ struct State {
     bench_frame: u32,
     bench_start: Option<Instant>,
     bench_done: bool,
+    diagnose: bool,
+    diag_frame: u32,
+    diag_staging: Option<wgpu::Buffer>,
 }
 
 struct FpsTracker {
@@ -152,8 +165,10 @@ impl FpsTracker {
 }
 
 fn create_buffers(device: &wgpu::Device) -> Buffers {
-    let particle_storage =
-        wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::VERTEX;
+    let particle_storage = wgpu::BufferUsages::STORAGE
+        | wgpu::BufferUsages::COPY_DST
+        | wgpu::BufferUsages::COPY_SRC
+        | wgpu::BufferUsages::VERTEX;
     let grid_storage = wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST;
     Buffers {
         positions: device.create_buffer(&wgpu::BufferDescriptor {
@@ -164,6 +179,20 @@ fn create_buffers(device: &wgpu::Device) -> Buffers {
         }),
         velocities: device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("velocities"),
+            size: u64::from(MAX_PARTICLES) * 8,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        }),
+        forces: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("forces"),
+            size: u64::from(MAX_PARTICLES) * 8,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        }),
+        prev_positions: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("prev_positions"),
             size: u64::from(MAX_PARTICLES) * 8,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
@@ -240,6 +269,8 @@ fn create_particle_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
             storage_entry(0, false), // positions
             storage_entry(1, false), // velocities
             storage_entry(2, false), // species
+            storage_entry(3, false), // forces
+            storage_entry(4, false), // prev_positions
             uniform_entry(7),        // params
         ],
     })
@@ -278,6 +309,14 @@ fn create_bind_groups(
             wgpu::BindGroupEntry {
                 binding: 2,
                 resource: buffers.species.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: buffers.forces.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: buffers.prev_positions.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 7,
@@ -351,22 +390,22 @@ fn create_pipelines(
         label: Some("spatial_hash"),
         source: wgpu::ShaderSource::Wgsl(include_str!("shaders/spatial_hash.wgsl").into()),
     });
-    let dem_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("dem_solver"),
-        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/dem_solver.wgsl").into()),
-    });
     let reaction_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("reaction"),
         source: wgpu::ShaderSource::Wgsl(include_str!("shaders/reaction.wgsl").into()),
     });
+    let project_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("project"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/project.wgsl").into()),
+    });
 
     ComputePipelines {
-        integrate: make_compute_pipeline(
+        predict: make_compute_pipeline(
             device,
             &integrate_layout,
             &integrate_shader,
             "main",
-            "integrate",
+            "predict",
         ),
         clear_cells: make_compute_pipeline(
             device,
@@ -396,13 +435,8 @@ fn create_pipelines(
             "scatter",
             "scatter",
         ),
-        dem_solver: make_compute_pipeline(
-            device,
-            &spatial_layout,
-            &dem_shader,
-            "solve",
-            "dem_solver",
-        ),
+        project: make_compute_pipeline(device, &spatial_layout, &project_shader, "project", "project"),
+        apply: make_compute_pipeline(device, &spatial_layout, &project_shader, "apply", "apply"),
         reaction: make_compute_pipeline(
             device,
             &spatial_layout,
@@ -528,7 +562,7 @@ fn create_render_state(
 }
 
 impl State {
-    fn new(window: Arc<Window>, benchmark: bool) -> Self {
+    fn new(window: Arc<Window>, benchmark: bool, diagnose: bool) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let surface = instance.create_surface(window.clone()).expect("surface");
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -551,7 +585,7 @@ impl State {
             .find(wgpu::TextureFormat::is_srgb)
             .or_else(|| caps.formats.first().copied())
             .expect("no surface formats");
-        let present_mode = if benchmark {
+        let present_mode = if benchmark || diagnose {
             wgpu::PresentMode::AutoNoVsync
         } else {
             wgpu::PresentMode::AutoVsync
@@ -578,15 +612,24 @@ impl State {
 
         let sim_params = SimParams {
             particle_count: 0,
-            dt: 1.0 / 480.0,
-            gravity: -9.81,
+            dt: 1.0 / 960.0,
+            // Scaled so max free-fall speed (from full box height ≈ 1.5) is
+            // sqrt(2·1.2·1.5) ≈ 1.9 ≈ one particle radius per substep — the
+            // hard ceiling below which particles cannot tunnel through each
+            // other. Also keeps bottom-of-pile pressure (∝ g · layer count)
+            // within what the projection solver can support: at g=9.81 the
+            // ~225-layer pile crushed its bottom layer into instability.
+            gravity: -1.2,
             particle_radius: 0.002,
             wall_min_x: -0.8,
             wall_min_y: -0.8,
             wall_max_x: 0.8,
             wall_max_y: 0.8,
-            spring_k: 50_000.0,
-            damping: 300.0,
+            // spring_k / damping are unused since the PBD rewrite (contacts are
+            // position constraints, not spring forces). Kept as zeroed fields so
+            // the uniform layout shared by all shaders stays unchanged.
+            spring_k: 0.0,
+            damping: 0.0,
             friction_mu: 0.3,
             grid_cell_size: 0.01,
             grid_width: GRID_W,
@@ -611,7 +654,129 @@ impl State {
             bench_frame: 0,
             bench_start: None,
             bench_done: false,
+            diagnose,
+            diag_frame: 0,
+            diag_staging: None,
         }
+    }
+
+    fn read_diagnostics(&mut self) {
+        let n = self.sim_params.particle_count as usize;
+        if n == 0 {
+            println!("diag frame {:>5}: n=0", self.diag_frame);
+            return;
+        }
+        let bytes_per = u64::from(MAX_PARTICLES) * 8;
+        let staging = self.diag_staging.get_or_insert_with(|| {
+            self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("diag_staging"),
+                size: bytes_per * 2,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            })
+        });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("diag_copy"),
+            });
+        encoder.copy_buffer_to_buffer(&self.buffers.positions, 0, staging, 0, bytes_per);
+        encoder.copy_buffer_to_buffer(&self.buffers.velocities, 0, staging, bytes_per, bytes_per);
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        let slice = staging.slice(..);
+        slice.map_async(wgpu::MapMode::Read, |r| r.expect("map diag staging"));
+        self.device.poll(wgpu::Maintain::Wait);
+
+        let data = slice.get_mapped_range();
+        let all: &[[f32; 2]] = bytemuck::cast_slice(&data);
+        let positions = &all[..n];
+        let velocities = &all[MAX_PARTICLES as usize..MAX_PARTICLES as usize + n];
+
+        let mut nan_count = 0usize;
+        let mut max_speed = 0.0f32;
+        let mut ke = 0.0f64;
+        let mut momentum = [0.0f64; 2];
+        let mut oob = 0usize;
+        let (mut min_y, mut max_y) = (f32::MAX, f32::MIN);
+        let p = &self.sim_params;
+        for i in 0..n {
+            let [px, py] = positions[i];
+            let [vx, vy] = velocities[i];
+            if !px.is_finite() || !py.is_finite() || !vx.is_finite() || !vy.is_finite() {
+                nan_count += 1;
+                continue;
+            }
+            let speed = (vx * vx + vy * vy).sqrt();
+            max_speed = max_speed.max(speed);
+            ke += 0.5 * f64::from(speed) * f64::from(speed);
+            momentum[0] += f64::from(vx);
+            momentum[1] += f64::from(vy);
+            min_y = min_y.min(py);
+            max_y = max_y.max(py);
+            let m = 2.0 * p.particle_radius;
+            if px < p.wall_min_x - m
+                || px > p.wall_max_x + m
+                || py < p.wall_min_y - m
+                || py > p.wall_max_y + m
+            {
+                oob += 1;
+            }
+        }
+
+        // CPU spatial binning for overlap stats
+        let cell = 2.0 * p.particle_radius;
+        let mut bins: std::collections::HashMap<(i32, i32), Vec<u32>> =
+            std::collections::HashMap::new();
+        for (i, &[px, py]) in positions.iter().enumerate() {
+            if !px.is_finite() || !py.is_finite() {
+                continue;
+            }
+            let key = ((px / cell).floor() as i32, (py / cell).floor() as i32);
+            bins.entry(key).or_default().push(i as u32);
+        }
+        let contact_dist = 2.0 * p.particle_radius;
+        let mut max_overlap = 0.0f32;
+        let mut contacts = 0usize;
+        let mut deep_contacts = 0usize; // overlap > 50% of radius
+        for (&(cx, cy), ids) in &bins {
+            for &i in ids {
+                let [ix, iy] = positions[i as usize];
+                for dy in -1..=1 {
+                    for dx in -1..=1 {
+                        if let Some(neighbors) = bins.get(&(cx + dx, cy + dy)) {
+                            for &j in neighbors {
+                                if j <= i {
+                                    continue;
+                                }
+                                let [jx, jy] = positions[j as usize];
+                                let d = ((ix - jx).powi(2) + (iy - jy).powi(2)).sqrt();
+                                if d < contact_dist {
+                                    let ov = contact_dist - d;
+                                    max_overlap = max_overlap.max(ov);
+                                    contacts += 1;
+                                    if ov > 0.5 * p.particle_radius {
+                                        deep_contacts += 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        drop(data);
+        staging.unmap();
+
+        let frame = self.diag_frame;
+        let (px, py) = (momentum[0], momentum[1]);
+        let ov_pct = max_overlap / p.particle_radius * 100.0;
+        println!(
+            "diag frame {frame:>5}: n={n} nan={nan_count} vmax={max_speed:.3} KE={ke:.3} \
+             px={px:.3} py={py:.3} ymin={min_y:.3} ymax={max_y:.3} oob={oob} \
+             contacts={contacts} deep={deep_contacts} maxOv={ov_pct:.1}%r"
+        );
     }
 
     fn resize(&mut self, size: winit::dpi::PhysicalSize<u32>) {
@@ -633,14 +798,18 @@ impl State {
         let mut velocities = Vec::with_capacity(to_spawn as usize);
         let mut species = Vec::with_capacity(to_spawn as usize);
 
+        // One row per frame. Row spacing check: particles fall v*dt_frame ≈ 0.5/60 = 8.3mm
+        // per frame, spawn spacing 0.6/130 = 4.6mm > contact_dist 4mm → no overlap at spawn.
         let hopper_width = HOPPER_X_MAX - HOPPER_X_MIN;
+        let spacing = hopper_width / SPAWN_RATE as f32;
+        let r = self.sim_params.particle_radius;
+        let max_jitter = 0.5 * (spacing - 2.0 * r);
         for i in 0..to_spawn {
             let hash = (current + i).wrapping_mul(0x9E37_79B9);
-            let jitter = ((hash >> 16) ^ hash) as f32 / u32::MAX as f32;
+            let jitter = (((hash >> 16) ^ hash) as f32 / u32::MAX as f32) - 0.5;
             let t = (i as f32 + 0.5) / to_spawn as f32;
-            let x = HOPPER_X_MIN + t * hopper_width;
-            let y = HOPPER_Y - jitter * 0.02;
-            positions.push([x, y]);
+            let x = HOPPER_X_MIN + t * hopper_width + jitter * max_jitter;
+            positions.push([x, HOPPER_Y]);
             velocities.push([0.0f32, -0.5]);
             species.push(if (current + i) % 2 == 0 { 0u32 } else { 1u32 });
         }
@@ -714,45 +883,35 @@ impl State {
             });
 
         for _ in 0..SUB_STEPS {
-            {
-                let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                    label: Some("spatial_hash"),
-                    ..Default::default()
-                });
-                pass.set_bind_group(0, &self.particle_bg, &[]);
-                pass.set_bind_group(1, &self.grid_bg, &[]);
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("pbd_substep"),
+                ..Default::default()
+            });
+            pass.set_bind_group(0, &self.particle_bg, &[]);
+            pass.set_bind_group(1, &self.grid_bg, &[]);
 
-                pass.set_pipeline(&self.pipelines.clear_cells);
-                pass.dispatch_workgroups(grid_wg, 1, 1);
+            // Predict positions first so the hash grid matches where
+            // particles actually are during constraint projection.
+            pass.set_pipeline(&self.pipelines.predict);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
 
-                pass.set_pipeline(&self.pipelines.assign_cells);
-                pass.dispatch_workgroups(particle_wg, 1, 1);
+            pass.set_pipeline(&self.pipelines.clear_cells);
+            pass.dispatch_workgroups(grid_wg, 1, 1);
 
-                pass.set_pipeline(&self.pipelines.prefix_scan);
-                pass.dispatch_workgroups(1, 1, 1);
+            pass.set_pipeline(&self.pipelines.assign_cells);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
 
-                pass.set_pipeline(&self.pipelines.scatter);
-                pass.dispatch_workgroups(particle_wg, 1, 1);
-            }
-            {
-                let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                    label: Some("dem_solve"),
-                    ..Default::default()
-                });
-                pass.set_bind_group(0, &self.particle_bg, &[]);
-                pass.set_bind_group(1, &self.grid_bg, &[]);
-                pass.set_pipeline(&self.pipelines.dem_solver);
-                pass.dispatch_workgroups(particle_wg, 1, 1);
-            }
-            {
-                let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                    label: Some("integrate"),
-                    ..Default::default()
-                });
-                pass.set_bind_group(0, &self.particle_bg, &[]);
-                pass.set_pipeline(&self.pipelines.integrate);
-                pass.dispatch_workgroups(particle_wg, 1, 1);
-            }
+            pass.set_pipeline(&self.pipelines.prefix_scan);
+            pass.dispatch_workgroups(1, 1, 1);
+
+            pass.set_pipeline(&self.pipelines.scatter);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
+
+            pass.set_pipeline(&self.pipelines.project);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
+
+            pass.set_pipeline(&self.pipelines.apply);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
         }
         {
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -783,6 +942,16 @@ impl State {
             self.fps_tracker.begin_frame();
             self.spawn();
             self.simulate();
+        }
+
+        if self.diagnose {
+            if self.diag_frame % 10 == 0 {
+                self.read_diagnostics();
+            }
+            self.diag_frame += 1;
+            if self.diag_frame >= 1200 {
+                self.bench_done = true;
+            }
         }
 
         let render_params = RenderParams {
@@ -877,7 +1046,7 @@ impl ApplicationHandler for App {
                 )
                 .expect("window"),
         );
-        self.state = Some(State::new(window, self.benchmark));
+        self.state = Some(State::new(window, self.benchmark, self.diagnose));
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {

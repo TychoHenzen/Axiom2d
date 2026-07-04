@@ -56,8 +56,10 @@ class TubePhysics {
 
 /// Simulate one physics step for a falling pixel.
 ///
-/// Returns true if the pixel transitioned to [PixelPhase.settling] (hit sand
-/// surface), false if still falling or already settled.
+/// Returns true when the pixel is still actively moving (velocity magnitude
+/// above [TubePhysics.settleThreshold]). Returns false when the pixel has
+/// come to rest (at tube bottom with near-zero velocity) or is not in the
+/// [PixelPhase.falling] phase.
 bool stepFalling(TubePixel pixel, TubePhysics phys, double dt) {
   if (pixel.phase != PixelPhase.falling) return false;
 
@@ -85,7 +87,8 @@ bool stepFalling(TubePixel pixel, TubePhysics phys, double dt) {
     pixel.vy = 0;
   }
 
-  return false;
+  // Still actively moving when velocity exceeds the settle threshold.
+  return pixel.vy.abs() > phys.settleThreshold;
 }
 
 /// Check whether [pixel] has contacted the top surface of the settled sand

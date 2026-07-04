@@ -16,6 +16,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../data/biome_service.dart';
+import '../data/gps_service.dart';
 import '../domain/biome.dart';
 import '../domain/biome_def.dart';
 import '../domain/coverage.dart';
@@ -52,9 +53,14 @@ Biome _biomeSampleToEnum(BiomeSample sample) {
 }
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key, required this.state});
+  const MapScreen({
+    super.key,
+    required this.state,
+    this.gpsService = const GeolocatorGpsService(),
+  });
 
   final AppState state;
+  final GpsService gpsService;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -280,12 +286,12 @@ class _MapScreenState extends State<MapScreen>
       final day =
           DateTime.now().toUtc().difference(DateTime.utc(1970, 1, 1)).inDays;
       for (final p in log.unprocessed) {
-        await widget.state.vacuum(
+        widget.state.vacuum(
           lat: p.lat,
           lon: p.lon,
           day: day,
           week: currentWeek,
-        );
+        ).ignore();
         await widget.state.logPosition(
           lat: p.lat,
           lon: p.lon,
@@ -326,13 +332,7 @@ class _MapScreenState extends State<MapScreen>
     }
     final last = await Geolocator.getLastKnownPosition();
     if (last != null && mounted && _pos == null) _onPosition(last);
-    Geolocator.getPositionStream(
-      locationSettings: AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
-        intervalDuration: const Duration(seconds: 1),
-      ),
-    ).listen(_onPosition);
+    widget.gpsService.positionStream.listen(_onPosition);
   }
 
   void _recenter({bool force = false}) {
@@ -377,13 +377,13 @@ class _MapScreenState extends State<MapScreen>
       for (final proj in projected) {
         final projDay = dayNumber(proj.timestamp);
         final projWeek = weekNumber(proj.timestamp);
-        await widget.state.vacuum(
+        widget.state.vacuum(
           lat: proj.lat,
           lon: proj.lon,
           day: projDay,
           week: projWeek,
           biome: biome,
-        );
+        ).ignore();
         await widget.state.logPosition(
           lat: proj.lat,
           lon: proj.lon,
@@ -407,21 +407,23 @@ class _MapScreenState extends State<MapScreen>
       _recenter();
     }
 
-    final res = await widget.state.vacuum(
+    widget.state
+        .vacuum(
       lat: p.latitude,
       lon: p.longitude,
       day: day,
       week: week,
       biome: biome,
-    );
-    if (!mounted) return;
-
-    if (res.newCells.isNotEmpty) {
-      _spawnTubePixels(res.grains);
-      _fogDirty = true;
-      setState(() {});
-    }
-    if (res.forged > 0) _toast('🎉 Forged ${res.forged} booster pack(s)!');
+    )
+        .then((res) {
+      if (!mounted) return;
+      if (res.newCells.isNotEmpty) {
+        _spawnTubePixels(res.grains);
+        _fogDirty = true;
+        setState(() {});
+      }
+      if (res.forged > 0) _toast('🎉 Forged ${res.forged} booster pack(s)!');
+    });
   }
 
   void _toast(String msg) {

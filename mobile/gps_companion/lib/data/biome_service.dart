@@ -164,6 +164,10 @@ class BiomeService {
   /// Use this to mark the fog dirty and recolor cells with the new data.
   void Function()? onTileLoaded;
 
+  /// Called whenever a background fetch attempt completes (success or error).
+  /// Set in tests to observe fetch completion without polling.
+  void Function()? onFetchComplete;
+
   final http.Client _http;
   final Map<String, _TileCache> _cache = {};
   final Map<String, DateTime> _lastFetch = {};
@@ -259,7 +263,7 @@ class BiomeService {
     _lastFetch[tile] = DateTime.now();
     try {
       final url = buildOverpassUrl(lat: lat, lon: lon);
-      final resp = await _http.get(Uri.parse(url));
+      final resp = await _http.get(Uri.parse(url)).timeout(Duration(seconds: 8));
       if (resp.statusCode != 200) return;
       final parsed = parseOverpassResponse(resp.body);
 
@@ -291,7 +295,9 @@ class BiomeService {
       await _saveToPrefs(tile, tc);
       onTileLoaded?.call();
     } catch (_) {
-      // Network errors are non-fatal — retry on next prefetch.
+      // Network errors and timeouts are non-fatal — retry on next prefetch.
+    } finally {
+      onFetchComplete?.call();
     }
   }
 
