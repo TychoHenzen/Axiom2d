@@ -852,11 +852,8 @@ impl State {
             angular_velocity,
             _pad: 0,
         };
-        self.queue.write_buffer(
-            &self.conveyor_buf,
-            0,
-            bytemuck::bytes_of(&conveyor_params),
-        );
+        self.queue
+            .write_buffer(&self.conveyor_buf, 0, bytemuck::bytes_of(&conveyor_params));
     }
 
     fn spawn(&mut self) {
