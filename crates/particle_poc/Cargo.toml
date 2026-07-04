@@ -11,6 +11,7 @@ path = "src/main.rs"
 wgpu = { workspace = true }
 winit = { workspace = true }
 pollster = { workspace = true }
+bytemuck = { workspace = true }
 
 [lints]
 workspace = true
