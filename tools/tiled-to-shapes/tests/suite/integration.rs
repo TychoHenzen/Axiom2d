@@ -1,5 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
+use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use image::{Rgba, RgbaImage};
@@ -42,9 +43,10 @@ fn write_test_tsx(path: &std::path::Path, png_name: &str) {
         let se = u8::from(bitmask & 2 != 0);
         let sw = u8::from(bitmask & 4 != 0);
         let nw = u8::from(bitmask & 8 != 0);
-        wangtiles.push_str(&format!(
-            "   <wangtile tileid=\"{bitmask}\" wangid=\"0,{ne},0,{se},0,{sw},0,{nw}\"/>\n"
-        ));
+        let _ = writeln!(
+            wangtiles,
+            "   <wangtile tileid=\"{bitmask}\" wangid=\"0,{ne},0,{se},0,{sw},0,{nw}\"/>"
+        );
     }
 
     let xml = format!(

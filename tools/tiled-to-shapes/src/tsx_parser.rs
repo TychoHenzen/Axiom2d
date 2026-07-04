@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use quick_xml::XmlVersion;
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 
@@ -41,7 +42,10 @@ pub fn parse_tsx_str(xml: &str) -> Result<ParsedTileset, TiledToShapesError> {
                     "tileset" => {
                         for attr in e.attributes().flatten() {
                             let key = std::str::from_utf8(attr.key.0).unwrap_or("").to_owned();
-                            let val = attr.unescape_value().unwrap_or_default().into_owned();
+                            let val = attr
+                                .normalized_value(XmlVersion::Implicit1_0)
+                                .unwrap_or_default()
+                                .into_owned();
                             match key.as_str() {
                                 "tilewidth" => tile_width = val.parse().unwrap_or(16),
                                 "tileheight" => tile_height = val.parse().unwrap_or(16),
@@ -53,7 +57,10 @@ pub fn parse_tsx_str(xml: &str) -> Result<ParsedTileset, TiledToShapesError> {
                     "image" => {
                         for attr in e.attributes().flatten() {
                             let key = std::str::from_utf8(attr.key.0).unwrap_or("").to_owned();
-                            let val = attr.unescape_value().unwrap_or_default().into_owned();
+                            let val = attr
+                                .normalized_value(XmlVersion::Implicit1_0)
+                                .unwrap_or_default()
+                                .into_owned();
                             if key == "source" {
                                 image_source = val;
                             }
@@ -68,7 +75,10 @@ pub fn parse_tsx_str(xml: &str) -> Result<ParsedTileset, TiledToShapesError> {
                         let mut wang_type = String::new();
                         for attr in e.attributes().flatten() {
                             let key = std::str::from_utf8(attr.key.0).unwrap_or("").to_owned();
-                            let val = attr.unescape_value().unwrap_or_default().into_owned();
+                            let val = attr
+                                .normalized_value(XmlVersion::Implicit1_0)
+                                .unwrap_or_default()
+                                .into_owned();
                             match key.as_str() {
                                 "name" => name = val,
                                 "class" => class = val,
@@ -108,7 +118,10 @@ pub fn parse_tsx_str(xml: &str) -> Result<ParsedTileset, TiledToShapesError> {
                             let mut prop_val = String::new();
                             for attr in e.attributes().flatten() {
                                 let key = std::str::from_utf8(attr.key.0).unwrap_or("").to_owned();
-                                let val = attr.unescape_value().unwrap_or_default().into_owned();
+                                let val = attr
+                                    .normalized_value(XmlVersion::Implicit1_0)
+                                    .unwrap_or_default()
+                                    .into_owned();
                                 match key.as_str() {
                                     "name" => prop_name = val,
                                     "value" => prop_val = val,
@@ -143,7 +156,10 @@ pub fn parse_tsx_str(xml: &str) -> Result<ParsedTileset, TiledToShapesError> {
                             let mut wangid_str = String::new();
                             for attr in e.attributes().flatten() {
                                 let key = std::str::from_utf8(attr.key.0).unwrap_or("").to_owned();
-                                let val = attr.unescape_value().unwrap_or_default().into_owned();
+                                let val = attr
+                                    .normalized_value(XmlVersion::Implicit1_0)
+                                    .unwrap_or_default()
+                                    .into_owned();
                                 match key.as_str() {
                                     "tileid" => tile_id = val.parse().unwrap_or(0),
                                     "wangid" => wangid_str = val,

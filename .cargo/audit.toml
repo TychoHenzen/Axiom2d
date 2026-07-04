@@ -4,4 +4,9 @@
 # it is never compiled or linked on our Windows target (x86_64-pc-windows-msvc).
 # We also disable wgpu's `metal` feature, so it's doubly unreachable.
 # Upstream metal-rs still depends on paste; revisit when they migrate to pastey.
-ignore = ["RUSTSEC-2024-0436"]
+#
+# ttf-parser is unmaintained (not a vulnerability — no patched version exists).
+# We use it for TTF outline parsing in engine_ui's vector text renderer.
+# Migrating to skrifa is a larger undertaking tracked separately; revisit if
+# an actual soundness/security advisory lands against ttf-parser.
+ignore = ["RUSTSEC-2024-0436", "RUSTSEC-2026-0192"]

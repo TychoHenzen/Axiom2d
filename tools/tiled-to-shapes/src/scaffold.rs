@@ -36,12 +36,7 @@ pub fn scaffold_tsx_str(xml: &str) -> String {
 
     // Find all corner wangset regions and scaffold each.
     let mut search_from = 0;
-    loop {
-        // Find next corner wangset opening tag
-        let Some(wangset_start) = find_corner_wangset(&result, search_from) else {
-            break;
-        };
-
+    while let Some(wangset_start) = find_corner_wangset(&result, search_from) {
         // Find the end of this wangset element
         let wangset_end = find_wangset_end(&result, wangset_start);
 

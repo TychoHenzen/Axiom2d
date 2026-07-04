@@ -851,6 +851,24 @@ fn when_zero_axes_then_seeded_signature_axes_are_in_range() {
 /// this constraint; it ensures no future refactor accidentally collapses the seeds.
 #[test]
 fn when_two_different_names_then_signatures_differ() {
+    // Find each entry's insert block and extract its CardSignature literal.
+    fn extract_sig_for_name<'a>(code: &'a str, name: &str) -> &'a str {
+        // Locate the insert call for this entry: `self.cache.insert("name", ...`
+        let marker = format!("insert(\"{name}\"");
+        let insert_pos = code
+            .find(&marker)
+            .unwrap_or_else(|| panic!("insert block for '{name}' not found in output"));
+        let from_insert = &code[insert_pos..];
+        let sig_start = from_insert
+            .find("CardSignature::new([")
+            .unwrap_or_else(|| panic!("CardSignature for '{name}' not found"));
+        let from_sig = &from_insert[sig_start + "CardSignature::new([".len()..];
+        let sig_end = from_sig
+            .find("])")
+            .unwrap_or_else(|| panic!("closing ]) for '{name}' not found"));
+        &from_sig[..sig_end]
+    }
+
     // Arrange
     let entries = vec![
         RepositoryEntry {
@@ -870,24 +888,7 @@ fn when_two_different_names_then_signatures_differ() {
     // Act
     let code = generate_repository_module(&entries);
 
-    // Assert — find each entry's insert block and extract its CardSignature literal
-    fn extract_sig_for_name<'a>(code: &'a str, name: &str) -> &'a str {
-        // Locate the insert call for this entry: `self.cache.insert("name", ...`
-        let marker = format!("insert(\"{name}\"");
-        let insert_pos = code
-            .find(&marker)
-            .unwrap_or_else(|| panic!("insert block for '{name}' not found in output"));
-        let from_insert = &code[insert_pos..];
-        let sig_start = from_insert
-            .find("CardSignature::new([")
-            .unwrap_or_else(|| panic!("CardSignature for '{name}' not found"));
-        let from_sig = &from_insert[sig_start + "CardSignature::new([".len()..];
-        let sig_end = from_sig
-            .find("])")
-            .unwrap_or_else(|| panic!("closing ]) for '{name}' not found"));
-        &from_sig[..sig_end]
-    }
-
+    // Assert
     let fire_axes = extract_sig_for_name(&code, "fire_blade");
     let ice_axes = extract_sig_for_name(&code, "ice_shield");
 
