@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Pre-push: full quality gate (hard + soft).
+# Block push if quality has regressed.
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+GATE_SCRIPT="$REPO_ROOT/scripts/quality-gate-check.sh"
+
+if [ -f "$GATE_SCRIPT" ]; then
+    echo ""
+    echo "Running quality gate before push..."
+    bash "$GATE_SCRIPT" full
+else
+    echo "WARNING: quality-gate-check.sh not found, skipping pre-push quality gate"
+fi

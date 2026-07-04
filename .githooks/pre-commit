@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Pre-commit: fast soft-ratchet check only (no cargo build).
+# Full hard gates run on pre-push and CI.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+GATE_SCRIPT="$SCRIPT_DIR/../scripts/quality-gate-check.sh"
+
+if [ -f "$GATE_SCRIPT" ]; then
+    bash "$GATE_SCRIPT" --soft
+else
+    echo "WARNING: quality-gate-check.sh not found, skipping pre-commit quality gate"
+fi

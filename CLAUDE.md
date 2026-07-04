@@ -58,7 +58,20 @@ Workspace-level clippy lints are configured in the root `Cargo.toml` under `[wor
 
 Two GitHub Actions workflows in `.github/workflows/`:
 - **`ci.yml`** (every push/PR to master): autofix (clippy --fix + fmt, pushes fixes back) → build + test — fast gate for every commit.
-- **`quality.yml`** (daily at 06:00 UTC + manual `workflow_dispatch`): clippy, audit, docs, coverage, udeps, shader validation, dead code, duplicate detection — expensive checks run on a schedule to conserve Actions minutes.
+- **`quality.yml`** (daily at 06:00 UTC + manual `workflow_dispatch`): clippy, audit, docs, coverage, udeps, shader validation, dead code, duplicate detection, **soft-gate ratchet check** — expensive checks run on a schedule to conserve Actions minutes.
+
+### Quality Gate
+
+A 3-tier ratcheting gate enforces that code quality only improves over time. Full design: `docs/QUALITY_GATE.md`. Baseline thresholds: `docs/QUALITY_BASELINE.ron`.
+
+- **Hard gates** (must be zero): clippy warnings, CVEs, unused deps, doc warnings, dead code, WGSL errors
+- **Soft ratchets** (cannot regress): test count, smell markers (TODO/FIXME/HACK), unsafe blocks, unwrap() in prod
+- **Trend advisories** (warn only): magic literals, function length, nesting depth, file length
+
+**Local check**: `./scripts/quality-gate-check.sh [--diff|--soft|--hard|--update|--install-hooks]`
+**Git hooks**: `./scripts/quality-gate-check.sh --install-hooks` sets up `pre-commit` (soft ratchets, <1s) and `pre-push` (full gate). Hooks live in tracked `.githooks/` configured via `core.hooksPath`.
+
+When quality improves (e.g., test count increases), run `--update` to ratchet the baseline down. Intentional regressions require an override entry in the baseline RON file with a reason.
 
 Mutation testing (`cargo-mutants`) is run locally via the `/mutant-hunt` skill in Claude Code — too slow for CI.
 

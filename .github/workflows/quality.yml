@@ -137,3 +137,79 @@ jobs:
       - name: Fail if duplicates found
         if: steps.jscpd.outputs.duplicates_found == 'true'
         run: exit 1
+
+  soft-gate:
+    name: "Soft Ratchet Gate (no regressions allowed)"
+    runs-on: ubuntu-latest
+    needs: [clippy, audit, doc, udeps, shaders, dead-code, duplicates]
+    if: always() && !cancelled()
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Parse baseline
+        id: baseline
+        run: |
+          # Extract numeric baseline values from RON file
+          test_count=$(grep '"test_count_total"' docs/QUALITY_BASELINE.ron | grep -o '[0-9]\+' | head -1)
+          smell=$(grep '"smell_markers_total"' docs/QUALITY_BASELINE.ron | grep -o '[0-9]\+' | head -1)
+          unsafe=$(grep '"unsafe_blocks_total"' docs/QUALITY_BASELINE.ron | grep -o '[0-9]\+' | head -1)
+          unwrap=$(grep '"unwrap_in_prod_total"' docs/QUALITY_BASELINE.ron | grep -o '[0-9]\+' | head -1)
+          echo "test_count=$test_count" >> "$GITHUB_OUTPUT"
+          echo "smell=$smell" >> "$GITHUB_OUTPUT"
+          echo "unsafe=$unsafe" >> "$GITHUB_OUTPUT"
+          echo "unwrap=$unwrap" >> "$GITHUB_OUTPUT"
+
+      - name: Count test functions
+        id: tests
+        run: |
+          count=$(grep -rn '#\[test\]\|#\[tokio::test\]' crates/ --include="*.rs" | wc -l)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      - name: Count smell markers (prod code only)
+        id: smells
+        run: |
+          count=$(grep -rn 'TODO\|FIXME\|HACK' crates/ --include="*.rs" | grep -v 'tests/' | wc -l)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      - name: Count unsafe blocks (prod code only)
+        id: unsafe_blocks
+        run: |
+          count=$(grep -rn '\bunsafe\b' crates/ --include="*.rs" | grep -v 'tests/' | wc -l)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      - name: Count unwrap() in production
+        id: unwrap_count
+        run: |
+          count=$(grep -rn '\.unwrap()' crates/ --include="*.rs" | grep -v 'tests/' | grep -v 'benches/' | grep -v 'particle_poc/' | wc -l)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      - name: Check ratchets
+        run: |
+          set -e
+          FAILED=0
+
+          check_ratchet() {
+            local name=$1 current=$2 baseline=$3
+            if [ "$current" -gt "$baseline" ]; then
+              echo "::error title=Quality Regression::$name regressed: $current > $baseline (baseline)"
+              FAILED=1
+            elif [ "$current" -lt "$baseline" ]; then
+              echo "::notice title=Quality Improved::$name improved: $current < $baseline (baseline). Run update-baseline to ratchet down."
+            else
+              echo "::notice title=$name (ok)::$name: $current (baseline: $baseline)"
+            fi
+          }
+
+          check_ratchet "test_count"      "${{ steps.tests.outputs.count }}"         "${{ steps.baseline.outputs.test_count }}"
+          check_ratchet "smell_markers"   "${{ steps.smells.outputs.count }}"         "${{ steps.baseline.outputs.smell }}"
+          check_ratchet "unsafe_blocks"   "${{ steps.unsafe_blocks.outputs.count }}"  "${{ steps.baseline.outputs.unsafe }}"
+          check_ratchet "unwrap_in_prod"  "${{ steps.unwrap_count.outputs.count }}"   "${{ steps.baseline.outputs.unwrap }}"
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo ""
+            echo "::error::One or more quality metrics regressed. See above for details."
+            echo "To intentionally increase a baseline, edit docs/QUALITY_BASELINE.ron overrides section with a reason."
+            exit 1
+          fi
+
+          echo "::notice::All soft ratchets passed. Quality has not regressed."

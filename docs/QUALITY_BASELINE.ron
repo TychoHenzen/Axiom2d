@@ -1,0 +1,53 @@
+// Quality Gate Baseline — ratchet thresholds for CI enforcement.
+// Generated: 2026-07-04
+//
+// RULES:
+//   Hard gates: current value must be 0. Any increase → CI FAIL.
+//   Soft ratchets: current value must be <= baseline. Any increase → CI FAIL.
+//     Decrease auto-updates baseline (quality improved).
+//   Trend advisories: warn only. Do not block CI.
+//
+// To override a soft ratchet (intentional regression):
+//   Add an entry to overrides{} with reason, then update the baseline value.
+
+{
+    "hard": {
+        "clippy_warnings": 0,
+        "audit_vulnerabilities": 0,
+        "unused_dependencies": 0,
+        "doc_warnings": 0,
+        "dead_code_items": 0,
+        "shader_errors": 0,
+    },
+    "soft": {
+        "test_count_total": 1544,
+        "smell_markers_total": 0,
+        "unsafe_blocks_total": 2,
+        "unwrap_in_prod_total": 0,
+        "expect_in_prod_total": 92,
+    },
+    "advisory_maxima": {
+        "magic_literals_per_file": 320,
+        "function_length_lines": 861,
+        "nesting_depth": 12,
+        "file_length_lines": 861,
+    },
+    "overrides": {
+        // "unsafe_blocks_total": {
+        //     "value": 3,
+        //     "reason": "GPU buffer mapping requires unsafe for zero-copy",
+        //     "pr": "#NNN",
+        // },
+    },
+    "meta": {
+        "last_updated": "2026-07-04",
+        "schema_version": 1,
+        "notes": [
+            "unsafe_blocks_total=2: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
+            "unwrap_in_prod_total=0: excludes tests/, benches/, and particle_poc/ (standalone POC binary)",
+            "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
+            "test_count_total=1544: all #[test] and #[tokio::test] across workspace (including tools/)",
+            "smell_markers_total=0: no TODO/FIXME/HACK in production code",
+        ],
+    },
+}
