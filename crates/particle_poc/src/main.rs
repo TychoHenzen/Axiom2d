@@ -10,8 +10,12 @@ use winit::window::{Window, WindowId};
 
 const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
-const MAX_PARTICLES: u32 = 100_000;
+const MAX_PARTICLES: u32 = 100000;
 const WORKGROUP_SIZE: u32 = 256;
+const SPAWN_RATE: u32 = 500;
+const HOPPER_X_MIN: f32 = -0.3;
+const HOPPER_X_MAX: f32 = 0.3;
+const HOPPER_Y: f32 = 0.75;
 const GRID_W: u32 = 160;
 const GRID_H: u32 = 160;
 const TOTAL_GRID_CELLS: u32 = GRID_W * GRID_H;
@@ -424,6 +428,48 @@ impl State {
         }
     }
 
+    fn spawn(&mut self) {
+        let current = self.sim_params.particle_count;
+        let to_spawn = SPAWN_RATE.min(MAX_PARTICLES - current);
+        if to_spawn == 0 {
+            return;
+        }
+
+        let mut positions = Vec::with_capacity(to_spawn as usize);
+        let mut velocities = Vec::with_capacity(to_spawn as usize);
+        let mut species = Vec::with_capacity(to_spawn as usize);
+
+        let hopper_width = HOPPER_X_MAX - HOPPER_X_MIN;
+        for i in 0..to_spawn {
+            let hash = (current + i).wrapping_mul(0x9E37_79B9);
+            let jitter = ((hash >> 16) ^ hash) as f32 / u32::MAX as f32;
+            let t = (i as f32 + 0.5) / to_spawn as f32;
+            let x = HOPPER_X_MIN + t * hopper_width;
+            let y = HOPPER_Y - jitter * 0.02;
+            positions.push([x, y]);
+            velocities.push([0.0f32, -0.5]);
+            species.push(if (current + i) % 2 == 0 { 0u32 } else { 1u32 });
+        }
+
+        let offset = u64::from(current);
+        self.queue.write_buffer(
+            &self.buffers.positions,
+            offset * 8,
+            bytemuck::cast_slice(&positions),
+        );
+        self.queue.write_buffer(
+            &self.buffers.velocities,
+            offset * 8,
+            bytemuck::cast_slice(&velocities),
+        );
+        self.queue.write_buffer(
+            &self.buffers.species,
+            offset * 4,
+            bytemuck::cast_slice(&species),
+        );
+        self.sim_params.particle_count = current + to_spawn;
+    }
+
     fn simulate(&mut self) {
         self.queue.write_buffer(
             &self.buffers.params,
@@ -474,6 +520,7 @@ impl State {
     }
 
     fn render(&mut self) {
+        self.spawn();
         self.simulate();
 
         let frame = match self.surface.get_current_texture() {
