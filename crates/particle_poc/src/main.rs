@@ -40,6 +40,15 @@ struct SimParams {
     _pad: [u32; 2],
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+struct RenderParams {
+    screen_width: f32,
+    screen_height: f32,
+    particle_radius: f32,
+    particle_count: u32,
+}
+
 fn main() {
     let benchmark = std::env::args().any(|a| a == "--benchmark");
     let event_loop = EventLoop::new().expect("event loop");
@@ -75,6 +84,12 @@ struct ComputePipelines {
     dem_solver: wgpu::ComputePipeline,
 }
 
+struct RenderState {
+    pipeline: wgpu::RenderPipeline,
+    bind_group: wgpu::BindGroup,
+    params_buf: wgpu::Buffer,
+}
+
 struct State {
     window: Arc<Window>,
     device: wgpu::Device,
@@ -85,6 +100,7 @@ struct State {
     particle_bg: wgpu::BindGroup,
     grid_bg: wgpu::BindGroup,
     pipelines: ComputePipelines,
+    render: RenderState,
     sim_params: SimParams,
 }
 
@@ -339,6 +355,120 @@ fn create_pipelines(
     }
 }
 
+fn create_render_state(
+    device: &wgpu::Device,
+    buffers: &Buffers,
+    format: wgpu::TextureFormat,
+) -> RenderState {
+    let params_buf = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("render_params"),
+        size: size_of::<RenderParams>() as u64,
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+
+    let bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("render_bgl"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    });
+
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("render_bg"),
+        layout: &bgl,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: buffers.positions.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: buffers.species.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: params_buf.as_entire_binding(),
+            },
+        ],
+    });
+
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("render_pl"),
+        bind_group_layouts: &[&bgl],
+        push_constant_ranges: &[],
+    });
+
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("particle_render"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/particle.wgsl").into()),
+    });
+
+    let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("particle_render"),
+        layout: Some(&pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: Some("vs_main"),
+            buffers: &[],
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: Some("fs_main"),
+            targets: &[Some(wgpu::ColorTargetState {
+                format,
+                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+        }),
+        primitive: wgpu::PrimitiveState {
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            ..Default::default()
+        },
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview: None,
+        cache: None,
+    });
+
+    RenderState {
+        pipeline,
+        bind_group,
+        params_buf,
+    }
+}
+
 impl State {
     fn new(window: Arc<Window>, benchmark: bool) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
@@ -387,6 +517,7 @@ impl State {
         let (particle_bg, grid_bg) =
             create_bind_groups(&device, &buffers, &particle_bgl, &grid_bgl);
         let pipelines = create_pipelines(&device, &particle_bgl, &grid_bgl);
+        let render = create_render_state(&device, &buffers, surface_config.format);
 
         let sim_params = SimParams {
             particle_count: 0,
@@ -416,6 +547,7 @@ impl State {
             particle_bg,
             grid_bg,
             pipelines,
+            render,
             sim_params,
         }
     }
@@ -523,6 +655,18 @@ impl State {
         self.spawn();
         self.simulate();
 
+        let render_params = RenderParams {
+            screen_width: self.surface_config.width as f32,
+            screen_height: self.surface_config.height as f32,
+            particle_radius: self.sim_params.particle_radius,
+            particle_count: self.sim_params.particle_count,
+        };
+        self.queue.write_buffer(
+            &self.render.params_buf,
+            0,
+            bytemuck::bytes_of(&render_params),
+        );
+
         let frame = match self.surface.get_current_texture() {
             Ok(f) => f,
             Err(_) => {
@@ -540,8 +684,8 @@ impl State {
                     label: Some("render"),
                 });
         {
-            let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("clear"),
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("particles"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
@@ -558,6 +702,11 @@ impl State {
                 depth_stencil_attachment: None,
                 ..Default::default()
             });
+            if self.sim_params.particle_count > 0 {
+                pass.set_pipeline(&self.render.pipeline);
+                pass.set_bind_group(0, &self.render.bind_group, &[]);
+                pass.draw(0..self.sim_params.particle_count * 6, 0..1);
+            }
         }
         self.queue.submit(std::iter::once(encoder.finish()));
         frame.present();
