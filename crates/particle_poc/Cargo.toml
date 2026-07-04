@@ -1,0 +1,16 @@
+[package]
+name = "particle_poc"
+edition.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "particle_poc"
+path = "src/main.rs"
+
+[dependencies]
+wgpu = { workspace = true }
+winit = { workspace = true }
+pollster = { workspace = true }
+
+[lints]
+workspace = true

@@ -2654,6 +2654,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "particle_poc"
+version = "0.1.0"
+dependencies = [
+ "pollster",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
 name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
