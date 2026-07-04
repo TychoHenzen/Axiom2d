@@ -1,6 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
 use std::sync::Arc;
+use std::time::Instant;
 
 use bytemuck::{Pod, Zeroable};
 use winit::application::ApplicationHandler;
@@ -103,6 +104,46 @@ struct State {
     pipelines: ComputePipelines,
     render: RenderState,
     sim_params: SimParams,
+    fps_tracker: FpsTracker,
+}
+
+struct FpsTracker {
+    last_fps_update: Instant,
+    frame_count: u32,
+    fps: f32,
+    sim_time_ms: f32,
+    last_frame: Instant,
+}
+
+impl FpsTracker {
+    fn new() -> Self {
+        let now = Instant::now();
+        Self {
+            last_fps_update: now,
+            frame_count: 0,
+            fps: 0.0,
+            sim_time_ms: 0.0,
+            last_frame: now,
+        }
+    }
+
+    fn begin_frame(&mut self) {
+        self.last_frame = Instant::now();
+    }
+
+    fn end_frame(&mut self) -> bool {
+        let frame_time = self.last_frame.elapsed();
+        self.sim_time_ms = frame_time.as_secs_f32() * 1000.0;
+        self.frame_count += 1;
+        let elapsed = self.last_fps_update.elapsed().as_secs_f32();
+        if elapsed >= 0.5 {
+            self.fps = self.frame_count as f32 / elapsed;
+            self.frame_count = 0;
+            self.last_fps_update = Instant::now();
+            return true;
+        }
+        false
+    }
 }
 
 fn create_buffers(device: &wgpu::Device) -> Buffers {
@@ -561,6 +602,7 @@ impl State {
             pipelines,
             render,
             sim_params,
+            fps_tracker: FpsTracker::new(),
         }
     }
 
@@ -674,6 +716,7 @@ impl State {
     }
 
     fn render(&mut self) {
+        self.fps_tracker.begin_frame();
         self.spawn();
         self.simulate();
 
@@ -732,6 +775,15 @@ impl State {
         }
         self.queue.submit(std::iter::once(encoder.finish()));
         frame.present();
+
+        if self.fps_tracker.end_frame() {
+            self.window.set_title(&format!(
+                "Particle Idle PoC | FPS: {:.0} | Particles: {} | Sim: {:.2}ms",
+                self.fps_tracker.fps,
+                self.sim_params.particle_count,
+                self.fps_tracker.sim_time_ms,
+            ));
+        }
     }
 }
 
