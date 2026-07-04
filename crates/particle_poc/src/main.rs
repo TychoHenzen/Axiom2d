@@ -1010,7 +1010,7 @@ impl State {
 
     fn render(&mut self) {
         const WARMUP_FRAMES: u32 = 10;
-        const MEASURED_FRAMES: u32 = 300;
+        const BENCH_DURATION_SECS: f64 = 10.0;
 
         self.update_conveyor();
 
@@ -1092,14 +1092,18 @@ impl State {
 
         if self.benchmark {
             self.bench_frame += 1;
-            let total_needed = WARMUP_FRAMES + MEASURED_FRAMES;
-            if self.bench_frame >= total_needed {
+            if self.bench_frame >= WARMUP_FRAMES
+                && self
+                    .bench_start
+                    .map_or(false, |s| s.elapsed().as_secs_f64() >= BENCH_DURATION_SECS)
+            {
                 self.device.poll(wgpu::Maintain::Wait);
                 let elapsed = self.bench_start.unwrap().elapsed();
-                let avg_ms = elapsed.as_secs_f64() * 1000.0 / f64::from(MEASURED_FRAMES);
+                let measured_frames = self.bench_frame - WARMUP_FRAMES;
+                let avg_ms = elapsed.as_secs_f64() * 1000.0 / f64::from(measured_frames);
                 let count = self.sim_params.particle_count;
                 let verdict = if avg_ms < 16.67 { "PASS" } else { "FAIL" };
-                println!("Benchmark: {MEASURED_FRAMES} frames, {count} particles");
+                println!("Benchmark: {measured_frames} frames in {:.2}s, {count} particles", elapsed.as_secs_f64());
                 println!("Average frame time: {avg_ms:.2}ms");
                 println!("Result: {verdict}");
                 self.bench_done = true;
