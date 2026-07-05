@@ -44,8 +44,9 @@ fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOut {
 
     let aspect = params.screen_width / params.screen_height;
     let r = params.particle_radius;
-    let clip_x = pos.x + uv.x * r;
-    let clip_y = pos.y + uv.y * r * aspect;
+    // Divide X by aspect so world-space distances map to equal screen pixels in both axes.
+    let clip_x = (pos.x + uv.x * r) / aspect;
+    let clip_y = pos.y + uv.y * r;
 
     var out: VertexOut;
     out.clip_pos = vec4<f32>(clip_x, clip_y, 0.0, 1.0);
