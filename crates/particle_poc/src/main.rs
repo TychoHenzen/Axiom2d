@@ -1213,7 +1213,7 @@ impl State {
             if self.bench_frame >= WARMUP_FRAMES
                 && self
                     .bench_start
-                    .map_or(false, |s| s.elapsed().as_secs_f64() >= BENCH_DURATION_SECS)
+                    .is_some_and(|s| s.elapsed().as_secs_f64() >= BENCH_DURATION_SECS)
             {
                 self.device.poll(wgpu::Maintain::Wait);
                 let elapsed = self.bench_start.unwrap().elapsed();
