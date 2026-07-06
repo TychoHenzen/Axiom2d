@@ -2,12 +2,14 @@
 // Two-pass algorithm eliminates unilateral bonds that cause asymmetric forces.
 //
 // Pass 1 (proposal): Each green particle proposes a bond to its closest green neighbor.
-//   Writes to its own bond_slot_*[i] only — no cross-thread writes.
+//   Writes to own bond slots only — no cross-thread writes.
 // Pass 2 (resolve): Each green particle validates its proposals are reciprocal.
 //   If partner J doesn't have a bond pointing back to i, clears the bond from i.
 //   Reads partner slots (read-only cross-thread), writes own slots only — no atomics.
 //
 // Only mutual bonds survive, ensuring equal-opposite corrections in solve_bonds.
+//
+// bonds is a flat array: particle i owns slots [i*4+0, i*4+1, i*4+2, i*4+3].
 
 struct Params {
     particle_count: u32,
@@ -34,12 +36,12 @@ struct BondSlot {
 const GREEN_SPECIES: u32 = 2u;
 const INVALID_BOND: u32 = 0xFFFFFFFFu;
 const BOND_FORMATION_MULTIPLIER: f32 = 3.0;
+const SLOTS_PER_PARTICLE: u32 = 4u;
 
 @group(0) @binding(0) var<storage, read_write> positions: array<vec2<f32>>;
 @group(0) @binding(2) var<storage, read_write> species: array<u32>;
 @group(0) @binding(7) var<uniform> params: Params;
-@group(0) @binding(10) var<storage, read_write> bond_slot_a: array<BondSlot>;
-@group(0) @binding(11) var<storage, read_write> bond_slot_b: array<BondSlot>;
+@group(0) @binding(10) var<storage, read_write> bonds: array<BondSlot>;
 
 @group(1) @binding(0) var<storage, read_write> cell_indices: array<u32>;
 @group(1) @binding(1) var<storage, read_write> cell_counts: array<u32>;
@@ -66,7 +68,33 @@ fn morton_encode(x: u32, y: u32) -> u32 {
 }
 
 fn has_bond(me: u32, other: u32) -> bool {
-    return bond_slot_a[me].partner == other || bond_slot_b[me].partner == other;
+    let base = me * SLOTS_PER_PARTICLE;
+    return bonds[base + 0u].partner == other
+        || bonds[base + 1u].partner == other
+        || bonds[base + 2u].partner == other
+        || bonds[base + 3u].partner == other;
+}
+
+fn slot_partner(pidx: u32, slot: u32) -> u32 {
+    return bonds[pidx * SLOTS_PER_PARTICLE + slot].partner;
+}
+
+fn slot_rest(pidx: u32, slot: u32) -> f32 {
+    return bonds[pidx * SLOTS_PER_PARTICLE + slot].rest;
+}
+
+fn set_slot(pidx: u32, slot: u32, partner: u32, rest: f32) {
+    let idx = pidx * SLOTS_PER_PARTICLE + slot;
+    bonds[idx].partner = partner;
+    bonds[idx].rest = rest;
+}
+
+fn any_slot_points_to(pidx: u32, tgt: u32) -> bool {
+    let base = pidx * SLOTS_PER_PARTICLE;
+    return bonds[base + 0u].partner == tgt
+        || bonds[base + 1u].partner == tgt
+        || bonds[base + 2u].partner == tgt
+        || bonds[base + 3u].partner == tgt;
 }
 
 // Pass 1: Each green particle proposes a bond to its closest green neighbor.
@@ -77,10 +105,16 @@ fn form_bonds_propose(@builtin(global_invocation_id) id: vec3<u32>) {
     if i >= params.particle_count { return; }
     if species[i] != GREEN_SPECIES { return; }
 
-    // Only bond if we have a free slot.
-    let free_a = bond_slot_a[i].partner == INVALID_BOND;
-    let free_b = bond_slot_b[i].partner == INVALID_BOND;
-    if !free_a && !free_b { return; }
+    let base = i * SLOTS_PER_PARTICLE;
+    // Find first free slot index (0-3).
+    var free_slot: u32 = INVALID_BOND;
+    for (var s = 0u; s < SLOTS_PER_PARTICLE; s++) {
+        if bonds[base + s].partner == INVALID_BOND {
+            free_slot = s;
+            break;
+        }
+    }
+    if free_slot == INVALID_BOND { return; }
 
     let pos_i = positions[i];
     let r = params.particle_radius;
@@ -130,13 +164,7 @@ fn form_bonds_propose(@builtin(global_invocation_id) id: vec3<u32>) {
     let rest_len = 2.0 * params.particle_radius;
 
     // Write proposal to own free slot only. No cross-thread writes.
-    if free_a {
-        bond_slot_a[i].partner = best_j;
-        bond_slot_a[i].rest = rest_len;
-    } else {
-        bond_slot_b[i].partner = best_j;
-        bond_slot_b[i].rest = rest_len;
-    }
+    set_slot(i, free_slot, best_j, rest_len);
 }
 
 // Pass 2: Validate each proposed bond is mutual.
@@ -148,21 +176,13 @@ fn form_bonds_resolve(@builtin(global_invocation_id) id: vec3<u32>) {
     if i >= params.particle_count { return; }
     if species[i] != GREEN_SPECIES { return; }
 
-    // Check slot_a: does partner reciprocate?
-    let pa = bond_slot_a[i].partner;
-    if pa != INVALID_BOND {
-        if bond_slot_a[pa].partner != i && bond_slot_b[pa].partner != i {
-            bond_slot_a[i].partner = INVALID_BOND;
-            bond_slot_a[i].rest = 0.0;
-        }
-    }
-
-    // Check slot_b: does partner reciprocate?
-    let pb = bond_slot_b[i].partner;
-    if pb != INVALID_BOND {
-        if bond_slot_a[pb].partner != i && bond_slot_b[pb].partner != i {
-            bond_slot_b[i].partner = INVALID_BOND;
-            bond_slot_b[i].rest = 0.0;
+    let base = i * SLOTS_PER_PARTICLE;
+    for (var s = 0u; s < SLOTS_PER_PARTICLE; s++) {
+        let p = bonds[base + s].partner;
+        if p == INVALID_BOND { continue; }
+        if !any_slot_points_to(p, i) {
+            bonds[base + s].partner = INVALID_BOND;
+            bonds[base + s].rest = 0.0;
         }
     }
 }

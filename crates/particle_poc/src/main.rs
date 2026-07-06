@@ -31,19 +31,19 @@ const SUB_STEPS: u32 = 16;
 const MAX_SPECIES: u32 = 8;
 
 // Polymer bond constants for Green(2) particles.
-// Green particles form chain-like bonds (max 2 per particle) that break under stress.
+// Green particles form softbody-style mesh bonds (max 4 per particle) that break under stress.
 // Mirror copy of WGSL constants in form_bonds.wgsl and solve_bonds.wgsl.
 #[allow(dead_code)]
 const GREEN_SPECIES: u32 = 2;
 const INVALID_BOND: u32 = 0xFFFF_FFFF;
 #[allow(dead_code)]
-const MAX_BONDS_PER_PARTICLE: u32 = 2;
+const MAX_BONDS_PER_PARTICLE: u32 = 4;
 #[allow(dead_code)]
 const BOND_FORMATION_MULTIPLIER: f32 = 3.0;
 #[allow(dead_code)]
-const BOND_BREAK_MULTIPLIER: f32 = 3.0;
+const BOND_BREAK_MULTIPLIER: f32 = 5.0;
 #[allow(dead_code)]
-const BOND_COMPLIANCE: f32 = 0.15;
+const BOND_COMPLIANCE: f32 = 0.04;
 
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
@@ -168,9 +168,9 @@ struct Buffers {
     sorted_indices: wgpu::Buffer,
     morton_keys: wgpu::Buffer,
     reaction_matrix: wgpu::Buffer,
-    // Polymer bond data (per-particle, max 2 bonds each, packed as BondSlot).
-    bond_slot_a: wgpu::Buffer,
-    bond_slot_b: wgpu::Buffer,
+    // Polymer bond data: flat array, MAX_PARTICLES * 4 slots.
+    // Particle i owns slots [i*4+0, i*4+1, i*4+2, i*4+3].
+    bonds: wgpu::Buffer,
 }
 
 struct ComputePipelines {
@@ -346,15 +346,9 @@ fn create_buffers(device: &wgpu::Device) -> Buffers {
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         }),
-        bond_slot_a: device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("bond_slot_a"),
-            size: u64::from(MAX_PARTICLES) * size_of::<BondSlot>() as u64,
-            usage: grid_storage,
-            mapped_at_creation: false,
-        }),
-        bond_slot_b: device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("bond_slot_b"),
-            size: u64::from(MAX_PARTICLES) * size_of::<BondSlot>() as u64,
+        bonds: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("bonds"),
+            size: u64::from(MAX_PARTICLES) * 4 * size_of::<BondSlot>() as u64,
             usage: grid_storage,
             mapped_at_creation: false,
         }),
@@ -399,8 +393,7 @@ fn create_particle_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
             uniform_entry(7),         // params
             uniform_entry(8),         // conveyor
             storage_entry(9, true),   // reaction_matrix (read-only storage)
-            storage_entry(10, false), // bond_slot_a
-            storage_entry(11, false), // bond_slot_b
+            storage_entry(10, false), // bonds (flat array, 4 slots per particle)
         ],
     })
 }
@@ -463,11 +456,7 @@ fn create_bind_groups(
             },
             wgpu::BindGroupEntry {
                 binding: 10,
-                resource: buffers.bond_slot_a.as_entire_binding(),
-            },
-            wgpu::BindGroupEntry {
-                binding: 11,
-                resource: buffers.bond_slot_b.as_entire_binding(),
+                resource: buffers.bonds.as_entire_binding(),
             },
         ],
     });
@@ -858,19 +847,11 @@ impl State {
             bytemuck::bytes_of(&reaction_matrix),
         );
 
-        // Initialize bond buffers: all slots invalid.
+        // Initialize bond buffer: all slots invalid.
         {
-            let invalid_bonds = vec![BondSlot::default(); MAX_PARTICLES as usize];
-            queue.write_buffer(
-                &buffers.bond_slot_a,
-                0,
-                bytemuck::cast_slice(&invalid_bonds),
-            );
-            queue.write_buffer(
-                &buffers.bond_slot_b,
-                0,
-                bytemuck::cast_slice(&invalid_bonds),
-            );
+            let invalid_bonds =
+                vec![BondSlot::default(); MAX_PARTICLES as usize * 4];
+            queue.write_buffer(&buffers.bonds, 0, bytemuck::cast_slice(&invalid_bonds));
         }
 
         Self {
@@ -1031,15 +1012,25 @@ impl State {
                 b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
             });
             for (_idx, (i, ke)) in outlier_list.iter().enumerate().take(30) {
-                let slot_a = bonds[*i];
-                let slot_b = bonds[n + *i];
+                let slot_a = bonds[*i * 4];
+                let slot_b = bonds[*i * 4 + 1];
+                let slot_c = bonds[*i * 4 + 2];
+                let slot_d = bonds[*i * 4 + 3];
                 let [px, py] = positions[*i];
                 let [vx, vy] = velocities[*i];
                 let sp = species[*i];
-                let is_bonded = slot_a.partner != INVALID_BOND || slot_b.partner != INVALID_BOND;
+                let is_bonded = slot_a.partner != INVALID_BOND
+                    || slot_b.partner != INVALID_BOND
+                    || slot_c.partner != INVALID_BOND
+                    || slot_d.partner != INVALID_BOND;
+                let bond_count = u32::from(slot_a.partner != INVALID_BOND)
+                    + u32::from(slot_b.partner != INVALID_BOND)
+                    + u32::from(slot_c.partner != INVALID_BOND)
+                    + u32::from(slot_d.partner != INVALID_BOND);
                 println!(
                     "  outlier[{}] sp={} pos=({:.4},{:.4}) vel=({:.4},{:.4}) \
-                     KE={:.6} bond_a=(p={} r={:.4}) bond_b=(p={} r={:.4}) {}",
+                     KE={:.6} bonds={} a=(p={} r={:.4}) b=(p={} r={:.4}) \
+                     c=(p={} r={:.4}) d=(p={} r={:.4}) {}",
                     i,
                     sp,
                     px,
@@ -1047,10 +1038,15 @@ impl State {
                     vx,
                     vy,
                     *ke,
+                    bond_count,
                     slot_a.partner,
                     slot_a.rest,
                     slot_b.partner,
                     slot_b.rest,
+                    slot_c.partner,
+                    slot_c.rest,
+                    slot_d.partner,
+                    slot_d.rest,
                     if is_bonded { "(bonded)" } else { "(free)" },
                 );
             }
@@ -1401,32 +1397,22 @@ impl State {
 
                 self.sim_params.particle_count = 2;
 
-                // Clear all bond slots, then write mutual bond: 0↔1 via slot_a.
-                let invalid = vec![BondSlot::default(); n];
-                self.queue.write_buffer(
-                    &self.buffers.bond_slot_a,
-                    0,
-                    bytemuck::cast_slice(&invalid),
-                );
-                self.queue.write_buffer(
-                    &self.buffers.bond_slot_b,
-                    0,
-                    bytemuck::cast_slice(&invalid),
-                );
-                let mut bonds_a = vec![BondSlot::default(); n];
-                bonds_a[0] = BondSlot {
+                // Clear all bond slots, then write mutual bond: 0↔1 via slot 0.
+                let invalid = vec![BondSlot::default(); n * 4];
+                self.queue
+                    .write_buffer(&self.buffers.bonds, 0, bytemuck::cast_slice(&invalid));
+                let mut bonds = vec![BondSlot::default(); n * 4];
+                // Particle 0 slot 0 → partner 1, Particle 1 slot 0 → partner 0
+                bonds[0] = BondSlot {
                     partner: 1,
                     rest: 0.03,
                 };
-                bonds_a[1] = BondSlot {
+                bonds[4] = BondSlot {
                     partner: 0,
                     rest: 0.03,
                 };
-                self.queue.write_buffer(
-                    &self.buffers.bond_slot_a,
-                    0,
-                    bytemuck::cast_slice(&bonds_a),
-                );
+                self.queue
+                    .write_buffer(&self.buffers.bonds, 0, bytemuck::cast_slice(&bonds));
             }
 
             encoder.copy_buffer_to_buffer(&staging, 0, &self.buffers.positions, 0, pos_bytes);
@@ -1450,10 +1436,10 @@ impl State {
 
     fn read_bonds(&mut self) -> Vec<BondSlot> {
         let n = MAX_PARTICLES as usize;
-        let slot_bytes = (n * size_of::<BondSlot>()) as u64;
+        let total_bytes = (n * 4 * size_of::<BondSlot>()) as u64;
         let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("bond_readback_staging"),
-            size: slot_bytes * 2,
+            size: total_bytes,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
@@ -1462,25 +1448,14 @@ impl State {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("bond_readback"),
             });
-        encoder.copy_buffer_to_buffer(&self.buffers.bond_slot_a, 0, &staging, 0, slot_bytes);
-        encoder.copy_buffer_to_buffer(
-            &self.buffers.bond_slot_b,
-            0,
-            &staging,
-            slot_bytes,
-            slot_bytes,
-        );
+        encoder.copy_buffer_to_buffer(&self.buffers.bonds, 0, &staging, 0, total_bytes);
         self.queue.submit(std::iter::once(encoder.finish()));
         let slice = staging.slice(..);
         slice.map_async(wgpu::MapMode::Read, |r| r.expect("map bond staging"));
         self.device.poll(wgpu::Maintain::Wait);
         let data = slice.get_mapped_range();
-        let bonds_a: &[BondSlot] = bytemuck::cast_slice(&data[..slot_bytes as usize]);
-        let bonds_b: &[BondSlot] =
-            bytemuck::cast_slice(&data[slot_bytes as usize..2 * slot_bytes as usize]);
-        let mut all = Vec::with_capacity(2 * n);
-        all.extend_from_slice(bonds_a);
-        all.extend_from_slice(bonds_b);
+        let all: Vec<BondSlot> =
+            bytemuck::cast_slice(&data[..total_bytes as usize]).to_vec();
         drop(data);
         staging.unmap();
         all
