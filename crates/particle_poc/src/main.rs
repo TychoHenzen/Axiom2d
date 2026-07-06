@@ -30,6 +30,37 @@ const SUB_STEPS: u32 = 16;
 
 const MAX_SPECIES: u32 = 8;
 
+// Polymer bond constants for Green(2) particles.
+// Green particles form chain-like bonds (max 2 per particle) that break under stress.
+// Mirror copy of WGSL constants in form_bonds.wgsl and solve_bonds.wgsl.
+#[allow(dead_code)]
+const GREEN_SPECIES: u32 = 2;
+const INVALID_BOND: u32 = 0xFFFF_FFFF;
+#[allow(dead_code)]
+const MAX_BONDS_PER_PARTICLE: u32 = 2;
+#[allow(dead_code)]
+const BOND_FORMATION_MULTIPLIER: f32 = 3.0;
+#[allow(dead_code)]
+const BOND_BREAK_MULTIPLIER: f32 = 3.0;
+#[allow(dead_code)]
+const BOND_COMPLIANCE: f32 = 0.15;
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+struct BondSlot {
+    partner: u32,
+    rest: f32,
+}
+
+impl Default for BondSlot {
+    fn default() -> Self {
+        Self {
+            partner: INVALID_BOND,
+            rest: 0.0,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
 struct ReactionMatrix {
@@ -126,6 +157,9 @@ struct Buffers {
     sorted_indices: wgpu::Buffer,
     morton_keys: wgpu::Buffer,
     reaction_matrix: wgpu::Buffer,
+    // Polymer bond data (per-particle, max 2 bonds each, packed as BondSlot).
+    bond_slot_a: wgpu::Buffer,
+    bond_slot_b: wgpu::Buffer,
 }
 
 struct ComputePipelines {
@@ -138,6 +172,8 @@ struct ComputePipelines {
     morton_keys: wgpu::ComputePipeline,
     morton_count: wgpu::ComputePipeline,
     morton_scatter: wgpu::ComputePipeline,
+    form_bonds: wgpu::ComputePipeline,
+    solve_bonds: wgpu::ComputePipeline,
 }
 
 struct RenderState {
@@ -291,6 +327,18 @@ fn create_buffers(device: &wgpu::Device) -> Buffers {
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         }),
+        bond_slot_a: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("bond_slot_a"),
+            size: u64::from(MAX_PARTICLES) * size_of::<BondSlot>() as u64,
+            usage: grid_storage,
+            mapped_at_creation: false,
+        }),
+        bond_slot_b: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("bond_slot_b"),
+            size: u64::from(MAX_PARTICLES) * size_of::<BondSlot>() as u64,
+            usage: grid_storage,
+            mapped_at_creation: false,
+        }),
     }
 }
 
@@ -324,14 +372,16 @@ fn create_particle_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("particle_bgl"),
         entries: &[
-            storage_entry(0, false), // positions
-            storage_entry(1, false), // velocities
-            storage_entry(2, false), // species
-            storage_entry(3, false), // forces
-            storage_entry(4, false), // prev_positions
-            uniform_entry(7),        // params
-            uniform_entry(8),        // conveyor
-            storage_entry(9, true),  // reaction_matrix (read-only storage)
+            storage_entry(0, false),  // positions
+            storage_entry(1, false),  // velocities
+            storage_entry(2, false),  // species
+            storage_entry(3, false),  // forces
+            storage_entry(4, false),  // prev_positions
+            uniform_entry(7),         // params
+            uniform_entry(8),         // conveyor
+            storage_entry(9, true),   // reaction_matrix (read-only storage)
+            storage_entry(10, false), // bond_slot_a
+            storage_entry(11, false), // bond_slot_b
         ],
     })
 }
@@ -391,6 +441,14 @@ fn create_bind_groups(
             wgpu::BindGroupEntry {
                 binding: 9,
                 resource: buffers.reaction_matrix.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 10,
+                resource: buffers.bond_slot_a.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 11,
+                resource: buffers.bond_slot_b.as_entire_binding(),
             },
         ],
     });
@@ -476,6 +534,14 @@ fn create_pipelines(
         label: Some("morton_sort"),
         source: wgpu::ShaderSource::Wgsl(include_str!("shaders/morton_sort.wgsl").into()),
     });
+    let form_bonds_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("form_bonds"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/form_bonds.wgsl").into()),
+    });
+    let solve_bonds_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("solve_bonds"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/solve_bonds.wgsl").into()),
+    });
 
     ComputePipelines {
         predict: make_compute_pipeline(
@@ -534,6 +600,20 @@ fn create_pipelines(
             &morton_shader,
             "morton_scatter",
             "morton_scatter",
+        ),
+        form_bonds: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &form_bonds_shader,
+            "form_bonds",
+            "form_bonds",
+        ),
+        solve_bonds: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &solve_bonds_shader,
+            "solve_bonds",
+            "solve_bonds",
         ),
     }
 }
@@ -743,6 +823,21 @@ impl State {
             bytemuck::bytes_of(&reaction_matrix),
         );
 
+        // Initialize bond buffers: all slots invalid.
+        {
+            let invalid_bonds = vec![BondSlot::default(); MAX_PARTICLES as usize];
+            queue.write_buffer(
+                &buffers.bond_slot_a,
+                0,
+                bytemuck::cast_slice(&invalid_bonds),
+            );
+            queue.write_buffer(
+                &buffers.bond_slot_b,
+                0,
+                bytemuck::cast_slice(&invalid_bonds),
+            );
+        }
+
         Self {
             window,
             device,
@@ -769,57 +864,99 @@ impl State {
         }
     }
 
-    fn verify_pile(&mut self) -> bool {
+    fn verify_stability(&mut self) -> bool {
         let n = self.sim_params.particle_count as usize;
+        // Read both positions and velocities.
+        let pos_bytes = u64::from(MAX_PARTICLES) * 8;
+        let vel_bytes = u64::from(MAX_PARTICLES) * 8;
         let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("pile_staging"),
-            size: u64::from(MAX_PARTICLES) * 8,
+            label: Some("stability_staging"),
+            size: pos_bytes + vel_bytes,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("pile"),
+                label: Some("stability_copy"),
             });
+        encoder.copy_buffer_to_buffer(&self.buffers.positions, 0, &staging, 0, pos_bytes);
         encoder.copy_buffer_to_buffer(
-            &self.buffers.positions,
+            &self.buffers.velocities,
             0,
             &staging,
-            0,
-            u64::from(MAX_PARTICLES) * 8,
+            pos_bytes,
+            vel_bytes,
         );
         self.queue.submit(std::iter::once(encoder.finish()));
         let slice = staging.slice(..);
-        slice.map_async(wgpu::MapMode::Read, |r| r.expect("map pile staging"));
+        slice.map_async(wgpu::MapMode::Read, |r| r.expect("map stability staging"));
         self.device.poll(wgpu::Maintain::Wait);
         let data = slice.get_mapped_range();
         let positions: &[[f32; 2]] = bytemuck::cast_slice(&data[..n * 8]);
-        let mut min_y = f32::MAX;
-        let mut max_y = f32::MIN;
-        let mut sum_y = 0.0;
-        let walls = &self.sim_params;
-        for p in positions.iter().take(n) {
-            min_y = min_y.min(p[1]);
-            max_y = max_y.max(p[1]);
-            sum_y += p[1] as f64;
+        let vel_offset = pos_bytes as usize;
+        let velocities: &[[f32; 2]] =
+            bytemuck::cast_slice(&data[vel_offset..vel_offset + n * 8]);
+
+        // Stability checks: no NaN, all within walls, no particles in top 10%.
+        let p = &self.sim_params;
+        let box_height = p.wall_max_y - p.wall_min_y;
+        let top_zone = p.wall_max_y - 0.1 * box_height;
+        let mut nan_count = 0usize;
+        let mut max_speed = 0.0f32;
+        let mut oob = 0usize;
+        let mut in_top = 0usize;
+        let margin = 2.0 * p.particle_radius;
+
+        for i in 0..n {
+            let [px, py] = positions[i];
+            let [vx, vy] = velocities[i];
+            if !px.is_finite() || !py.is_finite() || !vx.is_finite() || !vy.is_finite() {
+                nan_count += 1;
+                continue;
+            }
+            let speed = (vx * vx + vy * vy).sqrt();
+            max_speed = max_speed.max(speed);
+            if py > top_zone {
+                in_top += 1;
+            }
+            if px < p.wall_min_x - margin
+                || px > p.wall_max_x + margin
+                || py < p.wall_min_y - margin
+                || py > p.wall_max_y + margin
+            {
+                oob += 1;
+            }
         }
-        let avg_y = sum_y / n as f64;
-        let pile_floor = walls.wall_min_y + 5.0 * walls.particle_radius;
-        let above = positions
-            .iter()
-            .take(n)
-            .filter(|p| p[1] > pile_floor)
-            .count();
-        let pct = above as f32 / n as f32 * 100.0;
-        let ok = pct >= 90.0;
+
+        // Thresholds: zero NaN, zero OOB, zero in top 10%, max speed < 2.0.
+        let nan_ok = nan_count == 0;
+        let oob_ok = oob == 0;
+        let top_ok = in_top == 0;
+        let speed_ok = max_speed < 2.0;
+        let all_ok = nan_ok && oob_ok && top_ok && speed_ok;
+
         println!(
-            "Pile: min_y={min_y:.3} max_y={max_y:.3} avg_y={avg_y:.3} {above}/{n} ({pct:.1}%) above y={pile_floor:.3} — {}",
-            if ok { "PASS" } else { "FAIL" }
+            "Stability: n={n} nan={nan_count} oob={oob} top10%={in_top} \
+             vmax={max_speed:.3} — {}",
+            if all_ok { "PASS" } else { "FAIL" }
         );
+        if !nan_ok {
+            println!("  FAIL: {nan_count} NaN/infinite values");
+        }
+        if !oob_ok {
+            println!("  FAIL: {oob} out-of-bounds particles");
+        }
+        if !top_ok {
+            println!("  FAIL: {in_top} particles in top 10% of box (y > {top_zone:.3})");
+        }
+        if !speed_ok {
+            println!("  FAIL: max_speed={max_speed:.3} >= 2.0");
+        }
+
         drop(data);
         staging.unmap();
-        ok
+        all_ok
     }
 
     fn read_diagnostics(&mut self) {
@@ -1110,6 +1247,9 @@ impl State {
             pass.set_pipeline(&self.pipelines.project);
             pass.dispatch_workgroups(particle_wg, 1, 1);
 
+            // pass.set_pipeline(&self.pipelines.solve_bonds);
+            // pass.dispatch_workgroups(particle_wg, 1, 1);
+
             pass.set_pipeline(&self.pipelines.apply);
             pass.dispatch_workgroups(particle_wg, 1, 1);
         }
@@ -1121,6 +1261,16 @@ impl State {
             pass.set_bind_group(0, &self.particle_bg, &[]);
             pass.set_bind_group(1, &self.grid_bg, &[]);
             pass.set_pipeline(&self.pipelines.reaction);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
+        }
+        {
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("form_bonds"),
+                ..Default::default()
+            });
+            pass.set_bind_group(0, &self.particle_bg, &[]);
+            pass.set_bind_group(1, &self.grid_bg, &[]);
+            pass.set_pipeline(&self.pipelines.form_bonds);
             pass.dispatch_workgroups(particle_wg, 1, 1);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -1221,8 +1371,8 @@ impl State {
                 let count = self.sim_params.particle_count;
                 let avg_ms = elapsed.as_secs_f64() * 1000.0 / f64::from(measured_frames);
                 let frame_ok = avg_ms < 16.67;
-                let pile_ok = self.verify_pile();
-                let verdict = if frame_ok && pile_ok { "PASS" } else { "FAIL" };
+                let stable_ok = self.verify_stability();
+                let verdict = if frame_ok && stable_ok { "PASS" } else { "FAIL" };
                 println!(
                     "Benchmark: {measured_frames} frames in {:.2}s, {count} particles",
                     elapsed.as_secs_f64()
