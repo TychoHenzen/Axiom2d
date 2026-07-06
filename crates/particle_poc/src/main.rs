@@ -269,7 +269,8 @@ fn create_buffers(device: &wgpu::Device) -> Buffers {
         | wgpu::BufferUsages::COPY_DST
         | wgpu::BufferUsages::COPY_SRC
         | wgpu::BufferUsages::VERTEX;
-    let grid_storage = wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC;
+    let grid_storage =
+        wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC;
     Buffers {
         positions: device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("positions"),
@@ -758,7 +759,16 @@ fn create_render_state(
 }
 
 impl State {
-    fn new(window: Arc<Window>, benchmark: bool, diagnose: bool, test_bond_form: bool, test_bond_constrain: bool, test_bond_break: bool, num_particles: u32, sub_steps: u32) -> Self {
+    fn new(
+        window: Arc<Window>,
+        benchmark: bool,
+        diagnose: bool,
+        test_bond_form: bool,
+        test_bond_constrain: bool,
+        test_bond_break: bool,
+        num_particles: u32,
+        sub_steps: u32,
+    ) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let surface = instance.create_surface(window.clone()).expect("surface");
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -912,13 +922,7 @@ impl State {
                 label: Some("stability_copy"),
             });
         encoder.copy_buffer_to_buffer(&self.buffers.positions, 0, &staging, 0, pos_bytes);
-        encoder.copy_buffer_to_buffer(
-            &self.buffers.velocities,
-            0,
-            &staging,
-            pos_bytes,
-            vel_bytes,
-        );
+        encoder.copy_buffer_to_buffer(&self.buffers.velocities, 0, &staging, pos_bytes, vel_bytes);
         self.queue.submit(std::iter::once(encoder.finish()));
         let slice = staging.slice(..);
         slice.map_async(wgpu::MapMode::Read, |r| r.expect("map stability staging"));
@@ -926,8 +930,7 @@ impl State {
         let data = slice.get_mapped_range();
         let positions: &[[f32; 2]] = bytemuck::cast_slice(&data[..n * 8]);
         let vel_offset = pos_bytes as usize;
-        let velocities: &[[f32; 2]] =
-            bytemuck::cast_slice(&data[vel_offset..vel_offset + n * 8]);
+        let velocities: &[[f32; 2]] = bytemuck::cast_slice(&data[vel_offset..vel_offset + n * 8]);
 
         // Stability: no NaN, no OOB, zero 5σ KE outliers above median.
         // Read species and bonds for outlier logging.
@@ -993,7 +996,10 @@ impl State {
             (kes[kes.len() / 2 - 1] + kes[kes.len() / 2]) * 0.5
         };
         let mean_ke = kes.iter().sum::<f32>() / (kes.len().max(1) as f32);
-        let variance = kes.iter().map(|k| (k - mean_ke) * (k - mean_ke)).sum::<f32>()
+        let variance = kes
+            .iter()
+            .map(|k| (k - mean_ke) * (k - mean_ke))
+            .sum::<f32>()
             / (kes.len().max(1) as f32);
         let stddev_ke = variance.sqrt();
         let outlier_threshold = median_ke + 5.0 * stddev_ke;
@@ -1021,8 +1027,10 @@ impl State {
             ke_outliers = outlier_list.len();
 
             // Sort by KE descending, log top 30.
-            outlier_list.sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-            for (idx, (i, ke)) in outlier_list.iter().enumerate().take(30) {
+            outlier_list.sort_unstable_by(|a, b| {
+                b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+            });
+            for (_idx, (i, ke)) in outlier_list.iter().enumerate().take(30) {
                 let slot_a = bonds[*i];
                 let slot_b = bonds[n + *i];
                 let [px, py] = positions[*i];
@@ -1032,14 +1040,25 @@ impl State {
                 println!(
                     "  outlier[{}] sp={} pos=({:.4},{:.4}) vel=({:.4},{:.4}) \
                      KE={:.6} bond_a=(p={} r={:.4}) bond_b=(p={} r={:.4}) {}",
-                    i, sp, px, py, vx, vy, *ke,
-                    slot_a.partner, slot_a.rest,
-                    slot_b.partner, slot_b.rest,
+                    i,
+                    sp,
+                    px,
+                    py,
+                    vx,
+                    vy,
+                    *ke,
+                    slot_a.partner,
+                    slot_a.rest,
+                    slot_b.partner,
+                    slot_b.rest,
                     if is_bonded { "(bonded)" } else { "(free)" },
                 );
             }
             if ke_outliers > 30 {
-                println!("  ... and {} more KE outliers (top 30 shown, {green_outliers} green)", ke_outliers - 30);
+                println!(
+                    "  ... and {} more KE outliers (top 30 shown, {green_outliers} green)",
+                    ke_outliers - 30
+                );
             }
         }
 
@@ -1065,7 +1084,9 @@ impl State {
             println!("  FAIL: {oob} out-of-bounds particles");
         }
         if !ke_ok {
-            println!("  FAIL: {ke_outliers} KE outliers > median+5σ (must be 0, {green_outliers} green)");
+            println!(
+                "  FAIL: {ke_outliers} KE outliers > median+5σ (must be 0, {green_outliers} green)"
+            );
         }
         if !speed_ok {
             println!("  FAIL: max_speed={max_speed:.3} >= 2.0");
@@ -1354,8 +1375,8 @@ impl State {
                     view[..16].copy_from_slice(bytemuck::cast_slice(&pos_data));
                     view[(pos_bytes as usize)..(pos_bytes as usize) + 16]
                         .copy_from_slice(bytemuck::cast_slice(&vel_data));
-                    view[(pos_bytes as usize + vel_bytes as usize)..
-                        (pos_bytes as usize + vel_bytes as usize) + 8]
+                    view[(pos_bytes as usize + vel_bytes as usize)
+                        ..(pos_bytes as usize + vel_bytes as usize) + 8]
                         .copy_from_slice(bytemuck::cast_slice(&sp_data));
                 }
                 staging.unmap();
@@ -1372,8 +1393,8 @@ impl State {
                     view[..16].copy_from_slice(bytemuck::cast_slice(&pos_data));
                     view[(pos_bytes as usize)..(pos_bytes as usize) + 16]
                         .copy_from_slice(bytemuck::cast_slice(&vel_data));
-                    view[(pos_bytes as usize + vel_bytes as usize)..
-                        (pos_bytes as usize + vel_bytes as usize) + 8]
+                    view[(pos_bytes as usize + vel_bytes as usize)
+                        ..(pos_bytes as usize + vel_bytes as usize) + 8]
                         .copy_from_slice(bytemuck::cast_slice(&sp_data));
                 }
                 staging.unmap();
@@ -1507,15 +1528,9 @@ impl State {
             let current_dist = (dx * dx + dy * dy).sqrt();
             let initial_dist = 0.06;
             if current_dist < initial_dist * 0.95 {
-                println!(
-                    "test-bond-constrain: PASS (dist {:.4} -> {:.4})",
-                    initial_dist, current_dist
-                );
+                println!("test-bond-constrain: PASS (dist {initial_dist:.4} -> {current_dist:.4})");
             } else {
-                eprintln!(
-                    "test-bond-constrain: FAIL — distance not reduced ({:.4})",
-                    current_dist
-                );
+                eprintln!("test-bond-constrain: FAIL — distance not reduced ({current_dist:.4})");
                 std::process::exit(1);
             }
         } else if self.test_bond_break {
@@ -1613,8 +1628,7 @@ impl State {
 
         self.update_conveyor();
 
-        let any_test =
-            self.test_bond_form || self.test_bond_constrain || self.test_bond_break;
+        let any_test = self.test_bond_form || self.test_bond_constrain || self.test_bond_break;
 
         if any_test {
             self.fps_tracker.begin_frame();
@@ -1631,11 +1645,8 @@ impl State {
                 angular_velocity: 0.0,
                 _pad: 0,
             };
-            self.queue.write_buffer(
-                &self.conveyor_buf,
-                0,
-                bytemuck::bytes_of(&null_conveyor),
-            );
+            self.queue
+                .write_buffer(&self.conveyor_buf, 0, bytemuck::bytes_of(&null_conveyor));
             if self.test_phase == 0 {
                 self.test_setup();
             }
@@ -1737,7 +1748,11 @@ impl State {
                 let avg_ms = elapsed.as_secs_f64() * 1000.0 / f64::from(measured_frames);
                 let frame_ok = avg_ms < 16.67;
                 let stable_ok = self.verify_stability();
-                let verdict = if frame_ok && stable_ok { "PASS" } else { "FAIL" };
+                let verdict = if frame_ok && stable_ok {
+                    "PASS"
+                } else {
+                    "FAIL"
+                };
                 println!(
                     "Benchmark: {measured_frames} frames in {:.2}s, {count} particles",
                     elapsed.as_secs_f64()
