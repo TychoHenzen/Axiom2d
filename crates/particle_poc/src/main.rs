@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use bytemuck::{Pod, Zeroable};
+use rapier2d::prelude::*;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
@@ -20,8 +21,6 @@ const HOPPER_LEFT_HALF: f32 = 0.2;
 const HOPPER_RIGHT_X: f32 = 0.45;
 const HOPPER_RIGHT_HALF: f32 = 0.2;
 const HOPPER_Y: f32 = 0.75;
-const CONVEYOR_PIVOT_X: f32 = 0.0;
-const CONVEYOR_PIVOT_Y: f32 = -0.5;
 const GRID_W: u32 = 256;
 const GRID_H: u32 = 256;
 const TOTAL_GRID_CELLS: u32 = GRID_W * GRID_H;
@@ -29,6 +28,15 @@ const TOTAL_GRID_CELLS: u32 = GRID_W * GRID_H;
 const SUB_STEPS: u32 = 16;
 
 const MAX_SPECIES: u32 = 8;
+const MAX_MACHINES: u32 = 16;
+const PADDLE_COUNT: u32 = 10;
+const CAPSULE_HALF_LEN: f32 = 0.22;
+const CAPSULE_RADIUS: f32 = 0.055;
+const CONVEYOR_ANGLE_DEG: f32 = 45.0;
+const PADDLE_HW: f32 = 0.012;
+const PADDLE_HH: f32 = 0.035;
+const CONVEYOR_SPEED: f32 = 0.45;
+const SENSOR_HALF: f32 = 0.06;
 
 // Polymer bond constants for Green(2) particles.
 // Green particles form softbody-style mesh bonds (max 4 per particle) that break under stress.
@@ -87,17 +95,93 @@ struct SimParams {
     _pad: [u32; 2],
 }
 
+#[repr(u32)]
+#[derive(Copy, Clone)]
+#[allow(dead_code)]
+enum MachineKind {
+    Conveyor = 0,
+    Grinder = 1,
+    Heater = 2,
+    Paddle = 3,
+}
+
+// GPU-compatible machine uniform (must match WGSL Machine struct layout).
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
-struct ConveyorParams {
-    pivot_x: f32,
-    pivot_y: f32,
+struct GpuMachine {
+    pos_x: f32,
+    pos_y: f32,
     cos_angle: f32,
     sin_angle: f32,
     half_width: f32,
     half_height: f32,
+    kind: u32,
+    input_species: u32,
+    output_species: u32,
     angular_velocity: f32,
-    _pad: u32,
+}
+
+impl Default for GpuMachine {
+    fn default() -> Self {
+        Self {
+            pos_x: 0.0,
+            pos_y: 0.0,
+            cos_angle: 1.0,
+            sin_angle: 0.0,
+            half_width: 0.0,
+            half_height: 0.0,
+            kind: 0,
+            input_species: 0,
+            output_species: 0,
+            angular_velocity: 0.0,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+struct MachineParams {
+    count: u32,
+    _pad: [u32; 3],
+    machines: [GpuMachine; MAX_MACHINES as usize],
+}
+
+impl Default for MachineParams {
+    fn default() -> Self {
+        Self {
+            count: 0,
+            _pad: [0; 3],
+            machines: [GpuMachine::default(); MAX_MACHINES as usize],
+        }
+    }
+}
+
+// Recipe: what a machine consumes and produces per cycle.
+#[allow(dead_code)]
+struct Recipe {
+    input_species: u32,
+    input_count: u32,
+    output_species: u32,
+    output_count: u32,
+    cycle_time: f32,
+}
+
+// CPU-side machine state — buffer tracking, cycle progression, brightness.
+struct MachineCpuState {
+    recipe: Recipe,
+    input_accumulated: u32,
+    cycles_completed: u32,
+    cycle_timer: f32,
+    consumed_this_frame: u32,
+    color_base: [f32; 3],
+}
+
+// Machine definition on CPU side (Rapier2D handles for physics).
+struct MachineDef {
+    kind: MachineKind,
+    body_handle: RigidBodyHandle,
+    input_species: u32,
+    output_species: u32,
 }
 
 #[repr(C)]
@@ -107,6 +191,45 @@ struct RenderParams {
     screen_height: f32,
     particle_radius: f32,
     particle_count: u32,
+}
+
+// GPU-compatible machine render data (must match WGSL MachineRender struct).
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+struct GpuMachineRender {
+    pos_x: f32,
+    pos_y: f32,
+    cos_angle: f32,
+    sin_angle: f32,
+    half_width: f32,
+    half_height: f32,
+    color_r: f32,
+    color_g: f32,
+    color_b: f32,
+}
+
+impl Default for GpuMachineRender {
+    fn default() -> Self {
+        Self {
+            pos_x: 0.0,
+            pos_y: 0.0,
+            cos_angle: 1.0,
+            sin_angle: 0.0,
+            half_width: 0.0,
+            half_height: 0.0,
+            color_r: 1.0,
+            color_g: 1.0,
+            color_b: 1.0,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+struct MachineRenderParams {
+    screen_width: f32,
+    screen_height: f32,
+    machine_count: u32,
 }
 
 fn parse_flag_arg(name: &str, default: u32) -> u32 {
@@ -171,6 +294,8 @@ struct Buffers {
     // Polymer bond data: flat array, MAX_PARTICLES * 4 slots.
     // Particle i owns slots [i*4+0, i*4+1, i*4+2, i*4+3].
     bonds: wgpu::Buffer,
+    // Per-machine atomic counter: GPU-side consumption tracking.
+    machine_counters: wgpu::Buffer,
 }
 
 struct ComputePipelines {
@@ -188,10 +313,31 @@ struct ComputePipelines {
     solve_bonds: wgpu::ComputePipeline,
 }
 
+struct MachineRenderState {
+    pipeline: wgpu::RenderPipeline,
+    bind_group: wgpu::BindGroup,
+    params_buf: wgpu::Buffer,
+    data_buf: wgpu::Buffer,
+}
+
 struct RenderState {
     pipeline: wgpu::RenderPipeline,
     bind_group: wgpu::BindGroup,
     params_buf: wgpu::Buffer,
+    machine: MachineRenderState,
+}
+
+struct RapierState {
+    pipeline: PhysicsPipeline,
+    integration_parameters: IntegrationParameters,
+    island_manager: IslandManager,
+    broad_phase: DefaultBroadPhase,
+    narrow_phase: NarrowPhase,
+    bodies: RigidBodySet,
+    colliders: ColliderSet,
+    impulse_joints: ImpulseJointSet,
+    multibody_joints: MultibodyJointSet,
+    ccd_solver: CCDSolver,
 }
 
 struct State {
@@ -219,8 +365,12 @@ struct State {
     diagnose: bool,
     diag_frame: u32,
     diag_staging: Option<wgpu::Buffer>,
-    conveyor_time: f32,
-    conveyor_buf: wgpu::Buffer,
+    rapier: RapierState,
+    machines: Vec<MachineDef>,
+    machines_cpu: Vec<MachineCpuState>,
+    machine_params_buf: wgpu::Buffer,
+    counters_staging: wgpu::Buffer,
+    machine_time: f32,
     num_particles: u32,
     sub_steps: u32,
 }
@@ -352,6 +502,14 @@ fn create_buffers(device: &wgpu::Device) -> Buffers {
             usage: grid_storage,
             mapped_at_creation: false,
         }),
+        machine_counters: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("machine_counters"),
+            size: u64::from(MAX_MACHINES) * 4,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        }),
     }
 }
 
@@ -391,7 +549,7 @@ fn create_particle_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
             storage_entry(3, false),  // forces
             storage_entry(4, false),  // prev_positions
             uniform_entry(7),         // params
-            uniform_entry(8),         // conveyor
+            storage_entry(8, true),   // machine_params (read-only storage)
             storage_entry(9, true),   // reaction_matrix (read-only storage)
             storage_entry(10, false), // bonds (flat array, 4 slots per particle)
         ],
@@ -407,6 +565,7 @@ fn create_grid_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
             storage_entry(2, false), // cell_offsets
             storage_entry(3, false), // sorted_indices
             storage_entry(4, false), // morton_keys
+            storage_entry(5, false), // machine_counters (atomic<u32> per machine)
         ],
     })
 }
@@ -414,7 +573,7 @@ fn create_grid_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
 fn create_bind_groups(
     device: &wgpu::Device,
     buffers: &Buffers,
-    conveyor_buf: &wgpu::Buffer,
+    machine_params_buf: &wgpu::Buffer,
     particle_bgl: &wgpu::BindGroupLayout,
     grid_bgl: &wgpu::BindGroupLayout,
 ) -> (wgpu::BindGroup, wgpu::BindGroup) {
@@ -448,7 +607,7 @@ fn create_bind_groups(
             },
             wgpu::BindGroupEntry {
                 binding: 8,
-                resource: conveyor_buf.as_entire_binding(),
+                resource: machine_params_buf.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 9,
@@ -483,6 +642,10 @@ fn create_bind_groups(
             wgpu::BindGroupEntry {
                 binding: 4,
                 resource: buffers.morton_keys.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 5,
+                resource: buffers.machine_counters.as_entire_binding(),
             },
         ],
     });
@@ -744,7 +907,235 @@ fn create_render_state(
         pipeline,
         bind_group,
         params_buf,
+        machine: create_machine_render_state(device, format),
     }
+}
+
+fn create_machine_render_state(
+    device: &wgpu::Device,
+    format: wgpu::TextureFormat,
+) -> MachineRenderState {
+    let data_buf = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("machine_render_data"),
+        size: u64::from(MAX_MACHINES) * size_of::<GpuMachineRender>() as u64,
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+
+    let params_buf = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("machine_render_params"),
+        size: size_of::<MachineRenderParams>() as u64,
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+
+    let bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("machine_render_bgl"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    });
+
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("machine_render_bg"),
+        layout: &bgl,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: data_buf.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: params_buf.as_entire_binding(),
+            },
+        ],
+    });
+
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("machine_render_pl"),
+        bind_group_layouts: &[&bgl],
+        push_constant_ranges: &[],
+    });
+
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("machine_render"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/machine.wgsl").into()),
+    });
+
+    let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("machine_render"),
+        layout: Some(&pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: Some("vs_main"),
+            buffers: &[],
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: Some("fs_main"),
+            targets: &[Some(wgpu::ColorTargetState {
+                format,
+                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+        }),
+        primitive: wgpu::PrimitiveState {
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            ..Default::default()
+        },
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview: None,
+        cache: None,
+    });
+
+    MachineRenderState {
+        pipeline,
+        bind_group,
+        params_buf,
+        data_buf,
+    }
+}
+
+fn init_machines(mut rapier: RapierState) -> (Vec<MachineDef>, Vec<MachineCpuState>, RapierState) {
+    let mut machines = Vec::with_capacity(3);
+    let mut cpu_states = Vec::with_capacity(3);
+
+    // Conveyor: capsule-shaped belt tilted diagonally.
+    // Paddles ride along the perimeter, computed in update_machines().
+    // The body is a kinematic OBB at CONVEYOR_ANGLE_DEG — particles collide
+    // with the full capsule interior so they can't pass through.
+    let conv_angle = CONVEYOR_ANGLE_DEG.to_radians();
+    let conv_body_hw = CAPSULE_RADIUS; // perpendicular to belt
+    let conv_body_hh = CAPSULE_HALF_LEN; // along belt
+    let pivot = [0.0, -0.22];
+    {
+        let body = RigidBodyBuilder::kinematic_position_based()
+            .translation(Vec2::new(pivot[0], pivot[1]))
+            .rotation(conv_angle)
+            .build();
+        let body_handle = rapier.bodies.insert(body);
+        rapier.colliders.insert_with_parent(
+            ColliderBuilder::cuboid(conv_body_hw, conv_body_hh).build(),
+            body_handle,
+            &mut rapier.bodies,
+        );
+        machines.push(MachineDef {
+            kind: MachineKind::Conveyor,
+            body_handle,
+            input_species: 0,
+            output_species: 0,
+        });
+        cpu_states.push(MachineCpuState {
+            recipe: Recipe {
+                input_species: 0,
+                input_count: 0,
+                output_species: 0,
+                output_count: 0,
+                cycle_time: 0.0,
+            },
+            input_accumulated: 0,
+            cycles_completed: 0,
+            cycle_timer: 0.0,
+            consumed_this_frame: 0,
+            color_base: [0.25, 0.28, 0.35],
+        });
+    }
+
+    // Grinder: static sensor box — transmutes Red(0) → Yellow(3).
+    let grinder_pos = [0.52, -0.1];
+    {
+        let body = RigidBodyBuilder::fixed()
+            .translation(Vec2::new(grinder_pos[0], grinder_pos[1]))
+            .build();
+        let body_handle = rapier.bodies.insert(body);
+        rapier.colliders.insert_with_parent(
+            ColliderBuilder::cuboid(SENSOR_HALF, SENSOR_HALF)
+                .sensor(true)
+                .build(),
+            body_handle,
+            &mut rapier.bodies,
+        );
+        machines.push(MachineDef {
+            kind: MachineKind::Grinder,
+            body_handle,
+            input_species: 0,
+            output_species: 3,
+        });
+        cpu_states.push(MachineCpuState {
+            recipe: Recipe {
+                input_species: 0,
+                input_count: 10,
+                output_species: 3,
+                output_count: 10,
+                cycle_time: 1.0,
+            },
+            input_accumulated: 0,
+            cycles_completed: 0,
+            cycle_timer: 1.0,
+            consumed_this_frame: 0,
+            color_base: [0.9, 0.55, 0.15],
+        });
+    }
+
+    // Heater: static sensor box — transmutes Blue(1) → Purple(4).
+    let heater_pos = [-0.52, -0.1];
+    {
+        let body = RigidBodyBuilder::fixed()
+            .translation(Vec2::new(heater_pos[0], heater_pos[1]))
+            .build();
+        let body_handle = rapier.bodies.insert(body);
+        rapier.colliders.insert_with_parent(
+            ColliderBuilder::cuboid(SENSOR_HALF, SENSOR_HALF)
+                .sensor(true)
+                .build(),
+            body_handle,
+            &mut rapier.bodies,
+        );
+        machines.push(MachineDef {
+            kind: MachineKind::Heater,
+            body_handle,
+            input_species: 1,
+            output_species: 4,
+        });
+        cpu_states.push(MachineCpuState {
+            recipe: Recipe {
+                input_species: 1,
+                input_count: 10,
+                output_species: 4,
+                output_count: 10,
+                cycle_time: 1.5,
+            },
+            input_accumulated: 0,
+            cycles_completed: 0,
+            cycle_timer: 1.5,
+            consumed_this_frame: 0,
+            color_base: [0.85, 0.25, 0.1],
+        });
+    }
+
+    (machines, cpu_states, rapier)
 }
 
 impl State {
@@ -801,15 +1192,34 @@ impl State {
         let particle_bgl = create_particle_bgl(&device);
         let grid_bgl = create_grid_bgl(&device);
 
-        let conveyor_buf = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("conveyor_params"),
-            size: size_of::<ConveyorParams>() as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        // Init Rapier2D for machine rigid bodies.
+        let rapier = RapierState {
+            pipeline: PhysicsPipeline::new(),
+            integration_parameters: IntegrationParameters::default(),
+            island_manager: IslandManager::new(),
+            broad_phase: DefaultBroadPhase::new(),
+            narrow_phase: NarrowPhase::new(),
+            bodies: RigidBodySet::new(),
+            colliders: ColliderSet::new(),
+            impulse_joints: ImpulseJointSet::new(),
+            multibody_joints: MultibodyJointSet::new(),
+            ccd_solver: CCDSolver::new(),
+        };
+
+        let machine_params_buf = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("machine_params"),
+            size: size_of::<MachineParams>() as u64,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
-        let (particle_bg, grid_bg) =
-            create_bind_groups(&device, &buffers, &conveyor_buf, &particle_bgl, &grid_bgl);
+        let (particle_bg, grid_bg) = create_bind_groups(
+            &device,
+            &buffers,
+            &machine_params_buf,
+            &particle_bgl,
+            &grid_bgl,
+        );
         let pipelines = create_pipelines(&device, &particle_bgl, &grid_bgl);
         let render = create_render_state(&device, &buffers, surface_config.format);
 
@@ -835,12 +1245,16 @@ impl State {
             _pad: [0; 2],
         };
 
-        // Initialize reaction matrix: Red(0)+Blue(1) → Green(2), symmetric.
+        // Initialize reaction matrix.
+        // Red(0)+Blue(1) → both become Green(2)
+        // Green(2)+Purple(4) → Green becomes Yellow(3), Purple stays Purple
         let mut reaction_matrix = ReactionMatrix {
             results: [0u32; (MAX_SPECIES * MAX_SPECIES) as usize],
         };
-        reaction_matrix.results[(0 * MAX_SPECIES + 1) as usize] = 2; // Red + Blue → Green
-        reaction_matrix.results[MAX_SPECIES as usize] = 2; // Blue + Red → Green
+        reaction_matrix.results[1] = 2; // Red(0) + Blue(1) → Green(2)
+        reaction_matrix.results[MAX_SPECIES as usize] = 2; // Blue(1) + Red(0) → Green(2)
+        reaction_matrix.results[2 * MAX_SPECIES as usize + 4] = 3; // Green(2) + Purple(4) → Yellow(3)
+        reaction_matrix.results[4 * MAX_SPECIES as usize + 2] = 4; // Purple(4) + Green(2) → Purple(4)
         queue.write_buffer(
             &buffers.reaction_matrix,
             0,
@@ -849,10 +1263,26 @@ impl State {
 
         // Initialize bond buffer: all slots invalid.
         {
-            let invalid_bonds =
-                vec![BondSlot::default(); MAX_PARTICLES as usize * 4];
+            let invalid_bonds = vec![BondSlot::default(); MAX_PARTICLES as usize * 4];
             queue.write_buffer(&buffers.bonds, 0, bytemuck::cast_slice(&invalid_bonds));
         }
+
+        // Staging buffer for counter readback (reused each frame).
+        // Initialize with zeros so frame 0 readback is a safe no-op.
+        let counters_staging = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("counters_staging"),
+            size: u64::from(MAX_MACHINES) * 4,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        queue.write_buffer(
+            &counters_staging,
+            0,
+            bytemuck::cast_slice(&[0u32; MAX_MACHINES as usize]),
+        );
+
+        // Create machine definitions, CPU state, and Rapier2D bodies.
+        let (machines, machines_cpu, rapier) = init_machines(rapier);
 
         Self {
             window,
@@ -879,8 +1309,12 @@ impl State {
             diagnose,
             diag_frame: 0,
             diag_staging: None,
-            conveyor_time: 0.0,
-            conveyor_buf,
+            rapier,
+            machines,
+            machines_cpu,
+            machine_params_buf,
+            counters_staging,
+            machine_time: 0.0,
             num_particles,
             sub_steps,
         }
@@ -1220,31 +1654,217 @@ impl State {
         }
     }
 
-    fn update_conveyor(&mut self) {
+    /// Capsule perimeter parameterization: given arc-length `s` along the
+    /// perimeter, returns (local_x, local_y, tangent_angle) in capsule-local
+    /// coordinates where the capsule is centered at origin, long axis along X.
+    /// Walk CCW starting from rightmost point (l+r, 0).
+    ///   L = half-length from center to cap center
+    ///   R = capsule radius (half-thickness)
+    fn capsule_perimeter_point(s: f32, l: f32, r: f32) -> ([f32; 2], f32) {
+        let cap_arc = std::f32::consts::PI * r;
+        let straight = 2.0 * l;
+        let perimeter = 2.0 * cap_arc + 2.0 * straight;
+        let s = ((s % perimeter) + perimeter) % perimeter;
+
+        if s < cap_arc {
+            // Right cap: bottom → top (CCW). φ from -π/2 to π/2.
+            let phi = -std::f32::consts::FRAC_PI_2 + s / r;
+            let lx = l + r * phi.cos();
+            let ly = r * phi.sin();
+            ([lx, ly], phi + std::f32::consts::FRAC_PI_2)
+        } else if s < cap_arc + straight {
+            // Top edge: right → left.
+            let t = (s - cap_arc) / straight;
+            let lx = l - t * 2.0 * l;
+            let ly = r;
+            ([lx, ly], std::f32::consts::PI)
+        } else if s < 2.0 * cap_arc + straight {
+            // Left cap: top → bottom (CCW). φ from π/2 → π → 3π/2 (outside arc).
+            let phi = std::f32::consts::FRAC_PI_2 + (s - cap_arc - straight) / r;
+            let lx = -l + r * phi.cos();
+            let ly = r * phi.sin();
+            ([lx, ly], phi + std::f32::consts::FRAC_PI_2)
+        } else {
+            // Bottom edge: left → right.
+            let t = (s - 2.0 * cap_arc - straight) / straight;
+            let lx = -l + t * 2.0 * l;
+            let ly = -r;
+            ([lx, ly], 0.0)
+        }
+    }
+
+    fn update_machines(&mut self) {
         let dt = 1.0 / 60.0;
-        self.conveyor_time += dt;
+        self.machine_time += dt;
 
-        // Slow spin: ~0.6 rad/s, one full rotation every ~10.5 seconds.
-        let angular_velocity = 0.6;
-        let angle = self.conveyor_time * angular_velocity;
+        // Read GPU counters from previous frame's compute pass.
+        // The copy (counters → staging) was submitted last frame in simulate().
+        // On frame 0 the staging is all zeros (fresh buffer) — safe no-op.
+        {
+            let slice = self.counters_staging.slice(..);
+            slice.map_async(wgpu::MapMode::Read, |_| {});
+            self.device.poll(wgpu::Maintain::Wait);
+            let data = slice.get_mapped_range();
+            let counters: &[u32] = bytemuck::cast_slice(&data[..self.machines.len() * 4]);
+            for (i, cpu) in self.machines_cpu.iter_mut().enumerate() {
+                let eaten = counters.get(i).copied().unwrap_or(0);
+                cpu.consumed_this_frame = eaten;
+                // Conveyor has no recipe — skip tracking.
+                if cpu.recipe.input_count > 0 {
+                    cpu.input_accumulated += eaten;
+                    cpu.cycle_timer -= dt;
+                    while cpu.input_accumulated >= cpu.recipe.input_count {
+                        cpu.input_accumulated -= cpu.recipe.input_count;
+                        cpu.cycles_completed += 1;
+                        cpu.cycle_timer = cpu.recipe.cycle_time;
+                    }
+                }
+            }
+            drop(data);
+            self.counters_staging.unmap();
+        }
 
-        let pivot_x = CONVEYOR_PIVOT_X;
-        let pivot_y = CONVEYOR_PIVOT_Y;
-        let hw = 0.2;
-        let hh = 0.007;
+        // Reset GPU counters to zero for this frame's compute pass.
+        let zeros = [0u32; MAX_MACHINES as usize];
+        self.queue.write_buffer(
+            &self.buffers.machine_counters,
+            0,
+            bytemuck::cast_slice(&zeros),
+        );
 
-        let conveyor_params = ConveyorParams {
-            pivot_x,
-            pivot_y,
-            cos_angle: angle.cos(),
-            sin_angle: angle.sin(),
-            half_width: hw,
-            half_height: hh,
-            angular_velocity,
-            _pad: 0,
+        // Step Rapier2D to get updated transforms.
+        self.rapier.integration_parameters.dt = dt;
+        self.rapier.pipeline.step(
+            Vec2::new(0.0, 0.0),
+            &self.rapier.integration_parameters,
+            &mut self.rapier.island_manager,
+            &mut self.rapier.broad_phase,
+            &mut self.rapier.narrow_phase,
+            &mut self.rapier.bodies,
+            &mut self.rapier.colliders,
+            &mut self.rapier.impulse_joints,
+            &mut self.rapier.multibody_joints,
+            &mut self.rapier.ccd_solver,
+            &(),
+            &(),
+        );
+
+        // Capsule conveyor body stays at fixed angle — no rotation.
+        // Paddles orbit along capsule perimeter at CONVEYOR_SPEED.
+        let conveyor_angle = CONVEYOR_ANGLE_DEG.to_radians();
+        let (c_cos, c_sin) = (conveyor_angle.cos(), conveyor_angle.sin());
+        let cap_perim = 2.0 * std::f32::consts::PI * CAPSULE_RADIUS + 4.0 * CAPSULE_HALF_LEN;
+        let paddle_phase =
+            (self.machine_time * CONVEYOR_SPEED * cap_perim / std::f32::consts::TAU) % cap_perim;
+
+        let real_n = self.machines.len() as u32;
+        let total_n = real_n + PADDLE_COUNT;
+
+        let mut sim = MachineParams {
+            count: total_n,
+            ..Default::default()
         };
+        let mut renders = [GpuMachineRender::default(); MAX_MACHINES as usize];
+
+        // Fill real machines from Rapier bodies.
+        for (i, def) in self.machines.iter().enumerate() {
+            let body = self.rapier.bodies.get(def.body_handle).unwrap();
+            let pos = body.position();
+            let t = pos.translation;
+            let angle = pos.rotation.angle();
+            let (hw, hh) = if def.kind as u32 == 0 {
+                // Capsule body collision: match Rapier collider half-width.
+                (CAPSULE_RADIUS * 0.5, CAPSULE_HALF_LEN)
+            } else {
+                (SENSOR_HALF, SENSOR_HALF)
+            };
+            sim.machines[i] = GpuMachine {
+                pos_x: t.x,
+                pos_y: t.y,
+                cos_angle: angle.cos(),
+                sin_angle: angle.sin(),
+                half_width: hw,
+                half_height: hh,
+                kind: def.kind as u32,
+                input_species: def.input_species,
+                output_species: def.output_species,
+                angular_velocity: if def.kind as u32 == 0 {
+                    CONVEYOR_SPEED
+                } else {
+                    0.0
+                },
+            };
+            let cpu = &self.machines_cpu[i];
+            let activity = (cpu.consumed_this_frame as f32 / 20.0).clamp(0.0, 1.0);
+            let brightness = 0.6 + 0.4 * activity;
+            let cb = cpu.color_base;
+            // Render track slightly thinner than collision hull.
+            let (rhw, rhh) = if def.kind as u32 == 0 {
+                (CAPSULE_RADIUS * 0.4, CAPSULE_HALF_LEN)
+            } else {
+                (hw, hh)
+            };
+            renders[i] = GpuMachineRender {
+                pos_x: t.x,
+                pos_y: t.y,
+                cos_angle: angle.cos(),
+                sin_angle: angle.sin(),
+                half_width: rhw,
+                half_height: rhh,
+                color_r: (cb[0] * brightness).clamp(0.0, 1.0),
+                color_g: (cb[1] * brightness).clamp(0.0, 1.0),
+                color_b: (cb[2] * brightness).clamp(0.0, 1.0),
+            };
+        }
+
+        // Compute paddle positions along capsule perimeter.
+        let cx = sim.machines[0].pos_x;
+        let cy = sim.machines[0].pos_y;
+        let paddle_color = [0.45f32, 0.50, 0.60];
+        for p in 0..PADDLE_COUNT {
+            let s = (paddle_phase + p as f32 * cap_perim / PADDLE_COUNT as f32) % cap_perim;
+            let (pos, local_tangent) =
+                Self::capsule_perimeter_point(s, CAPSULE_HALF_LEN, CAPSULE_RADIUS);
+            let lx = pos[0];
+            let ly = pos[1];
+            // Capsule long axis = X in capsule-local, but conveyor long axis = local Y.
+            // Rotate by π/2+θ so capsule X → world dir (-sin_θ, cos_θ).
+            let wx = cx - lx * c_sin - ly * c_cos;
+            let wy = cy + lx * c_cos - ly * c_sin;
+            let world_tangent = local_tangent + std::f32::consts::FRAC_PI_2 + conveyor_angle;
+            let idx = (real_n + p) as usize;
+            sim.machines[idx] = GpuMachine {
+                pos_x: wx,
+                pos_y: wy,
+                cos_angle: world_tangent.cos(),
+                sin_angle: world_tangent.sin(),
+                half_width: PADDLE_HW,
+                half_height: PADDLE_HH,
+                kind: MachineKind::Paddle as u32,
+                input_species: 0,
+                output_species: 0,
+                angular_velocity: CONVEYOR_SPEED,
+            };
+            renders[idx] = GpuMachineRender {
+                pos_x: wx,
+                pos_y: wy,
+                cos_angle: world_tangent.cos(),
+                sin_angle: world_tangent.sin(),
+                half_width: PADDLE_HW,
+                half_height: PADDLE_HH,
+                color_r: paddle_color[0],
+                color_g: paddle_color[1],
+                color_b: paddle_color[2],
+            };
+        }
+
         self.queue
-            .write_buffer(&self.conveyor_buf, 0, bytemuck::bytes_of(&conveyor_params));
+            .write_buffer(&self.machine_params_buf, 0, bytemuck::bytes_of(&sim));
+        self.queue.write_buffer(
+            &self.render.machine.data_buf,
+            0,
+            bytemuck::cast_slice(&renders[..total_n as usize]),
+        );
     }
 
     fn spawn(&mut self) {
@@ -1454,8 +2074,7 @@ impl State {
         slice.map_async(wgpu::MapMode::Read, |r| r.expect("map bond staging"));
         self.device.poll(wgpu::Maintain::Wait);
         let data = slice.get_mapped_range();
-        let all: Vec<BondSlot> =
-            bytemuck::cast_slice(&data[..total_bytes as usize]).to_vec();
+        let all: Vec<BondSlot> = bytemuck::cast_slice(&data[..total_bytes as usize]).to_vec();
         drop(data);
         staging.unmap();
         all
@@ -1594,6 +2213,14 @@ impl State {
             pass.set_pipeline(&self.pipelines.form_bonds_resolve);
             pass.dispatch_workgroups(particle_wg, 1, 1);
         }
+        // Copy GPU counters → staging for next frame's CPU readback.
+        encoder.copy_buffer_to_buffer(
+            &self.buffers.machine_counters,
+            0,
+            &self.counters_staging,
+            0,
+            u64::from(MAX_MACHINES) * 4,
+        );
         self.queue.submit(std::iter::once(encoder.finish()));
     }
 
@@ -1601,7 +2228,7 @@ impl State {
         const WARMUP_FRAMES: u32 = 10;
         const BENCH_DURATION_SECS: f64 = 10.0;
 
-        self.update_conveyor();
+        self.update_machines();
 
         let any_test = self.test_bond_form || self.test_bond_constrain || self.test_bond_break;
 
@@ -1609,19 +2236,13 @@ impl State {
             self.fps_tracker.begin_frame();
             // Ensure previous frame's GPU work is complete before modifying buffers.
             self.device.poll(wgpu::Maintain::Wait);
-            // Disable conveyor for small bond tests — move far from particles.
-            let null_conveyor = ConveyorParams {
-                pivot_x: 100.0,
-                pivot_y: 100.0,
-                cos_angle: 1.0,
-                sin_angle: 0.0,
-                half_width: 0.0,
-                half_height: 0.0,
-                angular_velocity: 0.0,
-                _pad: 0,
-            };
-            self.queue
-                .write_buffer(&self.conveyor_buf, 0, bytemuck::bytes_of(&null_conveyor));
+            // Disable machines for small bond tests — move far from particles.
+            let null_machines = MachineParams::default();
+            self.queue.write_buffer(
+                &self.machine_params_buf,
+                0,
+                bytemuck::bytes_of(&null_machines),
+            );
             if self.test_phase == 0 {
                 self.test_setup();
             }
@@ -1683,7 +2304,7 @@ impl State {
             });
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("particles"),
+                label: Some("scene"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
@@ -1700,6 +2321,26 @@ impl State {
                 depth_stencil_attachment: None,
                 ..Default::default()
             });
+
+            // Draw machines first (behind particles).
+            let machine_count = self.machines.len() as u32 + PADDLE_COUNT;
+            if machine_count > 0 {
+                let mparams = MachineRenderParams {
+                    screen_width: self.surface_config.width as f32,
+                    screen_height: self.surface_config.height as f32,
+                    machine_count,
+                };
+                self.queue.write_buffer(
+                    &self.render.machine.params_buf,
+                    0,
+                    bytemuck::bytes_of(&mparams),
+                );
+                pass.set_pipeline(&self.render.machine.pipeline);
+                pass.set_bind_group(0, &self.render.machine.bind_group, &[]);
+                pass.draw(0..machine_count * 6, 0..1);
+            }
+
+            // Draw particles on top.
             if self.sim_params.particle_count > 0 {
                 pass.set_pipeline(&self.render.pipeline);
                 pass.set_bind_group(0, &self.render.bind_group, &[]);

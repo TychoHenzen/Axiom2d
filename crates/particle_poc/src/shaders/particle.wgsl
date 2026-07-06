@@ -19,7 +19,9 @@ fn species_color(s: u32) -> vec3<f32> {
     switch s {
         case 0u: { return vec3<f32>(0.9, 0.2, 0.2); } // Red
         case 1u: { return vec3<f32>(0.2, 0.4, 0.9); } // Blue
-        case 2u: { return vec3<f32>(0.2, 0.9, 0.3); } // Green
+        case 2u: { return vec3<f32>(0.2, 0.9, 0.3); } // Green (Red+Blue reaction)
+        case 3u: { return vec3<f32>(0.9, 0.9, 0.2); } // Yellow (Red → Grinder)
+        case 4u: { return vec3<f32>(0.7, 0.2, 0.9); } // Purple (Blue → Heater)
         default: { return vec3<f32>(1.0, 1.0, 1.0); }
     }
 }

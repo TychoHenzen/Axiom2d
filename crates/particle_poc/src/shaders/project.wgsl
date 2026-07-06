@@ -15,15 +15,27 @@ struct Params {
     _pad1: u32,
 }
 
-struct Conveyor {
-    pivot_x: f32,
-    pivot_y: f32,
+const MAX_MACHINES: u32 = 16u;
+
+struct Machine {
+    pos_x: f32,
+    pos_y: f32,
     cos_angle: f32,
     sin_angle: f32,
     half_width: f32,
     half_height: f32,
+    kind: u32,
+    input_species: u32,
+    output_species: u32,
     angular_velocity: f32,
+}
+
+struct MachineParams {
+    count: u32,
     _pad0: u32,
+    _pad1: u32,
+    _pad2: u32,
+    machines: array<Machine, MAX_MACHINES>,
 }
 
 @group(0) @binding(0) var<storage, read_write> positions: array<vec2<f32>>;
@@ -31,7 +43,7 @@ struct Conveyor {
 @group(0) @binding(3) var<storage, read_write> corrections: array<vec2<f32>>;
 @group(0) @binding(4) var<storage, read_write> prev_positions: array<vec2<f32>>;
 @group(0) @binding(7) var<uniform> params: Params;
-@group(0) @binding(8) var<uniform> conveyor: Conveyor;
+@group(0) @binding(8) var<storage, read> machine_params: MachineParams;
 
 @group(1) @binding(0) var<storage, read_write> cell_indices: array<u32>;
 @group(1) @binding(1) var<storage, read_write> cell_counts: array<u32>;
@@ -174,53 +186,70 @@ fn apply(@builtin(global_invocation_id) id: vec3<u32>) {
     pos.x = clamp(pos.x, params.wall_min_x + r, params.wall_max_x - r);
     pos.y = clamp(pos.y, params.wall_min_y + r, params.wall_max_y - r);
 
-    // Rotating arm collision: transform particle into arm's local space,
-    // resolve against the axis-aligned box there, then rotate back.
-    let to_particle = pos - vec2(conveyor.pivot_x, conveyor.pivot_y);
-    // Inverse rotation by -angle
-    let local_x =  to_particle.x * conveyor.cos_angle + to_particle.y * conveyor.sin_angle;
-    let local_y = -to_particle.x * conveyor.sin_angle + to_particle.y * conveyor.cos_angle;
+    // Machine collision: loop over all machines.
+    // kind 0 = Capsule body (OBB, static wall — push out only, no velocity)
+    // kind 1 = Grinder, kind 2 = Heater (sensor only — transmutation in reaction pass)
+    // kind 3 = Paddle (OBB collision + tangential sweep along paddle surface)
+    for (var m = 0u; m < machine_params.count; m++) {
+        let mach = machine_params.machines[m];
 
-    // Arm occupies x in [-hw, hw], y in [-hh, hh] in local space (centered on pivot)
-    let hw = conveyor.half_width;
-    let local_closest_x = clamp(local_x, -hw, hw);
-    let local_closest_y = clamp(local_y, -conveyor.half_height, conveyor.half_height);
-    let local_delta = vec2(local_x - local_closest_x, local_y - local_closest_y);
-    let dist = length(local_delta);
+        if mach.kind == 0u {
+            // Capsule body: line-segment SDF with rounded ends.
+            // Belt is a line segment (0,-l)→(0,+l) in machine-local + radius r.
+            let to_particle = pos - vec2(mach.pos_x, mach.pos_y);
+            let local_x =  to_particle.x * mach.cos_angle + to_particle.y * mach.sin_angle;
+            let local_y = -to_particle.x * mach.sin_angle + to_particle.y * mach.cos_angle;
+            let br = mach.half_width;   // belt half-thickness
+            let bl = mach.half_height;  // straight half-length
+            let tr = br + r;            // total collision radius
+            // Closest point on segment (0,-bl) → (0,+bl).
+            let t = clamp(local_y, -bl, bl);
+            let closest = vec2(0.0, t);
+            let delta = vec2(local_x, local_y) - closest;
+            let dist = length(delta);
 
-    if dist < r {
-        var local_correction: vec2<f32>;
-        if dist > 1e-9 {
-            local_correction = (r - dist) * local_delta / dist;
-        } else {
-            // Particle center inside arm — push to nearest edge in local space.
-            let to_left   = local_x + hw;
-            let to_right  = hw - local_x;
-            let to_bottom = local_y + conveyor.half_height;
-            let to_top    = conveyor.half_height - local_y;
-            let min_edge = min(min(to_left, to_right), min(to_bottom, to_top));
-            if min_edge == to_left {
-                local_correction = vec2(-(r + local_x + hw), 0.0);
-            } else if min_edge == to_right {
-                local_correction = vec2(hw - local_x + r, 0.0);
-            } else if min_edge == to_bottom {
-                local_correction = vec2(0.0, -(r + local_y + conveyor.half_height));
-            } else {
-                local_correction = vec2(0.0, conveyor.half_height - local_y + r);
+            if dist < tr && dist > 1e-9 {
+                let ln = delta / dist;
+                let overlap = tr - dist;
+                let compliance = 0.5;
+                let wx = ln.x * overlap * compliance * mach.cos_angle - ln.y * overlap * compliance * mach.sin_angle;
+                let wy = ln.x * overlap * compliance * mach.sin_angle + ln.y * overlap * compliance * mach.cos_angle;
+                pos += vec2(wx, wy);
+            }
+        } else if mach.kind == 3u {
+            // Paddle: OBB collision with tangential sweep to bridge frame-to-frame
+            // teleport (paddle positions update once per frame on CPU).
+            // Forward edge is expanded to catch particles that would slip past
+            // when the paddle rotates on end caps (tip displacement ≈ PADDLE_HH * Δθ).
+            let to_particle = pos - vec2(mach.pos_x, mach.pos_y);
+            let local_x =  to_particle.x * mach.cos_angle + to_particle.y * mach.sin_angle;
+            let local_y = -to_particle.x * mach.sin_angle + to_particle.y * mach.cos_angle;
+            let hw = mach.half_width + r;
+            let hh = mach.half_height + r;
+            // Extend forward (+tangent) edge by per-frame displacement to catch
+            // particles in the paddle's swept path between position updates.
+            let frame_displacement = mach.angular_velocity * params.dt * 16.0;
+            let hh_forward = hh + frame_displacement;
+            let closest_x = clamp(local_x, -hw, hw);
+            let closest_y = clamp(local_y, -hh, hh_forward);
+            let local_delta = vec2(local_x - closest_x, local_y - closest_y);
+            let dist = length(local_delta);
+
+            if dist < r && dist > 1e-9 {
+                let ln = local_delta / dist;
+                let overlap = r - dist;
+                let compliance = 0.5;
+                let wx = ln.x * overlap * compliance * mach.cos_angle - ln.y * overlap * compliance * mach.sin_angle;
+                let wy = ln.x * overlap * compliance * mach.sin_angle + ln.y * overlap * compliance * mach.cos_angle;
+                pos += vec2(wx, wy);
+
+                // Tangential sweep: carry particles at ~80% of belt speed.
+                let surf_speed = mach.angular_velocity * params.dt * 0.8;
+                let tang = vec2(mach.cos_angle, mach.sin_angle);
+                pos += tang * surf_speed;
             }
         }
-
-        // Rotate correction back to world space
-        let wx = local_correction.x * conveyor.cos_angle - local_correction.y * conveyor.sin_angle;
-        let wy = local_correction.x * conveyor.sin_angle + local_correction.y * conveyor.cos_angle;
-        pos += vec2(wx, wy);
-
-        // Velocity transfer: v = ω × r where r = pos - pivot
-        // ω × (rx, ry) = (-ω·ry, ω·rx)
-        let rx = pos.x - conveyor.pivot_x;
-        let ry = pos.y - conveyor.pivot_y;
-        pos.x += -conveyor.angular_velocity * ry * params.dt * 0.5;
-        pos.y +=  conveyor.angular_velocity * rx * params.dt * 0.5;
+        // Grinder/Heater sensors: handled in reaction pass (has species access).
     }
 
     positions[i] = pos;

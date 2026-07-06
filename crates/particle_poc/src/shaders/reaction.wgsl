@@ -16,15 +16,39 @@ struct Params {
 }
 
 const MAX_SPECIES: u32 = 8u;
+const MAX_MACHINES: u32 = 16u;
 
 struct ReactionMatrix {
     results: array<u32, 64>, // MAX_SPECIES * MAX_SPECIES = 64
 }
 
+struct Machine {
+    pos_x: f32,
+    pos_y: f32,
+    cos_angle: f32,
+    sin_angle: f32,
+    half_width: f32,
+    half_height: f32,
+    kind: u32,
+    input_species: u32,
+    output_species: u32,
+    angular_velocity: f32,
+}
+
+struct MachineParams {
+    count: u32,
+    _pad0: u32,
+    _pad1: u32,
+    _pad2: u32,
+    machines: array<Machine, MAX_MACHINES>,
+}
+
 @group(0) @binding(0) var<storage, read_write> positions: array<vec2<f32>>;
 @group(0) @binding(2) var<storage, read_write> species: array<u32>;
 @group(0) @binding(7) var<uniform> params: Params;
+@group(0) @binding(8) var<storage, read> machine_params: MachineParams;
 @group(0) @binding(9) var<storage, read> reaction_matrix: ReactionMatrix;
+@group(1) @binding(5) var<storage, read_write> machine_counters: array<atomic<u32>>;
 
 @group(1) @binding(0) var<storage, read_write> cell_indices: array<u32>;
 @group(1) @binding(1) var<storage, read_write> cell_counts: array<u32>;
@@ -69,6 +93,28 @@ fn react(@builtin(global_invocation_id) id: vec3<u32>) {
     if si >= MAX_SPECIES { return; }
 
     let pos_i = positions[i];
+
+    // Machine sensor transmutation: Grinder/Heater machines check if particle
+    // center is inside their bounds. If species matches input_species, transmute.
+    for (var m = 0u; m < machine_params.count; m++) {
+        let mach = machine_params.machines[m];
+        if mach.kind == 0u || mach.kind == 3u { continue; } // Hub/Paddle — no transmutation
+        if si != mach.input_species { continue; }
+
+        // Transform particle into machine local space and check AABB containment.
+        let rx = pos_i.x - mach.pos_x;
+        let ry = pos_i.y - mach.pos_y;
+        let lx =  rx * mach.cos_angle + ry * mach.sin_angle;
+        let ly = -rx * mach.sin_angle + ry * mach.cos_angle;
+        if lx >= -mach.half_width && lx <= mach.half_width
+            && ly >= -mach.half_height && ly <= mach.half_height
+        {
+            species[i] = mach.output_species;
+            atomicAdd(&machine_counters[m], 1u);
+            return;
+        }
+    }
+
     let contact_dist = 2.0 * params.particle_radius;
     let my_morton = cell_indices[i];
     let cc = morton_decode(my_morton);
