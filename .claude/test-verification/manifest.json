@@ -1,0 +1,3908 @@
+{
+  "project_root": "C:/Users/siriu/RustroverProjects/Axiom2d",
+  "last_full_run": "2026-07-06T19:22:52.887355+00:00",
+  "last_partial_run": "2026-07-06T19:59:05.303090+00:00",
+  "files": {
+    "crates/axiom2d/tests/suite/default_plugins.rs": {
+      "hash": "ae211c34dc3f7eebbd5d29d70c9dda4f21838e5a9f8bc83ab8b4decf9b535c13",
+      "last_verified": "2026-07-06T19:27:47.196984+00:00",
+      "scores": {
+        "assertion_quality": 6,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 7,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 7.9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "assertion_quality",
+          "location": "lines 141,176,208,233-234",
+          "detail": "Render-call assertions use calls.contains() substring match, not argument/count verification",
+          "suggestion": "Use calls.iter().filter().count() assertions"
+        },
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "lines 22-426",
+          "detail": "No error-case tests: missing Camera2D, missing RendererRes, missing InputState",
+          "suggestion": "Add tests for missing resources"
+        },
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "lines 141,176,208",
+          "detail": "assert!(calls.contains(&X)) on failure prints no actual call list",
+          "suggestion": "Use helper that formats actual call list on failure"
+        }
+      ],
+      "summary": "Solid default-plugins integration coverage but render-call assertions are shallow and error cases absent."
+    },
+    "crates/axiom2d/tests/suite/mod.rs": {
+      "hash": "b18fd4535b2f99b4b35648c218f7d15dd74565b1df46e2d2735e3ade3279cbbc",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/axiom2d/tests/suite/splash_animation.rs": {
+      "hash": "a5e76dab09e7e39361a323e9da125d849cc7fefabfe96c02e0092ca36187011d",
+      "last_verified": "2026-07-06T19:27:47.196984+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 7,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 9.0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "clarity",
+          "location": "lines 1-493",
+          "detail": "Only 1 of 22 tests has @doc comment, most lack AAA section markers",
+          "suggestion": "Add doc comments and AAA markers"
+        }
+      ],
+      "summary": "Excellent splash animation tests with deep coverage of timing, hooks, and idempotency -- among the strongest files reviewed."
+    },
+    "crates/axiom2d/tests/suite/splash_render.rs": {
+      "hash": "3b1ee5f9b40fbd2cee5219b9df50faf8dd77b93a35ff6f51846e0ecf9196d7ab",
+      "last_verified": "2026-07-06T19:27:47.196984+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 7,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.9,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "clarity",
+          "location": "lines 1-268",
+          "detail": "No @doc comments, duplicate world-building in wide-viewport test",
+          "suggestion": "Extract helper function, add doc comments"
+        },
+        {
+          "severity": "low",
+          "category": "coverage_depth",
+          "location": "line 60",
+          "detail": "No test for extreme viewport sizes (1x1, 10000x10000)",
+          "suggestion": "Add edge case tests for viewport size boundaries"
+        }
+      ],
+      "summary": "Rigorous splash render tests with exact matrix comparison and zoom ratio logic."
+    },
+    "crates/card_game/tests/suite/booster_device.rs": {
+      "hash": "5a9a743d9e2512c5ddaefb49aaab5f92a3ccae40e7cbc5e3fd622de470416bf4",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "when_seal_pressed_with_signal_then_pack_spawned_and_cards_destroyed",
+          "detail": "Only tests happy path with valid signal. Missing: seal pressed with no signal, double seal press, seal when already sealed",
+          "suggestion": "Add when_seal_pressed_without_signal_then_no_pack_spawned and when_seal_pressed_twice_then_no_duplicate_pack"
+        },
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "lines 28-29,52,112,131",
+          "detail": "Multiple bare assert!() and assert_eq!() calls without failure messages",
+          "suggestion": "Add custom failure messages to all bare assertions"
+        }
+      ],
+      "summary": "Solid fixture-based booster machine and seal system testing. Notable gap in negative-path coverage for seal pressed without signal."
+    },
+    "crates/card_game/tests/suite/booster_double_click.rs": {
+      "hash": "6d6875b99d129c7acb7e16a7798364ae19efa02850ab8bd303d672c877848218",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Only 3 tests covering within-window, outside-window, different-entity. Missing boundary test at exact window value, consecutive double-clicks, state reset",
+          "suggestion": "Add boundary and consecutive double-click tests"
+        },
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "all assertions",
+          "detail": "All assertions are bare with no failure messages",
+          "suggestion": "Replace with assert_eq!(..., msg) style messages"
+        }
+      ],
+      "summary": "Terse, correct, focused double-click state machine tests. Zero diagnostic output on failure and no boundary-value testing."
+    },
+    "crates/card_game/tests/suite/booster_opening.rs": {
+      "hash": "0440a0f6d3a25735edebfd4f0388013709896cd6803fc7fa4489f969ed64db7e",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "when_opening_advances_then_phases_progress_in_order",
+          "detail": "Hardcoded timing values coupled to internal phase durations. Missing advance(0), negative advance, phase skip, empty cards",
+          "suggestion": "Add edge cases around boundary conditions and extract magic timing values into named constants"
+        }
+      ],
+      "summary": "Phase progression and fan-position geometry tests well-structured with clear doc comments. Timing-coupled advance values are maintenance smell."
+    },
+    "crates/card_game/tests/suite/booster_pack.rs": {
+      "hash": "57cd6699ca93618f263c78932f0e1c8b7e9013b6bd317d0b13f056e5f7da9b83",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Missing spawn at different positions, 0 cards, 1 card edge case. Physics command test only checks count not content",
+          "suggestion": "Add boundary card count tests and verify physics command types not just count"
+        }
+      ],
+      "summary": "Good coverage of pack spawning invariants. Physics command test weaker than it appears."
+    },
+    "crates/card_game/tests/suite/booster_sampling.rs": {
+      "hash": "cb582e23986950a40707f5365711d44b2d82cd919122a7a7dfe890de7807f30e",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.9,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Missing count=0, empty space, radius=0 tests",
+          "suggestion": "Add boundary tests for zero/null sampling scenarios"
+        }
+      ],
+      "summary": "Thorough sampling tests with seeded RNG, per-sample validation loops. Strong single-point and polyline space coverage."
+    },
+    "crates/card_game/tests/suite/card_art_selection.rs": {
+      "hash": "6ca6642f365f8bfbcba933b8c724c5436cfcaae17df928f8563eb08868cec276",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.4,
+      "findings": [],
+      "summary": "Excellent test file. Comprehensive art selection, bounding box, and fitting coverage. Doc comments explain not just what but why. Minor gap in stochastic assertion strength."
+    },
+    "crates/card_game/tests/suite/card_combiner_device.rs": {
+      "hash": "b571edbf1836db79d34e917579dd926a654248c05d399bc3936c3f49b164c96a",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 9.0,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "lines 60,111,137",
+          "detail": "Several bare assert!() calls without failure messages",
+          "suggestion": "Add failure messages"
+        }
+      ],
+      "summary": "Thorough combiner system testing with clean fixture helpers. Good architectural coverage of combiner as modular signal-processing device."
+    },
+    "crates/card_game/tests/suite/card_identity_base_type.rs": {
+      "hash": "fa275d890d7dfd51f2ecd76983c79c866f2e22954cb18c4dea3dc04dbbe8a78d",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 10,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.8,
+      "findings": [],
+      "summary": "Textbook comprehensive unit testing. Every edge case for can_match, match_weight, and registry behavior covered with pure deterministic logic."
+    },
+    "crates/card_game/tests/suite/card_identity_card_description.rs": {
+      "hash": "0f7753557da80001047b90537c07209851fcd494dac28f58e5f55b557a280d60",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 9.0,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "lines 106-108",
+          "detail": "assert!(!desc.contains(\"initiative\")) is fragile string-based check",
+          "suggestion": "Verify lines are exact expected array and lines.len()==3 instead"
+        }
+      ],
+      "summary": "Clean, focused card description tests with line-by-line verification of magnitude ordering."
+    },
+    "crates/card_game/tests/suite/card_identity_card_name.rs": {
+      "hash": "512963f1710add0685ef27dc783f1acd5475b747907360b65ba592efe819dc35",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 10,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.7,
+      "findings": [],
+      "summary": "Outstanding card name generation coverage across all rarities, templates, archetypes, aspects, and pool integrity. 18 tests at 528 lines."
+    },
+    "crates/card_game/tests/suite/card_identity_definition.rs": {
+      "hash": "2992e8cc63c57889a31e35999e7ec65b27c3a617f8674daf9bfd1afd235a76cc",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Missing empty keywords+text combined, CardType exhaustiveness. Only Creature/Spell/Artifact tested",
+          "suggestion": "Test each CardType variant explicitly"
+        },
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "lines 20,79,143,148,152",
+          "detail": "Multiple bare assert!()/assert_eq!() with no failure messages"
+        }
+      ],
+      "summary": "Adequate description generation, border color calculation, art descriptor defaults. Strong pairwise distinctness and cross-signature variance."
+    },
+    "crates/card_game/tests/suite/card_identity_gem_sockets.rs": {
+      "hash": "ba0fc01703e545ac986778690b9e89f1f70765ca1f9efdbb7201295fbdf9bec2",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 10,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.9,
+      "findings": [],
+      "summary": "Exceptional test file. 16 tests with exquisite doc comments explaining rendering pipeline invariants. Best test file in the batch."
+    },
+    "crates/card_game/tests/suite/card_identity_name_pools_compound_parts.rs": {
+      "hash": "8f9e57fe3002e3b27ffacf64b735f8ec5c46a045ae4d3bf13d2b208433aae26b",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Missing generate_compound with Nature/Arcane clusters. Only Physical tested. No structural validation of generated compounds",
+          "suggestion": "Add all cluster variants and structural validation"
+        }
+      ],
+      "summary": "Solid compound name part pool coverage across archetypes and clusters. Pool-size floor (>=12) is good invariant."
+    },
+    "crates/card_game/tests/suite/card_identity_name_pools_syllables.rs": {
+      "hash": "af272187077652ed0a80e05367ddaa0d372db03faa48c69ba6dbcf66604e5302",
+      "last_verified": "2026-07-06T19:47:05.425688+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Missing seed-diversity test, no tests for spaces/special chars in generated names. Length heuristic fragile",
+          "suggestion": "Add when_different_seeds_produce_different_nouns and structural validation"
+        },
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "line 15",
+          "detail": "Bare assert_eq!(name1, name2) with no determinism context",
+          "suggestion": "Add determinism context message"
+        }
+      ],
+      "summary": "Decent proper noun generation coverage. Length-heuristic test somewhat fragile. Seed-diversity gap is most notable."
+    },
+    "crates/card_game/tests/suite/card_identity_residual.rs": {
+      "hash": "0e2596d970a1d86b3df94dfdbe05fe34b0f3404beca228a8a46002da16d6d6f1",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 8.8,
+      "findings": [],
+      "summary": "Thorough residual modifier system tests with good polarity gating coverage. Missing NaN inputs and zero-intensity modifiers."
+    },
+    "crates/card_game/tests/suite/card_identity_signature.rs": {
+      "hash": "be01cd65a5f848ebd74dd3d405f5b90cc8fc53b80874422aad2275ee29652908",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.8,
+      "findings": [],
+      "summary": "Excellent coverage with property-based tests for clamping/distance invariants and rarity distribution. Several unit tests lack diagnostic messages."
+    },
+    "crates/card_game/tests/suite/card_identity_signature_profile.rs": {
+      "hash": "6857a1a9d45ea2421f93628e680ceb3be803ec4fb809d1c52ede73bf5863b479",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 10
+      },
+      "overall": 9.6,
+      "findings": [],
+      "summary": "Exceptional test file with thorough boundary testing (1.5x ratio, tier thresholds), well-documented behavioral contracts, complete profile field coverage."
+    },
+    "crates/card_game/tests/suite/card_identity_visual_params.rs": {
+      "hash": "cb9f60d2fa242ca2071fa9b0848898b5b61df7c4df593ecc26c58bc4514e88c4",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.9,
+      "findings": [],
+      "summary": "Strong element-color mapping, dominant-element tint logic, and shader variant selection. Missing intermediate rarity shader tests."
+    },
+    "crates/card_game/tests/suite/card_interaction_camera_drag.rs": {
+      "hash": "bc6f4d3c83100100ca5ac675edfbf319fdba1e732ecdb75e2e73502ceb63d653",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 6,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 7.9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "assertion_quality",
+          "location": "line 252",
+          "detail": "Uses exact float equality (assert_eq!) on accumulated zoom value -- fragile under implementation changes",
+          "suggestion": "Replace with assert!((camera.zoom - 1.2).abs() < 1e-5) pattern"
+        }
+      ],
+      "summary": "Good camera drag and zoom coverage but uses fragile exact float comparisons and minimal diagnostics."
+    },
+    "crates/card_game/tests/suite/card_interaction_click_resolve.rs": {
+      "hash": "8c76b8d40a643a35c4c6ab0d0f8d8508dd17e5e6bc08486c9704a1351a0af39e",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.7,
+      "findings": [],
+      "summary": "Solid click resolution tests including double-pick regression test. Missing tiebreaker and multiple-socket overlap scenarios."
+    },
+    "crates/card_game/tests/suite/card_interaction_damping.rs": {
+      "hash": "36e03c07ce6caf4e750bc56aa3947a340884dede44ade83f03badfcf0c438c5f",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.1,
+      "findings": [],
+      "summary": "Comprehensive damping system tests with strong zone-filtering coverage (Table/Hand/Reader) and monotonicity verification."
+    },
+    "crates/card_game/tests/suite/card_interaction_drag.rs": {
+      "hash": "ebb2559592b10e88fb60e5ccf275986360d4540f0ebbc6ccc97f5307691d2820",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.6,
+      "findings": [],
+      "summary": "Outstanding drag physics tests with rigorous rigid-body constraint verification, arm-length boundary tests, and velocity clamping checks."
+    },
+    "crates/card_game/tests/suite/card_interaction_flip.rs": {
+      "hash": "cd8d75d5089c9ceaffda631724b2b4f0d8e63d7237df2ab809f46fa9dd3fae41",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.9,
+      "findings": [],
+      "summary": "Thorough flip trigger tests covering card/zone filtering, overlap resolution, and animation non-restart behavior."
+    },
+    "crates/card_game/tests/suite/card_interaction_flip_animation.rs": {
+      "hash": "d1878326041ad8c4617f5023a5e08f43ff47252d872b584c2ed9fbd3798afd2a",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "assertion_quality",
+          "location": "line 27",
+          "detail": "Null-path test banned by project conventions: tests empty-entity system doesn't panic",
+          "suggestion": "Remove this test. Empty-entity coverage already provided by other tests in the file."
+        }
+      ],
+      "summary": "Excellent animation lifecycle coverage (shrink, midpoint swap, grow, completion). Marred by one banned null-path test."
+    },
+    "crates/card_game/tests/suite/card_interaction_intent_apply.rs": {
+      "hash": "bac9e94098c3371ac3793660a043960c4a9bac8ab02b54aae7127724bd3db06d",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.6,
+      "findings": [],
+      "summary": "Top-tier test file with thorough zone transition coverage, inline sleep/wake regression guards, and well-documented behavioral contracts."
+    },
+    "crates/card_game/tests/suite/card_interaction_pick.rs": {
+      "hash": "c931d12d63ef9ca001e9b3902cfe67ee6d4ef967d12093c9cbb9e401dfffbeaa",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.8,
+      "findings": [],
+      "summary": "Solid click-pick tests covering hit-testing, sort-order resolution, rotated OBB, and stash interaction."
+    },
+    "crates/card_game/tests/suite/card_interaction_release.rs": {
+      "hash": "e6ffe66ab96b6aff34f6eca60f93f4ca3cc9c297aafc64dec654503678634b94",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.9,
+      "findings": [],
+      "summary": "Well-structured release tests using builder pattern, good zone priority coverage (stash > hand > table) and edge case handling."
+    },
+    "crates/card_game/tests/suite/card_interaction_sleep.rs": {
+      "hash": "35146e63fae99681a520a1920761e5b02cf89a97cc33584e48649f2be179fa85",
+      "last_verified": "2026-07-06T19:49:35.290795+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.0,
+      "findings": [],
+      "summary": "Focused, well-documented sleep system tests covering all relevant states with good zone filtering and no-body edge case."
+    },
+    "crates/card_game/tests/suite/card_jack_cable.rs": {
+      "hash": "44eff12b16a1e4f0a01109cb841837ec21724e2d5b5aead90a43f4e64cfea98a",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.8,
+      "findings": [],
+      "summary": "Thorough wrap/unwrap detection and propagation with excellent boundary coverage (grazing edges, multi-obstacle, bug regressions). Some weak assertions without custom messages."
+    },
+    "crates/card_game/tests/suite/card_jack_socket.rs": {
+      "hash": "15d1f0adaf711da2e2b698dc380271caf50ce6affc8fa89fa30511c3cb8cd96d",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.0,
+      "findings": [],
+      "summary": "Excellent socket lifecycle coverage: render, pick (happy+3 guards), drag preview, release (8 scenarios), disconnect-drag (3 scenarios)."
+    },
+    "crates/card_game/tests/suite/card_reader.rs": {
+      "hash": "7e5f77e828d5850c0def227dc6401976cd66ba10182bd7ff825e21fec002cb51",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 9.0,
+      "findings": [],
+      "summary": "Very thorough (28 tests): click, release, AABB overlap, rotation lock, insert, miss, full-guard, drag, eject, overlapping readers. Contains one null-path test."
+    },
+    "crates/card_game/tests/suite/card_reader_glow.rs": {
+      "hash": "ef73c14a5c9f3691a7773b0de49a04be78ba0896888bb72ea10756b4208d65f1",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.3,
+      "findings": [],
+      "summary": "Covers glow lifecycle (runs dim, runes lit when loaded, accent/recess lit, return-to-dim on eject). No edge cases. Structure repetitive."
+    },
+    "crates/card_game/tests/suite/card_reader_spawn.rs": {
+      "hash": "f332116520ae486deb0c4980e2f9f6cd81b212c7f2cb292904d12610098a8b43",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 7.9,
+      "findings": [],
+      "summary": "Happy-path only: root shape, child counts, ChildOf pointers. No error/edge cases. All assert_eq! lack custom messages. Tests structure (exactly 6 children) rather than behavior."
+    },
+    "crates/card_game/tests/suite/card_reader_volume.rs": {
+      "hash": "beca85d24301a31b9d97a62ef6a64e2529dd5ab916f24c6fe412ff0740175919",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.5,
+      "findings": [],
+      "summary": "Solid pure-math tests for sphere/tube volume, Newton solver, polyline arc length. Some hardcoded magic numbers not tied to source constants."
+    },
+    "crates/card_game/tests/suite/card_rendering_art_shader.rs": {
+      "hash": "7632add9ef833c4b5c7b0714151cbf51e64c5f2f29230d5fe94f74d9248be584",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 9,
+        "diagnostics": 7
+      },
+      "overall": 8.4,
+      "findings": [],
+      "summary": "Covers all rarity-to-shader mappings, WGSL parsing for 5+ shaders, binding validation. Some string.contains() checks fragile."
+    },
+    "crates/card_game/tests/suite/card_rendering_bake.rs": {
+      "hash": "7dfdb48a6ba7d342bbaaec8751c1a1d4cc78aa5bf37160eae33558bd96c339e5",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 6,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.2,
+      "findings": [],
+      "summary": "Tests front/back mesh generation, gem geometry, art region exclusion. bake_back_then_mesh_has_vertices uses minimal !mesh.is_empty() assertion."
+    },
+    "crates/card_game/tests/suite/card_rendering_debug_sleep_indicator.rs": {
+      "hash": "5ec877189976172148c5fba060bfccb16fd0c2b986787bd55d5f469a4fe63754",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.1,
+      "findings": [],
+      "summary": "Three tests for F9 toggle overlay. Toggle-off assertion fragile. when_debug_key_not_pressed is null-path test."
+    },
+    "crates/card_game/tests/suite/card_rendering_debug_spawn.rs": {
+      "hash": "46f2f823074de791806784b14a246730bdfc34ac771ed565fcab7858b4e01b75",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.2,
+      "findings": [],
+      "summary": "Tests Digit1/2/3 key spawn counts (1, 10, 100), no-key. Seeded RNG. Simple count assertions lack custom messages."
+    },
+    "crates/card_game/tests/suite/card_rendering_drop_zone_glow.rs": {
+      "hash": "6708e4f5549b7aab9d4413ab30d2e33f6739a03cc247f2a8a99c22e6230db908",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.1,
+      "findings": [],
+      "summary": "Three tests: active drag shows glow, no drag no glow, zero viewport no crash. Narrow scope, when_no_drag is null-path test."
+    },
+    "crates/card_game/tests/suite/card_rendering_gpu_card_mesh.rs": {
+      "hash": "93048563499343230ff1b6c305aff1cb472666e37ea304d7e7ee93b89c2b9919",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.5,
+      "findings": [],
+      "summary": "Tests GPU mesh upload, face-up/down selection, item form removal, sync adding missing mesh. Good helper usage reducing boilerplate."
+    },
+    "crates/card_game/tests/suite/card_rendering_render_layer.rs": {
+      "hash": "9a9f07da4f3bde0573c67246796b3b23913d6336a6027888cdb119668d9ed6f2",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.2,
+      "findings": [],
+      "summary": "Four focused tests: parent-child layer sync (UI, World, dynamic change) and non-face child independence. All assert_eq! lack messages."
+    },
+    "crates/card_game/tests/suite/card_rendering_spawn_table_card.rs": {
+      "hash": "ace5699c98e7d2bb16db1761f108696d7efcd3e1c1ce53031eed57c41adb3c36",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 9,
+        "speed": 9,
+        "diagnostics": 7
+      },
+      "overall": 8.6,
+      "findings": [],
+      "summary": "Very thorough (25+ tests): face-down/up, label, meshes, collider, overlays, UV correctness, fallback, residual stats. Some signature values hash-dependent."
+    },
+    "crates/card_game/tests/suite/card_screen_device.rs": {
+      "hash": "995c38114fbe4df0051f13ba8157dcf70214f9cc533ab3cca8390e318867db2c",
+      "last_verified": "2026-07-06T19:52:54.371875+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.3,
+      "findings": [],
+      "summary": "Top-tier: axis extraction, signal vs no-signal draws, full cable propagation integration, multi-point capsule geometry, clipping boundaries, spline density. Clear @doc annotations."
+    },
+    "crates/card_game/tests/suite/card_zone_config.rs": {
+      "hash": "c392782a86d2d5c7429e6bdd4789511dd344ef069dada2be1fb5d44bac1729b9",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.8,
+      "findings": [],
+      "summary": "Three focused tests covering Hand, Table, and Stash zone config properties. Clean AAA pattern, only nominal variants tested."
+    },
+    "crates/card_game/tests/suite/hand_cards.rs": {
+      "hash": "b922ff66ff2b2d9883402ddc1bf71bf4a9f7cf6223c76cc3d334bc1e69612086",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.8,
+      "findings": [],
+      "summary": "Ten tests covering Hand add/remove/is_full/hand_cards with good boundary coverage (full hand, unknown removal, order preservation)."
+    },
+    "crates/card_game/tests/suite/hand_layout.rs": {
+      "hash": "7d09890abf237b70a1944f232e0d34cb0f70e373b7fed5e903f898e19e6d061b",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.2,
+      "findings": [],
+      "summary": "Extensive fan layout math, screen positions, spring physics, camera zoom, scale convergence. Strong diagnostics with expected vs actual values."
+    },
+    "crates/card_game/tests/suite/helpers.rs": {
+      "hash": "23226a4faf9fc8d929e2176f8e138ce079b6d591216d49b6730ac15b40443a13",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 5,
+        "isolation": 10,
+        "clarity": 5,
+        "coverage_depth": 0,
+        "speed": 10,
+        "diagnostics": 0
+      },
+      "overall": 4.5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "File contains no #[test] functions -- it is a shared helper module. Cannot be scored as a test file.",
+          "suggestion": "Rename to tests/support/mod.rs to distinguish support code from actual test files."
+        }
+      ],
+      "summary": "Not a test file -- single helper function default_card_collider() used by other test modules. Proper factoring but wrong directory convention."
+    },
+    "crates/card_game/tests/suite/integration_tests.rs": {
+      "hash": "f6b7ffc74a9916a5493a62dd3ab3ab2bde69904d0dd7e33eec071fc95f6976dc",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 9,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.2,
+      "findings": [],
+      "summary": "Seven end-to-end schedule tests exercising real CardGamePlugin and DefaultPlugins. All zone transitions, multi-frame drags, flip animation, multiple pick-release cycles."
+    },
+    "crates/card_game/tests/suite/mod.rs": {
+      "hash": "5ebcf72c456081bcf9676b89bab74d356563f69f8fdf0874893bf17ed1d0e26f",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/card_game/tests/suite/plugin.rs": {
+      "hash": "31af5f2675301ce714c4eb1070980285e25e395ca368634c763a10e4eceb3df6",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.6,
+      "findings": [],
+      "summary": "Five tests verifying CardGamePlugin startup state. Missing schedule-level checks (phase ordering, system registration)."
+    },
+    "crates/card_game/tests/suite/stash_boundary.rs": {
+      "hash": "0b5921f0f49a2cfce27a036230ddce95ca6008453ed39961eaf8df0144669e86",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.3,
+      "findings": [],
+      "summary": "Eleven tests on stash boundary transitions covering all entry/exit states and PhysicsCommand spy assertions."
+    },
+    "crates/card_game/tests/suite/stash_grid.rs": {
+      "hash": "82be018e9e4fe5e6ebe0c20892f506744af1a41d268341489a6484d50dc8d7e9",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 9.4,
+      "findings": [],
+      "summary": "Twenty tests covering StashGrid comprehensively: place/get/take, first_empty, page isolation, screen-to-grid mapping. Exceptional depth."
+    },
+    "crates/card_game/tests/suite/stash_hover.rs": {
+      "hash": "a6490489e1a49d496bbdfd562220d90aeb2f4743e33b9dd27374da9739f561b9",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.3,
+      "findings": [],
+      "summary": "Fifteen tests on hover preview triggers, render behavior, Lissajous offset bounds. Strong edge coverage with tight bounds."
+    },
+    "crates/card_game/tests/suite/stash_layout.rs": {
+      "hash": "1e4d4b9dd2d9469a736fd3edacb336d8a625cfcfcc537474a64cc2bea615dd2b",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.1,
+      "findings": [],
+      "summary": "Eight tests on stash_layout_system: x-spacing, zone exclusion, no-camera fallback, zero viewport guard, slot center math, page filtering."
+    },
+    "crates/card_game/tests/suite/stash_pages.rs": {
+      "hash": "d64fa9055c5721f6c936f84bf72b9aa51dbfa82c472d7eeb146482b1808edc87",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.6,
+      "findings": [],
+      "summary": "Exceptional tab click and render coverage: all tabs, gap handling, hidden stash blocks, right clicks ignored, colors, positions, alignment, text labels. Best in batch."
+    },
+    "crates/card_game/tests/suite/stash_render.rs": {
+      "hash": "a22f67495321e54b74e8216a16b0fcedc9783ca27e099306d5c1557284793ae8",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.6,
+      "findings": [],
+      "summary": "Extensive render system tests: hidden/visible grid, empty/occupied slots, background, stride constants, zoom-dependent model matrix, slot highlight, baked mesh rendering, drag preview."
+    },
+    "crates/card_game/tests/suite/stash_toggle.rs": {
+      "hash": "bc79e5d0d5b2b9d1febdfe5e0fc63206a0d37faf508effb41849eb9997f87d17",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.3,
+      "findings": [],
+      "summary": "Two tests covering both toggle directions. Missing: other key presses, held-Tab behavior, InputState with no Tab key."
+    },
+    "crates/card_game/tests/suite/store.rs": {
+      "hash": "e3eaa9722d78652861bc82d46d57df8f6f5b9cea8030367d7bc13dc9b3052c1c",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.2,
+      "findings": [],
+      "summary": "Thirteen tests covering full store lifecycle: tab purchase, reader/screen/combiner buy, sell refunds, render text, wallet affordability boundaries."
+    },
+    "crates/card_game/tests/suite/terrain.rs": {
+      "hash": "6ce8c793c28d967f3cfad70df4ea05776e2c6c504d00ea15f411cafaf3ff909e",
+      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "scores": {
+        "assertion_quality": 2,
+        "determinism": 6,
+        "isolation": 10,
+        "clarity": 6,
+        "coverage_depth": 1,
+        "speed": 10,
+        "diagnostics": 1
+      },
+      "overall": 4.5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "assertion_quality",
+          "location": "entire file",
+          "detail": "Single test with zero meaningful assertions. Uses let _ field access that compiler discards. Functionally equivalent to no-op.",
+          "suggestion": "Replace with actual assertions: tiles non-empty (or document when empty), adjacency_rules contains expected entries, tile dimensions positive."
+        }
+      ],
+      "summary": "Single test with no meaningful assertions -- a 'does not crash' test functionally equivalent to compilation check."
+    },
+    "crates/demo/tests/suite/core_main.rs": {
+      "hash": "8b1d717c41e91966b910458270f5d3f97209109085ea7aedb6e6d193c995b4f1",
+      "last_verified": "2026-07-06T19:27:47.196984+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 9,
+        "clarity": 5,
+        "coverage_depth": 6,
+        "speed": 9,
+        "diagnostics": 6
+      },
+      "overall": 7.5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "clarity",
+          "location": "lines 135-334",
+          "detail": "Pivot-iteration block repeated 5 times verbatim -- massive code duplication",
+          "suggestion": "Extract helper function for planet pivot query"
+        },
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "lines 12-447",
+          "detail": "All 19 tests validate only setup() output structure, zero behavioral tests that run systems",
+          "suggestion": "Add behavioral test running orbit_system or camera_pan_system"
+        },
+        {
+          "severity": "low",
+          "category": "clarity",
+          "location": "lines 154,186",
+          "detail": "Combined // Act / Assert markers are ambiguous",
+          "suggestion": "Split into separate sections"
+        }
+      ],
+      "summary": "Thorough structural coverage of demo setup but severe code duplication and no behavioral tests."
+    },
+    "crates/demo/tests/suite/mod.rs": {
+      "hash": "850626078db2011d56301ecc92141aee5878d87523ce66b3348eb25e85b681e3",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/demo/tests/suite/scene.rs": {
+      "hash": "59b98573559970459798a752bfecd35e982c110c82dfcfba010a569c99f75df8",
+      "last_verified": "2026-07-06T19:27:47.196984+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 7,
+        "coverage_depth": 5,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 7.9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "lines 9-132",
+          "detail": "Only 5 tests covering minimal scenarios, no parent-child hierarchy, no visibility=false edge case",
+          "suggestion": "Add hierarchy, visibility, and empty world tests"
+        }
+      ],
+      "summary": "Precise but thin coverage of demo scene systems with only 5 minimal scenarios."
+    },
+    "crates/demo/tests/suite/systems.rs": {
+      "hash": "1ae7e0393076235d2f229cdb41f85a12d817c706186b2d496d9751669f9c9f88",
+      "last_verified": "2026-07-06T19:27:47.196984+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 6,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 8.1,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "lines 169,188,207",
+          "detail": "Zoom assertions use bare assert!(camera.zoom > 1.0) showing no actual value on failure",
+          "suggestion": "Add format args: assert!(cond, msg, val)"
+        },
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "lines 406-410",
+          "detail": "assert!((a-b).length() < 1e-4) shows no delta on failure",
+          "suggestion": "Use custom assert_near helper"
+        },
+        {
+          "severity": "medium",
+          "category": "assertion_quality",
+          "location": "lines 154-208",
+          "detail": "Zoom tests only verify direction of change, not magnitude",
+          "suggestion": "Pin exact zoom value after one tick"
+        },
+        {
+          "severity": "low",
+          "category": "clarity",
+          "location": "lines 312-411",
+          "detail": "Synodic frame integration test is 100 lines with 20+ local variables",
+          "suggestion": "Split into 3-4 smaller tests"
+        }
+      ],
+      "summary": "Good system-level tests for pan/zoom/orbit/synodic camera but weakened by vague assertions and poor diagnostics."
+    },
+    "crates/engine_app/tests/suite/app.rs": {
+      "hash": "96c9c76e652446baff67d75281bd715317362eb4d8654e05009b8e655340b2ea",
+      "last_verified": "2026-07-06T19:27:47.196984+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "assertion_quality",
+          "location": "line 255",
+          "detail": "Test when_add_systems_chained_then_builder_pattern_works has zero assertions -- compiles and runs but verifies nothing",
+          "suggestion": "Add assertion or remove test"
+        },
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "lines 485, 510",
+          "detail": "assert!(expr) for is_empty() lacks custom failure messages",
+          "suggestion": "Add custom messages: assert!(expr, msg)"
+        }
+      ],
+      "summary": "Strong engine-app tests with thorough FixedUpdate coverage, marred by one assertion-free test."
+    },
+    "crates/engine_app/tests/suite/mod.rs": {
+      "hash": "1cd3a89305ae426c13c58198bac7b6941c115deb32f7cf20429365e3e3a79831",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/engine_app/tests/suite/mouse_world_pos_system.rs": {
+      "hash": "bde1a727fdbe8f479d3a5e111c9ddccbe70e73a3bca54635d8196cdab0aac180",
+      "last_verified": "2026-07-06T19:27:47.196984+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 7,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.1,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "lines 34-97",
+          "detail": "No test covers camera with non-zero position -- all use Camera2D::default()",
+          "suggestion": "Add test with camera.position offset"
+        },
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "lines 60-75",
+          "detail": "No test covers zoom values below 1.0",
+          "suggestion": "Add test with zoom=0.5"
+        }
+      ],
+      "summary": "Clean system tests with good basic path coverage but missing non-zero camera position and sub-1.0 zoom edge cases."
+    },
+    "crates/engine_audio/tests/suite/backend_cpal.rs": {
+      "hash": "158be5083dfa025693de22fce7a1e13be0522956e151f21d576e15ba96d8affa",
+      "last_verified": "2026-07-06T19:29:54.152335+00:00",
+      "scores": {
+        "assertion_quality": 6,
+        "determinism": 5,
+        "isolation": 8,
+        "clarity": 8,
+        "coverage_depth": 3,
+        "speed": 7,
+        "diagnostics": 5
+      },
+      "overall": 5.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "line 17",
+          "detail": "Only 1 test covering ID uniqueness -- no tests for stopping, track-specific playback, empty sounds, or backend lifecycle",
+          "suggestion": "Add tests for stop(), set_volume(), set_track_volume(), different MixerTrack values"
+        },
+        {
+          "severity": "medium",
+          "category": "determinism",
+          "location": "line 19",
+          "detail": "CpalBackend initializes real audio hardware via CPAL -- not purely deterministic",
+          "suggestion": "Use NullAudioBackend for deterministic coverage, separate hardware-init tests"
+        },
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "line 27",
+          "detail": "assert_ne! lacks failure message context",
+          "suggestion": "Add message explaining what uniqueness means"
+        }
+      ],
+      "summary": "Single-test file verifying CpalBackend ID uniqueness, but fatally thin on coverage and touches real hardware."
+    },
+    "crates/engine_audio/tests/suite/backend_traits.rs": {
+      "hash": "f9403621991932e634c63b01ae65bf58fbfa2530bb8170872dd3bfdaa0e9c813",
+      "last_verified": "2026-07-06T19:29:54.152335+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 9,
+        "isolation": 8,
+        "clarity": 7,
+        "coverage_depth": 5,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 7.3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "lines 16-70",
+          "detail": "Only tests play_count and ID uniqueness -- no tests for stop(), invalid PlaybackId, track ID isolation, or set_volume()",
+          "suggestion": "Add tests for stop() with valid/invalid IDs, track volume routing"
+        }
+      ],
+      "summary": "Solid NullAudioBackend tests for play_count and ID uniqueness, but skips every other backend method."
+    },
+    "crates/engine_audio/tests/suite/mixer.rs": {
+      "hash": "034f0269294b85100cc97bec7130dc45873fc940b3543aee2888561b9a469fda",
+      "last_verified": "2026-07-06T19:29:54.152335+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 8,
+        "clarity": 8,
+        "coverage_depth": 4,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 7.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "lines 6-29",
+          "detail": "Only 2 tests: basic set_track_volume and volume > 1.0. No negative volume, volume=0, boundary behavior",
+          "suggestion": "Add tests for zero volume (mute), negative volume (clamp or reject), max f32"
+        }
+      ],
+      "summary": "Clean mixer state tests with good assertions, but critically thin coverage with only 2 happy-path cases."
+    },
+    "crates/engine_audio/tests/suite/mixer_engine.rs": {
+      "hash": "1c491eab8bb4e1d9cf2bdb27a6e1bfeb12dd5ca65b61da73d4bed866a8f5ba97",
+      "last_verified": "2026-07-06T19:29:54.152335+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 8,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.5,
+      "findings": [],
+      "summary": "Strong coverage of mixing logic (gain, sum, cursor, per-track, auto-eviction) with clean assertions and good doc comments."
+    },
+    "crates/engine_audio/tests/suite/mod.rs": {
+      "hash": "28c0e5e71d79d09ca72bcc93d467370e606b2ee040187f921fe9b0231db33512",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/engine_audio/tests/suite/playback_system.rs": {
+      "hash": "2bc1b2073fed5802bb77f0dada95fa7d891ce6e86e0113d299fb9127f4af74c2",
+      "last_verified": "2026-07-06T19:29:54.152335+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 8,
+        "isolation": 7,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 9,
+        "diagnostics": 7
+      },
+      "overall": 7.9,
+      "findings": [],
+      "summary": "Comprehensive ECS system tests covering known/unknown sounds, mixer integration, spatial culling, and epsilon boundaries."
+    },
+    "crates/engine_audio/tests/suite/sound_data.rs": {
+      "hash": "2960289d79b4a3f6bb940b952a3d133990fcf352a401633d95163e24c58d0923",
+      "last_verified": "2026-07-06T19:29:54.152335+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 2,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 7.2,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "lines 9-41",
+          "detail": "Only 2 tests (mono and stereo frame_count). No tests for empty samples, 0 channels, >2 channels, 1-sample data, sample_rate=0",
+          "suggestion": "Add tests for 0 channels, 3+ channels, empty vec, single sample, boundary sample_rate"
+        }
+      ],
+      "summary": "Simple frame_count tests that verify basic math but ignore every edge case around channels and empty data."
+    },
+    "crates/engine_audio/tests/suite/sound_effect.rs": {
+      "hash": "b9c0330f05bd5feb4428aa11ce593dac1ebadfae7b740e89382300d59d1793b1",
+      "last_verified": "2026-07-06T19:29:54.152335+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 8,
+        "isolation": 9,
+        "clarity": 8,
+        "coverage_depth": 6,
+        "speed": 8,
+        "diagnostics": 6
+      },
+      "overall": 7.5,
+      "findings": [],
+      "summary": "Good coverage of synthesize output properties (rate, channels, length, non-zero, stateless), missing only extreme duration and error-path cases."
+    },
+    "crates/engine_audio/tests/suite/sound_library.rs": {
+      "hash": "cddbd56634a2aa2783e872fdf0b56350f6ab69965204f6131aacfef87e1fad4b",
+      "last_verified": "2026-07-06T19:29:54.152335+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 3,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 7.5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "lines 13-48",
+          "detail": "Only tests get() for registered/unregistered names. No tests for overwrite, remove, clear, iteration, count, empty string key, duplicate registration",
+          "suggestion": "Add tests for overwriting existing key, removing entries, clearing library, iterating all entries"
+        }
+      ],
+      "summary": "Clean and clear but extremely shallow -- only 3 tests for get() with zero coverage of mutation operations."
+    },
+    "crates/engine_audio/tests/suite/spatial.rs": {
+      "hash": "ea8adb272e1845b2b241c88c99724f230488abba343b8ed911a47df35a692f6e",
+      "last_verified": "2026-07-06T19:29:54.152335+00:00",
+      "scores": {
+        "assertion_quality": 10,
+        "determinism": 10,
+        "isolation": 8,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 9,
+        "diagnostics": 10
+      },
+      "overall": 9.4,
+      "findings": [],
+      "summary": "Exceptional spatial audio test suite with proptest invariants, epsilon boundary cases, hierarchy propagation, and detailed diagnostic messages."
+    },
+    "crates/engine_core/tests/suite/color.rs": {
+      "hash": "90e3d77ca7369987717949622917ecbb8422016ac477077b3fa25684763dab4d",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.4,
+      "findings": [],
+      "summary": "Strong property-based + example-based tests for Color. Good from_u8 boundary checks and ron roundtrip."
+    },
+    "crates/engine_core/tests/suite/event_bus.rs": {
+      "hash": "3a86dc6a5b9546965f74f1fd5e27d4d6c3fa14755b7c086c13c5e11fedbad784",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 9.3,
+      "findings": [],
+      "summary": "Excellent tests covering push/drain/order/clear/is_empty/len/iter_mut/IntoIterator/bus isolation with @doc annotations."
+    },
+    "crates/engine_core/tests/suite/mod.rs": {
+      "hash": "0d9e6803ee3248c1b8f9ebce6bd3e1200c9acbff37162c56fa3815a725c90477",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/engine_core/tests/suite/profiler.rs": {
+      "hash": "7c2ef8d9683c00f7c6821f0f0ed27c5b9a53c1cfb0068cd0653a523861289c8a",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 9,
+        "isolation": 8,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 6,
+        "diagnostics": 7
+      },
+      "overall": 7.7,
+      "findings": [],
+      "summary": "Solid profiler integration tests covering record_phase, span, flush conditions, and append behavior. Real file I/O limits speed."
+    },
+    "crates/engine_core/tests/suite/scale_spring.rs": {
+      "hash": "d933f1e33d5dc3749cca0f4d72a6c804c68c22691c1f699dce26630c78c71bb1",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.3,
+      "findings": [],
+      "summary": "Exceptional coverage: convergence, auto-removal, snap-to-target, lock_x, threshold boundaries, large-dt stability with custom messages."
+    },
+    "crates/engine_core/tests/suite/spring.rs": {
+      "hash": "16d35a78b037386626ced31acc75b3d98833892f9912baac7ea3e8b54b73e255",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.9,
+      "findings": [],
+      "summary": "Pure function tests with hand-computed expected values, equilibrium stability, overshoot, convergence, semi-implicit Euler verification."
+    },
+    "crates/engine_core/tests/suite/time.rs": {
+      "hash": "040100e4f18fb9220270ae2cba7cb7864356d476ad61099c8112603249f7b219",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.9,
+      "findings": [],
+      "summary": "Thorough FakeClock and FixedTimestep coverage: advance/drain/accumulation/tick-counts/remainder/property-test/system-integration."
+    },
+    "crates/engine_core/tests/suite/transform.rs": {
+      "hash": "7588e48b8147117837981aeef50982285558bcbeb297c5497088858e5326de50",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.6,
+      "findings": [],
+      "summary": "Covers ron roundtrip, identity, pure translation/rotation/scale, full composite, SRT order, negative scale flips, property-test, TAU near-identity."
+    },
+    "crates/engine_core/tests/suite/types.rs": {
+      "hash": "491d6540579338d2c998d5c6682435b03db3d9aae1196c595d72fb83c6162913",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 7.9,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "lines 11-13",
+          "detail": "Arithmetic assertions use bare assert_eq! without custom messages",
+          "suggestion": "Add custom assertion messages for each arithmetic operation"
+        }
+      ],
+      "summary": "Covers Pixels and Seconds arithmetic and ron roundtrip. Missing division, compound assignment, overflow, negative input tests."
+    },
+    "crates/engine_input/tests/suite/action_map.rs": {
+      "hash": "db09868eae9ccd4043d926e05ba7db7bc4a43977cf526819ec97a2b9b2c6443d",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 6,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 7,
+        "coverage_depth": 3,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 7.0,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "lines 1-19",
+          "detail": "Only 2 happy-path tests. Missing: action not in map, empty binding, overwriting, removing, multiple actions, clearing, empty map query",
+          "suggestion": "Add tests for missing actions, empty bindings, rebinding, unbind, reverse lookup"
+        }
+      ],
+      "summary": "High-severity coverage gap -- only 2 minimal happy-path tests for ActionMap, vast majority of API surface untested."
+    },
+    "crates/engine_input/tests/suite/keyboard_state.rs": {
+      "hash": "50f17349a0da1dc981ac23138fe2ef40ba572635c7420e7ea4c9572c769187e0",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 8.3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "lines 16-225",
+          "detail": "All assertions use bare assert!(condition) or assert_eq! without failure messages",
+          "suggestion": "Add diagnostic messages to all assertions describing expected state"
+        }
+      ],
+      "summary": "Solid InputState coverage: press/release, just_pressed/just_released, frame clearing, action resolution. All assertions bare."
+    },
+    "crates/engine_input/tests/suite/keyboard_system.rs": {
+      "hash": "856a6c881641c37991df04e8093306458d598043d79d111a040c23322926fcb5",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 8.3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "lines 39-162",
+          "detail": "All assert!(condition) calls lack custom messages",
+          "suggestion": "Add messages describing expected state"
+        }
+      ],
+      "summary": "System-level integration tests for press/release event propagation, bus draining, frame-clear semantics. Diagnostics bare."
+    },
+    "crates/engine_input/tests/suite/mod.rs": {
+      "hash": "18caf0375dfce693ae7554b0c258d6cccaf18e8222fb4b8c45184c0500220c6d",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/engine_input/tests/suite/mouse_state.rs": {
+      "hash": "a1797ccf8ecdda20b7117346c3f6da29ca2d1f955a3f53a08d442d0742b7dc0f",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 8.3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "lines 10-261",
+          "detail": "All 21 tests lack diagnostic messages on assertions",
+          "suggestion": "Add distinguishing messages especially for scroll-delta and multi-step sequences"
+        }
+      ],
+      "summary": "Thorough MouseState coverage with 21 tests across button press/release, cursor, scroll, world position, and action bindings."
+    },
+    "crates/engine_input/tests/suite/mouse_system.rs": {
+      "hash": "9a869944264505778d9214205e8c5dee0229a283f5b56624499b8ba372b932bf",
+      "last_verified": "2026-07-06T19:32:32.522550+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 8.5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "lines 40-184",
+          "detail": "All assertions are bare without failure messages",
+          "suggestion": "Add composite assertion messages for multi-step frame transitions"
+        }
+      ],
+      "summary": "System integration for mouse_input_system and scroll_clear_system covering press/release, bus drain, scroll zeroing, second-frame state."
+    },
+    "crates/engine_physics/tests/suite/collider.rs": {
+      "hash": "bb57cf4514f16c669677c5a30c149de8e11026209083f5f1c95e52e503a1672b",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 6,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 5,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 7.8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Only 2 tests for entire Collider module. Missing zero-radius circle, zero-area AABB, degenerate convex polygons",
+          "suggestion": "Add tests for zero-radius circle, zero-half-extent AABB, invalid hull"
+        }
+      ],
+      "summary": "Two thin tests. Snapshot test fine, serde roundtrip tests derived (banned by project policy). No edge cases or error paths."
+    },
+    "crates/engine_physics/tests/suite/hit_test.rs": {
+      "hash": "a7b9e212037a5d3100485008045fe9beda53df3afe13dc7c24439427d13f6d1a",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.4,
+      "findings": [],
+      "summary": "Solid coverage of collider_half_extents and local_space_hit boundary cases. Missing zero-size/negative-axis edge cases."
+    },
+    "crates/engine_physics/tests/suite/mod.rs": {
+      "hash": "b6d3164612d4d91e5aadc16756cffb2d6a0d600873fdbab77f2cc26732241cee",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/engine_physics/tests/suite/physics_backend.rs": {
+      "hash": "5f5ac881926bba4a20caea3062629f5d3d88e917f390056dc8910388cebf19e8",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 4,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 7.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "assertion_quality",
+          "location": "lines 68,143,155,167,178,189,198",
+          "detail": "7 of 17 tests are banned panic-guard tests calling .unwrap() with no state assertion",
+          "suggestion": "Replace each with explicit state assertion plus behavioral check"
+        }
+      ],
+      "summary": "Broad API coverage but 41% of tests are banned panic-guard patterns. body_point_to_world math tests are excellent."
+    },
+    "crates/engine_physics/tests/suite/physics_command_apply_system.rs": {
+      "hash": "b78ac175642b3e38202c9bc9b0dd5c6a7b9a45c3b3dc13b42394cf6281d96dd1",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.2,
+      "findings": [],
+      "summary": "Excellent tests covering empty queue, all command types, mixed commands, no-replay, sleep/wake ordering. Rich diagnostic messages and @doc annotations."
+    },
+    "crates/engine_physics/tests/suite/physics_step_system.rs": {
+      "hash": "be9945414f73bbd93a03b4a677e7dae1544efe377d74eb65322fa68540a3a752",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 9,
+        "clarity": 8,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.3,
+      "findings": [],
+      "summary": "Clean step count and collision event propagation testing. Only 4 tests, missing delta-time variation and error handling from backend."
+    },
+    "crates/engine_physics/tests/suite/physics_sync_system.rs": {
+      "hash": "e308c296e5471a04d6b9e17b9765c4e4a219f11a04d007890169d708de8fc961",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.2,
+      "findings": [],
+      "summary": "Thorough one-way physics sync verification: position, rotation, both, independent fields, scale immutability, multi-entity, body type filtering."
+    },
+    "crates/engine_physics/tests/suite/rapier_backend.rs": {
+      "hash": "28997535df312eba3f37f9b64f3e4fcba7575038b95b18e1d67ad78055596626",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.0,
+      "findings": [],
+      "summary": "Comprehensive Rapier2D integration: body lifecycle, colliders, gravity, damping, forces, torques, velocities, collisions, sleep/wake, degenerate hulls. @doc annotations throughout."
+    },
+    "crates/engine_render/tests/suite/atlas.rs": {
+      "hash": "428b54f603b31f0e7fdf3961c14ae07660bd9ecb516e3e84136262167553e435",
+      "last_verified": "2026-07-06T19:39:16.517317+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.6,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "lines 31,48,60,433,447",
+          "detail": "Several assert_eq!/assert! calls lack custom error messages",
+          "suggestion": "Add descriptive messages to bare assertion calls"
+        }
+      ],
+      "summary": "Exceptional coverage across 27 tests: construction, UV normalization, overlap invariants, all error variants, memory layout, row stride, system behavior."
+    },
+    "crates/engine_render/tests/suite/bloom.rs": {
+      "hash": "890ce80d4cda024e1b2a4c0717fd27f110e3de317c4a00bcc4880910e2585fcb",
+      "last_verified": "2026-07-06T19:39:16.517317+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.1,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "lines 74-140",
+          "detail": "System tests only check log string presence/absence, not correct bloom settings/weights passed to renderer",
+          "suggestion": "Enrich system tests to verify parameters passed to renderer"
+        }
+      ],
+      "summary": "Excellent Gaussian weight tests with deliberate mutation-resistant formula verification. Proptest covers radius 0..=16."
+    },
+    "crates/engine_render/tests/suite/camera.rs": {
+      "hash": "d9393e0a65d613fa20fe82869f894d8ac6b8908b48a98a4c2de181bdc1ff961b",
+      "last_verified": "2026-07-06T19:39:16.517317+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.6,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "lines 24-26,43-45,60-62,76-78,95-97",
+          "detail": "Several view-projection tests use assert!((value).abs() < eps) without custom message",
+          "suggestion": "Add formatted messages showing actual vs expected value"
+        }
+      ],
+      "summary": "Thorough camera math: NDC projection, zoom scaling, offset+zoom, world-screen roundtrip, rotation, Y-flip, zero-viewport guards, proptest."
+    },
+    "crates/engine_render/tests/suite/clear.rs": {
+      "hash": "10aaead3fa8ea3ad29c8c966878c1ac5fa51ff4118cc1c0b01d141243e612d59",
+      "last_verified": "2026-07-06T19:39:16.517317+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 3,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 7.7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "lines 11-29",
+          "detail": "Only one test covering happy path. Missing: alpha=0, missing ClearColor resource, missing RendererRes, multiple runs",
+          "suggestion": "Add tests for default fallback, transparent/white/black clear, and resilience when RendererRes absent"
+        }
+      ],
+      "summary": "Single focused test for happy-path clear color propagation. No negative or edge-case scenarios."
+    },
+    "crates/engine_render/tests/suite/culling.rs": {
+      "hash": "31a10aa08c83e649d1ad37d9d2e0f743ce0af82f4e2909091f9cdb142b0e3e81",
+      "last_verified": "2026-07-06T19:39:16.517317+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 4
+      },
+      "overall": 8.3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "lines 47-131",
+          "detail": "All 7 AABB intersection tests use bare assert!() with no diagnostic message",
+          "suggestion": "Add messages showing input AABB values on failure"
+        }
+      ],
+      "summary": "Good AABB intersection coverage at zoom=1/2 and all intersection cases. Diagnostics uniformly bare."
+    },
+    "crates/engine_render/tests/suite/font.rs": {
+      "hash": "e1e350b42e447f29db6008dd1ea55a1c66177d361d1046aa57c4ac9286609226",
+      "last_verified": "2026-07-06T19:39:16.517317+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 10,
+        "speed": 9,
+        "diagnostics": 8
+      },
+      "overall": 9.5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "line 86",
+          "detail": "Some assertions lack custom error messages",
+          "suggestion": "Add formatted messages to bare assertion calls"
+        },
+        {
+          "severity": "low",
+          "category": "speed",
+          "location": "multiple lines",
+          "detail": "Every test re-parses embedded font from FONT_BYTES with ttf_parser, 24+ repeated parses",
+          "suggestion": "Refactor Face parsing into shared helper or OnceCell"
+        }
+      ],
+      "summary": "Excellent coverage: glyph outline, coordinate scaling, tessellation bounds, cache behavior, layout advance, render calls, model transforms, text wrapping edge cases."
+    },
+    "crates/engine_render/tests/suite/image_data.rs": {
+      "hash": "96b2564ef80e6cb95831728b584d243d41297328a2b658809704c6ec6ae685b3",
+      "last_verified": "2026-07-06T19:39:16.517317+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 2,
+        "speed": 9,
+        "diagnostics": 8
+      },
+      "overall": 7.4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "lines 18-38",
+          "detail": "Only 2 tests validating single RGBA 1x1 PNG format and trash bytes. Missing grayscale, RGB, indexed, various bit depths, zero-size, truncated data",
+          "suggestion": "Add tests for grayscale, RGB, RGBA at multiple sizes, truncated data, oversized images"
+        }
+      ],
+      "summary": "Bare-minimum coverage with 2 tests. Only one pixel format tested. Needs significant expansion."
+    },
+    "crates/engine_render/tests/suite/material.rs": {
+      "hash": "29c59c09c9d806fb5b9721a37c9d3f43ee85d3bbcc1f3f664358892d9ef4c07c",
+      "last_verified": "2026-07-06T19:39:16.517317+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 8.6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "lines 8-84",
+          "detail": "No negative/error-path testing: zero textures, out-of-range TextureId, invalid RON for BlendMode",
+          "suggestion": "Add tests for invalid RON deserialization, TextureBinding invariants, Material2d default state"
+        }
+      ],
+      "summary": "Solid material serialization, blend modes, shader handle resolution. Lacks negative-path testing and texture binding edge cases."
+    },
+    "crates/engine_render/tests/suite/mod.rs": {
+      "hash": "5524e3bd454e1d829323bd145c602883b5d26cced0fd3ba30ba30d0aaed9f424",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/engine_render/tests/suite/rect.rs": {
+      "hash": "170ccc8f144f6f81c0f221476effe4f64d9270a9178f00b8618cad0d968bf713",
+      "last_verified": "2026-07-06T19:39:16.517317+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 2,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 7.5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "lines 8-43",
+          "detail": "Only 2 tests: serialization roundtrip and negative value storage. No zero-dimension Rect, Rect math, containment, edge positions",
+          "suggestion": "Add tests for zero width/height, Rect arithmetic, pixel boundary calculations"
+        }
+      ],
+      "summary": "Very thin coverage for a core type. Only serialization and negative storage verified. No behavioral tests."
+    },
+    "crates/engine_render/tests/suite/renderer.rs": {
+      "hash": "64eb92c7ae93ce2f0d5dd9a72c152635ba4694549b42fba71b04a9cd13282d4e",
+      "last_verified": "2026-07-06T19:39:16.517317+00:00",
+      "scores": {
+        "assertion_quality": 5,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 2,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 7.3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "lines 25-62",
+          "detail": "NullRenderer smoke test calls 18 methods but only asserts viewport_size(). Remaining 17 calls unchecked",
+          "suggestion": "Add behavioral tests for each Renderer method"
+        },
+        {
+          "severity": "high",
+          "category": "assertion_quality",
+          "location": "lines 25-62",
+          "detail": "NullRenderer test is effectively banned panic-guard test with 17 unchecked calls and 1 real assertion",
+          "suggestion": "Restructure as proper behavioral tests with return-value assertions"
+        }
+      ],
+      "summary": "Very thin. NullRenderer test exercises all methods but checks only 1/18 return values. Core rendering trait has no behavioral verification."
+    },
+    "crates/engine_render/tests/suite/shader.rs": {
+      "hash": "b49470c2d7f411153f5aefa107f67a0b9f190b39ba718f83339c599e6b42fe16",
+      "last_verified": "2026-07-06T19:41:59.306506+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.2,
+      "findings": [],
+      "summary": "Strong ShaderRegistry CRUD, preprocessor (#ifdef nesting), and system integration via spy captures. Preprocessor coverage incomplete (missing #ifndef, #else, #elif, error cases)."
+    },
+    "crates/engine_render/tests/suite/shape_cache.rs": {
+      "hash": "b739715853684e6a75d5c684c3d337011d34d430ae41ff8a93a3e4c1e82f698a",
+      "last_verified": "2026-07-06T19:41:59.306506+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.5,
+      "findings": [],
+      "summary": "Concise, well-documented mesh_cache_system tests with excellent doc comments. Only 4 tests; missing multiple entities, Shape removal, degenerate shapes."
+    },
+    "crates/engine_render/tests/suite/shape_components.rs": {
+      "hash": "254ef738ce715c641acb7831d8f0c5cd29499ee2e7aabd8a3e820e9a768fa225",
+      "last_verified": "2026-07-06T19:41:59.306506+00:00",
+      "scores": {
+        "assertion_quality": 6,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 5,
+        "speed": 9,
+        "diagnostics": 7
+      },
+      "overall": 7.6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "assertion_quality",
+          "location": "lines 93-194",
+          "detail": "5 of 10 tests are serde roundtrip tests on derived Serialize/Deserialize (banned by project policy)",
+          "suggestion": "Replace with behavioral tests: ColorVertex memory layout, TessellatedColorMesh invariants"
+        }
+      ],
+      "summary": "Mixture of useful mesh operation tests and banned serde roundtrip tests that make up half the file."
+    },
+    "crates/engine_render/tests/suite/shape_geometry.rs": {
+      "hash": "bf721d6de2733799c6f8a2abea9d0f9aed1d852b92426bfb9d263c2083ef4389",
+      "last_verified": "2026-07-06T19:41:59.306506+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.4,
+      "findings": [],
+      "summary": "Exemplary: rounded rect paths with variant type, curve count, point bounds, control point positions, arc endpoint offset, zero-radius degeneration. Every assertion has custom message."
+    },
+    "crates/engine_render/tests/suite/shape_path.rs": {
+      "hash": "16a51cbc9a3a70a9410e7e8ca61a0a7879710d215fb073ecea99770db479383b",
+      "last_verified": "2026-07-06T19:41:59.306506+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.3,
+      "findings": [],
+      "summary": "Excellent path operations: reverse_path for triangle, cubic control point swap, roundtrip idempotency. resolve_commands for reverse winding, contour tracking, two-contour isolation."
+    },
+    "crates/engine_render/tests/suite/shape_tessellate.rs": {
+      "hash": "29429d6d4523c5ce534e986584a88fd164d6c11c9d8a2e621338dff373ea0cf1",
+      "last_verified": "2026-07-06T19:41:59.306506+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.1,
+      "findings": [],
+      "summary": "Broad variant coverage (circle fill, stroke, polygon, path, AABB) but many tests only check !is_empty(). Missing specific vertex value validation for known geometries."
+    },
+    "crates/engine_render/tests/suite/testing_mod.rs": {
+      "hash": "11dfeaa7d4e758a19f89811ed4c25cfa04ea030a70df6359aa95e66f45dac777",
+      "last_verified": "2026-07-06T19:41:59.306506+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.7,
+      "findings": [],
+      "summary": "Well-structured spy renderer tests with comprehensive method enumeration. Every renderer method captured individually with exact argument verification."
+    },
+    "crates/engine_render/tests/suite/testing_visual_regression.rs": {
+      "hash": "f41d397cabf6deef0d510e3613aeb511059daac9728356a4ea148a75090ba1ba",
+      "last_verified": "2026-07-06T19:41:59.306506+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 7,
+        "isolation": 9,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 6,
+        "diagnostics": 9
+      },
+      "overall": 7.8,
+      "findings": [],
+      "summary": "Comprehensive visual regression testing: SSIM comparison, row padding, HeadlessRenderer lifecycle, golden image save/load/error. GPU-dependent tests use early-return skip."
+    },
+    "crates/engine_render/tests/suite/wgpu_renderer_renderer.rs": {
+      "hash": "cade7517ff69f9b1cd9ef5694f139bc7310382bc723349c59ec3c51360758e7c",
+      "last_verified": "2026-07-06T19:41:59.306506+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 7,
+        "coverage_depth": 5,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 7.9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Only 3 tests covering happy paths. No tests for empty state, re-binding same texture, duplicate slots, unordered bindings",
+          "suggestion": "Add tests for empty PendingMaterialBindings, duplicate/overwrite bindings, and pack with missing texture IDs"
+        }
+      ],
+      "summary": "Small but focused material binding tests. Only 3 happy-path tests with no edge cases or AAA comments."
+    },
+    "crates/engine_render/tests/suite/wgpu_renderer_types.rs": {
+      "hash": "06f3050783467a7b8a5d8dfa09d437fd8495611e88d2290c7942698db498fe99",
+      "last_verified": "2026-07-06T19:41:59.306506+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 3,
+        "coverage_depth": 1,
+        "speed": 10,
+        "diagnostics": 1
+      },
+      "overall": 4.8,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "assertion_quality",
+          "location": "entire file",
+          "detail": "File contains zero test functions. Only a TODO comment and clippy allow attribute.",
+          "suggestion": "Either migrate inline tests as TODO indicates or remove the placeholder file"
+        },
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "No assertions exist. All public types from source module are untested.",
+          "suggestion": "Implement tests covering each public type and function"
+        }
+      ],
+      "summary": "Empty placeholder file with only a TODO comment. No test functions, no assertions, no coverage."
+    },
+    "crates/engine_scene/tests/suite/hierarchy.rs": {
+      "hash": "089da7054010d8bb9a4e6ea37f4f62de5ffb39988a3d322c3aa5cd91f521a796",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.1,
+      "findings": [],
+      "summary": "Excellent hierarchy maintenance: single/multiple children, parent independence, sorting, idempotent reruns, despawn, reparenting, Changed detection, proptest."
+    },
+    "crates/engine_scene/tests/suite/mod.rs": {
+      "hash": "8ffbdf4d5780fe3a52c4e642a280a4e8c8e8803c6258288b943a431a8da73430",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/engine_scene/tests/suite/render_order.rs": {
+      "hash": "489a851c2ca2d562b737399fd295fbe0ddfb00a322de409483114e31e8fafdc2",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 5,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 5,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 7.5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "assertion_quality",
+          "location": "lines 6-18,23-31",
+          "detail": "2 of 5 tests are serde roundtrip tests on derived Serialize/Deserialize (banned by project policy)",
+          "suggestion": "Remove derived serde roundtrip tests"
+        },
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "No tests for SortOrder wrapping, min/max edge values, sort stability with ties",
+          "suggestion": "Add tests for SortOrder(i32::MIN/MAX), tie-breaking determinism"
+        }
+      ],
+      "summary": "Simple ordering tests pass but 40% are banned serde roundtrip tests. Coverage density low for these types."
+    },
+    "crates/engine_scene/tests/suite/sort_propagation.rs": {
+      "hash": "336e2a0fc8a986d20c093e7e1ab802ff783be74c4319fc6f73602d73b7a8fb7f",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 8.8,
+      "findings": [],
+      "summary": "Solid DFS sort propagation: root reset, two-root ordering, parent-child DFS, no sibling interleaving, grandchildren, LocalSortOrder, zero-default, entity filtering."
+    },
+    "crates/engine_scene/tests/suite/spawn_child.rs": {
+      "hash": "ce6b6565820b6b82f1e3f841a0d79ba3317e4bb031843b79722c3986ed5ada6b",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 4,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 7.8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Only 3 tests, all happy-path. No multiple spawn, parent despawn, complex bundles, double-spawn edge cases",
+          "suggestion": "Add tests for multiple spawn_child, spawn on despawned parent, verify return value"
+        }
+      ],
+      "summary": "Minimal happy-path tests for SpawnChildExt. Only 3 tests covering most basic scenarios."
+    },
+    "crates/engine_scene/tests/suite/transform_propagation.rs": {
+      "hash": "b410df6da72fcb16364bcaf2df2883ba23318aee9d7769cbe93464711eca33b6",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.4,
+      "findings": [],
+      "summary": "Top-tier: comprehensive affine composition, identity, translation, scale, 3-level hierarchy, sibling independence, multiple roots, chained ordering, update detection, no-change optimization."
+    },
+    "crates/engine_scene/tests/suite/visibility.rs": {
+      "hash": "223a24a9a708b9129d0c3435ec9cc9a38858272b031b5e3e7a926e058927dbbe",
+      "last_verified": "2026-07-06T19:35:17.684171+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.4,
+      "findings": [],
+      "summary": "Excellent visibility propagation: full AND-logic matrix, default-visible, parent-child combos, 3-level hierarchy, sibling independence, chained ordering, update-on-change, inheritance."
+    },
+    "crates/engine_ui/tests/suite/interaction.rs": {
+      "hash": "13ef1c0286a81126403cdb3bf461e8420efeedea59e0d21ac385e82f66fcae8a",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 9.1,
+      "findings": [],
+      "summary": "12 tests covering hover, press, click, focus, visibility, anchor offset, overlapping nodes, and disabled state. Thorough edge-case coverage."
+    },
+    "crates/engine_ui/tests/suite/layout_anchor.rs": {
+      "hash": "6b1857085edb0a5f5cf528b826f0b8dc0dec130cbc535598d61e23ec5a1eb83b",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.8,
+      "findings": [],
+      "summary": "7 tests (2 proptest) for anchor_offset: individual anchors, any-size invariants, all-9-anchors, all-offsets-distinct. Pure function tests."
+    },
+    "crates/engine_ui/tests/suite/layout_flex.rs": {
+      "hash": "515e7473fde6426ce62b9d6ee7596499b07963f3cd4809a678ca5ac6a992a38e",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.8,
+      "findings": [],
+      "summary": "8 tests (1 proptest) for compute_flex_offsets: row/column, gaps, margins, single child, empty children, margin accumulation. Proptest checks monotonic increasing x-offsets."
+    },
+    "crates/engine_ui/tests/suite/layout_system.rs": {
+      "hash": "b96d7ec385477bf60ee5f26ae1e98f8e9a3b743eac10f49ac19370599d9546d3",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 8.3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "entire file",
+          "detail": "No custom assertion messages in any of 7 tests",
+          "suggestion": "Add descriptive messages identifying which child and layout scenario failed"
+        }
+      ],
+      "summary": "7 ECS-integration tests verifying ui_layout_system. Missing empty-children and zero-size edge cases. No diagnostic messages."
+    },
+    "crates/engine_ui/tests/suite/mod.rs": {
+      "hash": "66c0c2b9c1c3dcad43776d841778eb131c630ba740e2ea386a908e644e15d8fe",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/engine_ui/tests/suite/render.rs": {
+      "hash": "71f1117ae3af2fa07b280ee339af372d0bf5a0d129be53626cb17ed3636d1149",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 8.4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "entire file",
+          "detail": "No custom assertion messages in any of 8 tests",
+          "suggestion": "Add messages explaining what property is being verified"
+        }
+      ],
+      "summary": "8 tests for ui_render_system using SpyRenderer: background drawn/absent, anchor positions, size match, color match, invisible suppression, multi-node rendering."
+    },
+    "crates/engine_ui/tests/suite/text_render.rs": {
+      "hash": "bb984d409b2a92a551efafaa6497e6348fc089d0278ff332dc6ec1bb7a465f6a",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 6
+      },
+      "overall": 8.2,
+      "findings": [],
+      "summary": "5 tests for text_render_system: single text draws, invisible suppression, empty world, rotation matrix, max-width wrapping. Some assertions use weak !is_empty() checks."
+    },
+    "crates/engine_ui/tests/suite/theme.rs": {
+      "hash": "74f09b74f293f77b4fb783bc2c72f603de309bb7aad0fdc2f3f4ae264dbe486b",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 3,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 7.3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Only 1 test covering RON serialization roundtrip. No tests for Default impl, theme application, partial overrides, or color accessors",
+          "suggestion": "Add tests for default theme values, custom theme propagation, font_size effects, partial theme configs"
+        }
+      ],
+      "summary": "Single RON roundtrip test for UiTheme. Minimal coverage -- no behavioral tests for theme application in rendering systems."
+    },
+    "crates/engine_ui/tests/suite/unified_render.rs": {
+      "hash": "a8bcb82c87d1dcabfd54d3db4a2a064786dd41f284b86320b2ab3fbb99913162",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.5,
+      "findings": [],
+      "summary": "11 tests for unified_render_system: shape+text interleaving, SortOrder, ColorMesh, visibility culling, CachedMesh path, tessellation fallback, sprite ordering, DrawQueue, fill-before-stroke, camera culling, blend-mode dedup."
+    },
+    "crates/engine_ui/tests/suite/widget_button.rs": {
+      "hash": "f4697c7093b06aca7ff78ee68b6831a19ad9f4f66776aca4a48d65e7009f5f06",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 8.6,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "entire file",
+          "detail": "No custom assertion messages in any of 8 tests",
+          "suggestion": "Add messages like assert_eq!(rects[0].color, theme.hovered_color, 'hovered button should use theme hovered_color')"
+        }
+      ],
+      "summary": "8 tests for button_render_system: all four interaction state colors, invisible suppression, center anchor offset, position+size correctness."
+    },
+    "crates/engine_ui/tests/suite/widget_node.rs": {
+      "hash": "23e443cc7ff1a60d59c448752a9ee5a885c1a83ec1449d77eb21a307e595f65d",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 2,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 7.1,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Only 3 RON roundtrip serialization tests (UiNode, FlexLayout, Text). Zero behavioral tests for core UiNode type",
+          "suggestion": "Add behavioral tests for UiNode defaults, margin+flex interaction, anchor hit-test position, background rendering"
+        }
+      ],
+      "summary": "Three RON roundtrip tests only. No behavioral or system-level tests for any of these core widget types."
+    },
+    "crates/engine_ui/tests/suite/widget_panel.rs": {
+      "hash": "1b9b26f7f3159e3b65fc74ce3cffdc5cba2d72a55849c06cf6b1fc062f9409fb",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 8.4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "diagnostics",
+          "location": "entire file",
+          "detail": "No custom assertion messages, particularly problematic in center-anchor-border-position test with 4 computed edges",
+          "suggestion": "Add labeled assertion messages for each border edge"
+        }
+      ],
+      "summary": "5 tests for panel_render_system: no-border-no-draw, border draws 4 rects, center-anchor border positions, invisible suppression. Inline comments explain math."
+    },
+    "crates/engine_ui/tests/suite/widget_progress_bar.rs": {
+      "hash": "ed701739d77c6cb760b11fd70900d68126e2f5f0d2c21e920d9875d3868bb9e1",
+      "last_verified": "2026-07-06T19:44:02.614815+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 8.6,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "location": "entire file",
+          "detail": "No custom assertion messages in any of 7 tests",
+          "suggestion": "Add messages explaining expected fill calculation"
+        }
+      ],
+      "summary": "7 tests for progress_bar_render_system: zero/half/full/overfill fill widths, center anchor offset, invisible suppression. Comprehensive fill-state coverage."
+    },
+    "crates/terrain/tests/suite/dual_grid.rs": {
+      "hash": "aa42093fa3d25c5177ad56471f4ad614f7d6da33a7a209de4723ac7fce6721bd",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 7,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 8.2,
+      "findings": [],
+      "summary": "Good bitmask and grid tests with proptest. Missing 0x0 and negative size edge cases. No custom assertion messages."
+    },
+    "crates/terrain/tests/suite/material.rs": {
+      "hash": "d7cf006e4a6b54ae574074277049e5ea99e4df33df425d5ca78af6600520c7cb",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 7,
+        "coverage_depth": 4,
+        "speed": 10,
+        "diagnostics": 5
+      },
+      "overall": 7.6,
+      "findings": [],
+      "summary": "Only 3 tests covering basic packing, count, and size. No MaterialParams construction or TerrainKind variant tests."
+    },
+    "crates/terrain/tests/suite/mod.rs": {
+      "hash": "87fa210b12eab89b167c9db13f0378c2a4391ebf9160480daa05d37ffe57fb9d",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "crates/terrain/tests/suite/tile_def.rs": {
+      "hash": "dea06b1995f729de862b89fb5ca60aa77c229db2f95ad19770061435f22946b3",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 7
+      },
+      "overall": 9.1,
+      "findings": [],
+      "summary": "Exhaustive coverage of all 16 bitmask variants, all PathCommand types for transform_path, full structural validation of example tileset."
+    },
+    "crates/terrain/tests/suite/wfc.rs": {
+      "hash": "fd68a013884392495db3e96d15ae3352a0c73744d951872566f0445a385d8429",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 8.8,
+      "findings": [],
+      "summary": "Well-isolated WFC tests with seeded RNG, pinned cells, determinism check, impossible-constraint error path. Proptest adds robustness."
+    },
+    "tools/img-to-shape-gui/tests/suite/loader.rs": {
+      "hash": "a3f33219dc885f6e47a86401f9678e8945aa2d58929ca72fb1bddffaa340a6a6",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "TODO-only file with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/img-to-shape-gui/tests/suite/mod.rs": {
+      "hash": "e2b2d708f2b9005965c6c687d520665d9db4b3cf738016b499c4f673d949c449",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "tools/img-to-shape-gui/tests/suite/preview.rs": {
+      "hash": "fb9e3329bc66015b66d196ef0a076556f71af011c126f931a04f357430756991",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "TODO-only file with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/img-to-shape-gui/tests/suite/state.rs": {
+      "hash": "5fab0387e080d7dcef9ad7b678d8a7ed33acd6a9571b7b3333f44c74d05daf34",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "TODO-only file with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/img-to-shape/tests/suite/bezier_fit.rs": {
+      "hash": "c781a7a7aa8d898f9650af12eb668a047d78912947f32eddd7d4820c602b87e1",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "TODO-only file with no test functions. Tests exist inline in source but not migrated.",
+          "suggestion": "Either migrate inline tests or remove the file."
+        }
+      ],
+      "summary": "Empty placeholder file with only a TODO comment. No test functions."
+    },
+    "tools/img-to-shape/tests/suite/boundary_graph.rs": {
+      "hash": "f60b765865e18dd0c136e0d235109bba1f7fa48e619c5b975af129779bc3be7d",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "TODO-only file with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file with only a TODO comment."
+    },
+    "tools/img-to-shape/tests/suite/codegen.rs": {
+      "hash": "144f379d82af98fdabda97e4424db8748dc5c02e39059cecce90ea8a4a206dd0",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 9.4,
+      "findings": [],
+      "summary": "Outstanding codegen test suite: empty/single/multiple shapes, compact encoding roundtrips, overflow errors, compression, hydrate, repository generation, deep signature determinism."
+    },
+    "tools/img-to-shape/tests/suite/core_lib.rs": {
+      "hash": "88cf9bae6e0009e0f6e04825d813c026aa548e3f3a1075390229abaa78f8ef31",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.4,
+      "findings": [],
+      "summary": "Extensive image-to-shapes pipeline: empty, transparent, single-pixel, disconnected regions, circle, L-shape, star, pixel-coverage, resize, merging, max_shapes cap."
+    },
+    "tools/img-to-shape/tests/suite/manifest.rs": {
+      "hash": "7508fa8af950600b45288ed0dc62ccb29e3fe38428dfc3f5f8a7ab67a3b0dd23",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "TODO-only file with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/img-to-shape/tests/suite/mod.rs": {
+      "hash": "9ba9daddba29993a9c069c7438cfa4e3f3bbdc2e038a776e96a74b70ab7b6f5c",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "tools/img-to-shape/tests/suite/scale2x.rs": {
+      "hash": "134f7067a7e91a8d6cbb56ea04eb53562d1ff5e9d7db544c9e35e83d94c6ccad",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "TODO-only file with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/img-to-shape/tests/suite/segment.rs": {
+      "hash": "c3bd7af87d531fb394c1193cab06a3196bd6b12ab391e6217507ba7af02b18f7",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "TODO-only file with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/img-to-shape/tests/suite/simplify.rs": {
+      "hash": "6f679415365de61897f323e4955a5fd48dbd1a7dbac6713c55b151944eddccf2",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "TODO-only file with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/tiled-to-shapes/tests/suite/codegen.rs": {
+      "hash": "d748e435850eda206a2a5ecdc8dee211e151ade64159b76312e237ecc794cd52",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Placeholder with no test functions. Tests live inline in src/codegen.rs.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/tiled-to-shapes/tests/suite/extract_tile.rs": {
+      "hash": "67f09437b93708b7ab0ea23c9c4f6367358e840098b5d9e54e1a01aae2c91820",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Placeholder with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/tiled-to-shapes/tests/suite/integration.rs": {
+      "hash": "215efdfd00fa32907b86fa187f8b97c1eb3a08c32fe3c14204533213f3d90d84",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 7,
+        "isolation": 8,
+        "clarity": 8,
+        "coverage_depth": 5,
+        "speed": 6,
+        "diagnostics": 7
+      },
+      "overall": 6.9,
+      "findings": [],
+      "summary": "3 integration tests exercising full TSX-to-Rust pipeline. Happy-path only; no malformed input or error recovery. File I/O makes it slower."
+    },
+    "tools/tiled-to-shapes/tests/suite/mod.rs": {
+      "hash": "706ce71c864520fbbe989bf77fd3c1fcadfffc85082cd22412b186676c028609",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 0,
+        "determinism": 0,
+        "isolation": 0,
+        "clarity": 0,
+        "coverage_depth": 0,
+        "speed": 0,
+        "diagnostics": 0
+      },
+      "overall": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "structure",
+          "location": "entire file",
+          "detail": "Module declaration file, not a test file. Contains only mod statements.",
+          "suggestion": "No action needed \u00e2\u20ac\u201d this is test infrastructure, not a test."
+        }
+      ],
+      "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
+    },
+    "tools/tiled-to-shapes/tests/suite/normalize.rs": {
+      "hash": "d192d493e11bf104408f0bffa89ce86e3ccbaf022420330b365bc445a18b56da",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Placeholder with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/tiled-to-shapes/tests/suite/parse_tsx.rs": {
+      "hash": "f6d25985e22e5d80e07f2eee53d3e9af9ce5b3bb5b94a8db62a25a5141e70267",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Placeholder with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/tiled-to-shapes/tests/suite/pipeline.rs": {
+      "hash": "05245bc7c68206c8add87b8e5e1abc1325f1bd98f4285f3be2194258a4a2c275",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Placeholder with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "tools/tiled-to-shapes/tests/suite/scaffold.rs": {
+      "hash": "e990b1d55f32625d177a4eed8fad8e41c4611a74691f5bd4f9dd90097ec95c28",
+      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "scores": {
+        "assertion_quality": 1,
+        "determinism": 5,
+        "isolation": 5,
+        "clarity": 1,
+        "coverage_depth": 1,
+        "speed": 5,
+        "diagnostics": 1
+      },
+      "overall": 2.6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "coverage_depth",
+          "location": "entire file",
+          "detail": "Placeholder with no test functions.",
+          "suggestion": "Migrate inline tests or remove file."
+        }
+      ],
+      "summary": "Empty placeholder file."
+    },
+    "crates/engine_ecs/tests/schedule.rs": {
+      "hash": "91d977c7a747ade5d6d834c207fb185dd0b01e1a7d3cad9c346be5597bc4752c",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 6,
+        "speed": 10,
+        "diagnostics": 9
+      },
+      "overall": 8.6,
+      "findings": [],
+      "summary": "Solid static schedule tests with doc-annotated invariants."
+    },
+    "crates/engine_assets/tests/asset_server.rs": {
+      "hash": "cea2ead51d449f7abc0f8c91093dedf534c07252acf7990310ee60ad91d9f0f8",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 9,
+        "isolation": 9,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 8,
+        "diagnostics": 7
+      },
+      "overall": 8.2,
+      "findings": [],
+      "summary": "Thorough ref-counting lifecycle tests including proptest."
+    },
+    "tools/living-docs/tests/lib.rs": {
+      "hash": "e04255c7a71fb8ae8e7feb7b234049e25a37853f9f5f99d295930fd87dac9c2a",
+      "last_verified": "2026-07-06T19:59:05.303090+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 10,
+        "speed": 10,
+        "diagnostics": 8
+      },
+      "overall": 9.5,
+      "findings": [],
+      "summary": "Exceptional test suite for parsing, markdown generation, and mutant-killing edge cases."
+    }
+  },
+  "coverage": {
+    "total_source_files": 127,
+    "tested": 79,
+    "possibly_tested": 0,
+    "untested": 48,
+    "untested_files": [
+      {
+        "path": "crates/axiom2d/src/splash/letters.rs",
+        "lines": 275,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/axiom2d/src/splash/types.rs",
+        "lines": 106,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/art/card_back.rs",
+        "lines": 903,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/art/hydrate.rs",
+        "lines": 252,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/art/repository.rs",
+        "lines": 3747,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/component.rs",
+        "lines": 54,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/identity/name_pools/adjectives.rs",
+        "lines": 865,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/identity/name_pools/nouns.rs",
+        "lines": 326,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/identity/name_pools/templates.rs",
+        "lines": 92,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/identity/signature/algorithms.rs",
+        "lines": 31,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/identity/signature/types.rs",
+        "lines": 232,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/apply.rs",
+        "lines": 331,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/drag_state.rs",
+        "lines": 28,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/game_state_param.rs",
+        "lines": 18,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/intent.rs",
+        "lines": 43,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/physics_helpers.rs",
+        "lines": 37,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/release/target.rs",
+        "lines": 130,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/components.rs",
+        "lines": 25,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/drag.rs",
+        "lines": 70,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/eject.rs",
+        "lines": 60,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/insert.rs",
+        "lines": 71,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/pick.rs",
+        "lines": 23,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/rotation_lock.rs",
+        "lines": 17,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/signature_space.rs",
+        "lines": 121,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/baked_mesh.rs",
+        "lines": 26,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/baked_render.rs",
+        "lines": 48,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/face_layout.rs",
+        "lines": 78,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/geometry.rs",
+        "lines": 33,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/spawn_table_card/overlay.rs",
+        "lines": 245,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/spawn_table_card/text.rs",
+        "lines": 50,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/stash/constants.rs",
+        "lines": 26,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/stash/render/drag_preview.rs",
+        "lines": 102,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/stash/render/models.rs",
+        "lines": 13,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/card_game/src/stash/render/slots.rs",
+        "lines": 127,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/stash/store.rs",
+        "lines": 928,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/engine_audio/src/playback/buffer.rs",
+        "lines": 50,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/engine_audio/src/playback/id.rs",
+        "lines": 2,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_input/src/keyboard/buffer.rs",
+        "lines": 11,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_input/src/mouse/buffer.rs",
+        "lines": 20,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_render/src/shape/render.rs",
+        "lines": 29,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/engine_render/src/testing/helpers.rs",
+        "lines": 12,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_render/src/wgpu_renderer/bloom.rs",
+        "lines": 428,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/engine_render/src/wgpu_renderer/gpu_init.rs",
+        "lines": 493,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/engine_render/src/wgpu_renderer/renderer_trait.rs",
+        "lines": 672,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/engine_render/src/wgpu_renderer/shaders.rs",
+        "lines": 5,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_ui/src/layout/margin.rs",
+        "lines": 9,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_ui/src/widget/text.rs",
+        "lines": 24,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/terrain/src/tile_def/example.rs",
+        "lines": 178,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      }
+    ],
+    "entry_points_untested": [],
+    "possibly_tested_files": []
+  }
+}

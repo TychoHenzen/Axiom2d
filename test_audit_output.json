@@ -1,0 +1,305 @@
+{
+  "total_test_files": 173,
+  "scored_files": 173,
+  "unscored_files": 0,
+  "coverage": {
+    "total_source_files": 127,
+    "tested": 79,
+    "possibly_tested": 0,
+    "untested": 48,
+    "untested_files": [
+      {
+        "path": "crates/axiom2d/src/splash/letters.rs",
+        "lines": 275,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/axiom2d/src/splash/types.rs",
+        "lines": 106,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/art/card_back.rs",
+        "lines": 903,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/art/hydrate.rs",
+        "lines": 252,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/art/repository.rs",
+        "lines": 3747,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/component.rs",
+        "lines": 54,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/identity/name_pools/adjectives.rs",
+        "lines": 865,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/identity/name_pools/nouns.rs",
+        "lines": 326,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/identity/name_pools/templates.rs",
+        "lines": 92,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/identity/signature/algorithms.rs",
+        "lines": 31,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/identity/signature/types.rs",
+        "lines": 232,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/apply.rs",
+        "lines": 331,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/drag_state.rs",
+        "lines": 28,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/game_state_param.rs",
+        "lines": 18,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/intent.rs",
+        "lines": 43,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/physics_helpers.rs",
+        "lines": 37,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/interaction/release/target.rs",
+        "lines": 130,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/components.rs",
+        "lines": 25,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/drag.rs",
+        "lines": 70,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/eject.rs",
+        "lines": 60,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/insert.rs",
+        "lines": 71,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/pick.rs",
+        "lines": 23,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/rotation_lock.rs",
+        "lines": 17,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/card_game/src/card/reader/signature_space.rs",
+        "lines": 121,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/baked_mesh.rs",
+        "lines": 26,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/baked_render.rs",
+        "lines": 48,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/face_layout.rs",
+        "lines": 78,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/geometry.rs",
+        "lines": 33,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/spawn_table_card/overlay.rs",
+        "lines": 245,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/card/rendering/spawn_table_card/text.rs",
+        "lines": 50,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/stash/constants.rs",
+        "lines": 26,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/card_game/src/stash/render/drag_preview.rs",
+        "lines": 102,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/stash/render/models.rs",
+        "lines": 13,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/card_game/src/stash/render/slots.rs",
+        "lines": 127,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/card_game/src/stash/store.rs",
+        "lines": 928,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/engine_audio/src/playback/buffer.rs",
+        "lines": 50,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/engine_audio/src/playback/id.rs",
+        "lines": 2,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_input/src/keyboard/buffer.rs",
+        "lines": 11,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_input/src/mouse/buffer.rs",
+        "lines": 20,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_render/src/shape/render.rs",
+        "lines": 29,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/engine_render/src/testing/helpers.rs",
+        "lines": 12,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_render/src/wgpu_renderer/bloom.rs",
+        "lines": 428,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/engine_render/src/wgpu_renderer/gpu_init.rs",
+        "lines": 493,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/engine_render/src/wgpu_renderer/renderer_trait.rs",
+        "lines": 672,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      },
+      {
+        "path": "crates/engine_render/src/wgpu_renderer/shaders.rs",
+        "lines": 5,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_ui/src/layout/margin.rs",
+        "lines": 9,
+        "reason": "No matching test file found by naming convention",
+        "risk": "low"
+      },
+      {
+        "path": "crates/engine_ui/src/widget/text.rs",
+        "lines": 24,
+        "reason": "No matching test file found by naming convention",
+        "risk": "medium"
+      },
+      {
+        "path": "crates/terrain/src/tile_def/example.rs",
+        "lines": 178,
+        "reason": "No matching test file found by naming convention",
+        "risk": "high"
+      }
+    ],
+    "entry_points_untested": [],
+    "possibly_tested_files": []
+  },
+  "last_full_run": "2026-07-06T19:22:52.887355+00:00",
+  "last_partial_run": "2026-07-06T19:59:05.303090+00:00"
+}
