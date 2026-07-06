@@ -1,8 +1,13 @@
-// Bond formation: Green(2) particles form bonds with nearby green neighbors.
-// Each particle can have up to 2 bonds (MAX_BONDS_PER_PARTICLE).
-// Each thread only writes to its own bond_slot_*[i] — no cross-thread writes.
-// Bonds are unilateral declarations; solve_bonds enforces them regardless of
-// whether the partner reciprocates (lower-index particle applies force).
+// Bond formation: Green(2) particles form mutual bonds with nearby green neighbors.
+// Two-pass algorithm eliminates unilateral bonds that cause asymmetric forces.
+//
+// Pass 1 (proposal): Each green particle proposes a bond to its closest green neighbor.
+//   Writes to its own bond_slot_*[i] only — no cross-thread writes.
+// Pass 2 (resolve): Each green particle validates its proposals are reciprocal.
+//   If partner J doesn't have a bond pointing back to i, clears the bond from i.
+//   Reads partner slots (read-only cross-thread), writes own slots only — no atomics.
+//
+// Only mutual bonds survive, ensuring equal-opposite corrections in solve_bonds.
 
 struct Params {
     particle_count: u32,
@@ -64,8 +69,10 @@ fn has_bond(me: u32, other: u32) -> bool {
     return bond_slot_a[me].partner == other || bond_slot_b[me].partner == other;
 }
 
+// Pass 1: Each green particle proposes a bond to its closest green neighbor.
+// Writes to own bond slots only — unilateral proposal, validated in resolve pass.
 @compute @workgroup_size(256)
-fn form_bonds(@builtin(global_invocation_id) id: vec3<u32>) {
+fn form_bonds_propose(@builtin(global_invocation_id) id: vec3<u32>) {
     let i = id.x;
     if i >= params.particle_count { return; }
     if species[i] != GREEN_SPECIES { return; }
@@ -118,12 +125,40 @@ fn form_bonds(@builtin(global_invocation_id) id: vec3<u32>) {
 
     let rest_len = sqrt(best_dist_sq);
 
-    // Write to own free slot only. No cross-thread writes.
+    // Write proposal to own free slot only. No cross-thread writes.
     if free_a {
         bond_slot_a[i].partner = best_j;
         bond_slot_a[i].rest = rest_len;
     } else {
         bond_slot_b[i].partner = best_j;
         bond_slot_b[i].rest = rest_len;
+    }
+}
+
+// Pass 2: Validate each proposed bond is mutual.
+// For each bond from i to partner p, check if p has a bond back to i.
+// If not reciprocal, clear the bond. Each thread writes only its own slots.
+@compute @workgroup_size(256)
+fn form_bonds_resolve(@builtin(global_invocation_id) id: vec3<u32>) {
+    let i = id.x;
+    if i >= params.particle_count { return; }
+    if species[i] != GREEN_SPECIES { return; }
+
+    // Check slot_a: does partner reciprocate?
+    let pa = bond_slot_a[i].partner;
+    if pa != INVALID_BOND {
+        if bond_slot_a[pa].partner != i && bond_slot_b[pa].partner != i {
+            bond_slot_a[i].partner = INVALID_BOND;
+            bond_slot_a[i].rest = 0.0;
+        }
+    }
+
+    // Check slot_b: does partner reciprocate?
+    let pb = bond_slot_b[i].partner;
+    if pb != INVALID_BOND {
+        if bond_slot_a[pb].partner != i && bond_slot_b[pb].partner != i {
+            bond_slot_b[i].partner = INVALID_BOND;
+            bond_slot_b[i].rest = 0.0;
+        }
     }
 }

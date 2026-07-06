@@ -173,6 +173,7 @@ struct ComputePipelines {
     morton_count: wgpu::ComputePipeline,
     morton_scatter: wgpu::ComputePipeline,
     form_bonds: wgpu::ComputePipeline,
+    form_bonds_resolve: wgpu::ComputePipeline,
     solve_bonds: wgpu::ComputePipeline,
 }
 
@@ -605,8 +606,15 @@ fn create_pipelines(
             device,
             &spatial_layout,
             &form_bonds_shader,
+            "form_bonds_propose",
             "form_bonds",
-            "form_bonds",
+        ),
+        form_bonds_resolve: make_compute_pipeline(
+            device,
+            &spatial_layout,
+            &form_bonds_shader,
+            "form_bonds_resolve",
+            "form_bonds_resolve",
         ),
         solve_bonds: make_compute_pipeline(
             device,
@@ -1247,8 +1255,8 @@ impl State {
             pass.set_pipeline(&self.pipelines.project);
             pass.dispatch_workgroups(particle_wg, 1, 1);
 
-            // pass.set_pipeline(&self.pipelines.solve_bonds);
-            // pass.dispatch_workgroups(particle_wg, 1, 1);
+            pass.set_pipeline(&self.pipelines.solve_bonds);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
 
             pass.set_pipeline(&self.pipelines.apply);
             pass.dispatch_workgroups(particle_wg, 1, 1);
@@ -1271,6 +1279,8 @@ impl State {
             pass.set_bind_group(0, &self.particle_bg, &[]);
             pass.set_bind_group(1, &self.grid_bg, &[]);
             pass.set_pipeline(&self.pipelines.form_bonds);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
+            pass.set_pipeline(&self.pipelines.form_bonds_resolve);
             pass.dispatch_workgroups(particle_wg, 1, 1);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
