@@ -36,7 +36,7 @@ const INVALID_BOND: u32 = 0xFFFFFFFFu;
 // Fraction of stretch corrected per substep per side. With both sides
 // processing a mutual bond, net correction = BOND_COMPLIANCE * stretch.
 // 0.15 at 16 substeps compounds to ~93% correction per frame.
-const BOND_COMPLIANCE: f32 = 0.08;
+const BOND_COMPLIANCE: f32 = 0.04;
 const BOND_BREAK_MULTIPLIER: f32 = 3.0;
 
 @group(0) @binding(0) var<storage, read_write> positions: array<vec2<f32>>;

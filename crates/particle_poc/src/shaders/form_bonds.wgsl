@@ -123,7 +123,11 @@ fn form_bonds_propose(@builtin(global_invocation_id) id: vec3<u32>) {
 
     if best_j == INVALID_BOND { return; }
 
-    let rest_len = sqrt(best_dist_sq);
+    // Use natural touching distance as rest length, not current squished
+    // distance. Using sqrt(best_dist_sq) when particles are compressed by
+    // PBD would record a rest length shorter than the natural spacing,
+    // causing bonds to fight PBD un-crushing and inject energy.
+    let rest_len = 2.0 * params.particle_radius;
 
     // Write proposal to own free slot only. No cross-thread writes.
     if free_a {

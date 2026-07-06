@@ -129,6 +129,7 @@ fn main() {
     let test_bond_form = std::env::args().any(|a| a == "--test-bond-form");
     let test_bond_constrain = std::env::args().any(|a| a == "--test-bond-constrain");
     let test_bond_break = std::env::args().any(|a| a == "--test-bond-break");
+    let num_particles = parse_flag_arg("--particles", MAX_PARTICLES);
     let sub_steps = parse_flag_arg("--substeps", SUB_STEPS);
     let event_loop = EventLoop::new().expect("event loop");
     let mut app = App {
@@ -138,6 +139,7 @@ fn main() {
         test_bond_form,
         test_bond_constrain,
         test_bond_break,
+        num_particles,
         sub_steps,
     };
     event_loop.run_app(&mut app).expect("run");
@@ -150,6 +152,7 @@ struct App {
     test_bond_form: bool,
     test_bond_constrain: bool,
     test_bond_break: bool,
+    num_particles: u32,
     sub_steps: u32,
 }
 
@@ -219,6 +222,7 @@ struct State {
     diag_staging: Option<wgpu::Buffer>,
     conveyor_time: f32,
     conveyor_buf: wgpu::Buffer,
+    num_particles: u32,
     sub_steps: u32,
 }
 
@@ -755,7 +759,7 @@ fn create_render_state(
 }
 
 impl State {
-    fn new(window: Arc<Window>, benchmark: bool, diagnose: bool, test_bond_form: bool, test_bond_constrain: bool, test_bond_break: bool, sub_steps: u32) -> Self {
+    fn new(window: Arc<Window>, benchmark: bool, diagnose: bool, test_bond_form: bool, test_bond_constrain: bool, test_bond_break: bool, num_particles: u32, sub_steps: u32) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let surface = instance.create_surface(window.clone()).expect("surface");
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -887,6 +891,7 @@ impl State {
             diag_staging: None,
             conveyor_time: 0.0,
             conveyor_buf,
+            num_particles,
             sub_steps,
         }
     }
@@ -925,8 +930,9 @@ impl State {
         let velocities: &[[f32; 2]] =
             bytemuck::cast_slice(&data[vel_offset..vel_offset + n * 8]);
 
-        // Stability: no NaN, no OOB, green particles must not float above red/blue.
-        // Read species to separate green from non-green.
+        // Stability: no NaN, no OOB, zero 5σ KE outliers above median.
+        // Read species and bonds for outlier logging.
+        let bonds = self.read_bonds();
         let sp_bytes = u64::from(n as u32) * 4;
         let sp_staging = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("stab_sp"),
@@ -955,9 +961,8 @@ impl State {
         let mut oob = 0usize;
         let margin = 2.0 * p.particle_radius;
 
-        // Collect y-positions by species.
-        let mut green_ys: Vec<f32> = Vec::with_capacity(n);
-        let mut other_ys: Vec<f32> = Vec::with_capacity(n);
+        // Collect per-particle kinetic energy for statistical analysis.
+        let mut kes: Vec<f32> = Vec::with_capacity(n);
 
         for i in 0..n {
             let [px, py] = positions[i];
@@ -968,6 +973,8 @@ impl State {
             }
             let speed = (vx * vx + vy * vy).sqrt();
             max_speed = max_speed.max(speed);
+            let ke = 0.5 * (vx * vx + vy * vy);
+            kes.push(ke);
             if px < p.wall_min_x - margin
                 || px > p.wall_max_x + margin
                 || py < p.wall_min_y - margin
@@ -975,48 +982,80 @@ impl State {
             {
                 oob += 1;
             }
-            if species[i] == GREEN_SPECIES {
-                green_ys.push(py);
-            } else {
-                other_ys.push(py);
+        }
+
+        // Compute median and stddev of kinetic energy.
+        kes.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        let median_ke = if kes.is_empty() {
+            0.0
+        } else if kes.len() % 2 == 1 {
+            kes[kes.len() / 2]
+        } else {
+            (kes[kes.len() / 2 - 1] + kes[kes.len() / 2]) * 0.5
+        };
+        let mean_ke = kes.iter().sum::<f32>() / (kes.len().max(1) as f32);
+        let variance = kes.iter().map(|k| (k - mean_ke) * (k - mean_ke)).sum::<f32>()
+            / (kes.len().max(1) as f32);
+        let stddev_ke = variance.sqrt();
+        let outlier_threshold = median_ke + 5.0 * stddev_ke;
+
+        // Count and log outliers in second pass.
+        let mut ke_outliers = 0usize;
+        let mut green_outliers = 0usize;
+        if stddev_ke > 1e-10 {
+            // Collect all outlier indices with KE for sorting.
+            let mut outlier_list: Vec<(usize, f32)> = Vec::new();
+            for i in 0..n {
+                let [px, py] = positions[i];
+                let [vx, vy] = velocities[i];
+                if !px.is_finite() || !py.is_finite() || !vx.is_finite() || !vy.is_finite() {
+                    continue;
+                }
+                let ke = 0.5 * (vx * vx + vy * vy);
+                if ke > outlier_threshold {
+                    outlier_list.push((i, ke));
+                    if species[i] == GREEN_SPECIES {
+                        green_outliers += 1;
+                    }
+                }
+            }
+            ke_outliers = outlier_list.len();
+
+            // Sort by KE descending, log top 30.
+            outlier_list.sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+            for (idx, (i, ke)) in outlier_list.iter().enumerate().take(30) {
+                let slot_a = bonds[*i];
+                let slot_b = bonds[n + *i];
+                let [px, py] = positions[*i];
+                let [vx, vy] = velocities[*i];
+                let sp = species[*i];
+                let is_bonded = slot_a.partner != INVALID_BOND || slot_b.partner != INVALID_BOND;
+                println!(
+                    "  outlier[{}] sp={} pos=({:.4},{:.4}) vel=({:.4},{:.4}) \
+                     KE={:.6} bond_a=(p={} r={:.4}) bond_b=(p={} r={:.4}) {}",
+                    i, sp, px, py, vx, vy, *ke,
+                    slot_a.partner, slot_a.rest,
+                    slot_b.partner, slot_b.rest,
+                    if is_bonded { "(bonded)" } else { "(free)" },
+                );
+            }
+            if ke_outliers > 30 {
+                println!("  ... and {} more KE outliers (top 30 shown, {green_outliers} green)", ke_outliers - 30);
             }
         }
 
         drop(sp_data);
         sp_staging.unmap();
 
-        // Compute median y for each group.
-        fn median_y(ys: &mut [f32]) -> f32 {
-            if ys.is_empty() { return 0.0; }
-            ys.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-            if ys.len() % 2 == 1 {
-                ys[ys.len() / 2]
-            } else {
-                (ys[ys.len() / 2 - 1] + ys[ys.len() / 2]) * 0.5
-            }
-        }
-        let green_median = median_y(&mut green_ys);
-        let other_median = median_y(&mut other_ys);
-        // Green particles should settle at similar height as non-green.
-        // If bonds inject upward energy, green median rises above other.
-        let height_diff_ok = green_median - other_median <= 0.15;
-
-        // Also check: count green particles in top 20% of box.
-        let box_height = p.wall_max_y - p.wall_min_y;
-        let top20 = p.wall_max_y - 0.20 * box_height;
-        let green_in_top = green_ys.iter().filter(|&&y| y > top20).count();
-        let other_in_top = other_ys.iter().filter(|&&y| y > top20).count();
-        let float_ok = green_in_top <= other_in_top.max(10);
-
         let nan_ok = nan_count == 0;
         let oob_ok = oob == 0;
+        let ke_ok = ke_outliers == 0;
         let speed_ok = max_speed < 2.0;
-        let all_ok = nan_ok && oob_ok && speed_ok && height_diff_ok && float_ok;
+        let all_ok = nan_ok && oob_ok && ke_ok && speed_ok;
 
         println!(
             "Stability: n={n} nan={nan_count} oob={oob} \
-             green_median_y={green_median:.4} other_median_y={other_median:.4} \
-             green_top20%={green_in_top} other_top20%={other_in_top} \
+             ke_outliers={ke_outliers}/{n} (green={green_outliers} median={median_ke:.6} σ={stddev_ke:.6} thresh={outlier_threshold:.6}) \
              vmax={max_speed:.3} — {}",
             if all_ok { "PASS" } else { "FAIL" }
         );
@@ -1026,11 +1065,8 @@ impl State {
         if !oob_ok {
             println!("  FAIL: {oob} out-of-bounds particles");
         }
-        if !height_diff_ok {
-            println!("  FAIL: green median y={green_median:.4} > other median y={other_median:.4} by {:.4}", green_median - other_median);
-        }
-        if !float_ok {
-            println!("  FAIL: {green_in_top} green particles in top 20% (box y > {top20:.3}) vs {other_in_top} non-green");
+        if !ke_ok {
+            println!("  FAIL: {ke_outliers} KE outliers > median+5σ (must be 0, {green_outliers} green)");
         }
         if !speed_ok {
             println!("  FAIL: max_speed={max_speed:.3} >= 2.0");
@@ -1251,16 +1287,17 @@ impl State {
     }
 
     fn spawn_all(&mut self) {
+        let count = self.num_particles;
         let r = self.sim_params.particle_radius;
         let spacing = 2.1 * r;
         let usable_w = self.sim_params.wall_max_x - self.sim_params.wall_min_x - 2.0 * r;
         let cols = (usable_w / spacing) as u32;
 
-        let mut positions = Vec::with_capacity(MAX_PARTICLES as usize);
-        let mut velocities = Vec::with_capacity(MAX_PARTICLES as usize);
-        let mut species = Vec::with_capacity(MAX_PARTICLES as usize);
+        let mut positions: Vec<[f32; 2]> = Vec::with_capacity(count as usize);
+        let mut velocities: Vec<[f32; 2]> = Vec::with_capacity(count as usize);
+        let mut species: Vec<u32> = Vec::with_capacity(count as usize);
 
-        for i in 0..MAX_PARTICLES {
+        for i in 0..count {
             let col = i % cols;
             let row = i / cols;
             let x = self.sim_params.wall_min_x + r + col as f32 * spacing;
@@ -1280,7 +1317,7 @@ impl State {
         );
         self.queue
             .write_buffer(&self.buffers.species, 0, bytemuck::cast_slice(&species));
-        self.sim_params.particle_count = MAX_PARTICLES;
+        self.sim_params.particle_count = count;
     }
 
     fn test_setup(&mut self) {
@@ -1740,6 +1777,7 @@ impl ApplicationHandler for App {
             self.test_bond_form,
             self.test_bond_constrain,
             self.test_bond_break,
+            self.num_particles,
             self.sub_steps,
         ));
     }
