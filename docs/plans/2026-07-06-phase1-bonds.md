@@ -19,7 +19,7 @@
 **Date:** 2026-07-06
 **Target:** `C:\Users\siriu\RustroverProjects\Axiom2d`
 **DoD ID:** `5a2e4026-a4f5-4d49-83ba-6c83bd61aa97`
-**Last check:** FAIL (2026-07-06T08:12:57.087Z)
+**Last check:** FAIL (2026-07-06T09:23:03.667Z)
 
 ---
 
@@ -62,21 +62,21 @@ None — confirmed with user.
 
 ## Definition of Done
 
-### Step 1: Fix bond solver — make bonds mutual, fix substep ordering, enable solve_bonds dispatch [x]
+### Step 1: Fix bond solver — make bonds mutual, fix substep ordering, enable solve_bonds dispatch [ ]
 
 - [x] Proof: `cargo build -p particle_poc` → Build succeeds with solve_bonds enabled
 - [x] Proof: `grep "solve_bonds" crates/particle_poc/src/main.rs` → solve_bonds dispatch uncommented and active in substep loop
 - [x] Proof: `grep -E "reciprocal|mutual|proposal" crates/particle_poc/src/shaders/form_bonds.wgsl` → form_bonds implements reciprocal/mutual bond mechanism
 - [x] Proof: `grep "bond_slot_a\|bond_slot_b" crates/particle_poc/src/main.rs` → Bond buffers wired into particle bind group (bgl entry + bind_group entry)
-- [x] Proof: `cargo run --bin particle_poc -- --benchmark` → Run benchmark with bonds active — the actual binary entry point, not a test harness
+- [ ] Proof: `cargo run --bin particle_poc -- --benchmark` → Run benchmark with bonds active — the actual binary entry point, not a test harness
 
-### Step 2: Bond formation test mode: spawn green particles, verify bonds form [ ]
+### Step 2: Bond formation test mode: spawn green particles, verify bonds form [x]
 
-- [ ] Proof (TDD 🔴 RED): `cargo run --bin particle_poc -- --test-bond-form` → TDD: test must fail before bond fix, then pass after. Verifies green particles form bonds when within range.
+- [x] Proof (TDD 🟢 GREEN): `cargo run --bin particle_poc -- --test-bond-form` → TDD: test must fail before bond fix, then pass after. Verifies green particles form bonds when within range.
 
-### Step 3: Bond constraint test mode: bonded pair pulled apart, verify constraint pulls together [ ]
+### Step 3: Bond constraint test mode: bonded pair pulled apart, verify constraint pulls together [x]
 
-- [ ] Proof: `cargo run --bin particle_poc -- --test-bond-constrain` → Bond constraint pulls stretched pair back toward rest length. Exit 0 confirms constraint works.
+- [x] Proof: `cargo run --bin particle_poc -- --test-bond-constrain` → Bond constraint pulls stretched pair back toward rest length. Exit 0 confirms constraint works.
 
 ### Step 4: Bond breakage test mode: bonded pair overstretched, verify bonds clear [x]
 

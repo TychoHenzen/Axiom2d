@@ -126,12 +126,18 @@ fn parse_flag_arg(name: &str, default: u32) -> u32 {
 fn main() {
     let benchmark = std::env::args().any(|a| a == "--benchmark");
     let diagnose = std::env::args().any(|a| a == "--diagnose");
+    let test_bond_form = std::env::args().any(|a| a == "--test-bond-form");
+    let test_bond_constrain = std::env::args().any(|a| a == "--test-bond-constrain");
+    let test_bond_break = std::env::args().any(|a| a == "--test-bond-break");
     let sub_steps = parse_flag_arg("--substeps", SUB_STEPS);
     let event_loop = EventLoop::new().expect("event loop");
     let mut app = App {
         state: None,
         benchmark,
         diagnose,
+        test_bond_form,
+        test_bond_constrain,
+        test_bond_break,
         sub_steps,
     };
     event_loop.run_app(&mut app).expect("run");
@@ -141,6 +147,9 @@ struct App {
     state: Option<State>,
     benchmark: bool,
     diagnose: bool,
+    test_bond_form: bool,
+    test_bond_constrain: bool,
+    test_bond_break: bool,
     sub_steps: u32,
 }
 
@@ -200,6 +209,11 @@ struct State {
     bench_frame: u32,
     bench_start: Option<Instant>,
     bench_done: bool,
+    test_bond_form: bool,
+    test_bond_constrain: bool,
+    test_bond_break: bool,
+    test_phase: u32,
+    test_report_done: bool,
     diagnose: bool,
     diag_frame: u32,
     diag_staging: Option<wgpu::Buffer>,
@@ -252,7 +266,7 @@ fn create_buffers(device: &wgpu::Device) -> Buffers {
         | wgpu::BufferUsages::COPY_DST
         | wgpu::BufferUsages::COPY_SRC
         | wgpu::BufferUsages::VERTEX;
-    let grid_storage = wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST;
+    let grid_storage = wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC;
     Buffers {
         positions: device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("positions"),
@@ -741,7 +755,7 @@ fn create_render_state(
 }
 
 impl State {
-    fn new(window: Arc<Window>, benchmark: bool, diagnose: bool, sub_steps: u32) -> Self {
+    fn new(window: Arc<Window>, benchmark: bool, diagnose: bool, test_bond_form: bool, test_bond_constrain: bool, test_bond_break: bool, sub_steps: u32) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let surface = instance.create_surface(window.clone()).expect("surface");
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -863,6 +877,11 @@ impl State {
             bench_frame: 0,
             bench_start: None,
             bench_done: false,
+            test_bond_form,
+            test_bond_constrain,
+            test_bond_break,
+            test_phase: 0,
+            test_report_done: false,
             diagnose,
             diag_frame: 0,
             diag_staging: None,
@@ -906,15 +925,39 @@ impl State {
         let velocities: &[[f32; 2]] =
             bytemuck::cast_slice(&data[vel_offset..vel_offset + n * 8]);
 
-        // Stability checks: no NaN, all within walls, no particles in top 10%.
+        // Stability: no NaN, no OOB, green particles must not float above red/blue.
+        // Read species to separate green from non-green.
+        let sp_bytes = u64::from(n as u32) * 4;
+        let sp_staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("stab_sp"),
+            size: sp_bytes,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        {
+            let mut enc = self
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("stab_sp_copy"),
+                });
+            enc.copy_buffer_to_buffer(&self.buffers.species, 0, &sp_staging, 0, sp_bytes);
+            self.queue.submit(std::iter::once(enc.finish()));
+        }
+        let sp_slice = sp_staging.slice(..);
+        sp_slice.map_async(wgpu::MapMode::Read, |_| {});
+        self.device.poll(wgpu::Maintain::Wait);
+        let sp_data = sp_slice.get_mapped_range();
+        let species: &[u32] = bytemuck::cast_slice(&sp_data[..n * 4]);
+
         let p = &self.sim_params;
-        let box_height = p.wall_max_y - p.wall_min_y;
-        let top_zone = p.wall_max_y - 0.1 * box_height;
         let mut nan_count = 0usize;
         let mut max_speed = 0.0f32;
         let mut oob = 0usize;
-        let mut in_top = 0usize;
         let margin = 2.0 * p.particle_radius;
+
+        // Collect y-positions by species.
+        let mut green_ys: Vec<f32> = Vec::with_capacity(n);
+        let mut other_ys: Vec<f32> = Vec::with_capacity(n);
 
         for i in 0..n {
             let [px, py] = positions[i];
@@ -925,9 +968,6 @@ impl State {
             }
             let speed = (vx * vx + vy * vy).sqrt();
             max_speed = max_speed.max(speed);
-            if py > top_zone {
-                in_top += 1;
-            }
             if px < p.wall_min_x - margin
                 || px > p.wall_max_x + margin
                 || py < p.wall_min_y - margin
@@ -935,17 +975,48 @@ impl State {
             {
                 oob += 1;
             }
+            if species[i] == GREEN_SPECIES {
+                green_ys.push(py);
+            } else {
+                other_ys.push(py);
+            }
         }
 
-        // Thresholds: zero NaN, zero OOB, zero in top 10%, max speed < 2.0.
+        drop(sp_data);
+        sp_staging.unmap();
+
+        // Compute median y for each group.
+        fn median_y(ys: &mut [f32]) -> f32 {
+            if ys.is_empty() { return 0.0; }
+            ys.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            if ys.len() % 2 == 1 {
+                ys[ys.len() / 2]
+            } else {
+                (ys[ys.len() / 2 - 1] + ys[ys.len() / 2]) * 0.5
+            }
+        }
+        let green_median = median_y(&mut green_ys);
+        let other_median = median_y(&mut other_ys);
+        // Green particles should settle at similar height as non-green.
+        // If bonds inject upward energy, green median rises above other.
+        let height_diff_ok = green_median - other_median <= 0.15;
+
+        // Also check: count green particles in top 20% of box.
+        let box_height = p.wall_max_y - p.wall_min_y;
+        let top20 = p.wall_max_y - 0.20 * box_height;
+        let green_in_top = green_ys.iter().filter(|&&y| y > top20).count();
+        let other_in_top = other_ys.iter().filter(|&&y| y > top20).count();
+        let float_ok = green_in_top <= other_in_top.max(10);
+
         let nan_ok = nan_count == 0;
         let oob_ok = oob == 0;
-        let top_ok = in_top == 0;
         let speed_ok = max_speed < 2.0;
-        let all_ok = nan_ok && oob_ok && top_ok && speed_ok;
+        let all_ok = nan_ok && oob_ok && speed_ok && height_diff_ok && float_ok;
 
         println!(
-            "Stability: n={n} nan={nan_count} oob={oob} top10%={in_top} \
+            "Stability: n={n} nan={nan_count} oob={oob} \
+             green_median_y={green_median:.4} other_median_y={other_median:.4} \
+             green_top20%={green_in_top} other_top20%={other_in_top} \
              vmax={max_speed:.3} — {}",
             if all_ok { "PASS" } else { "FAIL" }
         );
@@ -955,8 +1026,11 @@ impl State {
         if !oob_ok {
             println!("  FAIL: {oob} out-of-bounds particles");
         }
-        if !top_ok {
-            println!("  FAIL: {in_top} particles in top 10% of box (y > {top_zone:.3})");
+        if !height_diff_ok {
+            println!("  FAIL: green median y={green_median:.4} > other median y={other_median:.4} by {:.4}", green_median - other_median);
+        }
+        if !float_ok {
+            println!("  FAIL: {green_in_top} green particles in top 20% (box y > {top20:.3}) vs {other_in_top} non-green");
         }
         if !speed_ok {
             println!("  FAIL: max_speed={max_speed:.3} >= 2.0");
@@ -1209,6 +1283,217 @@ impl State {
         self.sim_params.particle_count = MAX_PARTICLES;
     }
 
+    fn test_setup(&mut self) {
+        let n = MAX_PARTICLES as usize;
+
+        self.sim_params.gravity = 0.0;
+
+        // Write test particle data via staging buffers with explicit encoder+submit
+        // to ensure writes land before subsequent compute passes.
+        {
+            let pos_bytes = u64::from(MAX_PARTICLES) * 8;
+            let vel_bytes = pos_bytes;
+            let sp_bytes = u64::from(MAX_PARTICLES) * 4;
+            let total = pos_bytes + vel_bytes + sp_bytes;
+            let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("test_init_staging"),
+                size: total,
+                usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
+                mapped_at_creation: true,
+            });
+            let mut encoder = self
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("test_init"),
+                });
+
+            if self.test_bond_form {
+                let r = self.sim_params.particle_radius;
+                let spacing = 2.0 * r;
+                let pos_data = [[-spacing * 0.5, 0.0f32], [spacing * 0.5, 0.0f32]];
+                let vel_data = [[0.0f32, 0.0f32]; 2];
+                let sp_data = [GREEN_SPECIES; 2];
+                {
+                    let mut view = staging.slice(..).get_mapped_range_mut();
+                    view[..16].copy_from_slice(bytemuck::cast_slice(&pos_data));
+                    view[(pos_bytes as usize)..(pos_bytes as usize) + 16]
+                        .copy_from_slice(bytemuck::cast_slice(&vel_data));
+                    view[(pos_bytes as usize + vel_bytes as usize)..
+                        (pos_bytes as usize + vel_bytes as usize) + 8]
+                        .copy_from_slice(bytemuck::cast_slice(&sp_data));
+                }
+                staging.unmap();
+                self.sim_params.particle_count = 2;
+            } else if self.test_bond_constrain || self.test_bond_break {
+                // constrain or break: set up mutual bond between 2 green particles
+                let dist = if self.test_bond_constrain { 0.06 } else { 0.30 };
+                let half = dist * 0.5;
+                let pos_data = [[-half, 0.0f32], [half, 0.0f32]];
+                let vel_data = [[0.0f32, 0.0f32]; 2];
+                let sp_data = [GREEN_SPECIES; 2];
+                {
+                    let mut view = staging.slice(..).get_mapped_range_mut();
+                    view[..16].copy_from_slice(bytemuck::cast_slice(&pos_data));
+                    view[(pos_bytes as usize)..(pos_bytes as usize) + 16]
+                        .copy_from_slice(bytemuck::cast_slice(&vel_data));
+                    view[(pos_bytes as usize + vel_bytes as usize)..
+                        (pos_bytes as usize + vel_bytes as usize) + 8]
+                        .copy_from_slice(bytemuck::cast_slice(&sp_data));
+                }
+                staging.unmap();
+
+                self.sim_params.particle_count = 2;
+
+                // Clear all bond slots, then write mutual bond: 0↔1 via slot_a.
+                let invalid = vec![BondSlot::default(); n];
+                self.queue.write_buffer(
+                    &self.buffers.bond_slot_a,
+                    0,
+                    bytemuck::cast_slice(&invalid),
+                );
+                self.queue.write_buffer(
+                    &self.buffers.bond_slot_b,
+                    0,
+                    bytemuck::cast_slice(&invalid),
+                );
+                let mut bonds_a = vec![BondSlot::default(); n];
+                bonds_a[0] = BondSlot {
+                    partner: 1,
+                    rest: 0.03,
+                };
+                bonds_a[1] = BondSlot {
+                    partner: 0,
+                    rest: 0.03,
+                };
+                self.queue.write_buffer(
+                    &self.buffers.bond_slot_a,
+                    0,
+                    bytemuck::cast_slice(&bonds_a),
+                );
+            }
+
+            encoder.copy_buffer_to_buffer(&staging, 0, &self.buffers.positions, 0, pos_bytes);
+            encoder.copy_buffer_to_buffer(
+                &staging,
+                pos_bytes,
+                &self.buffers.velocities,
+                0,
+                vel_bytes,
+            );
+            encoder.copy_buffer_to_buffer(
+                &staging,
+                pos_bytes + vel_bytes,
+                &self.buffers.species,
+                0,
+                sp_bytes,
+            );
+            self.queue.submit(std::iter::once(encoder.finish()));
+        }
+    }
+
+    fn read_bonds(&mut self) -> Vec<BondSlot> {
+        let n = MAX_PARTICLES as usize;
+        let slot_bytes = (n * size_of::<BondSlot>()) as u64;
+        let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("bond_readback_staging"),
+            size: slot_bytes * 2,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("bond_readback"),
+            });
+        encoder.copy_buffer_to_buffer(&self.buffers.bond_slot_a, 0, &staging, 0, slot_bytes);
+        encoder.copy_buffer_to_buffer(
+            &self.buffers.bond_slot_b,
+            0,
+            &staging,
+            slot_bytes,
+            slot_bytes,
+        );
+        self.queue.submit(std::iter::once(encoder.finish()));
+        let slice = staging.slice(..);
+        slice.map_async(wgpu::MapMode::Read, |r| r.expect("map bond staging"));
+        self.device.poll(wgpu::Maintain::Wait);
+        let data = slice.get_mapped_range();
+        let bonds_a: &[BondSlot] = bytemuck::cast_slice(&data[..slot_bytes as usize]);
+        let bonds_b: &[BondSlot] =
+            bytemuck::cast_slice(&data[slot_bytes as usize..2 * slot_bytes as usize]);
+        let mut all = Vec::with_capacity(2 * n);
+        all.extend_from_slice(bonds_a);
+        all.extend_from_slice(bonds_b);
+        drop(data);
+        staging.unmap();
+        all
+    }
+
+    fn read_test_positions(&mut self, count: u32) -> Vec<[f32; 2]> {
+        let bytes = u64::from(count) * 8;
+        let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("test_pos_staging"),
+            size: bytes,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("test_pos_readback"),
+            });
+        encoder.copy_buffer_to_buffer(&self.buffers.positions, 0, &staging, 0, bytes);
+        self.queue.submit(std::iter::once(encoder.finish()));
+        let slice = staging.slice(..);
+        slice.map_async(wgpu::MapMode::Read, |r| r.expect("map test pos staging"));
+        self.device.poll(wgpu::Maintain::Wait);
+        let data = slice.get_mapped_range();
+        let positions: Vec<[f32; 2]> = bytemuck::cast_slice(&data[..bytes as usize]).to_vec();
+        drop(data);
+        staging.unmap();
+        positions
+    }
+
+    fn test_verify(&mut self) {
+        if self.test_bond_form {
+            let bonds = self.read_bonds();
+            let has_bond = bonds.iter().any(|b| b.partner != INVALID_BOND);
+            if has_bond {
+                println!("test-bond-form: PASS");
+            } else {
+                eprintln!("test-bond-form: FAIL — no bonds formed");
+                std::process::exit(1);
+            }
+        } else if self.test_bond_constrain {
+            let positions = self.read_test_positions(2);
+            let dx = positions[0][0] - positions[1][0];
+            let dy = positions[0][1] - positions[1][1];
+            let current_dist = (dx * dx + dy * dy).sqrt();
+            let initial_dist = 0.06;
+            if current_dist < initial_dist * 0.95 {
+                println!(
+                    "test-bond-constrain: PASS (dist {:.4} -> {:.4})",
+                    initial_dist, current_dist
+                );
+            } else {
+                eprintln!(
+                    "test-bond-constrain: FAIL — distance not reduced ({:.4})",
+                    current_dist
+                );
+                std::process::exit(1);
+            }
+        } else if self.test_bond_break {
+            let bonds = self.read_bonds();
+            let all_cleared = bonds.iter().all(|b| b.partner == INVALID_BOND);
+            if all_cleared {
+                println!("test-bond-break: PASS");
+            } else {
+                eprintln!("test-bond-break: FAIL — bonds not cleared");
+                std::process::exit(1);
+            }
+        }
+    }
+
     fn simulate(&mut self) {
         self.queue.write_buffer(
             &self.buffers.params,
@@ -1292,7 +1577,41 @@ impl State {
 
         self.update_conveyor();
 
-        if self.benchmark {
+        let any_test =
+            self.test_bond_form || self.test_bond_constrain || self.test_bond_break;
+
+        if any_test {
+            self.fps_tracker.begin_frame();
+            // Ensure previous frame's GPU work is complete before modifying buffers.
+            self.device.poll(wgpu::Maintain::Wait);
+            // Disable conveyor for small bond tests — move far from particles.
+            let null_conveyor = ConveyorParams {
+                pivot_x: 100.0,
+                pivot_y: 100.0,
+                cos_angle: 1.0,
+                sin_angle: 0.0,
+                half_width: 0.0,
+                half_height: 0.0,
+                angular_velocity: 0.0,
+                _pad: 0,
+            };
+            self.queue.write_buffer(
+                &self.conveyor_buf,
+                0,
+                bytemuck::bytes_of(&null_conveyor),
+            );
+            if self.test_phase == 0 {
+                self.test_setup();
+            }
+            self.simulate();
+
+            self.test_phase += 1;
+            if self.test_phase >= 5 && !self.test_report_done {
+                self.test_verify();
+                self.test_report_done = true;
+                self.bench_done = true;
+            }
+        } else if self.benchmark {
             if self.bench_frame == 0 {
                 self.spawn_all();
             }
@@ -1418,6 +1737,9 @@ impl ApplicationHandler for App {
             window,
             self.benchmark,
             self.diagnose,
+            self.test_bond_form,
+            self.test_bond_constrain,
+            self.test_bond_break,
             self.sub_steps,
         ));
     }

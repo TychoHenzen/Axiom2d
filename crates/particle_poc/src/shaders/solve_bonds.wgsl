@@ -1,6 +1,10 @@
 // Bond constraint solver: tension-only distance constraints for green bonds.
-// Runs each substep after PBD position projection, before apply.
-// Both sides independently process their bond declarations. Each applies
+// Runs each substep after PBD project, before apply.
+// Accumulates bond corrections into the corrections buffer (binding 3) rather
+// than modifying positions directly. The apply pass adds corrections[i] to
+// positions[i] and recomputes velocities — keeping the PBD pipeline consistent.
+//
+// Both sides independently process their bond declarations. Each writes
 // half the correction (0.5 each) → equal opposite → momentum conserved when mutual.
 // Tension-only: corrects only when dist > rest (stretched). Never fights PBD.
 // Bonds clear when species changes or break when dist > BOND_BREAK_MULTIPLIER * rest.
@@ -32,11 +36,12 @@ const INVALID_BOND: u32 = 0xFFFFFFFFu;
 // Fraction of stretch corrected per substep per side. With both sides
 // processing a mutual bond, net correction = BOND_COMPLIANCE * stretch.
 // 0.15 at 16 substeps compounds to ~93% correction per frame.
-const BOND_COMPLIANCE: f32 = 0.15;
+const BOND_COMPLIANCE: f32 = 0.08;
 const BOND_BREAK_MULTIPLIER: f32 = 3.0;
 
 @group(0) @binding(0) var<storage, read_write> positions: array<vec2<f32>>;
 @group(0) @binding(2) var<storage, read_write> species: array<u32>;
+@group(0) @binding(3) var<storage, read_write> corrections: array<vec2<f32>>;
 @group(0) @binding(7) var<uniform> params: Params;
 @group(0) @binding(10) var<storage, read_write> bond_slot_a: array<BondSlot>;
 @group(0) @binding(11) var<storage, read_write> bond_slot_b: array<BondSlot>;
@@ -74,7 +79,16 @@ fn solve_slot_a(i: u32) {
     let n = delta / dist;
     // Half correction — partner's thread also applies 0.5 if mutual,
     // giving correct total. If unilateral, corrects 50% which is harmless.
-    positions[i] -= 0.5 * error * n * BOND_COMPLIANCE;
+    var bond_correction = 0.5 * error * n * BOND_COMPLIANCE;
+    // Cap per-substep correction to particle_radius to prevent energy spikes.
+    let max_corr = params.particle_radius;
+    let mag = length(bond_correction);
+    if mag > max_corr {
+        bond_correction *= max_corr / mag;
+    }
+    // Accumulate into corrections buffer — apply pass adds this to position
+    // and recomputes velocity correctly.
+    corrections[i] -= bond_correction; // -n: move i toward partner
 }
 
 fn solve_slot_b(i: u32) {
@@ -101,7 +115,13 @@ fn solve_slot_b(i: u32) {
 
     let error = dist - rest;
     let n = delta / dist;
-    positions[i] -= 0.5 * error * n * BOND_COMPLIANCE;
+    var bond_correction = 0.5 * error * n * BOND_COMPLIANCE;
+    let max_corr = params.particle_radius;
+    let mag = length(bond_correction);
+    if mag > max_corr {
+        bond_correction *= max_corr / mag;
+    }
+    corrections[i] -= bond_correction; // -n: move i toward partner
 }
 
 @compute @workgroup_size(256)
