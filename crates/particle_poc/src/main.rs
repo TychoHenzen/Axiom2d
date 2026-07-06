@@ -849,8 +849,7 @@ impl State {
 
         // Initialize bond buffer: all slots invalid.
         {
-            let invalid_bonds =
-                vec![BondSlot::default(); MAX_PARTICLES as usize * 4];
+            let invalid_bonds = vec![BondSlot::default(); MAX_PARTICLES as usize * 4];
             queue.write_buffer(&buffers.bonds, 0, bytemuck::cast_slice(&invalid_bonds));
         }
 
@@ -1454,8 +1453,7 @@ impl State {
         slice.map_async(wgpu::MapMode::Read, |r| r.expect("map bond staging"));
         self.device.poll(wgpu::Maintain::Wait);
         let data = slice.get_mapped_range();
-        let all: Vec<BondSlot> =
-            bytemuck::cast_slice(&data[..total_bytes as usize]).to_vec();
+        let all: Vec<BondSlot> = bytemuck::cast_slice(&data[..total_bytes as usize]).to_vec();
         drop(data);
         staging.unmap();
         all
