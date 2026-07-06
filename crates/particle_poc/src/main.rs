@@ -112,12 +112,11 @@ struct RenderParams {
 fn parse_flag_arg(name: &str, default: u32) -> u32 {
     let mut args = std::env::args();
     while let Some(arg) = args.next() {
-        if arg == name {
-            if let Some(val) = args.next() {
-                if let Ok(n) = val.parse::<u32>() {
-                    return n;
-                }
-            }
+        if arg == name
+            && let Some(val) = args.next()
+            && let Ok(n) = val.parse::<u32>()
+        {
+            return n;
         }
     }
     default
@@ -842,7 +841,7 @@ impl State {
             results: [0u32; (MAX_SPECIES * MAX_SPECIES) as usize],
         };
         reaction_matrix.results[(0 * MAX_SPECIES + 1) as usize] = 2; // Red + Blue → Green
-        reaction_matrix.results[(1 * MAX_SPECIES + 0) as usize] = 2; // Blue + Red → Green
+        reaction_matrix.results[MAX_SPECIES as usize] = 2; // Blue + Red → Green
         queue.write_buffer(
             &buffers.reaction_matrix,
             0,
