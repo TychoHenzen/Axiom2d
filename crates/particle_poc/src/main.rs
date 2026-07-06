@@ -1655,7 +1655,7 @@ impl State {
     }
 
     /// Capsule perimeter parameterization: given arc-length `s` along the
-    /// perimeter, returns (local_x, local_y, tangent_angle) in capsule-local
+    /// perimeter, returns (`local_x`, `local_y`, `tangent_angle`) in capsule-local
     /// coordinates where the capsule is centered at origin, long axis along X.
     /// Walk CCW starting from rightmost point (l+r, 0).
     ///   L = half-length from center to cap center
