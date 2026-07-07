@@ -2,6 +2,7 @@
 
 use std::fmt::Write as _;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 use image::{Rgba, RgbaImage};
 use tiled_to_shapes::{
@@ -12,6 +13,23 @@ use tiled_to_shapes::{
 /// Returns path to the test fixtures directory.
 fn fixtures_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
+}
+
+/// Cached fixture paths — written once, shared by all tests. Avoids races
+/// between parallel tests that would otherwise read a PNG mid-truncation.
+static FIXTURES: OnceLock<(PathBuf, PathBuf)> = OnceLock::new();
+
+/// Returns cached (tsx_path, png_path) fixture pair, creating files on first call.
+fn ensure_fixtures() -> &'static (PathBuf, PathBuf) {
+    FIXTURES.get_or_init(|| {
+        let dir = fixtures_dir();
+        std::fs::create_dir_all(&dir).expect("failed to create fixtures dir");
+        let tsx_path = dir.join("test_tileset.tsx");
+        let png_path = dir.join("test_tileset.png");
+        write_test_png(&png_path);
+        write_test_tsx(&tsx_path, "test_tileset.png");
+        (tsx_path, png_path)
+    })
 }
 
 /// Write the test PNG fixture (4×4 tiles of 16×16 pixels each = 64×64 image).
@@ -70,24 +88,14 @@ fn write_test_tsx(path: &std::path::Path, png_name: &str) {
     std::fs::write(path, xml).expect("failed to write test TSX");
 }
 
-fn ensure_fixtures() -> (PathBuf, PathBuf) {
-    let dir = fixtures_dir();
-    std::fs::create_dir_all(&dir).expect("failed to create fixtures dir");
-    let tsx_path = dir.join("test_tileset.tsx");
-    let png_path = dir.join("test_tileset.png");
-    write_test_png(&png_path);
-    write_test_tsx(&tsx_path, "test_tileset.png");
-    (tsx_path, png_path)
-}
-
 #[test]
 fn integration_when_valid_tsx_then_produces_terrain_tileset() {
     // Arrange
-    let (tsx_path, _) = ensure_fixtures();
+    let (ref tsx_path, _) = *ensure_fixtures();
     let config = default_convert_config();
 
     // Act
-    let result = convert_tileset(&tsx_path, &config).expect("conversion should succeed");
+    let result = convert_tileset(tsx_path, &config).expect("conversion should succeed");
 
     // Assert — at least 1 terrain type
     assert!(!result.tiles.is_empty(), "no terrain types in result");
@@ -105,10 +113,10 @@ fn integration_when_valid_tsx_then_produces_terrain_tileset() {
 #[test]
 fn integration_when_valid_tsx_then_codegen_compiles_structurally() {
     // Arrange
-    let (tsx_path, _) = ensure_fixtures();
+    let (ref tsx_path, _) = *ensure_fixtures();
     let config = default_convert_config();
 
-    let tileset = convert_tileset(&tsx_path, &config).expect("conversion should succeed");
+    let tileset = convert_tileset(tsx_path, &config).expect("conversion should succeed");
 
     // Act
     let code = generate_tileset_code(&tileset, "tileset", "test_tileset.tsx");
@@ -125,7 +133,10 @@ fn integration_when_valid_tsx_then_codegen_compiles_structurally() {
     assert!(!code.contains("FIXME"), "generated code contains FIXME");
     assert!(!code.contains("TODO"), "generated code contains TODO");
     assert!(!code.contains("panic"), "generated code contains panic");
-    assert!(code.ends_with('\n'), "generated code should end with newline");
+    assert!(
+        code.ends_with('\n'),
+        "generated code should end with newline"
+    );
 }
 
 #[test]
@@ -172,7 +183,7 @@ fn integration_when_tsx_missing_then_returns_io_error() {
     );
 }
 
-/// @doc: TSX referencing non-existent PNG returns TilesheetNotFound
+/// @doc: TSX referencing non-existent PNG returns `TilesheetNotFound`
 #[test]
 fn integration_when_png_missing_then_returns_tilesheet_not_found() {
     // Arrange
@@ -225,7 +236,7 @@ fn integration_when_malformed_xml_then_returns_xml_error() {
     );
 }
 
-/// @doc: TSX with no wangsets returns NoCornerWangSets error
+/// @doc: TSX with no wangsets returns `NoCornerWangSets` error
 #[test]
 fn integration_when_no_wangsets_then_returns_no_corner_wang_sets() {
     // Arrange
@@ -234,12 +245,11 @@ fn integration_when_no_wangsets_then_returns_no_corner_wang_sets() {
     let png_path = dir.join("nowang.png");
     write_test_png(&png_path);
 
-    let tsx_xml = format!(
-        r##"<?xml version="1.0" encoding="UTF-8"?>
+    let tsx_xml = r#"<?xml version="1.0" encoding="UTF-8"?>
 <tileset version="1.10" name="nowang" tilewidth="16" tileheight="16" tilecount="1" columns="1">
  <image source="nowang.png" width="64" height="64"/>
-</tileset>"##
-    );
+</tileset>"#
+        .to_string();
     let tsx_path = dir.join("nowang.tsx");
     std::fs::write(&tsx_path, tsx_xml).expect("failed to write TSX");
 
@@ -264,14 +274,17 @@ fn integration_when_no_wangsets_then_returns_no_corner_wang_sets() {
 #[test]
 fn integration_when_valid_tsx_then_all_tile_patterns_present() {
     // Arrange
-    let (tsx_path, _) = ensure_fixtures();
+    let (ref tsx_path, _) = *ensure_fixtures();
     let config = default_convert_config();
 
     // Act
-    let result = convert_tileset(&tsx_path, &config).expect("conversion should succeed");
+    let result = convert_tileset(tsx_path, &config).expect("conversion should succeed");
 
     // Assert — verify all 5 patterns are represented in the grass variants
-    let grass = result.tiles.get("grass").expect("grass terrain type missing");
+    let grass = result
+        .tiles
+        .get("grass")
+        .expect("grass terrain type missing");
     let patterns: Vec<_> = grass.variants.iter().map(|v| v.pattern).collect();
     use terrain::prelude::TilePattern;
     assert!(
@@ -295,4 +308,3 @@ fn integration_when_valid_tsx_then_all_tile_patterns_present() {
         "missing InnerCorner pattern"
     );
 }
-

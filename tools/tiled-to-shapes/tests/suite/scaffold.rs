@@ -72,17 +72,14 @@ fn when_all_properties_already_present_then_scaffold_unchanged() {
 #[test]
 fn when_no_corner_wangsets_then_scaffold_noop() {
     // Arrange
-    let xml = r##"<?xml version="1.0" encoding="UTF-8"?>
+    let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
 <tileset version="1.10" name="empty" tilewidth="16" tileheight="16" tilecount="1" columns="1">
  <image source="sheet.png" width="16" height="16"/>
-</tileset>"##;
+</tileset>"#;
 
     // Act
     let result = scaffold_tsx_str(xml);
 
     // Assert
-    assert_eq!(
-        result, xml,
-        "TSX with no wangsets should be unchanged"
-    );
+    assert_eq!(result, xml, "TSX with no wangsets should be unchanged");
 }

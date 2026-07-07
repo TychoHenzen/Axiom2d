@@ -47,7 +47,17 @@ fn when_tileset_accessed_then_tiles_is_btree_map() {
     let ts = terrain::tileset();
 
     // Assert — verify type-instability safety: iter, keys, values work
-    assert!(ts.tiles.keys().next().is_none(), "empty tileset should have no keys");
-    assert!(ts.tiles.values().next().is_none(), "empty tileset should have no values");
-    assert_eq!(ts.tiles.iter().count(), 0, "empty tileset iteration count should be zero");
+    assert!(
+        ts.tiles.keys().next().is_none(),
+        "empty tileset should have no keys"
+    );
+    assert!(
+        ts.tiles.values().next().is_none(),
+        "empty tileset should have no values"
+    );
+    assert_eq!(
+        ts.tiles.len(),
+        0,
+        "empty tileset iteration count should be zero"
+    );
 }

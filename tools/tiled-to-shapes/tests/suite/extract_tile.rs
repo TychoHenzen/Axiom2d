@@ -3,7 +3,7 @@
 use image::{Rgba, RgbaImage};
 use tiled_to_shapes::extract::extract_tile;
 
-/// @doc: extract_tile returns correct RGBA bytes for a known tile position
+/// @doc: `extract_tile` returns correct RGBA bytes for a known tile position
 #[test]
 fn when_extract_known_tile_then_returns_correct_pixels() {
     // Arrange — 4×4 image, 2×2 tiles, 2 columns
@@ -35,7 +35,7 @@ fn when_extract_known_tile_then_returns_correct_pixels() {
     );
 }
 
-/// @doc: Out-of-bounds tile ID returns TileIdOutOfBounds error
+/// @doc: Out-of-bounds tile ID returns `TileIdOutOfBounds` error
 #[test]
 fn when_tile_id_out_of_bounds_then_returns_error() {
     // Arrange — 4×4 image, 2×2 tiles, 2 columns → tile IDs 0-3 valid

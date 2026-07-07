@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
-use tiled_to_shapes::pipeline::{default_convert_config, passability_to_tags};
 use terrain::prelude::GameplayTag;
+use tiled_to_shapes::pipeline::{default_convert_config, passability_to_tags};
 
 /// @doc: Default config produces sensible values
 #[test]
@@ -32,7 +32,7 @@ fn when_default_config_then_all_fields_sensible() {
     );
 }
 
-/// @doc: passability_to_tags maps known strings to correct GameplayTags
+/// @doc: `passability_to_tags` maps known strings to correct `GameplayTags`
 #[test]
 fn when_passage_passable_then_returns_empty_tags() {
     // Arrange / Act
@@ -45,21 +45,17 @@ fn when_passage_passable_then_returns_empty_tags() {
     );
 }
 
-/// @doc: passability_to_tags maps "solid" to [Solid]
+/// @doc: `passability_to_tags` maps "solid" to [Solid]
 #[test]
 fn when_passage_solid_then_returns_solid_tag() {
     // Arrange / Act
     let tags = passability_to_tags("solid");
 
     // Assert
-    assert_eq!(
-        tags,
-        vec![GameplayTag::Solid],
-        "solid should yield [Solid]"
-    );
+    assert_eq!(tags, vec![GameplayTag::Solid], "solid should yield [Solid]");
 }
 
-/// @doc: passability_to_tags maps "difficult" to [DifficultTerrain]
+/// @doc: `passability_to_tags` maps "difficult" to [`DifficultTerrain`]
 #[test]
 fn when_passage_difficult_then_returns_difficult_terrain_tag() {
     // Arrange / Act

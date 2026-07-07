@@ -60,7 +60,7 @@ fn when_null_play_called_then_ids_are_monotonic() {
     assert_eq!(id3.0, 3, "third playback ID should be 3");
 }
 
-/// @doc: play_count tracks total calls, not active sounds
+/// @doc: `play_count` tracks total calls, not active sounds
 #[test]
 fn when_null_play_called_then_play_count_matches() {
     // Arrange
@@ -99,7 +99,7 @@ fn when_null_stop_called_then_does_not_panic() {
     );
 }
 
-/// @doc: set_volume is a no-op on null backend
+/// @doc: `set_volume` is a no-op on null backend
 #[test]
 fn when_null_set_volume_called_then_does_not_panic() {
     // Arrange
@@ -119,7 +119,7 @@ fn when_null_set_volume_called_then_does_not_panic() {
     );
 }
 
-/// @doc: set_track_volume is a no-op on null backend
+/// @doc: `set_track_volume` is a no-op on null backend
 #[test]
 fn when_null_set_track_volume_called_then_does_not_panic() {
     // Arrange
@@ -152,7 +152,11 @@ fn when_null_play_stop_play_then_id_continues_monotonic() {
     let id2 = backend.play_on_track(&sound, MixerTrack::Sfx);
 
     // Assert — stop doesn't reset IDs (null backend stateless about active set)
-    assert_eq!(id2.0, 2, "IDs should continue monotonic after stop; got id2={}", id2.0);
+    assert_eq!(
+        id2.0, 2,
+        "IDs should continue monotonic after stop; got id2={}",
+        id2.0
+    );
 }
 
 /// @doc: empty sound (zero samples) is accepted by null backend
@@ -171,7 +175,11 @@ fn when_null_play_empty_sound_then_does_not_panic() {
 
     // Assert
     assert_eq!(id.0, 1, "empty sound should still get a valid PlaybackId");
-    assert_eq!(backend.play_count(), 1, "empty sound should count as a play");
+    assert_eq!(
+        backend.play_count(),
+        1,
+        "empty sound should count as a play"
+    );
 }
 
 /// @doc: stereo sound (2 channels) is accepted by null backend
@@ -192,7 +200,7 @@ fn when_null_play_stereo_sound_then_does_not_panic() {
     assert_eq!(id.0, 1, "stereo sound should get a valid PlaybackId");
 }
 
-/// @doc: each MixerTrack variant routes independently (null backend stores track per sound)
+/// @doc: each `MixerTrack` variant routes independently (null backend stores track per sound)
 #[test]
 fn when_null_play_different_tracks_then_id_sequence_continues() {
     // Arrange

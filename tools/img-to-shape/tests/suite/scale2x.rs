@@ -46,8 +46,8 @@ fn when_empty_input_then_returns_empty() {
 fn when_multicolor_image_then_channels_preserved() {
     // Arrange — 1×2 image with red and green
     let input = vec![
-        255, 0, 0, 255,   // red
-        0, 255, 0, 255,   // green
+        255, 0, 0, 255, // red
+        0, 255, 0, 255, // green
     ];
     let width: u32 = 1;
     let height: u32 = 2;

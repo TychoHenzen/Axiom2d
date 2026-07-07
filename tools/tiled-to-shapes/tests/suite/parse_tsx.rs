@@ -33,14 +33,14 @@ fn when_minimal_tsx_with_one_wangset_then_parses() {
     assert_eq!(tileset.wang_sets.len(), 1, "expected 1 wangset");
 }
 
-/// @doc: No corner-type wangset returns NoCornerWangSets error
+/// @doc: No corner-type wangset returns `NoCornerWangSets` error
 #[test]
 fn when_tsx_with_no_wangsets_then_returns_no_corner_error() {
     // Arrange
-    let xml = r##"<?xml version="1.0" encoding="UTF-8"?>
+    let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
 <tileset version="1.10" name="empty" tilewidth="16" tileheight="16" tilecount="1" columns="1">
  <image source="sheet.png" width="16" height="16"/>
-</tileset>"##;
+</tileset>"#;
 
     // Act
     let result = parse_tsx_str(xml);
@@ -54,11 +54,11 @@ fn when_tsx_with_no_wangsets_then_returns_no_corner_error() {
     );
 }
 
-/// @doc: Malformed XML input returns XmlError
+/// @doc: Malformed XML input returns `XmlError`
 #[test]
 fn when_malformed_xml_then_returns_error() {
     // Arrange — unclosed tag is genuinely invalid XML
-    let xml = r##"<tileset><wangset><open></tileset>"##;
+    let xml = r"<tileset><wangset><open></tileset>";
 
     // Act
     let result = parse_tsx_str(xml);
