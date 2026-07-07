@@ -122,6 +122,10 @@ fn integration_when_valid_tsx_then_codegen_compiles_structurally() {
         !code.contains("todo!()") && !code.contains("unimplemented!()"),
         "generated code contains stub markers"
     );
+    assert!(!code.contains("FIXME"), "generated code contains FIXME");
+    assert!(!code.contains("TODO"), "generated code contains TODO");
+    assert!(!code.contains("panic"), "generated code contains panic");
+    assert!(code.ends_with('\n'), "generated code should end with newline");
 }
 
 #[test]
@@ -141,3 +145,154 @@ fn integration_fixture_files_exist() {
         png_path.display()
     );
 }
+
+// ---------------------------------------------------------------------------
+// Error-recovery tests
+// ---------------------------------------------------------------------------
+
+/// @doc: Non-existent TSX file returns an IO error, not a panic
+#[test]
+fn integration_when_tsx_missing_then_returns_io_error() {
+    // Arrange
+    let config = default_convert_config();
+    let nonexistent = fixtures_dir().join("does_not_exist.tsx");
+
+    // Act
+    let result = convert_tileset(&nonexistent, &config);
+
+    // Assert
+    assert!(
+        result.is_err(),
+        "conversion should fail for non-existent TSX file"
+    );
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("IO error"),
+        "expected IO error for missing file, got: {err}"
+    );
+}
+
+/// @doc: TSX referencing non-existent PNG returns TilesheetNotFound
+#[test]
+fn integration_when_png_missing_then_returns_tilesheet_not_found() {
+    // Arrange
+    let dir = fixtures_dir();
+    std::fs::create_dir_all(&dir).expect("failed to create fixtures dir");
+    let tsx_path = dir.join("orphan_tileset.tsx");
+    write_test_tsx(&tsx_path, "missing.png");
+
+    let config = default_convert_config();
+
+    // Act
+    let result = convert_tileset(&tsx_path, &config);
+
+    // Assert
+    assert!(
+        result.is_err(),
+        "conversion should fail when tilesheet PNG is missing"
+    );
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("tilesheet not found"),
+        "expected TilesheetNotFound error, got: {err}"
+    );
+}
+
+/// @doc: Garbage XML input returns an XML parse error, not a panic
+#[test]
+fn integration_when_malformed_xml_then_returns_xml_error() {
+    // Arrange
+    let dir = fixtures_dir();
+    std::fs::create_dir_all(&dir).expect("failed to create fixtures dir");
+    let tsx_path = dir.join("malformed.tsx");
+    // Unclosed element is genuinely invalid XML that quick-xml cannot parse
+    std::fs::write(&tsx_path, "<tileset><open></tileset>").expect("failed to write malformed TSX");
+
+    let config = default_convert_config();
+
+    // Act
+    let result = convert_tileset(&tsx_path, &config);
+
+    // Assert
+    assert!(
+        result.is_err(),
+        "conversion should fail for malformed XML input"
+    );
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("XML error"),
+        "expected XML error for malformed file, got: {err}"
+    );
+}
+
+/// @doc: TSX with no wangsets returns NoCornerWangSets error
+#[test]
+fn integration_when_no_wangsets_then_returns_no_corner_wang_sets() {
+    // Arrange
+    let dir = fixtures_dir();
+    std::fs::create_dir_all(&dir).expect("failed to create fixtures dir");
+    let png_path = dir.join("nowang.png");
+    write_test_png(&png_path);
+
+    let tsx_xml = format!(
+        r##"<?xml version="1.0" encoding="UTF-8"?>
+<tileset version="1.10" name="nowang" tilewidth="16" tileheight="16" tilecount="1" columns="1">
+ <image source="nowang.png" width="64" height="64"/>
+</tileset>"##
+    );
+    let tsx_path = dir.join("nowang.tsx");
+    std::fs::write(&tsx_path, tsx_xml).expect("failed to write TSX");
+
+    let config = default_convert_config();
+
+    // Act
+    let result = convert_tileset(&tsx_path, &config);
+
+    // Assert
+    assert!(
+        result.is_err(),
+        "conversion should fail when no wangsets are present"
+    );
+    let err_str = result.unwrap_err().to_string();
+    assert!(
+        err_str.to_lowercase().contains("wang"),
+        "expected wangset-related error, got: {err_str}"
+    );
+}
+
+/// @doc: Converted tileset has all 5 variant patterns present
+#[test]
+fn integration_when_valid_tsx_then_all_tile_patterns_present() {
+    // Arrange
+    let (tsx_path, _) = ensure_fixtures();
+    let config = default_convert_config();
+
+    // Act
+    let result = convert_tileset(&tsx_path, &config).expect("conversion should succeed");
+
+    // Assert — verify all 5 patterns are represented in the grass variants
+    let grass = result.tiles.get("grass").expect("grass terrain type missing");
+    let patterns: Vec<_> = grass.variants.iter().map(|v| v.pattern).collect();
+    use terrain::prelude::TilePattern;
+    assert!(
+        patterns.contains(&TilePattern::Solid),
+        "missing Solid pattern; patterns: {patterns:?}"
+    );
+    assert!(
+        patterns.contains(&TilePattern::OuterCorner),
+        "missing OuterCorner pattern"
+    );
+    assert!(
+        patterns.contains(&TilePattern::Edge),
+        "missing Edge pattern"
+    );
+    assert!(
+        patterns.contains(&TilePattern::Diagonal),
+        "missing Diagonal pattern"
+    );
+    assert!(
+        patterns.contains(&TilePattern::InnerCorner),
+        "missing InnerCorner pattern"
+    );
+}
+

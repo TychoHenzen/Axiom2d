@@ -108,6 +108,7 @@ The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM 
 
 - Test naming: `when_action_then_outcome` hybrid style (skip `given_` when precondition is obvious)
 - Test body structure: `// Arrange` / `// Act` / `// Assert` section markers
+- **`/// @doc:` annotations**: Every test function should have a `/// @doc:` doc-comment describing what behavior it verifies. These are consumed by the `living-docs` tool to generate a test index. Keep them one line, present tense, focused on the contract being tested.
 - **Single-binary test consolidation**: Tests live in crate-level `tests/suite/` directories, not inline `#[cfg(test)]` modules. Each crate has a single `tests/main.rs` entry point that declares `mod suite;`, and `tests/suite/mod.rs` lists all test modules. This compiles one test binary per crate instead of one per file, cutting `target/` size by ~50% and eliminating hundreds of duplicate link steps. Each test module is named with underscored source paths: `src/card/interaction/pick.rs` → `tests/suite/card_interaction_pick.rs`. Tests only access `pub` API — do not test private/`pub(crate)` items. When adding new test files, add them to `tests/suite/` and register them in `tests/suite/mod.rs`. Crates with only one test file (e.g., `engine_ecs`, `engine_assets`) keep the file directly in `tests/` without the `suite/` indirection.
 - Deterministic game loop: fixed timestep, injectable mock time, seeded RNG (`ChaCha8Rng`)
 - Use `BTreeMap` or fixed-seed `ahash` instead of `HashMap` where iteration order matters
