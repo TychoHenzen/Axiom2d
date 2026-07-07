@@ -19,7 +19,7 @@ fn fixtures_dir() -> PathBuf {
 /// between parallel tests that would otherwise read a PNG mid-truncation.
 static FIXTURES: OnceLock<(PathBuf, PathBuf)> = OnceLock::new();
 
-/// Returns cached (tsx_path, png_path) fixture pair, creating files on first call.
+/// Returns cached (`tsx_path`, `png_path`) fixture pair, creating files on first call.
 fn ensure_fixtures() -> &'static (PathBuf, PathBuf) {
     FIXTURES.get_or_init(|| {
         let dir = fixtures_dir();
