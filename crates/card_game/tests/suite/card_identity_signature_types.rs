@@ -1,15 +1,17 @@
 #![allow(clippy::unwrap_used)]
 
-use card_game::card::identity::signature::{Aspect, CardSignature, Element, Rarity, RarityTierConfig};
+use card_game::card::identity::signature::{
+    Aspect, CardSignature, Element, Rarity, RarityTierConfig,
+};
 use card_game::card::identity::signature_profile::Tier;
 
-/// @doc: Verifies Element::ALL contains exactly 8 entries, one per element.
+/// @doc: Verifies `Element::ALL` contains exactly 8 entries, one per element.
 #[test]
 fn when_element_all_contains_8_entries() {
     assert_eq!(Element::ALL.len(), 8, "expected 8 elements");
 }
 
-/// @doc: Verifies Element::ALL contains all 8 unique element variants with no duplicates.
+/// @doc: Verifies `Element::ALL` contains all 8 unique element variants with no duplicates.
 #[test]
 fn when_element_all_contains_unique_variants() {
     let mut mask = 0u32;
@@ -62,10 +64,13 @@ fn when_aspect_enum_has_16_variants_with_correct_element_pairings() {
     assert_eq!(sig_pos.dominant_aspect(Element::Subsidium), Aspect::Growth);
     assert_eq!(sig_neg.dominant_aspect(Element::Subsidium), Aspect::Decay);
     assert_eq!(sig_pos.dominant_aspect(Element::Spatium), Aspect::Expansion);
-    assert_eq!(sig_neg.dominant_aspect(Element::Spatium), Aspect::Contraction);
+    assert_eq!(
+        sig_neg.dominant_aspect(Element::Spatium),
+        Aspect::Contraction
+    );
 }
 
-/// @doc: Verifies RarityTierConfig default values are 0.3 for both fields.
+/// @doc: Verifies `RarityTierConfig` default values are 0.3 for both fields.
 #[test]
 fn when_rarity_tier_config_default_returns_expected_values() {
     let config = RarityTierConfig::default();
@@ -81,7 +86,7 @@ fn when_rarity_tier_config_default_returns_expected_values() {
     );
 }
 
-/// @doc: Verifies RarityTierConfig can be constructed with custom values.
+/// @doc: Verifies `RarityTierConfig` can be constructed with custom values.
 #[test]
 fn when_rarity_tier_config_custom_construction_then_values_are_stored() {
     let config = RarityTierConfig {
@@ -100,7 +105,7 @@ fn when_rarity_tier_config_custom_construction_then_values_are_stored() {
     );
 }
 
-/// @doc: Verifies CardSignature default produces all-zero axes.
+/// @doc: Verifies `CardSignature` default produces all-zero axes.
 #[test]
 fn when_signature_default_then_all_axes_are_zero() {
     let sig: CardSignature = CardSignature::default();
@@ -111,12 +116,12 @@ fn when_signature_default_then_all_axes_are_zero() {
     );
 }
 
-/// @doc: Verifies CardSignature can be cloned with identical axis values.
+/// @doc: Verifies `CardSignature` can be cloned with identical axis values.
 #[test]
 fn when_signature_cloned_then_values_match() {
     let input = [0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8];
     let sig = CardSignature::new(input);
-    let cloned = sig.clone();
+    let cloned = sig;
     assert_eq!(
         sig.axes(),
         cloned.axes(),
@@ -124,7 +129,7 @@ fn when_signature_cloned_then_values_match() {
     );
 }
 
-/// @doc: Verifies CardSignature implements Copy — original remains usable after copy.
+/// @doc: Verifies `CardSignature` implements Copy — original remains usable after copy.
 #[test]
 fn when_signature_copied_then_original_remains_usable() {
     let sig = CardSignature::new([0.5; 8]);
@@ -133,23 +138,27 @@ fn when_signature_copied_then_original_remains_usable() {
     assert_eq!(axes, [0.5; 8], "original should remain usable after copy");
 }
 
-/// @doc: Verifies CardSignature Eq is reflexive — each value equals itself.
+/// @doc: Verifies `CardSignature` Eq is reflexive — each value equals itself.
 #[test]
 fn when_signature_eq_self_then_true() {
     let sig = CardSignature::new([0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8]);
     assert_eq!(sig, sig, "signature should equal itself");
 }
 
-/// @doc: Verifies CardSignature Ord ordering is consistent with Eq for equal values.
+/// @doc: Verifies `CardSignature` Ord ordering is consistent with Eq for equal values.
 #[test]
 fn when_signature_ord_equal_then_eq_is_true() {
     let a = CardSignature::new([0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8]);
     let b = CardSignature::new([0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8]);
-    assert_eq!(a.cmp(&b), std::cmp::Ordering::Equal, "Ord should return Equal");
+    assert_eq!(
+        a.cmp(&b),
+        std::cmp::Ordering::Equal,
+        "Ord should return Equal"
+    );
     assert_eq!(a, b, "Eq should hold for Ord-equal signatures");
 }
 
-/// @doc: Verifies CardSignature axes() returns an owned array, independent from the original.
+/// @doc: Verifies `CardSignature` `axes()` returns an owned array, independent from the original.
 #[test]
 fn when_signature_axes_returns_owned_array() {
     let sig = CardSignature::new([0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8]);
@@ -164,7 +173,7 @@ fn when_signature_axes_returns_owned_array() {
     );
 }
 
-/// @doc: Verifies card_tier_with_config uses the provided config rate, not the default.
+/// @doc: Verifies `card_tier_with_config` uses the provided config rate, not the default.
 #[test]
 fn when_card_tier_with_config_uses_provided_rate() {
     let sig = CardSignature::new([1.0; 8]);

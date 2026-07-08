@@ -86,7 +86,7 @@ fn run_system(world: &mut World) {
     render_schedule.run(world);
 }
 
-/// @doc: Drag preview miniature must scale card geometry from TABLE_CARD dimensions to SLOT
+/// @doc: Drag preview miniature must scale card geometry from `TABLE_CARD` dimensions to SLOT
 /// dimensions divided by zoom. Without correct scale, the ghost would overflow the slot or
 /// appear as a tiny dot, failing to communicate where the card would land.
 #[test]
@@ -99,7 +99,10 @@ fn when_drag_preview_active_then_scale_applied() {
 
     // Assert — last colored mesh call is the drag preview
     let calls = colored_mesh_log.lock().unwrap();
-    let model = calls.last().expect("drag preview should produce a colored mesh call").2;
+    let model = calls
+        .last()
+        .expect("drag preview should produce a colored mesh call")
+        .2;
     let expected_sx = (SLOT_WIDTH / 1.0) / TABLE_CARD_WIDTH;
     let expected_sy = (SLOT_HEIGHT / 1.0) / TABLE_CARD_HEIGHT;
     assert!(
@@ -131,7 +134,10 @@ fn when_drag_preview_at_zoom2_then_scale_halved() {
 
     // Assert
     let calls = colored_mesh_log.lock().unwrap();
-    let model = calls.last().expect("drag preview should produce a colored mesh call").2;
+    let model = calls
+        .last()
+        .expect("drag preview should produce a colored mesh call")
+        .2;
     let expected_sx = (SLOT_WIDTH / 2.0) / TABLE_CARD_WIDTH;
     let expected_sy = (SLOT_HEIGHT / 2.0) / TABLE_CARD_HEIGHT;
     assert!(

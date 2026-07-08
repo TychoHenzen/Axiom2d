@@ -7,7 +7,7 @@ use glam::Vec2;
 
 use card_game::card::rendering::baked_mesh::{BakedCardMesh, CardOverlay, CardOverlays};
 
-/// @doc: BakedCardMesh::default() produces empty front and back meshes with no vertices or indices.
+/// @doc: `BakedCardMesh::default()` produces empty front and back meshes with no vertices or indices.
 #[test]
 fn when_default_baked_mesh_then_front_and_back_empty() {
     // Arrange / Act
@@ -32,7 +32,7 @@ fn when_default_baked_mesh_then_front_and_back_empty() {
     );
 }
 
-/// @doc: BakedCardMesh can be constructed with explicit front/back meshes and fields are accessible.
+/// @doc: `BakedCardMesh` can be constructed with explicit front/back meshes and fields are accessible.
 #[test]
 fn when_baked_mesh_constructed_with_meshes_then_fields_accessible() {
     // Arrange
@@ -61,7 +61,7 @@ fn when_baked_mesh_constructed_with_meshes_then_fields_accessible() {
     );
 }
 
-/// @doc: BakedCardMesh with non-empty meshes retains vertex and index data.
+/// @doc: `BakedCardMesh` with non-empty meshes retains vertex and index data.
 #[test]
 fn when_baked_mesh_has_non_empty_meshes_then_data_preserved() {
     // Arrange
@@ -94,28 +94,17 @@ fn when_baked_mesh_has_non_empty_meshes_then_data_preserved() {
     let mesh = BakedCardMesh { front, back };
 
     // Assert
-    assert_eq!(
-        mesh.front.vertices.len(),
-        3,
-        "front should have 3 vertices"
-    );
-    assert_eq!(
-        mesh.front.indices.len(),
-        3,
-        "front should have 3 indices"
-    );
+    assert_eq!(mesh.front.vertices.len(), 3, "front should have 3 vertices");
+    assert_eq!(mesh.front.indices.len(), 3, "front should have 3 indices");
     assert_eq!(
         mesh.front.indices,
         vec![0, 1, 2],
         "front indices should match constructed sequence"
     );
-    assert!(
-        mesh.back.vertices.is_empty(),
-        "back should remain empty"
-    );
+    assert!(mesh.back.vertices.is_empty(), "back should remain empty");
 }
 
-/// @doc: BakedCardMesh can be spawned as an ECS component and queried back.
+/// @doc: `BakedCardMesh` can be spawned as an ECS component and queried back.
 #[test]
 fn when_baked_mesh_spawned_in_world_then_queryable() {
     // Arrange
@@ -135,7 +124,7 @@ fn when_baked_mesh_spawned_in_world_then_queryable() {
     );
 }
 
-/// @doc: CardOverlay constructed with quad corners and material retains field values.
+/// @doc: `CardOverlay` constructed with quad corners and material retains field values.
 #[test]
 fn when_card_overlay_constructed_then_fields_accessible() {
     // Arrange
@@ -168,7 +157,7 @@ fn when_card_overlay_constructed_then_fields_accessible() {
     );
 }
 
-/// @doc: CardOverlay clone produces an independent copy with identical field values.
+/// @doc: `CardOverlay` clone produces an independent copy with identical field values.
 #[test]
 fn when_card_overlay_cloned_then_fields_equal() {
     // Arrange
@@ -184,8 +173,7 @@ fn when_card_overlay_cloned_then_fields_equal() {
     for i in 0..4 {
         assert_eq!(
             overlay.quad[i], cloned.quad[i],
-            "cloned overlay quad corner {} should equal original",
-            i
+            "cloned overlay quad corner {i} should equal original"
         );
     }
     assert_eq!(
@@ -194,7 +182,7 @@ fn when_card_overlay_cloned_then_fields_equal() {
     );
 }
 
-/// @doc: CardOverlays::default() returns all overlay layers as None.
+/// @doc: `CardOverlays::default()` returns all overlay layers as None.
 #[test]
 fn when_default_card_overlays_then_all_layers_none() {
     // Arrange / Act
@@ -215,7 +203,7 @@ fn when_default_card_overlays_then_all_layers_none() {
     );
 }
 
-/// @doc: CardOverlays with art overlay set returns Some for art and None for other layers.
+/// @doc: `CardOverlays` with art overlay set returns Some for art and None for other layers.
 #[test]
 fn when_art_overlay_set_then_art_some_others_none() {
     // Arrange
@@ -245,7 +233,7 @@ fn when_art_overlay_set_then_art_some_others_none() {
     );
 }
 
-/// @doc: CardOverlays with all three layers set returns Some for each.
+/// @doc: `CardOverlays` with all three layers set returns Some for each.
 #[test]
 fn when_all_overlays_set_then_all_some() {
     // Arrange
@@ -262,21 +250,12 @@ fn when_all_overlays_set_then_all_some() {
     };
 
     // Assert
-    assert!(
-        overlays.art.is_some(),
-        "art overlay should be Some"
-    );
-    assert!(
-        overlays.foil.is_some(),
-        "foil overlay should be Some"
-    );
-    assert!(
-        overlays.back.is_some(),
-        "back overlay should be Some"
-    );
+    assert!(overlays.art.is_some(), "art overlay should be Some");
+    assert!(overlays.foil.is_some(), "foil overlay should be Some");
+    assert!(overlays.back.is_some(), "back overlay should be Some");
 }
 
-/// @doc: CardOverlays clone produces an independent copy with matching fields.
+/// @doc: `CardOverlays` clone produces an independent copy with matching fields.
 #[test]
 fn when_card_overlays_cloned_then_fields_equal() {
     // Arrange
@@ -294,14 +273,8 @@ fn when_card_overlays_cloned_then_fields_equal() {
     let cloned = overlays.clone();
 
     // Assert
-    assert!(
-        cloned.art.is_some(),
-        "cloned overlays should retain art"
-    );
-    assert!(
-        cloned.foil.is_some(),
-        "cloned overlays should retain foil"
-    );
+    assert!(cloned.art.is_some(), "cloned overlays should retain art");
+    assert!(cloned.foil.is_some(), "cloned overlays should retain foil");
     assert!(
         cloned.back.is_none(),
         "cloned overlays should retain None back"
@@ -313,7 +286,7 @@ fn when_card_overlays_cloned_then_fields_equal() {
     );
 }
 
-/// @doc: CardOverlays can be spawned as an ECS component and queried back.
+/// @doc: `CardOverlays` can be spawned as an ECS component and queried back.
 #[test]
 fn when_card_overlays_spawned_in_world_then_queryable() {
     // Arrange
@@ -333,7 +306,7 @@ fn when_card_overlays_spawned_in_world_then_queryable() {
     );
 }
 
-/// @doc: BakedCardMesh and CardOverlays can coexist on the same entity.
+/// @doc: `BakedCardMesh` and `CardOverlays` can coexist on the same entity.
 #[test]
 fn when_both_components_spawned_together_then_both_queryable() {
     // Arrange
