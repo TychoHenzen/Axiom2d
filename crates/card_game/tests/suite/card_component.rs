@@ -6,7 +6,7 @@ use engine_core::prelude::TextureId;
 use card_game::card::component::{Card, CardFaceSide, CardLabel, CardZone};
 use card_game::card::identity::signature::CardSignature;
 
-/// @doc: Card constructed via face_down() has face_up set to false
+/// @doc: Card constructed via `face_down()` has `face_up` set to false
 #[test]
 fn when_face_down_then_face_up_is_false() {
     // Arrange / Act
@@ -16,7 +16,7 @@ fn when_face_down_then_face_up_is_false() {
     assert!(!card.face_up, "Card::face_down should set face_up to false");
 }
 
-/// @doc: Card constructed via face_down() stores both textures correctly
+/// @doc: Card constructed via `face_down()` stores both textures correctly
 #[test]
 fn when_face_down_then_textures_stored() {
     // Arrange
@@ -37,7 +37,7 @@ fn when_face_down_then_textures_stored() {
     );
 }
 
-/// @doc: Card::face_down() sets signature to CardSignature::default()
+/// @doc: `Card::face_down()` sets signature to `CardSignature::default()`
 #[test]
 fn when_card_has_default_signature_then_signature_is_not_overwritten() {
     // Arrange / Act
@@ -51,7 +51,7 @@ fn when_card_has_default_signature_then_signature_is_not_overwritten() {
     );
 }
 
-/// @doc: CardZone::Table is distinct from other variants and has no associated data
+/// @doc: `CardZone::Table` is distinct from other variants and has no associated data
 #[test]
 fn when_zone_table_then_variant_is_table() {
     // Arrange / Act
@@ -69,7 +69,7 @@ fn when_zone_table_then_variant_is_table() {
     );
 }
 
-/// @doc: CardZone::Hand stores a usize index identifying the hand position
+/// @doc: `CardZone::Hand` stores a usize index identifying the hand position
 #[test]
 fn when_zone_hand_then_variant_has_index() {
     // Arrange
@@ -85,7 +85,7 @@ fn when_zone_hand_then_variant_has_index() {
     );
 }
 
-/// @doc: CardZone::Stash stores page, column, and row coordinates for grid placement
+/// @doc: `CardZone::Stash` stores page, column, and row coordinates for grid placement
 #[test]
 fn when_zone_stash_then_variant_has_page_col_row() {
     // Arrange
@@ -98,12 +98,19 @@ fn when_zone_stash_then_variant_has_page_col_row() {
 
     // Assert
     assert!(
-        matches!(zone, CardZone::Stash { page: 1, col: 4, row: 2 }),
+        matches!(
+            zone,
+            CardZone::Stash {
+                page: 1,
+                col: 4,
+                row: 2
+            }
+        ),
         "CardZone::Stash should store page, col, and row"
     );
 }
 
-/// @doc: CardZone::Reader stores an Entity referencing the reader device
+/// @doc: `CardZone::Reader` stores an Entity referencing the reader device
 #[test]
 fn when_zone_reader_then_variant_has_entity() {
     // Arrange
@@ -119,7 +126,7 @@ fn when_zone_reader_then_variant_has_entity() {
     );
 }
 
-/// @doc: CardLabel stores a name and description string
+/// @doc: `CardLabel` stores a name and description string
 #[test]
 fn when_label_created_then_name_and_description_stored() {
     // Arrange
@@ -143,7 +150,7 @@ fn when_label_created_then_name_and_description_stored() {
     );
 }
 
-/// @doc: CardFaceSide variants Front and Back are distinct and not equal
+/// @doc: `CardFaceSide` variants Front and Back are distinct and not equal
 #[test]
 fn when_card_face_side_variants_then_front_and_back_distinct() {
     // Arrange / Act

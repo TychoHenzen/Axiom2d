@@ -145,8 +145,7 @@ fn when_no_drag_active_then_system_noop() {
     // Assert — nothing changed
     let transform = world.get::<Transform2D>(reader).unwrap();
     assert_eq!(
-        transform.position,
-        initial_pos,
+        transform.position, initial_pos,
         "reader position must not change when no drag is active"
     );
     assert!(

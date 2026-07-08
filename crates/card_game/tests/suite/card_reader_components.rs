@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::assertions_on_constants)]
 
 use bevy_ecs::prelude::*;
 use glam::Vec2;
@@ -59,10 +59,7 @@ fn when_card_on_left_boundary_then_overlaps_returns_true() {
     let result = card_overlaps_reader(card_pos, reader_pos, reader_half);
 
     // Assert
-    assert!(
-        result,
-        "card exactly on left boundary should be accepted"
-    );
+    assert!(result, "card exactly on left boundary should be accepted");
 }
 
 /// @doc: A card exactly on the reader's right boundary must be accepted. The
@@ -79,10 +76,7 @@ fn when_card_on_right_boundary_then_overlaps_returns_true() {
     let result = card_overlaps_reader(card_pos, reader_pos, reader_half);
 
     // Assert
-    assert!(
-        result,
-        "card exactly on right boundary should be accepted"
-    );
+    assert!(result, "card exactly on right boundary should be accepted");
 }
 
 /// @doc: A card positioned just one unit beyond the reader's boundary must be
@@ -133,7 +127,7 @@ fn when_reader_half_extents_zero_then_only_exact_match() {
     );
 }
 
-/// @doc: The READER_CARD_SCALE constant must be positive so that cards
+/// @doc: The `READER_CARD_SCALE` constant must be positive so that cards
 /// inserted into a reader are scaled down (not up or inverted). A negative or
 /// zero value would cause visual artifacts or invisible cards.
 #[test]
@@ -149,7 +143,7 @@ fn when_reader_card_scale_constant_is_positive() {
     );
 }
 
-/// @doc: A CardReader component stores the loaded card entity, half extents,
+/// @doc: A `CardReader` component stores the loaded card entity, half extents,
 /// and jack entity. All three fields must be accessible after construction,
 /// verifying the struct layout matches expectations.
 #[test]

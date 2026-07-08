@@ -225,9 +225,9 @@ fn when_intent_apply_with_physics_then_physics_commands_emitted() {
         .resource_mut::<EventBus<PhysicsCommand>>()
         .drain()
         .collect();
-    let has_add_body = physics.iter().any(|cmd| {
-        matches!(cmd, PhysicsCommand::AddBody { entity, .. } if *entity == card_entity)
-    });
+    let has_add_body = physics
+        .iter()
+        .any(|cmd| matches!(cmd, PhysicsCommand::AddBody { entity, .. } if *entity == card_entity));
     assert!(
         has_add_body,
         "must emit AddBody for a table card without existing body; got: {physics:?}"

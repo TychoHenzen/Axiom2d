@@ -1,0 +1,60 @@
+{
+  "cycle": {
+    "phase": "fix",
+    "cycle_number": 3,
+    "cleanup_branch": "quality/upgrade",
+    "base_branch": "master",
+    "target_average": 8.0,
+    "target_min_file": 6.5,
+    "target_coverage": 0.80,
+    "tooling": {
+      "language": "rust",
+      "test_framework": "cargo-test",
+      "full_test_command": "cargo test --workspace",
+      "single_test_command": "cargo test -- {test_name}",
+      "compile_check_command": "cargo check --workspace"
+    },
+    "started_at": "2026-07-09T01:21:00Z",
+    "last_updated": "2026-07-09T01:45:00Z",
+    "last_file_processed": null,
+    "files_fixed_this_cycle": [],
+    "files_to_fix": [],
+    "current_average": 8.0
+  },
+  "last_full_run": "2026-07-09T01:45:00Z",
+  "summary": {
+    "total_test_files": 175,
+    "total_test_functions": 1962,
+    "total_assertions": 3204,
+    "trivial_assertions": 6,
+    "hard_gates_clean": true,
+    "soft_ratchets_at_baseline": true,
+    "estimated_overall_average": 8.0
+  },
+  "coverage_gaps": [
+    {"file": "crates/card_game/src/card/art/repository.rs", "lines": 3747, "risk": "low", "reason": "Generated art data â€” integration-tested"},
+    {"file": "crates/particle_poc/src/main.rs", "lines": 2899, "risk": "low", "reason": "Standalone POC"},
+    {"file": "crates/card_game/src/stash/store.rs", "lines": 928, "risk": "low", "reason": "Tested via stash integration suite"},
+    {"file": "crates/card_game/src/card/art/card_back.rs", "lines": 903, "risk": "low", "reason": "Generated art data"},
+    {"file": "crates/engine_render/src/wgpu_renderer/renderer_trait.rs", "lines": 672, "risk": "low", "reason": "Tested via renderer tests"},
+    {"file": "crates/card_game/src/card/jack_cable.rs", "lines": 650, "risk": "low", "reason": "Has dedicated test suite"},
+    {"file": "crates/card_game/src/card/screen_device.rs", "lines": 600, "risk": "low", "reason": "Has dedicated test suite"}
+  ],
+  "source_quality_issues": [
+    {
+      "file": "crates/card_game/src/card/art/repository.rs",
+      "issue": "Zero log statements in 3747-line file",
+      "fix": "File is generated art data shapes â€” logging not applicable. Allow."
+    },
+    {
+      "file": "crates/card_game/src/stash/store.rs",
+      "issue": "Zero log statements in 928-line file",
+      "fix": "Add info-level logging for store operations"
+    },
+    {
+      "file": "crates/card_game/src/card/screen_device.rs",
+      "issue": "3 expect/unwrap calls, no logging",
+      "fix": "Add context to expect messages"
+    }
+  ]
+}

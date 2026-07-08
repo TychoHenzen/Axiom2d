@@ -1,21 +1,24 @@
-//! Tests for the card back / card_front2 shape data hydration.
+//! Tests for the card back / `card_front2` shape data hydration.
 
 #![allow(clippy::unwrap_used)]
 
 use card_game::card::art::card_back::card_front2;
 use engine_render::shape::ShapeVariant;
 
-/// @doc: card_front2 returns a non-empty vector of shapes from the embedded DATA
+/// @doc: `card_front2` returns a non-empty vector of shapes from the embedded DATA
 #[test]
 fn when_card_front2_generated_then_shapes_non_empty() {
     // Arrange & Act
     let shapes = card_front2();
 
     // Assert
-    assert!(!shapes.is_empty(), "card_front2 should produce at least one shape");
+    assert!(
+        !shapes.is_empty(),
+        "card_front2 should produce at least one shape"
+    );
 }
 
-/// @doc: card_front2 returns the same shapes on repeated calls (deterministic)
+/// @doc: `card_front2` returns the same shapes on repeated calls (deterministic)
 #[test]
 fn when_card_front2_called_twice_then_identical_output() {
     // Arrange & Act
@@ -29,7 +32,7 @@ fn when_card_front2_called_twice_then_identical_output() {
     );
 }
 
-/// @doc: each shape from card_front2 has a Path variant with at least one command
+/// @doc: each shape from `card_front2` has a Path variant with at least one command
 #[test]
 fn when_card_front2_generated_then_each_shape_is_path_with_commands() {
     // Arrange
@@ -38,15 +41,12 @@ fn when_card_front2_generated_then_each_shape_is_path_with_commands() {
     // Act & Assert
     for (i, shape) in shapes.iter().enumerate() {
         if let ShapeVariant::Path { commands } = &shape.variant {
-            assert!(
-                !commands.is_empty(),
-                "shape {i} has empty path commands"
-            );
+            assert!(!commands.is_empty(), "shape {i} has empty path commands");
         }
     }
 }
 
-/// @doc: each shape from card_front2 has RGBA color channels in valid range [0, 1]
+/// @doc: each shape from `card_front2` has RGBA color channels in valid range [0, 1]
 #[test]
 fn when_card_front2_generated_then_each_shape_has_valid_color() {
     // Arrange

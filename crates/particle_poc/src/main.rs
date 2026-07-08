@@ -272,6 +272,7 @@ fn main() {
     event_loop.run_app(&mut app).expect("run");
 }
 
+#[allow(clippy::struct_excessive_bools)]
 struct App {
     state: Option<State>,
     benchmark: bool,
@@ -357,6 +358,7 @@ struct RapierState {
     ccd_solver: CCDSolver,
 }
 
+#[allow(clippy::struct_excessive_bools)]
 struct State {
     window: Arc<Window>,
     device: wgpu::Device,
@@ -2218,8 +2220,8 @@ impl State {
                 let mut velocities = Vec::with_capacity(count as usize);
                 let mut species = Vec::with_capacity(count as usize);
                 // Spawn on belt surface so particles immediately rest against capsule body.
-                let cos45 = 0.7071068f32;
-                let sin45 = 0.7071068f32;
+                let cos45 = std::f32::consts::FRAC_1_SQRT_2;
+                let sin45 = std::f32::consts::FRAC_1_SQRT_2;
                 let belt_perp_x = -sin45;
                 let belt_perp_y = cos45;
                 let belt_tan_x = cos45;

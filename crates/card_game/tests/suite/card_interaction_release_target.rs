@@ -89,13 +89,8 @@ fn when_store_page_and_cursor_in_stash_ui_then_snap_back_intent() {
     // Arrange — store page (page 0), cursor well inside stash UI bounds
     let mut grid = StashGrid::new(10, 10, 1);
     grid.set_current_page(0);
-    let (mut world, entity) = build_world(
-        Vec2::new(400.0, 400.0),
-        600,
-        true,
-        CardZone::Table,
-        grid,
-    );
+    let (mut world, entity) =
+        build_world(Vec2::new(400.0, 400.0), 600, true, CardZone::Table, grid);
 
     // Act
     run_system(&mut world);
@@ -118,19 +113,13 @@ fn when_store_page_and_cursor_in_stash_ui_then_snap_back_intent() {
 
 /// @doc: When the stash is on the store page but the cursor is outside the stash UI
 /// region, the store-page short-circuit does not trigger. The cursor position falls through
-/// to the hand-zone / table check, producing a normal ReleaseOnTable (no snap-back).
+/// to the hand-zone / table check, producing a normal `ReleaseOnTable` (no snap-back).
 #[test]
 fn when_store_page_and_cursor_outside_stash_ui_then_table_intent() {
     // Arrange — store page, cursor at (10, 10) which is left of GRID_MARGIN (20)
     let mut grid = StashGrid::new(10, 10, 1);
     grid.set_current_page(0);
-    let (mut world, _entity) = build_world(
-        Vec2::new(10.0, 10.0),
-        600,
-        true,
-        CardZone::Table,
-        grid,
-    );
+    let (mut world, _entity) = build_world(Vec2::new(10.0, 10.0), 600, true, CardZone::Table, grid);
 
     // Act
     run_system(&mut world);
@@ -140,7 +129,13 @@ fn when_store_page_and_cursor_outside_stash_ui_then_table_intent() {
     let intents: Vec<_> = bus.drain().collect();
     assert_eq!(intents.len(), 1, "expected exactly one intent");
     assert!(
-        matches!(&intents[0], InteractionIntent::ReleaseOnTable { snap_back: false, .. }),
+        matches!(
+            &intents[0],
+            InteractionIntent::ReleaseOnTable {
+                snap_back: false,
+                ..
+            }
+        ),
         "expected ReleaseOnTable (no snap-back) when cursor outside stash UI on store page, got {:?}",
         intents[0],
     );
@@ -148,7 +143,7 @@ fn when_store_page_and_cursor_outside_stash_ui_then_table_intent() {
 
 /// @doc: When the stash is visible but the cursor is outside the grid slot boundaries,
 /// `find_stash_slot_at` returns None. The system skips stash target resolution and falls
-/// through to the hand-zone / table check, emitting a ReleaseOnTable.
+/// through to the hand-zone / table check, emitting a `ReleaseOnTable`.
 #[test]
 fn when_stash_visible_and_cursor_outside_grid_then_table_intent() {
     // Arrange — stash visible, cursor at x=600 which is past grid right edge (556)
@@ -218,13 +213,13 @@ fn when_target_slot_occupied_but_origin_slot_freed_then_stash_to_origin() {
             assert_eq!(*col, 1, "should release to origin col");
             assert_eq!(*row, 1, "should release to origin row");
         }
-        other => panic!(
-            "expected ReleaseOnStash to origin slot (page=0,col=1,row=1), got {other:?}",
-        ),
+        other => {
+            panic!("expected ReleaseOnStash to origin slot (page=0,col=1,row=1), got {other:?}",)
+        }
     }
 }
 
-/// @doc: The hand drop zone uses `>=` comparison: screen_y >= viewport_height - 120.
+/// @doc: The hand drop zone uses `>=` comparison: `screen_y` >= `viewport_height` - 120.
 /// At the exact boundary, the cursor is inside the hand zone and the system must emit
 /// `ReleaseOnHand`.
 #[test]
@@ -255,7 +250,7 @@ fn when_released_at_exact_hand_zone_boundary_then_hand_intent() {
     );
 }
 
-/// @doc: When the cursor is just above the hand-zone threshold (screen_y < viewport_height - 120),
+/// @doc: When the cursor is just above the hand-zone threshold (`screen_y` < `viewport_height` - 120),
 /// the cursor is not in the hand drop zone. The system emits `ReleaseOnTable`.
 #[test]
 fn when_released_just_above_hand_zone_boundary_then_table_intent() {

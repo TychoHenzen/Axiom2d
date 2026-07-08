@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::sync::OnceLock;
 
 use image::{Rgba, RgbaImage};
+use terrain::prelude::TilePattern;
 use tiled_to_shapes::{
     codegen::generate_tileset_code,
     pipeline::{convert_tileset, default_convert_config},
@@ -286,7 +287,6 @@ fn integration_when_valid_tsx_then_all_tile_patterns_present() {
         .get("grass")
         .expect("grass terrain type missing");
     let patterns: Vec<_> = grass.variants.iter().map(|v| v.pattern).collect();
-    use terrain::prelude::TilePattern;
     assert!(
         patterns.contains(&TilePattern::Solid),
         "missing Solid pattern; patterns: {patterns:?}"

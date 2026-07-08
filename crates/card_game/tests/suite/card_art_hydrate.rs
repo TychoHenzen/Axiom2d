@@ -1,3 +1,4 @@
+#![allow(clippy::manual_let_else)]
 //! Tests for compact generated shape data hydration functions.
 //!
 //! Verifies that `hydrate_shapes`, `hydrate_shapes_compact`, and
@@ -30,16 +31,16 @@ fn when_empty_data_then_empty_shapes() {
     assert!(shapes.is_empty(), "expected no shapes from empty data");
 }
 
-/// @doc: decodes a single shape with MoveTo, LineTo, and Close
+/// @doc: decodes a single shape with `MoveTo`, `LineTo`, and Close
 #[test]
 fn when_single_shape_with_move_line_close_then_one_shape() {
     // Arrange
     let data: &[f32] = &[
-        4.0,             // tag: new shape
+        4.0, // tag: new shape
         1.0, 0.0, 0.0, 1.0, // RGBA red
         0.0, 10.0, 20.0, // MoveTo(10, 20)
         1.0, 100.0, 200.0, // LineTo(100, 200)
-        3.0,             // Close
+        3.0,   // Close
     ];
 
     // Act
@@ -67,11 +68,11 @@ fn when_single_shape_with_move_line_close_then_one_shape() {
 fn when_single_shape_with_cubic_then_cubic_command() {
     // Arrange
     let data: &[f32] = &[
-        4.0,             // tag: new shape
+        4.0, // tag: new shape
         0.0, 1.0, 0.0, 1.0, // RGBA green
-        0.0, 0.0, 0.0,  // MoveTo(0, 0)
+        0.0, 0.0, 0.0, // MoveTo(0, 0)
         2.0, 10.0, 0.0, 20.0, 0.0, 30.0, 0.0, // CubicTo
-        3.0,             // Close
+        3.0, // Close
     ];
 
     // Act
@@ -101,11 +102,9 @@ fn when_multiple_shapes_then_all_returned() {
     // Arrange
     let data: &[f32] = &[
         // Shape 1: red rectangle loop
-        4.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 100.0, 0.0, 1.0, 100.0,
-        100.0, 1.0, 0.0, 100.0, 3.0,
-        // Shape 2: blue triangle
-        4.0, 0.0, 0.0, 1.0, 1.0, 0.0, 50.0, 0.0, 1.0, 50.0, 100.0, 1.0, 0.0,
-        0.0, 3.0,
+        4.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 100.0, 0.0, 1.0, 100.0, 100.0, 1.0, 0.0, 100.0,
+        3.0, // Shape 2: blue triangle
+        4.0, 0.0, 0.0, 1.0, 1.0, 0.0, 50.0, 0.0, 1.0, 50.0, 100.0, 1.0, 0.0, 0.0, 3.0,
     ];
 
     // Act
@@ -131,9 +130,9 @@ fn when_unknown_command_then_commands_before_unknown_kept() {
     // Arrange
     let data: &[f32] = &[
         4.0, 1.0, 0.0, 0.0, 1.0, // red shape
-        0.0, 5.0, 5.0,           // MoveTo(5, 5)
-        99.0,                     // unknown command tag
-        3.0,                      // Close is never reached
+        0.0, 5.0, 5.0,  // MoveTo(5, 5)
+        99.0, // unknown command tag
+        3.0,  // Close is never reached
     ];
 
     // Act
@@ -145,7 +144,11 @@ fn when_unknown_command_then_commands_before_unknown_kept() {
         ShapeVariant::Path { commands } => commands,
         _ => panic!("expected ShapeVariant::Path"),
     };
-    assert_eq!(commands.len(), 1, "expected only MoveTo after unknown break");
+    assert_eq!(
+        commands.len(),
+        1,
+        "expected only MoveTo after unknown break"
+    );
     assert_eq!(commands[0], PathCommand::MoveTo(Vec2::new(5.0, 5.0)));
 }
 
@@ -154,7 +157,7 @@ fn when_unknown_command_then_commands_before_unknown_kept() {
 fn when_non_four_tag_then_skipped() {
     // Arrange
     let data: &[f32] = &[
-        99.0,                // not tag 4 → skip
+        99.0, // not tag 4 → skip
         4.0, 1.0, 0.0, 0.0, 1.0, // valid red shape
         0.0, 0.0, 0.0, 3.0,
     ];
@@ -163,7 +166,11 @@ fn when_non_four_tag_then_skipped() {
     let shapes = hydrate_shapes(data);
 
     // Assert
-    assert_eq!(shapes.len(), 1, "expected one shape after skipping non-tag byte");
+    assert_eq!(
+        shapes.len(),
+        1,
+        "expected one shape after skipping non-tag byte"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -181,7 +188,10 @@ fn when_compact_empty_data_then_empty_shapes() {
     let shapes = hydrate_shapes_compact(colors, data);
 
     // Assert
-    assert!(shapes.is_empty(), "expected no shapes from empty compact data");
+    assert!(
+        shapes.is_empty(),
+        "expected no shapes from empty compact data"
+    );
 }
 
 /// @doc: decodes a single compact shape with color and delta-encoded line commands
@@ -190,11 +200,11 @@ fn when_compact_single_shape_then_correct_color_and_commands() {
     // Arrange
     let colors: &[u8] = &[255, 128, 64]; // R=255, G=128, B=64
     let data: &[i16] = &[
-        4,      // tag: new shape
+        4, // tag: new shape
         0, 500, // start: (0.0, 5.0) after /100
         1, 100, 0, // LineTo delta(100, 0) → (1.0, 5.0)
         1, 0, 200, // LineTo delta(0, 200) → (1.0, 7.0)
-        3,      // unknown → break inner
+        3,   // unknown → break inner
     ];
 
     // Act
@@ -224,10 +234,10 @@ fn when_compact_shape_with_cubic_then_cubic_commands() {
     // Arrange
     let colors: &[u8] = &[0, 128, 255];
     let data: &[i16] = &[
-        4,    // tag: new shape
+        4, // tag: new shape
         0, 0, // start: (0.0, 0.0)
         2, 100, 0, 200, 0, 300, 0, // CubicTo relative deltas
-        3,    // unknown → break inner
+        3, // unknown → break inner
     ];
 
     // Act
@@ -309,7 +319,7 @@ fn when_compact_data_ends_mid_start_then_early_break() {
     assert!(shapes.is_empty(), "expected no shapes from truncated data");
 }
 
-/// @doc: breaks inner LineTo parsing when fewer than 2 i16 values remain
+/// @doc: breaks inner `LineTo` parsing when fewer than 2 i16 values remain
 #[test]
 fn when_compact_line_to_truncated_then_breaks_inner() {
     // Arrange
@@ -333,7 +343,7 @@ fn when_compact_line_to_truncated_then_breaks_inner() {
     assert_eq!(commands[1], PathCommand::Close);
 }
 
-/// @doc: breaks inner CubicTo parsing when fewer than 6 i16 values remain
+/// @doc: breaks inner `CubicTo` parsing when fewer than 6 i16 values remain
 #[test]
 fn when_compact_cubic_to_truncated_then_breaks_inner() {
     // Arrange
@@ -372,10 +382,13 @@ fn when_indexed_empty_data_then_empty_shapes() {
     let shapes = hydrate_shapes_compact_indexed(color_indexes, data);
 
     // Assert
-    assert!(shapes.is_empty(), "expected no shapes from empty indexed data");
+    assert!(
+        shapes.is_empty(),
+        "expected no shapes from empty indexed data"
+    );
 }
 
-/// @doc: reads colors from SHARED_PALETTE via the given index
+/// @doc: reads colors from `SHARED_PALETTE` via the given index
 #[test]
 fn when_indexed_single_shape_then_palette_color_applied() {
     // Arrange
@@ -385,7 +398,7 @@ fn when_indexed_single_shape_then_palette_color_applied() {
     let data: &[i16] = &[
         4, 0, 0, // start (0.0, 0.0)
         1, 100, 0, // LineTo(1.0, 0.0)
-        3,        // break inner
+        3, // break inner
     ];
 
     // Act
@@ -399,7 +412,7 @@ fn when_indexed_single_shape_then_palette_color_applied() {
     );
 }
 
-/// @doc: breaks outer loop when color_indexes are exhausted
+/// @doc: breaks outer loop when `color_indexes` are exhausted
 #[test]
 fn when_indexed_color_index_exhausted_then_early_break() {
     // Arrange — one color index but data for two shapes
@@ -427,7 +440,10 @@ fn when_indexed_data_truncated_mid_start_then_early_break() {
     let shapes = hydrate_shapes_compact_indexed(color_indexes, data);
 
     // Assert
-    assert!(shapes.is_empty(), "expected no shapes from truncated indexed data");
+    assert!(
+        shapes.is_empty(),
+        "expected no shapes from truncated indexed data"
+    );
 }
 
 /// @doc: decodes cubic commands from indexed compact data
@@ -438,7 +454,7 @@ fn when_indexed_shape_with_cubic_then_cubic_commands() {
     let data: &[i16] = &[
         4, 0, 0, // start
         2, 100, 0, 200, 0, 300, 0, // CubicTo
-        3,        // break
+        3, // break
     ];
 
     // Act

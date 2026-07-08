@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::assertions_on_constants)]
 
 use bevy_ecs::prelude::Entity;
 
@@ -6,7 +6,7 @@ use card_game::card::identity::signature::CardSignature;
 use card_game::card::reader::{SIGNATURE_SPACE_RADIUS, SignatureSpace, signature_radius};
 
 #[test]
-/// @doc: signature_radius returns the minimum radius when all intensities are zero.
+/// @doc: `signature_radius` returns the minimum radius when all intensities are zero.
 fn when_signature_radius_with_zero_intensity_then_returns_min_radius() {
     // Arrange
     let sig = CardSignature::default();
@@ -15,14 +15,11 @@ fn when_signature_radius_with_zero_intensity_then_returns_min_radius() {
     let r = signature_radius(&sig);
 
     // Assert
-    assert!(
-        (r - 0.15).abs() < f32::EPSILON,
-        "expected 0.15, got {r}"
-    );
+    assert!((r - 0.15).abs() < f32::EPSILON, "expected 0.15, got {r}");
 }
 
 #[test]
-/// @doc: from_single creates a SignatureSpace with exactly one control point.
+/// @doc: `from_single` creates a `SignatureSpace` with exactly one control point.
 fn when_from_single_then_has_single_control_point() {
     // Arrange
     let center = CardSignature::new([0.3, -0.5, 0.1, 0.7, -0.2, 0.4, -0.6, 0.8]);
@@ -37,7 +34,7 @@ fn when_from_single_then_has_single_control_point() {
 }
 
 #[test]
-/// @doc: from_single stores the source entity in source_cards.
+/// @doc: `from_single` stores the source entity in `source_cards`.
 fn when_from_single_then_source_cards_contains_entity() {
     // Arrange
     let center = CardSignature::default();
@@ -55,7 +52,7 @@ fn when_from_single_then_source_cards_contains_entity() {
 }
 
 #[test]
-/// @doc: from_single assigns a positive volume.
+/// @doc: `from_single` assigns a positive volume.
 fn when_from_single_then_volume_is_positive() {
     // Arrange
     let center = CardSignature::default();
@@ -65,7 +62,11 @@ fn when_from_single_then_volume_is_positive() {
     let space = SignatureSpace::from_single(center, 0.2, entity);
 
     // Assert
-    assert!(space.volume > 0.0, "expected positive volume, got {}", space.volume);
+    assert!(
+        space.volume > 0.0,
+        "expected positive volume, got {}",
+        space.volume
+    );
 }
 
 #[test]
@@ -175,11 +176,14 @@ fn when_empty_control_points_then_contains_returns_false() {
     let result = empty.contains(&point);
 
     // Assert
-    assert!(!result, "expected contains to be false with no control points");
+    assert!(
+        !result,
+        "expected contains to be false with no control points"
+    );
 }
 
 #[test]
-/// @doc: SIGNATURE_SPACE_RADIUS is a positive constant.
+/// @doc: `SIGNATURE_SPACE_RADIUS` is a positive constant.
 fn when_constant_radius_is_positive() {
     assert!(SIGNATURE_SPACE_RADIUS > 0.0);
 }

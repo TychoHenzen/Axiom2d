@@ -6,7 +6,7 @@ use glam::Vec2;
 use card_game::card::component::CardZone;
 use card_game::card::interaction::drag_state::{DeviceDragInfo, DragInfo, DragState};
 
-/// @doc: DragState defaults to no active drag.
+/// @doc: `DragState` defaults to no active drag.
 #[test]
 fn when_drag_state_default_then_not_dragging() {
     // Arrange
@@ -19,7 +19,7 @@ fn when_drag_state_default_then_not_dragging() {
     );
 }
 
-/// @doc: DragState can be assigned a DragInfo and reflects the active drag entity.
+/// @doc: `DragState` can be assigned a `DragInfo` and reflects the active drag entity.
 #[test]
 fn when_drag_state_set_to_some_then_contains_drag_info() {
     // Arrange
@@ -49,7 +49,7 @@ fn when_drag_state_set_to_some_then_contains_drag_info() {
     );
 }
 
-/// @doc: DragState can be cleared back to None.
+/// @doc: `DragState` can be cleared back to None.
 #[test]
 fn when_drag_state_cleared_then_not_dragging() {
     // Arrange
@@ -73,7 +73,7 @@ fn when_drag_state_cleared_then_not_dragging() {
     );
 }
 
-/// @doc: DragInfo with Hand zone origin carries correct zone and position.
+/// @doc: `DragInfo` with Hand zone origin carries correct zone and position.
 #[test]
 fn when_drag_info_hand_zone_then_fields_match() {
     // Arrange
@@ -97,11 +97,14 @@ fn when_drag_info_hand_zone_then_fields_match() {
         matches!(info.origin_zone, CardZone::Hand(2)),
         "origin_zone should be Hand(2)"
     );
-    assert!(!info.stash_cursor_follow, "stash_cursor_follow should be false");
+    assert!(
+        !info.stash_cursor_follow,
+        "stash_cursor_follow should be false"
+    );
     assert_eq!(info.origin_position, pos, "origin_position mismatch");
 }
 
-/// @doc: DragInfo with Stash zone origin stores page, col, row.
+/// @doc: `DragInfo` with Stash zone origin stores page, col, row.
 #[test]
 fn when_drag_info_stash_zone_then_grid_coords_match() {
     // Arrange
@@ -130,7 +133,7 @@ fn when_drag_info_stash_zone_then_grid_coords_match() {
     );
 }
 
-/// @doc: DeviceDragInfo stores entity and grab offset.
+/// @doc: `DeviceDragInfo` stores entity and grab offset.
 #[test]
 fn when_device_drag_info_constructed_then_fields_match() {
     // Arrange
@@ -138,7 +141,10 @@ fn when_device_drag_info_constructed_then_fields_match() {
     let offset = Vec2::new(5.0, -5.0);
 
     // Act
-    let info = DeviceDragInfo { entity, grab_offset: offset };
+    let info = DeviceDragInfo {
+        entity,
+        grab_offset: offset,
+    };
 
     // Assert
     assert_eq!(info.entity, entity, "entity field mismatch");

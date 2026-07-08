@@ -38,7 +38,7 @@ fn spawn_def(world: &mut World, def: &CardDefinition, face_up: bool) -> Entity {
     )
 }
 
-/// @doc: When no shader resources are present, MeshOverlays is present but empty.
+/// @doc: When no shader resources are present, `MeshOverlays` is present but empty.
 #[test]
 fn when_no_shader_resources_then_overlays_empty() {
     // Arrange
@@ -59,7 +59,7 @@ fn when_no_shader_resources_then_overlays_empty() {
     );
 }
 
-/// @doc: When CardArtShader resource exists, the art overlay entry is included.
+/// @doc: When `CardArtShader` resource exists, the art overlay entry is included.
 #[test]
 fn when_card_art_shader_exists_then_art_overlay_present() {
     // Arrange
@@ -80,7 +80,7 @@ fn when_card_art_shader_exists_then_art_overlay_present() {
     );
 }
 
-/// @doc: The art overlay entry respects face_up=false by setting visible=false.
+/// @doc: The art overlay entry respects `face_up=false` by setting visible=false.
 #[test]
 fn when_face_down_then_art_overlay_not_visible() {
     // Arrange
@@ -103,7 +103,7 @@ fn when_face_down_then_art_overlay_not_visible() {
     );
 }
 
-/// @doc: The art overlay entry is visible when face_up is true.
+/// @doc: The art overlay entry is visible when `face_up` is true.
 #[test]
 fn when_face_up_then_art_overlay_visible() {
     // Arrange
@@ -119,10 +119,13 @@ fn when_face_up_then_art_overlay_visible() {
         .get::<MeshOverlays>(entity)
         .expect("spawned card should have MeshOverlays");
     let art = &overlays.0[0];
-    assert!(art.visible, "art overlay should be visible when card is face_up");
+    assert!(
+        art.visible,
+        "art overlay should be visible when card is face_up"
+    );
 }
 
-/// @doc: When GemShader resource exists, eight gem overlay entries are created (one per element).
+/// @doc: When `GemShader` resource exists, eight gem overlay entries are created (one per element).
 #[test]
 fn when_gem_shader_exists_then_eight_gem_overlays_present() {
     // Arrange
@@ -144,7 +147,7 @@ fn when_gem_shader_exists_then_eight_gem_overlays_present() {
     );
 }
 
-/// @doc: Gem overlays are front_only and not visible when card is face_down.
+/// @doc: Gem overlays are `front_only` and not visible when card is `face_down`.
 #[test]
 fn when_face_down_then_gem_overlays_not_visible() {
     // Arrange
@@ -160,16 +163,15 @@ fn when_face_down_then_gem_overlays_not_visible() {
         .get::<MeshOverlays>(entity)
         .expect("spawned card should have MeshOverlays");
     for (i, gem) in overlays.0.iter().enumerate() {
-        assert!(gem.front_only, "gem overlay {} should be front_only", i);
+        assert!(gem.front_only, "gem overlay {i} should be front_only");
         assert!(
             !gem.visible,
-            "gem overlay {} should not be visible when card is face_down",
-            i
+            "gem overlay {i} should not be visible when card is face_down"
         );
     }
 }
 
-/// @doc: Gem overlays are visible when card is face_up.
+/// @doc: Gem overlays are visible when card is `face_up`.
 #[test]
 fn when_face_up_then_gem_overlays_visible() {
     // Arrange
@@ -187,13 +189,12 @@ fn when_face_up_then_gem_overlays_visible() {
     for (i, gem) in overlays.0.iter().enumerate() {
         assert!(
             gem.visible,
-            "gem overlay {} should be visible when card is face_up",
-            i
+            "gem overlay {i} should be visible when card is face_up"
         );
     }
 }
 
-/// @doc: With both CardArtShader and GemShader, overlays contain art and gem entries combined.
+/// @doc: With both `CardArtShader` and `GemShader`, overlays contain art and gem entries combined.
 #[test]
 fn when_art_and_gem_shaders_exist_then_combined_overlays_present() {
     // Arrange

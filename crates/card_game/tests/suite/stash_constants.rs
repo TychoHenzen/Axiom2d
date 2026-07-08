@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::assertions_on_constants)]
 
 use card_game::stash::constants::{
     BACKGROUND_COLOR, GRID_MARGIN, SLOT_COLOR, SLOT_GAP, SLOT_HEIGHT, SLOT_HIGHLIGHT_COLOR,
@@ -7,45 +7,61 @@ use card_game::stash::constants::{
 use engine_core::color::Color;
 
 fn color_in_0_1_range(c: &Color) -> bool {
-    c.r >= 0.0 && c.r <= 1.0
-        && c.g >= 0.0 && c.g <= 1.0
-        && c.b >= 0.0 && c.b <= 1.0
-        && c.a >= 0.0 && c.a <= 1.0
+    c.r >= 0.0
+        && c.r <= 1.0
+        && c.g >= 0.0
+        && c.g <= 1.0
+        && c.b >= 0.0
+        && c.b <= 1.0
+        && c.a >= 0.0
+        && c.a <= 1.0
 }
 
 fn color_is_opaque(c: &Color) -> bool {
     (c.a - 1.0).abs() < f32::EPSILON
 }
 
-/// @doc: verifies SLOT_WIDTH is a positive pixel value
+/// @doc: verifies `SLOT_WIDTH` is a positive pixel value
 #[test]
 fn when_slot_width_then_positive() {
     // Arrange & Act & Assert
-    assert!(SLOT_WIDTH > 0.0, "SLOT_WIDTH must be positive, got {SLOT_WIDTH}");
+    assert!(
+        SLOT_WIDTH > 0.0,
+        "SLOT_WIDTH must be positive, got {SLOT_WIDTH}"
+    );
 }
 
-/// @doc: verifies SLOT_HEIGHT is a positive pixel value
+/// @doc: verifies `SLOT_HEIGHT` is a positive pixel value
 #[test]
 fn when_slot_height_then_positive() {
     // Arrange & Act & Assert
-    assert!(SLOT_HEIGHT > 0.0, "SLOT_HEIGHT must be positive, got {SLOT_HEIGHT}");
+    assert!(
+        SLOT_HEIGHT > 0.0,
+        "SLOT_HEIGHT must be positive, got {SLOT_HEIGHT}"
+    );
 }
 
-/// @doc: verifies SLOT_GAP is a non-negative spacing value
+/// @doc: verifies `SLOT_GAP` is a non-negative spacing value
 #[test]
 fn when_slot_gap_then_non_negative() {
     // Arrange & Act & Assert
-    assert!(SLOT_GAP >= 0.0, "SLOT_GAP must be non-negative, got {SLOT_GAP}");
+    assert!(
+        SLOT_GAP >= 0.0,
+        "SLOT_GAP must be non-negative, got {SLOT_GAP}"
+    );
 }
 
-/// @doc: verifies GRID_MARGIN is a positive pixel value
+/// @doc: verifies `GRID_MARGIN` is a positive pixel value
 #[test]
 fn when_grid_margin_then_positive() {
     // Arrange & Act & Assert
-    assert!(GRID_MARGIN > 0.0, "GRID_MARGIN must be positive, got {GRID_MARGIN}");
+    assert!(
+        GRID_MARGIN > 0.0,
+        "GRID_MARGIN must be positive, got {GRID_MARGIN}"
+    );
 }
 
-/// @doc: verifies SLOT_STRIDE_W equals SLOT_WIDTH plus SLOT_GAP
+/// @doc: verifies `SLOT_STRIDE_W` equals `SLOT_WIDTH` plus `SLOT_GAP`
 #[test]
 fn when_slot_stride_w_then_equals_slot_width_plus_gap() {
     // Arrange
@@ -58,7 +74,7 @@ fn when_slot_stride_w_then_equals_slot_width_plus_gap() {
     );
 }
 
-/// @doc: verifies SLOT_STRIDE_H equals SLOT_HEIGHT plus SLOT_GAP
+/// @doc: verifies `SLOT_STRIDE_H` equals `SLOT_HEIGHT` plus `SLOT_GAP`
 #[test]
 fn when_slot_stride_h_then_equals_slot_height_plus_gap() {
     // Arrange
@@ -95,7 +111,7 @@ fn when_gap_positive_then_stride_exceeds_slot_dimension() {
     );
 }
 
-/// @doc: verifies SLOT_COLOR has fully opaque alpha
+/// @doc: verifies `SLOT_COLOR` has fully opaque alpha
 #[test]
 fn when_slot_color_then_alpha_opaque() {
     // Arrange & Act & Assert
@@ -106,7 +122,7 @@ fn when_slot_color_then_alpha_opaque() {
     );
 }
 
-/// @doc: verifies SLOT_HIGHLIGHT_COLOR has fully opaque alpha
+/// @doc: verifies `SLOT_HIGHLIGHT_COLOR` has fully opaque alpha
 #[test]
 fn when_slot_highlight_color_then_alpha_opaque() {
     // Arrange & Act & Assert
@@ -117,7 +133,7 @@ fn when_slot_highlight_color_then_alpha_opaque() {
     );
 }
 
-/// @doc: verifies BACKGROUND_COLOR has fully opaque alpha
+/// @doc: verifies `BACKGROUND_COLOR` has fully opaque alpha
 #[test]
 fn when_background_color_then_alpha_opaque() {
     // Arrange & Act & Assert
@@ -156,8 +172,6 @@ fn when_highlight_color_then_brighter_than_slot_color() {
         SLOT_HIGHLIGHT_COLOR.r > SLOT_COLOR.r
             && SLOT_HIGHLIGHT_COLOR.g > SLOT_COLOR.g
             && SLOT_HIGHLIGHT_COLOR.b > SLOT_COLOR.b,
-        "SLOT_HIGHLIGHT_COLOR ({:?}) must be brighter than SLOT_COLOR ({:?})",
-        SLOT_HIGHLIGHT_COLOR,
-        SLOT_COLOR,
+        "SLOT_HIGHLIGHT_COLOR ({SLOT_HIGHLIGHT_COLOR:?}) must be brighter than SLOT_COLOR ({SLOT_COLOR:?})",
     );
 }
