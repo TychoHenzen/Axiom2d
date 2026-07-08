@@ -1,7 +1,7 @@
 {
   "project_root": "C:/Users/siriu/RustroverProjects/Axiom2d",
   "last_full_run": "2026-07-06T19:22:52.887355+00:00",
-  "last_partial_run": "2026-07-08T22:21:09.718165+00:00",
+  "last_partial_run": "2026-07-08T22:33:51.361069+00:00",
   "files": {
     "crates/axiom2d/tests/suite/default_plugins.rs": {
       "hash": "ae211c34dc3f7eebbd5d29d70c9dda4f21838e5a9f8bc83ab8b4decf9b535c13",
@@ -3729,26 +3729,139 @@
         }
       ],
       "summary": "Splash types tests covering SplashScreen, PreloadHooks, PostSplashSetup construction."
+    },
+    "crates/card_game/tests/suite/card_art_card_back.rs": {
+      "hash": "44ce4cbca5f304e3d9f7d6fe94d0864f56646335664485d19930ad1368c6a768",
+      "last_verified": "2026-07-08T22:33:51.361069+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 7,
+        "assertion_triviality": 10
+      },
+      "overall": 8.6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "coverage_depth",
+          "detail": "Tests only card_front2. Missing card_back pattern if exists."
+        }
+      ],
+      "summary": "Card back art tests covering shape generation, determinism, and color validation."
+    },
+    "crates/card_game/tests/suite/card_interaction_release_target.rs": {
+      "hash": "eec0658159374e6bebf21278fcc57dcf697db185dbef7b40eed7cdb404a80a10",
+      "last_verified": "2026-07-08T22:33:51.361069+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.4,
+      "findings": [],
+      "summary": "Release target tests covering store page snap-back, stash grid, hand zone, and boundary cases."
+    },
+    "crates/card_game/tests/suite/stash_store.rs": {
+      "hash": "ca7cc617753c0a8b2818e2d6e37633c23ddf7eee748c41a5804d5cbca17f2b49",
+      "last_verified": "2026-07-08T22:33:51.361069+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.4,
+      "findings": [],
+      "summary": "Store system tests covering wallet, catalog, buy/sell systems, and tab cost saturation."
+    },
+    "crates/card_game/tests/suite/card_rendering_overlay.rs": {
+      "hash": "af0833d184f862e3630a5e87cff5865088b3905efbb2ba25b66d23d533f3233b",
+      "last_verified": "2026-07-08T22:33:51.361069+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 9,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.3,
+      "findings": [],
+      "summary": "Overlay tests covering art, gem, and combined overlay entries for face-up/face-down cards."
+    },
+    "crates/card_game/tests/suite/stash_constants.rs": {
+      "hash": "375bf2b6851f57730b1fee40f271f9213c9c2a9c02f47c4d193aeaeb88f2f2f8",
+      "last_verified": "2026-07-08T22:36:57.822376+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.0,
+      "findings": [],
+      "summary": "Stash constants tests."
+    },
+    "crates/card_game/tests/suite/card_rendering_baked_mesh.rs": {
+      "hash": "f647e008eadc7d452ad1b512d8f740762d68e6761579b71d920a8cdaccb6a669",
+      "last_verified": "2026-07-08T22:36:57.822376+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.2,
+      "findings": [],
+      "summary": "Baked mesh tests."
+    },
+    "crates/card_game/tests/suite/card_interaction_drag_state.rs": {
+      "hash": "46e008b3012c9b7e8523a0403a094fc3cccc69f7845446a057051676972ac7cf",
+      "last_verified": "2026-07-08T22:36:57.822376+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.0,
+      "findings": [],
+      "summary": "Drag state tests."
     }
   },
   "coverage": {
     "total_source_files": 127,
-    "tested": 92,
+    "tested": 102,
     "possibly_tested": 0,
     "untested": 48,
     "untested_files": [
-      {
-        "path": "crates/axiom2d/src/splash/letters.rs",
-        "lines": 275,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/card_back.rs",
-        "lines": 903,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
       {
         "path": "crates/card_game/src/card/art/repository.rs",
         "lines": 3747,
@@ -3764,18 +3877,6 @@
       {
         "path": "crates/card_game/src/card/identity/signature/algorithms.rs",
         "lines": 31,
-        "reason": "No matching test file found by naming convention",
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/interaction/apply.rs",
-        "lines": 331,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/interaction/drag_state.rs",
-        "lines": 28,
         "reason": "No matching test file found by naming convention",
         "risk": "medium"
       },
@@ -3798,12 +3899,6 @@
         "risk": "medium"
       },
       {
-        "path": "crates/card_game/src/card/interaction/release/target.rs",
-        "lines": 130,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
         "path": "crates/card_game/src/card/reader/pick.rs",
         "lines": 23,
         "reason": "No matching test file found by naming convention",
@@ -3814,12 +3909,6 @@
         "lines": 17,
         "reason": "No matching test file found by naming convention",
         "risk": "low"
-      },
-      {
-        "path": "crates/card_game/src/card/rendering/baked_mesh.rs",
-        "lines": 26,
-        "reason": "No matching test file found by naming convention",
-        "risk": "medium"
       },
       {
         "path": "crates/card_game/src/card/rendering/baked_render.rs",
@@ -3834,40 +3923,16 @@
         "risk": "medium"
       },
       {
-        "path": "crates/card_game/src/card/rendering/spawn_table_card/overlay.rs",
-        "lines": 245,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
         "path": "crates/card_game/src/card/rendering/spawn_table_card/text.rs",
         "lines": 50,
         "reason": "No matching test file found by naming convention",
         "risk": "medium"
       },
       {
-        "path": "crates/card_game/src/stash/constants.rs",
-        "lines": 26,
-        "reason": "No matching test file found by naming convention",
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/stash/render/drag_preview.rs",
-        "lines": 102,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
         "path": "crates/card_game/src/stash/render/models.rs",
         "lines": 13,
         "reason": "No matching test file found by naming convention",
         "risk": "low"
-      },
-      {
-        "path": "crates/card_game/src/stash/store.rs",
-        "lines": 928,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
       },
       {
         "path": "crates/engine_audio/src/playback/buffer.rs",
@@ -3958,7 +4023,7 @@
     "target_average": 8.0,
     "target_min_file": 6.5,
     "target_coverage": 0.8,
-    "current_average": 8.6,
+    "current_average": 8.62,
     "cleanup_branch": "quality/upgrade",
     "base_branch": "master",
     "tooling": {
