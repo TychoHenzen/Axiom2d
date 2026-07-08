@@ -92,7 +92,8 @@ struct SimParams {
     grid_cell_size: f32,
     grid_width: u32,
     grid_height: u32,
-    _pad: [u32; 2],
+    disable_velocity_cap: u32,
+    sub_steps: u32,
 }
 
 #[repr(u32)]
@@ -251,6 +252,8 @@ fn main() {
     let test_bond_form = std::env::args().any(|a| a == "--test-bond-form");
     let test_bond_constrain = std::env::args().any(|a| a == "--test-bond-constrain");
     let test_bond_break = std::env::args().any(|a| a == "--test-bond-break");
+    let test_paddle_stability = std::env::args().any(|a| a == "--test-paddle-stability");
+    let test_paddle_root_cause = std::env::args().any(|a| a == "--test-paddle-root-cause");
     let num_particles = parse_flag_arg("--particles", MAX_PARTICLES);
     let sub_steps = parse_flag_arg("--substeps", SUB_STEPS);
     let event_loop = EventLoop::new().expect("event loop");
@@ -261,6 +264,8 @@ fn main() {
         test_bond_form,
         test_bond_constrain,
         test_bond_break,
+        test_paddle_stability,
+        test_paddle_root_cause,
         num_particles,
         sub_steps,
     };
@@ -274,9 +279,14 @@ struct App {
     test_bond_form: bool,
     test_bond_constrain: bool,
     test_bond_break: bool,
+    test_paddle_stability: bool,
+    test_paddle_root_cause: bool,
     num_particles: u32,
     sub_steps: u32,
 }
+
+const MAX_OUTLIERS: u32 = 64;
+const MAX_PHASING: u32 = 32;
 
 struct Buffers {
     positions: wgpu::Buffer,
@@ -296,6 +306,11 @@ struct Buffers {
     bonds: wgpu::Buffer,
     // Per-machine atomic counter: GPU-side consumption tracking.
     machine_counters: wgpu::Buffer,
+    // GPU outlier/phasing detection buffers.
+    outlier_buf: wgpu::Buffer,
+    outlier_count_buf: wgpu::Buffer,
+    phasing_buf: wgpu::Buffer,
+    phasing_count_buf: wgpu::Buffer,
 }
 
 struct ComputePipelines {
@@ -311,6 +326,8 @@ struct ComputePipelines {
     form_bonds: wgpu::ComputePipeline,
     form_bonds_resolve: wgpu::ComputePipeline,
     solve_bonds: wgpu::ComputePipeline,
+    detect_outliers: wgpu::ComputePipeline,
+    detect_phasing: wgpu::ComputePipeline,
 }
 
 struct MachineRenderState {
@@ -351,6 +368,7 @@ struct State {
     grid_bg: wgpu::BindGroup,
     pipelines: ComputePipelines,
     render: RenderState,
+    detection_bg: wgpu::BindGroup,
     sim_params: SimParams,
     fps_tracker: FpsTracker,
     benchmark: bool,
@@ -360,6 +378,8 @@ struct State {
     test_bond_form: bool,
     test_bond_constrain: bool,
     test_bond_break: bool,
+    test_paddle_stability: bool,
+    test_paddle_root_cause: bool,
     test_phase: u32,
     test_report_done: bool,
     diagnose: bool,
@@ -373,6 +393,11 @@ struct State {
     machine_time: f32,
     num_particles: u32,
     sub_steps: u32,
+    max_speed_seen: f32,
+    outlier_staging: Option<wgpu::Buffer>,
+    phasing_staging: Option<wgpu::Buffer>,
+    outlier_count_staging: Option<wgpu::Buffer>,
+    phasing_count_staging: Option<wgpu::Buffer>,
 }
 
 struct FpsTracker {
@@ -510,6 +535,38 @@ fn create_buffers(device: &wgpu::Device) -> Buffers {
                 | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         }),
+        outlier_buf: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("outlier_buf"),
+            size: 2048,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        }),
+        outlier_count_buf: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("outlier_count"),
+            size: 4,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        }),
+        phasing_buf: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("phasing_buf"),
+            size: 512,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        }),
+        phasing_count_buf: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("phasing_count"),
+            size: 4,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        }),
     }
 }
 
@@ -552,6 +609,22 @@ fn create_particle_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
             storage_entry(8, true),   // machine_params (read-only storage)
             storage_entry(9, true),   // reaction_matrix (read-only storage)
             storage_entry(10, false), // bonds (flat array, 4 slots per particle)
+        ],
+    })
+}
+
+fn create_detection_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("detection_bgl"),
+        entries: &[
+            storage_entry(0, true),  // positions (read-only)
+            storage_entry(1, true),  // velocities (read-only)
+            storage_entry(2, false), // outlier_count (atomic<u32>)
+            storage_entry(3, false), // phasing_count (atomic<u32>)
+            storage_entry(4, false), // outlier_data (array<u32>)
+            storage_entry(5, false), // phasing_data (array<u32>)
+            uniform_entry(6),        // params
+            storage_entry(7, true),  // machine_params (read-only)
         ],
     })
 }
@@ -669,10 +742,57 @@ fn make_compute_pipeline(
     })
 }
 
+fn create_detection_bg(
+    device: &wgpu::Device,
+    buffers: &Buffers,
+    machine_params_buf: &wgpu::Buffer,
+    detection_bgl: &wgpu::BindGroupLayout,
+) -> wgpu::BindGroup {
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("detection_bg"),
+        layout: detection_bgl,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: buffers.positions.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: buffers.velocities.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: buffers.outlier_count_buf.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: buffers.phasing_count_buf.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: buffers.outlier_buf.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 5,
+                resource: buffers.phasing_buf.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 6,
+                resource: buffers.params.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 7,
+                resource: machine_params_buf.as_entire_binding(),
+            },
+        ],
+    })
+}
+
 fn create_pipelines(
     device: &wgpu::Device,
     particle_bgl: &wgpu::BindGroupLayout,
     grid_bgl: &wgpu::BindGroupLayout,
+    detection_bgl: &wgpu::BindGroupLayout,
 ) -> ComputePipelines {
     let integrate_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("integrate_pl"),
@@ -682,6 +802,11 @@ fn create_pipelines(
     let spatial_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("spatial_pl"),
         bind_group_layouts: &[particle_bgl, grid_bgl],
+        push_constant_ranges: &[],
+    });
+    let detection_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("detection_pl"),
+        bind_group_layouts: &[detection_bgl],
         push_constant_ranges: &[],
     });
 
@@ -712,6 +837,10 @@ fn create_pipelines(
     let solve_bonds_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("solve_bonds"),
         source: wgpu::ShaderSource::Wgsl(include_str!("shaders/solve_bonds.wgsl").into()),
+    });
+    let detection_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("detection"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/detection.wgsl").into()),
     });
 
     ComputePipelines {
@@ -792,6 +921,20 @@ fn create_pipelines(
             &solve_bonds_shader,
             "solve_bonds",
             "solve_bonds",
+        ),
+        detect_outliers: make_compute_pipeline(
+            device,
+            &detection_layout,
+            &detection_shader,
+            "detect_outliers",
+            "detect_outliers",
+        ),
+        detect_phasing: make_compute_pipeline(
+            device,
+            &detection_layout,
+            &detection_shader,
+            "detect_phasing",
+            "detect_phasing",
         ),
     }
 }
@@ -1139,6 +1282,7 @@ fn init_machines(mut rapier: RapierState) -> (Vec<MachineDef>, Vec<MachineCpuSta
 }
 
 impl State {
+    #[allow(clippy::fn_params_excessive_bools)]
     fn new(
         window: Arc<Window>,
         benchmark: bool,
@@ -1146,6 +1290,8 @@ impl State {
         test_bond_form: bool,
         test_bond_constrain: bool,
         test_bond_break: bool,
+        test_paddle_stability: bool,
+        test_paddle_root_cause: bool,
         num_particles: u32,
         sub_steps: u32,
     ) -> Self {
@@ -1191,6 +1337,7 @@ impl State {
         let buffers = create_buffers(&device);
         let particle_bgl = create_particle_bgl(&device);
         let grid_bgl = create_grid_bgl(&device);
+        let detection_bgl = create_detection_bgl(&device);
 
         // Init Rapier2D for machine rigid bodies.
         let rapier = RapierState {
@@ -1220,7 +1367,13 @@ impl State {
             &particle_bgl,
             &grid_bgl,
         );
-        let pipelines = create_pipelines(&device, &particle_bgl, &grid_bgl);
+        let detection_bg = create_detection_bg(
+            &device,
+            &buffers,
+            &machine_params_buf,
+            &detection_bgl,
+        );
+        let pipelines = create_pipelines(&device, &particle_bgl, &grid_bgl, &detection_bgl);
         let render = create_render_state(&device, &buffers, surface_config.format);
 
         let sim_params = SimParams {
@@ -1242,7 +1395,8 @@ impl State {
             grid_cell_size: 1.6 / GRID_W as f32,
             grid_width: GRID_W,
             grid_height: GRID_H,
-            _pad: [0; 2],
+            disable_velocity_cap: 0,
+            sub_steps,
         };
 
         // Initialize reaction matrix.
@@ -1295,6 +1449,7 @@ impl State {
             grid_bg,
             pipelines,
             render,
+            detection_bg,
             sim_params,
             fps_tracker: FpsTracker::new(),
             benchmark,
@@ -1304,6 +1459,8 @@ impl State {
             test_bond_form,
             test_bond_constrain,
             test_bond_break,
+            test_paddle_stability,
+            test_paddle_root_cause,
             test_phase: 0,
             test_report_done: false,
             diagnose,
@@ -1317,6 +1474,11 @@ impl State {
             machine_time: 0.0,
             num_particles,
             sub_steps,
+            max_speed_seen: 0.0,
+            outlier_staging: None,
+            phasing_staging: None,
+            outlier_count_staging: None,
+            phasing_count_staging: None,
         }
     }
 
@@ -1495,16 +1657,18 @@ impl State {
         drop(sp_data);
         sp_staging.unmap();
 
+        let tracked_max = self.max_speed_seen;
         let nan_ok = nan_count == 0;
         let oob_ok = oob == 0;
         let ke_ok = ke_outliers == 0;
         let speed_ok = max_speed < 2.0;
-        let all_ok = nan_ok && oob_ok && ke_ok && speed_ok;
+        let tracked_ok = tracked_max < 2.0;
+        let all_ok = nan_ok && oob_ok && ke_ok && speed_ok && tracked_ok;
 
         println!(
             "Stability: n={n} nan={nan_count} oob={oob} \
              ke_outliers={ke_outliers}/{n} (green={green_outliers} median={median_ke:.6} σ={stddev_ke:.6} thresh={outlier_threshold:.6}) \
-             vmax={max_speed:.3} — {}",
+             vmax={max_speed:.3} tracked_max={tracked_max:.3} — {}",
             if all_ok { "PASS" } else { "FAIL" }
         );
         if !nan_ok {
@@ -1520,6 +1684,11 @@ impl State {
         }
         if !speed_ok {
             println!("  FAIL: max_speed={max_speed:.3} >= 2.0");
+        }
+        if !tracked_ok {
+            println!(
+                "  FAIL: tracked_max_speed={tracked_max:.3} >= 2.0 (transient spike detected during simulation)"
+            );
         }
 
         drop(data);
@@ -1773,8 +1942,10 @@ impl State {
             let t = pos.translation;
             let angle = pos.rotation.angle();
             let (hw, hh) = if def.kind as u32 == 0 {
-                // Capsule body collision: match Rapier collider half-width.
-                (CAPSULE_RADIUS * 0.5, CAPSULE_HALF_LEN)
+                // Capsule body: interior of the tilted conveyor belt.
+                // Must match Rapier collider shape: half_width = CAPSULE_RADIUS,
+                // half_height = CAPSULE_HALF_LEN. Particles cannot pass through.
+                (CAPSULE_RADIUS, CAPSULE_HALF_LEN)
             } else {
                 (SENSOR_HALF, SENSOR_HALF)
             };
@@ -1800,7 +1971,7 @@ impl State {
             let cb = cpu.color_base;
             // Render track slightly thinner than collision hull.
             let (rhw, rhh) = if def.kind as u32 == 0 {
-                (CAPSULE_RADIUS * 0.4, CAPSULE_HALF_LEN)
+                (CAPSULE_RADIUS * 0.8, CAPSULE_HALF_LEN)
             } else {
                 (hw, hh)
             };
@@ -1959,7 +2130,14 @@ impl State {
     fn test_setup(&mut self) {
         let n = MAX_PARTICLES as usize;
 
-        self.sim_params.gravity = 0.0;
+        // Zero gravity for bond tests; paddle tests need gravity for realistic interaction.
+        let is_bond_test = self.test_bond_form
+            || self.test_bond_constrain
+            || self.test_bond_break;
+        if is_bond_test {
+            self.sim_params.gravity = 0.0;
+        }
+        self.sim_params.disable_velocity_cap = u32::from(self.test_paddle_root_cause);
 
         // Write test particle data via staging buffers with explicit encoder+submit
         // to ensure writes land before subsequent compute passes.
@@ -2033,6 +2211,55 @@ impl State {
                 };
                 self.queue
                     .write_buffer(&self.buffers.bonds, 0, bytemuck::cast_slice(&bonds));
+            } else if self.test_paddle_stability || self.test_paddle_root_cause {
+                // Spawn particles directly on the belt surface (upward-facing side).
+                // Capsule: center (0,-0.22), rotated 45°, half_width=0.055, half_height=0.22.
+                // Belt surface points (upward-facing, perpendicular = (-sin45, cos45)):
+                //   for t in [-0.22, 0.22]: pos = (0,-0.22) + t*(cos45,sin45) + 0.055*(-sin45,cos45)
+                let count = 1000u32;
+                let r = self.sim_params.particle_radius;
+                let spacing = 2.1 * r;
+                let cols = 50u32;
+                let mut positions = Vec::with_capacity(count as usize);
+                let mut velocities = Vec::with_capacity(count as usize);
+                let mut species = Vec::with_capacity(count as usize);
+                // Spawn on belt surface so particles immediately rest against capsule body.
+                let cos45 = 0.7071068f32;
+                let sin45 = 0.7071068f32;
+                let belt_perp_x = -sin45;
+                let belt_perp_y = cos45;
+                let belt_tan_x = cos45;
+                let belt_tan_y = sin45;
+                let belt_cx = 0.0f32;
+                let belt_cy = -0.22f32;
+                let surface_offset = CAPSULE_RADIUS + r;
+                let rows = count / cols;
+                for row in 0..rows {
+                    for col in 0..cols {
+                        let t = -CAPSULE_HALF_LEN + col as f32 * 2.0 * CAPSULE_HALF_LEN / cols as f32;
+                        let x = belt_cx + t * belt_tan_x + surface_offset * belt_perp_x;
+                        let y = belt_cy + t * belt_tan_y + surface_offset * belt_perp_y
+                            - row as f32 * spacing;
+                        positions.push([x, y]);
+                        velocities.push([0.0f32, 0.0]);
+                        species.push((row * cols + col) as u32 % 3);
+                    }
+                }
+                {
+                    let mut view = staging.slice(..).get_mapped_range_mut();
+                    let pos_slice = bytemuck::cast_slice(&positions);
+                    view[..pos_slice.len()].copy_from_slice(pos_slice);
+                    let vel_slice = bytemuck::cast_slice(&velocities);
+                    view[(pos_bytes as usize)..(pos_bytes as usize) + vel_slice.len()]
+                        .copy_from_slice(vel_slice);
+                    let sp_slice = bytemuck::cast_slice(&species);
+                    view[(pos_bytes as usize + vel_bytes as usize)
+                        ..(pos_bytes as usize + vel_bytes as usize) + sp_slice.len()]
+                        .copy_from_slice(sp_slice);
+                }
+                staging.unmap();
+                self.sim_params.particle_count = count;
+                // Machines stay active (not nulled) — paddles collide.
             }
 
             encoder.copy_buffer_to_buffer(&staging, 0, &self.buffers.positions, 0, pos_bytes);
@@ -2136,6 +2363,81 @@ impl State {
                 eprintln!("test-bond-break: FAIL — bonds not cleared");
                 std::process::exit(1);
             }
+        } else if self.test_paddle_stability || self.test_paddle_root_cause {
+            // Verify after 10-second run: speed cap held, no NaN, no tunneling.
+            let n = self.sim_params.particle_count as usize;
+            // Read positions + velocities.
+            let pos_bytes = (n * 8) as u64;
+            let vel_bytes = (n * 8) as u64;
+            let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("paddle_verify_staging"),
+                size: pos_bytes + vel_bytes,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            });
+            let mut encoder = self
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("paddle_verify"),
+                });
+            encoder.copy_buffer_to_buffer(&self.buffers.positions, 0, &staging, 0, pos_bytes);
+            encoder.copy_buffer_to_buffer(
+                &self.buffers.velocities,
+                0,
+                &staging,
+                pos_bytes,
+                vel_bytes,
+            );
+            self.queue.submit(std::iter::once(encoder.finish()));
+            let slice = staging.slice(..);
+            slice.map_async(wgpu::MapMode::Read, |r| r.expect("map paddle verify"));
+            self.device.poll(wgpu::Maintain::Wait);
+            let data = slice.get_mapped_range();
+            let positions: &[[f32; 2]] = bytemuck::cast_slice(&data[..n * 8]);
+            let vel_offset = pos_bytes as usize;
+            let velocities: &[[f32; 2]] =
+                bytemuck::cast_slice(&data[vel_offset..vel_offset + n * 8]);
+
+            let mut nan_count = 0usize;
+            let mut max_speed = 0.0f32;
+            for i in 0..n {
+                let [px, py] = positions[i];
+                let [vx, vy] = velocities[i];
+                if !px.is_finite() || !py.is_finite() || !vx.is_finite() || !vy.is_finite() {
+                    nan_count += 1;
+                    continue;
+                }
+                let speed = (vx * vx + vy * vy).sqrt();
+                max_speed = max_speed.max(speed);
+            }
+            drop(data);
+            staging.unmap();
+
+            let nan_ok = nan_count == 0;
+            let speed_ok = max_speed < 2.0;
+            let tracked_ok = self.max_speed_seen < 2.0;
+            let all_ok = nan_ok && speed_ok && tracked_ok;
+
+            println!(
+                "test-paddle-stability: n={n} nan={nan_count} vmax={max_speed:.3} tracked_max={:.3} — {}",
+                self.max_speed_seen,
+                if all_ok { "PASS" } else { "FAIL" },
+            );
+            if !nan_ok {
+                println!("  FAIL: {nan_count} NaN values");
+            }
+            if !speed_ok {
+                println!("  FAIL: max_speed={max_speed:.3} >= 2.0");
+            }
+            if !tracked_ok {
+                println!(
+                    "  FAIL: tracked_max_speed={:.3} >= 2.0",
+                    self.max_speed_seen
+                );
+            }
+            if !all_ok {
+                std::process::exit(1);
+            }
         }
     }
 
@@ -2145,6 +2447,13 @@ impl State {
             0,
             bytemuck::bytes_of(&self.sim_params),
         );
+
+        // Clear outlier/phasing atomic counters and data before this frame's detection passes.
+        let zero4: [u8; 4] = [0; 4];
+        self.queue
+            .write_buffer(&self.buffers.outlier_count_buf, 0, &zero4);
+        self.queue
+            .write_buffer(&self.buffers.phasing_count_buf, 0, &zero4);
 
         let pc = self.sim_params.particle_count;
         let particle_wg = pc.div_ceil(WORKGROUP_SIZE);
@@ -2213,6 +2522,63 @@ impl State {
             pass.set_pipeline(&self.pipelines.form_bonds_resolve);
             pass.dispatch_workgroups(particle_wg, 1, 1);
         }
+        // Outlier + phasing detection (one dispatch per frame, not per substep).
+        {
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("detection"),
+                ..Default::default()
+            });
+            pass.set_bind_group(0, &self.detection_bg, &[]);
+            pass.set_pipeline(&self.pipelines.detect_outliers);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
+            pass.set_pipeline(&self.pipelines.detect_phasing);
+            pass.dispatch_workgroups(particle_wg, 1, 1);
+        }
+        // Copy results to staging for CPU readback.
+        let outlier_staging = self
+            .outlier_staging
+            .get_or_insert_with(|| {
+                self.device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("outlier_staging"),
+                    size: 2048,
+                    usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                    mapped_at_creation: false,
+                })
+            });
+        let phasing_staging = self
+            .phasing_staging
+            .get_or_insert_with(|| {
+                self.device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("phasing_staging"),
+                    size: 512,
+                    usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                    mapped_at_creation: false,
+                })
+            });
+        let outlier_count_staging = self
+            .outlier_count_staging
+            .get_or_insert_with(|| {
+                self.device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("outlier_count_staging"),
+                    size: 4,
+                    usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                    mapped_at_creation: false,
+                })
+            });
+        let phasing_count_staging = self
+            .phasing_count_staging
+            .get_or_insert_with(|| {
+                self.device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("phasing_count_staging"),
+                    size: 4,
+                    usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                    mapped_at_creation: false,
+                })
+            });
+        encoder.copy_buffer_to_buffer(&self.buffers.outlier_buf, 0, outlier_staging, 0, 2048);
+        encoder.copy_buffer_to_buffer(&self.buffers.phasing_buf, 0, phasing_staging, 0, 512);
+        encoder.copy_buffer_to_buffer(&self.buffers.outlier_count_buf, 0, outlier_count_staging, 0, 4);
+        encoder.copy_buffer_to_buffer(&self.buffers.phasing_count_buf, 0, phasing_count_staging, 0, 4);
         // Copy GPU counters → staging for next frame's CPU readback.
         encoder.copy_buffer_to_buffer(
             &self.buffers.machine_counters,
@@ -2224,19 +2590,60 @@ impl State {
         self.queue.submit(std::iter::once(encoder.finish()));
     }
 
+    fn read_outliers(&mut self, _frame: u32) -> (f32, usize) {
+        let count_staging = self.outlier_count_staging.as_ref().expect("outlier_count_staging missing");
+        let count_slice = count_staging.slice(..);
+        count_slice.map_async(wgpu::MapMode::Read, |_| {});
+        self.device.poll(wgpu::Maintain::Wait);
+        let count_data = count_slice.get_mapped_range();
+        let count = u32::from_le_bytes([count_data[0], count_data[1], count_data[2], count_data[3]])
+            .min(MAX_OUTLIERS) as usize;
+        drop(count_data);
+        count_staging.unmap();
+
+        if count == 0 {
+            return (0.0, 0);
+        }
+
+        let staging = self.outlier_staging.as_ref().expect("outlier_staging missing");
+        let slice = staging.slice(..);
+        slice.map_async(wgpu::MapMode::Read, |_| {});
+        self.device.poll(wgpu::Maintain::Wait);
+        let data = slice.get_mapped_range();
+        let words: &[u32] = bytemuck::cast_slice(&data[..]);
+        let mut max_speed = 0.0f32;
+        for k in 0..count {
+            let base = k * 6;
+            let speed = f32::from_bits(words[base + 5]);
+            max_speed = max_speed.max(speed);
+        }
+        drop(data);
+        staging.unmap();
+        (max_speed, count)
+    }
+
+    fn read_phasing(&mut self, _frame: u32) -> usize {
+        let count_staging = self.phasing_count_staging.as_ref().expect("phasing_count_staging missing");
+        let count_slice = count_staging.slice(..);
+        count_slice.map_async(wgpu::MapMode::Read, |_| {});
+        self.device.poll(wgpu::Maintain::Wait);
+        let count_data = count_slice.get_mapped_range();
+        let count = u32::from_le_bytes([count_data[0], count_data[1], count_data[2], count_data[3]])
+            .min(MAX_PHASING) as usize;
+        drop(count_data);
+        count_staging.unmap();
+        count
+    }
+
     fn render(&mut self) {
         const WARMUP_FRAMES: u32 = 10;
         const BENCH_DURATION_SECS: f64 = 10.0;
 
         self.update_machines();
 
-        let any_test = self.test_bond_form || self.test_bond_constrain || self.test_bond_break;
-
-        if any_test {
+        if self.test_bond_form || self.test_bond_constrain || self.test_bond_break {
             self.fps_tracker.begin_frame();
-            // Ensure previous frame's GPU work is complete before modifying buffers.
             self.device.poll(wgpu::Maintain::Wait);
-            // Disable machines for small bond tests — move far from particles.
             let null_machines = MachineParams::default();
             self.queue.write_buffer(
                 &self.machine_params_buf,
@@ -2247,12 +2654,45 @@ impl State {
                 self.test_setup();
             }
             self.simulate();
-
             self.test_phase += 1;
             if self.test_phase >= 5 && !self.test_report_done {
                 self.test_verify();
                 self.test_report_done = true;
                 self.bench_done = true;
+            }
+        } else if self.test_paddle_stability || self.test_paddle_root_cause {
+            // 10-second stability/root-cause test with active machines.
+            if self.test_phase == 0 {
+                self.test_setup();
+            }
+            self.test_phase += 1;
+            self.update_machines();
+            if self.bench_frame == WARMUP_FRAMES {
+                self.bench_start = Some(Instant::now());
+            }
+            self.simulate();
+            if self.bench_frame > WARMUP_FRAMES {
+                let (frame_max, _n) = self.read_outliers(self.bench_frame);
+                let phasing_count = self.read_phasing(self.bench_frame);
+                if phasing_count > 0 {
+                    eprintln!(
+                        "  WARN frame {}: {} phasing events detected",
+                        self.bench_frame, phasing_count
+                    );
+                }
+                // Track max speed from GPU readback.
+                if frame_max > self.max_speed_seen {
+                    self.max_speed_seen = frame_max;
+                }
+            }
+            self.bench_frame += 1;
+            if self.bench_start.is_some() {
+                let elapsed = self.bench_start.unwrap().elapsed().as_secs_f64();
+                if elapsed >= BENCH_DURATION_SECS {
+                    self.test_verify();
+                    self.test_report_done = true;
+                    self.bench_done = true;
+                }
             }
         } else if self.benchmark {
             if self.bench_frame == 0 {
@@ -2262,6 +2702,20 @@ impl State {
                 self.bench_start = Some(Instant::now());
             }
             self.simulate();
+            // Per-frame outlier + phasing detection during measurement window.
+            if self.bench_frame > WARMUP_FRAMES {
+                let (frame_max, _n) = self.read_outliers(self.bench_frame);
+                let phasing_count = self.read_phasing(self.bench_frame);
+                if phasing_count > 0 {
+                    eprintln!(
+                        "  FAIL frame {}: {} phasing events detected",
+                        self.bench_frame, phasing_count
+                    );
+                }
+                if frame_max > self.max_speed_seen {
+                    self.max_speed_seen = frame_max;
+                }
+            }
         } else {
             self.fps_tracker.begin_frame();
             self.spawn();
@@ -2407,6 +2861,8 @@ impl ApplicationHandler for App {
             self.test_bond_form,
             self.test_bond_constrain,
             self.test_bond_break,
+            self.test_paddle_stability,
+            self.test_paddle_root_cause,
             self.num_particles,
             self.sub_steps,
         ));
