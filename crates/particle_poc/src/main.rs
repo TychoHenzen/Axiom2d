@@ -1367,12 +1367,8 @@ impl State {
             &particle_bgl,
             &grid_bgl,
         );
-        let detection_bg = create_detection_bg(
-            &device,
-            &buffers,
-            &machine_params_buf,
-            &detection_bgl,
-        );
+        let detection_bg =
+            create_detection_bg(&device, &buffers, &machine_params_buf, &detection_bgl);
         let pipelines = create_pipelines(&device, &particle_bgl, &grid_bgl, &detection_bgl);
         let render = create_render_state(&device, &buffers, surface_config.format);
 
@@ -2131,9 +2127,7 @@ impl State {
         let n = MAX_PARTICLES as usize;
 
         // Zero gravity for bond tests; paddle tests need gravity for realistic interaction.
-        let is_bond_test = self.test_bond_form
-            || self.test_bond_constrain
-            || self.test_bond_break;
+        let is_bond_test = self.test_bond_form || self.test_bond_constrain || self.test_bond_break;
         if is_bond_test {
             self.sim_params.gravity = 0.0;
         }
@@ -2236,13 +2230,14 @@ impl State {
                 let rows = count / cols;
                 for row in 0..rows {
                     for col in 0..cols {
-                        let t = -CAPSULE_HALF_LEN + col as f32 * 2.0 * CAPSULE_HALF_LEN / cols as f32;
+                        let t =
+                            -CAPSULE_HALF_LEN + col as f32 * 2.0 * CAPSULE_HALF_LEN / cols as f32;
                         let x = belt_cx + t * belt_tan_x + surface_offset * belt_perp_x;
                         let y = belt_cy + t * belt_tan_y + surface_offset * belt_perp_y
                             - row as f32 * spacing;
                         positions.push([x, y]);
                         velocities.push([0.0f32, 0.0]);
-                        species.push((row * cols + col) as u32 % 3);
+                        species.push((row * cols + col) % 3);
                     }
                 }
                 {
@@ -2535,50 +2530,54 @@ impl State {
             pass.dispatch_workgroups(particle_wg, 1, 1);
         }
         // Copy results to staging for CPU readback.
-        let outlier_staging = self
-            .outlier_staging
-            .get_or_insert_with(|| {
-                self.device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some("outlier_staging"),
-                    size: 2048,
-                    usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-                    mapped_at_creation: false,
-                })
-            });
-        let phasing_staging = self
-            .phasing_staging
-            .get_or_insert_with(|| {
-                self.device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some("phasing_staging"),
-                    size: 512,
-                    usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-                    mapped_at_creation: false,
-                })
-            });
-        let outlier_count_staging = self
-            .outlier_count_staging
-            .get_or_insert_with(|| {
-                self.device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some("outlier_count_staging"),
-                    size: 4,
-                    usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-                    mapped_at_creation: false,
-                })
-            });
-        let phasing_count_staging = self
-            .phasing_count_staging
-            .get_or_insert_with(|| {
-                self.device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some("phasing_count_staging"),
-                    size: 4,
-                    usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-                    mapped_at_creation: false,
-                })
-            });
+        let outlier_staging = self.outlier_staging.get_or_insert_with(|| {
+            self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("outlier_staging"),
+                size: 2048,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            })
+        });
+        let phasing_staging = self.phasing_staging.get_or_insert_with(|| {
+            self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("phasing_staging"),
+                size: 512,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            })
+        });
+        let outlier_count_staging = self.outlier_count_staging.get_or_insert_with(|| {
+            self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("outlier_count_staging"),
+                size: 4,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            })
+        });
+        let phasing_count_staging = self.phasing_count_staging.get_or_insert_with(|| {
+            self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("phasing_count_staging"),
+                size: 4,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            })
+        });
         encoder.copy_buffer_to_buffer(&self.buffers.outlier_buf, 0, outlier_staging, 0, 2048);
         encoder.copy_buffer_to_buffer(&self.buffers.phasing_buf, 0, phasing_staging, 0, 512);
-        encoder.copy_buffer_to_buffer(&self.buffers.outlier_count_buf, 0, outlier_count_staging, 0, 4);
-        encoder.copy_buffer_to_buffer(&self.buffers.phasing_count_buf, 0, phasing_count_staging, 0, 4);
+        encoder.copy_buffer_to_buffer(
+            &self.buffers.outlier_count_buf,
+            0,
+            outlier_count_staging,
+            0,
+            4,
+        );
+        encoder.copy_buffer_to_buffer(
+            &self.buffers.phasing_count_buf,
+            0,
+            phasing_count_staging,
+            0,
+            4,
+        );
         // Copy GPU counters → staging for next frame's CPU readback.
         encoder.copy_buffer_to_buffer(
             &self.buffers.machine_counters,
@@ -2591,7 +2590,10 @@ impl State {
     }
 
     fn read_outliers(&mut self, _frame: u32) -> (f32, usize) {
-        let count_staging = self.outlier_count_staging.as_ref().expect("outlier_count_staging missing");
+        let count_staging = self
+            .outlier_count_staging
+            .as_ref()
+            .expect("outlier_count_staging missing");
         let count_slice = count_staging.slice(..);
         count_slice.map_async(wgpu::MapMode::Read, |_| {});
         self.device.poll(wgpu::Maintain::Wait);
@@ -2605,7 +2607,10 @@ impl State {
             return (0.0, 0);
         }
 
-        let staging = self.outlier_staging.as_ref().expect("outlier_staging missing");
+        let staging = self
+            .outlier_staging
+            .as_ref()
+            .expect("outlier_staging missing");
         let slice = staging.slice(..);
         slice.map_async(wgpu::MapMode::Read, |_| {});
         self.device.poll(wgpu::Maintain::Wait);
@@ -2623,7 +2628,10 @@ impl State {
     }
 
     fn read_phasing(&mut self, _frame: u32) -> usize {
-        let count_staging = self.phasing_count_staging.as_ref().expect("phasing_count_staging missing");
+        let count_staging = self
+            .phasing_count_staging
+            .as_ref()
+            .expect("phasing_count_staging missing");
         let count_slice = count_staging.slice(..);
         count_slice.map_async(wgpu::MapMode::Read, |_| {});
         self.device.poll(wgpu::Maintain::Wait);
