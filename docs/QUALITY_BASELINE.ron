@@ -1,5 +1,5 @@
 // Quality Gate Baseline — ratchet thresholds for CI enforcement.
-// Generated: 2026-07-04
+// Auto-updated: 2026-07-09
 //
 // RULES:
 //   Hard gates: current value must be 0. Any increase → CI FAIL.
@@ -20,7 +20,7 @@
         "shader_errors": 0,
     },
     "soft": {
-        "test_count_total": 1544,
+        "test_count_total": 1752,
         "smell_markers_total": 0,
         "unsafe_blocks_total": 2,
         "unwrap_in_prod_total": 0,
@@ -40,13 +40,12 @@
         // },
     },
     "meta": {
-        "last_updated": "2026-07-04",
+        "last_updated": "2026-07-09",
         "schema_version": 1,
         "notes": [
             "unsafe_blocks_total=2: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
-            "unwrap_in_prod_total=0: excludes tests/, benches/, and particle_poc/ (standalone POC binary)",
             "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
-            "test_count_total=1544: all #[test] and #[tokio::test] across workspace (including tools/)",
+            "test_count_total=1752: all #[test] and #[tokio::test] across workspace (including tools/)",
             "smell_markers_total=0: no TODO/FIXME/HACK in production code",
         ],
     },
