@@ -17,4 +17,3 @@ mod shape_tessellate;
 mod testing_mod;
 mod testing_visual_regression;
 mod wgpu_renderer_renderer;
-mod wgpu_renderer_types;

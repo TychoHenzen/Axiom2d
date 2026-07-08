@@ -1,7 +1,7 @@
 {
   "project_root": "C:/Users/siriu/RustroverProjects/Axiom2d",
   "last_full_run": "2026-07-06T19:22:52.887355+00:00",
-  "last_partial_run": "2026-07-06T19:59:05.303090+00:00",
+  "last_partial_run": "2026-07-08T22:21:09.718165+00:00",
   "files": {
     "crates/axiom2d/tests/suite/default_plugins.rs": {
       "hash": "ae211c34dc3f7eebbd5d29d70c9dda4f21838e5a9f8bc83ab8b4decf9b535c13",
@@ -1188,28 +1188,27 @@
       "summary": "Thirteen tests covering full store lifecycle: tab purchase, reader/screen/combiner buy, sell refunds, render text, wallet affordability boundaries."
     },
     "crates/card_game/tests/suite/terrain.rs": {
-      "hash": "6ce8c793c28d967f3cfad70df4ea05776e2c6c504d00ea15f411cafaf3ff909e",
-      "last_verified": "2026-07-06T19:56:04.888905+00:00",
+      "hash": "bbc59ecbea0128140654a8f516a20e10716244d2fffad88ae0c53066c4b27edd",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 2,
-        "determinism": 6,
+        "assertion_quality": 9,
+        "determinism": 10,
         "isolation": 10,
-        "clarity": 6,
-        "coverage_depth": 1,
+        "clarity": 8,
+        "coverage_depth": 7,
         "speed": 10,
-        "diagnostics": 1
+        "diagnostics": 8,
+        "assertion_triviality": 10
       },
-      "overall": 4.5,
+      "overall": 8.9,
       "findings": [
         {
-          "severity": "high",
-          "category": "assertion_quality",
-          "location": "entire file",
-          "detail": "Single test with zero meaningful assertions. Uses let _ field access that compiler discards. Functionally equivalent to no-op.",
-          "suggestion": "Replace with actual assertions: tiles non-empty (or document when empty), adjacency_rules contains expected entries, tile dimensions positive."
+          "severity": "medium",
+          "category": "coverage_depth",
+          "detail": "Tests only empty-codegen path. Missing: non-empty tileset when TSX assets present, tile field access, adjacency_rules structure"
         }
       ],
-      "summary": "Single test with no meaningful assertions -- a 'does not crash' test functionally equivalent to compilation check."
+      "summary": "Valid terrain empty-codegen tests with good diagnostics. Limited to empty path since no TSX assets exist."
     },
     "crates/demo/tests/suite/core_main.rs": {
       "hash": "8b1d717c41e91966b910458270f5d3f97209109085ea7aedb6e6d193c995b4f1",
@@ -1429,42 +1428,32 @@
       "summary": "Clean system tests with good basic path coverage but missing non-zero camera position and sub-1.0 zoom edge cases."
     },
     "crates/engine_audio/tests/suite/backend_cpal.rs": {
-      "hash": "158be5083dfa025693de22fce7a1e13be0522956e151f21d576e15ba96d8affa",
-      "last_verified": "2026-07-06T19:29:54.152335+00:00",
+      "hash": "5a7706b176905fdf5bb9fc8a61470c658087276731605a01564b51c9040bbf6a",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 6,
-        "determinism": 5,
-        "isolation": 8,
-        "clarity": 8,
-        "coverage_depth": 3,
-        "speed": 7,
-        "diagnostics": 5
+        "assertion_quality": 8,
+        "determinism": 8,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 9,
+        "diagnostics": 8,
+        "assertion_triviality": 10
       },
-      "overall": 5.6,
+      "overall": 8.5,
       "findings": [
-        {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "line 17",
-          "detail": "Only 1 test covering ID uniqueness -- no tests for stopping, track-specific playback, empty sounds, or backend lifecycle",
-          "suggestion": "Add tests for stop(), set_volume(), set_track_volume(), different MixerTrack values"
-        },
         {
           "severity": "medium",
           "category": "determinism",
-          "location": "line 19",
-          "detail": "CpalBackend initializes real audio hardware via CPAL -- not purely deterministic",
-          "suggestion": "Use NullAudioBackend for deterministic coverage, separate hardware-init tests"
+          "detail": "One test uses real CPAL hardware init. Remaining 9 tests use NullAudioBackend, which is deterministic."
         },
         {
           "severity": "low",
-          "category": "diagnostics",
-          "location": "line 27",
-          "detail": "assert_ne! lacks failure message context",
-          "suggestion": "Add message explaining what uniqueness means"
+          "category": "coverage_depth",
+          "detail": "Missing: CPAL backend stop/volume tests. All non-trivial path tests are on Null backend"
         }
       ],
-      "summary": "Single-test file verifying CpalBackend ID uniqueness, but fatally thin on coverage and touches real hardware."
+      "summary": "Solid backend tests with 10 tests covering CPAL uniqueness and Null backend full lifecycle. One hardware-dependent test."
     },
     "crates/engine_audio/tests/suite/backend_traits.rs": {
       "hash": "f9403621991932e634c63b01ae65bf58fbfa2530bb8170872dd3bfdaa0e9c813",
@@ -2544,37 +2533,6 @@
       ],
       "summary": "Small but focused material binding tests. Only 3 happy-path tests with no edge cases or AAA comments."
     },
-    "crates/engine_render/tests/suite/wgpu_renderer_types.rs": {
-      "hash": "06f3050783467a7b8a5d8dfa09d437fd8495611e88d2290c7942698db498fe99",
-      "last_verified": "2026-07-06T19:41:59.306506+00:00",
-      "scores": {
-        "assertion_quality": 1,
-        "determinism": 10,
-        "isolation": 10,
-        "clarity": 3,
-        "coverage_depth": 1,
-        "speed": 10,
-        "diagnostics": 1
-      },
-      "overall": 4.8,
-      "findings": [
-        {
-          "severity": "high",
-          "category": "assertion_quality",
-          "location": "entire file",
-          "detail": "File contains zero test functions. Only a TODO comment and clippy allow attribute.",
-          "suggestion": "Either migrate inline tests as TODO indicates or remove the placeholder file"
-        },
-        {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "No assertions exist. All public types from source module are untested.",
-          "suggestion": "Implement tests covering each public type and function"
-        }
-      ],
-      "summary": "Empty placeholder file with only a TODO comment. No test functions, no assertions, no coverage."
-    },
     "crates/engine_scene/tests/suite/hierarchy.rs": {
       "hash": "089da7054010d8bb9a4e6ea37f4f62de5ffb39988a3d322c3aa5cd91f521a796",
       "last_verified": "2026-07-06T19:35:17.684171+00:00",
@@ -3079,28 +3037,27 @@
       "summary": "Well-isolated WFC tests with seeded RNG, pinned cells, determinism check, impossible-constraint error path. Proptest adds robustness."
     },
     "tools/img-to-shape-gui/tests/suite/loader.rs": {
-      "hash": "a3f33219dc885f6e47a86401f9678e8945aa2d58929ca72fb1bddffaa340a6a6",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "cc56bb91dd7f80bfa7c6b559a5108e0c3800727f72db53acac416f60883b22dc",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 8.8,
       "findings": [
         {
-          "severity": "high",
+          "severity": "medium",
           "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "TODO-only file with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "detail": "Only 2 tests: valid PNG and invalid bytes. Missing: empty bytes, truncated PNG, very large image, non-PNG format"
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Two focused loader tests with good error handling. Coverage depth could expand to edge cases."
     },
     "tools/img-to-shape-gui/tests/suite/mod.rs": {
       "hash": "e2b2d708f2b9005965c6c687d520665d9db4b3cf738016b499c4f673d949c449",
@@ -3127,100 +3084,101 @@
       "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
     },
     "tools/img-to-shape-gui/tests/suite/preview.rs": {
-      "hash": "fb9e3329bc66015b66d196ef0a076556f71af011c126f931a04f357430756991",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "5e0e94a20a3a12542db02acb41b0c6be86b16f4d2b848a6193b050964c970cd6",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 7,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 9,
+        "diagnostics": 8,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 8.5,
       "findings": [
         {
-          "severity": "high",
+          "severity": "medium",
+          "category": "assertion_quality",
+          "detail": "Uses !shapes.is_empty() rather than verifying shape count or type"
+        },
+        {
+          "severity": "medium",
           "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "TODO-only file with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "detail": "Missing: non-Path variant shapes, offset testing, empty color edge case"
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Good preview conversion coverage from path commands to egui shapes. Assertions could verify shape structure."
     },
     "tools/img-to-shape-gui/tests/suite/state.rs": {
-      "hash": "5fab0387e080d7dcef9ad7b678d8a7ed33acd6a9571b7b3333f44c74d05daf34",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "790335cf3986e1b3b80c4ce94b751610f969791c97d37ad27ea5d6296fc61632",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 9,
+        "diagnostics": 9,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 9.2,
       "findings": [
         {
-          "severity": "high",
+          "severity": "low",
           "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "TODO-only file with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "detail": "Missing: loading 0x0 image, loading after conversion already run, double-conversion"
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Solid AppState lifecycle tests covering defaults, image load, conversion, and export. Minor edge case gaps."
     },
     "tools/img-to-shape/tests/suite/bezier_fit.rs": {
-      "hash": "c781a7a7aa8d898f9650af12eb668a047d78912947f32eddd7d4820c602b87e1",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "24c1af2b283c0de3f492f0f65a42c8dec59e2b212b98f81ffe0a6f5a9159c332",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 5,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 3,
+        "speed": 10,
+        "diagnostics": 3,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 7.0,
       "findings": [
         {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "TODO-only file with no test functions. Tests exist inline in source but not migrated.",
-          "suggestion": "Either migrate inline tests or remove the file."
+          "severity": "low",
+          "category": "structure",
+          "detail": "Structural placeholder for single-binary test consolidation. All tests live inline in src/bezier_fit.rs (10 tests). This file cannot test private module."
         }
       ],
-      "summary": "Empty placeholder file with only a TODO comment. No test functions."
+      "summary": "Structural shim for test binary consolidation. Real tests (10) live inline in src/bezier_fit.rs."
     },
     "tools/img-to-shape/tests/suite/boundary_graph.rs": {
-      "hash": "f60b765865e18dd0c136e0d235109bba1f7fa48e619c5b975af129779bc3be7d",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "e77c52362bbabf089430152dba46baf3ee5293438a67f0eb0d04b127cb0a9ac7",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 5,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 3,
+        "speed": 10,
+        "diagnostics": 3,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 7.0,
       "findings": [
         {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "TODO-only file with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "severity": "low",
+          "category": "structure",
+          "detail": "Structural placeholder for single-binary test consolidation. All tests live inline in src/boundary_graph.rs (6 tests)."
         }
       ],
-      "summary": "Empty placeholder file with only a TODO comment."
+      "summary": "Structural shim for test binary consolidation. Real tests (6) live inline in src/boundary_graph.rs."
     },
     "tools/img-to-shape/tests/suite/codegen.rs": {
       "hash": "144f379d82af98fdabda97e4424db8748dc5c02e39059cecce90ea8a4a206dd0",
@@ -3255,28 +3213,32 @@
       "summary": "Extensive image-to-shapes pipeline: empty, transparent, single-pixel, disconnected regions, circle, L-shape, star, pixel-coverage, resize, merging, max_shapes cap."
     },
     "tools/img-to-shape/tests/suite/manifest.rs": {
-      "hash": "7508fa8af950600b45288ed0dc62ccb29e3fe38428dfc3f5f8a7ab67a3b0dd23",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "3101f27e9af7ab76c8044fa66147abd396610409c9df634258b4f4dfff7d8a12",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 8,
+        "determinism": 9,
+        "isolation": 8,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 9,
+        "diagnostics": 9,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 8.5,
       "findings": [
         {
-          "severity": "high",
+          "severity": "medium",
+          "category": "determinism",
+          "detail": "save_manifest writes to real temp_dir. Isolation concern - parallel test runs may collide on directory"
+        },
+        {
+          "severity": "medium",
           "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "TODO-only file with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "detail": "Only tests empty manifest roundtrip. Missing: non-empty entries, overwrite existing file, invalid path"
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Clean manifest load/save roundtrip test. Uses real filesystem for temp file, missing non-empty data tests."
     },
     "tools/img-to-shape/tests/suite/mod.rs": {
       "hash": "9ba9daddba29993a9c069c7438cfa4e3f3bbdc2e038a776e96a74b70ab7b6f5c",
@@ -3303,124 +3265,119 @@
       "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
     },
     "tools/img-to-shape/tests/suite/scale2x.rs": {
-      "hash": "134f7067a7e91a8d6cbb56ea04eb53562d1ff5e9d7db544c9e35e83d94c6ccad",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "d53a079b0612c01939dee3d556c30e5f70658ab1ffb1b03d4701bafff16e25c2",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 9,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 9.3,
       "findings": [
         {
-          "severity": "high",
+          "severity": "low",
           "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "TODO-only file with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "detail": "Missing: 2x2 input, non-square input, palette with more than 2 colors"
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Excellent scale2x tests covering 1x1 replication, empty input, and multicolor channel preservation."
     },
     "tools/img-to-shape/tests/suite/segment.rs": {
-      "hash": "c3bd7af87d531fb394c1193cab06a3196bd6b12ab391e6217507ba7af02b18f7",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "2c5bd604794ed2ac3f96fdc4bbb600bae186f95a8848c29e0f14cf92932b13ca",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 5,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 3,
+        "speed": 10,
+        "diagnostics": 3,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 7.0,
       "findings": [
         {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "TODO-only file with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "severity": "low",
+          "category": "structure",
+          "detail": "Structural placeholder for single-binary test consolidation. All tests live inline in src/segment.rs (6 tests)."
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Structural shim for test binary consolidation. Real tests (6) live inline in src/segment.rs."
     },
     "tools/img-to-shape/tests/suite/simplify.rs": {
-      "hash": "6f679415365de61897f323e4955a5fd48dbd1a7dbac6713c55b151944eddccf2",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "afff799632ef406b4a514b25b3c242d94dc0a974f1455ee26fccb8e55a75b616",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 5,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 3,
+        "speed": 10,
+        "diagnostics": 3,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 7.0,
       "findings": [
         {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "TODO-only file with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "severity": "low",
+          "category": "structure",
+          "detail": "Structural placeholder for single-binary test consolidation. All tests live inline in src/simplify.rs (8 tests)."
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Structural shim for test binary consolidation. Real tests (8) live inline in src/simplify.rs."
     },
     "tools/tiled-to-shapes/tests/suite/codegen.rs": {
-      "hash": "d748e435850eda206a2a5ecdc8dee211e151ade64159b76312e237ecc794cd52",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "01efd836764cff2f43cee51d9c4058c9a1fdde4163f5fcc35b06d559e3959946",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 6,
+        "speed": 9,
+        "diagnostics": 8,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 8.5,
       "findings": [
         {
-          "severity": "high",
+          "severity": "medium",
           "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "Placeholder with no test functions. Tests live inline in src/codegen.rs.",
-          "suggestion": "Migrate inline tests or remove file."
+          "detail": "Single test for empty tileset only. Missing: non-empty tileset codegen, output compiles check, file naming in output"
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Single focused codegen test for empty tileset. Needs non-empty tileset tests for real coverage."
     },
     "tools/tiled-to-shapes/tests/suite/extract_tile.rs": {
-      "hash": "67f09437b93708b7ab0ea23c9c4f6367358e840098b5d9e54e1a01aae2c91820",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "104c75685f845361cdea89ed5d0cc8283ac9c41932e7afd7a953813725b7a1a9",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 9,
+        "diagnostics": 9,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 9.2,
       "findings": [
         {
-          "severity": "high",
+          "severity": "low",
           "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "Placeholder with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "detail": "Missing: tile at edge of image, 1x1 tile, single-tile sheet, tile with partial alpha"
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Excellent tile extraction tests covering known position and OOB errors with precise pixel verification."
     },
     "tools/tiled-to-shapes/tests/suite/integration.rs": {
       "hash": "215efdfd00fa32907b86fa187f8b97c1eb3a08c32fe3c14204533213f3d90d84",
@@ -3463,100 +3420,96 @@
       "summary": "Module declaration file \u00e2\u20ac\u201d no test functions."
     },
     "tools/tiled-to-shapes/tests/suite/normalize.rs": {
-      "hash": "d192d493e11bf104408f0bffa89ce86e3ccbaf022420330b365bc445a18b56da",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "75141c4e80c9d1b067c285a2828fd96f527fa5b7bea2e9e0fa14acecae8e8405",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 9,
+        "diagnostics": 8,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 8.9,
       "findings": [
         {
-          "severity": "high",
+          "severity": "medium",
           "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "Placeholder with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "detail": "Missing: zero-size image normalization, multiple shapes, non-square image"
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Good normalize tests with exact coordinate math validation. Missing edge cases for zero-size images."
     },
     "tools/tiled-to-shapes/tests/suite/parse_tsx.rs": {
-      "hash": "f6d25985e22e5d80e07f2eee53d3e9af9ce5b3bb5b94a8db62a25a5141e70267",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "b580b650dc5b2ba326f13cd8284d5e07cf3052437cd87ce4b7d389c1427f13fb",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 10,
+        "coverage_depth": 8,
+        "speed": 9,
+        "diagnostics": 9,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 9.3,
       "findings": [
         {
-          "severity": "high",
+          "severity": "low",
           "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "Placeholder with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "detail": "Missing: multiple wangsets, wangset with mixed corner/edge types, invalid tile dimensions"
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Excellent TSX parsing tests with happy path, no-wangset error, and malformed XML error paths."
     },
     "tools/tiled-to-shapes/tests/suite/pipeline.rs": {
-      "hash": "05245bc7c68206c8add87b8e5e1abc1325f1bd98f4285f3be2194258a4a2c275",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "833d56f46ec81d5e0e40dc699699c852b980f680087443812f62f8c2fa343746",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 9.2,
       "findings": [
         {
-          "severity": "high",
+          "severity": "low",
           "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "Placeholder with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "detail": "Missing: edge passability values, null/empty input to passability_to_tags"
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Strong pipeline test with config validation and all passability tag mappings including unknown fallback."
     },
     "tools/tiled-to-shapes/tests/suite/scaffold.rs": {
-      "hash": "e990b1d55f32625d177a4eed8fad8e41c4611a74691f5bd4f9dd90097ec95c28",
-      "last_verified": "2026-07-06T19:58:46.816747+00:00",
+      "hash": "cb1db040216c179d01e0a541e01256ec750fbb17ac55bd5e888252b15bb97dea",
+      "last_verified": "2026-07-08T22:00:04.787893+00:00",
       "scores": {
-        "assertion_quality": 1,
-        "determinism": 5,
-        "isolation": 5,
-        "clarity": 1,
-        "coverage_depth": 1,
-        "speed": 5,
-        "diagnostics": 1
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 9,
+        "diagnostics": 8,
+        "assertion_triviality": 10
       },
-      "overall": 2.6,
+      "overall": 9.1,
       "findings": [
         {
-          "severity": "high",
+          "severity": "low",
           "category": "coverage_depth",
-          "location": "entire file",
-          "detail": "Placeholder with no test functions.",
-          "suggestion": "Migrate inline tests or remove file."
+          "detail": "Missing: partial properties (only some present), invalid XML input to scaffold"
         }
       ],
-      "summary": "Empty placeholder file."
+      "summary": "Excellent scaffold tests covering property injection, idempotency, and no-corner-wangset no-op."
     },
     "crates/engine_ecs/tests/schedule.rs": {
       "hash": "91d977c7a747ade5d6d834c207fb185dd0b01e1a7d3cad9c346be5597bc4752c",
@@ -3605,11 +3558,182 @@
       "overall": 9.5,
       "findings": [],
       "summary": "Exceptional test suite for parsing, markdown generation, and mutant-killing edge cases."
+    },
+    "crates/card_game/tests/suite/card_component.rs": {
+      "hash": "3c5940b022c2693d2467d8b53a52904f12bc2d14241cf114d151f1a3a138059c",
+      "last_verified": "2026-07-08T22:21:09.718165+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.2,
+      "findings": [],
+      "summary": "Solid card component and zone enum tests with all variant coverage."
+    },
+    "crates/card_game/tests/suite/card_reader_components.rs": {
+      "hash": "2fbb636139a3e7993fd4697e4e52318c793a333a3e1d948cdbfd1dd9b7bab87c",
+      "last_verified": "2026-07-08T22:21:09.718165+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.2,
+      "findings": [],
+      "summary": "Overlap detection tests with boundary and edge cases."
+    },
+    "crates/card_game/tests/suite/card_reader_signature_space.rs": {
+      "hash": "ebf8497aaf6fb49c758f7bf2ec0a804a15a456f8e1d9e5b9cbd3d979e3bb404b",
+      "last_verified": "2026-07-08T22:21:09.718165+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.4,
+      "findings": [],
+      "summary": "Signature space tests covering from_single, combine, contains, and radius math."
+    },
+    "crates/card_game/tests/suite/card_identity_templates.rs": {
+      "hash": "65689d62c152557d230c5d07346cb8326e18257530c661fac6ea4c524eb6b239",
+      "last_verified": "2026-07-08T22:21:09.718165+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 7,
+        "assertion_triviality": 10
+      },
+      "overall": 9.0,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "detail": "Some assert!() messages use generic patterns, could include actual values."
+        }
+      ],
+      "summary": "Title template tests covering weighted_choose and all rarity title generators."
+    },
+    "crates/card_game/tests/suite/card_identity_signature_types.rs": {
+      "hash": "74eadbfc10e4ff032b8f045f2a820c19a184f3ea9b5f24400d679e30c5c239b1",
+      "last_verified": "2026-07-08T22:21:09.718165+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 8,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.2,
+      "findings": [],
+      "summary": "Signature type tests covering Element::ALL, CardSignature default/axes, and Rarity enum."
+    },
+    "crates/card_game/tests/suite/card_identity_nouns.rs": {
+      "hash": "c94b329bb3eaed56a53656b36401cca60dd54449b6a3a837d94c3fea28043f10",
+      "last_verified": "2026-07-08T22:21:09.718165+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 7,
+        "assertion_triviality": 10
+      },
+      "overall": 8.7,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "diagnostics",
+          "detail": "Pointer comparison test failure message vague."
+        }
+      ],
+      "summary": "Noun pool tests verifying non-empty pools, no empty strings, and unique pointers."
+    },
+    "crates/card_game/tests/suite/card_art_hydrate.rs": {
+      "hash": "8ad62adc34d05dba3b6fc263eb7f7f064fe2b854a3d463d14d19e9d68e7cfb18",
+      "last_verified": "2026-07-08T22:21:09.718165+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 8,
+        "coverage_depth": 9,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.3,
+      "findings": [],
+      "summary": "Hydrate tests covering all three decoding functions with edge cases and truncation."
+    },
+    "crates/card_game/tests/suite/stash_render_slots.rs": {
+      "hash": "712a2df02570406164b78a20a3fa5b2109410ebf8642229148bc5a1e92e6096b",
+      "last_verified": "2026-07-08T22:21:09.718165+00:00",
+      "scores": {
+        "assertion_quality": 9,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 9,
+        "speed": 9,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 9.3,
+      "findings": [],
+      "summary": "Stash slot rendering tests covering grid positioning, occupancy, highlights, and art shader paths."
+    },
+    "crates/axiom2d/tests/suite/splash_types.rs": {
+      "hash": "8eb0d6ed874acde99ffba95a9de4b2bc949bd9fe00860148a3d1d934e5e2309f",
+      "last_verified": "2026-07-08T22:21:09.718165+00:00",
+      "scores": {
+        "assertion_quality": 8,
+        "determinism": 10,
+        "isolation": 10,
+        "clarity": 9,
+        "coverage_depth": 7,
+        "speed": 10,
+        "diagnostics": 8,
+        "assertion_triviality": 10
+      },
+      "overall": 8.8,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "coverage_depth",
+          "detail": "Missing: SplashScreen start/advance integration with timers."
+        }
+      ],
+      "summary": "Splash types tests covering SplashScreen, PreloadHooks, PostSplashSetup construction."
     }
   },
   "coverage": {
     "total_source_files": 127,
-    "tested": 79,
+    "tested": 92,
     "possibly_tested": 0,
     "untested": 48,
     "untested_files": [
@@ -3620,20 +3744,8 @@
         "risk": "high"
       },
       {
-        "path": "crates/axiom2d/src/splash/types.rs",
-        "lines": 106,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
         "path": "crates/card_game/src/card/art/card_back.rs",
         "lines": 903,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/hydrate.rs",
-        "lines": 252,
         "reason": "No matching test file found by naming convention",
         "risk": "high"
       },
@@ -3644,26 +3756,8 @@
         "risk": "high"
       },
       {
-        "path": "crates/card_game/src/card/component.rs",
-        "lines": 54,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
         "path": "crates/card_game/src/card/identity/name_pools/adjectives.rs",
         "lines": 865,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/identity/name_pools/nouns.rs",
-        "lines": 326,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/identity/name_pools/templates.rs",
-        "lines": 92,
         "reason": "No matching test file found by naming convention",
         "risk": "high"
       },
@@ -3672,12 +3766,6 @@
         "lines": 31,
         "reason": "No matching test file found by naming convention",
         "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/identity/signature/types.rs",
-        "lines": 232,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
       },
       {
         "path": "crates/card_game/src/card/interaction/apply.rs",
@@ -3716,30 +3804,6 @@
         "risk": "high"
       },
       {
-        "path": "crates/card_game/src/card/reader/components.rs",
-        "lines": 25,
-        "reason": "No matching test file found by naming convention",
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/reader/drag.rs",
-        "lines": 70,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/reader/eject.rs",
-        "lines": 60,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/reader/insert.rs",
-        "lines": 71,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
         "path": "crates/card_game/src/card/reader/pick.rs",
         "lines": 23,
         "reason": "No matching test file found by naming convention",
@@ -3752,12 +3816,6 @@
         "risk": "low"
       },
       {
-        "path": "crates/card_game/src/card/reader/signature_space.rs",
-        "lines": 121,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
-      },
-      {
         "path": "crates/card_game/src/card/rendering/baked_mesh.rs",
         "lines": 26,
         "reason": "No matching test file found by naming convention",
@@ -3768,12 +3826,6 @@
         "lines": 48,
         "reason": "No matching test file found by naming convention",
         "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/rendering/face_layout.rs",
-        "lines": 78,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
       },
       {
         "path": "crates/card_game/src/card/rendering/geometry.rs",
@@ -3810,12 +3862,6 @@
         "lines": 13,
         "reason": "No matching test file found by naming convention",
         "risk": "low"
-      },
-      {
-        "path": "crates/card_game/src/stash/render/slots.rs",
-        "lines": 127,
-        "reason": "No matching test file found by naming convention",
-        "risk": "high"
       },
       {
         "path": "crates/card_game/src/stash/store.rs",
@@ -3906,13 +3952,13 @@
     "possibly_tested_files": []
   },
   "cycle": {
-    "phase": "fix",
+    "phase": "coverage",
     "cycle_number": 1,
     "started_at": "2026-07-08T21:56:03.019985+00:00",
     "target_average": 8.0,
     "target_min_file": 6.5,
     "target_coverage": 0.8,
-    "current_average": 7.94,
+    "current_average": 8.6,
     "cleanup_branch": "quality/upgrade",
     "base_branch": "master",
     "tooling": {

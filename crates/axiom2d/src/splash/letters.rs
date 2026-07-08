@@ -2,7 +2,7 @@ use engine_render::prelude::PathCommand;
 use glam::Vec2;
 
 #[allow(clippy::too_many_lines)]
-pub(crate) fn letter_a() -> Vec<PathCommand> {
+pub fn letter_a() -> Vec<PathCommand> {
     vec![
         // Outer contour — curved apex and gently bowed legs
         PathCommand::MoveTo(Vec2::new(-6.0, -60.0)),
@@ -69,7 +69,7 @@ pub(crate) fn letter_a() -> Vec<PathCommand> {
 }
 
 #[allow(clippy::too_many_lines)]
-pub(crate) fn letter_x() -> Vec<PathCommand> {
+pub fn letter_x() -> Vec<PathCommand> {
     vec![
         // Bar 1: top-left to bottom-right with S-curve
         PathCommand::MoveTo(Vec2::new(-31.0, -60.0)),
@@ -116,7 +116,7 @@ pub(crate) fn letter_x() -> Vec<PathCommand> {
     ]
 }
 
-pub(crate) fn letter_i() -> Vec<PathCommand> {
+pub fn letter_i() -> Vec<PathCommand> {
     vec![
         // Top serif — left edge
         PathCommand::MoveTo(Vec2::new(-15.0, -60.0)),
@@ -151,7 +151,7 @@ pub(crate) fn letter_i() -> Vec<PathCommand> {
 }
 
 #[allow(clippy::similar_names, clippy::too_many_lines)]
-pub(crate) fn letter_o() -> Vec<PathCommand> {
+pub fn letter_o() -> Vec<PathCommand> {
     // Approximate an ellipse with 4 cubic bezier segments (kappa ≈ 0.5522847)
     let kappa = 0.552_284_7_f32;
     let outer_rx = 30.0_f32;
@@ -214,7 +214,7 @@ pub(crate) fn letter_o() -> Vec<PathCommand> {
 }
 
 #[allow(clippy::too_many_lines)]
-pub(crate) fn letter_m() -> Vec<PathCommand> {
+pub fn letter_m() -> Vec<PathCommand> {
     vec![
         // Start bottom-left
         PathCommand::MoveTo(Vec2::new(-38.0, 60.0)),

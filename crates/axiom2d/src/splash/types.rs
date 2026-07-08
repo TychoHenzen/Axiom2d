@@ -26,13 +26,13 @@ pub(crate) const SPLASH_SIDE_BASE: i32 = 10_001;
 pub(crate) const SPLASH_LETTER_ORDER: i32 = 11_000;
 pub(crate) const SPLASH_ACCENT_ORDER: i32 = 11_001;
 
-pub(crate) const LOGO_COLOR: Color = Color {
+pub const LOGO_COLOR: Color = Color {
     r: 0.85,
     g: 0.85,
     b: 0.95,
     a: 1.0,
 };
-pub(crate) const ACCENT_COLOR: Color = Color {
+pub const ACCENT_COLOR: Color = Color {
     r: 0.4,
     g: 0.5,
     b: 0.9,
