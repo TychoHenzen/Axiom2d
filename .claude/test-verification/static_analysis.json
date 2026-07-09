@@ -12250,7 +12250,7 @@
       "lines": 164,
       "functions": 6,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12298,7 +12298,7 @@
       "lines": 22,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12321,7 +12321,7 @@
       "lines": 81,
       "functions": 4,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12344,7 +12344,7 @@
       "lines": 276,
       "functions": 5,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12396,7 +12396,7 @@
       "lines": 305,
       "functions": 8,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12424,7 +12424,7 @@
       "lines": 107,
       "functions": 7,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12447,7 +12447,7 @@
       "lines": 415,
       "functions": 7,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12476,7 +12476,7 @@
       "lines": 131,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12526,7 +12526,7 @@
       "lines": 439,
       "functions": 17,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12555,7 +12555,7 @@
       "lines": 137,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12581,7 +12581,7 @@
       "lines": 140,
       "functions": 5,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12609,7 +12609,7 @@
       "lines": 904,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12632,7 +12632,7 @@
       "lines": 166,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12655,7 +12655,7 @@
       "lines": 90,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12678,7 +12678,7 @@
       "lines": 156,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12701,7 +12701,7 @@
       "lines": 107,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12724,7 +12724,7 @@
       "lines": 102,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12747,7 +12747,7 @@
       "lines": 112,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12770,7 +12770,7 @@
       "lines": 120,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12793,7 +12793,7 @@
       "lines": 96,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12816,7 +12816,7 @@
       "lines": 122,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12839,7 +12839,7 @@
       "lines": 84,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12862,7 +12862,7 @@
       "lines": 91,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12885,7 +12885,7 @@
       "lines": 225,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12908,7 +12908,7 @@
       "lines": 326,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12931,7 +12931,7 @@
       "lines": 188,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12954,7 +12954,7 @@
       "lines": 250,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -12977,7 +12977,7 @@
       "lines": 321,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13000,7 +13000,7 @@
       "lines": 248,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13023,7 +13023,7 @@
       "lines": 211,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13046,7 +13046,7 @@
       "lines": 165,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13069,7 +13069,7 @@
       "lines": 165,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13092,7 +13092,7 @@
       "lines": 86,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13115,7 +13115,7 @@
       "lines": 150,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13138,7 +13138,7 @@
       "lines": 161,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13161,7 +13161,7 @@
       "lines": 131,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13184,7 +13184,7 @@
       "lines": 150,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13207,7 +13207,7 @@
       "lines": 234,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13230,7 +13230,7 @@
       "lines": 178,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13253,7 +13253,7 @@
       "lines": 183,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13276,7 +13276,7 @@
       "lines": 176,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13299,7 +13299,7 @@
       "lines": 127,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13322,7 +13322,7 @@
       "lines": 181,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13345,7 +13345,7 @@
       "lines": 156,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13368,7 +13368,7 @@
       "lines": 143,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13391,7 +13391,7 @@
       "lines": 174,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13414,7 +13414,7 @@
       "lines": 176,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13437,7 +13437,7 @@
       "lines": 91,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13460,7 +13460,7 @@
       "lines": 159,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13483,7 +13483,7 @@
       "lines": 117,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13506,7 +13506,7 @@
       "lines": 156,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13529,7 +13529,7 @@
       "lines": 90,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13552,7 +13552,7 @@
       "lines": 125,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13575,7 +13575,7 @@
       "lines": 162,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13598,7 +13598,7 @@
       "lines": 196,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13621,7 +13621,7 @@
       "lines": 119,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13644,7 +13644,7 @@
       "lines": 221,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13667,7 +13667,7 @@
       "lines": 133,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13690,7 +13690,7 @@
       "lines": 95,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13713,7 +13713,7 @@
       "lines": 134,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13736,7 +13736,7 @@
       "lines": 129,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13759,7 +13759,7 @@
       "lines": 113,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13782,7 +13782,7 @@
       "lines": 210,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13805,7 +13805,7 @@
       "lines": 81,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13828,7 +13828,7 @@
       "lines": 143,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13851,7 +13851,7 @@
       "lines": 138,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13874,7 +13874,7 @@
       "lines": 73,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13897,7 +13897,7 @@
       "lines": 108,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13920,7 +13920,7 @@
       "lines": 181,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13943,7 +13943,7 @@
       "lines": 174,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13966,7 +13966,7 @@
       "lines": 78,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -13989,7 +13989,7 @@
       "lines": 144,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14012,7 +14012,7 @@
       "lines": 117,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14035,7 +14035,7 @@
       "lines": 165,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14058,7 +14058,7 @@
       "lines": 95,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14081,7 +14081,7 @@
       "lines": 153,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14104,7 +14104,7 @@
       "lines": 119,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14127,7 +14127,7 @@
       "lines": 71,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14150,7 +14150,7 @@
       "lines": 86,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14173,7 +14173,7 @@
       "lines": 122,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14196,7 +14196,7 @@
       "lines": 125,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14219,7 +14219,7 @@
       "lines": 207,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14242,7 +14242,7 @@
       "lines": 113,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14265,7 +14265,7 @@
       "lines": 212,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14288,7 +14288,7 @@
       "lines": 182,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14311,7 +14311,7 @@
       "lines": 143,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14334,7 +14334,7 @@
       "lines": 79,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14357,7 +14357,7 @@
       "lines": 103,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14380,7 +14380,7 @@
       "lines": 162,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14403,7 +14403,7 @@
       "lines": 99,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14426,7 +14426,7 @@
       "lines": 118,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14449,7 +14449,7 @@
       "lines": 67,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14472,7 +14472,7 @@
       "lines": 94,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14495,7 +14495,7 @@
       "lines": 138,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14518,7 +14518,7 @@
       "lines": 105,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14541,7 +14541,7 @@
       "lines": 110,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14564,7 +14564,7 @@
       "lines": 81,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14587,7 +14587,7 @@
       "lines": 114,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14610,7 +14610,7 @@
       "lines": 154,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14633,7 +14633,7 @@
       "lines": 126,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14656,7 +14656,7 @@
       "lines": 126,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14679,7 +14679,7 @@
       "lines": 85,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14702,7 +14702,7 @@
       "lines": 107,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14725,7 +14725,7 @@
       "lines": 115,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14748,7 +14748,7 @@
       "lines": 128,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14771,7 +14771,7 @@
       "lines": 103,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14794,7 +14794,7 @@
       "lines": 99,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14817,7 +14817,7 @@
       "lines": 137,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14840,7 +14840,7 @@
       "lines": 198,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14863,7 +14863,7 @@
       "lines": 98,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14886,7 +14886,7 @@
       "lines": 81,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14909,7 +14909,7 @@
       "lines": 202,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14932,7 +14932,7 @@
       "lines": 142,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14955,7 +14955,7 @@
       "lines": 74,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -14978,7 +14978,7 @@
       "lines": 88,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15001,7 +15001,7 @@
       "lines": 137,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15024,7 +15024,7 @@
       "lines": 105,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15047,7 +15047,7 @@
       "lines": 75,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15070,7 +15070,7 @@
       "lines": 63,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15093,7 +15093,7 @@
       "lines": 102,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15116,7 +15116,7 @@
       "lines": 121,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15139,7 +15139,7 @@
       "lines": 146,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15162,7 +15162,7 @@
       "lines": 133,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15185,7 +15185,7 @@
       "lines": 122,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15208,7 +15208,7 @@
       "lines": 78,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15231,7 +15231,7 @@
       "lines": 141,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15254,7 +15254,7 @@
       "lines": 124,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15277,7 +15277,7 @@
       "lines": 155,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15300,7 +15300,7 @@
       "lines": 130,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15323,7 +15323,7 @@
       "lines": 130,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15346,7 +15346,7 @@
       "lines": 118,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15369,7 +15369,7 @@
       "lines": 81,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15392,7 +15392,7 @@
       "lines": 153,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15415,7 +15415,7 @@
       "lines": 153,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15438,7 +15438,7 @@
       "lines": 89,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15461,7 +15461,7 @@
       "lines": 147,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15484,7 +15484,7 @@
       "lines": 84,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15507,7 +15507,7 @@
       "lines": 139,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15530,7 +15530,7 @@
       "lines": 275,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15553,7 +15553,7 @@
       "lines": 85,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15576,7 +15576,7 @@
       "lines": 124,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15599,7 +15599,7 @@
       "lines": 198,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15622,7 +15622,7 @@
       "lines": 233,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15645,7 +15645,7 @@
       "lines": 178,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15668,7 +15668,7 @@
       "lines": 136,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15691,7 +15691,7 @@
       "lines": 112,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15714,7 +15714,7 @@
       "lines": 103,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15737,7 +15737,7 @@
       "lines": 170,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15760,7 +15760,7 @@
       "lines": 158,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15783,7 +15783,7 @@
       "lines": 250,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15806,7 +15806,7 @@
       "lines": 129,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15829,7 +15829,7 @@
       "lines": 123,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15852,7 +15852,7 @@
       "lines": 62,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15875,7 +15875,7 @@
       "lines": 94,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15898,7 +15898,7 @@
       "lines": 59,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15921,7 +15921,7 @@
       "lines": 86,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15944,7 +15944,7 @@
       "lines": 99,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15967,7 +15967,7 @@
       "lines": 81,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -15990,7 +15990,7 @@
       "lines": 108,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16013,7 +16013,7 @@
       "lines": 94,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16036,7 +16036,7 @@
       "lines": 85,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16059,7 +16059,7 @@
       "lines": 91,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16082,7 +16082,7 @@
       "lines": 82,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16105,7 +16105,7 @@
       "lines": 90,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16128,7 +16128,7 @@
       "lines": 73,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16151,7 +16151,7 @@
       "lines": 90,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16174,7 +16174,7 @@
       "lines": 67,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16197,7 +16197,7 @@
       "lines": 121,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16220,7 +16220,7 @@
       "lines": 91,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16243,7 +16243,7 @@
       "lines": 241,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16266,7 +16266,7 @@
       "lines": 152,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16289,7 +16289,7 @@
       "lines": 131,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16312,7 +16312,7 @@
       "lines": 64,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16335,7 +16335,7 @@
       "lines": 152,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16358,7 +16358,7 @@
       "lines": 73,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16381,7 +16381,7 @@
       "lines": 151,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16404,7 +16404,7 @@
       "lines": 195,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16427,7 +16427,7 @@
       "lines": 142,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16450,7 +16450,7 @@
       "lines": 105,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16473,7 +16473,7 @@
       "lines": 136,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16496,7 +16496,7 @@
       "lines": 85,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16519,7 +16519,7 @@
       "lines": 91,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16542,7 +16542,7 @@
       "lines": 120,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16565,7 +16565,7 @@
       "lines": 124,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16588,7 +16588,7 @@
       "lines": 113,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16611,7 +16611,7 @@
       "lines": 63,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16634,7 +16634,7 @@
       "lines": 56,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16657,7 +16657,7 @@
       "lines": 108,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16680,7 +16680,7 @@
       "lines": 74,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16703,7 +16703,7 @@
       "lines": 62,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16726,7 +16726,7 @@
       "lines": 43,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16749,7 +16749,7 @@
       "lines": 73,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16772,7 +16772,7 @@
       "lines": 60,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16795,7 +16795,7 @@
       "lines": 140,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16818,7 +16818,7 @@
       "lines": 131,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16841,7 +16841,7 @@
       "lines": 63,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16864,7 +16864,7 @@
       "lines": 158,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16887,7 +16887,7 @@
       "lines": 61,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16910,7 +16910,7 @@
       "lines": 66,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16933,7 +16933,7 @@
       "lines": 58,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16956,7 +16956,7 @@
       "lines": 131,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -16979,7 +16979,7 @@
       "lines": 257,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17002,7 +17002,7 @@
       "lines": 134,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17025,7 +17025,7 @@
       "lines": 131,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17048,7 +17048,7 @@
       "lines": 171,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17071,7 +17071,7 @@
       "lines": 161,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17094,7 +17094,7 @@
       "lines": 219,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17117,7 +17117,7 @@
       "lines": 118,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17140,7 +17140,7 @@
       "lines": 184,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17163,7 +17163,7 @@
       "lines": 158,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17186,7 +17186,7 @@
       "lines": 146,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17209,7 +17209,7 @@
       "lines": 222,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17232,7 +17232,7 @@
       "lines": 172,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17255,7 +17255,7 @@
       "lines": 118,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17278,7 +17278,7 @@
       "lines": 284,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17301,7 +17301,7 @@
       "lines": 117,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17324,7 +17324,7 @@
       "lines": 104,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17347,7 +17347,7 @@
       "lines": 75,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17370,7 +17370,7 @@
       "lines": 57,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17393,7 +17393,7 @@
       "lines": 82,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17416,7 +17416,7 @@
       "lines": 100,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17439,7 +17439,7 @@
       "lines": 86,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17462,7 +17462,7 @@
       "lines": 86,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17485,7 +17485,7 @@
       "lines": 89,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17508,7 +17508,7 @@
       "lines": 122,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17531,7 +17531,7 @@
       "lines": 79,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17554,7 +17554,7 @@
       "lines": 91,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17577,7 +17577,7 @@
       "lines": 99,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17600,7 +17600,7 @@
       "lines": 81,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17623,7 +17623,7 @@
       "lines": 96,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17646,7 +17646,7 @@
       "lines": 60,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17669,7 +17669,7 @@
       "lines": 63,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17692,7 +17692,7 @@
       "lines": 73,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17715,7 +17715,7 @@
       "lines": 60,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17738,7 +17738,7 @@
       "lines": 140,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17761,7 +17761,7 @@
       "lines": 131,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17784,7 +17784,7 @@
       "lines": 63,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17807,7 +17807,7 @@
       "lines": 158,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17830,7 +17830,7 @@
       "lines": 61,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17853,7 +17853,7 @@
       "lines": 66,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17876,7 +17876,7 @@
       "lines": 58,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17899,7 +17899,7 @@
       "lines": 117,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17922,7 +17922,7 @@
       "lines": 88,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17945,7 +17945,7 @@
       "lines": 127,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17968,7 +17968,7 @@
       "lines": 95,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -17991,7 +17991,7 @@
       "lines": 79,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18014,7 +18014,7 @@
       "lines": 169,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18037,7 +18037,7 @@
       "lines": 124,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18060,7 +18060,7 @@
       "lines": 250,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18083,7 +18083,7 @@
       "lines": 162,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18106,7 +18106,7 @@
       "lines": 140,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18129,7 +18129,7 @@
       "lines": 159,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18152,7 +18152,7 @@
       "lines": 79,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18175,7 +18175,7 @@
       "lines": 85,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18198,7 +18198,7 @@
       "lines": 61,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18221,7 +18221,7 @@
       "lines": 68,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18244,7 +18244,7 @@
       "lines": 102,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18267,7 +18267,7 @@
       "lines": 109,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18290,7 +18290,7 @@
       "lines": 109,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18313,7 +18313,7 @@
       "lines": 89,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18336,7 +18336,7 @@
       "lines": 103,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18359,7 +18359,7 @@
       "lines": 114,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18382,7 +18382,7 @@
       "lines": 114,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18405,7 +18405,7 @@
       "lines": 78,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18428,7 +18428,7 @@
       "lines": 74,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18451,7 +18451,7 @@
       "lines": 66,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18474,7 +18474,7 @@
       "lines": 57,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18497,7 +18497,7 @@
       "lines": 69,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18520,7 +18520,7 @@
       "lines": 70,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18543,7 +18543,7 @@
       "lines": 97,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18566,7 +18566,7 @@
       "lines": 55,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18589,7 +18589,7 @@
       "lines": 68,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18612,7 +18612,7 @@
       "lines": 84,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18635,7 +18635,7 @@
       "lines": 89,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18658,7 +18658,7 @@
       "lines": 81,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18681,7 +18681,7 @@
       "lines": 79,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18704,7 +18704,7 @@
       "lines": 121,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18727,7 +18727,7 @@
       "lines": 72,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18750,7 +18750,7 @@
       "lines": 72,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18773,7 +18773,7 @@
       "lines": 75,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18796,7 +18796,7 @@
       "lines": 121,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18819,7 +18819,7 @@
       "lines": 111,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18842,7 +18842,7 @@
       "lines": 71,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18865,7 +18865,7 @@
       "lines": 138,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18888,7 +18888,7 @@
       "lines": 129,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18911,7 +18911,7 @@
       "lines": 87,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18934,7 +18934,7 @@
       "lines": 75,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18957,7 +18957,7 @@
       "lines": 102,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -18980,7 +18980,7 @@
       "lines": 91,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19003,7 +19003,7 @@
       "lines": 82,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19026,7 +19026,7 @@
       "lines": 96,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19049,7 +19049,7 @@
       "lines": 92,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19072,7 +19072,7 @@
       "lines": 102,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19095,7 +19095,7 @@
       "lines": 101,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19118,7 +19118,7 @@
       "lines": 111,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19141,7 +19141,7 @@
       "lines": 69,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19164,7 +19164,7 @@
       "lines": 97,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19187,7 +19187,7 @@
       "lines": 87,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19210,7 +19210,7 @@
       "lines": 28,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19233,7 +19233,7 @@
       "lines": 108,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19256,7 +19256,7 @@
       "lines": 58,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19279,7 +19279,7 @@
       "lines": 100,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19302,7 +19302,7 @@
       "lines": 85,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19325,7 +19325,7 @@
       "lines": 114,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19348,7 +19348,7 @@
       "lines": 84,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19371,7 +19371,7 @@
       "lines": 93,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19394,7 +19394,7 @@
       "lines": 116,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19417,7 +19417,7 @@
       "lines": 96,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19440,7 +19440,7 @@
       "lines": 81,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19463,7 +19463,7 @@
       "lines": 100,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19486,7 +19486,7 @@
       "lines": 61,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19509,7 +19509,7 @@
       "lines": 96,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19532,7 +19532,7 @@
       "lines": 100,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19555,7 +19555,7 @@
       "lines": 114,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19578,7 +19578,7 @@
       "lines": 78,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19601,7 +19601,7 @@
       "lines": 84,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19624,7 +19624,7 @@
       "lines": 68,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19647,7 +19647,7 @@
       "lines": 87,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19670,7 +19670,7 @@
       "lines": 55,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19693,7 +19693,7 @@
       "lines": 133,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19716,7 +19716,7 @@
       "lines": 71,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19739,7 +19739,7 @@
       "lines": 70,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19762,7 +19762,7 @@
       "lines": 91,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19785,7 +19785,7 @@
       "lines": 152,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19808,7 +19808,7 @@
       "lines": 56,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19831,7 +19831,7 @@
       "lines": 124,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19854,7 +19854,7 @@
       "lines": 74,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19877,7 +19877,7 @@
       "lines": 112,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19900,7 +19900,7 @@
       "lines": 128,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19923,7 +19923,7 @@
       "lines": 70,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19946,7 +19946,7 @@
       "lines": 76,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19969,7 +19969,7 @@
       "lines": 58,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -19992,7 +19992,7 @@
       "lines": 72,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20015,7 +20015,7 @@
       "lines": 48,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20038,7 +20038,7 @@
       "lines": 93,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20061,7 +20061,7 @@
       "lines": 77,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20084,7 +20084,7 @@
       "lines": 45,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20107,7 +20107,7 @@
       "lines": 96,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20130,7 +20130,7 @@
       "lines": 92,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20153,7 +20153,7 @@
       "lines": 75,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20176,7 +20176,7 @@
       "lines": 82,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20199,7 +20199,7 @@
       "lines": 86,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20222,7 +20222,7 @@
       "lines": 89,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20245,7 +20245,7 @@
       "lines": 79,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20268,7 +20268,7 @@
       "lines": 99,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20291,7 +20291,7 @@
       "lines": 90,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20314,7 +20314,7 @@
       "lines": 136,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20337,7 +20337,7 @@
       "lines": 94,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20360,7 +20360,7 @@
       "lines": 59,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20383,7 +20383,7 @@
       "lines": 113,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20406,7 +20406,7 @@
       "lines": 63,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20429,7 +20429,7 @@
       "lines": 56,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20452,7 +20452,7 @@
       "lines": 108,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20475,7 +20475,7 @@
       "lines": 74,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20498,7 +20498,7 @@
       "lines": 62,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20521,7 +20521,7 @@
       "lines": 43,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20544,7 +20544,7 @@
       "lines": 122,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20567,7 +20567,7 @@
       "lines": 75,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20590,7 +20590,7 @@
       "lines": 148,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20613,7 +20613,7 @@
       "lines": 105,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20636,7 +20636,7 @@
       "lines": 85,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20659,7 +20659,7 @@
       "lines": 108,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20682,7 +20682,7 @@
       "lines": 124,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20705,7 +20705,7 @@
       "lines": 123,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20728,7 +20728,7 @@
       "lines": 124,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20751,7 +20751,7 @@
       "lines": 222,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20774,7 +20774,7 @@
       "lines": 369,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20797,7 +20797,7 @@
       "lines": 127,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20820,7 +20820,7 @@
       "lines": 136,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20843,7 +20843,7 @@
       "lines": 95,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20866,7 +20866,7 @@
       "lines": 79,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20889,7 +20889,7 @@
       "lines": 169,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20912,7 +20912,7 @@
       "lines": 124,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20935,7 +20935,7 @@
       "lines": 253,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20966,7 +20966,7 @@
       "lines": 56,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -20989,7 +20989,7 @@
       "lines": 3748,
       "functions": 17,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21014,7 +21014,7 @@
       "lines": 137,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21042,7 +21042,7 @@
       "lines": 274,
       "functions": 9,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21070,7 +21070,7 @@
       "lines": 55,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21093,7 +21093,7 @@
       "lines": 168,
       "functions": 7,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21118,7 +21118,7 @@
       "lines": 47,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21141,7 +21141,7 @@
       "lines": 126,
       "functions": 5,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21166,7 +21166,7 @@
       "lines": 161,
       "functions": 6,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21191,7 +21191,7 @@
       "lines": 157,
       "functions": 8,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21233,11 +21233,11 @@
       }
     },
     "crates/card_game/src/card/identity/name_pools/adjectives.rs": {
-      "hash": "7b265a881872b0fa1ffc594a3f06857c20491f64573d68f123deffd5a63662e3",
+      "hash": "a2bb77e4c490104c1cf36d1577ea61ed1d14e2306a94dc47bbf6837a4cba8791",
       "lines": 866,
       "functions": 1,
       "observability": {
-        "score": 5.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 1,
         "error_handlers_logged": 1,
@@ -21262,7 +21262,7 @@
       "lines": 372,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21288,7 +21288,7 @@
       "lines": 33,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21311,7 +21311,7 @@
       "lines": 327,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21336,7 +21336,7 @@
       "lines": 40,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21359,7 +21359,7 @@
       "lines": 93,
       "functions": 4,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21382,7 +21382,7 @@
       "lines": 85,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21428,7 +21428,7 @@
       "lines": 32,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21451,7 +21451,7 @@
       "lines": 233,
       "functions": 17,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21474,7 +21474,7 @@
       "lines": 65,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21501,7 +21501,7 @@
       "lines": 64,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21524,7 +21524,7 @@
       "lines": 332,
       "functions": 7,
       "observability": {
-        "score": 6.5,
+        "score": 9.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21554,7 +21554,7 @@
       "lines": 50,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21579,7 +21579,7 @@
       "lines": 152,
       "functions": 4,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21606,7 +21606,7 @@
       "lines": 41,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21629,7 +21629,7 @@
       "lines": 61,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21654,7 +21654,7 @@
       "lines": 29,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21677,7 +21677,7 @@
       "lines": 55,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21700,7 +21700,7 @@
       "lines": 57,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21746,7 +21746,7 @@
       "lines": 44,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21792,7 +21792,7 @@
       "lines": 38,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21861,7 +21861,7 @@
       "lines": 131,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21889,7 +21889,7 @@
       "lines": 38,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21914,7 +21914,7 @@
       "lines": 651,
       "functions": 21,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21947,7 +21947,7 @@
       "lines": 297,
       "functions": 7,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -21999,7 +21999,7 @@
       "lines": 24,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22022,7 +22022,7 @@
       "lines": 26,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22045,7 +22045,7 @@
       "lines": 71,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22072,7 +22072,7 @@
       "lines": 61,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22097,7 +22097,7 @@
       "lines": 67,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22122,7 +22122,7 @@
       "lines": 72,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22149,7 +22149,7 @@
       "lines": 24,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22195,7 +22195,7 @@
       "lines": 122,
       "functions": 6,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22218,7 +22218,7 @@
       "lines": 256,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22243,7 +22243,7 @@
       "lines": 77,
       "functions": 6,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22268,7 +22268,7 @@
       "lines": 130,
       "functions": 7,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22291,7 +22291,7 @@
       "lines": 167,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22318,7 +22318,7 @@
       "lines": 27,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22341,7 +22341,7 @@
       "lines": 49,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22366,7 +22366,7 @@
       "lines": 61,
       "functions": 1,
       "observability": {
-        "score": 6.5,
+        "score": 9.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22395,7 +22395,7 @@
       "lines": 88,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22422,7 +22422,7 @@
       "lines": 60,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22447,7 +22447,7 @@
       "lines": 79,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22470,7 +22470,7 @@
       "lines": 34,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22539,7 +22539,7 @@
       "lines": 32,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22562,7 +22562,7 @@
       "lines": 147,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22589,7 +22589,7 @@
       "lines": 246,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22617,7 +22617,7 @@
       "lines": 51,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22644,7 +22644,7 @@
       "lines": 601,
       "functions": 24,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22671,7 +22671,7 @@
       "lines": 48,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22694,7 +22694,7 @@
       "lines": 59,
       "functions": 8,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22717,7 +22717,7 @@
       "lines": 149,
       "functions": 6,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22788,7 +22788,7 @@
       "lines": 209,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22814,7 +22814,7 @@
       "lines": 76,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22837,7 +22837,7 @@
       "lines": 73,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22864,7 +22864,7 @@
       "lines": 27,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22887,7 +22887,7 @@
       "lines": 127,
       "functions": 16,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22910,7 +22910,7 @@
       "lines": 154,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22935,7 +22935,7 @@
       "lines": 43,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -22981,7 +22981,7 @@
       "lines": 219,
       "functions": 6,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23010,7 +23010,7 @@
       "lines": 159,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23037,7 +23037,7 @@
       "lines": 103,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23087,7 +23087,7 @@
       "lines": 128,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23114,7 +23114,7 @@
       "lines": 929,
       "functions": 42,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23194,7 +23194,7 @@
       "lines": 87,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23219,7 +23219,7 @@
       "lines": 153,
       "functions": 5,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23244,7 +23244,7 @@
       "lines": 50,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23292,7 +23292,7 @@
       "lines": 290,
       "functions": 13,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23318,7 +23318,7 @@
       "lines": 82,
       "functions": 5,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23343,7 +23343,7 @@
       "lines": 54,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23366,7 +23366,7 @@
       "lines": 323,
       "functions": 24,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23418,7 +23418,7 @@
       "lines": 21,
       "functions": 1,
       "observability": {
-        "score": 6.5,
+        "score": 9.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23466,7 +23466,7 @@
       "lines": 37,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23512,7 +23512,7 @@
       "lines": 85,
       "functions": 7,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23535,7 +23535,7 @@
       "lines": 58,
       "functions": 7,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23604,7 +23604,7 @@
       "lines": 27,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23675,7 +23675,7 @@
       "lines": 46,
       "functions": 11,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23721,7 +23721,7 @@
       "lines": 53,
       "functions": 4,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23744,7 +23744,7 @@
       "lines": 40,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23767,7 +23767,7 @@
       "lines": 51,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23836,7 +23836,7 @@
       "lines": 72,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23907,7 +23907,7 @@
       "lines": 38,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23930,7 +23930,7 @@
       "lines": 21,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23976,7 +23976,7 @@
       "lines": 94,
       "functions": 4,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -23999,7 +23999,7 @@
       "lines": 62,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24045,7 +24045,7 @@
       "lines": 48,
       "functions": 7,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24139,7 +24139,7 @@
       "lines": 78,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24189,7 +24189,7 @@
       "lines": 149,
       "functions": 16,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24212,7 +24212,7 @@
       "lines": 27,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24235,7 +24235,7 @@
       "lines": 55,
       "functions": 6,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24304,7 +24304,7 @@
       "lines": 78,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24327,7 +24327,7 @@
       "lines": 31,
       "functions": 4,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24373,7 +24373,7 @@
       "lines": 216,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24442,7 +24442,7 @@
       "lines": 55,
       "functions": 8,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24511,7 +24511,7 @@
       "lines": 21,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24557,7 +24557,7 @@
       "lines": 86,
       "functions": 15,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24580,7 +24580,7 @@
       "lines": 28,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24603,7 +24603,7 @@
       "lines": 24,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24718,7 +24718,7 @@
       "lines": 262,
       "functions": 46,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24741,7 +24741,7 @@
       "lines": 183,
       "functions": 38,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24764,7 +24764,7 @@
       "lines": 58,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24787,7 +24787,7 @@
       "lines": 68,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24812,7 +24812,7 @@
       "lines": 27,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24835,7 +24835,7 @@
       "lines": 23,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24953,7 +24953,7 @@
       "lines": 169,
       "functions": 10,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24976,7 +24976,7 @@
       "lines": 49,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -24999,7 +24999,7 @@
       "lines": 152,
       "functions": 9,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25045,7 +25045,7 @@
       "lines": 64,
       "functions": 4,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25068,7 +25068,7 @@
       "lines": 381,
       "functions": 24,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25093,11 +25093,11 @@
       }
     },
     "crates/engine_render/src/image_data.rs": {
-      "hash": "1598834d5d611692fc870dd9bf3f2d1fafa105acb39d3428a034b8befa3cd8cb",
+      "hash": "6fe39f13952dfebca07869b0b82846a892d023c582e9bae2036179706b3b37d6",
       "lines": 28,
       "functions": 1,
       "observability": {
-        "score": 5.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 1,
         "error_handlers_logged": 1,
@@ -25120,7 +25120,7 @@
       "lines": 33,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25143,7 +25143,7 @@
       "lines": 86,
       "functions": 5,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25168,7 +25168,7 @@
       "lines": 29,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25191,7 +25191,7 @@
       "lines": 25,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25214,7 +25214,7 @@
       "lines": 152,
       "functions": 43,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25237,7 +25237,7 @@
       "lines": 78,
       "functions": 6,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25285,7 +25285,7 @@
       "lines": 144,
       "functions": 6,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25308,7 +25308,7 @@
       "lines": 83,
       "functions": 4,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25333,7 +25333,7 @@
       "lines": 21,
       "functions": 0,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25356,7 +25356,7 @@
       "lines": 164,
       "functions": 7,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25379,7 +25379,7 @@
       "lines": 30,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25402,7 +25402,7 @@
       "lines": 282,
       "functions": 15,
       "observability": {
-        "score": 5.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 6,
         "error_handlers_logged": 6,
@@ -25431,7 +25431,7 @@
       "lines": 26,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25477,7 +25477,7 @@
       "lines": 444,
       "functions": 51,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25500,7 +25500,7 @@
       "lines": 819,
       "functions": 38,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25526,7 +25526,7 @@
       "lines": 429,
       "functions": 22,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25551,7 +25551,7 @@
       "lines": 494,
       "functions": 21,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25600,7 +25600,7 @@
       "lines": 485,
       "functions": 25,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25677,7 +25677,7 @@
       "lines": 327,
       "functions": 17,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25700,7 +25700,7 @@
       "lines": 21,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25723,7 +25723,7 @@
       "lines": 43,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25794,7 +25794,7 @@
       "lines": 35,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25817,7 +25817,7 @@
       "lines": 65,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25863,7 +25863,7 @@
       "lines": 79,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25888,7 +25888,7 @@
       "lines": 93,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25915,7 +25915,7 @@
       "lines": 94,
       "functions": 4,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25938,7 +25938,7 @@
       "lines": 93,
       "functions": 4,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25963,7 +25963,7 @@
       "lines": 31,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -25986,7 +25986,7 @@
       "lines": 49,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26057,7 +26057,7 @@
       "lines": 35,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26126,7 +26126,7 @@
       "lines": 24,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26149,7 +26149,7 @@
       "lines": 59,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26174,7 +26174,7 @@
       "lines": 27,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26220,7 +26220,7 @@
       "lines": 453,
       "functions": 10,
       "observability": {
-        "score": 6.5,
+        "score": 9.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26250,7 +26250,7 @@
       "lines": 48,
       "functions": 1,
       "observability": {
-        "score": 6.5,
+        "score": 9.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26298,7 +26298,7 @@
       "lines": 42,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26321,7 +26321,7 @@
       "lines": 82,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26344,7 +26344,7 @@
       "lines": 68,
       "functions": 3,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26367,7 +26367,7 @@
       "lines": 25,
       "functions": 1,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26442,7 +26442,7 @@
       "lines": 132,
       "functions": 9,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26488,7 +26488,7 @@
       "lines": 140,
       "functions": 4,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26559,7 +26559,7 @@
       "lines": 339,
       "functions": 10,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26582,7 +26582,7 @@
       "lines": 179,
       "functions": 10,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26605,7 +26605,7 @@
       "lines": 214,
       "functions": 12,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26632,7 +26632,7 @@
       "lines": 632,
       "functions": 16,
       "observability": {
-        "score": 6.0,
+        "score": 8.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26687,11 +26687,11 @@
       }
     },
     "tools/img-to-shape-gui/src/loader.rs": {
-      "hash": "4afa795e9213ef13f77dd0cf45661cee2a26431edb613ce1a5ad2e5598c85a62",
+      "hash": "f3e2cf5e5a2d305077be9b54e7d399bfcb38ec8078f83e3ed7f37f2a95d89dc8",
       "lines": 82,
       "functions": 5,
       "observability": {
-        "score": 5.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 1,
         "error_handlers_logged": 1,
@@ -26714,7 +26714,7 @@
       "lines": 1489,
       "functions": 28,
       "observability": {
-        "score": 6.5,
+        "score": 9.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26760,7 +26760,7 @@
       "lines": 383,
       "functions": 15,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26785,11 +26785,11 @@
       }
     },
     "tools/img-to-shape-gui/src/state.rs": {
-      "hash": "48e4c2aac887d17dacc32ada0caf9a6771763c0f90cdd32cdb2112e4f45639f1",
+      "hash": "b3c5797b4b66b9a872f2709360908d51498c01a974090dbc0d8a9c0623e7e2f2",
       "lines": 391,
       "functions": 22,
       "observability": {
-        "score": 5.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 1,
         "error_handlers_logged": 1,
@@ -26812,7 +26812,7 @@
       "lines": 501,
       "functions": 19,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26846,7 +26846,7 @@
       "lines": 639,
       "functions": 10,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26878,7 +26878,7 @@
       "lines": 1356,
       "functions": 63,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26922,7 +26922,7 @@
       "lines": 919,
       "functions": 20,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26956,7 +26956,7 @@
       "lines": 772,
       "functions": 22,
       "observability": {
-        "score": 6.5,
+        "score": 9.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -26990,7 +26990,7 @@
       "lines": 137,
       "functions": 6,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -27019,7 +27019,7 @@
       "lines": 225,
       "functions": 9,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -27046,7 +27046,7 @@
       "lines": 256,
       "functions": 11,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -27069,11 +27069,11 @@
       }
     },
     "tools/living-docs/src/lib.rs": {
-      "hash": "01bb9826eeffba4a32f82f6cc58b88e08b4f84098a7f0026ea2ffb437ce7afa1",
+      "hash": "8b24adfff227f0ce24496ffb3f6131b0266247fabfe2899b54546a5f1e468cd8",
       "lines": 514,
       "functions": 18,
       "observability": {
-        "score": 5.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 4,
         "error_handlers_logged": 4,
@@ -27135,7 +27135,7 @@
       "lines": 323,
       "functions": 15,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -27163,7 +27163,7 @@
       "lines": 137,
       "functions": 6,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -27244,7 +27244,7 @@
       "lines": 140,
       "functions": 7,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -27299,7 +27299,7 @@
       "lines": 227,
       "functions": 10,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -27326,7 +27326,7 @@
       "lines": 378,
       "functions": 10,
       "observability": {
-        "score": 7.5,
+        "score": 5.0,
         "log_statements": 1,
         "error_handlers": 0,
         "error_handlers_logged": 0,
@@ -27356,7 +27356,7 @@
       "lines": 103,
       "functions": 2,
       "observability": {
-        "score": 7.0,
+        "score": 10.0,
         "log_statements": 0,
         "error_handlers": 0,
         "error_handlers_logged": 0,

@@ -228,12 +228,13 @@ def analyze_source_file(filepath):
         anti_patterns.append(f"{bare_log_count} bare log statements (no variable interpolation)")
 
     # Observability score
-    obs_penalties = empty_catch_count * 1.5 + swallowed_count * 0.5 + bare_log_count * 0.5
-    # Penalize zero-log files
-    if log_count == 0 and total_lines > 20:
-        obs_penalties += 3
-    if log_count == 0 and catch_count > 0:
-        obs_penalties += 2  # error handlers with no logging
+    # Penalties for real anti-patterns (not artifact of lacking logging framework)
+    obs_penalties = empty_catch_count * 2.0 + swallowed_count * 1.0
+    # Bare log messages (variable-less) are a real issue if the project uses logging
+    if log_count > 0:
+        obs_penalties += bare_log_count * 0.5
+    # Zero-log penalty: only if project has logging framework and file is >50 lines non-trivial
+    # Skip — this project has no logging framework
     obs_score = max(1, 10 - obs_penalties)
 
     # Brevity
