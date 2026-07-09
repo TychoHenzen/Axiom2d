@@ -27,7 +27,8 @@ fn when_setup_called_then_all_celestial_entities_exist() {
     let mut sprite_query = world.query::<&Sprite>();
     assert_eq!(
         world_shapes + sprite_query.iter(world).count(),
-        1 + PLANET_COUNT + MOON_COUNT
+        1 + PLANET_COUNT + MOON_COUNT,
+        "total world shapes plus sprites should equal sun + planets + moon"
     );
 }
 
@@ -42,7 +43,7 @@ fn when_setup_called_then_camera2d_entity_exists() {
     // Assert
     let world = app.world_mut();
     let mut query = world.query::<&Camera2D>();
-    assert_eq!(query.iter(world).count(), 1);
+    assert_eq!(query.iter(world).count(), 1, "exactly one Camera2D entity should exist after setup");
 }
 
 #[test]
@@ -56,8 +57,14 @@ fn when_setup_called_then_action_map_has_all_bindings() {
     // Assert
     let world = app.world_mut();
     let action_map = world.get_resource::<ActionMap>().unwrap();
-    assert!(!action_map.bindings_for(action::ZOOM_IN).is_empty());
-    assert!(!action_map.bindings_for(action::ZOOM_OUT).is_empty());
+    assert!(
+        !action_map.bindings_for(action::ZOOM_IN).is_empty(),
+        "ZOOM_IN should have at least one binding in action map"
+    );
+    assert!(
+        !action_map.bindings_for(action::ZOOM_OUT).is_empty(),
+        "ZOOM_OUT should have at least one binding in action map"
+    );
 }
 
 #[test]
@@ -71,7 +78,7 @@ fn when_setup_called_then_exactly_one_synodic_frame_exists() {
     // Assert
     let world = app.world_mut();
     let mut query = world.query::<&SynodicFrame>();
-    assert_eq!(query.iter(world).count(), 1);
+    assert_eq!(query.iter(world).count(), 1, "exactly one SynodicFrame entity should exist after setup");
 }
 
 #[test]
@@ -85,7 +92,7 @@ fn when_setup_called_then_exactly_one_sun_entity_exists() {
     // Assert
     let world = app.world_mut();
     let mut query = world.query::<&Sun>();
-    assert_eq!(query.iter(world).count(), 1);
+    assert_eq!(query.iter(world).count(), 1, "exactly one Sun entity should exist after setup");
 }
 
 #[test]
@@ -99,7 +106,7 @@ fn when_setup_called_then_exactly_one_earth_entity_exists() {
     // Assert
     let world = app.world_mut();
     let mut query = world.query::<&Earth>();
-    assert_eq!(query.iter(world).count(), 1);
+    assert_eq!(query.iter(world).count(), 1, "exactly one Earth entity should exist after setup");
 }
 
 #[test]
@@ -114,7 +121,7 @@ fn when_setup_called_then_sun_has_yellow_color() {
     let (_, shape) = query.single(world).unwrap();
 
     // Assert
-    assert_eq!(shape.color, SUN_COLOR);
+    assert_eq!(shape.color, SUN_COLOR, "sun shape should have the configured SUN_COLOR");
 }
 
 #[test]
@@ -138,7 +145,7 @@ fn when_setup_called_then_correct_number_of_orbiting_body_pivots() {
         .filter(|(_, _, parent)| parent.0 == frame)
         .map(|(entity, _, _)| entity)
         .collect();
-    assert_eq!(pivots.len(), PLANET_COUNT);
+    assert_eq!(pivots.len(), PLANET_COUNT, "should have exactly {PLANET_COUNT} orbiting body pivots");
 }
 
 #[test]
@@ -163,12 +170,12 @@ fn when_setup_called_then_each_pivot_has_one_body_child() {
         .filter(|(_, _, parent)| parent.0 == frame)
         .map(|(e, _, _)| e)
         .collect();
-    assert_eq!(pivots.len(), PLANET_COUNT);
+    assert_eq!(pivots.len(), PLANET_COUNT, "should have {PLANET_COUNT} orbital pivots after hierarchy maintenance");
     for pivot in pivots {
         let children = world.get::<Children>(pivot).unwrap();
-        assert_eq!(children.0.len(), 1);
+        assert_eq!(children.0.len(), 1, "each orbital pivot should have exactly one child body");
         let child = children.0[0];
-        assert!(world.get::<Shape>(child).is_some());
+        assert!(world.get::<Shape>(child).is_some(), "orbital body child should have a Shape component");
     }
 }
 
@@ -197,7 +204,7 @@ fn when_setup_called_then_all_planets_on_world_render_layer() {
     for pivot in pivots {
         let children = world.get::<Children>(pivot).unwrap();
         let layer = world.get::<RenderLayer>(children.0[0]).unwrap();
-        assert_eq!(*layer, RenderLayer::World);
+        assert_eq!(*layer, RenderLayer::World, "all planet bodies should be on World render layer");
     }
 }
 
@@ -212,7 +219,7 @@ fn when_setup_called_then_moon_exists_with_moon_marker() {
     // Assert
     let world = app.world_mut();
     let mut query = world.query::<&Moon>();
-    assert_eq!(query.iter(world).count(), MOON_COUNT);
+    assert_eq!(query.iter(world).count(), MOON_COUNT, "exactly {MOON_COUNT} entity should have Moon marker");
 }
 
 #[test]
@@ -228,9 +235,9 @@ fn when_setup_called_then_moon_is_child_of_earth() {
 
     // Assert
     let parent = world.get::<ChildOf>(moon).unwrap().0;
-    assert!(world.get::<OrbitalSpeed>(parent).is_some());
+    assert!(world.get::<OrbitalSpeed>(parent).is_some(), "moon's direct parent should be an orbital pivot (has OrbitalSpeed)");
     let grandparent = world.get::<ChildOf>(parent).unwrap().0;
-    assert_eq!(grandparent, earth);
+    assert_eq!(grandparent, earth, "moon's grandparent should be the Earth entity");
 }
 
 #[test]
@@ -243,7 +250,7 @@ fn when_setup_called_then_bloom_settings_exist() {
 
     // Assert
     let world = app.world_mut();
-    assert!(world.get_resource::<BloomSettings>().is_some());
+    assert!(world.get_resource::<BloomSettings>().is_some(), "BloomSettings resource should be present after setup");
 }
 
 #[test]
@@ -257,7 +264,7 @@ fn when_bloom_settings_queried_then_enabled() {
     let bloom = world.get_resource::<BloomSettings>().unwrap();
 
     // Assert
-    assert!(bloom.enabled);
+    assert!(bloom.enabled, "BloomSettings.enabled should be true after setup");
 }
 
 #[test]
@@ -272,7 +279,7 @@ fn when_setup_called_then_sun_is_circle_shape() {
     let world = app.world_mut();
     let mut query = world.query::<(&Sun, &Shape)>();
     let (_, shape) = query.single(world).unwrap();
-    assert!(matches!(shape.variant, ShapeVariant::Circle { .. }));
+    assert!(matches!(shape.variant, ShapeVariant::Circle { .. }), "sun shape variant should be Circle");
 }
 
 #[test]
@@ -299,7 +306,7 @@ fn when_orbiting_bodies_queried_then_each_has_shape() {
         .collect();
 
     // Assert
-    assert_eq!(pivots.len(), PLANET_COUNT);
+    assert_eq!(pivots.len(), PLANET_COUNT, "should have {PLANET_COUNT} orbital pivots before checking shapes");
     for pivot in pivots {
         let children = world.get::<Children>(pivot).unwrap();
         let body = children.0[0];
@@ -349,7 +356,7 @@ fn when_orbiting_body_shapes_queried_then_distinct_colors() {
             (r << 16) | (g << 8) | b
         })
         .collect();
-    assert_eq!(unique.len(), PLANET_COUNT);
+    assert_eq!(unique.len(), PLANET_COUNT, "each planet should have a distinct color");
 }
 
 #[test]
@@ -363,7 +370,7 @@ fn when_sprites_queried_then_only_moons_remain() {
     // Assert
     let world = app.world_mut();
     let mut query = world.query::<&Sprite>();
-    assert_eq!(query.iter(world).count(), MOON_COUNT);
+    assert_eq!(query.iter(world).count(), MOON_COUNT, "exactly {MOON_COUNT} Sprite entities should exist (the moon)");
 }
 
 #[test]
@@ -383,7 +390,7 @@ fn when_shapes_queried_then_sun_plus_planets_are_circles() {
             **layer == RenderLayer::World && matches!(s.variant, ShapeVariant::Circle { .. })
         })
         .count();
-    assert_eq!(world_circle_count, 1 + PLANET_COUNT);
+    assert_eq!(world_circle_count, 1 + PLANET_COUNT, "sun plus all planets should be circles on World layer");
 }
 
 #[test]
@@ -417,7 +424,7 @@ fn when_background_shapes_queried_then_all_additive_blend() {
     // Assert
     for (layer, material) in query.iter(world) {
         if *layer == RenderLayer::Background {
-            assert_eq!(material.blend_mode, BlendMode::Additive);
+            assert_eq!(material.blend_mode, BlendMode::Additive, "all background layer shapes should use Additive blend mode");
         }
     }
 }

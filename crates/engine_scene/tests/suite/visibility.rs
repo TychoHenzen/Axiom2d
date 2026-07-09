@@ -38,7 +38,7 @@ fn when_root_entity_has_default_visible_then_visibility_system_inserts_effective
 
     // Assert
     let effective = world.get::<EffectiveVisibility>(entity).unwrap();
-    assert_eq!(*effective, EffectiveVisibility(true));
+    assert_eq!(*effective, EffectiveVisibility(true), "root entity with default Visible should have EffectiveVisibility(true)");
 }
 
 #[test]
@@ -52,7 +52,7 @@ fn when_root_entity_has_visible_false_then_visibility_system_inserts_effective_v
 
     // Assert
     let effective = world.get::<EffectiveVisibility>(entity).unwrap();
-    assert_eq!(*effective, EffectiveVisibility(false));
+    assert_eq!(*effective, EffectiveVisibility(false), "root entity with Visible(false) should have EffectiveVisibility(false)");
 }
 
 /// @doc: Visible is opt-in — entities without it default to visible (no component = no hiding)
@@ -68,7 +68,7 @@ fn when_root_entity_has_no_visible_component_then_visibility_system_inserts_effe
 
     // Assert
     let effective = world.get::<EffectiveVisibility>(entity).unwrap();
-    assert_eq!(*effective, EffectiveVisibility(true));
+    assert_eq!(*effective, EffectiveVisibility(true), "entity without Visible component should have EffectiveVisibility(true)");
 }
 
 #[test]
@@ -84,7 +84,7 @@ fn when_visible_parent_has_visible_child_then_child_effective_visibility_is_true
 
     // Assert
     let effective = world.get::<EffectiveVisibility>(child).unwrap();
-    assert_eq!(*effective, EffectiveVisibility(true));
+    assert_eq!(*effective, EffectiveVisibility(true), "visible child of visible parent should have EffectiveVisibility(true)");
 }
 
 /// @doc: AND-logic propagation: `EffectiveVisibility` = `parent_effective` AND `child_visible`
@@ -101,7 +101,7 @@ fn when_parent_is_hidden_and_child_is_visible_then_child_effective_visibility_is
 
     // Assert
     let effective = world.get::<EffectiveVisibility>(child).unwrap();
-    assert_eq!(*effective, EffectiveVisibility(false));
+    assert_eq!(*effective, EffectiveVisibility(false), "visible child of hidden parent should have EffectiveVisibility(false) (AND logic)");
 }
 
 #[test]
@@ -117,7 +117,7 @@ fn when_parent_is_visible_and_child_is_hidden_then_child_effective_visibility_is
 
     // Assert
     let effective = world.get::<EffectiveVisibility>(child).unwrap();
-    assert_eq!(*effective, EffectiveVisibility(false));
+    assert_eq!(*effective, EffectiveVisibility(false), "hidden child of visible parent should have EffectiveVisibility(false) (AND logic)");
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn when_three_level_hierarchy_with_hidden_root_then_grandchild_effective_visibil
 
     // Assert
     let effective = world.get::<EffectiveVisibility>(grandchild).unwrap();
-    assert_eq!(*effective, EffectiveVisibility(false));
+    assert_eq!(*effective, EffectiveVisibility(false), "grandchild of hidden root should have EffectiveVisibility(false) through hierarchy");
 }
 
 #[test]
@@ -154,9 +154,9 @@ fn when_two_siblings_one_hidden_then_each_gets_independent_effective_visibility(
 
     // Assert
     let a_effective = world.get::<EffectiveVisibility>(child_a).unwrap();
-    assert_eq!(*a_effective, EffectiveVisibility(true));
+    assert_eq!(*a_effective, EffectiveVisibility(true), "visible sibling should have EffectiveVisibility(true)");
     let b_effective = world.get::<EffectiveVisibility>(child_b).unwrap();
-    assert_eq!(*b_effective, EffectiveVisibility(false));
+    assert_eq!(*b_effective, EffectiveVisibility(false), "hidden sibling should have EffectiveVisibility(false)");
 }
 
 #[test]
@@ -173,7 +173,7 @@ fn when_hierarchy_system_runs_before_visibility_system_then_children_receive_eff
 
     // Assert
     let effective = world.get::<EffectiveVisibility>(child).unwrap();
-    assert_eq!(*effective, EffectiveVisibility(true));
+    assert_eq!(*effective, EffectiveVisibility(true), "hierarchy maintenance before visibility should still produce correct effective visibility");
 }
 
 #[test]
@@ -186,7 +186,8 @@ fn when_parent_visibility_changed_and_system_reruns_then_child_effective_visibil
     run_visibility_system(&mut world);
     assert_eq!(
         *world.get::<EffectiveVisibility>(child).unwrap(),
-        EffectiveVisibility(false)
+        EffectiveVisibility(false),
+        "child should be hidden initially when parent is hidden"
     );
     world.entity_mut(parent).insert(Visible(true));
 
@@ -195,7 +196,7 @@ fn when_parent_visibility_changed_and_system_reruns_then_child_effective_visibil
 
     // Assert
     let effective = world.get::<EffectiveVisibility>(child).unwrap();
-    assert_eq!(*effective, EffectiveVisibility(true));
+    assert_eq!(*effective, EffectiveVisibility(true), "child should become visible after parent is changed to visible");
 }
 
 #[test]
@@ -212,7 +213,7 @@ fn when_child_has_no_visible_component_and_parent_is_visible_then_child_effectiv
 
     // Assert
     let effective = world.get::<EffectiveVisibility>(child).unwrap();
-    assert_eq!(*effective, EffectiveVisibility(true));
+    assert_eq!(*effective, EffectiveVisibility(true), "child without Visible component should inherit parent's visibility (true)");
 }
 
 #[test]
@@ -229,7 +230,7 @@ fn when_child_has_no_visible_component_and_parent_is_hidden_then_child_effective
 
     // Assert
     let effective = world.get::<EffectiveVisibility>(child).unwrap();
-    assert_eq!(*effective, EffectiveVisibility(false));
+    assert_eq!(*effective, EffectiveVisibility(false), "child without Visible component should inherit parent's hidden state");
 }
 
 #[test]
@@ -256,7 +257,7 @@ fn when_visibility_system_reruns_without_changes_then_effective_visibility_is_no
     );
 
     let parent_effective = world.get::<EffectiveVisibility>(parent).unwrap();
-    assert_eq!(*parent_effective, EffectiveVisibility(true));
+    assert_eq!(*parent_effective, EffectiveVisibility(true), "parent EffectiveVisibility should remain true after no-change rerun");
     let child_effective = world.get::<EffectiveVisibility>(child).unwrap();
-    assert_eq!(*child_effective, EffectiveVisibility(true));
+    assert_eq!(*child_effective, EffectiveVisibility(true), "child EffectiveVisibility should remain true after no-change rerun");
 }

@@ -24,7 +24,7 @@ fn when_tab_just_pressed_and_hidden_then_becomes_visible() {
     run_system(&mut world);
 
     // Assert
-    assert!(world.resource::<StashVisible>().0);
+    assert!(world.resource::<StashVisible>().0, "stash should become visible when Tab pressed while hidden");
 }
 
 /// @doc: Verifies that the stash toggle system hides the stash when Tab is pressed while visible.
@@ -41,5 +41,5 @@ fn when_tab_just_pressed_and_visible_then_becomes_hidden() {
     run_system(&mut world);
 
     // Assert
-    assert!(!world.resource::<StashVisible>().0);
+    assert!(!world.resource::<StashVisible>().0, "stash should become hidden when Tab pressed while visible");
 }

@@ -11,9 +11,9 @@ fn when_zone_is_hand_then_config_has_no_physics_and_ui_layer() {
     let config = ZoneConfig::for_zone(&CardZone::Hand(0));
 
     // Assert
-    assert!(!config.has_physics);
-    assert_eq!(config.render_layer, RenderLayer::UI);
-    assert!(!config.has_item_form);
+    assert!(!config.has_physics, "hand zone should not have physics");
+    assert_eq!(config.render_layer, RenderLayer::UI, "hand zone should use UI render layer");
+    assert!(!config.has_item_form, "hand zone should not have item form");
 }
 
 /// @doc: Table cards have physics bodies and render in World layer — they
@@ -26,9 +26,9 @@ fn when_zone_is_table_then_config_has_physics_and_world_layer() {
     let config = ZoneConfig::for_zone(&CardZone::Table);
 
     // Assert
-    assert!(config.has_physics);
-    assert_eq!(config.render_layer, RenderLayer::World);
-    assert!(!config.has_item_form);
+    assert!(config.has_physics, "table zone should have physics");
+    assert_eq!(config.render_layer, RenderLayer::World, "table zone should use World render layer");
+    assert!(!config.has_item_form, "table zone should not have item form");
 }
 
 /// @doc: Stash cards use item-form rendering — compact slot appearance instead of full card geometry
@@ -42,7 +42,7 @@ fn when_zone_is_stash_then_config_has_item_form_and_ui_layer() {
     });
 
     // Assert
-    assert!(!config.has_physics);
-    assert_eq!(config.render_layer, RenderLayer::UI);
-    assert!(config.has_item_form);
+    assert!(!config.has_physics, "stash zone should not have physics");
+    assert_eq!(config.render_layer, RenderLayer::UI, "stash zone should use UI render layer");
+    assert!(config.has_item_form, "stash zone should have item form");
 }

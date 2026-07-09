@@ -47,3 +47,57 @@ fn when_collider_variants_serialized_to_ron_then_each_deserializes_to_equal_valu
         );
     }
 }
+
+/// @doc: Verifies that a Circle collider with zero radius survives RON serialization round-trip (boundary case).
+#[test]
+fn when_circle_radius_is_zero_then_serializes_and_deserializes() {
+    // Arrange
+    let collider = Collider::Circle(0.0);
+
+    // Act
+    let ron = ron::to_string(&collider).unwrap();
+    let back: Collider = ron::from_str(&ron).unwrap();
+
+    // Assert
+    assert_eq!(
+        collider, back,
+        "Circle(0.0) should round-trip: {} -> {}",
+        ron, ron::to_string(&back).unwrap()
+    );
+}
+
+/// @doc: Verifies that a Circle collider with negative radius survives RON serialization round-trip (edge case for physics).
+#[test]
+fn when_circle_radius_is_negative_then_serializes_and_deserializes() {
+    // Arrange
+    let collider = Collider::Circle(-5.0);
+
+    // Act
+    let ron = ron::to_string(&collider).unwrap();
+    let back: Collider = ron::from_str(&ron).unwrap();
+
+    // Assert
+    assert_eq!(
+        collider, back,
+        "Circle(-5.0) should round-trip, got {:?}",
+        back
+    );
+}
+
+/// @doc: Verifies that an Aabb collider with zero extent survives RON serialization round-trip (degenerate AABB).
+#[test]
+fn when_aabb_extent_is_zero_then_serializes_and_deserializes() {
+    // Arrange
+    let collider = Collider::Aabb(Vec2::ZERO);
+
+    // Act
+    let ron = ron::to_string(&collider).unwrap();
+    let back: Collider = ron::from_str(&ron).unwrap();
+
+    // Assert
+    assert_eq!(
+        collider, back,
+        "Aabb(ZERO) should round-trip, got {:?}",
+        back
+    );
+}

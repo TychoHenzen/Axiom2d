@@ -18,7 +18,7 @@ fn when_mono_then_frame_count_equals_sample_len() {
     let frames = sound.frame_count();
 
     // Assert
-    assert_eq!(frames, 4);
+    assert_eq!(frames, 4, "mono frame_count should equal sample length");
 }
 
 /// @doc: Stereo audio interleaves L/R samples, so frame count is half the
@@ -37,5 +37,5 @@ fn when_stereo_then_frame_count_is_half_sample_len() {
     let frames = sound.frame_count();
 
     // Assert
-    assert_eq!(frames, 4);
+    assert_eq!(frames, 4, "stereo frame_count should be half sample length (8 samples / 2 channels)");
 }

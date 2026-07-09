@@ -15,7 +15,8 @@ fn when_multiple_keys_bound_to_same_action_then_all_keys_returned() {
     // Assert
     assert_eq!(
         map.bindings_for("move_right"),
-        &[KeyCode::ArrowRight, KeyCode::KeyD]
+        &[KeyCode::ArrowRight, KeyCode::KeyD],
+        "bindings_for should return all keys bound to an action"
     );
 }
 
@@ -29,5 +30,5 @@ fn when_single_key_bound_to_action_then_bindings_for_returns_that_key() {
     map.bind("jump", vec![KeyCode::Space]);
 
     // Assert
-    assert_eq!(map.bindings_for("jump"), &[KeyCode::Space]);
+    assert_eq!(map.bindings_for("jump"), &[KeyCode::Space], "bindings_for should return the single bound key");
 }

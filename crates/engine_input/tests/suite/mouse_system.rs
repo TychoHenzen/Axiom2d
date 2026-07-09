@@ -193,3 +193,86 @@ fn when_scroll_event_in_bus_then_mouse_input_system_accumulates_scroll_delta() {
         glam::Vec2::new(0.0, 3.0)
     );
 }
+
+/// @doc: Verifies that mouse_input_system is a no-op when the event bus is empty (state unchanged).
+#[test]
+fn when_no_mouse_events_in_bus_then_mouse_state_unchanged() {
+    // Arrange
+    let mut world = setup_world();
+
+    // Act
+    run_mouse_system(&mut world);
+
+    // Assert
+    let state = world.resource::<MouseState>();
+    assert!(
+        !state.pressed(MouseButton::Left),
+        "no events should leave button unpressed"
+    );
+    assert!(
+        !state.just_pressed(MouseButton::Left),
+        "no events should leave just_pressed empty"
+    );
+    assert_eq!(
+        state.scroll_delta(),
+        glam::Vec2::ZERO,
+        "no events should leave scroll delta at zero"
+    );
+}
+
+/// @doc: Verifies that extreme scroll delta values are processed correctly by the system.
+#[test]
+fn when_extreme_scroll_delta_in_bus_then_accumulates_correctly() {
+    // Arrange
+    let mut world = setup_world();
+    world
+        .resource_mut::<EventBus<MouseInputEvent>>()
+        .push(MouseInputEvent::Scroll {
+            delta: glam::Vec2::new(10000.0, -9999.0),
+        });
+
+    // Act
+    run_mouse_system(&mut world);
+
+    // Assert
+    assert_eq!(
+        world.resource::<MouseState>().scroll_delta(),
+        glam::Vec2::new(10000.0, -9999.0)
+    );
+}
+
+/// @doc: Verifies that pressing, releasing, and pressing again in the same frame yields a net pressed state on the final frame.
+#[test]
+fn when_press_then_release_then_press_in_same_frame_then_final_state_is_pressed() {
+    // Arrange
+    let mut world = setup_world();
+    {
+        let mut bus = world.resource_mut::<EventBus<MouseInputEvent>>();
+        bus.push(MouseInputEvent::Button {
+            button: MouseButton::Left,
+            state: ButtonState::Pressed,
+        });
+        bus.push(MouseInputEvent::Button {
+            button: MouseButton::Left,
+            state: ButtonState::Released,
+        });
+        bus.push(MouseInputEvent::Button {
+            button: MouseButton::Left,
+            state: ButtonState::Pressed,
+        });
+    }
+
+    // Act
+    run_mouse_system(&mut world);
+
+    // Assert
+    let state = world.resource::<MouseState>();
+    assert!(
+        state.pressed(MouseButton::Left),
+        "final press should leave button pressed"
+    );
+    assert!(
+        state.just_pressed(MouseButton::Left),
+        "final press should be just-pressed"
+    );
+}

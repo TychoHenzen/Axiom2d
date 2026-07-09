@@ -41,7 +41,7 @@ fn when_world_pos_system_runs_with_camera_then_world_pos_is_screen_to_world_conv
 
     // Assert
     let mouse = world.resource::<MouseState>();
-    assert_eq!(mouse.world_pos(), Vec2::new(0.0, 0.0));
+    assert_eq!(mouse.world_pos(), Vec2::new(0.0, 0.0), "world pos should map to camera origin at screen center");
 }
 
 #[test]
@@ -54,7 +54,7 @@ fn when_world_pos_system_runs_with_no_camera_then_uses_default_camera() {
 
     // Assert
     let mouse = world.resource::<MouseState>();
-    assert_eq!(mouse.world_pos(), Vec2::new(0.0, 0.0));
+    assert_eq!(mouse.world_pos(), Vec2::new(0.0, 0.0), "world pos should default to camera origin with no camera entity");
 }
 
 #[test]
@@ -71,7 +71,7 @@ fn when_world_pos_system_runs_with_zoomed_camera_then_center_still_maps_to_camer
 
     // Assert
     let mouse = world.resource::<MouseState>();
-    assert_eq!(mouse.world_pos(), Vec2::new(0.0, 0.0));
+    assert_eq!(mouse.world_pos(), Vec2::new(0.0, 0.0), "world pos at screen center should be camera origin regardless of zoom");
 }
 
 /// @doc: Cursor offset from viewport center at zoom 2x should produce half
@@ -92,6 +92,6 @@ fn when_world_pos_system_runs_with_offset_cursor_and_zoom_then_world_pos_is_scal
 
     // Assert
     let mouse = world.resource::<MouseState>();
-    assert!((mouse.world_pos().x - 100.0).abs() < 1e-4);
-    assert!(mouse.world_pos().y.abs() < 1e-4);
+    assert!((mouse.world_pos().x - 100.0).abs() < 1e-4, "offset cursor at zoom 2x should map to x=100 world units");
+    assert!(mouse.world_pos().y.abs() < 1e-4, "vertical offset should still map to y=0");
 }

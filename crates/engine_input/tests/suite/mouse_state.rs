@@ -280,3 +280,43 @@ fn when_unbound_mouse_action_queried_then_action_pressed_returns_false() {
     // Assert
     assert!(!result);
 }
+
+/// @doc: Verifies that a zero scroll delta is a no-op on the accumulated delta.
+#[test]
+fn when_scroll_delta_zero_then_delta_is_unchanged() {
+    // Arrange
+    let mut state = MouseState::default();
+    state.add_scroll_delta(Vec2::new(1.0, 2.0));
+
+    // Act
+    state.add_scroll_delta(Vec2::ZERO);
+
+    // Assert
+    assert_eq!(state.scroll_delta(), Vec2::new(1.0, 2.0));
+}
+
+/// @doc: Verifies that setting screen position to the zero vector (origin) is stored correctly.
+#[test]
+fn when_screen_pos_set_to_origin_then_screen_pos_is_zero() {
+    // Arrange
+    let mut state = MouseState::default();
+
+    // Act
+    state.set_screen_pos(Vec2::ZERO);
+
+    // Assert
+    assert_eq!(state.screen_pos(), Vec2::ZERO);
+}
+
+/// @doc: Verifies that negative scroll delta values are tracked correctly by the accumulator.
+#[test]
+fn when_negative_scroll_delta_accumulated_then_delta_is_negative() {
+    // Arrange
+    let mut state = MouseState::default();
+
+    // Act
+    state.add_scroll_delta(Vec2::new(-10.0, -20.0));
+
+    // Assert
+    assert_eq!(state.scroll_delta(), Vec2::new(-10.0, -20.0));
+}

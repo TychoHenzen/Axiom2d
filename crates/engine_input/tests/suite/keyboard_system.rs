@@ -37,7 +37,10 @@ fn when_press_event_in_bus_then_key_is_pressed() {
     run_input_system(&mut world);
 
     // Assert
-    assert!(world.resource::<InputState>().pressed(KeyCode::ArrowRight));
+    assert!(
+        world.resource::<InputState>().pressed(KeyCode::ArrowRight),
+        "key should be marked pressed after a Press event"
+    );
 }
 
 /// @doc: Verifies that input_system marks a key as just pressed from a press event.
@@ -59,7 +62,8 @@ fn when_press_event_in_bus_then_key_is_just_pressed() {
     assert!(
         world
             .resource::<InputState>()
-            .just_pressed(KeyCode::ArrowRight)
+            .just_pressed(KeyCode::ArrowRight),
+        "key should be marked just_pressed after a Press event"
     );
 }
 
@@ -81,7 +85,10 @@ fn when_release_event_in_bus_then_key_is_not_pressed() {
     run_input_system(&mut world);
 
     // Assert
-    assert!(!world.resource::<InputState>().pressed(KeyCode::Space));
+    assert!(
+        !world.resource::<InputState>().pressed(KeyCode::Space),
+        "key should not be pressed after a Release event"
+    );
 }
 
 /// @doc: Verifies that input_system marks a key as just released from a release event.
@@ -102,7 +109,10 @@ fn when_release_event_in_bus_then_key_is_just_released() {
     run_input_system(&mut world);
 
     // Assert
-    assert!(world.resource::<InputState>().just_released(KeyCode::Space));
+    assert!(
+        world.resource::<InputState>().just_released(KeyCode::Space),
+        "key should be marked just_released after a Release event"
+    );
 }
 
 /// @doc: Verifies that input_system drains the event bus after processing.
@@ -121,7 +131,10 @@ fn when_system_runs_then_bus_is_drained() {
     run_input_system(&mut world);
 
     // Assert
-    assert!(world.resource::<EventBus<KeyInputEvent>>().is_empty());
+    assert!(
+        world.resource::<EventBus<KeyInputEvent>>().is_empty(),
+        "event bus should be drained after input_system processes events"
+    );
 }
 
 /// @doc: Verifies that just-pressed state clears on the second frame while held state persists.
@@ -142,7 +155,10 @@ fn when_system_runs_second_frame_then_just_pressed_is_cleared() {
 
     // Assert
     let state = world.resource::<InputState>();
-    assert!(!state.just_pressed(KeyCode::ArrowDown));
+    assert!(
+        !state.just_pressed(KeyCode::ArrowDown),
+        "just_pressed should clear after the first frame"
+    );
     assert!(
         state.pressed(KeyCode::ArrowDown),
         "pressed state should persist beyond the first frame"
@@ -168,5 +184,8 @@ fn when_system_runs_second_frame_then_just_released_is_cleared() {
     run_input_system(&mut world);
 
     // Assert
-    assert!(!world.resource::<InputState>().just_released(KeyCode::Space));
+    assert!(
+        !world.resource::<InputState>().just_released(KeyCode::Space),
+        "just_released should clear after the second frame"
+    );
 }

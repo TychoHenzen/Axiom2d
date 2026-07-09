@@ -23,7 +23,7 @@ fn when_play_on_track_with_sfx_then_play_count_increments() {
     backend.play_on_track(&sound, MixerTrack::Sfx);
 
     // Assert
-    assert_eq!(backend.play_count(), 1);
+    assert_eq!(backend.play_count(), 1, "play count should increment to 1 after one SFX play");
 }
 
 /// @doc: Each playback gets a unique ID — enables stopping individual sounds without affecting others
@@ -38,7 +38,7 @@ fn when_play_on_track_called_twice_with_sfx_then_ids_differ() {
     let id2 = backend.play_on_track(&sound, MixerTrack::Sfx);
 
     // Assert
-    assert_ne!(id1, id2);
+    assert_ne!(id1, id2, "each play_on_track call should return a unique ID");
 }
 
 /// @doc: Verifies that NullAudioBackend.play_on_track increments play count for Music track.
@@ -52,7 +52,7 @@ fn when_play_on_track_called_then_play_count_increments() {
     backend.play_on_track(&sound, MixerTrack::Music);
 
     // Assert
-    assert_eq!(backend.play_count(), 1);
+    assert_eq!(backend.play_count(), 1, "play count should increment to 1 after one Music track play");
 }
 
 /// @doc: Play count accumulates across calls — tracks total sounds queued for playback
@@ -68,5 +68,5 @@ fn when_three_sounds_played_then_play_count_returns_three() {
     backend.play_on_track(&sound, MixerTrack::Sfx);
 
     // Assert
-    assert_eq!(backend.play_count(), 3);
+    assert_eq!(backend.play_count(), 3, "play count should accumulate to 3 after three plays");
 }

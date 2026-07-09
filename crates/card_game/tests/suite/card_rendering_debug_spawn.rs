@@ -31,7 +31,7 @@ fn when_key1_pressed_then_one_card_spawned() {
 
     // Assert
     let card_count = world.query::<&Card>().iter(&world).count();
-    assert_eq!(card_count, 1);
+    assert_eq!(card_count, 1, "pressing Digit1 should spawn exactly 1 card");
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn when_key2_pressed_then_ten_cards_spawned() {
 
     // Assert
     let card_count = world.query::<&Card>().iter(&world).count();
-    assert_eq!(card_count, 10);
+    assert_eq!(card_count, 10, "pressing Digit2 should spawn exactly 10 cards");
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn when_key3_pressed_then_hundred_cards_spawned() {
 
     // Assert
     let card_count = world.query::<&Card>().iter(&world).count();
-    assert_eq!(card_count, 100);
+    assert_eq!(card_count, 100, "pressing Digit3 should spawn exactly 100 cards");
 }
 
 #[test]
@@ -72,7 +72,7 @@ fn when_no_key_pressed_then_no_cards_spawned() {
 
     // Assert
     let card_count = world.query::<&Card>().iter(&world).count();
-    assert_eq!(card_count, 0);
+    assert_eq!(card_count, 0, "pressing no key should spawn 0 cards");
 }
 
 /// @doc: Debug-spawned cards must each receive a unique signature from the
