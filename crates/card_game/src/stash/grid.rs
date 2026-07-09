@@ -3,6 +3,7 @@ use glam::Vec2;
 use std::collections::HashMap;
 
 use crate::stash::constants::{GRID_MARGIN, SLOT_STRIDE_H, SLOT_STRIDE_W};
+use tracing::warn;
 
 #[derive(Debug)]
 pub struct SlotOccupied;
@@ -43,10 +44,12 @@ impl StashGrid {
         entity: Entity,
     ) -> Result<(), SlotOccupied> {
         if col >= self.width || row >= self.height || page >= self.page_count {
+            warn!("StashGrid::place: slot out of bounds (col={col}, row={row}, page={page})");
             return Err(SlotOccupied);
         }
         let key = (page, col, row);
         if self.slots.contains_key(&key) {
+            warn!("StashGrid::place: slot already occupied ({page}, {col}, {row})");
             return Err(SlotOccupied);
         }
         self.slots.insert(key, entity);
@@ -115,11 +118,13 @@ pub fn find_stash_slot_at(screen_pos: Vec2, grid_width: u8, grid_height: u8) -> 
     let rel_x = screen_pos.x - GRID_MARGIN;
     let rel_y = screen_pos.y - GRID_MARGIN;
     if rel_x < 0.0 || rel_y < 0.0 {
+        warn!("find_stash_slot_at: screen_pos {screen_pos:?} outside margin");
         return None;
     }
     let col = (rel_x / SLOT_STRIDE_W) as u8;
     let row = (rel_y / SLOT_STRIDE_H) as u8;
     if col >= grid_width || row >= grid_height {
+        warn!("find_stash_slot_at: computed slot ({col}, {row}) out of grid ({grid_width}x{grid_height})");
         return None;
     }
     Some((col, row))

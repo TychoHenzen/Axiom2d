@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use bevy_ecs::prelude::{Commands, Res, ResMut, Resource};
 use engine_core::types::TextureId;
+use tracing::warn;
 
 pub use crate::image_data::{AtlasError, ImageData, load_image_bytes};
 
@@ -49,7 +50,10 @@ pub fn upload_atlas_system(
     if uploaded.is_some() {
         return;
     }
-    let Some(atlas) = atlas else { return };
+    let Some(atlas) = atlas else {
+        warn!("upload_atlas_system: TextureAtlas resource not present");
+        return;
+    };
     renderer
         .upload_atlas(&atlas)
         .expect("atlas upload should succeed");
@@ -58,10 +62,12 @@ pub fn upload_atlas_system(
 
 fn validate_image_data(width: u32, height: u32, data: &[u8]) -> Result<(), AtlasError> {
     if width == 0 || height == 0 {
+        warn!("validate_image_data: invalid dimensions ({width}x{height})");
         return Err(AtlasError::InvalidDimensions);
     }
     let expected = (width * height * 4) as usize;
     if data.len() != expected {
+        warn!("validate_image_data: data length mismatch (expected {expected}, got {})", data.len());
         return Err(AtlasError::DataLengthMismatch {
             expected,
             actual: data.len(),
@@ -114,7 +120,10 @@ impl AtlasBuilder {
         let alloc = self
             .allocator
             .allocate(guillotiere::size2(width as i32, height as i32))
-            .ok_or(AtlasError::NoSpace)?;
+            .ok_or_else(|| {
+                warn!("AtlasBuilder::add_image: no space for {width}x{height} image");
+                AtlasError::NoSpace
+            })?;
         let rect = alloc.rectangle;
         let x = rect.min.x as u32;
         let y = rect.min.y as u32;

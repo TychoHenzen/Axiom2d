@@ -1,4 +1,5 @@
 use bevy_ecs::prelude::{Entity, Resource};
+use tracing::warn;
 
 #[derive(Debug)]
 pub struct HandFull;
@@ -31,6 +32,7 @@ impl Hand {
 
     pub fn add(&mut self, entity: Entity) -> Result<usize, HandFull> {
         if self.is_full() {
+            warn!("Hand::add: hand is full (max={})", self.max_size);
             return Err(HandFull);
         }
         let index = self.cards.len();
@@ -39,7 +41,10 @@ impl Hand {
     }
 
     pub fn remove(&mut self, entity: Entity) -> Option<usize> {
-        let index = self.cards.iter().position(|&e| e == entity)?;
+        let index = self.cards.iter().position(|&e| e == entity).or_else(|| {
+            warn!("Hand::remove: entity {entity:?} not found in hand");
+            None
+        })?;
         self.cards.remove(index);
         Some(index)
     }

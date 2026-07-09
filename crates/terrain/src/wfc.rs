@@ -4,6 +4,7 @@ use rand::Rng;
 use rand_chacha::ChaCha8Rng;
 
 use crate::material::TerrainId;
+use tracing::warn;
 
 #[derive(Debug, thiserror::Error)]
 pub enum WfcError {
@@ -150,6 +151,7 @@ pub fn collapse(
             if let Some((bx, by, remaining, snapshot)) = history.pop() {
                 backtrack_count += 1;
                 if backtrack_count > max_backtracks {
+                    warn!("WFC collapse: exceeded max backtracks ({max_backtracks})");
                     return Err(WfcError::Contradiction);
                 }
                 grid.set(bx, by, None);
@@ -157,6 +159,7 @@ pub fn collapse(
                 possible[by * w + bx] = remaining;
                 continue;
             }
+            warn!("WFC collapse: contradiction, no backtrack history");
             return Err(WfcError::Contradiction);
         }
 
