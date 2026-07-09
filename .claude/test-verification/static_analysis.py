@@ -17,7 +17,8 @@ def sha256(path):
 
 # Assertion patterns
 ASSERT_MACRO = re.compile(r'(assert!\s*\(|assert_eq!\s*\(|assert_ne!\s*\(|debug_assert!\s*\(|debug_assert_eq!\s*\(|debug_assert_ne!\s*\()')
-ASSERT_WITH_MESSAGE = re.compile(r'assert[_!][a-z_]*!\s*\([^,)]*,\s*"')
+# Match assertion with a custom message string — handles both assert_eq!(a, b, "msg") and assert!(cond, "msg")
+ASSERT_WITH_MESSAGE = re.compile(r'assert[_!][a-z_]*!\s*\(.*,\s*"[^"]*"\s*[\)]')
 
 # Rust-specific: methods that indicate a SPECIFIC value check (not truthiness)
 SPECIFIC_METHODS = re.compile(r'\.(is_ok|is_err|is_some|is_none|is_empty|contains|is_finite|is_nan|is_normal|is_sign_positive|is_sign_negative|is_ascii|is_alphanumeric|is_digit|is_lowercase|is_uppercase|is_whitespace|starts_with|ends_with|eq|ne|lt|le|gt|ge)\(')
