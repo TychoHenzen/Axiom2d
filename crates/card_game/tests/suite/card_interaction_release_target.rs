@@ -214,7 +214,7 @@ fn when_target_slot_occupied_but_origin_slot_freed_then_stash_to_origin() {
             assert_eq!(*row, 1, "should release to origin row");
         }
         other => {
-            panic!("expected ReleaseOnStash to origin slot (page=0,col=1,row=1), got {other:?}",)
+            panic!("expected ReleaseOnStash to origin slot (page=0,col=1,row=1), got {other:?}")
         }
     }
 }
