@@ -156,17 +156,17 @@ pub fn wrap_text(text: &str, font_size: f32, max_width: f32) -> Vec<String> {
         if current_line.is_empty() {
             current_line.push_str(word);
             current_width = word_width;
+            continue;
+        }
+        let width_with_word = current_width + space_width + word_width;
+        if width_with_word <= max_width {
+            current_line.push(' ');
+            current_line.push_str(word);
+            current_width = width_with_word;
         } else {
-            let width_with_word = current_width + space_width + word_width;
-            if width_with_word <= max_width {
-                current_line.push(' ');
-                current_line.push_str(word);
-                current_width = width_with_word;
-            } else {
-                lines.push(std::mem::take(&mut current_line));
-                current_line.push_str(word);
-                current_width = word_width;
-            }
+            lines.push(std::mem::take(&mut current_line));
+            current_line.push_str(word);
+            current_width = word_width;
         }
     }
     if !current_line.is_empty() {
@@ -194,21 +194,21 @@ pub fn balanced_wrap_text(text: &str, font_size: f32, max_width: f32) -> Vec<Str
     if words.len() == 1 {
         return vec![words[0].to_string()];
     }
-    let space_width = measure_text_with_face(&face, " ", font_size);
-    let mut prefix_widths = Vec::with_capacity(words.len() + 1);
-    prefix_widths.push(0.0_f32);
-    for word in &words {
-        let width = measure_text_with_face(&face, word, font_size);
-        let previous_width = prefix_widths
-            .last()
-            .copied()
-            .expect("prefix widths always starts with a zero entry");
-        prefix_widths.push(previous_width + width);
-    }
-    let total_word_width = prefix_widths
-        .last()
-        .copied()
-        .expect("prefix widths always contains a total width");
+    compute_balanced_split(&face, &words, font_size, max_width)
+        .map_or_else(|| wrap_text(text, font_size, max_width), |split| {
+            vec![words[..split].join(" "), words[split..].join(" ")]
+        })
+}
+
+fn compute_balanced_split(
+    face: &ttf_parser::Face,
+    words: &[&str],
+    font_size: f32,
+    max_width: f32,
+) -> Option<usize> {
+    let space_width = measure_text_with_face(face, " ", font_size);
+    let prefix_widths = build_prefix_widths(face, words, font_size);
+    let total_word_width = *prefix_widths.last()?;
     let mut best_split = None;
     let mut best_diff = f32::MAX;
     for (split, _) in prefix_widths.iter().enumerate().take(words.len()).skip(1) {
@@ -223,10 +223,18 @@ pub fn balanced_wrap_text(text: &str, font_size: f32, max_width: f32) -> Vec<Str
             }
         }
     }
-    let Some(best_split) = best_split else {
-        return wrap_text(text, font_size, max_width);
-    };
-    vec![words[..best_split].join(" "), words[best_split..].join(" ")]
+    best_split
+}
+
+fn build_prefix_widths(face: &ttf_parser::Face, words: &[&str], font_size: f32) -> Vec<f32> {
+    let mut widths = Vec::with_capacity(words.len() + 1);
+    widths.push(0.0_f32);
+    for word in words {
+        let w = measure_text_with_face(face, word, font_size);
+        let prev = *widths.last().expect("prefix widths always starts with a zero entry");
+        widths.push(prev + w);
+    }
+    widths
 }
 
 #[allow(clippy::too_many_arguments)]
