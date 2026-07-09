@@ -104,48 +104,39 @@ pub fn stash_tab_click_system(
     mut grid: ResMut<StashGrid>,
     mut wallet: ResMut<StoreWallet>,
 ) {
-    if !visible.0 {
-        return;
-    }
-    if !mouse.just_pressed(engine_input::prelude::MouseButton::Left) {
+    if !visible.0 || !mouse.just_pressed(engine_input::prelude::MouseButton::Left) {
         return;
     }
 
     let screen = mouse.screen_pos();
-    if !stash_ui_contains(screen, &grid) {
-        return;
-    }
-
     let top_y = tab_row_top_y(grid.height());
-    let bottom_y = top_y + TAB_HEIGHT;
-    if screen.y < top_y || screen.y > bottom_y {
+    if !stash_ui_contains(screen, &grid) || screen.y < top_y || screen.y > top_y + TAB_HEIGHT {
         return;
     }
 
     let tab_count = grid.tab_count();
     for i in 0..tab_count {
         let left = tab_left_x(grid.width(), tab_count, i);
-        let right = left + TAB_WIDTH;
-        if screen.x < left || screen.x > right {
+        if screen.x < left || screen.x > left + TAB_WIDTH {
             continue;
         }
 
-        if i == 0 {
-            grid.set_current_page(0);
-            return;
-        }
-
-        if i == tab_count - 1 {
-            let cost = storage_tab_purchase_cost(grid.page_count());
-            if wallet.spend(cost) {
-                let new_storage_count = grid.add_storage_tab();
-                grid.set_current_page(new_storage_count);
-            }
-            return;
-        }
-
-        grid.set_current_page(i);
+        handle_tab_click(&mut grid, &mut wallet, i, tab_count);
         return;
+    }
+}
+
+fn handle_tab_click(grid: &mut StashGrid, wallet: &mut StoreWallet, tab_index: u8, tab_count: u8) {
+    if tab_index == 0 {
+        grid.set_current_page(0);
+    } else if tab_index == tab_count - 1 {
+        let cost = storage_tab_purchase_cost(grid.page_count());
+        if wallet.spend(cost) {
+            let new_count = grid.add_storage_tab();
+            grid.set_current_page(new_count);
+        }
+    } else {
+        grid.set_current_page(tab_index);
     }
 }
 
@@ -169,50 +160,73 @@ pub fn stash_tab_render_system(
 
     for i in 0..tab_count {
         let left_x = tab_left_x(grid.width(), tab_count, i);
-        let color = if i == current {
-            TAB_ACTIVE
-        } else if i == tab_count - 1 {
-            TAB_ACTION
-        } else {
-            TAB_INACTIVE
-        };
-        let origin = screen_to_world(Vec2::new(left_x, top_y), &camera, vw, vh);
-        let tab_w = TAB_WIDTH / camera.zoom;
-        let tab_h = TAB_HEIGHT / camera.zoom;
-        let verts = rect_vertices(origin.x, origin.y, tab_w, tab_h);
-        draw_queue.push(
-            RenderLayer::UI,
-            SortOrder::new(500),
-            DrawCommand::Shape {
-                mesh: TessellatedMesh {
-                    vertices: verts.to_vec(),
-                    indices: QUAD_INDICES.to_vec(),
-                },
-                color,
-                model: engine_render::prelude::IDENTITY_MODEL,
-                material: None,
-                stroke: None,
-            },
-        );
-
-        let label = match i {
-            0 => "$".to_owned(),
-            _ if i == tab_count - 1 => "+".to_owned(),
-            _ => i.to_string(),
-        };
-        let label_font = 12.0;
-        draw_centered_screen_text(
-            &mut draw_queue,
-            RenderLayer::UI,
-            SortOrder::new(501),
-            &camera,
-            vw,
-            vh,
-            &label,
-            left_x + TAB_WIDTH * 0.5,
-            top_y + TAB_HEIGHT * 0.5 - label_font * 0.45,
-            label_font,
-            TAB_LABEL_COLOR,
-        );
+        let color = tab_color(i, current, tab_count);
+        draw_tab_background(&mut draw_queue, left_x, top_y, color, &camera, vw, vh);
+        draw_tab_label(&mut draw_queue, i, tab_count, left_x, top_y, &camera, vw, vh);
     }
+}
+
+fn tab_color(index: u8, current: u8, tab_count: u8) -> Color {
+    if index == current {
+        TAB_ACTIVE
+    } else if index == tab_count - 1 {
+        TAB_ACTION
+    } else {
+        TAB_INACTIVE
+    }
+}
+
+fn draw_tab_background(
+    queue: &mut DrawQueue,
+    left_x: f32,
+    top_y: f32,
+    color: Color,
+    camera: &Camera2D,
+    vw: f32,
+    vh: f32,
+) {
+    let origin = screen_to_world(Vec2::new(left_x, top_y), camera, vw, vh);
+    let verts = rect_vertices(origin.x, origin.y, TAB_WIDTH / camera.zoom, TAB_HEIGHT / camera.zoom);
+    queue.push(
+        RenderLayer::UI,
+        SortOrder::new(500),
+        DrawCommand::Shape {
+            mesh: TessellatedMesh { vertices: verts.to_vec(), indices: QUAD_INDICES.to_vec() },
+            color,
+            model: engine_render::prelude::IDENTITY_MODEL,
+            material: None,
+            stroke: None,
+        },
+    );
+}
+
+fn draw_tab_label(
+    queue: &mut DrawQueue,
+    index: u8,
+    tab_count: u8,
+    left_x: f32,
+    top_y: f32,
+    camera: &Camera2D,
+    vw: f32,
+    vh: f32,
+) {
+    let label_font = 12.0;
+    let label = match index {
+        0 => "$".to_owned(),
+        _ if index == tab_count - 1 => "+".to_owned(),
+        _ => index.to_string(),
+    };
+    draw_centered_screen_text(
+        queue,
+        RenderLayer::UI,
+        SortOrder::new(501),
+        camera,
+        vw,
+        vh,
+        &label,
+        left_x + TAB_WIDTH * 0.5,
+        top_y + TAB_HEIGHT * 0.5 - label_font * 0.45,
+        label_font,
+        TAB_LABEL_COLOR,
+    );
 }

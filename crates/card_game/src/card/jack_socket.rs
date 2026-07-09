@@ -128,66 +128,23 @@ pub fn on_socket_clicked(
     };
 
     if !socket.is_occupied() {
-        pending.source = Some(clicked);
-        let pos = transforms
-            .get(clicked)
-            .expect("socket entity must have Transform2D")
-            .position;
-        let free_end = spawn_free_end(&mut commands, pos);
-        let cable_entity = commands
-            .spawn((
-                WireEndpoints {
-                    source: clicked,
-                    dest: free_end,
-                },
-                Transform2D {
-                    position: pos,
-                    rotation: 0.0,
-                    scale: Vec2::ONE,
-                },
-                Shape {
-                    variant: ShapeVariant::Polygon {
-                        points: vec![Vec2::ZERO],
-                    },
-                    color: Color::WHITE,
-                },
-                Visible(true),
-                RenderLayer::World,
-                SortOrder::default(),
-                LocalSortOrder(CABLE_LOCAL_SORT),
-                WrapWire::new(),
-            ))
-            .id();
-        pending.origin_cable = Some(cable_entity);
-        pending.free_end = Some(free_end);
+        socket_start_new_cable(&transforms, &mut commands, &mut pending, clicked);
         return;
     }
 
-    // Disconnect: pick up the existing cable from this socket
     let Some(cable_entity) = socket.connected_cable.take() else {
         pending.source = Some(clicked);
         return;
     };
-
     let Ok(cable) = cables.get(cable_entity) else {
         pending.source = Some(clicked);
         return;
     };
 
-    let other_socket = if cable.dest == clicked {
-        cable.source
-    } else {
-        cable.dest
-    };
-
-    // Spawn a free end at the clicked socket's position and rewire the rope to it
-    let pos = transforms
-        .get(clicked)
-        .expect("socket entity must have Transform2D")
-        .position;
+    let other_socket = if cable.dest == clicked { cable.source } else { cable.dest };
+    let pos = transforms.get(clicked).expect("socket entity must have Transform2D").position;
     let free_end = spawn_free_end(&mut commands, pos);
 
-    // Rewire the wire endpoint from the clicked socket to the free end
     let mut endpoints = wire_endpoints
         .get_mut(cable_entity)
         .expect("cable entity must have WireEndpoints");
@@ -198,6 +155,31 @@ pub fn on_socket_clicked(
     }
 
     pending.source = Some(other_socket);
+    pending.origin_cable = Some(cable_entity);
+    pending.free_end = Some(free_end);
+}
+
+fn socket_start_new_cable(
+    transforms: &Query<&Transform2D, Without<CableFreeEnd>>,
+    commands: &mut Commands,
+    pending: &mut ResMut<PendingCable>,
+    clicked: Entity,
+) {
+    pending.source = Some(clicked);
+    let pos = transforms.get(clicked).expect("socket entity must have Transform2D").position;
+    let free_end = spawn_free_end(commands, pos);
+    let cable_entity = commands
+        .spawn((
+            WireEndpoints { source: clicked, dest: free_end },
+            Transform2D { position: pos, rotation: 0.0, scale: Vec2::ONE },
+            Shape { variant: ShapeVariant::Polygon { points: vec![Vec2::ZERO] }, color: Color::WHITE },
+            Visible(true),
+            RenderLayer::World,
+            SortOrder::default(),
+            LocalSortOrder(CABLE_LOCAL_SORT),
+            WrapWire::new(),
+        ))
+        .id();
     pending.origin_cable = Some(cable_entity);
     pending.free_end = Some(free_end);
 }
@@ -245,23 +227,8 @@ pub fn jack_socket_release_system(
     };
 
     let cursor = mouse.world_pos();
-
     let Some((dest_entity, output, input)) =
-        sockets.iter().find_map(|(entity, socket, transform)| {
-            if entity == source_entity || socket.is_occupied() {
-                return None;
-            }
-            if (cursor - transform.position).length() > socket.radius {
-                return None;
-            }
-            let dest_jack = jacks.get(entity).ok()?;
-            let (output, input) = match (source_jack.direction, dest_jack.direction) {
-                (JackDirection::Output, JackDirection::Input) => (source_entity, entity),
-                (JackDirection::Input, JackDirection::Output) => (entity, source_entity),
-                _ => return None,
-            };
-            Some((entity, output, input))
-        })
+        socket_find_drop_target(source_entity, source_jack, cursor, &sockets, &jacks)
     else {
         discard_drag(&mut sockets, &mut commands, origin_cable, free_end);
         return;
@@ -274,6 +241,47 @@ pub fn jack_socket_release_system(
     let Some(cable_entity) = origin_cable else {
         return;
     };
+    cable_link(cable_entity, output, input, &mut cables, &mut rope_endpoints, &mut commands);
+    if let Ok((_, mut dest_socket, _)) = sockets.get_mut(dest_entity) {
+        dest_socket.connected_cable = Some(cable_entity);
+    }
+    if let Ok((_, mut src_socket, _)) = sockets.get_mut(source_entity) {
+        src_socket.connected_cable = Some(cable_entity);
+    }
+}
+
+fn socket_find_drop_target(
+    source_entity: Entity,
+    source_jack: &Jack<SignatureSpace>,
+    cursor: Vec2,
+    sockets: &Query<(Entity, &mut JackSocket, &Transform2D)>,
+    jacks: &Query<&Jack<SignatureSpace>>,
+) -> Option<(Entity, Entity, Entity)> {
+    sockets.iter().find_map(|(entity, socket, transform)| {
+        if entity == source_entity || socket.is_occupied() {
+            return None;
+        }
+        if (cursor - transform.position).length() > socket.radius {
+            return None;
+        }
+        let dest_jack = jacks.get(entity).ok()?;
+        let (output, input) = match (source_jack.direction, dest_jack.direction) {
+            (JackDirection::Output, JackDirection::Input) => (source_entity, entity),
+            (JackDirection::Input, JackDirection::Output) => (entity, source_entity),
+            _ => return None,
+        };
+        Some((entity, output, input))
+    })
+}
+
+fn cable_link(
+    cable_entity: Entity,
+    output: Entity,
+    input: Entity,
+    cables: &mut Query<&mut Cable>,
+    rope_endpoints: &mut Query<&mut WireEndpoints>,
+    commands: &mut Commands,
+) {
     if let Ok(mut cable) = cables.get_mut(cable_entity) {
         cable.source = output;
         cable.dest = input;
@@ -286,11 +294,5 @@ pub fn jack_socket_release_system(
     if let Ok(mut endpoints) = rope_endpoints.get_mut(cable_entity) {
         endpoints.source = output;
         endpoints.dest = input;
-    }
-    if let Ok((_, mut dest_socket, _)) = sockets.get_mut(dest_entity) {
-        dest_socket.connected_cable = Some(cable_entity);
-    }
-    if let Ok((_, mut src_socket, _)) = sockets.get_mut(source_entity) {
-        src_socket.connected_cable = Some(cable_entity);
     }
 }

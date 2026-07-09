@@ -154,12 +154,11 @@ impl BoosterOpening {
     /// Compute the fan angle for a card at index out of total.
     fn fan_angle(index: usize, total: usize) -> f32 {
         if total <= 1 {
-            0.0
-        } else {
-            let start = -FAN_ARC / 2.0;
-            let step = FAN_ARC / (total - 1) as f32;
-            start + step * index as f32
+            return 0.0;
         }
+        let start = -FAN_ARC / 2.0;
+        let step = FAN_ARC / (total - 1) as f32;
+        start + step * index as f32
     }
 
     /// Compute fan position for card at index out of total.
@@ -282,157 +281,166 @@ pub fn booster_opening_system(world: &mut World) {
 
     opening.advance(dt);
 
-    match &opening.phase {
-        BoosterOpenPhase::MovingToCenter {
-            start_pos,
-            progress,
-        } => {
-            let progress = *progress;
-            let pos = lerp(*start_pos, opening.screen_center, progress);
-            let rotation = lerp_f32(opening.start_rotation, 0.0, progress);
-            let scale = lerp_f32(1.0, OPENING_SCALE, progress);
-
-            set_pack_transform(world, opening.pack_entity, pos, rotation, scale);
-            pan_camera(
-                world,
-                opening.screen_center,
-                opening.camera_start_pos,
-                progress,
-            );
+    let is_done = match opening.phase.clone() {
+        BoosterOpenPhase::MovingToCenter { start_pos, progress } => {
+            opening_phase_move_to_center(world, &opening, start_pos, progress);
+            false
         }
         BoosterOpenPhase::Ripping { .. } => {
-            // Pack stays at screen_center, zero rotation, full scale
-            set_pack_transform(
-                world,
-                opening.pack_entity,
-                opening.screen_center,
-                0.0,
-                OPENING_SCALE,
-            );
+            opening_phase_ripping(world, &opening);
+            false
         }
         BoosterOpenPhase::LoweringPack { progress } => {
-            let base = opening.screen_center;
-            let target = base + Vec2::new(0.0, LOWERING_OFFSET);
-            let pos = lerp(base, target, *progress);
-            set_pack_transform(world, opening.pack_entity, pos, 0.0, OPENING_SCALE);
+            opening_phase_lowering(world, &opening, progress);
+            false
         }
-        BoosterOpenPhase::RevealingCards {
-            card_index,
-            card_progress,
-        } => {
-            let card_index = *card_index;
-            let card_progress = *card_progress;
-            let (lowered_pos, card_spawn, card_reveal) = opening.card_layout();
-            let total_cards = opening.cards.len();
-
-            // Keep pack at lowered position, full scale
-            set_pack_transform(world, opening.pack_entity, lowered_pos, 0.0, OPENING_SCALE);
-
-            // Spawn a new card entity when card_index advances past spawned_cards.len()
-            if opening.spawned_cards.len() <= card_index {
-                let signature = opening.cards[card_index];
-                let def = placeholder_definition();
-                let entity =
-                    spawn_visual_card(world, &def, card_spawn, TABLE_CARD_SIZE, true, signature);
-
-                // Remove physics — we'll re-add in the Done phase
-                if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
-                    bus.push(PhysicsCommand::RemoveBody { entity });
-                }
-                world.entity_mut(entity).remove::<RigidBody>();
-
-                // Set sort order so cards render front-to-back in fan order
-                world
-                    .entity_mut(entity)
-                    .insert(LocalSortOrder(500 + card_index as i32));
-
-                if let Some(mut transform) = world.get_mut::<Transform2D>(entity) {
-                    transform.scale = Vec2::splat(OPENING_SCALE);
-                }
-
-                opening.spawned_cards.push(entity);
-            }
-
-            // Animate the current card upward
-            if let Some(&card_entity) = opening.spawned_cards.get(card_index) {
-                let pos = lerp(card_spawn, card_reveal, card_progress);
-                set_card_transform(world, card_entity, pos, OPENING_SCALE, 0.0);
-            }
-
-            // Animate already-revealed cards toward their fan positions.
-            for i in 0..card_index {
-                if let Some(&card_entity) = opening.spawned_cards.get(i) {
-                    let (pos, scale, rotation) =
-                        fan_card_transform(&opening, i, total_cards, card_reveal);
-                    set_card_transform(world, card_entity, pos, scale, rotation);
-                }
-            }
+        BoosterOpenPhase::RevealingCards { card_index, card_progress } => {
+            opening_phase_revealing(world, &mut opening, card_index, card_progress);
+            false
         }
         BoosterOpenPhase::Completing { progress } => {
-            let total = opening.spawned_cards.len();
-            let progress = *progress;
-            let lowered_pos = opening.screen_center + Vec2::new(0.0, LOWERING_OFFSET);
-            let card_reveal = lowered_pos - Vec2::new(0.0, CARD_REVEAL_ABOVE);
-
-            // Continue animating all cards toward their fan positions
-            for (i, &card_entity) in opening.spawned_cards.iter().enumerate() {
-                let (pos, scale, rotation) = fan_card_transform(&opening, i, total, card_reveal);
-                set_card_transform(world, card_entity, pos, scale, rotation);
-            }
-
-            // Slide pack off-screen downward
-            let pack_start = lowered_pos;
-            let off_screen = opening.screen_center + Vec2::new(0.0, 600.0);
-            let pack_pos = lerp(pack_start, off_screen, progress);
-            set_pack_transform(world, opening.pack_entity, pack_pos, 0.0, OPENING_SCALE);
+            opening_phase_completing(world, &opening, progress);
+            false
         }
         BoosterOpenPhase::Done => {
-            let half = TABLE_CARD_SIZE * 0.5;
+            opening_phase_done(world, &opening);
+            true
+        }
+    };
 
-            for &card_entity in &opening.spawned_cards {
-                let position = match world.get_mut::<Transform2D>(card_entity) {
-                    Some(mut transform) => {
-                        let position = transform.position;
-                        transform.scale = Vec2::ONE;
-                        transform.rotation = 0.0;
-                        position
-                    }
-                    None => opening.original_position,
-                };
+    if !is_done {
+        world.insert_resource(opening);
+    }
+}
 
-                let mut em = world.entity_mut(card_entity);
-                em.insert(SortOrder::default());
-                em.remove::<LocalSortOrder>();
-                em.insert(RigidBody::Dynamic);
+fn opening_phase_move_to_center(
+    world: &mut World,
+    opening: &BoosterOpening,
+    start_pos: Vec2,
+    progress: f32,
+) {
+    let pos = lerp(start_pos, opening.screen_center, progress);
+    let rotation = lerp_f32(opening.start_rotation, 0.0, progress);
+    let scale = lerp_f32(1.0, OPENING_SCALE, progress);
+    set_pack_transform(world, opening.pack_entity, pos, rotation, scale);
+    pan_camera(world, opening.screen_center, opening.camera_start_pos, progress);
+}
 
-                if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
-                    bus.push(PhysicsCommand::AddBody {
-                        entity: card_entity,
-                        body_type: RigidBody::Dynamic,
-                        position,
-                    });
-                    bus.push(PhysicsCommand::AddCollider {
-                        entity: card_entity,
-                        collider: Collider::Aabb(half),
-                    });
-                    bus.push(PhysicsCommand::SetDamping {
-                        entity: card_entity,
-                        linear: BASE_LINEAR_DRAG,
-                        angular: BASE_ANGULAR_DRAG,
-                    });
-                    bus.push(PhysicsCommand::SetCollisionGroup {
-                        entity: card_entity,
-                        membership: CARD_COLLISION_GROUP,
-                        filter: CARD_COLLISION_FILTER,
-                    });
-                }
-            }
+fn opening_phase_ripping(world: &mut World, opening: &BoosterOpening) {
+    set_pack_transform(world, opening.pack_entity, opening.screen_center, 0.0, OPENING_SCALE);
+}
 
-            world.despawn(opening.pack_entity);
+fn opening_phase_lowering(world: &mut World, opening: &BoosterOpening, progress: f32) {
+    let base = opening.screen_center;
+    let target = base + Vec2::new(0.0, LOWERING_OFFSET);
+    let pos = lerp(base, target, progress);
+    set_pack_transform(world, opening.pack_entity, pos, 0.0, OPENING_SCALE);
+}
 
-            return;
+fn opening_phase_revealing(
+    world: &mut World,
+    opening: &mut BoosterOpening,
+    card_index: usize,
+    card_progress: f32,
+) {
+    let (lowered_pos, card_spawn, card_reveal) = opening.card_layout();
+    let total_cards = opening.cards.len();
+    set_pack_transform(world, opening.pack_entity, lowered_pos, 0.0, OPENING_SCALE);
+
+    if opening.spawned_cards.len() <= card_index {
+        opening_spawn_card(world, opening, card_index, card_spawn);
+    }
+    if let Some(&card_entity) = opening.spawned_cards.get(card_index) {
+        let pos = lerp(card_spawn, card_reveal, card_progress);
+        set_card_transform(world, card_entity, pos, OPENING_SCALE, 0.0);
+    }
+    for i in 0..card_index {
+        if let Some(&card_entity) = opening.spawned_cards.get(i) {
+            let (pos, scale, rotation) = fan_card_transform(opening, i, total_cards, card_reveal);
+            set_card_transform(world, card_entity, pos, scale, rotation);
         }
     }
+}
 
-    world.insert_resource(opening);
+fn opening_spawn_card(
+    world: &mut World,
+    opening: &mut BoosterOpening,
+    index: usize,
+    position: Vec2,
+) {
+    let signature = opening.cards[index];
+    let def = placeholder_definition();
+    let entity = spawn_visual_card(world, &def, position, TABLE_CARD_SIZE, true, signature);
+
+    if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
+        bus.push(PhysicsCommand::RemoveBody { entity });
+    }
+    world.entity_mut(entity).remove::<RigidBody>();
+    world.entity_mut(entity).insert(LocalSortOrder(500 + index as i32));
+    if let Some(mut transform) = world.get_mut::<Transform2D>(entity) {
+        transform.scale = Vec2::splat(OPENING_SCALE);
+    }
+    opening.spawned_cards.push(entity);
+}
+
+fn opening_phase_completing(world: &mut World, opening: &BoosterOpening, progress: f32) {
+    let total = opening.spawned_cards.len();
+    let lowered_pos = opening.screen_center + Vec2::new(0.0, LOWERING_OFFSET);
+    let card_reveal = lowered_pos - Vec2::new(0.0, CARD_REVEAL_ABOVE);
+
+    for (i, &card_entity) in opening.spawned_cards.iter().enumerate() {
+        let (pos, scale, rotation) = fan_card_transform(opening, i, total, card_reveal);
+        set_card_transform(world, card_entity, pos, scale, rotation);
+    }
+
+    let off_screen = opening.screen_center + Vec2::new(0.0, 600.0);
+    let pack_pos = lerp(lowered_pos, off_screen, progress);
+    set_pack_transform(world, opening.pack_entity, pack_pos, 0.0, OPENING_SCALE);
+}
+
+fn opening_phase_done(world: &mut World, opening: &BoosterOpening) {
+    let half = TABLE_CARD_SIZE * 0.5;
+
+    for &card_entity in &opening.spawned_cards {
+        opening_finalize_card(world, card_entity, opening.original_position, half);
+    }
+    world.despawn(opening.pack_entity);
+}
+
+fn opening_finalize_card(world: &mut World, card_entity: Entity, fallback_pos: Vec2, half: Vec2) {
+    let position = match world.get_mut::<Transform2D>(card_entity) {
+        Some(mut transform) => {
+            let pos = transform.position;
+            transform.scale = Vec2::ONE;
+            transform.rotation = 0.0;
+            pos
+        }
+        None => fallback_pos,
+    };
+
+    world.entity_mut(card_entity).insert(SortOrder::default());
+    world.entity_mut(card_entity).remove::<LocalSortOrder>();
+    world.entity_mut(card_entity).insert(RigidBody::Dynamic);
+
+    if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
+        bus.push(PhysicsCommand::AddBody {
+            entity: card_entity,
+            body_type: RigidBody::Dynamic,
+            position,
+        });
+        bus.push(PhysicsCommand::AddCollider {
+            entity: card_entity,
+            collider: Collider::Aabb(half),
+        });
+        bus.push(PhysicsCommand::SetDamping {
+            entity: card_entity,
+            linear: BASE_LINEAR_DRAG,
+            angular: BASE_ANGULAR_DRAG,
+        });
+        bus.push(PhysicsCommand::SetCollisionGroup {
+            entity: card_entity,
+            membership: CARD_COLLISION_GROUP,
+            filter: CARD_COLLISION_FILTER,
+        });
+    }
 }

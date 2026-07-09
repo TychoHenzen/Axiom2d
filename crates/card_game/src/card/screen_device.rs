@@ -155,53 +155,36 @@ pub fn screen_render_system(
 ///
 /// Returns `(device_entity, jack_entity)`.
 pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity) {
-    let jack_entity = world
+    let jack_entity = spawn_screen_jack(world, position);
+    let device_entity = spawn_screen_body(world, position, jack_entity);
+    spawn_screen_panels(world, device_entity);
+    (device_entity, jack_entity)
+}
+
+fn spawn_screen_jack(world: &mut World, position: Vec2) -> Entity {
+    let entity = world
         .spawn((
-            Jack::<SignatureSpace> {
-                direction: JackDirection::Input,
-                data: None,
-            },
-            JackSocket {
-                radius: SOCKET_RADIUS,
-                color: SOCKET_COLOR,
-                connected_cable: None,
-            },
-            Transform2D {
-                position: position + JACK_OFFSET,
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            Shape {
-                variant: ShapeVariant::Circle {
-                    radius: SOCKET_RADIUS,
-                },
-                color: SOCKET_COLOR,
-            },
+            Jack::<SignatureSpace> { direction: JackDirection::Input, data: None },
+            JackSocket { radius: SOCKET_RADIUS, color: SOCKET_COLOR, connected_cable: None },
+            Transform2D { position: position + JACK_OFFSET, rotation: 0.0, scale: Vec2::ONE },
+            Shape { variant: ShapeVariant::Circle { radius: SOCKET_RADIUS }, color: SOCKET_COLOR },
             RenderLayer::World,
             SortOrder::default(),
             LocalSortOrder(SCREEN_SOCKET_LOCAL_SORT),
             Clickable(ClickHitShape::Circle(SOCKET_RADIUS)),
         ))
         .id();
+    world.entity_mut(entity).observe(on_socket_clicked);
+    entity
+}
 
-    let device_entity = world
+fn spawn_screen_body(world: &mut World, position: Vec2, jack_entity: Entity) -> Entity {
+    let entity = world
         .spawn((
-            ScreenDevice {
-                signature_input: jack_entity,
-            },
-            Transform2D {
-                position,
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            Shape {
-                variant: rounded_rect_path(BODY_HALF_W, BODY_HALF_H, BODY_CORNER_RADIUS),
-                color: BODY_FILL,
-            },
-            Stroke {
-                color: BODY_STROKE,
-                width: 2.0,
-            },
+            ScreenDevice { signature_input: jack_entity },
+            Transform2D { position, rotation: 0.0, scale: Vec2::ONE },
+            Shape { variant: rounded_rect_path(BODY_HALF_W, BODY_HALF_H, BODY_CORNER_RADIUS), color: BODY_FILL },
+            Stroke { color: BODY_STROKE, width: 2.0 },
             RenderLayer::World,
             SortOrder::default(),
             LocalSortOrder(SCREEN_LOCAL_SORT),
@@ -209,50 +192,32 @@ pub fn spawn_screen_device(world: &mut World, position: Vec2) -> (Entity, Entity
             CableCollider::from_aabb(SCREEN_HALF_EXTENTS),
         ))
         .id();
-    world.entity_mut(device_entity).observe(on_screen_clicked);
-    world.entity_mut(jack_entity).observe(on_socket_clicked);
+    world.entity_mut(entity).observe(on_screen_clicked);
+    entity
+}
 
+fn spawn_screen_panels(world: &mut World, device_entity: Entity) {
     for display_index in 0..DISPLAY_COUNT {
         let offset = panel_offset(display_index);
 
-        world.spawn_child(
-            device_entity,
-            (
-                Transform2D {
-                    position: offset,
-                    ..Default::default()
-                },
-                Shape {
-                    variant: rect_polygon(PANEL_HALF, PANEL_HALF),
-                    color: PANEL_FILL,
-                },
-                RenderLayer::World,
-                SortOrder::default(),
-                LocalSortOrder(SCREEN_PANEL_LOCAL_SORT),
-            ),
-        );
+        world.spawn_child(device_entity, (
+            Transform2D { position: offset, ..Default::default() },
+            Shape { variant: rect_polygon(PANEL_HALF, PANEL_HALF), color: PANEL_FILL },
+            RenderLayer::World,
+            SortOrder::default(),
+            LocalSortOrder(SCREEN_PANEL_LOCAL_SORT),
+        ));
 
-        world.spawn_child(
-            device_entity,
-            (
-                ScreenSignalShape { display_index },
-                Transform2D {
-                    position: offset,
-                    ..Default::default()
-                },
-                Shape {
-                    variant: rect_polygon(3.0, 3.0),
-                    color: SIGNAL_COLOR,
-                },
-                Visible(false),
-                RenderLayer::World,
-                SortOrder::default(),
-                LocalSortOrder(SCREEN_DOT_LOCAL_SORT),
-            ),
-        );
+        world.spawn_child(device_entity, (
+            ScreenSignalShape { display_index },
+            Transform2D { position: offset, ..Default::default() },
+            Shape { variant: rect_polygon(3.0, 3.0), color: SIGNAL_COLOR },
+            Visible(false),
+            RenderLayer::World,
+            SortOrder::default(),
+            LocalSortOrder(SCREEN_DOT_LOCAL_SORT),
+        ));
     }
-
-    (device_entity, jack_entity)
 }
 
 /// The screen's half-extents, for callers that need the bounding box.

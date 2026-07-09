@@ -659,60 +659,30 @@ fn despawn_entity_tree(world: &mut World, entity: Entity) {
         }
 
         stack.push((current, true));
-        let children = if let Some(children) = world.get::<Children>(current) {
-            children.0.clone()
-        } else {
-            let mut query = world.query::<(Entity, &ChildOf)>();
-            query
-                .iter(world)
-                .filter_map(|(child, parent)| (parent.0 == current).then_some(child))
-                .collect()
-        };
+        let children = despawn_find_children(world, current);
         stack.extend(children.into_iter().map(|child| (child, false)));
     }
 }
 
-pub fn store_buy_system(world: &mut World) {
-    let (visible, mouse_screen_pos, mouse_world_pos, just_pressed, grid) = {
-        let Some(visible) = world.get_resource::<StashVisible>() else {
-            return;
-        };
-        let Some(mouse) = world.get_resource::<MouseState>() else {
-            return;
-        };
-        let grid = world.resource::<StashGrid>().clone();
-        (
-            visible.0,
-            mouse.screen_pos(),
-            mouse.world_pos(),
-            mouse.just_pressed(MouseButton::Left),
-            grid,
-        )
-    };
-    if !visible || !just_pressed || !grid.is_store_page() {
-        return;
+fn despawn_find_children(world: &mut World, parent: Entity) -> Vec<Entity> {
+    if let Some(children) = world.get::<Children>(parent) {
+        return children.0.clone();
     }
+    let mut query = world.query::<(Entity, &ChildOf)>();
+    query
+        .iter(world)
+        .filter_map(|(child, co)| (co.0 == parent).then_some(child))
+        .collect()
+}
 
-    if active_store_drag_target(world).is_some() || !stash_ui_contains(mouse_screen_pos, &grid) {
-        return;
-    }
+fn buy_store_visibility_check(world: &World) -> Option<(bool, Vec2, Vec2, bool, StashGrid)> {
+    let visible = world.get_resource::<StashVisible>()?;
+    let mouse = world.get_resource::<MouseState>()?;
+    let grid = world.resource::<StashGrid>().clone();
+    Some((visible.0, mouse.screen_pos(), mouse.world_pos(), mouse.just_pressed(MouseButton::Left), grid))
+}
 
-    let Some(catalog) = world.get_resource::<StoreCatalog>() else {
-        return;
-    };
-    let Some(item) = store_item_at(mouse_screen_pos, &grid, catalog) else {
-        return;
-    };
-
-    let cost = item.cost();
-    {
-        let mut wallet = world.resource_mut::<StoreWallet>();
-        if !wallet.spend(cost) {
-            return;
-        }
-    }
-
-    let spawn_pos = mouse_world_pos;
+fn spawn_purchased_device(world: &mut World, item: StoreItemKind, spawn_pos: Vec2) {
     let drag_info = |entity| DeviceDragInfo {
         entity,
         grab_offset: Vec2::ZERO,
@@ -737,75 +707,102 @@ pub fn store_buy_system(world: &mut World) {
     }
 }
 
-pub fn store_sell_system(world: &mut World) {
-    let (visible, mouse_screen_pos, just_released, grid) = {
-        let Some(visible) = world.get_resource::<StashVisible>() else {
-            return;
-        };
-        let Some(mouse) = world.get_resource::<MouseState>() else {
-            return;
-        };
-        let grid = world.resource::<StashGrid>().clone();
-        (
-            visible.0,
-            mouse.screen_pos(),
-            mouse.just_released(MouseButton::Left),
-            grid,
-        )
+pub fn store_buy_system(world: &mut World) {
+    let Some((visible, screen_pos, world_pos, pressed, grid)) = buy_store_visibility_check(world) else {
+        return;
     };
-    if !visible || !just_released || !grid.is_store_page() {
+    if !visible || !pressed || !grid.is_store_page() {
         return;
     }
-    if !stash_ui_contains(mouse_screen_pos, &grid) {
+    if active_store_drag_target(world).is_some() || !stash_ui_contains(screen_pos, &grid) {
         return;
     }
 
-    match active_store_drag_target(world) {
-        Some(StoreDragTarget::Reader(entity)) => {
+    let Some(catalog) = world.get_resource::<StoreCatalog>() else {
+        return;
+    };
+    let Some(item) = store_item_at(screen_pos, &grid, catalog) else {
+        return;
+    };
+
+    let cost = item.cost();
+    if !world.resource_mut::<StoreWallet>().spend(cost) {
+        return;
+    }
+
+    spawn_purchased_device(world, item, world_pos);
+}
+
+fn sell_visibility_check(world: &World) -> Option<(bool, Vec2, StashGrid)> {
+    let visible = world.get_resource::<StashVisible>()?;
+    let mouse = world.get_resource::<MouseState>()?;
+    let grid = world.resource::<StashGrid>().clone();
+    Some((visible.0, mouse.screen_pos(), grid))
+}
+
+fn sell_dispatch(world: &mut World, target: StoreDragTarget) {
+    match target {
+        StoreDragTarget::Reader(entity) => {
             sell_reader(world, entity);
             world.resource_mut::<ReaderDragState>().dragging = None;
         }
-        Some(StoreDragTarget::Screen(entity)) => {
+        StoreDragTarget::Screen(entity) => {
             sell_screen(world, entity);
             world.resource_mut::<ScreenDragState>().dragging = None;
         }
-        Some(StoreDragTarget::Combiner(entity)) => {
+        StoreDragTarget::Combiner(entity) => {
             sell_combiner(world, entity);
             world.resource_mut::<CombinerDragState>().dragging = None;
         }
-        Some(StoreDragTarget::Booster(entity)) => {
+        StoreDragTarget::Booster(entity) => {
             sell_booster(world, entity);
             world.resource_mut::<BoosterDragState>().dragging = None;
         }
-        Some(StoreDragTarget::Any) | None => {}
+        StoreDragTarget::Any => {}
     }
 }
 
-fn sell_screen(world: &mut World, entity: Entity) {
-    let (jack_entity, refund) = {
-        let Some(screen) = world.get::<crate::card::screen_device::ScreenDevice>(entity) else {
-            return;
-        };
-        (screen.signature_input, StoreItemKind::Screen.refund_value())
+pub fn store_sell_system(world: &mut World) {
+    let Some((visible, screen_pos, grid)) = sell_visibility_check(world) else {
+        return;
     };
-    despawn_connected_cables(world, &[entity, jack_entity]);
-    despawn_entity_tree(world, jack_entity);
+    if !visible || !world.get_resource::<MouseState>().is_some_and(|m| m.just_released(MouseButton::Left)) {
+        return;
+    }
+    if !grid.is_store_page() || !stash_ui_contains(screen_pos, &grid) {
+        return;
+    }
+
+    if let Some(target) = active_store_drag_target(world) {
+        sell_dispatch(world, target);
+    }
+}
+
+fn sell_device_basic(world: &mut World, entity: Entity, jack_entities: &[Entity], refund: u32) {
+    despawn_connected_cables(world, jack_entities);
+    for &jack in jack_entities {
+        despawn_entity_tree(world, jack);
+    }
     despawn_entity_tree(world, entity);
     world.resource_mut::<StoreWallet>().refund(refund);
 }
 
-fn sell_combiner(world: &mut World, entity: Entity) {
-    let (jack_entities, refund) = {
-        let Some(device) = world.get::<CombinerDevice>(entity) else {
-            return;
-        };
-        (
-            [device.input_a, device.input_b, device.output],
-            StoreItemKind::Combiner.refund_value(),
-        )
+fn sell_screen(world: &mut World, entity: Entity) {
+    let device = match world.get::<crate::card::screen_device::ScreenDevice>(entity) {
+        Some(d) => d,
+        None => return,
     };
-    despawn_connected_cables(world, &jack_entities);
-    for jack in jack_entities {
+    sell_device_basic(world, entity, &[entity, device.signature_input], StoreItemKind::Screen.refund_value());
+}
+
+fn sell_combiner(world: &mut World, entity: Entity) {
+    let (in_a, in_b, out) = match world.get::<CombinerDevice>(entity) {
+        Some(d) => (d.input_a, d.input_b, d.output),
+        None => return,
+    };
+    let refund = StoreItemKind::Combiner.refund_value();
+    despawn_connected_cables(world, &[in_a, in_b, out]);
+    for jack in [in_a, in_b, out] {
         despawn_entity_tree(world, jack);
     }
     despawn_entity_tree(world, entity);
@@ -813,73 +810,61 @@ fn sell_combiner(world: &mut World, entity: Entity) {
 }
 
 fn sell_reader(world: &mut World, entity: Entity) {
-    let (jack_entity, loaded_card, refund) = {
-        let Some(reader) = world.get::<crate::card::reader::CardReader>(entity) else {
-            return;
-        };
-        (
-            reader.jack_entity,
-            reader.loaded,
-            StoreItemKind::Reader.refund_value(),
-        )
+    let (loaded, jack_entity) = match world.get::<crate::card::reader::CardReader>(entity) {
+        Some(r) => (r.loaded, r.jack_entity),
+        None => return,
     };
+    let refund = StoreItemKind::Reader.refund_value();
 
-    if let Some(card_entity) = loaded_card {
-        let reader_pos = world
-            .get::<Transform2D>(entity)
-            .map_or(Vec2::ZERO, |t| t.position);
-        if let Some(mut zone) = world.get_mut::<CardZone>(card_entity) {
-            *zone = CardZone::Table;
-        }
-        if let Some(mut transform) = world.get_mut::<Transform2D>(card_entity) {
-            transform.position = reader_pos;
-            transform.rotation = 0.0;
-            transform.scale = Vec2::ONE;
-        }
-        world
-            .entity_mut(card_entity)
-            .insert(RigidBody::Dynamic)
-            .insert(RenderLayer::World)
-            .insert(ScaleSpring::new(1.0));
-        if let Some(collider) = world.get::<Collider>(card_entity).cloned()
-            && let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>()
-        {
-            bus.push(PhysicsCommand::RemoveBody {
-                entity: card_entity,
-            });
-            bus.push(PhysicsCommand::AddBody {
-                entity: card_entity,
-                body_type: RigidBody::Dynamic,
-                position: reader_pos,
-            });
-            bus.push(PhysicsCommand::AddCollider {
-                entity: card_entity,
-                collider,
-            });
-        }
+    if let Some(card_entity) = loaded {
+        eject_card_to_table(world, entity, card_entity);
     }
 
-    despawn_connected_cables(world, &[entity, jack_entity]);
-    despawn_entity_tree(world, jack_entity);
-    despawn_entity_tree(world, entity);
-    world.resource_mut::<StoreWallet>().refund(refund);
+    sell_device_basic(world, entity, &[entity, jack_entity], refund);
+}
+
+fn eject_card_to_table(world: &mut World, reader_entity: Entity, card_entity: Entity) {
+    let reader_pos = world
+        .get::<Transform2D>(reader_entity)
+        .map_or(Vec2::ZERO, |t| t.position);
+    if let Some(mut zone) = world.get_mut::<CardZone>(card_entity) {
+        *zone = CardZone::Table;
+    }
+    if let Some(mut transform) = world.get_mut::<Transform2D>(card_entity) {
+        transform.position = reader_pos;
+        transform.rotation = 0.0;
+        transform.scale = Vec2::ONE;
+    }
+    world
+        .entity_mut(card_entity)
+        .insert(RigidBody::Dynamic)
+        .insert(RenderLayer::World)
+        .insert(ScaleSpring::new(1.0));
+    if let Some(collider) = world.get::<Collider>(card_entity).cloned()
+        && let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>()
+    {
+        bus.push(PhysicsCommand::RemoveBody { entity: card_entity });
+        bus.push(PhysicsCommand::AddBody {
+            entity: card_entity,
+            body_type: RigidBody::Dynamic,
+            position: reader_pos,
+        });
+        bus.push(PhysicsCommand::AddCollider {
+            entity: card_entity,
+            collider,
+        });
+    }
 }
 
 fn sell_booster(world: &mut World, entity: Entity) {
-    let (jack_entity, button_entity, output_pack, refund) = {
-        let Some(machine) = world.get::<BoosterMachine>(entity) else {
-            return;
-        };
-        (
-            machine.signal_input,
-            machine.button_entity,
-            machine.output_pack,
-            StoreItemKind::BoosterMachine.refund_value(),
-        )
+    let (input_jack, btn, output_pack) = match world.get::<BoosterMachine>(entity) {
+        Some(m) => (m.signal_input, m.button_entity, m.output_pack),
+        None => return,
     };
-    despawn_connected_cables(world, &[entity, jack_entity]);
-    despawn_entity_tree(world, jack_entity);
-    despawn_entity_tree(world, button_entity);
+    let refund = StoreItemKind::BoosterMachine.refund_value();
+    despawn_connected_cables(world, &[entity, input_jack]);
+    despawn_entity_tree(world, input_jack);
+    despawn_entity_tree(world, btn);
     if let Some(pack) = output_pack {
         despawn_entity_tree(world, pack);
     }

@@ -91,62 +91,9 @@ pub struct SealButtonPressed(pub Option<Entity>);
 ///
 /// Returns `(device_entity, input_jack)`.
 pub fn spawn_booster_machine(world: &mut World, position: Vec2) -> (Entity, Entity) {
-    // Reserve the device entity ID first so we can reference it in child components.
     let device_entity = world.spawn_empty().id();
-
-    let input_jack = world
-        .spawn((
-            Jack::<SignatureSpace> {
-                direction: JackDirection::Input,
-                data: None,
-            },
-            JackSocket {
-                radius: SOCKET_RADIUS,
-                color: SOCKET_COLOR,
-                connected_cable: None,
-            },
-            Transform2D {
-                position: position + Vec2::new(INPUT_X, 0.0),
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            Shape {
-                variant: ShapeVariant::Circle {
-                    radius: SOCKET_RADIUS,
-                },
-                color: SOCKET_COLOR,
-            },
-            RenderLayer::World,
-            SortOrder::default(),
-            LocalSortOrder(BOOSTER_SOCKET_LOCAL_SORT),
-            Clickable(ClickHitShape::Circle(SOCKET_RADIUS)),
-        ))
-        .id();
-
-    let button_entity = world
-        .spawn((
-            BoosterSealButton {
-                machine_entity: device_entity,
-            },
-            Transform2D {
-                position: position + BUTTON_OFFSET,
-                rotation: 0.0,
-                scale: Vec2::ONE,
-            },
-            Shape {
-                variant: rounded_rect_path(BUTTON_HALF_W, BUTTON_HALF_H, BUTTON_CORNER_RADIUS),
-                color: BUTTON_FILL,
-            },
-            Stroke {
-                color: BUTTON_STROKE,
-                width: 1.5,
-            },
-            RenderLayer::World,
-            SortOrder::default(),
-            LocalSortOrder(BOOSTER_BUTTON_LOCAL_SORT),
-            Clickable(ClickHitShape::Aabb(Vec2::new(BUTTON_HALF_W, BUTTON_HALF_H))),
-        ))
-        .id();
+    let input_jack = spawn_booster_input_jack(world, position);
+    let button_entity = spawn_booster_seal_button(world, position, device_entity);
 
     world.entity_mut(device_entity).insert((
         BoosterMachine {
@@ -176,11 +123,65 @@ pub fn spawn_booster_machine(world: &mut World, position: Vec2) -> (Entity, Enti
 
     world.entity_mut(device_entity).observe(on_booster_clicked);
     world.entity_mut(input_jack).observe(on_socket_clicked);
-    world
-        .entity_mut(button_entity)
-        .observe(on_seal_button_clicked);
+    world.entity_mut(button_entity).observe(on_seal_button_clicked);
 
     (device_entity, input_jack)
+}
+
+fn spawn_booster_input_jack(world: &mut World, position: Vec2) -> Entity {
+    world
+        .spawn((
+            Jack::<SignatureSpace> {
+                direction: JackDirection::Input,
+                data: None,
+            },
+            JackSocket {
+                radius: SOCKET_RADIUS,
+                color: SOCKET_COLOR,
+                connected_cable: None,
+            },
+            Transform2D {
+                position: position + Vec2::new(INPUT_X, 0.0),
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            Shape {
+                variant: ShapeVariant::Circle {
+                    radius: SOCKET_RADIUS,
+                },
+                color: SOCKET_COLOR,
+            },
+            RenderLayer::World,
+            SortOrder::default(),
+            LocalSortOrder(BOOSTER_SOCKET_LOCAL_SORT),
+            Clickable(ClickHitShape::Circle(SOCKET_RADIUS)),
+        ))
+        .id()
+}
+
+fn spawn_booster_seal_button(world: &mut World, position: Vec2, device_entity: Entity) -> Entity {
+    world
+        .spawn((
+            BoosterSealButton { machine_entity: device_entity },
+            Transform2D {
+                position: position + BUTTON_OFFSET,
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            Shape {
+                variant: rounded_rect_path(BUTTON_HALF_W, BUTTON_HALF_H, BUTTON_CORNER_RADIUS),
+                color: BUTTON_FILL,
+            },
+            Stroke {
+                color: BUTTON_STROKE,
+                width: 1.5,
+            },
+            RenderLayer::World,
+            SortOrder::default(),
+            LocalSortOrder(BOOSTER_BUTTON_LOCAL_SORT),
+            Clickable(ClickHitShape::Aabb(Vec2::new(BUTTON_HALF_W, BUTTON_HALF_H))),
+        ))
+        .id()
 }
 
 #[derive(Resource, Debug, Default)]
@@ -280,67 +281,77 @@ fn on_seal_button_clicked(
 pub fn booster_seal_system(world: &mut World) {
     use crate::booster::pack::spawn_booster_pack;
     use crate::booster::sampling::sample_signatures_from_space;
-    use crate::card::component::Card;
     use engine_core::scale_spring::ScaleSpring;
     use engine_physics::prelude::RigidBody;
-    use rand::Rng;
-    use rand::SeedableRng;
-    use rand_chacha::ChaCha8Rng;
 
-    // 1. Read and clear SealButtonPressed. If no device entity, return.
-    let device_entity = {
-        let Some(mut pressed) = world.get_resource_mut::<SealButtonPressed>() else {
-            return;
-        };
-        let entity = pressed.0.take();
-        match entity {
-            Some(e) => e,
-            None => return,
-        }
+    let Some(device_entity) = seal_read_pressed(world) else {
+        return;
     };
-
-    // 2. Get BoosterMachine. If output_pack.is_some(), return (slot occupied).
-    let (signal_input, position) = {
-        let Some(machine) = world.get::<BoosterMachine>(device_entity) else {
-            return;
-        };
-        if machine.output_pack.is_some() {
-            return;
-        }
-        let signal_input = machine.signal_input;
-        let position = world
-            .get::<Transform2D>(device_entity)
-            .map_or(Vec2::ZERO, |t| t.position);
-        (signal_input, position)
+    let Some((signal_input, position)) = seal_machine_state(world, device_entity) else {
+        return;
     };
-
-    // 3. Read Jack<SignatureSpace> from machine.signal_input. If no data, return.
-    let space = {
-        let Some(jack) = world.get::<Jack<SignatureSpace>>(signal_input) else {
-            return;
-        };
-        match jack.data.clone() {
-            Some(s) => s,
-            None => return,
-        }
+    let Some(space) = seal_read_space(world, signal_input) else {
+        return;
     };
-
-    // 4. If source_cards is empty, return.
     if space.source_cards.is_empty() {
         return;
     }
 
-    // RNG seeding from control points
+    let mut rng = seal_rng_from_space(&space);
+    let count = seal_card_count(world, &space, &mut rng);
+    let signatures = sample_signatures_from_space(&space, count, &mut rng);
+
+    let pack_position = position + PACK_SLOT_OFFSET;
+    let pack_entity = spawn_booster_pack(world, pack_position, signatures);
+    world.entity_mut(pack_entity).insert(ScaleSpring::new(0.5));
+    if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
+        bus.push(PhysicsCommand::RemoveBody {
+            entity: pack_entity,
+        });
+    }
+    world.entity_mut(pack_entity).remove::<RigidBody>();
+    if let Some(mut machine) = world.get_mut::<BoosterMachine>(device_entity) {
+        machine.output_pack = Some(pack_entity);
+    }
+    seal_destroy_source_cards(world, &space);
+}
+
+fn seal_read_pressed(world: &mut World) -> Option<Entity> {
+    let mut pressed = world.get_resource_mut::<SealButtonPressed>()?;
+    pressed.0.take()
+}
+
+fn seal_machine_state(world: &World, device_entity: Entity) -> Option<(Entity, Vec2)> {
+    let machine = world.get::<BoosterMachine>(device_entity)?;
+    if machine.output_pack.is_some() {
+        return None;
+    }
+    let position = world
+        .get::<Transform2D>(device_entity)
+        .map_or(Vec2::ZERO, |t| t.position);
+    Some((machine.signal_input, position))
+}
+
+fn seal_read_space(world: &World, signal_input: Entity) -> Option<SignatureSpace> {
+    let jack = world.get::<Jack<SignatureSpace>>(signal_input)?;
+    jack.data.clone()
+}
+
+fn seal_rng_from_space(space: &SignatureSpace) -> rand_chacha::ChaCha8Rng {
+    use rand::SeedableRng;
+    use rand_chacha::ChaCha8Rng;
     let seed_bytes: u64 = space
         .control_points
         .iter()
         .flat_map(CardSignature::axes)
         .fold(0u64, |acc, v: f32| acc.wrapping_add(u64::from(v.to_bits())));
-    let mut rng = ChaCha8Rng::seed_from_u64(seed_bytes);
+    ChaCha8Rng::seed_from_u64(seed_bytes)
+}
 
-    // 5. Determine card count with rarity bonus
+fn seal_card_count(world: &World, space: &SignatureSpace, rng: &mut rand_chacha::ChaCha8Rng) -> usize {
+    use crate::card::component::Card;
+    use rand::Rng;
     let base_count: usize = rng.random_range(5..=15);
-
     let rarity_bonus: usize = space
         .source_cards
         .iter()
@@ -353,43 +364,18 @@ pub fn booster_seal_system(world: &mut World) {
             Rarity::Legendary => 4,
         })
         .sum();
-    let count = (base_count + rarity_bonus).min(15);
+    (base_count + rarity_bonus).min(15)
+}
 
-    // 6. Sample signatures
-    let signatures = sample_signatures_from_space(&space, count, &mut rng);
-
-    // 7. Spawn pack at machine position + offset
-    let pack_position = position + PACK_SLOT_OFFSET;
-    let pack_entity = spawn_booster_pack(world, pack_position, signatures);
-
-    // 8. Scale down the pack in slot
-    world.entity_mut(pack_entity).insert(ScaleSpring::new(0.5));
-
-    // 9. Remove physics from pack while in slot
-    if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
-        bus.push(PhysicsCommand::RemoveBody {
-            entity: pack_entity,
-        });
-    }
-    world.entity_mut(pack_entity).remove::<RigidBody>();
-
-    // 10. Set machine.output_pack
-    if let Some(mut machine) = world.get_mut::<BoosterMachine>(device_entity) {
-        machine.output_pack = Some(pack_entity);
-    }
-
-    // 11. Remove physics from source cards before destroying them
-    let source_cards = space.source_cards.clone();
-    let source_card_set: HashSet<Entity> = source_cards.iter().copied().collect();
-    for &card_entity in &source_cards {
+fn seal_destroy_source_cards(world: &mut World, space: &SignatureSpace) {
+    let source_card_set: HashSet<Entity> = space.source_cards.iter().copied().collect();
+    for &card_entity in &space.source_cards {
         if let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>() {
             bus.push(PhysicsCommand::RemoveBody {
                 entity: card_entity,
             });
         }
     }
-
-    // 12. Destroy source cards
     let mut reader_query = world.query::<(Entity, &CardReader)>();
     let mut readers_to_clear = Vec::new();
     for (reader_entity, reader) in reader_query.iter(world) {
@@ -408,7 +394,7 @@ pub fn booster_seal_system(world: &mut World) {
             jack.data = None;
         }
     }
-    for &card_entity in &source_cards {
+    for &card_entity in &space.source_cards {
         world.despawn(card_entity);
     }
 }
