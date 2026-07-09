@@ -300,6 +300,49 @@ fn when_same_key_pressed_twice_then_state_is_still_pressed() {
     );
 }
 
+/// @doc: Verifies that just_released returns false for a key that was only pressed (not released).
+#[test]
+fn when_key_is_held_then_just_released_returns_false() {
+    // Arrange
+    let mut state = InputState::default();
+    state.press(KeyCode::Space);
+
+    // Act
+    let released = state.just_released(KeyCode::Space);
+
+    // Assert
+    assert!(!released, "just_released should return false for a held key that was not released");
+}
+
+/// @doc: Verifies that just_released transitions from true to false after frame clear.
+#[test]
+fn when_key_released_and_frame_cleared_then_just_released_returns_false() {
+    // Arrange
+    let mut state = InputState::default();
+    state.press(KeyCode::Space);
+    state.release(KeyCode::Space);
+    assert!(state.just_released(KeyCode::Space), "sanity: just_released true after release");
+
+    // Act
+    state.clear_frame_state();
+
+    // Assert
+    assert!(!state.just_released(KeyCode::Space), "just_released should be false after frame clear");
+}
+
+/// @doc: Verifies that just_released is true when a key is released without ever having been pressed.
+#[test]
+fn when_never_pressed_key_is_released_then_just_released_is_set() {
+    // Arrange
+    let mut state = InputState::default();
+
+    // Act
+    state.release(KeyCode::KeyF);
+
+    // Assert
+    assert!(state.just_released(KeyCode::KeyF), "release on never-pressed key sets just_released by current impl");
+}
+
 /// @doc: Verifies that releasing a key that was never pressed marks it as just_released but pressed stays false.
 #[test]
 fn when_unpressed_key_released_then_pressed_stays_false_and_just_released_is_set() {
