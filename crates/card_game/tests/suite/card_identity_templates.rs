@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
 use card_game::card::identity::name_pools::templates::{
-    common_title, legendary_title, rare_title, weighted_choose, TitleParts,
+    TitleParts, common_title, legendary_title, rare_title, weighted_choose,
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
@@ -15,7 +15,7 @@ const PARTS: TitleParts<'_> = TitleParts {
 };
 
 #[test]
-/// @doc: weighted_choose returns an index within bounds.
+/// @doc: `weighted_choose` returns an index within bounds.
 fn when_weighted_choose_then_index_in_bounds() {
     // Arrange
     let weights = &[10u32, 20, 30, 40];
@@ -33,7 +33,7 @@ fn when_weighted_choose_then_index_in_bounds() {
 }
 
 #[test]
-/// @doc: weighted_choose is deterministic for the same seed.
+/// @doc: `weighted_choose` is deterministic for the same seed.
 fn when_same_seed_then_weighted_choose_matches() {
     // Arrange
     let weights = &[10u32, 20, 30, 40];
@@ -41,15 +41,22 @@ fn when_same_seed_then_weighted_choose_matches() {
     let mut rng2 = ChaCha8Rng::seed_from_u64(42);
 
     // Act
-    let results: Vec<usize> = (0..20).map(|_| weighted_choose(&mut rng1, weights)).collect();
-    let expected: Vec<usize> = (0..20).map(|_| weighted_choose(&mut rng2, weights)).collect();
+    let results: Vec<usize> = (0..20)
+        .map(|_| weighted_choose(&mut rng1, weights))
+        .collect();
+    let expected: Vec<usize> = (0..20)
+        .map(|_| weighted_choose(&mut rng2, weights))
+        .collect();
 
     // Assert
-    assert_eq!(results, expected, "deterministic weighted_choose must produce identical sequences");
+    assert_eq!(
+        results, expected,
+        "deterministic weighted_choose must produce identical sequences"
+    );
 }
 
 #[test]
-/// @doc: weighted_choose always picks 0 when there is a single weight.
+/// @doc: `weighted_choose` always picks 0 when there is a single weight.
 fn when_single_weight_then_always_zero() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(7);
@@ -61,7 +68,7 @@ fn when_single_weight_then_always_zero() {
 }
 
 #[test]
-/// @doc: weighted_choose produces every index over many trials with uniform weights.
+/// @doc: `weighted_choose` produces every index over many trials with uniform weights.
 fn when_uniform_weights_then_every_index_appears() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(12345);
@@ -80,7 +87,7 @@ fn when_uniform_weights_then_every_index_appears() {
 }
 
 #[test]
-/// @doc: weighted_choose favours heavier weights over lighter ones statistically.
+/// @doc: `weighted_choose` favours heavier weights over lighter ones statistically.
 fn when_skewed_weights_then_heavier_selected_more_often() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(42);
@@ -104,7 +111,7 @@ fn when_skewed_weights_then_heavier_selected_more_often() {
 }
 
 #[test]
-/// @doc: common_title is deterministic with a fixed seed.
+/// @doc: `common_title` is deterministic with a fixed seed.
 fn when_common_title_same_seed_then_matches() {
     // Arrange
     let mut rng1 = ChaCha8Rng::seed_from_u64(42);
@@ -119,7 +126,7 @@ fn when_common_title_same_seed_then_matches() {
 }
 
 #[test]
-/// @doc: common_title includes the adjective in the output.
+/// @doc: `common_title` includes the adjective in the output.
 fn when_common_title_then_contains_adj() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(1);
@@ -135,7 +142,7 @@ fn when_common_title_then_contains_adj() {
 }
 
 #[test]
-/// @doc: common_title output is non-empty and contains no raw format braces.
+/// @doc: `common_title` output is non-empty and contains no raw format braces.
 fn when_common_title_then_no_raw_format_braces() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(99);
@@ -156,7 +163,7 @@ fn when_common_title_then_no_raw_format_braces() {
 }
 
 #[test]
-/// @doc: common_title produces every template variant over enough iterations.
+/// @doc: `common_title` produces every template variant over enough iterations.
 fn when_common_title_many_iterations_then_all_templates_used() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(42);
@@ -188,7 +195,7 @@ fn when_common_title_many_iterations_then_all_templates_used() {
 }
 
 #[test]
-/// @doc: rare_title is deterministic with a fixed seed.
+/// @doc: `rare_title` is deterministic with a fixed seed.
 fn when_rare_title_same_seed_then_matches() {
     // Arrange
     let mut rng1 = ChaCha8Rng::seed_from_u64(42);
@@ -203,7 +210,7 @@ fn when_rare_title_same_seed_then_matches() {
 }
 
 #[test]
-/// @doc: rare_title contains at least one of the parts in its output.
+/// @doc: `rare_title` contains at least one of the parts in its output.
 fn when_rare_title_then_contains_part() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(1);
@@ -221,7 +228,7 @@ fn when_rare_title_then_contains_part() {
 }
 
 #[test]
-/// @doc: rare_title output is non-empty and contains no raw format braces.
+/// @doc: `rare_title` output is non-empty and contains no raw format braces.
 fn when_rare_title_then_no_raw_format_braces() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(99);
@@ -242,7 +249,7 @@ fn when_rare_title_then_no_raw_format_braces() {
 }
 
 #[test]
-/// @doc: rare_title outputs all three word-connection patterns (apostrophe, of, and comma).
+/// @doc: `rare_title` outputs all three word-connection patterns (apostrophe, of, and comma).
 fn when_rare_title_then_pattern_words_appear() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(42);
@@ -265,13 +272,19 @@ fn when_rare_title_then_pattern_words_appear() {
     }
 
     // Assert
-    assert!(has_apostrophe, "rare_title should produce apostrophe pattern like \"X's ...\"");
+    assert!(
+        has_apostrophe,
+        "rare_title should produce apostrophe pattern like \"X's ...\""
+    );
     assert!(has_of, "rare_title should produce 'of' pattern");
-    assert!(has_comma, "rare_title should produce comma pattern like \"..., ... and ...\"");
+    assert!(
+        has_comma,
+        "rare_title should produce comma pattern like \"..., ... and ...\""
+    );
 }
 
 #[test]
-/// @doc: legendary_title is deterministic with a fixed seed.
+/// @doc: `legendary_title` is deterministic with a fixed seed.
 fn when_legendary_title_same_seed_then_matches() {
     // Arrange
     let mut rng1 = ChaCha8Rng::seed_from_u64(42);
@@ -282,11 +295,14 @@ fn when_legendary_title_same_seed_then_matches() {
     let b = legendary_title(&mut rng2, &PARTS);
 
     // Assert
-    assert_eq!(a, b, "legendary_title must be deterministic for the same seed");
+    assert_eq!(
+        a, b,
+        "legendary_title must be deterministic for the same seed"
+    );
 }
 
 #[test]
-/// @doc: legendary_title contains the name in its output.
+/// @doc: `legendary_title` contains the name in its output.
 fn when_legendary_title_then_contains_name() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(1);
@@ -302,7 +318,7 @@ fn when_legendary_title_then_contains_name() {
 }
 
 #[test]
-/// @doc: legendary_title output is non-empty and contains no raw format braces.
+/// @doc: `legendary_title` output is non-empty and contains no raw format braces.
 fn when_legendary_title_then_no_raw_format_braces() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(99);
@@ -323,7 +339,7 @@ fn when_legendary_title_then_no_raw_format_braces() {
 }
 
 #[test]
-/// @doc: legendary_title uses both possessive (apostrophe) and prepositional (of, the) patterns.
+/// @doc: `legendary_title` uses both possessive (apostrophe) and prepositional (of, the) patterns.
 fn when_legendary_title_then_both_possessive_and_prepositional_patterns() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(42);
@@ -346,13 +362,16 @@ fn when_legendary_title_then_both_possessive_and_prepositional_patterns() {
     }
 
     // Assert
-    assert!(has_apostrophe, "legendary_title should produce possessive pattern like \"X's ...\"");
+    assert!(
+        has_apostrophe,
+        "legendary_title should produce possessive pattern like \"X's ...\""
+    );
     assert!(has_of, "legendary_title should produce 'of' pattern");
     assert!(has_the, "legendary_title should produce ', the' pattern");
 }
 
 #[test]
-/// @doc: TitleParts values are accessible after construction.
+/// @doc: `TitleParts` values are accessible after construction.
 fn when_title_parts_constructed_then_fields_match() {
     // Arrange
     let parts = TitleParts {

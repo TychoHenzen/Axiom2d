@@ -20,7 +20,7 @@ fn when_letters_defined_then_all_five_present() {
     assert!(!m.is_empty(), "letter_m should have at least one command");
 }
 
-/// @doc: Verifies each letter shape opens with a MoveTo command, confirming valid contour start.
+/// @doc: Verifies each letter shape opens with a `MoveTo` command, confirming valid contour start.
 #[test]
 fn when_letter_shapes_then_non_empty_vertices() {
     // Arrange
@@ -50,8 +50,10 @@ fn when_letter_shapes_then_non_empty_vertices() {
 #[test]
 fn when_letter_colors_then_all_valid_colors() {
     // Arrange
-    let colors: [(&str, Color); 2] =
-        [("LOGO_COLOR", axiom2d::splash::LOGO_COLOR), ("ACCENT_COLOR", axiom2d::splash::ACCENT_COLOR)];
+    let colors: [(&str, Color); 2] = [
+        ("LOGO_COLOR", axiom2d::splash::LOGO_COLOR),
+        ("ACCENT_COLOR", axiom2d::splash::ACCENT_COLOR),
+    ];
 
     // Act & Assert
     for (name, color) in &colors {

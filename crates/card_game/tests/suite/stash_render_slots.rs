@@ -67,7 +67,12 @@ fn when_grid_1x1_then_one_slot_shape_drawn() {
 
     // Assert — calls[0] = background, calls[1] = the only slot
     let calls = shape_calls.lock().unwrap();
-    assert_eq!(calls.len(), 2, "expected 1 bg + 1 slot = 2, got {}", calls.len());
+    assert_eq!(
+        calls.len(),
+        2,
+        "expected 1 bg + 1 slot = 2, got {}",
+        calls.len()
+    );
 }
 
 /// @doc: A 4x2 grid produces exactly 8 slot shapes — verifies wide grid slot count.
@@ -81,7 +86,12 @@ fn when_grid_4x2_then_eight_slot_shapes() {
 
     // Assert
     let calls = shape_calls.lock().unwrap();
-    assert_eq!(calls.len(), 9, "expected 1 bg + 4*2 slots = 9, got {}", calls.len());
+    assert_eq!(
+        calls.len(),
+        9,
+        "expected 1 bg + 4*2 slots = 9, got {}",
+        calls.len()
+    );
 }
 
 /// @doc: A 2x4 grid produces exactly 8 slot shapes — verifies tall grid slot count.
@@ -95,12 +105,17 @@ fn when_grid_2x4_then_eight_slot_shapes() {
 
     // Assert
     let calls = shape_calls.lock().unwrap();
-    assert_eq!(calls.len(), 9, "expected 1 bg + 2*4 slots = 9, got {}", calls.len());
+    assert_eq!(
+        calls.len(),
+        9,
+        "expected 1 bg + 2*4 slots = 9, got {}",
+        calls.len()
+    );
 }
 
 // --- Occupied slot rendering ---
 
-/// @doc: An occupied slot without baked mesh but with the card art shader resource draws ART_QUAD
+/// @doc: An occupied slot without baked mesh but with the card art shader resource draws `ART_QUAD`
 /// vertices at the slot position — verifies the art-shader fallback path produces correct vertex
 /// geometry (24.0 x 22.5 half-extents) and the card's art color.
 #[test]
@@ -174,8 +189,8 @@ fn when_occupied_slot_without_baked_mesh_and_art_shader_then_art_quad_vertices()
     );
 }
 
-/// @doc: A slot holding an entity without the Card component falls through to SLOT_COLOR since
-/// the entity won't be present in the icon_colors map built by stash_render_system.
+/// @doc: A slot holding an entity without the Card component falls through to `SLOT_COLOR` since
+/// the entity won't be present in the `icon_colors` map built by `stash_render_system`.
 #[test]
 fn when_slot_holds_entity_without_card_then_fallback_to_slot_color() {
     // Arrange
@@ -210,7 +225,7 @@ fn when_slot_holds_entity_without_card_then_fallback_to_slot_color() {
 }
 
 /// @doc: Multiple occupied slots in a mixed-occupancy grid each render with their card's unique
-/// art color while empty slots use SLOT_COLOR — verifies per-slot color independence.
+/// art color while empty slots use `SLOT_COLOR` — verifies per-slot color independence.
 #[test]
 fn when_mixed_occupancy_grid_then_each_slot_has_correct_color() {
     // Arrange — 2x2 grid, three occupied and one empty
@@ -271,17 +286,31 @@ fn when_mixed_occupancy_grid_then_each_slot_has_correct_color() {
     // Assert
     // Layout: calls[0]=bg, [1]=(0,0), [2]=(0,1), [3]=(1,0), [4]=(1,1)
     let calls = shape_calls.lock().unwrap();
-    assert_eq!(calls.len(), 5, "expected 1 bg + 4 slots = 5, got {}", calls.len());
-    assert_eq!(calls[1].2, color_a, "slot (0,0) must show card A's art color");
-    assert_eq!(calls[2].2, color_b, "slot (0,1) must show card B's art color");
-    assert_eq!(calls[3].2, color_c, "slot (1,0) must show card C's art color");
+    assert_eq!(
+        calls.len(),
+        5,
+        "expected 1 bg + 4 slots = 5, got {}",
+        calls.len()
+    );
+    assert_eq!(
+        calls[1].2, color_a,
+        "slot (0,0) must show card A's art color"
+    );
+    assert_eq!(
+        calls[2].2, color_b,
+        "slot (0,1) must show card B's art color"
+    );
+    assert_eq!(
+        calls[3].2, color_c,
+        "slot (1,0) must show card C's art color"
+    );
     assert_eq!(
         calls[4].2, SLOT_COLOR,
         "empty slot (1,1) must use SLOT_COLOR"
     );
 }
 
-/// @doc: Empty slots use UNIT_QUAD vertices (+/-0.5) even when an art shader resource exists,
+/// @doc: Empty slots use `UNIT_QUAD` vertices (+/-0.5) even when an art shader resource exists,
 /// because empty slots have no card body to apply the art shader to — the art shader path only
 /// activates for occupied slots without baked meshes.
 #[test]
@@ -326,7 +355,7 @@ fn when_empty_slots_with_art_shader_then_still_use_unit_quad() {
 
 // --- Baked mesh priority ---
 
-/// @doc: When a slot holds a card with BakedCardMesh AND the card art shader resource is
+/// @doc: When a slot holds a card with `BakedCardMesh` AND the card art shader resource is
 /// available, the baked mesh path takes priority — only a colored mesh draw call is emitted,
 /// not a shape draw call.
 #[test]
@@ -396,8 +425,8 @@ fn when_baked_mesh_and_art_shader_both_present_then_colored_mesh_used() {
 
 // --- Highlight behavior ---
 
-/// @doc: During a drag operation, empty slots under the cursor receive SLOT_HIGHLIGHT_COLOR
-/// instead of SLOT_COLOR — provides visual feedback for where the card will land.
+/// @doc: During a drag operation, empty slots under the cursor receive `SLOT_HIGHLIGHT_COLOR`
+/// instead of `SLOT_COLOR` — provides visual feedback for where the card will land.
 #[test]
 fn when_dragging_over_empty_slot_then_highlight_color_applied() {
     // Arrange
@@ -507,8 +536,8 @@ fn when_dragging_over_occupied_slot_then_no_highlight() {
 
 // --- Slot position / layout ---
 
-/// @doc: Slot (col=0, row=0) center world position matches GRID_MARGIN + half-slot offset
-/// translated through screen_to_world — verifies the grid origin slot is placed at the
+/// @doc: Slot (col=0, row=0) center world position matches `GRID_MARGIN` + half-slot offset
+/// translated through `screen_to_world` — verifies the grid origin slot is placed at the
 /// correct screen position.
 #[test]
 fn when_slot_zero_zero_then_world_position_matches_grid_origin() {
@@ -544,7 +573,7 @@ fn when_slot_zero_zero_then_world_position_matches_grid_origin() {
     );
 }
 
-/// @doc: Slot (col=1, row=0) is one SLOT_STRIDE_W to the right of slot (0,0) — verifies
+/// @doc: Slot (col=1, row=0) is one `SLOT_STRIDE_W` to the right of slot (0,0) — verifies
 /// horizontal grid stepping is consistent across columns.
 #[test]
 fn when_two_slots_in_same_row_then_x_spacing_equals_stride() {
@@ -565,7 +594,7 @@ fn when_two_slots_in_same_row_then_x_spacing_equals_stride() {
     );
 }
 
-/// @doc: Slot (col=0, row=1) is one SLOT_STRIDE_H below slot (0,0) — verifies vertical
+/// @doc: Slot (col=0, row=1) is one `SLOT_STRIDE_H` below slot (0,0) — verifies vertical
 /// grid stepping is consistent across rows.
 #[test]
 fn when_two_slots_in_same_column_then_y_spacing_equals_stride() {

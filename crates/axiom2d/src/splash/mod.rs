@@ -8,7 +8,7 @@ pub use animation::{SplashPlugin, post_splash_setup_system, preload_system, spla
 pub use letters::{letter_a, letter_i, letter_m, letter_o, letter_x};
 #[cfg(feature = "render")]
 pub use render::splash_render_system;
+pub use types::{ACCENT_COLOR, LOGO_COLOR};
 pub use types::{
     PostSplashSetup, PreloadHooks, SPLASH_DURATION, SkipSplash, SplashEntity, SplashScreen,
 };
-pub use types::{ACCENT_COLOR, LOGO_COLOR};

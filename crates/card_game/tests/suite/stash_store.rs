@@ -67,7 +67,7 @@ fn click_at(world: &mut World, pos: Vec2, pressed: bool) {
 // StoreWallet
 // ---------------------------------------------------------------------------
 
-/// @doc: StoreWallet default gives STORE_STARTING_COINS.
+/// @doc: `StoreWallet` default gives `STORE_STARTING_COINS`.
 #[test]
 fn when_default_wallet_then_has_starting_coins() {
     // Arrange
@@ -77,7 +77,7 @@ fn when_default_wallet_then_has_starting_coins() {
     assert_eq!(wallet.coins(), STORE_STARTING_COINS);
 }
 
-/// @doc: StoreWallet::new sets the exact coin count.
+/// @doc: `StoreWallet::new` sets the exact coin count.
 #[test]
 fn when_wallet_created_with_value_then_coins_match() {
     // Arrange
@@ -87,7 +87,7 @@ fn when_wallet_created_with_value_then_coins_match() {
     assert_eq!(wallet.coins(), 42);
 }
 
-/// @doc: can_afford returns true when coins exceed cost.
+/// @doc: `can_afford` returns true when coins exceed cost.
 #[test]
 fn when_wallet_has_more_coins_than_cost_then_can_afford_is_true() {
     // Arrange
@@ -97,7 +97,7 @@ fn when_wallet_has_more_coins_than_cost_then_can_afford_is_true() {
     assert!(wallet.can_afford(49));
 }
 
-/// @doc: can_afford returns false when cost is zero and wallet is empty.
+/// @doc: `can_afford` returns false when cost is zero and wallet is empty.
 #[test]
 fn when_wallet_empty_then_zero_cost_is_affordable() {
     // Arrange
@@ -134,7 +134,7 @@ fn when_wallet_refunded_then_coins_increase() {
     assert_eq!(wallet.coins(), 75);
 }
 
-/// @doc: refund saturates at u32::MAX without overflow.
+/// @doc: refund saturates at `u32::MAX` without overflow.
 #[test]
 fn when_wallet_refund_causes_overflow_then_saturates() {
     // Arrange
@@ -182,7 +182,7 @@ fn when_item_kind_cost_then_returns_correct_price() {
     assert_eq!(StoreItemKind::BoosterMachine.cost(), 35);
 }
 
-/// @doc: price_text returns formatted cost string.
+/// @doc: `price_text` returns formatted cost string.
 #[test]
 fn when_item_kind_price_text_then_contains_cost_and_coin_label() {
     // Arrange / Act / Assert
@@ -192,7 +192,7 @@ fn when_item_kind_price_text_then_contains_cost_and_coin_label() {
     assert_eq!(StoreItemKind::BoosterMachine.price_text(), "35 coins");
 }
 
-/// @doc: refund_value equals the purchase cost.
+/// @doc: `refund_value` equals the purchase cost.
 #[test]
 fn when_item_kind_refund_value_then_equals_cost() {
     // Arrange / Act / Assert
@@ -200,13 +200,12 @@ fn when_item_kind_refund_value_then_equals_cost() {
         assert_eq!(
             item.refund_value(),
             item.cost(),
-            "refund_value mismatch for {:?}",
-            item
+            "refund_value mismatch for {item:?}"
         );
     }
 }
 
-/// @doc: preview_color returns a non-black color for each variant.
+/// @doc: `preview_color` returns a non-black color for each variant.
 #[test]
 fn when_item_kind_preview_color_then_has_positive_alpha() {
     // Arrange / Act / Assert
@@ -214,8 +213,7 @@ fn when_item_kind_preview_color_then_has_positive_alpha() {
         let color = item.preview_color();
         assert!(
             color.a > 0.0,
-            "preview_color alpha should be > 0 for {:?}",
-            item
+            "preview_color alpha should be > 0 for {item:?}"
         );
     }
 }
@@ -238,7 +236,7 @@ fn when_catalog_default_then_contains_all_items() {
     assert_eq!(items, StoreItemKind::ALL.as_slice());
 }
 
-/// @doc: items() returns a slice with stable ordering.
+/// @doc: `items()` returns a slice with stable ordering.
 #[test]
 fn when_catalog_items_then_order_is_reader_screen_combiner_booster() {
     // Arrange
@@ -327,8 +325,7 @@ fn when_item_bounds_for_all_catalog_items_then_return_some() {
     for i in 0..catalog.items().len() {
         assert!(
             store_item_screen_bounds(&grid, &catalog, i).is_some(),
-            "expected bounds for index {}",
-            i
+            "expected bounds for index {i}"
         );
     }
 }
@@ -337,7 +334,7 @@ fn when_item_bounds_for_all_catalog_items_then_return_some() {
 // store_ui_bounds
 // ---------------------------------------------------------------------------
 
-/// @doc: store_ui_bounds returns sensible screen coordinates.
+/// @doc: `store_ui_bounds` returns sensible screen coordinates.
 #[test]
 fn when_store_ui_bounds_then_right_exceeds_left_and_bottom_exceeds_top() {
     // Arrange / Act
@@ -370,7 +367,10 @@ fn when_store_not_visible_then_buy_system_does_nothing() {
     run_buy_system(&mut world);
 
     // Assert — wallet untouched, no entity spawned
-    assert_eq!(world.resource::<StoreWallet>().coins(), STORE_STARTING_COINS);
+    assert_eq!(
+        world.resource::<StoreWallet>().coins(),
+        STORE_STARTING_COINS
+    );
     assert_eq!(world.query::<&CardReader>().iter(&world).count(), 0);
 }
 
@@ -391,7 +391,10 @@ fn when_not_on_store_page_then_buy_system_does_nothing() {
     run_buy_system(&mut world);
 
     // Assert — wallet untouched
-    assert_eq!(world.resource::<StoreWallet>().coins(), STORE_STARTING_COINS);
+    assert_eq!(
+        world.resource::<StoreWallet>().coins(),
+        STORE_STARTING_COINS
+    );
 }
 
 /// @doc: buy system does nothing when insufficient coins.
@@ -455,7 +458,10 @@ fn when_sell_booster_machine_then_refunded_and_despawned() {
     run_sell_system(&mut world);
 
     // Assert
-    assert_eq!(world.resource::<StoreWallet>().coins(), STORE_STARTING_COINS);
+    assert_eq!(
+        world.resource::<StoreWallet>().coins(),
+        STORE_STARTING_COINS
+    );
     assert!(world.resource::<BoosterDragState>().dragging.is_none());
     assert_eq!(world.query::<&BoosterMachine>().iter(&world).count(), 0);
 }

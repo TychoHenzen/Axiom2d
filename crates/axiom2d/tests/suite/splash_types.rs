@@ -2,7 +2,7 @@
 
 use axiom2d::prelude::*;
 
-/// @doc: Verifies SPLASH_DURATION is a positive finite constant.
+/// @doc: Verifies `SPLASH_DURATION` is a positive finite constant.
 #[test]
 fn when_splash_duration_constant_then_is_positive_and_finite() {
     // Assert
@@ -13,7 +13,7 @@ fn when_splash_duration_constant_then_is_positive_and_finite() {
     );
 }
 
-/// @doc: Verifies SplashScreen::new creates resource with expected initial elapsed, duration, and done state.
+/// @doc: Verifies `SplashScreen::new` creates resource with expected initial elapsed, duration, and done state.
 #[test]
 fn when_splash_screen_created_then_initial_state_is_correct() {
     // Arrange
@@ -31,7 +31,7 @@ fn when_splash_screen_created_then_initial_state_is_correct() {
     assert!(!splash.done, "done should start as false");
 }
 
-/// @doc: Verifies SplashScreen accepts zero duration as edge case.
+/// @doc: Verifies `SplashScreen` accepts zero duration as edge case.
 #[test]
 fn when_splash_screen_created_with_zero_duration_then_elapsed_starts_zero() {
     // Arrange
@@ -43,7 +43,7 @@ fn when_splash_screen_created_with_zero_duration_then_elapsed_starts_zero() {
     assert!(!splash.done, "done should start as false");
 }
 
-/// @doc: Verifies PreloadHooks::new creates resource with executed=false.
+/// @doc: Verifies `PreloadHooks::new` creates resource with executed=false.
 #[test]
 fn when_preload_hooks_created_then_executed_is_false() {
     // Arrange
@@ -56,7 +56,7 @@ fn when_preload_hooks_created_then_executed_is_false() {
     );
 }
 
-/// @doc: Verifies PostSplashSetup::new creates resource with executed=false.
+/// @doc: Verifies `PostSplashSetup::new` creates resource with executed=false.
 #[test]
 fn when_post_splash_setup_created_then_executed_is_false() {
     // Arrange

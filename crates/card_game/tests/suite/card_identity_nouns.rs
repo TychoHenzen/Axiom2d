@@ -100,13 +100,13 @@ fn all_entries_ascii() {
     }
 }
 
-/// @doc: Calling noun_pool with the same arguments returns the same static slice pointer.
+/// @doc: Calling `noun_pool` with the same arguments returns the same static slice pointer.
 #[test]
 fn same_archetype_cluster_deterministic_pointer() {
     for &archetype in ARCHETYPES {
         for &cluster in CLUSTERS {
-            let pool1 = noun_pool(archetype, cluster) as *const _;
-            let pool2 = noun_pool(archetype, cluster) as *const _;
+            let pool1 = std::ptr::from_ref(noun_pool(archetype, cluster));
+            let pool2 = std::ptr::from_ref(noun_pool(archetype, cluster));
             assert_eq!(
                 pool1, pool2,
                 "Two calls for archetype '{archetype}', cluster {cluster:?} returned different pointers"
@@ -121,7 +121,7 @@ fn different_pools_have_different_pointers() {
     let mut seen = std::collections::HashSet::new();
     for &archetype in ARCHETYPES {
         for &cluster in CLUSTERS {
-            let ptr = std::ptr::from_ref(noun_pool(archetype, cluster)) as *const () as usize;
+            let ptr = std::ptr::from_ref(noun_pool(archetype, cluster)).cast::<()>() as usize;
             assert!(
                 seen.insert(ptr),
                 "Duplicate pool pointer for archetype '{archetype}', cluster {cluster:?}"
@@ -140,7 +140,10 @@ fn unknown_archetype_returns_fallback() {
             "Fallback pool for cluster {cluster:?} should be non-empty"
         );
         for &entry in pool {
-            assert!(!entry.is_empty(), "Empty entry in fallback for cluster {cluster:?}");
+            assert!(
+                !entry.is_empty(),
+                "Empty entry in fallback for cluster {cluster:?}"
+            );
         }
     }
 }
@@ -150,7 +153,7 @@ fn unknown_archetype_returns_fallback() {
 fn fallback_pools_differ_by_cluster() {
     let pools: Vec<_> = CLUSTERS
         .iter()
-        .map(|&c| noun_pool("Unknown", c) as *const _)
+        .map(|&c| std::ptr::from_ref(noun_pool("Unknown", c)))
         .collect();
     let mut unique = pools.clone();
     unique.sort();
