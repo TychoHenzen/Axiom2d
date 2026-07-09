@@ -146,23 +146,18 @@ fn measure_text_with_face(face: &ttf_parser::Face, text: &str, font_size: f32) -
 pub fn wrap_text(text: &str, font_size: f32, max_width: f32) -> Vec<String> {
     let face = embedded_font_face();
     let words: Vec<&str> = text.split(' ').collect();
-    let mut lines = Vec::new();
-    let mut current_line = String::new();
-    let mut current_width = 0.0_f32;
     let space_width = measure_text_with_face(&face, " ", font_size);
 
+    let (mut lines, mut current_line, mut current_width) = (Vec::new(), String::new(), 0.0_f32);
     for word in &words {
         let word_width = measure_text_with_face(&face, word, font_size);
         if current_line.is_empty() {
             current_line.push_str(word);
             current_width = word_width;
-            continue;
-        }
-        let width_with_word = current_width + space_width + word_width;
-        if width_with_word <= max_width {
+        } else if current_width + space_width + word_width <= max_width {
             current_line.push(' ');
             current_line.push_str(word);
-            current_width = width_with_word;
+            current_width += space_width + word_width;
         } else {
             lines.push(std::mem::take(&mut current_line));
             current_line.push_str(word);
