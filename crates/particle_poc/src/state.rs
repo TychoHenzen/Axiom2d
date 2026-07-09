@@ -1,4 +1,5 @@
-// State implementation â€” extracted from main.rs
+// State implementation — extracted from main.rs
+#![allow(clippy::wildcard_imports)]
 
 use std::sync::Arc;
 use std::time::Instant;
@@ -6,11 +7,11 @@ use std::time::Instant;
 use rapier2d::prelude::*;
 use winit::window::Window;
 
-use super::*;
+use crate::*;
 
 impl State {
     #[allow(clippy::fn_params_excessive_bools)]
-    pub(super) fn new(
+    pub fn new(
         window: Arc<Window>,
         benchmark: bool,
         diagnose: bool,
@@ -538,7 +539,7 @@ impl State {
         );
     }
 
-    pub(super) fn resize(&mut self, size: winit::dpi::PhysicalSize<u32>) {
+    pub fn resize(&mut self, size: winit::dpi::PhysicalSize<u32>) {
         if size.width > 0 && size.height > 0 {
             self.surface_config.width = size.width;
             self.surface_config.height = size.height;
@@ -1370,7 +1371,7 @@ impl State {
         count
     }
 
-    pub(super) fn render(&mut self) {
+    pub fn render(&mut self) {
         const WARMUP_FRAMES: u32 = 10;
         const BENCH_DURATION_SECS: f64 = 10.0;
 

@@ -172,13 +172,15 @@ fn project(@builtin(global_invocation_id) id: vec3<u32>) {
         var is_paddle = false;
 
         if mach.kind == 0u {
+            // Capsule body: long axis is body Y (half_height), perpendicular is body X (half_width).
+            // Clamp position along the belt (local_y), check perpendicular distance (local_x).
             let tr = mach.half_width + r;
-            let t = clamp(local_x, -mach.half_height, mach.half_height);
-            let delta = vec2(local_x - t, local_y);
+            let t = clamp(local_y, -mach.half_height, mach.half_height);
+            let delta = vec2(local_x, local_y - t);
             let dist = length(delta);
             if dist >= tr { continue; }
             if dist < 1e-9 {
-                n = world_from_local(vec2(0.0, 1.0), c, s);
+                n = world_from_local(vec2(1.0, 0.0), c, s);
             } else {
                 n = world_from_local(delta / dist, c, s);
             }

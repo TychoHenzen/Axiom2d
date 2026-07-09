@@ -2691,6 +2691,8 @@ name = "particle_poc"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "image",
+ "image-compare",
  "pollster",
  "rapier2d",
  "wgpu",
