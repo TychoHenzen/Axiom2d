@@ -1,7 +1,7 @@
 {
   "project_root": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d",
   "cycle": {
-    "phase": "fix",
+    "phase": "done",
     "cycle_number": 5,
     "last_file_processed": "crates/engine_ui/tests/suite/layout_system.rs",
     "files_verified_this_cycle": [
@@ -234,7 +234,7 @@
       "crates/card_game/tests/suite/card_component.rs",
       "crates/card_game/tests/suite/card_identity_nouns.rs"
     ],
-    "completed_at": "2026-07-09T20:09:59.048082+00:00"
+    "completed_at": "2026-07-10T00:08:55.800612"
   },
   "last_full_run": "2026-07-09T12:55:07.157715+00:00",
   "last_partial_run": null,
@@ -11449,7 +11449,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 6,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
@@ -11545,7 +11545,7 @@
     },
     "crates/card_game/src/booster/device.rs": {
       "hash": "8765b14013ce104946db5f1405b82c72517f595b483b50318cfcfece71f10b90",
-      "lines": 415,
+      "lines": 400,
       "functions": 7,
       "observability": {
         "score": 8,
@@ -11555,23 +11555,23 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 3,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
             "name": "spawn_booster_machine",
             "line": 93,
-            "length": 92
-          },
-          {
-            "name": "booster_drag_system",
-            "line": 207,
-            "length": 34
+            "length": 37
           },
           {
             "name": "booster_seal_system",
-            "line": 280,
-            "length": 135
+            "line": 281,
+            "length": 37
+          },
+          {
+            "name": "seal_destroy_source_cards",
+            "line": 370,
+            "length": 31
           }
         ],
         "file_too_long": true,
@@ -11645,7 +11645,7 @@
     },
     "crates/card_game/src/booster/opening.rs": {
       "hash": "a800239ecaaaef92bac813b00cf8b4dff984f5ca079a057c8a59eb4fc857c1fd",
-      "lines": 439,
+      "lines": 446,
       "functions": 17,
       "observability": {
         "score": 8,
@@ -11655,18 +11655,18 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 5,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
             "name": "advance",
             "line": 98,
-            "length": 55
+            "length": 86
           },
           {
             "name": "booster_opening_system",
-            "line": 276,
-            "length": 163
+            "line": 275,
+            "length": 172
           }
         ],
         "file_too_long": true,
@@ -18996,7 +18996,7 @@
     },
     "crates/card_game/src/card/art/hydrate.rs": {
       "hash": "7bc66c6abbf74154cebfbd958617e0d1a9d5b641d0c992ec14c32b01a64e3f98",
-      "lines": 253,
+      "lines": 252,
       "functions": 3,
       "observability": {
         "score": 8,
@@ -19006,7 +19006,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 3,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
@@ -19088,7 +19088,7 @@
     },
     "crates/card_game/src/card/art_selection.rs": {
       "hash": "cbb20fc23afefbae1004d80704678ea3e0b2de751587da790a90e0aa71fd49a9",
-      "lines": 137,
+      "lines": 136,
       "functions": 3,
       "observability": {
         "score": 8,
@@ -19098,20 +19098,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 6,
+        "score": 10,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "select_art_for_signature",
-            "line": 30,
-            "length": 52
-          },
-          {
-            "name": "fit_art_mesh_to_region",
-            "line": 99,
-            "length": 38
-          }
-        ],
+        "long_functions": [],
         "file_too_long": false,
         "high_complexity_functions": [
           {
@@ -19125,7 +19114,7 @@
     },
     "crates/card_game/src/card/combiner_device.rs": {
       "hash": "bbe9c396fe2101182d436168b0357cd1beaf0ca8f69bb84114c7525abe18fb04",
-      "lines": 274,
+      "lines": 273,
       "functions": 9,
       "observability": {
         "score": 8,
@@ -19135,15 +19124,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 6,
+        "score": 10,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "spawn_combiner_device",
-            "line": 152,
-            "length": 60
-          }
-        ],
+        "long_functions": [],
         "file_too_long": false,
         "high_complexity_functions": [
           {
@@ -19335,7 +19318,7 @@
     },
     "crates/card_game/src/card/identity/name_pools/compound_parts.rs": {
       "hash": "b4bef506e878f10f0dbbf22204d0f45145ebe018224527143299a68b8fb372d9",
-      "lines": 372,
+      "lines": 371,
       "functions": 3,
       "observability": {
         "score": 8,
@@ -19345,20 +19328,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 5,
+        "score": 8,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "prefix_pool",
-            "line": 8,
-            "length": 183
-          },
-          {
-            "name": "suffix_pool",
-            "line": 195,
-            "length": 164
-          }
-        ],
+        "long_functions": [],
         "file_too_long": true,
         "high_complexity_functions": [],
         "unnecessary_else_count": 0
@@ -19584,7 +19556,7 @@
     },
     "crates/card_game/src/card/interaction/apply.rs": {
       "hash": "b212581e43938fb3484cc246aa2841c461fe1c65fb82eca2c7b23fe5a6f562ad",
-      "lines": 332,
+      "lines": 331,
       "functions": 7,
       "observability": {
         "score": 8,
@@ -19594,30 +19566,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 4,
+        "score": 7,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "interaction_apply_system",
-            "line": 38,
-            "length": 114
-          },
-          {
-            "name": "apply_pick_card",
-            "line": 153,
-            "length": 73
-          },
-          {
-            "name": "apply_release_on_table",
-            "line": 227,
-            "length": 38
-          },
-          {
-            "name": "apply_release_on_hand",
-            "line": 266,
-            "length": 39
-          }
-        ],
+        "long_functions": [],
         "file_too_long": true,
         "high_complexity_functions": [],
         "unnecessary_else_count": 0
@@ -19915,7 +19866,7 @@
     },
     "crates/card_game/src/card/interaction/release/target.rs": {
       "hash": "615089a6f220343558d8dbc223fd9f45a7283e817225f4d4b9079b0c7fe4a0ba",
-      "lines": 131,
+      "lines": 130,
       "functions": 3,
       "observability": {
         "score": 8,
@@ -19925,20 +19876,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 5,
+        "score": 10,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "resolve_drop_target",
-            "line": 26,
-            "length": 43
-          },
-          {
-            "name": "card_release_system",
-            "line": 70,
-            "length": 61
-          }
-        ],
+        "long_functions": [],
         "file_too_long": false,
         "high_complexity_functions": [
           {
@@ -19947,7 +19887,7 @@
             "cc": 11
           }
         ],
-        "unnecessary_else_count": 1
+        "unnecessary_else_count": 0
       }
     },
     "crates/card_game/src/card/interaction/sleep.rs": {
@@ -19976,81 +19916,9 @@
         "unnecessary_else_count": 1
       }
     },
-    "crates/card_game/src/card/jack_cable.rs": {
-      "hash": "e02b7a35689df18eb13a5606d8a7e1df06c563f864742731c109bf8bd8814275",
-      "lines": 651,
-      "functions": 21,
-      "observability": {
-        "score": 8,
-        "log_statements": 0,
-        "error_handlers": 1,
-        "error_handlers_logged": 0,
-        "anti_patterns": []
-      },
-      "brevity": {
-        "score": 3,
-        "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "detect_wraps",
-            "line": 235,
-            "length": 108
-          },
-          {
-            "name": "detect_unwraps",
-            "line": 347,
-            "length": 61
-          },
-          {
-            "name": "catmull_rom_subdivide",
-            "line": 521,
-            "length": 31
-          },
-          {
-            "name": "wire_render_system",
-            "line": 615,
-            "length": 36
-          }
-        ],
-        "file_too_long": true,
-        "high_complexity_functions": [
-          {
-            "name": "segment_crosses_convex_polygon",
-            "line": 65,
-            "cc": 10
-          },
-          {
-            "name": "point_in_convex_polygon",
-            "line": 91,
-            "cc": 6
-          },
-          {
-            "name": "detect_wraps",
-            "line": 235,
-            "cc": 19
-          },
-          {
-            "name": "detect_unwraps",
-            "line": 347,
-            "cc": 13
-          },
-          {
-            "name": "polyline_to_ribbon",
-            "line": 491,
-            "cc": 6
-          },
-          {
-            "name": "catmull_rom_subdivide",
-            "line": 521,
-            "cc": 6
-          }
-        ],
-        "unnecessary_else_count": 0
-      }
-    },
     "crates/card_game/src/card/jack_socket.rs": {
       "hash": "c07a6bf3ef3018001f5394f4cc2685339e5a347cbda9132b450777da4e7ef49e",
-      "lines": 297,
+      "lines": 298,
       "functions": 7,
       "observability": {
         "score": 8,
@@ -20060,25 +19928,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 4,
+        "score": 10,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "jack_socket_render_system",
-            "line": 76,
-            "length": 37
-          },
-          {
-            "name": "on_socket_clicked",
-            "line": 115,
-            "length": 89
-          },
-          {
-            "name": "jack_socket_release_system",
-            "line": 222,
-            "length": 75
-          }
-        ],
+        "long_functions": [],
         "file_too_long": false,
         "high_complexity_functions": [
           {
@@ -20158,7 +20010,7 @@
     },
     "crates/card_game/src/card/reader/drag.rs": {
       "hash": "309d19a079d1f701c8c795d237c27c2b72aecf97ffb90ee9cc37f82b2774a24b",
-      "lines": 71,
+      "lines": 70,
       "functions": 2,
       "observability": {
         "score": 8,
@@ -20168,15 +20020,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 6,
+        "score": 10,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "reader_drag_system",
-            "line": 12,
-            "length": 40
-          }
-        ],
+        "long_functions": [],
         "file_too_long": false,
         "high_complexity_functions": [
           {
@@ -20185,7 +20031,7 @@
             "cc": 8
           }
         ],
-        "unnecessary_else_count": 2
+        "unnecessary_else_count": 0
       }
     },
     "crates/card_game/src/card/reader/eject.rs": {
@@ -20412,7 +20258,7 @@
     },
     "crates/card_game/src/card/rendering/bake.rs": {
       "hash": "1ec34f109a8e42f3e10067c339ce6f854d8f544b652539382fb8330aa2e01c65",
-      "lines": 167,
+      "lines": 166,
       "functions": 3,
       "observability": {
         "score": 8,
@@ -20422,14 +20268,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 5,
+        "score": 9,
         "long_lines": 0,
         "long_functions": [
-          {
-            "name": "bake_front_face",
-            "line": 26,
-            "length": 105
-          },
           {
             "name": "bake_back_face",
             "line": 136,
@@ -20444,7 +20285,7 @@
             "cc": 10
           }
         ],
-        "unnecessary_else_count": 1
+        "unnecessary_else_count": 0
       }
     },
     "crates/card_game/src/card/rendering/baked_mesh.rs": {
@@ -20763,7 +20604,7 @@
     },
     "crates/card_game/src/card/screen_device.rs": {
       "hash": "6b1184eb5d3516716d62179543c29dbe04933f5ce95e2a69e93df233c5f72ebc",
-      "lines": 601,
+      "lines": 565,
       "functions": 23,
       "observability": {
         "score": 8,
@@ -20773,27 +20614,17 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 4,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
-            "name": "screen_render_system",
-            "line": 119,
-            "length": 31
-          },
-          {
-            "name": "spawn_screen_device",
-            "line": 157,
-            "length": 100
-          },
-          {
             "name": "build_signal_polyline",
-            "line": 313,
+            "line": 278,
             "length": 47
           },
           {
             "name": "when_signal_needs_flattening_then_rendered_polygon_hits_panel_edge",
-            "line": 548,
+            "line": 513,
             "length": 33
           }
         ],
@@ -20845,7 +20676,7 @@
     },
     "crates/card_game/src/hand/layout.rs": {
       "hash": "f8de5a2e931535716f041650f82a96d0e55928fd2c0c925724a787da17fe9ef9",
-      "lines": 149,
+      "lines": 148,
       "functions": 6,
       "observability": {
         "score": 8,
@@ -20855,23 +20686,12 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 6,
+        "score": 10,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "hand_layout_system",
-            "line": 73,
-            "length": 39
-          },
-          {
-            "name": "apply_spring_motion",
-            "line": 113,
-            "length": 36
-          }
-        ],
+        "long_functions": [],
         "file_too_long": false,
         "high_complexity_functions": [],
-        "unnecessary_else_count": 1
+        "unnecessary_else_count": 0
       }
     },
     "crates/card_game/src/hand/mod.rs": {
@@ -21111,7 +20931,7 @@
     },
     "crates/card_game/src/stash/pages.rs": {
       "hash": "6bd49ebc81123d6b5ce8a06c7ba57a3635a3a793f5c9c003274651be3ca75fde",
-      "lines": 219,
+      "lines": 232,
       "functions": 6,
       "observability": {
         "score": 8,
@@ -21121,25 +20941,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 5,
+        "score": 10,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "draw_centered_screen_text",
-            "line": 43,
-            "length": 32
-          },
-          {
-            "name": "stash_tab_click_system",
-            "line": 101,
-            "length": 50
-          },
-          {
-            "name": "stash_tab_render_system",
-            "line": 152,
-            "length": 67
-          }
-        ],
+        "long_functions": [],
         "file_too_long": false,
         "high_complexity_functions": [
           {
@@ -21251,7 +21055,7 @@
     },
     "crates/card_game/src/stash/store.rs": {
       "hash": "19905e88595daa03d984c3655b651aa50e08ae89af0b0c22f76b80a048ab08c8",
-      "lines": 929,
+      "lines": 913,
       "functions": 41,
       "observability": {
         "score": 8,
@@ -21261,7 +21065,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 3,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
@@ -21270,34 +21074,9 @@
             "length": 36
           },
           {
-            "name": "draw_screen_rect",
-            "line": 305,
-            "length": 35
-          },
-          {
-            "name": "draw_centered_screen_text",
-            "line": 341,
+            "name": "eject_card_to_table",
+            "line": 826,
             "length": 32
-          },
-          {
-            "name": "draw_store_item",
-            "line": 438,
-            "length": 72
-          },
-          {
-            "name": "store_buy_system",
-            "line": 675,
-            "length": 64
-          },
-          {
-            "name": "store_sell_system",
-            "line": 740,
-            "length": 43
-          },
-          {
-            "name": "sell_reader",
-            "line": 815,
-            "length": 52
           }
         ],
         "file_too_long": true,
@@ -21549,7 +21328,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 4,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
@@ -22791,7 +22570,7 @@
     },
     "crates/engine_physics/src/physics_backend.rs": {
       "hash": "bf12d698eaaa2cd3a87ce0838a5478b4e9c97f08ab85aeaf51c891f20ebe99a1",
-      "lines": 183,
+      "lines": 182,
       "functions": 38,
       "observability": {
         "score": 8,
@@ -22801,70 +22580,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 6,
+        "score": 8,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "step",
-            "line": 20,
-            "length": 51
-          },
-          {
-            "name": "add_body",
-            "line": 21,
-            "length": 50
-          },
-          {
-            "name": "add_collider",
-            "line": 22,
-            "length": 49
-          },
-          {
-            "name": "remove_body",
-            "line": 23,
-            "length": 48
-          },
-          {
-            "name": "body_position",
-            "line": 24,
-            "length": 47
-          },
-          {
-            "name": "body_rotation",
-            "line": 25,
-            "length": 46
-          },
-          {
-            "name": "drain_collision_events",
-            "line": 26,
-            "length": 45
-          },
-          {
-            "name": "body_linear_velocity",
-            "line": 27,
-            "length": 44
-          },
-          {
-            "name": "set_linear_velocity",
-            "line": 28,
-            "length": 43
-          },
-          {
-            "name": "set_angular_velocity",
-            "line": 29,
-            "length": 42
-          },
-          {
-            "name": "add_force_at_point",
-            "line": 34,
-            "length": 37
-          },
-          {
-            "name": "body_angular_velocity",
-            "line": 40,
-            "length": 31
-          }
-        ],
+        "long_functions": [],
         "file_too_long": false,
         "high_complexity_functions": [],
         "unnecessary_else_count": 0
@@ -23138,7 +22856,7 @@
     },
     "crates/engine_render/src/font.rs": {
       "hash": "e3de10e68020b094c7479eb3bb26904a55f36d29db83ff70ad3e6cef795ee519",
-      "lines": 381,
+      "lines": 388,
       "functions": 24,
       "observability": {
         "score": 8,
@@ -23148,18 +22866,13 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 5,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
             "name": "wrap_text",
             "line": 146,
             "length": 34
-          },
-          {
-            "name": "balanced_wrap_text",
-            "line": 184,
-            "length": 47
           }
         ],
         "file_too_long": true,
@@ -23292,7 +23005,7 @@
     },
     "crates/engine_render/src/renderer.rs": {
       "hash": "1f5c7770c0f842bbf469e96fe2fc7d2085b72c2d14e820599c5ff5d527851018",
-      "lines": 152,
+      "lines": 151,
       "functions": 43,
       "observability": {
         "score": 8,
@@ -23302,38 +23015,13 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 6,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
             "name": "clear",
-            "line": 34,
-            "length": 50
-          },
-          {
-            "name": "draw_rect",
-            "line": 35,
-            "length": 49
-          },
-          {
-            "name": "draw_sprite",
-            "line": 36,
-            "length": 48
-          },
-          {
-            "name": "draw_shape",
-            "line": 37,
-            "length": 47
-          },
-          {
-            "name": "draw_colored_mesh",
-            "line": 44,
-            "length": 40
-          },
-          {
-            "name": "upload_persistent_colored_mesh",
-            "line": 52,
-            "length": 32
+            "line": 106,
+            "length": 36
           }
         ],
         "file_too_long": false,
@@ -23495,7 +23183,7 @@
     },
     "crates/engine_render/src/shape/tessellate.rs": {
       "hash": "c11b66071024d657400a5ca9ea4f3a7430fd2f332c87ec269fdb21dd897d05b6",
-      "lines": 282,
+      "lines": 299,
       "functions": 15,
       "observability": {
         "score": 8,
@@ -23505,20 +23193,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 6,
+        "score": 10,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "build_lyon_path",
-            "line": 105,
-            "length": 56
-          },
-          {
-            "name": "tessellate_stroke",
-            "line": 162,
-            "length": 31
-          }
-        ],
+        "long_functions": [],
         "file_too_long": false,
         "high_complexity_functions": [
           {
@@ -23593,7 +23270,7 @@
     },
     "crates/engine_render/src/testing/visual_regression.rs": {
       "hash": "f8bcbb400ec0ab37dfff81cce58d8f86dc5aa284b954db34a1163c93122c7137",
-      "lines": 819,
+      "lines": 818,
       "functions": 38,
       "observability": {
         "score": 8,
@@ -23603,7 +23280,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 4,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
@@ -23629,7 +23306,7 @@
     },
     "crates/engine_render/src/wgpu_renderer/bloom.rs": {
       "hash": "d93793b139cb33c9560fab3fc1a2bf0f955b51b41a1f3f58f87732a6423f2bb5",
-      "lines": 429,
+      "lines": 428,
       "functions": 20,
       "observability": {
         "score": 8,
@@ -23639,20 +23316,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 5,
+        "score": 7,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "create_bloom_bind_groups",
-            "line": 224,
-            "length": 34
-          },
-          {
-            "name": "create_bloom_pipelines",
-            "line": 354,
-            "length": 53
-          }
-        ],
+        "long_functions": [],
         "file_too_long": true,
         "high_complexity_functions": [],
         "unnecessary_else_count": 0
@@ -23716,7 +23382,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 5,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
@@ -23737,7 +23403,7 @@
     },
     "crates/engine_render/src/wgpu_renderer/renderer_trait.rs": {
       "hash": "59a25f00643d65447b25d05581fe2b67eabeffadad5688a8c5207b499c8b01e5",
-      "lines": 673,
+      "lines": 675,
       "functions": 39,
       "observability": {
         "score": 8,
@@ -23747,30 +23413,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 3,
+        "score": 7,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "issue_shape_draw_calls",
-            "line": 197,
-            "length": 53
-          },
-          {
-            "name": "bloom_pass_descs",
-            "line": 393,
-            "length": 31
-          },
-          {
-            "name": "upload_persistent_colored_mesh",
-            "line": 489,
-            "length": 34
-          },
-          {
-            "name": "present",
-            "line": 618,
-            "length": 37
-          }
-        ],
+        "long_functions": [],
         "file_too_long": true,
         "high_complexity_functions": [
           {
@@ -24009,7 +23654,7 @@
     },
     "crates/engine_scene/src/visibility.rs": {
       "hash": "23ea182d2d7f502b43ff11f5bddb96eee8b26c5cdfcf04e9ea75bb4f0b1cfaef",
-      "lines": 93,
+      "lines": 92,
       "functions": 3,
       "observability": {
         "score": 8,
@@ -24019,20 +23664,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 6,
+        "score": 8,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "visibility_system",
-            "line": 18,
-            "length": 33
-          },
-          {
-            "name": "propagate_visibility",
-            "line": 52,
-            "length": 41
-          }
-        ],
+        "long_functions": [],
         "file_too_long": false,
         "high_complexity_functions": [
           {
@@ -24324,7 +23958,7 @@
     },
     "crates/engine_ui/src/unified_render.rs": {
       "hash": "c763c459c74f94e288b580e4bb5af1ddc6b3228964f152f9932dc1d00a5e002c",
-      "lines": 453,
+      "lines": 461,
       "functions": 10,
       "observability": {
         "score": 8,
@@ -24334,25 +23968,9 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 5,
+        "score": 7,
         "long_lines": 0,
-        "long_functions": [
-          {
-            "name": "collect_draw_commands",
-            "line": 127,
-            "length": 125
-          },
-          {
-            "name": "draw_commands",
-            "line": 253,
-            "length": 106
-          },
-          {
-            "name": "unified_render_system",
-            "line": 418,
-            "length": 35
-          }
-        ],
+        "long_functions": [],
         "file_too_long": true,
         "high_complexity_functions": [
           {
@@ -24499,7 +24117,7 @@
     },
     "crates/particle_poc/src/main.rs": {
       "hash": "373a7dfd6dee32f100bbcb6a541035fadef14f35cf512edee7d9472136249da6",
-      "lines": 2900,
+      "lines": 99,
       "functions": 40,
       "observability": {
         "score": 9,
@@ -24509,106 +24127,10 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 1,
+        "score": 10,
         "long_lines": 1,
-        "long_functions": [
-          {
-            "name": "create_buffers",
-            "line": 444,
-            "length": 130
-          },
-          {
-            "name": "create_bind_groups",
-            "line": 648,
-            "length": 81
-          },
-          {
-            "name": "create_detection_bg",
-            "line": 747,
-            "length": 45
-          },
-          {
-            "name": "create_pipelines",
-            "line": 793,
-            "length": 150
-          },
-          {
-            "name": "create_render_state",
-            "line": 944,
-            "length": 114
-          },
-          {
-            "name": "create_machine_render_state",
-            "line": 1059,
-            "length": 106
-          },
-          {
-            "name": "init_machines",
-            "line": 1166,
-            "length": 119
-          },
-          {
-            "name": "new",
-            "line": 1288,
-            "length": 194
-          },
-          {
-            "name": "verify_stability",
-            "line": 1483,
-            "length": 213
-          },
-          {
-            "name": "read_diagnostics",
-            "line": 1697,
-            "length": 118
-          },
-          {
-            "name": "capsule_perimeter_point",
-            "line": 1830,
-            "length": 32
-          },
-          {
-            "name": "update_machines",
-            "line": 1863,
-            "length": 175
-          },
-          {
-            "name": "spawn",
-            "line": 2039,
-            "length": 54
-          },
-          {
-            "name": "spawn_all",
-            "line": 2094,
-            "length": 33
-          },
-          {
-            "name": "test_setup",
-            "line": 2128,
-            "length": 152
-          },
-          {
-            "name": "test_verify",
-            "line": 2332,
-            "length": 108
-          },
-          {
-            "name": "simulate",
-            "line": 2441,
-            "length": 152
-          },
-          {
-            "name": "read_outliers",
-            "line": 2594,
-            "length": 37
-          },
-          {
-            "name": "render",
-            "line": 2648,
-            "length": 203
-          }
-        ],
-        "file_too_long": true,
+        "long_functions": [],
+        "file_too_long": false,
         "high_complexity_functions": [
           {
             "name": "new",
@@ -24651,7 +24173,7 @@
             "cc": 33
           }
         ],
-        "unnecessary_else_count": 5
+        "unnecessary_else_count": 0
       }
     },
     "crates/terrain/src/dual_grid.rs": {
@@ -24834,7 +24356,7 @@
     },
     "crates/terrain_viewer/src/main.rs": {
       "hash": "1152629000318d27c04d97b14c7866ba26732c58a51965f457a5a17446b0f4b4",
-      "lines": 632,
+      "lines": 634,
       "functions": 16,
       "observability": {
         "score": 8,
@@ -24844,38 +24366,18 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 1,
+        "score": 7,
         "long_lines": 0,
         "long_functions": [
           {
             "name": "setup",
-            "line": 76,
+            "line": 77,
             "length": 45
           },
           {
             "name": "spawn_viewer_scene",
-            "line": 150,
+            "line": 151,
             "length": 48
-          },
-          {
-            "name": "build_tile_uniform",
-            "line": 248,
-            "length": 44
-          },
-          {
-            "name": "spawn_grid_tiles",
-            "line": 293,
-            "length": 42
-          },
-          {
-            "name": "terrain_input_system",
-            "line": 393,
-            "length": 98
-          },
-          {
-            "name": "mode_switch_system",
-            "line": 492,
-            "length": 83
           }
         ],
         "file_too_long": true,
@@ -24896,7 +24398,7 @@
             "cc": 6
           }
         ],
-        "unnecessary_else_count": 1
+        "unnecessary_else_count": 0
       }
     }
   }
