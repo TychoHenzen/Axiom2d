@@ -6,4 +6,5 @@ pub mod layout;
 pub mod pages;
 pub mod render;
 pub mod store;
+pub mod store_render;
 pub mod toggle;

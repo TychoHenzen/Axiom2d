@@ -9,6 +9,7 @@ pub mod jack_socket;
 pub mod reader;
 pub mod rendering;
 pub mod screen_device;
+pub mod screen_geometry;
 pub mod zone_config;
 
 pub use component::Card;
