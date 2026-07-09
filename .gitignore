@@ -47,3 +47,4 @@ mutants.out.old/
 .agents/
 AGENTS.md
 .codeevolve
+test-verification/
