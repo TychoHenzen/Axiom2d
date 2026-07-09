@@ -134,12 +134,22 @@ fn collect_draw_commands(
     view_rect: Option<(Vec2, Vec2)>,
 ) -> Vec<SortedDrawCommand> {
     let mut commands = draw_queue.drain();
+    collect_shape_draws(shape_query, &mut commands, view_rect);
+    collect_text_draws(text_query, &mut commands);
+    collect_color_mesh_draws(color_mesh_query, &mut commands);
+    collect_persistent_mesh_draws(persistent_mesh_query, &mut commands);
+    collect_sprite_draws(sprite_query, &mut commands, view_rect);
+    commands.sort_by_key(|cmd| cmd.sort_key);
+    commands
+}
 
-    for (shape, transform, layer, order, vis, mat, stroke, cached) in shape_query.iter() {
-        if is_hidden(vis) {
-            continue;
-        }
-        if is_shape_culled(transform.0.translation, &shape.variant, view_rect) {
+fn collect_shape_draws(
+    query: &Query<ShapeItem>,
+    commands: &mut Vec<SortedDrawCommand>,
+    view_rect: Option<(Vec2, Vec2)>,
+) {
+    for (shape, transform, layer, order, vis, mat, stroke, cached) in query.iter() {
+        if is_hidden(vis) || is_shape_culled(transform.0.translation, &shape.variant, view_rect) {
             continue;
         }
         let mesh = if let Some(cached) = cached {
@@ -152,15 +162,10 @@ fn collect_draw_commands(
         let stroke_cmd = stroke.and_then(|s| {
             tessellate_stroke(&shape.variant, s.width)
                 .ok()
-                .map(|sm| StrokeCommand {
-                    mesh: sm,
-                    color: s.color,
-                })
+                .map(|sm| StrokeCommand { mesh: sm, color: s.color })
         });
         push_sorted_command(
-            &mut commands,
-            layer,
-            order,
+            commands, layer, order,
             DrawCommand::Shape {
                 mesh,
                 color: shape.color,
@@ -170,15 +175,15 @@ fn collect_draw_commands(
             },
         );
     }
+}
 
-    for (text, transform, layer, order, vis) in text_query.iter() {
+fn collect_text_draws(query: &Query<TextItem>, commands: &mut Vec<SortedDrawCommand>) {
+    for (text, transform, layer, order, vis) in query.iter() {
         if is_hidden(vis) {
             continue;
         }
         push_sorted_command(
-            &mut commands,
-            layer,
-            order,
+            commands, layer, order,
             DrawCommand::Text {
                 content: text.content.clone(),
                 font_size: text.font_size,
@@ -188,15 +193,15 @@ fn collect_draw_commands(
             },
         );
     }
+}
 
-    for (mesh, transform, layer, order, vis, overlays, mat) in color_mesh_query.iter() {
+fn collect_color_mesh_draws(query: &Query<ColorMeshItem>, commands: &mut Vec<SortedDrawCommand>) {
+    for (mesh, transform, layer, order, vis, overlays, mat) in query.iter() {
         if is_hidden(vis) || mesh.is_empty() {
             continue;
         }
         push_sorted_command(
-            &mut commands,
-            layer,
-            order,
+            commands, layer, order,
             DrawCommand::ColorMesh {
                 mesh: mesh.0.clone(),
                 model: affine2_to_mat4(&transform.0),
@@ -205,15 +210,18 @@ fn collect_draw_commands(
             },
         );
     }
+}
 
-    for (pcm, transform, layer, order, vis, overlays, mat) in persistent_mesh_query.iter() {
+fn collect_persistent_mesh_draws(
+    query: &Query<PersistentMeshItem>,
+    commands: &mut Vec<SortedDrawCommand>,
+) {
+    for (pcm, transform, layer, order, vis, overlays, mat) in query.iter() {
         if is_hidden(vis) {
             continue;
         }
         push_sorted_command(
-            &mut commands,
-            layer,
-            order,
+            commands, layer, order,
             DrawCommand::PersistentMesh {
                 handle: pcm.0,
                 model: affine2_to_mat4(&transform.0),
@@ -222,16 +230,20 @@ fn collect_draw_commands(
             },
         );
     }
+}
 
-    for (sprite, transform, layer, order, vis, mat) in sprite_query.iter() {
+fn collect_sprite_draws(
+    query: &Query<SpriteItem>,
+    commands: &mut Vec<SortedDrawCommand>,
+    view_rect: Option<(Vec2, Vec2)>,
+) {
+    for (sprite, transform, layer, order, vis, mat) in query.iter() {
         if is_hidden(vis) || !sprite_intersects_view(sprite, transform, view_rect) {
             continue;
         }
         let pos = transform.0.translation;
         push_sorted_command(
-            &mut commands,
-            layer,
-            order,
+            commands, layer, order,
             DrawCommand::Sprite {
                 rect: Rect {
                     x: Pixels(pos.x),
@@ -245,9 +257,6 @@ fn collect_draw_commands(
             },
         );
     }
-
-    commands.sort_by_key(|cmd| cmd.sort_key);
-    commands
 }
 
 fn draw_commands(

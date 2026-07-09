@@ -623,9 +623,7 @@ impl Renderer for WgpuRenderer {
                 return;
             }
             Err(wgpu::SurfaceError::Timeout) => return,
-            Err(wgpu::SurfaceError::OutOfMemory) => {
-                panic!("GPU out of memory");
-            }
+            Err(wgpu::SurfaceError::OutOfMemory) => panic!("GPU out of memory"),
             Err(e) => {
                 tracing::error!("surface error: {e}");
                 return;
@@ -638,14 +636,7 @@ impl Renderer for WgpuRenderer {
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
         if self.post_process_pending {
-            let scene_view = self.post_process.as_ref().map(|pp| pp.scene_view.clone());
-            if let Some(scene_view) = scene_view {
-                self.draw_scene_to(&mut encoder, &scene_view);
-            } else {
-                self.draw_scene_to(&mut encoder, &view);
-            }
-            self.execute_bloom(&mut encoder, &view);
-            self.post_process_pending = false;
+            present_scene_post_process(self, &mut encoder, &view);
         } else {
             self.draw_scene_to(&mut encoder, &view);
         }
@@ -669,4 +660,16 @@ impl Renderer for WgpuRenderer {
             pp.resize(&self.device, &cfg);
         }
     }
+}
+
+fn present_scene_post_process(
+    renderer: &mut WgpuRenderer,
+    encoder: &mut wgpu::CommandEncoder,
+    view: &wgpu::TextureView,
+) {
+    let scene_view = renderer.post_process.as_ref().map(|pp| pp.scene_view.clone());
+    let target = scene_view.as_ref().unwrap_or(view);
+    renderer.draw_scene_to(encoder, target);
+    renderer.execute_bloom(encoder, view);
+    renderer.post_process_pending = false;
 }
