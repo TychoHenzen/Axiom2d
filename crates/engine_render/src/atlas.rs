@@ -67,7 +67,10 @@ fn validate_image_data(width: u32, height: u32, data: &[u8]) -> Result<(), Atlas
     }
     let expected = (width * height * 4) as usize;
     if data.len() != expected {
-        warn!("validate_image_data: data length mismatch (expected {expected}, got {})", data.len());
+        warn!(
+            "validate_image_data: data length mismatch (expected {expected}, got {})",
+            data.len()
+        );
         return Err(AtlasError::DataLengthMismatch {
             expected,
             actual: data.len(),

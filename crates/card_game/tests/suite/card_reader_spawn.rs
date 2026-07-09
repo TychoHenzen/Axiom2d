@@ -109,7 +109,7 @@ fn when_spawn_reader_then_accent_child_exists() {
     assert_eq!(accent_count, 1, "expected exactly 1 accent child");
 }
 
-/// @doc: Verifies that all reader children have a ChildOf component pointing back to the reader root.
+/// @doc: Verifies that all reader children have a `ChildOf` component pointing back to the reader root.
 #[test]
 fn when_spawn_reader_then_children_have_child_of_pointing_to_reader() {
     // Arrange
@@ -128,7 +128,7 @@ fn when_spawn_reader_then_children_have_child_of_pointing_to_reader() {
     }
 }
 
-/// @doc: Verifies that spawning a reader at a non-zero position stores that position in Transform2D.
+/// @doc: Verifies that spawning a reader at a non-zero position stores that position in `Transform2D`.
 #[test]
 fn when_spawn_reader_at_nonzero_position_then_transform_matches() {
     // Arrange
@@ -140,7 +140,10 @@ fn when_spawn_reader_at_nonzero_position_then_transform_matches() {
 
     // Assert
     let transform = world.get::<Transform2D>(reader).unwrap();
-    assert_eq!(transform.position, pos, "reader transform should match spawn position");
+    assert_eq!(
+        transform.position, pos,
+        "reader transform should match spawn position"
+    );
 }
 
 /// @doc: Spawning two readers produces independent hierarchies — each has 6 distinct children.
@@ -160,7 +163,10 @@ fn when_spawn_two_readers_then_both_have_correct_children() {
     assert_eq!(children1.len(), 6, "first reader should have 6 children");
     assert_eq!(children2.len(), 6, "second reader should have 6 children");
     for c in children1 {
-        assert!(!children2.contains(c), "children sets should not overlap between readers");
+        assert!(
+            !children2.contains(c),
+            "children sets should not overlap between readers"
+        );
     }
 }
 
@@ -176,5 +182,8 @@ fn when_spawn_reader_then_jack_is_not_a_child() {
 
     // Assert
     let children = &world.get::<Children>(reader).unwrap().0;
-    assert!(!children.contains(&jack), "jack entity should not appear in reader's Children");
+    assert!(
+        !children.contains(&jack),
+        "jack entity should not appear in reader's Children"
+    );
 }

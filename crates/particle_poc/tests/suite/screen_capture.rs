@@ -76,8 +76,14 @@ fn when_red_and_blue_particles_then_both_colors_visible() {
         }
     }
 
-    assert!(red_pixels > 3, "expected red-tinted pixels, got {red_pixels}");
-    assert!(blue_pixels > 3, "expected blue-tinted pixels, got {blue_pixels}");
+    assert!(
+        red_pixels > 3,
+        "expected red-tinted pixels, got {red_pixels}"
+    );
+    assert!(
+        blue_pixels > 3,
+        "expected blue-tinted pixels, got {blue_pixels}"
+    );
 }
 
 /// Two consecutive renders of the same state must produce identical pixel buffers.
@@ -115,10 +121,7 @@ fn when_particles_simulated_then_positions_change_between_frames() {
 
     let dx = positions_after[0][0] - positions_before[0][0];
     let dy = positions_after[0][1] - positions_before[0][1];
-    assert!(
-        dy < 0.0,
-        "particle should fall under gravity: dy={dy:.4}"
-    );
+    assert!(dy < 0.0, "particle should fall under gravity: dy={dy:.4}");
     // Horizontal position should be stable (no horizontal forces).
     assert!(
         dx.abs() < 0.001,

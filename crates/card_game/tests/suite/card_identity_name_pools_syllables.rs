@@ -4,7 +4,7 @@ use card_game::card::identity::name_pools::syllables::generate_proper_noun;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 
-/// @doc: Verifies that generate_proper_noun produces the same output for the same RNG seed
+/// @doc: Verifies that `generate_proper_noun` produces the same output for the same RNG seed
 #[test]
 fn generate_proper_noun_deterministic_with_seed() {
     let mut rng = ChaCha8Rng::seed_from_u64(42);
@@ -13,10 +13,7 @@ fn generate_proper_noun_deterministic_with_seed() {
     let mut rng2 = ChaCha8Rng::seed_from_u64(42);
     let name2 = generate_proper_noun(&mut rng2);
 
-    assert_eq!(
-        name1, name2,
-        "same seed should produce identical names"
-    );
+    assert_eq!(name1, name2, "same seed should produce identical names");
 }
 
 /// @doc: Verifies that generated proper nouns always start with an uppercase ASCII letter

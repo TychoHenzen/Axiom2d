@@ -228,7 +228,7 @@ fn when_flip_triggered_while_animation_active_then_animation_unchanged() {
     assert_eq!(*anim, original_anim);
 }
 
-/// @doc: Card face_up state remains unchanged during flip animation—only updated on completion
+/// @doc: Card `face_up` state remains unchanged during flip animation—only updated on completion
 #[test]
 fn when_flip_triggered_then_face_up_unchanged_until_animation_completes() {
     // Arrange — card face-down

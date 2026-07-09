@@ -43,7 +43,11 @@ fn when_one_plugin_added_then_plugin_count_is_one() {
     app.add_plugin(NoOpPlugin);
 
     // Assert
-    assert_eq!(app.plugin_count(), 1, "one plugin should produce count of 1");
+    assert_eq!(
+        app.plugin_count(),
+        1,
+        "one plugin should produce count of 1"
+    );
 }
 
 /// @doc: Multiple plugins must each increment count — counting must not collapse duplicate registrations
@@ -56,7 +60,11 @@ fn when_two_distinct_plugins_added_then_plugin_count_is_two() {
     app.add_plugin(NoOpPlugin).add_plugin(AnotherNoOpPlugin);
 
     // Assert
-    assert_eq!(app.plugin_count(), 2, "two distinct plugins should produce count of 2");
+    assert_eq!(
+        app.plugin_count(),
+        2,
+        "two distinct plugins should produce count of 2"
+    );
 }
 
 struct CountingPlugin {
@@ -82,7 +90,11 @@ fn when_plugin_added_then_build_called_exactly_once() {
     App::new().add_plugin(plugin);
 
     // Assert
-    assert_eq!(counter.get(), 1, "plugin build should be called exactly once");
+    assert_eq!(
+        counter.get(),
+        1,
+        "plugin build should be called exactly once"
+    );
 }
 
 /// @doc: `handle_redraw` must invoke `renderer.present()` — missing present swallows drawn frames
@@ -99,7 +111,11 @@ fn when_handle_redraw_called_then_present_called_via_renderer_res() {
     app.handle_redraw();
 
     // Assert
-    assert_eq!(log.lock().unwrap().as_slice(), &["present"], "handle_redraw must call renderer.present()");
+    assert_eq!(
+        log.lock().unwrap().as_slice(),
+        &["present"],
+        "handle_redraw must call renderer.present()"
+    );
 }
 
 /// @doc: Systems must run during `handle_redraw` — non-execution breaks game loop integration
@@ -270,7 +286,11 @@ fn when_new_app_created_then_eighteen_schedules_exist() {
     let app = App::new();
 
     // Assert
-    assert_eq!(app.schedule_count(), 18, "App should initialize all 18 phase schedules");
+    assert_eq!(
+        app.schedule_count(),
+        18,
+        "App should initialize all 18 phase schedules"
+    );
 }
 
 /// @doc: Draw calls always precede present — rendering into a swapped buffer would show stale frames
@@ -292,7 +312,11 @@ fn when_render_phase_system_uses_renderer_res_then_draw_calls_precede_present() 
     app.handle_redraw();
 
     // Assert
-    assert_eq!(log.lock().unwrap().as_slice(), &["clear", "present"], "draw calls should precede present");
+    assert_eq!(
+        log.lock().unwrap().as_slice(),
+        &["clear", "present"],
+        "draw calls should precede present"
+    );
 }
 
 /// @doc: Systems and present must both run — broken system execution or present skipping breaks rendering
@@ -351,7 +375,11 @@ fn when_handle_resize_called_then_renderer_resize_is_called() {
     app.handle_resize(1024, 768);
 
     // Assert
-    assert_eq!(log.lock().unwrap().as_slice(), &["resize"], "handle_resize must call renderer.resize()");
+    assert_eq!(
+        log.lock().unwrap().as_slice(),
+        &["resize"],
+        "handle_resize must call renderer.resize()"
+    );
 }
 
 /// @doc: Resize updates both the `WindowSize` resource and calls `renderer.resize()` — dual sync
@@ -424,7 +452,11 @@ fn when_app_receives_keyboard_press_then_event_pushed_to_bus() {
         .resource_mut::<engine_core::prelude::EventBus<KeyInputEvent>>()
         .drain()
         .collect();
-    assert_eq!(events.len(), 1, "one event should be produced for a key press");
+    assert_eq!(
+        events.len(),
+        1,
+        "one event should be produced for a key press"
+    );
     assert_eq!(
         events[0],
         KeyInputEvent {
@@ -456,7 +488,11 @@ fn when_app_receives_keyboard_release_then_release_event_pushed_to_bus() {
         .resource_mut::<engine_core::prelude::EventBus<KeyInputEvent>>()
         .drain()
         .collect();
-    assert_eq!(events.len(), 1, "one event should be produced for a key release");
+    assert_eq!(
+        events.len(),
+        1,
+        "one event should be produced for a key release"
+    );
     assert_eq!(
         events[0],
         KeyInputEvent {

@@ -679,7 +679,13 @@ fn buy_store_visibility_check(world: &World) -> Option<(bool, Vec2, Vec2, bool, 
     let visible = world.get_resource::<StashVisible>()?;
     let mouse = world.get_resource::<MouseState>()?;
     let grid = world.resource::<StashGrid>().clone();
-    Some((visible.0, mouse.screen_pos(), mouse.world_pos(), mouse.just_pressed(MouseButton::Left), grid))
+    Some((
+        visible.0,
+        mouse.screen_pos(),
+        mouse.world_pos(),
+        mouse.just_pressed(MouseButton::Left),
+        grid,
+    ))
 }
 
 fn spawn_purchased_device(world: &mut World, item: StoreItemKind, spawn_pos: Vec2) {
@@ -708,7 +714,8 @@ fn spawn_purchased_device(world: &mut World, item: StoreItemKind, spawn_pos: Vec
 }
 
 pub fn store_buy_system(world: &mut World) {
-    let Some((visible, screen_pos, world_pos, pressed, grid)) = buy_store_visibility_check(world) else {
+    let Some((visible, screen_pos, world_pos, pressed, grid)) = buy_store_visibility_check(world)
+    else {
         return;
     };
     if !visible || !pressed || !grid.is_store_page() {
@@ -766,7 +773,11 @@ pub fn store_sell_system(world: &mut World) {
     let Some((visible, screen_pos, grid)) = sell_visibility_check(world) else {
         return;
     };
-    if !visible || !world.get_resource::<MouseState>().is_some_and(|m| m.just_released(MouseButton::Left)) {
+    if !visible
+        || !world
+            .get_resource::<MouseState>()
+            .is_some_and(|m| m.just_released(MouseButton::Left))
+    {
         return;
     }
     if !grid.is_store_page() || !stash_ui_contains(screen_pos, &grid) {
@@ -792,7 +803,12 @@ fn sell_screen(world: &mut World, entity: Entity) {
         Some(d) => d,
         None => return,
     };
-    sell_device_basic(world, entity, &[entity, device.signature_input], StoreItemKind::Screen.refund_value());
+    sell_device_basic(
+        world,
+        entity,
+        &[entity, device.signature_input],
+        StoreItemKind::Screen.refund_value(),
+    );
 }
 
 fn sell_combiner(world: &mut World, entity: Entity) {
@@ -843,7 +859,9 @@ fn eject_card_to_table(world: &mut World, reader_entity: Entity, card_entity: En
     if let Some(collider) = world.get::<Collider>(card_entity).cloned()
         && let Some(mut bus) = world.get_resource_mut::<EventBus<PhysicsCommand>>()
     {
-        bus.push(PhysicsCommand::RemoveBody { entity: card_entity });
+        bus.push(PhysicsCommand::RemoveBody {
+            entity: card_entity,
+        });
         bus.push(PhysicsCommand::AddBody {
             entity: card_entity,
             body_type: RigidBody::Dynamic,

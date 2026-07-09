@@ -282,7 +282,10 @@ pub fn booster_opening_system(world: &mut World) {
     opening.advance(dt);
 
     let is_done = match opening.phase.clone() {
-        BoosterOpenPhase::MovingToCenter { start_pos, progress } => {
+        BoosterOpenPhase::MovingToCenter {
+            start_pos,
+            progress,
+        } => {
             opening_phase_move_to_center(world, &opening, start_pos, progress);
             false
         }
@@ -294,7 +297,10 @@ pub fn booster_opening_system(world: &mut World) {
             opening_phase_lowering(world, &opening, progress);
             false
         }
-        BoosterOpenPhase::RevealingCards { card_index, card_progress } => {
+        BoosterOpenPhase::RevealingCards {
+            card_index,
+            card_progress,
+        } => {
             opening_phase_revealing(world, &mut opening, card_index, card_progress);
             false
         }
@@ -323,11 +329,22 @@ fn opening_phase_move_to_center(
     let rotation = lerp_f32(opening.start_rotation, 0.0, progress);
     let scale = lerp_f32(1.0, OPENING_SCALE, progress);
     set_pack_transform(world, opening.pack_entity, pos, rotation, scale);
-    pan_camera(world, opening.screen_center, opening.camera_start_pos, progress);
+    pan_camera(
+        world,
+        opening.screen_center,
+        opening.camera_start_pos,
+        progress,
+    );
 }
 
 fn opening_phase_ripping(world: &mut World, opening: &BoosterOpening) {
-    set_pack_transform(world, opening.pack_entity, opening.screen_center, 0.0, OPENING_SCALE);
+    set_pack_transform(
+        world,
+        opening.pack_entity,
+        opening.screen_center,
+        0.0,
+        OPENING_SCALE,
+    );
 }
 
 fn opening_phase_lowering(world: &mut World, opening: &BoosterOpening, progress: f32) {
@@ -376,7 +393,9 @@ fn opening_spawn_card(
         bus.push(PhysicsCommand::RemoveBody { entity });
     }
     world.entity_mut(entity).remove::<RigidBody>();
-    world.entity_mut(entity).insert(LocalSortOrder(500 + index as i32));
+    world
+        .entity_mut(entity)
+        .insert(LocalSortOrder(500 + index as i32));
     if let Some(mut transform) = world.get_mut::<Transform2D>(entity) {
         transform.scale = Vec2::splat(OPENING_SCALE);
     }

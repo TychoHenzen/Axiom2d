@@ -37,10 +37,13 @@ fn when_stereo_then_frame_count_is_half_sample_len() {
     let frames = sound.frame_count();
 
     // Assert
-    assert_eq!(frames, 4, "stereo frame_count should be half sample length (8 samples / 2 channels)");
+    assert_eq!(
+        frames, 4,
+        "stereo frame_count should be half sample length (8 samples / 2 channels)"
+    );
 }
 
-/// @doc: A SoundData with no samples has zero frames regardless of channel count.
+/// @doc: A `SoundData` with no samples has zero frames regardless of channel count.
 #[test]
 fn when_empty_samples_then_frame_count_zero() {
     // Arrange
@@ -57,7 +60,7 @@ fn when_empty_samples_then_frame_count_zero() {
     assert_eq!(frames, 0, "frame_count should be 0 for empty samples");
 }
 
-/// @doc: When stereo samples aren't evenly divisible, frame_count truncates via integer division.
+/// @doc: When stereo samples aren't evenly divisible, `frame_count` truncates via integer division.
 #[test]
 fn when_stereo_odd_sample_count_then_frame_count_truncates() {
     // Arrange — 5 stereo frames would be 10 samples, but we have 5 → truncates to 2
@@ -71,7 +74,10 @@ fn when_stereo_odd_sample_count_then_frame_count_truncates() {
     let frames = sound.frame_count();
 
     // Assert
-    assert_eq!(frames, 2, "stereo frame_count truncates: 5 samples / 2 channels = 2");
+    assert_eq!(
+        frames, 2,
+        "stereo frame_count truncates: 5 samples / 2 channels = 2"
+    );
 }
 
 /// @doc: Multi-channel audio (4 channels) correctly divides total samples by channel count.

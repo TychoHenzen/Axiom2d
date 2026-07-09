@@ -21,7 +21,7 @@ fn run_input_system(world: &mut World) {
     schedule.run(world);
 }
 
-/// @doc: Verifies that input_system marks a key as pressed from a press event in the bus.
+/// @doc: Verifies that `input_system` marks a key as pressed from a press event in the bus.
 #[test]
 fn when_press_event_in_bus_then_key_is_pressed() {
     // Arrange
@@ -43,7 +43,7 @@ fn when_press_event_in_bus_then_key_is_pressed() {
     );
 }
 
-/// @doc: Verifies that input_system marks a key as just pressed from a press event.
+/// @doc: Verifies that `input_system` marks a key as just pressed from a press event.
 #[test]
 fn when_press_event_in_bus_then_key_is_just_pressed() {
     // Arrange
@@ -67,7 +67,7 @@ fn when_press_event_in_bus_then_key_is_just_pressed() {
     );
 }
 
-/// @doc: Verifies that input_system clears pressed state from a release event.
+/// @doc: Verifies that `input_system` clears pressed state from a release event.
 #[test]
 fn when_release_event_in_bus_then_key_is_not_pressed() {
     // Arrange
@@ -91,7 +91,7 @@ fn when_release_event_in_bus_then_key_is_not_pressed() {
     );
 }
 
-/// @doc: Verifies that input_system marks a key as just released from a release event.
+/// @doc: Verifies that `input_system` marks a key as just released from a release event.
 #[test]
 fn when_release_event_in_bus_then_key_is_just_released() {
     // Arrange
@@ -115,7 +115,7 @@ fn when_release_event_in_bus_then_key_is_just_released() {
     );
 }
 
-/// @doc: Verifies that input_system drains the event bus after processing.
+/// @doc: Verifies that `input_system` drains the event bus after processing.
 #[test]
 fn when_system_runs_then_bus_is_drained() {
     // Arrange

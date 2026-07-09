@@ -284,24 +284,28 @@ impl HeadlessCapture {
         }
 
         let offset = u64::from(self.sim_params.particle_count);
-        self.queue
-            .write_buffer(&self.buffers.positions, offset * 8, bytemuck::cast_slice(&positions));
+        self.queue.write_buffer(
+            &self.buffers.positions,
+            offset * 8,
+            bytemuck::cast_slice(&positions),
+        );
         self.queue.write_buffer(
             &self.buffers.velocities,
             offset * 8,
             bytemuck::cast_slice(&velocities),
         );
-        self.queue
-            .write_buffer(&self.buffers.species, offset * 4, bytemuck::cast_slice(&species));
+        self.queue.write_buffer(
+            &self.buffers.species,
+            offset * 4,
+            bytemuck::cast_slice(&species),
+        );
         self.sim_params.particle_count += count;
     }
 
     /// Set up a mutual bond between two particles. Writes bond data directly to GPU buffer.
     pub fn set_mutual_bond(&self, a: u32, b: u32, rest_length: f32) {
         let n = MAX_PARTICLES as usize;
-        let mut bonds: Vec<BondSlot> = (0..n * 4)
-            .map(|_| BondSlot::default())
-            .collect();
+        let mut bonds: Vec<BondSlot> = (0..n * 4).map(|_| BondSlot::default()).collect();
         bonds[a as usize * 4] = BondSlot {
             partner: b,
             rest: rest_length,
@@ -352,8 +356,7 @@ impl HeadlessCapture {
         slice.map_async(wgpu::MapMode::Read, |r| r.expect("map pos staging"));
         self.device.poll(wgpu::Maintain::Wait);
         let data = slice.get_mapped_range();
-        let positions: Vec<[f32; 2]> =
-            bytemuck::cast_slice(&data[..bytes as usize]).to_vec();
+        let positions: Vec<[f32; 2]> = bytemuck::cast_slice(&data[..bytes as usize]).to_vec();
         drop(data);
         staging.unmap();
         positions
@@ -384,8 +387,7 @@ impl HeadlessCapture {
         slice.map_async(wgpu::MapMode::Read, |r| r.expect("map sp staging"));
         self.device.poll(wgpu::Maintain::Wait);
         let data = slice.get_mapped_range();
-        let species: Vec<u32> =
-            bytemuck::cast_slice(&data[..bytes as usize]).to_vec();
+        let species: Vec<u32> = bytemuck::cast_slice(&data[..bytes as usize]).to_vec();
         drop(data);
         staging.unmap();
         species
@@ -414,8 +416,7 @@ impl HeadlessCapture {
         slice.map_async(wgpu::MapMode::Read, |r| r.expect("map bonds staging"));
         self.device.poll(wgpu::Maintain::Wait);
         let data = slice.get_mapped_range();
-        let all: Vec<BondSlot> =
-            bytemuck::cast_slice(&data[..total_bytes as usize]).to_vec();
+        let all: Vec<BondSlot> = bytemuck::cast_slice(&data[..total_bytes as usize]).to_vec();
         drop(data);
         staging.unmap();
         all
@@ -766,11 +767,9 @@ impl HeadlessCapture {
         // Capsule conveyor body stays at fixed angle.
         let conveyor_angle = CONVEYOR_ANGLE_DEG.to_radians();
         let (c_cos, c_sin) = (conveyor_angle.cos(), conveyor_angle.sin());
-        let cap_perim =
-            2.0 * std::f32::consts::PI * CAPSULE_RADIUS + 4.0 * CAPSULE_HALF_LEN;
-        let paddle_phase = (self.machine_time * CONVEYOR_SPEED * cap_perim
-            / std::f32::consts::TAU)
-            % cap_perim;
+        let cap_perim = 2.0 * std::f32::consts::PI * CAPSULE_RADIUS + 4.0 * CAPSULE_HALF_LEN;
+        let paddle_phase =
+            (self.machine_time * CONVEYOR_SPEED * cap_perim / std::f32::consts::TAU) % cap_perim;
 
         let real_n = self.machines.len() as u32;
         let total_n = real_n + PADDLE_COUNT;
@@ -835,16 +834,13 @@ impl HeadlessCapture {
         let cy = sim.machines[0].pos_y;
         let paddle_color = [0.45f32, 0.50, 0.60];
         for p in 0..PADDLE_COUNT {
-            let s =
-                (paddle_phase + p as f32 * cap_perim / PADDLE_COUNT as f32) % cap_perim;
-            let (pos, local_tangent) =
-                capsule_perimeter_point(s, CAPSULE_HALF_LEN, CAPSULE_RADIUS);
+            let s = (paddle_phase + p as f32 * cap_perim / PADDLE_COUNT as f32) % cap_perim;
+            let (pos, local_tangent) = capsule_perimeter_point(s, CAPSULE_HALF_LEN, CAPSULE_RADIUS);
             let lx = pos[0];
             let ly = pos[1];
             let wx = cx - lx * c_sin - ly * c_cos;
             let wy = cy + lx * c_cos - ly * c_sin;
-            let world_tangent =
-                local_tangent + std::f32::consts::FRAC_PI_2 + conveyor_angle;
+            let world_tangent = local_tangent + std::f32::consts::FRAC_PI_2 + conveyor_angle;
             let idx = (real_n + p) as usize;
             sim.machines[idx] = GpuMachine {
                 pos_x: wx,
@@ -924,8 +920,7 @@ fn capsule_perimeter_point(s: f32, l: f32, r: f32) -> ([f32; 2], f32) {
         let ly = r;
         ([lx, ly], std::f32::consts::PI)
     } else if s < 2.0 * cap_arc + straight {
-        let phi =
-            std::f32::consts::FRAC_PI_2 + (s - cap_arc - straight) / r;
+        let phi = std::f32::consts::FRAC_PI_2 + (s - cap_arc - straight) / r;
         let lx = -l + r * phi.cos();
         let ly = r * phi.sin();
         ([lx, ly], phi + std::f32::consts::FRAC_PI_2)

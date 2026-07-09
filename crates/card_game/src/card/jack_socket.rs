@@ -141,8 +141,15 @@ pub fn on_socket_clicked(
         return;
     };
 
-    let other_socket = if cable.dest == clicked { cable.source } else { cable.dest };
-    let pos = transforms.get(clicked).expect("socket entity must have Transform2D").position;
+    let other_socket = if cable.dest == clicked {
+        cable.source
+    } else {
+        cable.dest
+    };
+    let pos = transforms
+        .get(clicked)
+        .expect("socket entity must have Transform2D")
+        .position;
     let free_end = spawn_free_end(&mut commands, pos);
 
     let mut endpoints = wire_endpoints
@@ -166,13 +173,28 @@ fn socket_start_new_cable(
     clicked: Entity,
 ) {
     pending.source = Some(clicked);
-    let pos = transforms.get(clicked).expect("socket entity must have Transform2D").position;
+    let pos = transforms
+        .get(clicked)
+        .expect("socket entity must have Transform2D")
+        .position;
     let free_end = spawn_free_end(commands, pos);
     let cable_entity = commands
         .spawn((
-            WireEndpoints { source: clicked, dest: free_end },
-            Transform2D { position: pos, rotation: 0.0, scale: Vec2::ONE },
-            Shape { variant: ShapeVariant::Polygon { points: vec![Vec2::ZERO] }, color: Color::WHITE },
+            WireEndpoints {
+                source: clicked,
+                dest: free_end,
+            },
+            Transform2D {
+                position: pos,
+                rotation: 0.0,
+                scale: Vec2::ONE,
+            },
+            Shape {
+                variant: ShapeVariant::Polygon {
+                    points: vec![Vec2::ZERO],
+                },
+                color: Color::WHITE,
+            },
             Visible(true),
             RenderLayer::World,
             SortOrder::default(),
@@ -241,7 +263,14 @@ pub fn jack_socket_release_system(
     let Some(cable_entity) = origin_cable else {
         return;
     };
-    cable_link(cable_entity, output, input, &mut cables, &mut rope_endpoints, &mut commands);
+    cable_link(
+        cable_entity,
+        output,
+        input,
+        &mut cables,
+        &mut rope_endpoints,
+        &mut commands,
+    );
     if let Ok((_, mut dest_socket, _)) = sockets.get_mut(dest_entity) {
         dest_socket.connected_cable = Some(cable_entity);
     }

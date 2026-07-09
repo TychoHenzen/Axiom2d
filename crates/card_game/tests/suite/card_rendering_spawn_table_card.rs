@@ -52,7 +52,7 @@ fn spawn_def_face_up(world: &mut World, def: &CardDefinition) -> Entity {
     )
 }
 
-/// @doc: Spawning a visual card face-down sets the Card component's face_up flag to false.
+/// @doc: Spawning a visual card face-down sets the Card component's `face_up` flag to false.
 #[test]
 fn when_spawn_visual_card_then_root_has_card_component_face_down() {
     // Arrange
@@ -67,7 +67,7 @@ fn when_spawn_visual_card_then_root_has_card_component_face_down() {
     assert!(!card.face_up);
 }
 
-/// @doc: Spawning a visual card attaches a CardLabel with a non-empty procedural name.
+/// @doc: Spawning a visual card attaches a `CardLabel` with a non-empty procedural name.
 #[test]
 fn when_spawn_visual_card_then_root_has_card_label() {
     // Arrange
@@ -84,7 +84,7 @@ fn when_spawn_visual_card_then_root_has_card_label() {
     assert!(!label.name.is_empty(), "procedural title must not be empty");
 }
 
-/// @doc: Spawning a visual card attaches a BakedCardMesh component with front and back meshes.
+/// @doc: Spawning a visual card attaches a `BakedCardMesh` component with front and back meshes.
 #[test]
 fn when_spawn_visual_card_then_root_has_baked_card_mesh() {
     // Arrange
@@ -101,7 +101,7 @@ fn when_spawn_visual_card_then_root_has_baked_card_mesh() {
     );
 }
 
-/// @doc: When an art shader is registered, the card's MeshOverlays contains an entry for the art.
+/// @doc: When an art shader is registered, the card's `MeshOverlays` contains an entry for the art.
 #[test]
 fn when_spawn_with_art_shader_then_mesh_overlays_has_art_entry() {
     use card_game::card::rendering::art_shader::register_card_art_shader;
@@ -264,7 +264,7 @@ fn when_spawn_visual_card_then_root_collider_half_is_card_size() {
     }
 }
 
-/// @doc: The provided CardSignature is stored on the Card component and accessible after spawn.
+/// @doc: The provided `CardSignature` is stored on the Card component and accessible after spawn.
 #[test]
 fn when_spawn_visual_card_with_signature_then_card_stores_it() {
     // Arrange
@@ -442,7 +442,7 @@ fn when_spawn_with_art_then_variant_overlay_has_nonzero_uv() {
     );
 }
 
-/// @doc: Without a ShapeRepository, spawning the same card twice produces identical front meshes.
+/// @doc: Without a `ShapeRepository`, spawning the same card twice produces identical front meshes.
 #[test]
 fn when_spawn_without_shape_repository_then_front_mesh_matches_baseline() {
     // Arrange
@@ -784,7 +784,7 @@ fn when_spawn_with_art_shader_then_overlay_quad_has_uv_corners() {
     assert_eq!(quad_verts[3].uv, [0.0, 1.0]);
 }
 
-/// @doc: A card matching a base type via its signature gets a ResidualStats component attached.
+/// @doc: A card matching a base type via its signature gets a `ResidualStats` component attached.
 #[test]
 fn when_spawn_with_matching_base_type_then_entity_has_residual_stats() {
     use card_game::card::identity::base_type::{BaseCardTypeRegistry, populate_default_types};

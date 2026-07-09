@@ -146,7 +146,7 @@ fn when_frame_cleared_then_scroll_delta_is_preserved() {
     assert_eq!(state.scroll_delta(), Vec2::new(2.0, 5.0));
 }
 
-/// @doc: Verifies that clear_scroll_delta resets the accumulated delta to zero.
+/// @doc: Verifies that `clear_scroll_delta` resets the accumulated delta to zero.
 #[test]
 fn when_clear_scroll_delta_called_then_scroll_delta_is_zero() {
     // Arrange
@@ -201,7 +201,7 @@ fn when_world_pos_set_then_world_pos_is_readable() {
     assert_eq!(state.world_pos(), Vec2::new(300.0, -150.0));
 }
 
-/// @doc: Verifies that action_pressed returns true when the bound mouse button is pressed.
+/// @doc: Verifies that `action_pressed` returns true when the bound mouse button is pressed.
 #[test]
 fn when_action_bound_to_mouse_button_and_button_pressed_then_action_pressed_returns_true() {
     // Arrange
@@ -217,7 +217,7 @@ fn when_action_bound_to_mouse_button_and_button_pressed_then_action_pressed_retu
     assert!(result);
 }
 
-/// @doc: Verifies that action_pressed returns false when the bound mouse button is not pressed.
+/// @doc: Verifies that `action_pressed` returns false when the bound mouse button is not pressed.
 #[test]
 fn when_action_bound_to_mouse_button_and_button_not_pressed_then_action_pressed_returns_false() {
     // Arrange
@@ -232,7 +232,7 @@ fn when_action_bound_to_mouse_button_and_button_not_pressed_then_action_pressed_
     assert!(!result);
 }
 
-/// @doc: Verifies that action_just_pressed returns true when the bound mouse button is just pressed.
+/// @doc: Verifies that `action_just_pressed` returns true when the bound mouse button is just pressed.
 #[test]
 fn when_action_bound_to_mouse_button_and_button_just_pressed_then_action_just_pressed_returns_true()
 {
@@ -249,7 +249,7 @@ fn when_action_bound_to_mouse_button_and_button_just_pressed_then_action_just_pr
     assert!(result);
 }
 
-/// @doc: Verifies that action_just_pressed returns false for a held mouse button after frame clear.
+/// @doc: Verifies that `action_just_pressed` returns false for a held mouse button after frame clear.
 #[test]
 fn when_button_held_but_frame_cleared_then_action_just_pressed_returns_false() {
     // Arrange
@@ -266,7 +266,7 @@ fn when_button_held_but_frame_cleared_then_action_just_pressed_returns_false() {
     assert!(!result);
 }
 
-/// @doc: Verifies that action_pressed returns false for an unbound mouse action even when the button is pressed.
+/// @doc: Verifies that `action_pressed` returns false for an unbound mouse action even when the button is pressed.
 #[test]
 fn when_unbound_mouse_action_queried_then_action_pressed_returns_false() {
     // Arrange
@@ -308,7 +308,7 @@ fn when_screen_pos_set_to_origin_then_screen_pos_is_zero() {
     assert_eq!(state.screen_pos(), Vec2::ZERO);
 }
 
-/// @doc: Verifies that releasing a mouse button that was never pressed still sets just_released (by current impl).
+/// @doc: Verifies that releasing a mouse button that was never pressed still sets `just_released` (by current impl).
 #[test]
 fn when_unpressed_button_released_then_just_released_is_set() {
     // Arrange
@@ -319,7 +319,10 @@ fn when_unpressed_button_released_then_just_released_is_set() {
 
     // Assert
     assert!(!state.pressed(MouseButton::Middle));
-    assert!(state.just_released(MouseButton::Middle), "just_released set even for never-pressed button");
+    assert!(
+        state.just_released(MouseButton::Middle),
+        "just_released set even for never-pressed button"
+    );
 }
 
 /// @doc: Verifies that pressing and releasing two different buttons are tracked independently.
@@ -334,9 +337,15 @@ fn when_two_different_buttons_used_independently_then_states_are_isolated() {
     state.release(MouseButton::Left);
 
     // Assert
-    assert!(state.pressed(MouseButton::Right), "Right should still be pressed");
+    assert!(
+        state.pressed(MouseButton::Right),
+        "Right should still be pressed"
+    );
     assert!(!state.pressed(MouseButton::Left), "Left should be released");
-    assert!(state.just_released(MouseButton::Left), "Left should be just_released");
+    assert!(
+        state.just_released(MouseButton::Left),
+        "Left should be just_released"
+    );
 }
 
 /// @doc: Verifies that world position is preserved across frame clears (only button state resets).
@@ -351,8 +360,15 @@ fn when_world_pos_set_then_clear_frame_state_does_not_reset_world_pos() {
     state.clear_frame_state();
 
     // Assert
-    assert_eq!(state.world_pos(), Vec2::new(42.0, 99.0), "world_pos should persist across frame clear");
-    assert!(!state.just_pressed(MouseButton::Left), "just_pressed should reset");
+    assert_eq!(
+        state.world_pos(),
+        Vec2::new(42.0, 99.0),
+        "world_pos should persist across frame clear"
+    );
+    assert!(
+        !state.just_pressed(MouseButton::Left),
+        "just_pressed should reset"
+    );
     assert!(state.pressed(MouseButton::Left), "pressed should persist");
 }
 

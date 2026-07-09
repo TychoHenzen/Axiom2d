@@ -23,7 +23,10 @@ fn when_spawn_child_called_then_new_entity_has_child_of_pointing_to_parent() {
     let child_of = world
         .get::<ChildOf>(child)
         .expect("child should have ChildOf");
-    assert_eq!(child_of.0, parent, "spawned child should have ChildOf pointing to parent");
+    assert_eq!(
+        child_of.0, parent,
+        "spawned child should have ChildOf pointing to parent"
+    );
 }
 
 #[derive(Component)]
@@ -39,8 +42,14 @@ fn when_spawn_child_called_then_new_entity_also_contains_the_provided_bundle() {
     let child = world.spawn_child(parent, Marker);
 
     // Assert
-    assert!(world.get::<ChildOf>(child).is_some(), "child should have ChildOf component from spawn_child");
-    assert!(world.get::<Marker>(child).is_some(), "child should have the Marker bundle passed to spawn_child");
+    assert!(
+        world.get::<ChildOf>(child).is_some(),
+        "child should have ChildOf component from spawn_child"
+    );
+    assert!(
+        world.get::<Marker>(child).is_some(),
+        "child should have the Marker bundle passed to spawn_child"
+    );
 }
 
 #[test]
@@ -57,5 +66,9 @@ fn when_spawn_child_used_then_hierarchy_system_picks_up_the_new_child() {
     let children = world
         .get::<Children>(parent)
         .expect("parent should have Children");
-    assert_eq!(children.0, vec![child], "hierarchy system should register child in parent's Children component");
+    assert_eq!(
+        children.0,
+        vec![child],
+        "hierarchy system should register child in parent's Children component"
+    );
 }

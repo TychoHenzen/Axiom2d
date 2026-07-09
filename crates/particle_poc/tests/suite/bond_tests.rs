@@ -4,8 +4,8 @@
 use particle_poc::capture::{CaptureConfig, HeadlessCapture};
 use particle_poc::{CAPSULE_RADIUS, GREEN_SPECIES, INVALID_BOND};
 
-/// Use production particle_radius (0.002) so the spatial hash grid works correctly.
-/// Grid cell_size = 1.6/256 = 0.00625 ≥ 2*r = 0.004, so neighbor search covers adjacent particles.
+/// Use production `particle_radius` (0.002) so the spatial hash grid works correctly.
+/// Grid `cell_size` = 1.6/256 = 0.00625 ≥ 2*r = 0.004, so neighbor search covers adjacent particles.
 fn bond_test_config() -> CaptureConfig {
     CaptureConfig {
         width: 64,
@@ -29,10 +29,10 @@ fn when_two_green_particles_adjacent_then_bond_forms() {
     // Place two green particles at contact distance (matching self-test setup).
     let r = 0.002;
     let spacing = 2.0 * r;
-    capture.spawn_at(&[[-spacing * 0.5, 0.0], [spacing * 0.5, 0.0]], &[
-        GREEN_SPECIES,
-        GREEN_SPECIES,
-    ]);
+    capture.spawn_at(
+        &[[-spacing * 0.5, 0.0], [spacing * 0.5, 0.0]],
+        &[GREEN_SPECIES, GREEN_SPECIES],
+    );
 
     // Run 5 frames (bond formation happens once per frame).
     capture.step_n(5);
@@ -71,7 +71,7 @@ fn when_bonded_particles_within_rest_length_then_distance_constrained() {
 }
 
 /// A bond stretched beyond 5x rest length should break.
-/// @doc: bonds break when stretched beyond break threshold (5 * rest_length)
+/// @doc: bonds break when stretched beyond break threshold (5 * `rest_length`)
 #[test]
 fn when_bond_stretched_beyond_break_distance_then_cleared() {
     let Some(mut capture) = HeadlessCapture::try_new(bond_test_config()) else {
@@ -130,11 +130,11 @@ fn when_particles_on_belt_surface_then_stable() {
             "particle {i}: NaN position ({px:.4}, {py:.4})"
         );
         assert!(
-            px >= -1.5 && px <= 1.5,
+            (-1.5..=1.5).contains(&px),
             "particle {i}: x={px:.4} out of bounds"
         );
         assert!(
-            py >= -1.5 && py <= 1.5,
+            (-1.5..=1.5).contains(&py),
             "particle {i}: y={py:.4} out of bounds"
         );
     }

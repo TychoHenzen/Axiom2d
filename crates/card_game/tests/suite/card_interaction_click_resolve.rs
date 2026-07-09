@@ -227,7 +227,7 @@ fn when_socket_clicked_then_pending_cable_source_set() {
     assert_eq!(pending.source, Some(jack_entity));
 }
 
-/// @doc: Double-pick bug fix: clicking a card sitting on a reader must only fire the card pick (topmost by SortOrder), not also start reader drag
+/// @doc: Double-pick bug fix: clicking a card sitting on a reader must only fire the card pick (topmost by `SortOrder`), not also start reader drag
 #[test]
 fn when_card_on_reader_clicked_only_card_picked_not_reader() {
     use card_game::card::identity::definition::{

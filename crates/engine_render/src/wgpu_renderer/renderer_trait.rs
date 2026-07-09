@@ -667,7 +667,10 @@ fn present_scene_post_process(
     encoder: &mut wgpu::CommandEncoder,
     view: &wgpu::TextureView,
 ) {
-    let scene_view = renderer.post_process.as_ref().map(|pp| pp.scene_view.clone());
+    let scene_view = renderer
+        .post_process
+        .as_ref()
+        .map(|pp| pp.scene_view.clone());
     let target = scene_view.as_ref().unwrap_or(view);
     renderer.draw_scene_to(encoder, target);
     renderer.execute_bloom(encoder, view);

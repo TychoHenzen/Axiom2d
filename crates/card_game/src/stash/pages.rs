@@ -162,7 +162,16 @@ pub fn stash_tab_render_system(
         let left_x = tab_left_x(grid.width(), tab_count, i);
         let color = tab_color(i, current, tab_count);
         draw_tab_background(&mut draw_queue, left_x, top_y, color, &camera, vw, vh);
-        draw_tab_label(&mut draw_queue, i, tab_count, left_x, top_y, &camera, vw, vh);
+        draw_tab_label(
+            &mut draw_queue,
+            i,
+            tab_count,
+            left_x,
+            top_y,
+            &camera,
+            vw,
+            vh,
+        );
     }
 }
 
@@ -186,12 +195,20 @@ fn draw_tab_background(
     vh: f32,
 ) {
     let origin = screen_to_world(Vec2::new(left_x, top_y), camera, vw, vh);
-    let verts = rect_vertices(origin.x, origin.y, TAB_WIDTH / camera.zoom, TAB_HEIGHT / camera.zoom);
+    let verts = rect_vertices(
+        origin.x,
+        origin.y,
+        TAB_WIDTH / camera.zoom,
+        TAB_HEIGHT / camera.zoom,
+    );
     queue.push(
         RenderLayer::UI,
         SortOrder::new(500),
         DrawCommand::Shape {
-            mesh: TessellatedMesh { vertices: verts.to_vec(), indices: QUAD_INDICES.to_vec() },
+            mesh: TessellatedMesh {
+                vertices: verts.to_vec(),
+                indices: QUAD_INDICES.to_vec(),
+            },
             color,
             model: engine_render::prelude::IDENTITY_MODEL,
             material: None,

@@ -204,13 +204,16 @@ fn when_data_length_mismatches_then_returns_error() {
     let result = builder.add_image(1, 1, &[255, 0, 0]);
 
     // Assert
-    assert!(matches!(
-        result,
-        Err(AtlasError::DataLengthMismatch {
-            expected: 4,
-            actual: 3
-        })
-    ), "expected DataLengthMismatch(4, 3), got {result:?}");
+    assert!(
+        matches!(
+            result,
+            Err(AtlasError::DataLengthMismatch {
+                expected: 4,
+                actual: 3
+            })
+        ),
+        "expected DataLengthMismatch(4, 3), got {result:?}"
+    );
 }
 
 /// @doc: Zero-width image dimensions are rejected with `InvalidDimensions` — prevents degenerate allocations
@@ -419,7 +422,7 @@ fn when_second_image_at_nonzero_y_then_uv_height_matches_image_ratio() {
     );
 }
 
-/// @doc: UV rect from add_image must match the looked-up UV after build — ensures consistency between allocation and final atlas
+/// @doc: UV rect from `add_image` must match the looked-up UV after build — ensures consistency between allocation and final atlas
 #[test]
 fn when_second_image_offset_then_handle_uv_matches_build_lookup() {
     // Arrange -- narrow atlas forces second image to y > 0

@@ -317,7 +317,7 @@ fn when_just_pressed_inside_then_clicked_event_emitted() {
     );
 }
 
-/// @doc: Hovering a node emits a HoverEnter event on the first frame the cursor is inside.
+/// @doc: Hovering a node emits a `HoverEnter` event on the first frame the cursor is inside.
 #[test]
 fn when_cursor_enters_node_then_hover_enter_event_emitted() {
     // Arrange
@@ -346,7 +346,7 @@ fn when_cursor_enters_node_then_hover_enter_event_emitted() {
     );
 }
 
-/// @doc: Moving cursor out of a previously hovered node emits a HoverExit event.
+/// @doc: Moving cursor out of a previously hovered node emits a `HoverExit` event.
 #[test]
 fn when_cursor_leaves_node_then_hover_exit_event_emitted() {
     // Arrange
@@ -542,7 +542,7 @@ fn when_interaction_roundtrip_ron_then_variant_preserved() {
     }
 }
 
-/// @doc: An invisible entity with no prior hover state must not emit a spurious HoverExit event.
+/// @doc: An invisible entity with no prior hover state must not emit a spurious `HoverExit` event.
 #[test]
 fn when_invisible_entity_with_no_prior_hover_then_no_hover_exit_event() {
     // Arrange — entity starts at Interaction::None, is invisible

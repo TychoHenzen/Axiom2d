@@ -288,7 +288,7 @@ fn when_camera_uniform_from_camera_at_center_then_viewport_corners_map_to_ndc_co
     assert!((bottom_right.y - (-1.0)).abs() < 1e-5);
 }
 
-/// @doc: `camera_prepare_system` calls `set_view_projection` on the renderer when a Camera2D entity exists.
+/// @doc: `camera_prepare_system` calls `set_view_projection` on the renderer when a `Camera2D` entity exists.
 #[test]
 fn when_camera_prepare_system_runs_with_camera_then_set_view_projection_called() {
     // Arrange
@@ -307,7 +307,7 @@ fn when_camera_prepare_system_runs_with_camera_then_set_view_projection_called()
     );
 }
 
-/// @doc: `camera_prepare_system` incorporates CameraRotation into the view-projection matrix.
+/// @doc: `camera_prepare_system` incorporates `CameraRotation` into the view-projection matrix.
 #[test]
 fn when_camera_prepare_system_runs_with_rotation_then_view_projection_uses_rotation() {
     // Arrange
@@ -425,7 +425,7 @@ fn when_viewport_height_zero_then_camera_prepare_system_skips() {
     );
 }
 
-/// @doc: When no Camera2D entity exists, the system defaults to a centered viewport ortho projection.
+/// @doc: When no `Camera2D` entity exists, the system defaults to a centered viewport ortho projection.
 #[test]
 fn when_no_camera_then_system_uses_viewport_center() {
     // Arrange

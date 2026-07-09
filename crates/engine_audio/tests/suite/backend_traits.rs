@@ -13,7 +13,7 @@ fn minimal_sound() -> SoundData {
     }
 }
 
-/// @doc: Verifies that NullAudioBackend.play_on_track increments play count for SFX track.
+/// @doc: Verifies that `NullAudioBackend.play_on_track` increments play count for SFX track.
 #[test]
 fn when_play_on_track_with_sfx_then_play_count_increments() {
     // Arrange
@@ -24,7 +24,11 @@ fn when_play_on_track_with_sfx_then_play_count_increments() {
     backend.play_on_track(&sound, MixerTrack::Sfx);
 
     // Assert
-    assert_eq!(backend.play_count(), 1, "play count should increment to 1 after one SFX play");
+    assert_eq!(
+        backend.play_count(),
+        1,
+        "play count should increment to 1 after one SFX play"
+    );
 }
 
 /// @doc: Each playback gets a unique ID — enables stopping individual sounds without affecting others
@@ -39,10 +43,13 @@ fn when_play_on_track_called_twice_with_sfx_then_ids_differ() {
     let id2 = backend.play_on_track(&sound, MixerTrack::Sfx);
 
     // Assert
-    assert_ne!(id1, id2, "each play_on_track call should return a unique ID");
+    assert_ne!(
+        id1, id2,
+        "each play_on_track call should return a unique ID"
+    );
 }
 
-/// @doc: Verifies that NullAudioBackend.play_on_track increments play count for Music track.
+/// @doc: Verifies that `NullAudioBackend.play_on_track` increments play count for Music track.
 #[test]
 fn when_play_on_track_called_then_play_count_increments() {
     // Arrange
@@ -53,7 +60,11 @@ fn when_play_on_track_called_then_play_count_increments() {
     backend.play_on_track(&sound, MixerTrack::Music);
 
     // Assert
-    assert_eq!(backend.play_count(), 1, "play count should increment to 1 after one Music track play");
+    assert_eq!(
+        backend.play_count(),
+        1,
+        "play count should increment to 1 after one Music track play"
+    );
 }
 
 /// @doc: Play count accumulates across calls — tracks total sounds queued for playback
@@ -69,7 +80,11 @@ fn when_three_sounds_played_then_play_count_returns_three() {
     backend.play_on_track(&sound, MixerTrack::Sfx);
 
     // Assert
-    assert_eq!(backend.play_count(), 3, "play count should accumulate to 3 after three plays");
+    assert_eq!(
+        backend.play_count(),
+        3,
+        "play count should accumulate to 3 after three plays"
+    );
 }
 
 /// @doc: Playing a zero-sample sound still increments play count — backend doesn't validate sample data.
@@ -87,10 +102,14 @@ fn when_empty_sound_played_then_play_count_increments() {
     backend.play_on_track(&empty, MixerTrack::Sfx);
 
     // Assert
-    assert_eq!(backend.play_count(), 1, "play count should increment even with empty SoundData");
+    assert_eq!(
+        backend.play_count(),
+        1,
+        "play count should increment even with empty SoundData"
+    );
 }
 
-/// @doc: Stopping an unregistered PlaybackId is a no-op and must not panic.
+/// @doc: Stopping an unregistered `PlaybackId` is a no-op and must not panic.
 #[test]
 fn when_stop_unknown_id_then_no_panic() {
     // Arrange
@@ -100,10 +119,14 @@ fn when_stop_unknown_id_then_no_panic() {
     backend.stop(PlaybackId(999));
 
     // Assert — reached without panic
-    assert_eq!(backend.play_count(), 0, "play count unchanged after stopping unknown ID");
+    assert_eq!(
+        backend.play_count(),
+        0,
+        "play count unchanged after stopping unknown ID"
+    );
 }
 
-/// @doc: All MixerTrack variants (Master, Music, Sfx, Ambient, Ui) accept playback.
+/// @doc: All `MixerTrack` variants (Master, Music, Sfx, Ambient, Ui) accept playback.
 #[test]
 fn when_play_on_all_tracks_then_play_count_accumulates() {
     // Arrange
@@ -116,5 +139,9 @@ fn when_play_on_all_tracks_then_play_count_accumulates() {
     }
 
     // Assert
-    assert_eq!(backend.play_count(), 5, "play count should be 5 after one play on each of 5 tracks");
+    assert_eq!(
+        backend.play_count(),
+        5,
+        "play count should be 5 after one play on each of 5 tracks"
+    );
 }

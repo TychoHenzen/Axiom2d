@@ -71,7 +71,11 @@ fn when_row_layout_then_first_child_at_origin() {
 
     // Assert
     let transform = world.entity(child_a).get::<Transform2D>().unwrap();
-    assert_eq!(transform.position, Vec2::ZERO, "first child should be at origin in row layout");
+    assert_eq!(
+        transform.position,
+        Vec2::ZERO,
+        "first child should be at origin in row layout"
+    );
 }
 
 /// @doc: Verifies that the second child in a row flex layout is offset by the first child's width

@@ -10,7 +10,7 @@ fn run_system(world: &mut World) {
     schedule.run(world);
 }
 
-/// @doc: Verifies that the stash toggle system makes StashVisible true when Tab is pressed while hidden.
+/// @doc: Verifies that the stash toggle system makes `StashVisible` true when Tab is pressed while hidden.
 #[test]
 fn when_tab_just_pressed_and_hidden_then_becomes_visible() {
     // Arrange
@@ -24,7 +24,10 @@ fn when_tab_just_pressed_and_hidden_then_becomes_visible() {
     run_system(&mut world);
 
     // Assert
-    assert!(world.resource::<StashVisible>().0, "stash should become visible when Tab pressed while hidden");
+    assert!(
+        world.resource::<StashVisible>().0,
+        "stash should become visible when Tab pressed while hidden"
+    );
 }
 
 /// @doc: Verifies that the stash toggle system hides the stash when Tab is pressed while visible.
@@ -41,7 +44,10 @@ fn when_tab_just_pressed_and_visible_then_becomes_hidden() {
     run_system(&mut world);
 
     // Assert
-    assert!(!world.resource::<StashVisible>().0, "stash should become hidden when Tab pressed while visible");
+    assert!(
+        !world.resource::<StashVisible>().0,
+        "stash should become hidden when Tab pressed while visible"
+    );
 }
 
 /// @doc: When Tab is not pressed, hidden stash stays hidden (no spurious toggle).
@@ -56,7 +62,10 @@ fn when_tab_not_pressed_and_hidden_then_stays_hidden() {
     run_system(&mut world);
 
     // Assert
-    assert!(!world.resource::<StashVisible>().0, "stash should remain hidden when no Tab press");
+    assert!(
+        !world.resource::<StashVisible>().0,
+        "stash should remain hidden when no Tab press"
+    );
 }
 
 /// @doc: When Tab is not pressed, visible stash stays visible (no auto-hide).
@@ -71,7 +80,10 @@ fn when_tab_not_pressed_and_visible_then_stays_visible() {
     run_system(&mut world);
 
     // Assert
-    assert!(world.resource::<StashVisible>().0, "stash should remain visible when no Tab press");
+    assert!(
+        world.resource::<StashVisible>().0,
+        "stash should remain visible when no Tab press"
+    );
 }
 
 /// @doc: Pressing a non-Tab key does not toggle stash visibility.
@@ -88,5 +100,8 @@ fn when_non_tab_key_pressed_then_stash_unchanged() {
     run_system(&mut world);
 
     // Assert
-    assert!(!world.resource::<StashVisible>().0, "stash should remain hidden when Enter pressed");
+    assert!(
+        !world.resource::<StashVisible>().0,
+        "stash should remain hidden when Enter pressed"
+    );
 }

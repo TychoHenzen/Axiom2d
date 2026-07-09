@@ -44,7 +44,10 @@ fn when_plugin_built_then_physics_res_not_inserted() {
     app.add_plugin(CardGamePlugin);
 
     // Assert
-    assert!(app.world().get_resource::<PhysicsRes>().is_none(), "CardGamePlugin should not insert PhysicsRes");
+    assert!(
+        app.world().get_resource::<PhysicsRes>().is_none(),
+        "CardGamePlugin should not insert PhysicsRes"
+    );
 }
 
 /// @doc: The plugin pre-populates the `BaseTypeRegistry` with the five
@@ -61,7 +64,10 @@ fn when_plugin_built_then_registry_has_default_base_types() {
 
     // Assert
     let registry = app.world().get_resource::<BaseCardTypeRegistry>().unwrap();
-    assert!(!registry.is_empty(), "BaseCardTypeRegistry should have default base types after plugin init");
+    assert!(
+        !registry.is_empty(),
+        "BaseCardTypeRegistry should have default base types after plugin init"
+    );
 }
 
 /// @doc: `TierShaders` must be registered at plugin startup so tier condition
@@ -107,5 +113,8 @@ fn when_plugin_built_then_card_art_shader_resolves_in_registry() {
     // Assert
     let shader = app.world().get_resource::<CardArtShader>().unwrap();
     let registry = app.world().get_resource::<ShaderRegistry>().unwrap();
-    assert!(registry.lookup(shader.0).is_some(), "card art shader should resolve in registry after plugin init");
+    assert!(
+        registry.lookup(shader.0).is_some(),
+        "card art shader should resolve in registry after plugin init"
+    );
 }

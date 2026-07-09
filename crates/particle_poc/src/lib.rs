@@ -316,8 +316,8 @@ pub struct RapierState {
     pub ccd_solver: CCDSolver,
 }
 
-pub mod state;
 pub mod capture;
+pub mod state;
 
 #[allow(clippy::struct_excessive_bools)]
 pub struct State {
@@ -1130,7 +1130,9 @@ fn create_machine_render_state(
     }
 }
 
-pub fn init_machines(mut rapier: RapierState) -> (Vec<MachineDef>, Vec<MachineCpuState>, RapierState) {
+pub fn init_machines(
+    mut rapier: RapierState,
+) -> (Vec<MachineDef>, Vec<MachineCpuState>, RapierState) {
     let mut machines = Vec::with_capacity(3);
     let mut cpu_states = Vec::with_capacity(3);
 
