@@ -8,6 +8,7 @@ use engine_render::renderer::RendererRes;
 use engine_render::testing::SpyRenderer;
 use engine_render::testing::helpers::minimal_atlas;
 
+/// @doc: An empty atlas (no images added) initializes its pixel buffer to all zeros (RGBA(0,0,0,0))
 #[test]
 fn when_building_empty_atlas_then_pixel_buffer_is_all_zeros() {
     // Arrange
@@ -17,9 +18,14 @@ fn when_building_empty_atlas_then_pixel_buffer_is_all_zeros() {
     let atlas = builder.build();
 
     // Assert
-    assert_eq!(atlas.data, vec![0u8; 4 * 4 * 4]);
+    assert_eq!(
+        atlas.data,
+        vec![0u8; 4 * 4 * 4],
+        "empty atlas must be fully transparent"
+    );
 }
 
+/// @doc: Atlas pixel buffer size equals width * height * 4 (RGBA) regardless of images added
 #[test]
 fn when_building_atlas_with_image_then_buffer_size_matches_atlas() {
     // Arrange
@@ -31,9 +37,14 @@ fn when_building_atlas_with_image_then_buffer_size_matches_atlas() {
     let atlas = builder.build();
 
     // Assert
-    assert_eq!(atlas.data.len(), 64 * 128 * 4);
+    assert_eq!(
+        atlas.data.len(),
+        64 * 128 * 4,
+        "atlas buffer must equal dimensions * 4"
+    );
 }
 
+/// @doc: Builder width/height accessors return the dimensions passed at construction
 #[test]
 fn when_builder_created_then_reports_matching_dimensions() {
     // Arrange
@@ -44,10 +55,11 @@ fn when_builder_created_then_reports_matching_dimensions() {
     let h = builder.height();
 
     // Assert
-    assert_eq!(w, 512);
-    assert_eq!(h, 256);
+    assert_eq!(w, 512, "width should match construction parameter");
+    assert_eq!(h, 256, "height should match construction parameter");
 }
 
+/// @doc: Adding a valid image to an atlas returns an `Ok` handle with a valid texture ID
 #[test]
 fn when_adding_single_image_then_returns_handle_with_valid_texture_id() {
     // Arrange
@@ -57,10 +69,9 @@ fn when_adding_single_image_then_returns_handle_with_valid_texture_id() {
     let result = builder.add_image(1, 1, &[255, 0, 0, 255]);
 
     // Assert
-    assert!(result.is_ok());
+    assert!(result.is_ok(), "adding a single pixel image should succeed");
 }
 
-/// @doc: Atlas UV normalization maps pixel rects to 0..1 -- shader sampling requires normalized coordinates
 #[test]
 fn when_adding_image_then_uv_rect_is_normalized_to_zero_one() {
     // Arrange
@@ -71,14 +82,15 @@ fn when_adding_image_then_uv_rect_is_normalized_to_zero_one() {
 
     // Assert
     let [u0, v0, u1, v1] = handle.uv_rect;
-    assert!((0.0..=1.0).contains(&u0));
-    assert!((0.0..=1.0).contains(&v0));
-    assert!((0.0..=1.0).contains(&u1));
-    assert!((0.0..=1.0).contains(&v1));
+    assert!((0.0..=1.0).contains(&u0), "u0 must be in [0,1]");
+    assert!((0.0..=1.0).contains(&v0), "v0 must be in [0,1]");
+    assert!((0.0..=1.0).contains(&u1), "u1 must be in [0,1]");
+    assert!((0.0..=1.0).contains(&v1), "v1 must be in [0,1]");
     assert!(u1 > u0, "uv_rect must have positive width");
     assert!(v1 > v0, "uv_rect must have positive height");
 }
 
+/// @doc: An image that fills the entire atlas gets UV rect [0,0,1,1] — full texture range
 #[test]
 fn when_adding_image_that_fills_atlas_then_uv_rect_is_full_range() {
     // Arrange
@@ -88,7 +100,11 @@ fn when_adding_image_that_fills_atlas_then_uv_rect_is_full_range() {
     let handle = builder.add_image(4, 4, &[255; 64]).unwrap();
 
     // Assert
-    assert_eq!(handle.uv_rect, [0.0, 0.0, 1.0, 1.0]);
+    assert_eq!(
+        handle.uv_rect,
+        [0.0, 0.0, 1.0, 1.0],
+        "full-atlas image should span the entire UV range"
+    );
 }
 
 /// @doc: Each allocation must have unique `TextureId` -- id collisions break texture lookups and render incorrect sprites
@@ -158,9 +174,13 @@ fn when_adding_image_larger_than_atlas_then_returns_no_space_error() {
     let result = builder.add_image(16, 16, &[0; 16 * 16 * 4]);
 
     // Assert
-    assert!(matches!(result, Err(AtlasError::NoSpace)));
+    assert!(
+        matches!(result, Err(AtlasError::NoSpace)),
+        "image larger than atlas should return NoSpace"
+    );
 }
 
+/// @doc: Adding an image to a fully-packed atlas returns `NoSpace` error
 #[test]
 fn when_atlas_full_then_returns_no_space_error() {
     // Arrange
@@ -174,6 +194,7 @@ fn when_atlas_full_then_returns_no_space_error() {
     assert!(matches!(result, Err(AtlasError::NoSpace)));
 }
 
+/// @doc: Pixel data length that doesn't match width * height * 4 (RGBA) is rejected with `DataLengthMismatch`
 #[test]
 fn when_data_length_mismatches_then_returns_error() {
     // Arrange
@@ -189,9 +210,10 @@ fn when_data_length_mismatches_then_returns_error() {
             expected: 4,
             actual: 3
         })
-    ));
+    ), "expected DataLengthMismatch(4, 3), got {result:?}");
 }
 
+/// @doc: Zero-width image dimensions are rejected with `InvalidDimensions` — prevents degenerate allocations
 #[test]
 fn when_adding_zero_width_image_then_returns_invalid_dimensions() {
     // Arrange
@@ -201,9 +223,13 @@ fn when_adding_zero_width_image_then_returns_invalid_dimensions() {
     let result = builder.add_image(0, 4, &[]);
 
     // Assert
-    assert!(matches!(result, Err(AtlasError::InvalidDimensions)));
+    assert!(
+        matches!(result, Err(AtlasError::InvalidDimensions)),
+        "zero-width image should return InvalidDimensions, got {result:?}"
+    );
 }
 
+/// @doc: Zero-height image dimensions are rejected with `InvalidDimensions` — prevents degenerate allocations
 #[test]
 fn when_adding_zero_height_image_then_returns_invalid_dimensions() {
     // Arrange
@@ -213,7 +239,10 @@ fn when_adding_zero_height_image_then_returns_invalid_dimensions() {
     let result = builder.add_image(4, 0, &[]);
 
     // Assert
-    assert!(matches!(result, Err(AtlasError::InvalidDimensions)));
+    assert!(
+        matches!(result, Err(AtlasError::InvalidDimensions)),
+        "zero-height image should return InvalidDimensions, got {result:?}"
+    );
 }
 
 /// @doc: `TextureAtlas::lookup` must return exact `handle.uv_rect` from `add_image` -- mismatch breaks sprite sampling
@@ -307,23 +336,32 @@ fn when_building_atlas_with_two_images_then_neither_overwrites_the_other() {
     assert_eq!(sample(h_blue.uv_rect), &[0, 0, 255, 255]);
 }
 
-/// @doc: UV normalization must preserve aspect ratio -- wrong formula causes stretched textures
+/// @doc: UV normalization preserves aspect ratio — wrong formula causes stretched textures
 #[test]
 fn when_normalizing_uv_rect_then_output_is_in_zero_one_range() {
     // Act
     let uv = normalize_uv_rect(10, 20, 40, 60, (100, 100));
 
     // Assert
-    assert_eq!(uv, [0.10, 0.20, 0.50, 0.80]);
+    assert_eq!(
+        uv,
+        [0.10, 0.20, 0.50, 0.80],
+        "normalized UV should map pixel rect to [0,1] range"
+    );
 }
 
+/// @doc: UV rect starting at origin (0,0) normalizes to 0.0 for both u and v
 #[test]
 fn when_normalizing_uv_rect_at_origin_then_starts_at_zero() {
     // Act
     let uv = normalize_uv_rect(0, 0, 32, 32, (256, 256));
 
     // Assert
-    assert_eq!(uv, [0.0, 0.0, 0.125, 0.125]);
+    assert_eq!(
+        uv,
+        [0.0, 0.0, 0.125, 0.125],
+        "origin rect should normalize to starting at 0.0 with 0.125 span"
+    );
 }
 
 /// @doc: Each pixel row must respect atlas stride -- incorrect stride calculation causes row-major layout corruption
@@ -381,6 +419,7 @@ fn when_second_image_at_nonzero_y_then_uv_height_matches_image_ratio() {
     );
 }
 
+/// @doc: UV rect from add_image must match the looked-up UV after build — ensures consistency between allocation and final atlas
 #[test]
 fn when_second_image_offset_then_handle_uv_matches_build_lookup() {
     // Arrange -- narrow atlas forces second image to y > 0
@@ -394,7 +433,10 @@ fn when_second_image_offset_then_handle_uv_matches_build_lookup() {
 
     // Assert -- handle UV (from add_image) must match lookup (from build)
     let looked_up = atlas.lookup(handle.texture_id).unwrap();
-    assert_eq!(handle.uv_rect, looked_up);
+    assert_eq!(
+        handle.uv_rect, looked_up,
+        "handle UV rect from add_image must match post-build lookup"
+    );
 
     // Also verify pixel data at the UV location
     let [u0, v0, _, _] = handle.uv_rect;
@@ -469,7 +511,11 @@ fn when_system_runs_twice_then_upload_atlas_called_only_once() {
         .filter(|s| *s == "upload_atlas")
         .cloned()
         .collect();
-    assert_eq!(calls.len(), 1);
+    assert_eq!(
+        calls.len(),
+        1,
+        "upload_atlas should only be called once despite running the system twice"
+    );
 }
 
 /// @doc: `AtlasUploaded` marker presence must prevent re-upload -- double-upload causes GPU resource leaks and redundant transfers

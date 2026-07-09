@@ -49,6 +49,7 @@ fn tab_center(tab_index: u8, storage_tab_count: u8) -> (f32, f32) {
     (left + TAB_WIDTH / 2.0, top + TAB_HEIGHT / 2.0)
 }
 
+/// @doc: Clicking a tab switches the stash to that tab's corresponding page — all tab indices work
 #[test]
 fn when_clicking_any_tab_then_switches_to_corresponding_page() {
     for tab_index in [0u8, 1, 2] {
@@ -85,6 +86,7 @@ fn when_click_between_tabs_then_page_unchanged() {
     assert_eq!(world.resource::<StashGrid>().current_page(), 1);
 }
 
+/// @doc: Clicking below the tab row area must not change the current page — only tab rectangles are clickable
 #[test]
 fn when_click_below_tabs_then_page_unchanged() {
     // Arrange
@@ -97,7 +99,11 @@ fn when_click_below_tabs_then_page_unchanged() {
     run_click_system(&mut world);
 
     // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
+    assert_eq!(
+        world.resource::<StashGrid>().current_page(),
+        1,
+        "page should remain on default 1"
+    );
 }
 
 /// @doc: Hidden stash blocks tab clicks — prevents page switching when UI is not visible.
@@ -129,7 +135,11 @@ fn when_right_click_on_tab_then_page_unchanged() {
     run_click_system(&mut world);
 
     // Assert
-    assert_eq!(world.resource::<StashGrid>().current_page(), 1);
+    assert_eq!(
+        world.resource::<StashGrid>().current_page(),
+        1,
+        "right-click on tab should not change page"
+    );
 }
 
 fn make_render_world(
@@ -191,6 +201,7 @@ fn run_render_system(world: &mut World) {
     render_schedule.run(world);
 }
 
+/// @doc: When stash is hidden, no tab shapes are rendered at all
 #[test]
 fn when_stash_hidden_then_no_tab_shapes_drawn() {
     // Arrange
@@ -203,6 +214,7 @@ fn when_stash_hidden_then_no_tab_shapes_drawn() {
     assert!(shape_calls.lock().unwrap().is_empty());
 }
 
+/// @doc: Zero viewport width prevents tab rendering — guard against division-by-zero or empty viewport
 #[test]
 fn when_viewport_zero_then_no_tab_shapes_drawn() {
     // Arrange
@@ -212,9 +224,13 @@ fn when_viewport_zero_then_no_tab_shapes_drawn() {
     run_render_system(&mut world);
 
     // Assert
-    assert!(shape_calls.lock().unwrap().is_empty());
+    assert!(
+        shape_calls.lock().unwrap().is_empty(),
+        "no tab shapes should be drawn with zero viewport width"
+    );
 }
 
+/// @doc: Three storage pages produce 3 storage tabs + 2 action tabs = 5 total tab shapes
 #[test]
 fn when_three_pages_then_three_tab_shapes_drawn() {
     // Arrange
@@ -224,9 +240,14 @@ fn when_three_pages_then_three_tab_shapes_drawn() {
     run_render_system(&mut world);
 
     // Assert
-    assert_eq!(shape_calls.lock().unwrap().len(), 5);
+    assert_eq!(
+        shape_calls.lock().unwrap().len(),
+        5,
+        "3 storage + 2 action tabs should produce 5 shapes"
+    );
 }
 
+/// @doc: Single storage page produces 1 storage tab + 2 action tabs = 3 total tab shapes
 #[test]
 fn when_single_page_then_one_tab_shape_drawn() {
     // Arrange
@@ -236,10 +257,14 @@ fn when_single_page_then_one_tab_shape_drawn() {
     run_render_system(&mut world);
 
     // Assert
-    assert_eq!(shape_calls.lock().unwrap().len(), 3);
+    assert_eq!(
+        shape_calls.lock().unwrap().len(),
+        3,
+        "1 storage + 2 action tabs should produce 3 shapes"
+    );
 }
 
-/// @doc: Active tab visually distinct from inactive — users see which page they're on.
+/// @doc: Active tab visually distinct from inactive — users see which page they're on
 #[test]
 fn when_on_store_page_then_store_tab_is_active_color() {
     // Arrange
@@ -258,6 +283,7 @@ fn when_on_store_page_then_store_tab_is_active_color() {
     assert_eq!(calls[4].2, TAB_ACTION);
 }
 
+/// @doc: Page 1 selected makes the middle storage tab active — each page highlights its corresponding tab
 #[test]
 fn when_on_page_one_then_middle_tab_is_active_color() {
     // Arrange
@@ -277,6 +303,7 @@ fn when_on_page_one_then_middle_tab_is_active_color() {
     assert_eq!(calls[4].2, TAB_ACTION);
 }
 
+/// @doc: Last page selected makes the rightmost storage tab active — boundary case for page enumeration
 #[test]
 fn when_on_last_page_then_last_tab_is_active_color() {
     // Arrange
@@ -296,6 +323,7 @@ fn when_on_last_page_then_last_tab_is_active_color() {
     assert_eq!(calls[4].2, TAB_ACTION);
 }
 
+/// @doc: Tab row renders below the grid bottom — tabs must not overlap the last row of stash slots
 #[test]
 fn when_tabs_rendered_then_positioned_below_grid_bottom() {
     // Arrange
@@ -380,6 +408,7 @@ fn when_tabs_rendered_then_adjacent_tabs_evenly_spaced() {
     );
 }
 
+/// @doc: Each tab draws its label ($, page number, +) centered on the tab rectangle — all 5 labels present
 #[test]
 fn when_tabs_rendered_then_labels_land_on_their_tabs() {
     // Arrange
@@ -391,7 +420,11 @@ fn when_tabs_rendered_then_labels_land_on_their_tabs() {
 
     // Assert
     let calls = text_calls.lock().unwrap();
-    assert_eq!(calls.len(), 5);
+    assert_eq!(
+        calls.len(),
+        5,
+        "3 storage pages + 2 action tabs should produce 5 text labels"
+    );
 
     let camera = Camera2D::default();
     let tab_count = 3 + 2;
@@ -404,7 +437,10 @@ fn when_tabs_rendered_then_labels_land_on_their_tabs() {
             4 => "+",
             _ => unreachable!("unexpected tab label index"),
         };
-        assert_eq!(text, expected_label);
+        assert_eq!(
+            text, expected_label,
+            "tab {index} label mismatch: expected {expected_label}"
+        );
 
         let expected_left = tab_left_x(GRID_W, tab_count, index as u8);
         let expected_screen = Vec2::new(

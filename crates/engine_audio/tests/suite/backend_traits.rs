@@ -12,6 +12,7 @@ fn minimal_sound() -> SoundData {
     }
 }
 
+/// @doc: Verifies that NullAudioBackend.play_on_track increments play count for SFX track.
 #[test]
 fn when_play_on_track_with_sfx_then_play_count_increments() {
     // Arrange
@@ -40,6 +41,7 @@ fn when_play_on_track_called_twice_with_sfx_then_ids_differ() {
     assert_ne!(id1, id2);
 }
 
+/// @doc: Verifies that NullAudioBackend.play_on_track increments play count for Music track.
 #[test]
 fn when_play_on_track_called_then_play_count_increments() {
     // Arrange

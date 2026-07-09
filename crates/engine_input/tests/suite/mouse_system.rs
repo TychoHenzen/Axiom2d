@@ -22,6 +22,7 @@ fn run_mouse_system(world: &mut World) {
     schedule.run(world);
 }
 
+/// @doc: Verifies that mouse_input_system marks a button as pressed from a press event in the bus.
 #[test]
 fn when_press_event_in_bus_then_mouse_input_system_sets_button_pressed() {
     // Arrange
@@ -40,6 +41,7 @@ fn when_press_event_in_bus_then_mouse_input_system_sets_button_pressed() {
     assert!(world.resource::<MouseState>().pressed(MouseButton::Left));
 }
 
+/// @doc: Verifies that mouse_input_system marks a button as just pressed from a press event.
 #[test]
 fn when_press_event_in_bus_then_mouse_input_system_sets_just_pressed() {
     // Arrange
@@ -62,6 +64,7 @@ fn when_press_event_in_bus_then_mouse_input_system_sets_just_pressed() {
     );
 }
 
+/// @doc: Verifies that mouse_input_system marks a button as just released and clears pressed state from a release event.
 #[test]
 fn when_release_event_in_bus_then_mouse_input_system_sets_just_released() {
     // Arrange
@@ -84,6 +87,7 @@ fn when_release_event_in_bus_then_mouse_input_system_sets_just_released() {
     assert!(!state.pressed(MouseButton::Left));
 }
 
+/// @doc: Verifies that mouse_input_system drains the event bus after processing.
 #[test]
 fn when_mouse_input_system_runs_then_bus_is_drained() {
     // Arrange
@@ -102,6 +106,7 @@ fn when_mouse_input_system_runs_then_bus_is_drained() {
     assert!(world.resource::<EventBus<MouseInputEvent>>().is_empty());
 }
 
+/// @doc: Verifies that scroll_clear_system resets accumulated scroll delta to zero.
 #[test]
 fn when_scroll_clear_system_runs_then_scroll_delta_zeroed() {
     // Arrange
@@ -122,6 +127,7 @@ fn when_scroll_clear_system_runs_then_scroll_delta_zeroed() {
     );
 }
 
+/// @doc: Verifies that just-pressed state clears on the second frame while held state persists.
 #[test]
 fn when_mouse_input_system_runs_second_frame_then_just_pressed_is_cleared() {
     // Arrange
@@ -140,9 +146,13 @@ fn when_mouse_input_system_runs_second_frame_then_just_pressed_is_cleared() {
     // Assert
     let state = world.resource::<MouseState>();
     assert!(!state.just_pressed(MouseButton::Left));
-    assert!(state.pressed(MouseButton::Left));
+    assert!(
+        state.pressed(MouseButton::Left),
+        "pressed state should persist beyond the first frame"
+    );
 }
 
+/// @doc: Verifies that mouse_input_system updates screen position from a move event.
 #[test]
 fn when_move_event_in_bus_then_mouse_input_system_sets_screen_pos() {
     // Arrange
@@ -163,6 +173,7 @@ fn when_move_event_in_bus_then_mouse_input_system_sets_screen_pos() {
     );
 }
 
+/// @doc: Verifies that mouse_input_system accumulates scroll delta from a scroll event.
 #[test]
 fn when_scroll_event_in_bus_then_mouse_input_system_accumulates_scroll_delta() {
     // Arrange

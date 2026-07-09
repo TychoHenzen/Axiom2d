@@ -3,6 +3,7 @@
 use engine_input::action_map::ActionMap;
 use engine_input::key_code::KeyCode;
 
+/// @doc: Verifies that binding multiple keys to an action returns all bound keys from bindings_for.
 #[test]
 fn when_multiple_keys_bound_to_same_action_then_all_keys_returned() {
     // Arrange
@@ -18,6 +19,7 @@ fn when_multiple_keys_bound_to_same_action_then_all_keys_returned() {
     );
 }
 
+/// @doc: Verifies that binding a single key to an action returns it from bindings_for.
 #[test]
 fn when_single_key_bound_to_action_then_bindings_for_returns_that_key() {
     // Arrange

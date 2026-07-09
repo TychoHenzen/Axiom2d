@@ -10,6 +10,7 @@ fn run_system(world: &mut World) {
     schedule.run(world);
 }
 
+/// @doc: Verifies that the stash toggle system makes StashVisible true when Tab is pressed while hidden.
 #[test]
 fn when_tab_just_pressed_and_hidden_then_becomes_visible() {
     // Arrange
@@ -26,6 +27,7 @@ fn when_tab_just_pressed_and_hidden_then_becomes_visible() {
     assert!(world.resource::<StashVisible>().0);
 }
 
+/// @doc: Verifies that the stash toggle system hides the stash when Tab is pressed while visible.
 #[test]
 fn when_tab_just_pressed_and_visible_then_becomes_hidden() {
     // Arrange

@@ -50,6 +50,7 @@ fn spawn_ui_child(
         .id()
 }
 
+/// @doc: Verifies that the first child in a row flex layout is positioned at the origin
 #[test]
 fn when_row_layout_then_first_child_at_origin() {
     // Arrange
@@ -70,9 +71,10 @@ fn when_row_layout_then_first_child_at_origin() {
 
     // Assert
     let transform = world.entity(child_a).get::<Transform2D>().unwrap();
-    assert_eq!(transform.position, Vec2::ZERO);
+    assert_eq!(transform.position, Vec2::ZERO, "first child should be at origin in row layout");
 }
 
+/// @doc: Verifies that the second child in a row flex layout is offset by the first child's width
 #[test]
 fn when_row_layout_then_second_child_offset_by_first_width() {
     // Arrange
@@ -93,9 +95,14 @@ fn when_row_layout_then_second_child_offset_by_first_width() {
 
     // Assert
     let transform = world.entity(child_b).get::<Transform2D>().unwrap();
-    assert_eq!(transform.position, Vec2::new(60.0, 0.0));
+    assert_eq!(
+        transform.position,
+        Vec2::new(60.0, 0.0),
+        "second child should be at x=first_child_width in row layout"
+    );
 }
 
+/// @doc: Verifies that gap is included in the spacing between children in a row flex layout
 #[test]
 fn when_row_layout_with_gap_then_gap_included() {
     // Arrange
@@ -116,9 +123,14 @@ fn when_row_layout_with_gap_then_gap_included() {
 
     // Assert
     let transform = world.entity(child_b).get::<Transform2D>().unwrap();
-    assert_eq!(transform.position, Vec2::new(70.0, 0.0));
+    assert_eq!(
+        transform.position,
+        Vec2::new(70.0, 0.0),
+        "gap should be included between children: first width + gap = expected x"
+    );
 }
 
+/// @doc: Verifies that children in a column flex layout are stacked vertically
 #[test]
 fn when_column_layout_then_vertical_stacking() {
     // Arrange
@@ -139,9 +151,14 @@ fn when_column_layout_then_vertical_stacking() {
 
     // Assert
     let transform = world.entity(child_b).get::<Transform2D>().unwrap();
-    assert_eq!(transform.position, Vec2::new(0.0, 30.0));
+    assert_eq!(
+        transform.position,
+        Vec2::new(0.0, 30.0),
+        "second child should be at y=first_child_height in column layout"
+    );
 }
 
+/// @doc: Verifies that children are positioned relative to the parent's translation
 #[test]
 fn when_parent_offset_then_children_relative() {
     // Arrange
@@ -161,9 +178,14 @@ fn when_parent_offset_then_children_relative() {
 
     // Assert
     let transform = world.entity(child).get::<Transform2D>().unwrap();
-    assert_eq!(transform.position, Vec2::new(200.0, 100.0));
+    assert_eq!(
+        transform.position,
+        Vec2::new(200.0, 100.0),
+        "child position should include parent offset in row layout"
+    );
 }
 
+/// @doc: Verifies that child margins are included in layout spacing calculations
 #[test]
 fn when_child_has_margin_then_margin_in_spacing() {
     // Arrange
@@ -200,5 +222,9 @@ fn when_child_has_margin_then_margin_in_spacing() {
 
     // Assert
     let transform = world.entity(child_b).get::<Transform2D>().unwrap();
-    assert_eq!(transform.position, Vec2::new(52.0, 0.0));
+    assert_eq!(
+        transform.position,
+        Vec2::new(52.0, 0.0),
+        "child_b position should account for child_a width + child_a right margin + child_b left margin"
+    );
 }

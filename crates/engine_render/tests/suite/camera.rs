@@ -11,6 +11,7 @@ use engine_render::testing::{SpyRenderer, insert_spy_with_viewport};
 
 use glam::{Mat4, Vec2};
 
+/// @doc: Default camera at origin with zoom 1 maps world origin to NDC center (0,0).
 #[test]
 fn when_camera_at_origin_zoom_one_then_ndc_center_is_zero() {
     // Arrange
@@ -26,6 +27,7 @@ fn when_camera_at_origin_zoom_one_then_ndc_center_is_zero() {
     assert!((origin.y).abs() < 1e-5);
 }
 
+/// @doc: Camera at a non-origin position maps that position to NDC center, not world origin.
 #[test]
 fn when_camera_at_offset_then_offset_point_maps_to_ndc_center() {
     // Arrange
@@ -44,6 +46,7 @@ fn when_camera_at_offset_then_offset_point_maps_to_ndc_center() {
     assert!((center.y).abs() < 1e-5);
 }
 
+/// @doc: Zoom 2 halves the visible world extent — world point at half viewport maps to NDC edge.
 #[test]
 fn when_camera_zoom_two_then_half_viewport_in_world_maps_to_ndc_edge() {
     // Arrange — zoom 2 means half the world extent fits in the viewport
@@ -61,6 +64,7 @@ fn when_camera_zoom_two_then_half_viewport_in_world_maps_to_ndc_edge() {
     assert!((edge.x - 1.0).abs() < 1e-4);
 }
 
+/// @doc: Zoom 0.5 doubles the visible world extent — world point at full viewport maps to NDC edge.
 #[test]
 fn when_camera_zoom_half_then_double_viewport_in_world_maps_to_ndc_edge() {
     // Arrange — zoom 0.5 means double the world extent fits in the viewport
@@ -78,6 +82,7 @@ fn when_camera_zoom_half_then_double_viewport_in_world_maps_to_ndc_edge() {
     assert!((edge.x - 1.0).abs() < 1e-4);
 }
 
+/// @doc: Camera combining position and zoom correctly transforms both offset and scale in the view-projection matrix.
 #[test]
 fn when_camera_at_position_with_zoom_then_ndc_combines_offset_and_scale() {
     // Arrange
@@ -113,6 +118,7 @@ fn when_world_point_matches_camera_center_then_world_to_screen_returns_screen_ce
     assert!((screen.y - 300.0).abs() < 1e-4);
 }
 
+/// @doc: A world point at the viewport extent maps to the corresponding screen corner.
 #[test]
 fn when_world_point_at_viewport_corner_then_world_to_screen_returns_corner() {
     // Arrange
@@ -146,6 +152,7 @@ fn when_world_point_at_zoom_two_then_world_to_screen_reflects_magnification() {
     assert!((screen.y - 300.0).abs() < 1e-4);
 }
 
+/// @doc: Screen center point transforms back to the camera's world position.
 #[test]
 fn when_screen_center_then_screen_to_world_returns_camera_position() {
     // Arrange
@@ -181,6 +188,7 @@ fn when_screen_to_world_after_world_to_screen_then_recovers_original_point() {
     assert!((recovered.y - original.y).abs() < 1e-4);
 }
 
+/// @doc: Camera rotation is preserved through world-to-screen and screen-to-world roundtrip.
 #[test]
 fn when_screen_to_world_after_world_to_screen_with_rotation_then_recovers_original_point() {
     // Arrange
@@ -201,6 +209,7 @@ fn when_screen_to_world_after_world_to_screen_with_rotation_then_recovers_origin
 }
 
 proptest::proptest! {
+    /// @doc: For any camera position, zoom, viewport size, and world point, world-to-screen then screen-to-world recovers the original point within floating-point tolerance.
     #[test]
     fn when_any_world_point_then_screen_to_world_of_world_to_screen_recovers_original(
         wx in -1000.0_f32..=1000.0,
@@ -257,6 +266,7 @@ fn run_camera_prepare(world: &mut bevy_ecs::world::World) {
     schedule.run(world);
 }
 
+/// @doc: Viewport corners map to NDC corners when camera is centered on the viewport.
 #[test]
 fn when_camera_uniform_from_camera_at_center_then_viewport_corners_map_to_ndc_corners() {
     // Arrange
@@ -278,6 +288,7 @@ fn when_camera_uniform_from_camera_at_center_then_viewport_corners_map_to_ndc_co
     assert!((bottom_right.y - (-1.0)).abs() < 1e-5);
 }
 
+/// @doc: `camera_prepare_system` calls `set_view_projection` on the renderer when a Camera2D entity exists.
 #[test]
 fn when_camera_prepare_system_runs_with_camera_then_set_view_projection_called() {
     // Arrange
@@ -290,9 +301,13 @@ fn when_camera_prepare_system_runs_with_camera_then_set_view_projection_called()
 
     // Assert
     let log = log.lock().unwrap();
-    assert!(log.contains(&"set_view_projection".to_string()));
+    assert!(
+        log.contains(&"set_view_projection".to_string()),
+        "camera_prepare_system should call set_view_projection when camera exists"
+    );
 }
 
+/// @doc: `camera_prepare_system` incorporates CameraRotation into the view-projection matrix.
 #[test]
 fn when_camera_prepare_system_runs_with_rotation_then_view_projection_uses_rotation() {
     // Arrange
@@ -319,7 +334,10 @@ fn when_camera_prepare_system_runs_with_rotation_then_view_projection_uses_rotat
         800.0,
         600.0,
     );
-    assert_eq!(actual, expected.view_proj);
+    assert_eq!(
+        actual, expected.view_proj,
+        "view-projection matrix should include PI/2 rotation"
+    );
 }
 
 /// @doc: `camera_prepare_system` always sets a projection — defaults to viewport-centered ortho when no `Camera2D` entity exists
@@ -334,9 +352,13 @@ fn when_camera_prepare_system_runs_without_camera_then_default_ortho_set() {
 
     // Assert
     let log = log.lock().unwrap();
-    assert!(log.contains(&"set_view_projection".to_string()));
+    assert!(
+        log.contains(&"set_view_projection".to_string()),
+        "camera_prepare_system should set default projection even without camera entity"
+    );
 }
 
+/// @doc: The camera view-projection applies Y-flip so top of viewport maps to positive NDC Y.
 #[test]
 fn when_camera_uniform_y_flip_then_top_maps_to_positive_ndc_y() {
     // Arrange — camera centered on viewport, zoom 1
@@ -365,6 +387,7 @@ fn when_camera_uniform_y_flip_then_top_maps_to_positive_ndc_y() {
     );
 }
 
+/// @doc: `camera_prepare_system` skips when viewport width is zero — no projection is set.
 #[test]
 fn when_viewport_width_zero_then_camera_prepare_system_skips() {
     // Arrange
@@ -383,6 +406,7 @@ fn when_viewport_width_zero_then_camera_prepare_system_skips() {
     );
 }
 
+/// @doc: `camera_prepare_system` skips when viewport height is zero — no projection is set.
 #[test]
 fn when_viewport_height_zero_then_camera_prepare_system_skips() {
     // Arrange
@@ -401,6 +425,7 @@ fn when_viewport_height_zero_then_camera_prepare_system_skips() {
     );
 }
 
+/// @doc: When no Camera2D entity exists, the system defaults to a centered viewport ortho projection.
 #[test]
 fn when_no_camera_then_system_uses_viewport_center() {
     // Arrange
@@ -422,5 +447,8 @@ fn when_no_camera_then_system_uses_viewport_center() {
         zoom: 1.0,
     };
     let expected = CameraUniform::from_camera(&expected_cam, 800.0, 600.0);
-    assert_eq!(actual, expected.view_proj);
+    assert_eq!(
+        actual, expected.view_proj,
+        "default fallback should center on viewport midpoint"
+    );
 }

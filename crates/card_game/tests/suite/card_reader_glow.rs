@@ -24,6 +24,7 @@ fn run_glow(world: &mut World) {
     schedule.run(world);
 }
 
+/// @doc: Verifies that runes are dim when the card reader has no loaded card
 #[test]
 fn when_reader_empty_then_runes_are_dim() {
     // Arrange
@@ -48,6 +49,7 @@ fn when_reader_empty_then_runes_are_dim() {
     }
 }
 
+/// @doc: Verifies that runes become lit when a card is loaded into the reader
 #[test]
 fn when_reader_loaded_then_runes_are_lit() {
     // Arrange
@@ -74,6 +76,7 @@ fn when_reader_loaded_then_runes_are_lit() {
     }
 }
 
+/// @doc: Verifies that the accent element becomes lit when a card is loaded into the reader
 #[test]
 fn when_reader_loaded_then_accent_is_lit() {
     // Arrange
@@ -100,6 +103,7 @@ fn when_reader_loaded_then_accent_is_lit() {
     }
 }
 
+/// @doc: Verifies that the recess stroke becomes lit when a card is loaded into the reader
 #[test]
 fn when_reader_loaded_then_recess_stroke_is_lit() {
     // Arrange
@@ -126,6 +130,7 @@ fn when_reader_loaded_then_recess_stroke_is_lit() {
     }
 }
 
+/// @doc: Verifies that runes return to their dim state when a card is ejected from the reader
 #[test]
 fn when_card_ejected_then_runes_return_to_dim() {
     // Arrange

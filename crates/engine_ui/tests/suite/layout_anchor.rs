@@ -3,6 +3,7 @@
 use engine_ui::layout::{Anchor, anchor_offset};
 use glam::Vec2;
 
+/// @doc: Center anchor offsets by negative half-size so the node is centered on its position.
 #[test]
 fn when_center_anchor_then_negative_half_size() {
     // Arrange
@@ -15,6 +16,7 @@ fn when_center_anchor_then_negative_half_size() {
     assert_eq!(offset, Vec2::new(-50.0, -30.0));
 }
 
+/// @doc: TopLeft anchor produces zero offset — the position is the top-left corner.
 #[test]
 fn when_top_left_anchor_then_zero_offset() {
     // Arrange
@@ -27,6 +29,7 @@ fn when_top_left_anchor_then_zero_offset() {
     assert_eq!(offset, Vec2::ZERO);
 }
 
+/// @doc: TopRight anchor offsets by negative width so the right edge aligns with the position.
 #[test]
 fn when_top_right_anchor_then_negative_width() {
     // Arrange
@@ -39,6 +42,7 @@ fn when_top_right_anchor_then_negative_width() {
     assert_eq!(offset, Vec2::new(-80.0, 0.0));
 }
 
+/// @doc: BottomCenter anchor offsets by half width and full negative height.
 #[test]
 fn when_bottom_center_anchor_then_half_width_full_height() {
     // Arrange
@@ -52,6 +56,7 @@ fn when_bottom_center_anchor_then_half_width_full_height() {
 }
 
 proptest::proptest! {
+    /// @doc: TopLeft anchor produces zero offset for any valid size.
     #[test]
     fn when_top_left_anchor_and_any_size_then_offset_is_zero(
         w in 0.0_f32..=1000.0,
@@ -64,6 +69,7 @@ proptest::proptest! {
         assert_eq!(offset, Vec2::ZERO);
     }
 
+    /// @doc: BottomRight anchor produces negative-size offset for any valid size.
     #[test]
     fn when_bottom_right_anchor_and_any_size_then_offset_is_negative_size(
         w in 0.0_f32..=1000.0,
@@ -80,6 +86,7 @@ proptest::proptest! {
     }
 }
 
+/// @doc: All nine anchor points produce the expected pixel-correct offset for an asymmetric size.
 #[test]
 fn when_all_nine_anchors_with_asymmetric_size_then_exact_offsets() {
     // Arrange
@@ -115,6 +122,7 @@ fn when_all_nine_anchors_with_asymmetric_size_then_exact_offsets() {
     );
 }
 
+/// @doc: All nine anchor offsets are distinct — no two anchor points produce the same offset.
 #[test]
 fn when_all_nine_anchors_then_all_offsets_distinct() {
     // Arrange

@@ -4,7 +4,7 @@ use card_game::card::component::CardZone;
 use card_game::card::zone_config::ZoneConfig;
 use engine_scene::prelude::RenderLayer;
 
-/// @doc: Hand cards have no physics — they float in screen-space UI and can't be knocked by table collisions
+/// @doc: Hand cards have no physics — they float in screen-space UI and can't be knocked by table collisions.
 #[test]
 fn when_zone_is_hand_then_config_has_no_physics_and_ui_layer() {
     // Arrange / Act

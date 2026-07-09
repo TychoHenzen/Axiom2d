@@ -4,6 +4,7 @@ use card_game::card::identity::name_pools::syllables::generate_proper_noun;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 
+/// @doc: Verifies that generate_proper_noun produces the same output for the same RNG seed
 #[test]
 fn generate_proper_noun_deterministic_with_seed() {
     let mut rng = ChaCha8Rng::seed_from_u64(42);
@@ -12,9 +13,13 @@ fn generate_proper_noun_deterministic_with_seed() {
     let mut rng2 = ChaCha8Rng::seed_from_u64(42);
     let name2 = generate_proper_noun(&mut rng2);
 
-    assert_eq!(name1, name2);
+    assert_eq!(
+        name1, name2,
+        "same seed should produce identical names"
+    );
 }
 
+/// @doc: Verifies that generated proper nouns always start with an uppercase ASCII letter
 #[test]
 fn generate_proper_noun_starts_uppercase() {
     let mut rng = ChaCha8Rng::seed_from_u64(0);
@@ -27,6 +32,7 @@ fn generate_proper_noun_starts_uppercase() {
     }
 }
 
+/// @doc: Verifies that generated proper nouns have a reasonable length between 3 and 15 characters
 #[test]
 fn generate_proper_noun_reasonable_length() {
     let mut rng = ChaCha8Rng::seed_from_u64(99);
@@ -40,6 +46,7 @@ fn generate_proper_noun_reasonable_length() {
     }
 }
 
+/// @doc: Verifies that generated proper nouns include both short (2-syllable) and long (3-syllable) names
 #[test]
 fn generate_proper_noun_produces_both_lengths() {
     let mut rng = ChaCha8Rng::seed_from_u64(7);
@@ -71,6 +78,7 @@ fn generate_proper_noun_produces_both_lengths() {
     );
 }
 
+/// @doc: Verifies that all generated proper nouns contain only ASCII characters
 #[test]
 fn generate_proper_noun_all_ascii() {
     let mut rng = ChaCha8Rng::seed_from_u64(123);

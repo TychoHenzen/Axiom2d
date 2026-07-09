@@ -87,6 +87,7 @@ fn when_right_click_hits_table_card_then_flip_animation_targets_face_up() {
     );
 }
 
+/// @doc: Right-click on a face-up card targets the animation to turn it face-down
 #[test]
 fn when_right_click_hits_face_up_card_then_flip_animation_targets_face_down() {
     // Arrange
@@ -106,6 +107,7 @@ fn when_right_click_hits_face_up_card_then_flip_animation_targets_face_down() {
     );
 }
 
+/// @doc: Right-click on empty table area must not trigger flip on any card
 #[test]
 fn when_right_click_misses_all_cards_then_no_animation_inserted() {
     // Arrange
@@ -118,7 +120,10 @@ fn when_right_click_misses_all_cards_then_no_animation_inserted() {
     run_system(&mut world);
 
     // Assert
-    assert!(world.entity(card).get::<FlipAnimation>().is_none());
+    assert!(
+        world.entity(card).get::<FlipAnimation>().is_none(),
+        "right-click on empty area should not trigger flip animation"
+    );
 }
 
 /// @doc: Hand cards immune to flip—only table cards can be flipped with right-click
@@ -142,7 +147,10 @@ fn when_right_click_on_hand_card_then_no_animation_inserted() {
     run_system(&mut world);
 
     // Assert
-    assert!(world.entity(card).get::<FlipAnimation>().is_none());
+    assert!(
+        world.entity(card).get::<FlipAnimation>().is_none(),
+        "hand card should not receive flip animation"
+    );
 }
 
 /// @doc: Right-click ignored during drag—prevents flip intent while manipulating cards
@@ -167,7 +175,10 @@ fn when_right_click_during_drag_then_no_animation_inserted() {
     run_system(&mut world);
 
     // Assert
-    assert!(world.entity(card).get::<FlipAnimation>().is_none());
+    assert!(
+        world.entity(card).get::<FlipAnimation>().is_none(),
+        "right-click during drag should not trigger flip animation"
+    );
 }
 
 /// @doc: Sort order selects highest card at click position—prevents flipping obscured cards
@@ -184,8 +195,14 @@ fn when_right_click_overlapping_cards_then_only_topmost_gets_animation() {
     run_system(&mut world);
 
     // Assert
-    assert!(world.entity(card_a).get::<FlipAnimation>().is_none());
-    assert!(world.entity(card_b).get::<FlipAnimation>().is_some());
+    assert!(
+        world.entity(card_a).get::<FlipAnimation>().is_none(),
+        "lower sort-order card should NOT receive flip animation"
+    );
+    assert!(
+        world.entity(card_b).get::<FlipAnimation>().is_some(),
+        "higher sort-order card should receive flip animation"
+    );
 }
 
 /// @doc: Don't interrupt active flip animation—prevents competing flip directions mid-play
@@ -211,6 +228,7 @@ fn when_flip_triggered_while_animation_active_then_animation_unchanged() {
     assert_eq!(*anim, original_anim);
 }
 
+/// @doc: Card face_up state remains unchanged during flip animation—only updated on completion
 #[test]
 fn when_flip_triggered_then_face_up_unchanged_until_animation_completes() {
     // Arrange — card face-down

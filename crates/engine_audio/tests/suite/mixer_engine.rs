@@ -46,6 +46,7 @@ fn active_on_track(id: u32, samples: Vec<f32>, track: MixerTrack) -> ActiveSound
     }
 }
 
+/// @doc: Verifies that a single sound at full volume produces sample-accurate output
 #[test]
 fn when_single_sound_at_full_volume_then_output_matches_samples() {
     // Arrange
@@ -56,9 +57,21 @@ fn when_single_sound_at_full_volume_then_output_matches_samples() {
     mix_into(&mut output, &mut state);
 
     // Assert
-    assert!((output[0] - 0.2).abs() < f32::EPSILON);
-    assert!((output[1] - 0.4).abs() < f32::EPSILON);
-    assert!((output[2] - 0.6).abs() < f32::EPSILON);
+    assert!(
+        (output[0] - 0.2).abs() < f32::EPSILON,
+        "output[0] should be 0.2, got {}",
+        output[0]
+    );
+    assert!(
+        (output[1] - 0.4).abs() < f32::EPSILON,
+        "output[1] should be 0.4, got {}",
+        output[1]
+    );
+    assert!(
+        (output[2] - 0.6).abs() < f32::EPSILON,
+        "output[2] should be 0.6, got {}",
+        output[2]
+    );
 }
 
 /// @doc: Mixer scales all samples by global volume — single-track mixing with gain applied uniformly
@@ -72,8 +85,16 @@ fn when_single_sound_at_half_volume_then_output_is_scaled() {
     mix_into(&mut output, &mut state);
 
     // Assert
-    assert!((output[0] - 0.4).abs() < f32::EPSILON);
-    assert!((output[1] - 0.4).abs() < f32::EPSILON);
+    assert!(
+        (output[0] - 0.4).abs() < f32::EPSILON,
+        "half volume should scale sample 0.8 to 0.4, got {}",
+        output[0]
+    );
+    assert!(
+        (output[1] - 0.4).abs() < f32::EPSILON,
+        "half volume should scale sample 0.8 to 0.4, got {}",
+        output[1]
+    );
 }
 
 /// @doc: Audio mixing is additive — all active sounds summed into output buffer, scaled by volume
@@ -90,8 +111,16 @@ fn when_two_active_sounds_then_output_is_sum() {
     mix_into(&mut output, &mut state);
 
     // Assert
-    assert!((output[0] - 0.4).abs() < f32::EPSILON);
-    assert!((output[1] - 0.4).abs() < f32::EPSILON);
+    assert!(
+        (output[0] - 0.4).abs() < f32::EPSILON,
+        "sum of two sounds at sample 0 should be 0.4, got {}",
+        output[0]
+    );
+    assert!(
+        (output[1] - 0.4).abs() < f32::EPSILON,
+        "sum of two sounds at sample 1 should be 0.4, got {}",
+        output[1]
+    );
 }
 
 /// @doc: Sounds auto-evict when cursor reaches end — no explicit `stop()` needed for one-shots
@@ -105,11 +134,30 @@ fn when_sound_shorter_than_buffer_then_removed_after_last_sample() {
     mix_into(&mut output, &mut state);
 
     // Assert
-    assert!((output[0] - 0.5).abs() < f32::EPSILON);
-    assert!((output[1] - 0.5).abs() < f32::EPSILON);
-    assert!((output[2]).abs() < f32::EPSILON);
-    assert!((output[3]).abs() < f32::EPSILON);
-    assert!(state.active_sounds.is_empty());
+    assert!(
+        (output[0] - 0.5).abs() < f32::EPSILON,
+        "first sample should be 0.5, got {}",
+        output[0]
+    );
+    assert!(
+        (output[1] - 0.5).abs() < f32::EPSILON,
+        "second sample should be 0.5, got {}",
+        output[1]
+    );
+    assert!(
+        (output[2]).abs() < f32::EPSILON,
+        "third sample should be 0.0 (silence after sound ends), got {}",
+        output[2]
+    );
+    assert!(
+        (output[3]).abs() < f32::EPSILON,
+        "fourth sample should be 0.0 (silence after sound ends), got {}",
+        output[3]
+    );
+    assert!(
+        state.active_sounds.is_empty(),
+        "sound should be removed after all samples consumed"
+    );
 }
 
 /// @doc: Per-track volumes are applied independently — different tracks can have different attenuation
@@ -132,7 +180,11 @@ fn when_mix_into_with_two_tracks_then_per_track_volume_applied() {
     mix_into(&mut output, &mut state);
 
     // Assert: 0.8 * 0.5 + 0.4 * 1.0 = 0.8
-    assert!((output[0] - 0.8).abs() < f32::EPSILON);
+    assert!(
+        (output[0] - 0.8).abs() < f32::EPSILON,
+        "track mixing: music*0.5 + sfx*1.0 should be 0.8, got {}",
+        output[0]
+    );
 }
 
 /// @doc: Effective volume = `global_volume` * `track_volume` — multiplicative stacking
@@ -152,7 +204,11 @@ fn when_global_and_track_volume_both_half_then_output_quarter() {
     mix_into(&mut output, &mut state);
 
     // Assert: 1.0 * 0.5 * 0.5 = 0.25
-    assert!((output[0] - 0.25).abs() < f32::EPSILON);
+    assert!(
+        (output[0] - 0.25).abs() < f32::EPSILON,
+        "global * track volume stacking should give 0.25, got {}",
+        output[0]
+    );
 }
 
 /// @doc: Cursor tracks playback progress through sound — resuming produces next chunk, not repeated audio
@@ -168,12 +224,36 @@ fn when_sound_longer_than_buffer_then_cursor_advances() {
     mix_into(&mut output2, &mut state);
 
     // Assert
-    assert!((output1[0] - 0.1).abs() < f32::EPSILON);
-    assert!((output1[1] - 0.2).abs() < f32::EPSILON);
-    assert!((output1[2] - 0.3).abs() < f32::EPSILON);
-    assert!((output2[0] - 0.4).abs() < f32::EPSILON);
-    assert!((output2[1] - 0.5).abs() < f32::EPSILON);
-    assert!((output2[2] - 0.6).abs() < f32::EPSILON);
+    assert!(
+        (output1[0] - 0.1).abs() < f32::EPSILON,
+        "first mix, sample 0 should be 0.1, got {}",
+        output1[0]
+    );
+    assert!(
+        (output1[1] - 0.2).abs() < f32::EPSILON,
+        "first mix, sample 1 should be 0.2, got {}",
+        output1[1]
+    );
+    assert!(
+        (output1[2] - 0.3).abs() < f32::EPSILON,
+        "first mix, sample 2 should be 0.3, got {}",
+        output1[2]
+    );
+    assert!(
+        (output2[0] - 0.4).abs() < f32::EPSILON,
+        "second mix, sample 0 should be 0.4 (cursor advanced), got {}",
+        output2[0]
+    );
+    assert!(
+        (output2[1] - 0.5).abs() < f32::EPSILON,
+        "second mix, sample 1 should be 0.5 (cursor advanced), got {}",
+        output2[1]
+    );
+    assert!(
+        (output2[2] - 0.6).abs() < f32::EPSILON,
+        "second mix, sample 2 should be 0.6 (cursor advanced), got {}",
+        output2[2]
+    );
 }
 
 /// @doc: Partial mixing — remaining samples only, never re-mixed — prevents audio overlap on resume
@@ -189,7 +269,19 @@ fn when_sound_partially_consumed_then_only_remaining_samples_mixed() {
     mix_into(&mut output2, &mut state);
 
     // Assert
-    assert!((output2[0] - 0.4).abs() < f32::EPSILON);
-    assert!(output2[1].abs() < f32::EPSILON);
-    assert!(output2[2].abs() < f32::EPSILON);
+    assert!(
+        (output2[0] - 0.4).abs() < f32::EPSILON,
+        "remaining sample should be 0.4, got {}",
+        output2[0]
+    );
+    assert!(
+        output2[1].abs() < f32::EPSILON,
+        "past-end samples should be 0.0, got {}",
+        output2[1]
+    );
+    assert!(
+        output2[2].abs() < f32::EPSILON,
+        "past-end samples should be 0.0, got {}",
+        output2[2]
+    );
 }

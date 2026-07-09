@@ -1,7 +1,7 @@
 {
   "project_root": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d",
   "cycle": {
-    "phase": "baseline",
+    "phase": "fix",
     "cycle_number": 1,
     "last_file_processed": null,
     "files_verified_this_cycle": [
@@ -165,7 +165,7 @@
     ],
     "files_fixed_this_cycle": [],
     "started_at": "2026-07-09T12:55:07.157715+00:00",
-    "last_updated": "2026-07-09T12:55:07.157715+00:00",
+    "last_updated": "2026-07-09T20:00:00Z",
     "tooling": {
       "language": "rust",
       "test_framework": "cargo-test",
@@ -192,13 +192,45 @@
       "branch_coverage_pct": null,
       "source_observability_min": 4,
       "source_brevity_below_7": 30
-    }
+    },
+    "files_to_fix": [
+      "crates/engine_input/tests/suite/keyboard_state.rs",
+      "crates/engine_physics/tests/suite/collider.rs",
+      "crates/engine_input/tests/suite/mouse_state.rs",
+      "crates/engine_input/tests/suite/mouse_system.rs",
+      "crates/card_game/tests/suite/card_reader_spawn.rs",
+      "crates/card_game/tests/suite/stash_toggle.rs",
+      "crates/engine_audio/tests/suite/backend_traits.rs",
+      "crates/engine_audio/tests/suite/sound_data.rs",
+      "crates/engine_input/tests/suite/action_map.rs",
+      "crates/engine_input/tests/suite/keyboard_system.rs",
+      "crates/engine_render/tests/suite/clear.rs",
+      "crates/engine_ui/tests/suite/layout_system.rs",
+      "crates/engine_ui/tests/suite/theme.rs",
+      "crates/engine_ui/tests/suite/widget_node.rs",
+      "crates/axiom2d/tests/suite/default_plugins.rs",
+      "crates/card_game/tests/suite/card_identity_name_pools_syllables.rs",
+      "crates/card_game/tests/suite/card_rendering_debug_sleep_indicator.rs",
+      "crates/card_game/tests/suite/card_rendering_debug_spawn.rs",
+      "crates/card_game/tests/suite/card_rendering_gpu_card_mesh.rs",
+      "crates/card_game/tests/suite/card_zone_config.rs",
+      "crates/card_game/tests/suite/plugin.rs",
+      "crates/card_game/tests/suite/stash_boundary.rs",
+      "crates/demo/tests/suite/scene.rs",
+      "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
+      "crates/engine_audio/tests/suite/sound_effect.rs",
+      "crates/engine_core/tests/suite/transform.rs",
+      "crates/engine_scene/tests/suite/spawn_child.rs",
+      "crates/engine_scene/tests/suite/visibility.rs",
+      "crates/card_game/tests/suite/card_component.rs",
+      "crates/card_game/tests/suite/card_identity_nouns.rs"
+    ]
   },
   "last_full_run": "2026-07-09T12:55:07.157715+00:00",
   "last_partial_run": null,
   "files": {
     "crates/axiom2d/tests/suite/default_plugins.rs": {
-      "hash": "ae211c34dc3f7eebbd5d29d70c9dda4f21838e5a9f8bc83ab8b4decf9b535c13",
+      "hash": "9113786465239b2e3b59809feddab99ef42eb655e4ffe8c3f507bbf3f432e7dd",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.5,
@@ -215,8 +247,8 @@
         "test_function_count": 17,
         "total_assertions": 21,
         "trivial_assertions": 0,
-        "truthiness_assertions": 1,
-        "specific_assertions": 20,
+        "truthiness_assertions": 0,
+        "specific_assertions": 21,
         "zero_assertion_functions": 0,
         "assertions_with_message": 0,
         "assertions_without_message": 21,
@@ -240,8 +272,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 427
+        "doc_annotation_count": 17,
+        "line_count": 477
       },
       "classifications": {
         "error_path_functions": 0,
@@ -1194,8 +1226,8 @@
         "should_panic_count": 0,
         "error_name_count": 1,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 258
+        "doc_annotation_count": 8,
+        "line_count": 289
       },
       "classifications": {
         "error_path_functions": 0,
@@ -1716,7 +1748,7 @@
       ]
     },
     "crates/card_game/tests/suite/card_identity_name_pools_syllables.rs": {
-      "hash": "af272187077652ed0a80e05367ddaa0d372db03faa48c69ba6dbcf66604e5302",
+      "hash": "50821688b19ba1a80d23dcb3dbc6021b5a22cdb36b5a22cddb05f391dbb4c854",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.7,
@@ -1758,8 +1790,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 1,
-        "doc_annotation_count": 0,
-        "line_count": 82
+        "doc_annotation_count": 5,
+        "line_count": 90
       },
       "classifications": {
         "error_path_functions": 0,
@@ -2139,14 +2171,14 @@
         "determinism": 10.0,
         "isolation": 8.0,
         "clarity": 7.0,
-        "coverage_depth": 6.0,
+        "coverage_depth": 3.9,
         "speed": 10.0,
         "diagnostics": 5.3,
         "assertion_triviality": 10
       },
-      "overall": 8.6,
+      "overall": 8.2,
       "metrics": {
-        "test_function_count": 0,
+        "test_function_count": 18,
         "total_assertions": 34,
         "trivial_assertions": 0,
         "truthiness_assertions": 0,
@@ -2173,9 +2205,9 @@
         "creates_own_fixtures": true,
         "should_panic_count": 0,
         "error_name_count": 0,
-        "edge_name_count": 0,
+        "edge_name_count": 1,
         "doc_annotation_count": 18,
-        "line_count": 392
+        "line_count": 396
       },
       "classifications": {
         "error_path_functions": 0,
@@ -2436,8 +2468,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 2,
-        "line_count": 313
+        "doc_annotation_count": 6,
+        "line_count": 315
       },
       "classifications": {
         "error_path_functions": 0,
@@ -2706,8 +2738,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 6,
-        "line_count": 242
+        "doc_annotation_count": 9,
+        "line_count": 260
       },
       "classifications": {
         "error_path_functions": 0,
@@ -2803,7 +2835,7 @@
       ]
     },
     "crates/card_game/tests/suite/card_interaction_intent_apply.rs": {
-      "hash": "bac9e94098c3371ac3793660a043960c4a9bac8ab02b54aae7127724bd3db06d",
+      "hash": "363216af7f54483f4d7027b3befd66e96db3ed1a2c08290f93ec2cf27f3f2917",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 11.0,
@@ -2846,7 +2878,7 @@
         "error_name_count": 0,
         "edge_name_count": 2,
         "doc_annotation_count": 15,
-        "line_count": 787
+        "line_count": 817
       },
       "classifications": {
         "error_path_functions": 0,
@@ -3304,8 +3336,8 @@
         "should_panic_count": 0,
         "error_name_count": 1,
         "edge_name_count": 3,
-        "doc_annotation_count": 27,
-        "line_count": 1321
+        "doc_annotation_count": 29,
+        "line_count": 1330
       },
       "classifications": {
         "error_path_functions": 1,
@@ -3458,7 +3490,7 @@
       ]
     },
     "crates/card_game/tests/suite/card_reader_glow.rs": {
-      "hash": "ef73c14a5c9f3691a7773b0de49a04be78ba0896888bb72ea10756b4208d65f1",
+      "hash": "63a3e74e5c5235668157165c7a71879f4d66b4a9ada4c92cec826a3514c79c06",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -3500,8 +3532,8 @@
         "should_panic_count": 0,
         "error_name_count": 1,
         "edge_name_count": 1,
-        "doc_annotation_count": 0,
-        "line_count": 159
+        "doc_annotation_count": 5,
+        "line_count": 164
       },
       "classifications": {
         "error_path_functions": 0,
@@ -3530,14 +3562,14 @@
         "determinism": 10.0,
         "isolation": 8.0,
         "clarity": 7.0,
-        "coverage_depth": 6.0,
+        "coverage_depth": 4.5,
         "speed": 10.0,
         "diagnostics": 4.5,
         "assertion_triviality": 10
       },
-      "overall": 8.5,
+      "overall": 8.2,
       "metrics": {
-        "test_function_count": 0,
+        "test_function_count": 11,
         "total_assertions": 15,
         "trivial_assertions": 0,
         "truthiness_assertions": 0,
@@ -3563,10 +3595,10 @@
         "has_custom_matchers": false,
         "creates_own_fixtures": true,
         "should_panic_count": 0,
-        "error_name_count": 0,
-        "edge_name_count": 0,
+        "error_name_count": 1,
+        "edge_name_count": 2,
         "doc_annotation_count": 11,
-        "line_count": 190
+        "line_count": 203
       },
       "classifications": {
         "error_path_functions": 0,
@@ -3588,7 +3620,7 @@
       ]
     },
     "crates/card_game/tests/suite/card_reader_spawn.rs": {
-      "hash": "f332116520ae486deb0c4980e2f9f6cd81b212c7f2cb292904d12610098a8b43",
+      "hash": "d8e43c63810c24320f4019d471f0bda08465aec1db86284895eb78630059c92a",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -3630,8 +3662,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 116
+        "doc_annotation_count": 6,
+        "line_count": 129
       },
       "classifications": {
         "error_path_functions": 0,
@@ -3693,7 +3725,7 @@
         "has_test_only": false,
         "generic_names_count": 0,
         "has_aaa_markers": true,
-        "magic_number_count": 1,
+        "magic_number_count": 0,
         "sleep_wait_count": 0,
         "real_io_count": 0,
         "framework_shows_diff": true,
@@ -3702,8 +3734,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 7,
-        "doc_annotation_count": 0,
-        "line_count": 121
+        "doc_annotation_count": 10,
+        "line_count": 155
       },
       "classifications": {
         "error_path_functions": 0,
@@ -4323,8 +4355,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 3,
-        "line_count": 97
+        "doc_annotation_count": 4,
+        "line_count": 98
       },
       "classifications": {
         "error_path_functions": 0,
@@ -4379,7 +4411,7 @@
         "has_test_only": false,
         "generic_names_count": 0,
         "has_aaa_markers": true,
-        "magic_number_count": 3,
+        "magic_number_count": 1,
         "sleep_wait_count": 0,
         "real_io_count": 0,
         "framework_shows_diff": true,
@@ -4388,8 +4420,8 @@
         "should_panic_count": 0,
         "error_name_count": 2,
         "edge_name_count": 3,
-        "doc_annotation_count": 16,
-        "line_count": 1076
+        "doc_annotation_count": 29,
+        "line_count": 1099
       },
       "classifications": {
         "error_path_functions": 0,
@@ -5151,8 +5183,8 @@
         "should_panic_count": 0,
         "error_name_count": 7,
         "edge_name_count": 3,
-        "doc_annotation_count": 5,
-        "line_count": 402
+        "doc_annotation_count": 13,
+        "line_count": 421
       },
       "classifications": {
         "error_path_functions": 0,
@@ -5273,7 +5305,7 @@
         "has_test_only": false,
         "generic_names_count": 0,
         "has_aaa_markers": true,
-        "magic_number_count": 9,
+        "magic_number_count": 6,
         "sleep_wait_count": 0,
         "real_io_count": 0,
         "framework_shows_diff": true,
@@ -5282,8 +5314,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 3,
-        "doc_annotation_count": 8,
-        "line_count": 489
+        "doc_annotation_count": 18,
+        "line_count": 525
       },
       "classifications": {
         "error_path_functions": 0,
@@ -5511,7 +5543,7 @@
       ]
     },
     "crates/card_game/tests/suite/stash_toggle.rs": {
-      "hash": "bc79e5d0d5b2b9d1febdfe5e0fc63206a0d37faf508effb41849eb9997f87d17",
+      "hash": "287a49bf3fc312d5c225b59f8e06fce89d74807967597248a1ad965e8e5acca7",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -5553,8 +5585,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 44
+        "doc_annotation_count": 2,
+        "line_count": 46
       },
       "classifications": {
         "error_path_functions": 0,
@@ -6247,7 +6279,7 @@
       "findings": []
     },
     "crates/engine_audio/tests/suite/backend_traits.rs": {
-      "hash": "f9403621991932e634c63b01ae65bf58fbfa2530bb8170872dd3bfdaa0e9c813",
+      "hash": "991744e4571a9ce1c7d020ca5ea5c06602308790837f1293e9224f20e95b0556",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -6289,8 +6321,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 2,
-        "line_count": 71
+        "doc_annotation_count": 4,
+        "line_count": 73
       },
       "classifications": {
         "error_path_functions": 0,
@@ -6386,7 +6418,7 @@
       ]
     },
     "crates/engine_audio/tests/suite/mixer_engine.rs": {
-      "hash": "1c491eab8bb4e1d9cf2bdb27a6e1bfeb12dd5ca65b61da73d4bed866a8f5ba97",
+      "hash": "d2741b206a88e40c43b60ccb8ed64f2fe7615afa1b8e946d7085f82414185b1a",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 11.0,
@@ -6428,8 +6460,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 7,
-        "line_count": 196
+        "doc_annotation_count": 8,
+        "line_count": 288
       },
       "classifications": {
         "error_path_functions": 0,
@@ -7444,7 +7476,7 @@
       ]
     },
     "crates/engine_input/tests/suite/action_map.rs": {
-      "hash": "db09868eae9ccd4043d926e05ba7db7bc4a43977cf526819ec97a2b9b2c6443d",
+      "hash": "3c21fed5b629694b4174750e4eb68bb22017e9540de0b327eb51450280a8ec15",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -7486,8 +7518,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 32
+        "doc_annotation_count": 2,
+        "line_count": 34
       },
       "classifications": {
         "error_path_functions": 0,
@@ -7509,7 +7541,7 @@
       ]
     },
     "crates/engine_input/tests/suite/keyboard_state.rs": {
-      "hash": "420649e0a6d9c3a67717eaf0185b29321ca56de76b3155cff4a22be096b120a3",
+      "hash": "c822e541398530c4bbef2a7b38a79ccaca3ccb0c6cb8dfe94dbd45e854d41d9f",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 7.3,
@@ -7551,8 +7583,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 226
+        "doc_annotation_count": 16,
+        "line_count": 242
       },
       "classifications": {
         "error_path_functions": 0,
@@ -7581,7 +7613,7 @@
       ]
     },
     "crates/engine_input/tests/suite/keyboard_system.rs": {
-      "hash": "3db0675407622f6135c3d575db6daa869ff344b90396311b53c4ca1f3ea50691",
+      "hash": "810cc40527caa7975836e37d44ff00218979324a88b752e09aa8fc15c1c0b53e",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.1,
@@ -7598,8 +7630,8 @@
         "test_function_count": 7,
         "total_assertions": 8,
         "trivial_assertions": 0,
-        "truthiness_assertions": 1,
-        "specific_assertions": 7,
+        "truthiness_assertions": 0,
+        "specific_assertions": 8,
         "zero_assertion_functions": 0,
         "assertions_with_message": 0,
         "assertions_without_message": 8,
@@ -7623,8 +7655,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 163
+        "doc_annotation_count": 7,
+        "line_count": 173
       },
       "classifications": {
         "error_path_functions": 0,
@@ -7653,7 +7685,7 @@
       ]
     },
     "crates/engine_input/tests/suite/mouse_state.rs": {
-      "hash": "a1797ccf8ecdda20b7117346c3f6da29ca2d1f955a3f53a08d442d0742b7dc0f",
+      "hash": "5d0877847cae40bc1968746bf50096dcbaf5cab8cfd268ea33fa6254bc579a68",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 8.2,
@@ -7670,8 +7702,8 @@
         "test_function_count": 19,
         "total_assertions": 20,
         "trivial_assertions": 0,
-        "truthiness_assertions": 6,
-        "specific_assertions": 14,
+        "truthiness_assertions": 5,
+        "specific_assertions": 15,
         "zero_assertion_functions": 0,
         "assertions_with_message": 0,
         "assertions_without_message": 20,
@@ -7695,8 +7727,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 1,
-        "doc_annotation_count": 0,
-        "line_count": 261
+        "doc_annotation_count": 19,
+        "line_count": 283
       },
       "classifications": {
         "error_path_functions": 0,
@@ -7725,7 +7757,7 @@
       ]
     },
     "crates/engine_input/tests/suite/mouse_system.rs": {
-      "hash": "9a869944264505778d9214205e8c5dee0229a283f5b56624499b8ba372b932bf",
+      "hash": "0b72b1819347d3f52d3ca7fe805706fef0dba2c934ded3100d2a23962d7e3af0",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 8.9,
@@ -7742,8 +7774,8 @@
         "test_function_count": 8,
         "total_assertions": 10,
         "trivial_assertions": 0,
-        "truthiness_assertions": 2,
-        "specific_assertions": 8,
+        "truthiness_assertions": 1,
+        "specific_assertions": 9,
         "zero_assertion_functions": 0,
         "assertions_with_message": 0,
         "assertions_without_message": 10,
@@ -7767,8 +7799,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 1,
-        "doc_annotation_count": 0,
-        "line_count": 185
+        "doc_annotation_count": 8,
+        "line_count": 196
       },
       "classifications": {
         "error_path_functions": 0,
@@ -7797,7 +7829,7 @@
       ]
     },
     "crates/engine_physics/tests/suite/collider.rs": {
-      "hash": "bb57cf4514f16c669677c5a30c149de8e11026209083f5f1c95e52e503a1672b",
+      "hash": "70a2e44caee0875ec57c81cb1bf6d7188fa932f51896560506eff83234469f53",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 8.4,
@@ -7839,8 +7871,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 44
+        "doc_annotation_count": 2,
+        "line_count": 50
       },
       "classifications": {
         "error_path_functions": 0,
@@ -8118,8 +8150,8 @@
         "should_panic_count": 0,
         "error_name_count": 1,
         "edge_name_count": 1,
-        "doc_annotation_count": 0,
-        "line_count": 99
+        "doc_annotation_count": 4,
+        "line_count": 121
       },
       "classifications": {
         "error_path_functions": 0,
@@ -8314,7 +8346,7 @@
         "has_test_only": false,
         "generic_names_count": 0,
         "has_aaa_markers": true,
-        "magic_number_count": 9,
+        "magic_number_count": 7,
         "sleep_wait_count": 0,
         "real_io_count": 0,
         "framework_shows_diff": true,
@@ -8323,8 +8355,8 @@
         "should_panic_count": 0,
         "error_name_count": 7,
         "edge_name_count": 7,
-        "doc_annotation_count": 16,
-        "line_count": 490
+        "doc_annotation_count": 26,
+        "line_count": 536
       },
       "classifications": {
         "error_path_functions": 5,
@@ -8454,8 +8486,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 5,
-        "doc_annotation_count": 5,
-        "line_count": 427
+        "doc_annotation_count": 21,
+        "line_count": 455
       },
       "classifications": {
         "error_path_functions": 0,
@@ -8477,7 +8509,7 @@
       ]
     },
     "crates/engine_render/tests/suite/clear.rs": {
-      "hash": "10aaead3fa8ea3ad29c8c966878c1ac5fa51ff4118cc1c0b01d141243e612d59",
+      "hash": "1d834ce30d41b703ab7b14a1dca9eaa782b908588de29190add36b3c63375b31",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -8519,8 +8551,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 31
+        "doc_annotation_count": 1,
+        "line_count": 36
       },
       "classifications": {
         "error_path_functions": 0,
@@ -10146,8 +10178,8 @@
         "should_panic_count": 0,
         "error_name_count": 4,
         "edge_name_count": 1,
-        "doc_annotation_count": 3,
-        "line_count": 568
+        "doc_annotation_count": 19,
+        "line_count": 602
       },
       "classifications": {
         "error_path_functions": 0,
@@ -10203,8 +10235,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 2,
-        "doc_annotation_count": 0,
-        "line_count": 144
+        "doc_annotation_count": 8,
+        "line_count": 152
       },
       "classifications": {
         "error_path_functions": 0,
@@ -10314,7 +10346,7 @@
       ]
     },
     "crates/engine_ui/tests/suite/layout_system.rs": {
-      "hash": "b96d7ec385477bf60ee5f26ae1e98f8e9a3b743eac10f49ac19370599d9546d3",
+      "hash": "1a43eff7bb641cbbfdac2d7b1382644ec6fc7b7f57a12f9a45412cdf1a42f4fa",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -10356,8 +10388,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 205
+        "doc_annotation_count": 6,
+        "line_count": 231
       },
       "classifications": {
         "error_path_functions": 0,
@@ -10548,7 +10580,7 @@
       ]
     },
     "crates/engine_ui/tests/suite/theme.rs": {
-      "hash": "2c2c61eef6f417eea89ab08bf9eac6fd3fbd4d1d91f5f33db49a032cd00d5c8d",
+      "hash": "a0eb23303090f2a91fbf222b0543e794916e029111de2338158fc76c80e52f26",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -10590,8 +10622,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 25
+        "doc_annotation_count": 1,
+        "line_count": 29
       },
       "classifications": {
         "error_path_functions": 0,
@@ -10768,7 +10800,7 @@
       ]
     },
     "crates/engine_ui/tests/suite/widget_node.rs": {
-      "hash": "8f20690bbec6ef111a9b687628f787fdaaf627096c3ac7e0897d346cffb964c1",
+      "hash": "cc98c4e7d3bfd7ab9819c90fe8cf505bc05766654fa393f66304e166970970e2",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -10810,8 +10842,8 @@
         "should_panic_count": 0,
         "error_name_count": 0,
         "edge_name_count": 0,
-        "doc_annotation_count": 0,
-        "line_count": 64
+        "doc_annotation_count": 3,
+        "line_count": 76
       },
       "classifications": {
         "error_path_functions": 0,

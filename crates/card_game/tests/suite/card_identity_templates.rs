@@ -14,8 +14,8 @@ const PARTS: TitleParts<'_> = TitleParts {
     adj2: "Infernal",
 };
 
-#[test]
 /// @doc: `weighted_choose` returns an index within bounds.
+#[test]
 fn when_weighted_choose_then_index_in_bounds() {
     // Arrange
     let weights = &[10u32, 20, 30, 40];
@@ -32,8 +32,8 @@ fn when_weighted_choose_then_index_in_bounds() {
     }
 }
 
-#[test]
 /// @doc: `weighted_choose` is deterministic for the same seed.
+#[test]
 fn when_same_seed_then_weighted_choose_matches() {
     // Arrange
     let weights = &[10u32, 20, 30, 40];
@@ -55,20 +55,24 @@ fn when_same_seed_then_weighted_choose_matches() {
     );
 }
 
-#[test]
 /// @doc: `weighted_choose` always picks 0 when there is a single weight.
+#[test]
 fn when_single_weight_then_always_zero() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(7);
 
     // Act / Assert
     for _ in 0..100 {
-        assert_eq!(weighted_choose(&mut rng, &[100]), 0);
+        assert_eq!(
+            weighted_choose(&mut rng, &[100]),
+            0,
+            "single-weight choose must always return index 0"
+        );
     }
 }
 
-#[test]
 /// @doc: `weighted_choose` produces every index over many trials with uniform weights.
+#[test]
 fn when_uniform_weights_then_every_index_appears() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(12345);
@@ -86,8 +90,8 @@ fn when_uniform_weights_then_every_index_appears() {
     }
 }
 
-#[test]
 /// @doc: `weighted_choose` favours heavier weights over lighter ones statistically.
+#[test]
 fn when_skewed_weights_then_heavier_selected_more_often() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(42);
@@ -110,8 +114,8 @@ fn when_skewed_weights_then_heavier_selected_more_often() {
     );
 }
 
-#[test]
 /// @doc: `common_title` is deterministic with a fixed seed.
+#[test]
 fn when_common_title_same_seed_then_matches() {
     // Arrange
     let mut rng1 = ChaCha8Rng::seed_from_u64(42);
@@ -125,8 +129,8 @@ fn when_common_title_same_seed_then_matches() {
     assert_eq!(a, b, "common_title must be deterministic for the same seed");
 }
 
-#[test]
 /// @doc: `common_title` includes the adjective in the output.
+#[test]
 fn when_common_title_then_contains_adj() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(1);
@@ -141,8 +145,8 @@ fn when_common_title_then_contains_adj() {
     }
 }
 
-#[test]
 /// @doc: `common_title` output is non-empty and contains no raw format braces.
+#[test]
 fn when_common_title_then_no_raw_format_braces() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(99);
@@ -162,8 +166,8 @@ fn when_common_title_then_no_raw_format_braces() {
     }
 }
 
-#[test]
 /// @doc: `common_title` produces every template variant over enough iterations.
+#[test]
 fn when_common_title_many_iterations_then_all_templates_used() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(42);
@@ -194,8 +198,8 @@ fn when_common_title_many_iterations_then_all_templates_used() {
     }
 }
 
-#[test]
 /// @doc: `rare_title` is deterministic with a fixed seed.
+#[test]
 fn when_rare_title_same_seed_then_matches() {
     // Arrange
     let mut rng1 = ChaCha8Rng::seed_from_u64(42);
@@ -209,8 +213,8 @@ fn when_rare_title_same_seed_then_matches() {
     assert_eq!(a, b, "rare_title must be deterministic for the same seed");
 }
 
-#[test]
 /// @doc: `rare_title` contains at least one of the parts in its output.
+#[test]
 fn when_rare_title_then_contains_part() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(1);
@@ -227,8 +231,8 @@ fn when_rare_title_then_contains_part() {
     }
 }
 
-#[test]
 /// @doc: `rare_title` output is non-empty and contains no raw format braces.
+#[test]
 fn when_rare_title_then_no_raw_format_braces() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(99);
@@ -248,8 +252,8 @@ fn when_rare_title_then_no_raw_format_braces() {
     }
 }
 
-#[test]
 /// @doc: `rare_title` outputs all three word-connection patterns (apostrophe, of, and comma).
+#[test]
 fn when_rare_title_then_pattern_words_appear() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(42);
@@ -283,8 +287,8 @@ fn when_rare_title_then_pattern_words_appear() {
     );
 }
 
-#[test]
 /// @doc: `legendary_title` is deterministic with a fixed seed.
+#[test]
 fn when_legendary_title_same_seed_then_matches() {
     // Arrange
     let mut rng1 = ChaCha8Rng::seed_from_u64(42);
@@ -301,8 +305,8 @@ fn when_legendary_title_same_seed_then_matches() {
     );
 }
 
-#[test]
 /// @doc: `legendary_title` contains the name in its output.
+#[test]
 fn when_legendary_title_then_contains_name() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(1);
@@ -317,8 +321,8 @@ fn when_legendary_title_then_contains_name() {
     }
 }
 
-#[test]
 /// @doc: `legendary_title` output is non-empty and contains no raw format braces.
+#[test]
 fn when_legendary_title_then_no_raw_format_braces() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(99);
@@ -338,8 +342,8 @@ fn when_legendary_title_then_no_raw_format_braces() {
     }
 }
 
-#[test]
 /// @doc: `legendary_title` uses both possessive (apostrophe) and prepositional (of, the) patterns.
+#[test]
 fn when_legendary_title_then_both_possessive_and_prepositional_patterns() {
     // Arrange
     let mut rng = ChaCha8Rng::seed_from_u64(42);
@@ -370,8 +374,8 @@ fn when_legendary_title_then_both_possessive_and_prepositional_patterns() {
     assert!(has_the, "legendary_title should produce ', the' pattern");
 }
 
-#[test]
 /// @doc: `TitleParts` values are accessible after construction.
+#[test]
 fn when_title_parts_constructed_then_fields_match() {
     // Arrange
     let parts = TitleParts {
@@ -383,9 +387,9 @@ fn when_title_parts_constructed_then_fields_match() {
     };
 
     // Assert
-    assert_eq!(parts.adj, "Burning");
-    assert_eq!(parts.noun, "Sword");
-    assert_eq!(parts.compound, "Fireblade");
-    assert_eq!(parts.name, "Ignis");
-    assert_eq!(parts.adj2, "Infernal");
+    assert_eq!(parts.adj, "Burning", "adj field should match");
+    assert_eq!(parts.noun, "Sword", "noun field should match");
+    assert_eq!(parts.compound, "Fireblade", "compound field should match");
+    assert_eq!(parts.name, "Ignis", "name field should match");
+    assert_eq!(parts.adj2, "Infernal", "adj2 field should match");
 }

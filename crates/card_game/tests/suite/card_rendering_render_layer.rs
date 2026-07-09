@@ -41,6 +41,7 @@ fn when_parent_ui_and_child_world_then_child_becomes_ui() {
     assert_eq!(*world.get::<RenderLayer>(face).unwrap(), RenderLayer::UI);
 }
 
+/// @doc: When both parent and child start on the same `World` layer, the child must remain unchanged — no unnecessary layer writes
 #[test]
 fn when_parent_world_and_child_world_then_child_stays_world() {
     // Arrange

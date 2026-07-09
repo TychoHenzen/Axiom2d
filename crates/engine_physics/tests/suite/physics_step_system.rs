@@ -18,6 +18,7 @@ fn setup_world(step_count: Arc<AtomicU32>) -> World {
     world
 }
 
+/// @doc: The physics step system must call the backend's step method exactly once per frame.
 #[test]
 fn when_system_runs_then_backend_is_stepped() {
     // Arrange
@@ -30,9 +31,14 @@ fn when_system_runs_then_backend_is_stepped() {
     schedule.run(&mut world);
 
     // Assert
-    assert_eq!(step_count.load(Ordering::Relaxed), 1);
+    assert_eq!(
+        step_count.load(Ordering::Relaxed),
+        1,
+        "backend step count should be 1 after one system tick"
+    );
 }
 
+/// @doc: When no collisions occur during the step, the CollisionEvent bus must remain empty.
 #[test]
 fn when_system_runs_with_no_events_then_buffer_remains_empty() {
     // Arrange
@@ -47,9 +53,13 @@ fn when_system_runs_with_no_events_then_buffer_remains_empty() {
     // Assert
     let mut bus = world.resource_mut::<EventBus<CollisionEvent>>();
     let events: Vec<_> = bus.drain().collect();
-    assert!(events.is_empty());
+    assert!(
+        events.is_empty(),
+        "collision event bus should be empty when no collisions occur"
+    );
 }
 
+/// @doc: Running the system twice must step the backend twice (no skipped or collapsed steps).
 #[test]
 fn when_system_runs_twice_then_backend_stepped_twice() {
     // Arrange
@@ -63,9 +73,14 @@ fn when_system_runs_twice_then_backend_stepped_twice() {
     schedule.run(&mut world);
 
     // Assert
-    assert_eq!(step_count.load(Ordering::Relaxed), 2);
+    assert_eq!(
+        step_count.load(Ordering::Relaxed),
+        2,
+        "backend step count should be 2 after two system ticks"
+    );
 }
 
+/// @doc: When the backend reports collision events, the system must forward them into the ECS EventBus.
 #[test]
 fn when_backend_produces_events_then_buffer_contains_them() {
     // Arrange
@@ -93,6 +108,13 @@ fn when_backend_produces_events_then_buffer_contains_them() {
     // Assert
     let mut bus = world.resource_mut::<EventBus<CollisionEvent>>();
     let events: Vec<_> = bus.drain().collect();
-    assert_eq!(events.len(), 1);
-    assert_eq!(events[0], event);
+    assert_eq!(
+        events.len(),
+        1,
+        "should have exactly 1 collision event after system tick"
+    );
+    assert_eq!(
+        events[0], event,
+        "the forwarded event must match the backend's output"
+    );
 }

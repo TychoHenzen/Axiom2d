@@ -15,6 +15,7 @@ fn run_hierarchy(world: &mut World) {
     schedule.run(world);
 }
 
+/// @doc: Verifies that spawning a reader produces a root entity with a Path shape (rounded rect).
 #[test]
 fn when_spawn_reader_then_root_has_rounded_rect_shape() {
     // Arrange
@@ -31,6 +32,7 @@ fn when_spawn_reader_then_root_has_rounded_rect_shape() {
     );
 }
 
+/// @doc: Verifies that the reader entity has exactly six child entities after hierarchy maintenance.
 #[test]
 fn when_spawn_reader_then_six_children_exist() {
     // Arrange
@@ -42,9 +44,14 @@ fn when_spawn_reader_then_six_children_exist() {
 
     // Assert — 1 recess + 1 accent + 4 runes = 6 children
     let children = world.get::<Children>(reader).unwrap();
-    assert_eq!(children.0.len(), 6);
+    assert_eq!(
+        children.0.len(),
+        6,
+        "expected 6 children (1 recess + 1 accent + 4 runes)"
+    );
 }
 
+/// @doc: Verifies that the reader has exactly four rune children.
 #[test]
 fn when_spawn_reader_then_four_rune_children_exist() {
     // Arrange
@@ -60,9 +67,10 @@ fn when_spawn_reader_then_four_rune_children_exist() {
         .count();
 
     // Assert
-    assert_eq!(rune_count, 4);
+    assert_eq!(rune_count, 4, "expected exactly 4 rune children");
 }
 
+/// @doc: Verifies that the reader has exactly one recess child.
 #[test]
 fn when_spawn_reader_then_recess_child_exists() {
     // Arrange
@@ -78,9 +86,10 @@ fn when_spawn_reader_then_recess_child_exists() {
         .count();
 
     // Assert
-    assert_eq!(recess_count, 1);
+    assert_eq!(recess_count, 1, "expected exactly 1 recess child");
 }
 
+/// @doc: Verifies that the reader has exactly one accent child.
 #[test]
 fn when_spawn_reader_then_accent_child_exists() {
     // Arrange
@@ -96,9 +105,10 @@ fn when_spawn_reader_then_accent_child_exists() {
         .count();
 
     // Assert
-    assert_eq!(accent_count, 1);
+    assert_eq!(accent_count, 1, "expected exactly 1 accent child");
 }
 
+/// @doc: Verifies that all reader children have a ChildOf component pointing back to the reader root.
 #[test]
 fn when_spawn_reader_then_children_have_child_of_pointing_to_reader() {
     // Arrange
@@ -110,6 +120,9 @@ fn when_spawn_reader_then_children_have_child_of_pointing_to_reader() {
     let children = &world.get::<Children>(reader).unwrap().0;
     for &child in children {
         let child_of = world.get::<ChildOf>(child).unwrap();
-        assert_eq!(child_of.0, reader);
+        assert_eq!(
+            child_of.0, reader,
+            "all children should have ChildOf pointing to reader root"
+        );
     }
 }

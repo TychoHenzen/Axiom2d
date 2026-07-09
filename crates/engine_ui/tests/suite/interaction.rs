@@ -50,6 +50,7 @@ fn when_cursor_inside_node_then_interaction_becomes_hovered() {
     assert_eq!(*interaction, Interaction::Hovered);
 }
 
+/// @doc: Cursor exactly on the AABB boundary must still register as hovered (inclusive edge).
 #[test]
 fn when_cursor_on_node_boundary_then_interaction_becomes_hovered() {
     // Arrange
@@ -75,6 +76,7 @@ fn when_cursor_on_node_boundary_then_interaction_becomes_hovered() {
     assert_eq!(*interaction, Interaction::Hovered);
 }
 
+/// @doc: Cursor outside the node's bounding box must leave interaction as None.
 #[test]
 fn when_cursor_outside_node_then_interaction_remains_none() {
     // Arrange
@@ -100,6 +102,7 @@ fn when_cursor_outside_node_then_interaction_remains_none() {
     assert_eq!(*interaction, Interaction::None);
 }
 
+/// @doc: Left mouse button held inside a node transitions interaction to Pressed.
 #[test]
 fn when_cursor_inside_and_left_held_then_interaction_becomes_pressed() {
     // Arrange
@@ -126,6 +129,7 @@ fn when_cursor_inside_and_left_held_then_interaction_becomes_pressed() {
     assert_eq!(*interaction, Interaction::Pressed);
 }
 
+/// @doc: Cursor outside the node while holding left button must remain None (no accidental press).
 #[test]
 fn when_cursor_outside_and_left_held_then_interaction_remains_none() {
     // Arrange
@@ -152,6 +156,7 @@ fn when_cursor_outside_and_left_held_then_interaction_remains_none() {
     assert_eq!(*interaction, Interaction::None);
 }
 
+/// @doc: Non-TopLeft anchors offset the hit-test AABB — Center anchor must still detect hover correctly.
 #[test]
 fn when_node_has_center_anchor_then_hit_test_accounts_for_offset() {
     // Arrange
@@ -177,6 +182,7 @@ fn when_node_has_center_anchor_then_hit_test_accounts_for_offset() {
     assert_eq!(*interaction, Interaction::Hovered);
 }
 
+/// @doc: Invisible nodes are excluded from hit-testing entirely — cursor position doesn't matter.
 #[test]
 fn when_effective_visibility_false_then_not_hit_tested() {
     // Arrange
@@ -203,6 +209,7 @@ fn when_effective_visibility_false_then_not_hit_tested() {
     assert_eq!(*interaction, Interaction::None);
 }
 
+/// @doc: Two overlapping nodes must both receive interaction state independently.
 #[test]
 fn when_two_overlapping_nodes_then_both_receive_interaction() {
     // Arrange
@@ -242,6 +249,7 @@ fn when_two_overlapping_nodes_then_both_receive_interaction() {
     assert_eq!(b, Interaction::Hovered);
 }
 
+/// @doc: Moving cursor outside a previously hovered node reverts interaction to None.
 #[test]
 fn when_cursor_leaves_node_then_interaction_reverts_to_none() {
     // Arrange
@@ -276,6 +284,7 @@ fn when_cursor_leaves_node_then_interaction_reverts_to_none() {
     assert_eq!(*interaction, Interaction::None);
 }
 
+/// @doc: Clicking inside a node emits a Clicked event — the primary interaction action.
 #[test]
 fn when_just_pressed_inside_then_clicked_event_emitted() {
     // Arrange
@@ -302,9 +311,13 @@ fn when_just_pressed_inside_then_clicked_event_emitted() {
 
     // Assert
     let events: Vec<UiEvent> = world.resource_mut::<EventBus<UiEvent>>().drain().collect();
-    assert!(events.contains(&UiEvent::Clicked(entity)));
+    assert!(
+        events.contains(&UiEvent::Clicked(entity)),
+        "expected Clicked event for entity, got: {events:?}"
+    );
 }
 
+/// @doc: Hovering a node emits a HoverEnter event on the first frame the cursor is inside.
 #[test]
 fn when_cursor_enters_node_then_hover_enter_event_emitted() {
     // Arrange
@@ -327,9 +340,13 @@ fn when_cursor_enters_node_then_hover_enter_event_emitted() {
 
     // Assert
     let events: Vec<UiEvent> = world.resource_mut::<EventBus<UiEvent>>().drain().collect();
-    assert!(events.contains(&UiEvent::HoverEnter(entity)));
+    assert!(
+        events.contains(&UiEvent::HoverEnter(entity)),
+        "expected HoverEnter event for entity, got: {events:?}"
+    );
 }
 
+/// @doc: Moving cursor out of a previously hovered node emits a HoverExit event.
 #[test]
 fn when_cursor_leaves_node_then_hover_exit_event_emitted() {
     // Arrange
@@ -358,7 +375,10 @@ fn when_cursor_leaves_node_then_hover_exit_event_emitted() {
 
     // Assert
     let events: Vec<UiEvent> = world.resource_mut::<EventBus<UiEvent>>().drain().collect();
-    assert!(events.contains(&UiEvent::HoverExit(entity)));
+    assert!(
+        events.contains(&UiEvent::HoverExit(entity)),
+        "expected HoverExit event for entity, got: {events:?}"
+    );
 }
 
 /// @doc: Click sets FocusState.focused — only one entity has focus at a time
@@ -387,9 +407,13 @@ fn when_node_clicked_then_focus_state_updated() {
     let focus = world.resource::<FocusState>();
     assert_eq!(focus.focused, Some(entity));
     let events: Vec<UiEvent> = world.resource_mut::<EventBus<UiEvent>>().drain().collect();
-    assert!(events.contains(&UiEvent::FocusGained(entity)));
+    assert!(
+        events.contains(&UiEvent::FocusGained(entity)),
+        "expected FocusGained event, got: {events:?}"
+    );
 }
 
+/// @doc: Clicking a different node transfers focus from the previously focused entity.
 #[test]
 fn when_different_node_clicked_then_focus_transfers() {
     // Arrange
@@ -437,9 +461,13 @@ fn when_different_node_clicked_then_focus_transfers() {
     let focus = world.resource::<FocusState>();
     assert_ne!(focus.focused, Some(entity_a));
     let events: Vec<UiEvent> = world.resource_mut::<EventBus<UiEvent>>().drain().collect();
-    assert!(events.contains(&UiEvent::FocusLost(entity_a)));
+    assert!(
+        events.contains(&UiEvent::FocusLost(entity_a)),
+        "expected FocusLost event for previous entity, got: {events:?}"
+    );
 }
 
+/// @doc: Cursor inside the node's horizontal range but outside its vertical range must not be hovered.
 #[test]
 fn when_cursor_inside_x_range_but_outside_y_range_then_not_hovered() {
     // Arrange — node at (200, 100), size 100x50, cursor at (250, 200) -> inside x, outside y
@@ -465,6 +493,7 @@ fn when_cursor_inside_x_range_but_outside_y_range_then_not_hovered() {
     assert_eq!(*interaction, Interaction::None);
 }
 
+/// @doc: Cursor inside the node's vertical range but outside its horizontal range must not be hovered.
 #[test]
 fn when_cursor_inside_y_range_but_outside_x_range_then_not_hovered() {
     // Arrange — node at (200, 100), size 100x50, cursor at (50, 120) -> outside x, inside y
@@ -490,6 +519,7 @@ fn when_cursor_inside_y_range_but_outside_x_range_then_not_hovered() {
     assert_eq!(*interaction, Interaction::None);
 }
 
+/// @doc: Interaction roundtrips through RON serialization without data loss.
 #[test]
 fn when_interaction_roundtrip_ron_then_variant_preserved() {
     // Arrange
@@ -505,10 +535,14 @@ fn when_interaction_roundtrip_ron_then_variant_preserved() {
         let restored: Interaction = ron::from_str(&ron_str).unwrap();
 
         // Assert
-        assert_eq!(restored, variant);
+        assert_eq!(
+            restored, variant,
+            "RON roundtrip failed for Interaction::{variant:?}"
+        );
     }
 }
 
+/// @doc: An invisible entity with no prior hover state must not emit a spurious HoverExit event.
 #[test]
 fn when_invisible_entity_with_no_prior_hover_then_no_hover_exit_event() {
     // Arrange — entity starts at Interaction::None, is invisible

@@ -5,8 +5,8 @@ use bevy_ecs::prelude::Entity;
 use card_game::card::identity::signature::CardSignature;
 use card_game::card::reader::{SIGNATURE_SPACE_RADIUS, SignatureSpace, signature_radius};
 
-#[test]
 /// @doc: `signature_radius` returns the minimum radius when all intensities are zero.
+#[test]
 fn when_signature_radius_with_zero_intensity_then_returns_min_radius() {
     // Arrange
     let sig = CardSignature::default();
@@ -18,8 +18,8 @@ fn when_signature_radius_with_zero_intensity_then_returns_min_radius() {
     assert!((r - 0.15).abs() < f32::EPSILON, "expected 0.15, got {r}");
 }
 
-#[test]
 /// @doc: `from_single` creates a `SignatureSpace` with exactly one control point.
+#[test]
 fn when_from_single_then_has_single_control_point() {
     // Arrange
     let center = CardSignature::new([0.3, -0.5, 0.1, 0.7, -0.2, 0.4, -0.6, 0.8]);
@@ -33,8 +33,8 @@ fn when_from_single_then_has_single_control_point() {
     assert_eq!(space.control_points[0], center);
 }
 
-#[test]
 /// @doc: `from_single` stores the source entity in `source_cards`.
+#[test]
 fn when_from_single_then_source_cards_contains_entity() {
     // Arrange
     let center = CardSignature::default();
@@ -51,8 +51,8 @@ fn when_from_single_then_source_cards_contains_entity() {
     );
 }
 
-#[test]
 /// @doc: `from_single` assigns a positive volume.
+#[test]
 fn when_from_single_then_volume_is_positive() {
     // Arrange
     let center = CardSignature::default();
@@ -69,8 +69,8 @@ fn when_from_single_then_volume_is_positive() {
     );
 }
 
-#[test]
 /// @doc: combine unions the control points of two distinct signals.
+#[test]
 fn when_combine_two_signals_then_control_points_union() {
     // Arrange
     let center_a = CardSignature::new([0.3, -0.5, 0.1, 0.7, -0.2, 0.4, -0.6, 0.8]);
@@ -82,13 +82,23 @@ fn when_combine_two_signals_then_control_points_union() {
     let combined = SignatureSpace::combine(&a, &b);
 
     // Assert
-    assert_eq!(combined.control_points.len(), 2);
-    assert!(combined.control_points.contains(&center_a));
-    assert!(combined.control_points.contains(&center_b));
+    assert_eq!(
+        combined.control_points.len(),
+        2,
+        "combined should have 2 control points"
+    );
+    assert!(
+        combined.control_points.contains(&center_a),
+        "combined should contain center_a"
+    );
+    assert!(
+        combined.control_points.contains(&center_b),
+        "combined should contain center_b"
+    );
 }
 
-#[test]
 /// @doc: combine deduplicates identical source entities.
+#[test]
 fn when_combine_two_signals_then_source_cards_union_no_duplicates() {
     // Arrange — both signals share the same source entity
     let entity = Entity::from_raw(0);
@@ -110,8 +120,8 @@ fn when_combine_two_signals_then_source_cards_union_no_duplicates() {
     assert!(combined.source_cards.contains(&entity));
 }
 
-#[test]
 /// @doc: combine adds the volumes of the two signals.
+#[test]
 fn when_combine_two_signals_then_volume_is_sum() {
     // Arrange
     let center_a = CardSignature::new([0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
@@ -131,8 +141,8 @@ fn when_combine_two_signals_then_volume_is_sum() {
     );
 }
 
-#[test]
 /// @doc: contains returns true for a point at the control point center when radius is large enough.
+#[test]
 fn when_contains_same_point_then_returns_true() {
     // Arrange
     let center = CardSignature::new([0.2, -0.3, 0.1, 0.5, -0.4, 0.6, -0.2, 0.3]);
@@ -145,8 +155,8 @@ fn when_contains_same_point_then_returns_true() {
     assert!(result, "expected contains(self center) to be true");
 }
 
-#[test]
 /// @doc: contains returns false for a point far from the single control point.
+#[test]
 fn when_contains_distant_point_then_returns_false() {
     // Arrange
     let center = CardSignature::new([0.0; 8]);
@@ -160,8 +170,8 @@ fn when_contains_distant_point_then_returns_false() {
     assert!(!result, "expected contains(far point) to be false");
 }
 
-#[test]
 /// @doc: contains returns false when there are no control points.
+#[test]
 fn when_empty_control_points_then_contains_returns_false() {
     // Arrange
     let empty = SignatureSpace {
@@ -182,8 +192,11 @@ fn when_empty_control_points_then_contains_returns_false() {
     );
 }
 
-#[test]
 /// @doc: `SIGNATURE_SPACE_RADIUS` is a positive constant.
+#[test]
 fn when_constant_radius_is_positive() {
-    assert!(SIGNATURE_SPACE_RADIUS > 0.0);
+    assert!(
+        SIGNATURE_SPACE_RADIUS > 0.0,
+        "SIGNATURE_SPACE_RADIUS must be positive"
+    );
 }

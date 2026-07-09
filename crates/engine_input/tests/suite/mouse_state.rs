@@ -6,6 +6,7 @@ use engine_input::action_map::ActionMap;
 use engine_input::mouse::MouseButton;
 use engine_input::mouse::MouseState;
 
+/// @doc: Verifies that a pressed mouse button is reported as currently pressed.
 #[test]
 fn when_button_pressed_then_pressed_returns_true() {
     // Arrange
@@ -18,6 +19,7 @@ fn when_button_pressed_then_pressed_returns_true() {
     assert!(state.pressed(MouseButton::Left));
 }
 
+/// @doc: Verifies that a freshly pressed mouse button is reported as just pressed.
 #[test]
 fn when_button_pressed_then_just_pressed_returns_true() {
     // Arrange
@@ -30,6 +32,7 @@ fn when_button_pressed_then_just_pressed_returns_true() {
     assert!(state.just_pressed(MouseButton::Left));
 }
 
+/// @doc: Verifies that a pressed mouse button is not reported as just released.
 #[test]
 fn when_button_pressed_then_just_released_returns_false() {
     // Arrange
@@ -42,6 +45,7 @@ fn when_button_pressed_then_just_released_returns_false() {
     assert!(!state.just_released(MouseButton::Left));
 }
 
+/// @doc: Verifies that a released mouse button is no longer reported as pressed.
 #[test]
 fn when_button_released_after_press_then_pressed_returns_false() {
     // Arrange
@@ -55,6 +59,7 @@ fn when_button_released_after_press_then_pressed_returns_false() {
     assert!(!state.pressed(MouseButton::Right));
 }
 
+/// @doc: Verifies that a released mouse button is reported as just released.
 #[test]
 fn when_button_released_after_press_then_just_released_returns_true() {
     // Arrange
@@ -68,6 +73,7 @@ fn when_button_released_after_press_then_just_released_returns_true() {
     assert!(state.just_released(MouseButton::Right));
 }
 
+/// @doc: Verifies that just-pressed state for a held button is cleared on frame boundary while held state persists.
 #[test]
 fn when_frame_cleared_then_just_pressed_is_false_for_held_button() {
     // Arrange
@@ -79,9 +85,13 @@ fn when_frame_cleared_then_just_pressed_is_false_for_held_button() {
 
     // Assert
     assert!(!state.just_pressed(MouseButton::Left));
-    assert!(state.pressed(MouseButton::Left));
+    assert!(
+        state.pressed(MouseButton::Left),
+        "held button should remain pressed after frame clear"
+    );
 }
 
+/// @doc: Verifies that just-released state for a mouse button is cleared on frame boundary.
 #[test]
 fn when_frame_cleared_then_just_released_is_false() {
     // Arrange
@@ -96,6 +106,7 @@ fn when_frame_cleared_then_just_released_is_false() {
     assert!(!state.just_released(MouseButton::Left));
 }
 
+/// @doc: Verifies that the screen position is updated after cursor movement.
 #[test]
 fn when_cursor_moved_then_screen_pos_is_updated() {
     // Arrange
@@ -108,6 +119,7 @@ fn when_cursor_moved_then_screen_pos_is_updated() {
     assert_eq!(state.screen_pos(), Vec2::new(100.0, 200.0));
 }
 
+/// @doc: Verifies that scroll delta reflects accumulated scroll input.
 #[test]
 fn when_scroll_accumulated_then_scroll_delta_reflects_total() {
     // Arrange
@@ -120,6 +132,7 @@ fn when_scroll_accumulated_then_scroll_delta_reflects_total() {
     assert_eq!(state.scroll_delta(), Vec2::new(0.0, 3.0));
 }
 
+/// @doc: Verifies that scroll delta persists across frame clears (not cleared until explicitly consumed).
 #[test]
 fn when_frame_cleared_then_scroll_delta_is_preserved() {
     // Arrange
@@ -133,6 +146,7 @@ fn when_frame_cleared_then_scroll_delta_is_preserved() {
     assert_eq!(state.scroll_delta(), Vec2::new(2.0, 5.0));
 }
 
+/// @doc: Verifies that clear_scroll_delta resets the accumulated delta to zero.
 #[test]
 fn when_clear_scroll_delta_called_then_scroll_delta_is_zero() {
     // Arrange
@@ -146,6 +160,7 @@ fn when_clear_scroll_delta_called_then_scroll_delta_is_zero() {
     assert_eq!(state.scroll_delta(), Vec2::ZERO);
 }
 
+/// @doc: Verifies that multiple scroll events in one frame are summed in the delta.
 #[test]
 fn when_multiple_scroll_events_in_one_frame_then_delta_is_sum() {
     // Arrange
@@ -159,6 +174,7 @@ fn when_multiple_scroll_events_in_one_frame_then_delta_is_sum() {
     assert_eq!(state.scroll_delta(), Vec2::new(0.0, 2.0));
 }
 
+/// @doc: Verifies that screen position persists across frame clears alongside button state.
 #[test]
 fn when_screen_pos_set_then_clear_frame_state_does_not_reset_it() {
     // Arrange
@@ -172,6 +188,7 @@ fn when_screen_pos_set_then_clear_frame_state_does_not_reset_it() {
     assert_eq!(state.screen_pos(), Vec2::new(50.0, 75.0));
 }
 
+/// @doc: Verifies that world position can be set and read back from mouse state.
 #[test]
 fn when_world_pos_set_then_world_pos_is_readable() {
     // Arrange
@@ -184,6 +201,7 @@ fn when_world_pos_set_then_world_pos_is_readable() {
     assert_eq!(state.world_pos(), Vec2::new(300.0, -150.0));
 }
 
+/// @doc: Verifies that action_pressed returns true when the bound mouse button is pressed.
 #[test]
 fn when_action_bound_to_mouse_button_and_button_pressed_then_action_pressed_returns_true() {
     // Arrange
@@ -199,6 +217,7 @@ fn when_action_bound_to_mouse_button_and_button_pressed_then_action_pressed_retu
     assert!(result);
 }
 
+/// @doc: Verifies that action_pressed returns false when the bound mouse button is not pressed.
 #[test]
 fn when_action_bound_to_mouse_button_and_button_not_pressed_then_action_pressed_returns_false() {
     // Arrange
@@ -213,6 +232,7 @@ fn when_action_bound_to_mouse_button_and_button_not_pressed_then_action_pressed_
     assert!(!result);
 }
 
+/// @doc: Verifies that action_just_pressed returns true when the bound mouse button is just pressed.
 #[test]
 fn when_action_bound_to_mouse_button_and_button_just_pressed_then_action_just_pressed_returns_true()
 {
@@ -229,6 +249,7 @@ fn when_action_bound_to_mouse_button_and_button_just_pressed_then_action_just_pr
     assert!(result);
 }
 
+/// @doc: Verifies that action_just_pressed returns false for a held mouse button after frame clear.
 #[test]
 fn when_button_held_but_frame_cleared_then_action_just_pressed_returns_false() {
     // Arrange
@@ -245,6 +266,7 @@ fn when_button_held_but_frame_cleared_then_action_just_pressed_returns_false() {
     assert!(!result);
 }
 
+/// @doc: Verifies that action_pressed returns false for an unbound mouse action even when the button is pressed.
 #[test]
 fn when_unbound_mouse_action_queried_then_action_pressed_returns_false() {
     // Arrange

@@ -4,8 +4,8 @@
       "test_function_count": 17,
       "total_assertions": 21,
       "trivial_assertions": 0,
-      "truthiness_assertions": 1,
-      "specific_assertions": 20,
+      "truthiness_assertions": 0,
+      "specific_assertions": 21,
       "zero_assertion_functions": 0,
       "assertions_with_message": 0,
       "assertions_without_message": 21,
@@ -29,8 +29,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 427
+      "doc_annotation_count": 17,
+      "line_count": 477
     },
     "crates/axiom2d/tests/suite/splash_animation.rs": {
       "test_function_count": 21,
@@ -509,8 +509,8 @@
       "should_panic_count": 0,
       "error_name_count": 1,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 258
+      "doc_annotation_count": 8,
+      "line_count": 289
     },
     "crates/card_game/tests/suite/card_component.rs": {
       "test_function_count": 9,
@@ -765,8 +765,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 1,
-      "doc_annotation_count": 0,
-      "line_count": 82
+      "doc_annotation_count": 5,
+      "line_count": 90
     },
     "crates/card_game/tests/suite/card_identity_nouns.rs": {
       "test_function_count": 10,
@@ -929,7 +929,7 @@
       "line_count": 203
     },
     "crates/card_game/tests/suite/card_identity_templates.rs": {
-      "test_function_count": 0,
+      "test_function_count": 18,
       "total_assertions": 34,
       "trivial_assertions": 0,
       "truthiness_assertions": 0,
@@ -956,9 +956,9 @@
       "creates_own_fixtures": true,
       "should_panic_count": 0,
       "error_name_count": 0,
-      "edge_name_count": 0,
+      "edge_name_count": 1,
       "doc_annotation_count": 18,
-      "line_count": 392
+      "line_count": 396
     },
     "crates/card_game/tests/suite/card_identity_visual_params.rs": {
       "test_function_count": 18,
@@ -1085,8 +1085,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 2,
-      "line_count": 313
+      "doc_annotation_count": 6,
+      "line_count": 315
     },
     "crates/card_game/tests/suite/card_interaction_damping.rs": {
       "test_function_count": 12,
@@ -1213,8 +1213,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 6,
-      "line_count": 242
+      "doc_annotation_count": 9,
+      "line_count": 260
     },
     "crates/card_game/tests/suite/card_interaction_flip_animation.rs": {
       "test_function_count": 14,
@@ -1278,7 +1278,7 @@
       "error_name_count": 0,
       "edge_name_count": 2,
       "doc_annotation_count": 15,
-      "line_count": 787
+      "line_count": 817
     },
     "crates/card_game/tests/suite/card_interaction_pick.rs": {
       "test_function_count": 15,
@@ -1501,8 +1501,8 @@
       "should_panic_count": 0,
       "error_name_count": 1,
       "edge_name_count": 3,
-      "doc_annotation_count": 27,
-      "line_count": 1321
+      "doc_annotation_count": 29,
+      "line_count": 1330
     },
     "crates/card_game/tests/suite/card_reader_components.rs": {
       "test_function_count": 8,
@@ -1597,11 +1597,11 @@
       "should_panic_count": 0,
       "error_name_count": 1,
       "edge_name_count": 1,
-      "doc_annotation_count": 0,
-      "line_count": 159
+      "doc_annotation_count": 5,
+      "line_count": 164
     },
     "crates/card_game/tests/suite/card_reader_signature_space.rs": {
-      "test_function_count": 0,
+      "test_function_count": 11,
       "total_assertions": 15,
       "trivial_assertions": 0,
       "truthiness_assertions": 0,
@@ -1627,10 +1627,10 @@
       "has_custom_matchers": false,
       "creates_own_fixtures": true,
       "should_panic_count": 0,
-      "error_name_count": 0,
-      "edge_name_count": 0,
+      "error_name_count": 1,
+      "edge_name_count": 2,
       "doc_annotation_count": 11,
-      "line_count": 190
+      "line_count": 203
     },
     "crates/card_game/tests/suite/card_reader_spawn.rs": {
       "test_function_count": 6,
@@ -1661,8 +1661,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 116
+      "doc_annotation_count": 6,
+      "line_count": 129
     },
     "crates/card_game/tests/suite/card_reader_volume.rs": {
       "test_function_count": 10,
@@ -1684,7 +1684,7 @@
       "has_test_only": false,
       "generic_names_count": 0,
       "has_aaa_markers": true,
-      "magic_number_count": 1,
+      "magic_number_count": 0,
       "sleep_wait_count": 0,
       "real_io_count": 0,
       "framework_shows_diff": true,
@@ -1693,8 +1693,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 7,
-      "doc_annotation_count": 0,
-      "line_count": 121
+      "doc_annotation_count": 10,
+      "line_count": 155
     },
     "crates/card_game/tests/suite/card_rendering_art_shader.rs": {
       "test_function_count": 28,
@@ -1981,8 +1981,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 3,
-      "line_count": 97
+      "doc_annotation_count": 4,
+      "line_count": 98
     },
     "crates/card_game/tests/suite/card_rendering_spawn_table_card.rs": {
       "test_function_count": 29,
@@ -2004,7 +2004,7 @@
       "has_test_only": false,
       "generic_names_count": 0,
       "has_aaa_markers": true,
-      "magic_number_count": 3,
+      "magic_number_count": 1,
       "sleep_wait_count": 0,
       "real_io_count": 0,
       "framework_shows_diff": true,
@@ -2013,8 +2013,8 @@
       "should_panic_count": 0,
       "error_name_count": 2,
       "edge_name_count": 3,
-      "doc_annotation_count": 16,
-      "line_count": 1076
+      "doc_annotation_count": 29,
+      "line_count": 1099
     },
     "crates/card_game/tests/suite/card_screen_device.rs": {
       "test_function_count": 11,
@@ -2365,8 +2365,8 @@
       "should_panic_count": 0,
       "error_name_count": 7,
       "edge_name_count": 3,
-      "doc_annotation_count": 5,
-      "line_count": 402
+      "doc_annotation_count": 13,
+      "line_count": 421
     },
     "crates/card_game/tests/suite/stash_layout.rs": {
       "test_function_count": 7,
@@ -2420,7 +2420,7 @@
       "has_test_only": false,
       "generic_names_count": 0,
       "has_aaa_markers": true,
-      "magic_number_count": 9,
+      "magic_number_count": 6,
       "sleep_wait_count": 0,
       "real_io_count": 0,
       "framework_shows_diff": true,
@@ -2429,8 +2429,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 3,
-      "doc_annotation_count": 8,
-      "line_count": 489
+      "doc_annotation_count": 18,
+      "line_count": 525
     },
     "crates/card_game/tests/suite/stash_render.rs": {
       "test_function_count": 23,
@@ -2557,8 +2557,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 44
+      "doc_annotation_count": 2,
+      "line_count": 46
     },
     "crates/card_game/tests/suite/store.rs": {
       "test_function_count": 16,
@@ -2877,8 +2877,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 2,
-      "line_count": 71
+      "doc_annotation_count": 4,
+      "line_count": 73
     },
     "crates/engine_audio/tests/suite/mixer.rs": {
       "test_function_count": 2,
@@ -2941,8 +2941,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 7,
-      "line_count": 196
+      "doc_annotation_count": 8,
+      "line_count": 288
     },
     "crates/engine_audio/tests/suite/playback_system.rs": {
       "test_function_count": 12,
@@ -3485,8 +3485,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 32
+      "doc_annotation_count": 2,
+      "line_count": 34
     },
     "crates/engine_input/tests/suite/keyboard_state.rs": {
       "test_function_count": 16,
@@ -3517,15 +3517,15 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 226
+      "doc_annotation_count": 16,
+      "line_count": 242
     },
     "crates/engine_input/tests/suite/keyboard_system.rs": {
       "test_function_count": 7,
       "total_assertions": 8,
       "trivial_assertions": 0,
-      "truthiness_assertions": 1,
-      "specific_assertions": 7,
+      "truthiness_assertions": 0,
+      "specific_assertions": 8,
       "zero_assertion_functions": 0,
       "assertions_with_message": 0,
       "assertions_without_message": 8,
@@ -3549,15 +3549,15 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 163
+      "doc_annotation_count": 7,
+      "line_count": 173
     },
     "crates/engine_input/tests/suite/mouse_state.rs": {
       "test_function_count": 19,
       "total_assertions": 20,
       "trivial_assertions": 0,
-      "truthiness_assertions": 6,
-      "specific_assertions": 14,
+      "truthiness_assertions": 5,
+      "specific_assertions": 15,
       "zero_assertion_functions": 0,
       "assertions_with_message": 0,
       "assertions_without_message": 20,
@@ -3581,15 +3581,15 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 1,
-      "doc_annotation_count": 0,
-      "line_count": 261
+      "doc_annotation_count": 19,
+      "line_count": 283
     },
     "crates/engine_input/tests/suite/mouse_system.rs": {
       "test_function_count": 8,
       "total_assertions": 10,
       "trivial_assertions": 0,
-      "truthiness_assertions": 2,
-      "specific_assertions": 8,
+      "truthiness_assertions": 1,
+      "specific_assertions": 9,
       "zero_assertion_functions": 0,
       "assertions_with_message": 0,
       "assertions_without_message": 10,
@@ -3613,8 +3613,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 1,
-      "doc_annotation_count": 0,
-      "line_count": 185
+      "doc_annotation_count": 8,
+      "line_count": 196
     },
     "crates/engine_physics/benches/physics.rs": {
       "test_function_count": 0,
@@ -3709,8 +3709,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 44
+      "doc_annotation_count": 2,
+      "line_count": 50
     },
     "crates/engine_physics/tests/suite/hit_test.rs": {
       "test_function_count": 8,
@@ -3837,8 +3837,8 @@
       "should_panic_count": 0,
       "error_name_count": 1,
       "edge_name_count": 1,
-      "doc_annotation_count": 0,
-      "line_count": 99
+      "doc_annotation_count": 4,
+      "line_count": 121
     },
     "crates/engine_physics/tests/suite/physics_sync_system.rs": {
       "test_function_count": 12,
@@ -4020,7 +4020,7 @@
       "has_test_only": false,
       "generic_names_count": 0,
       "has_aaa_markers": true,
-      "magic_number_count": 9,
+      "magic_number_count": 7,
       "sleep_wait_count": 0,
       "real_io_count": 0,
       "framework_shows_diff": true,
@@ -4029,8 +4029,8 @@
       "should_panic_count": 0,
       "error_name_count": 7,
       "edge_name_count": 7,
-      "doc_annotation_count": 16,
-      "line_count": 490
+      "doc_annotation_count": 26,
+      "line_count": 536
     },
     "crates/engine_render/tests/suite/bloom.rs": {
       "test_function_count": 9,
@@ -4093,8 +4093,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 5,
-      "doc_annotation_count": 5,
-      "line_count": 427
+      "doc_annotation_count": 21,
+      "line_count": 455
     },
     "crates/engine_render/tests/suite/clear.rs": {
       "test_function_count": 1,
@@ -4125,8 +4125,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 31
+      "doc_annotation_count": 1,
+      "line_count": 36
     },
     "crates/engine_render/tests/suite/culling.rs": {
       "test_function_count": 10,
@@ -4829,8 +4829,8 @@
       "should_panic_count": 0,
       "error_name_count": 4,
       "edge_name_count": 1,
-      "doc_annotation_count": 3,
-      "line_count": 568
+      "doc_annotation_count": 19,
+      "line_count": 602
     },
     "crates/engine_ui/tests/suite/layout_anchor.rs": {
       "test_function_count": 8,
@@ -4861,8 +4861,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 2,
-      "doc_annotation_count": 0,
-      "line_count": 144
+      "doc_annotation_count": 8,
+      "line_count": 152
     },
     "crates/engine_ui/tests/suite/layout_flex.rs": {
       "test_function_count": 8,
@@ -4925,8 +4925,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 205
+      "doc_annotation_count": 6,
+      "line_count": 231
     },
     "crates/engine_ui/tests/suite/render.rs": {
       "test_function_count": 8,
@@ -5021,8 +5021,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 25
+      "doc_annotation_count": 1,
+      "line_count": 29
     },
     "crates/engine_ui/tests/suite/unified_render.rs": {
       "test_function_count": 13,
@@ -5117,8 +5117,8 @@
       "should_panic_count": 0,
       "error_name_count": 0,
       "edge_name_count": 0,
-      "doc_annotation_count": 0,
-      "line_count": 64
+      "doc_annotation_count": 3,
+      "line_count": 76
     },
     "crates/engine_ui/tests/suite/widget_panel.rs": {
       "test_function_count": 5,

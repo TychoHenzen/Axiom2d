@@ -3,6 +3,7 @@
 use engine_core::prelude::Color;
 use engine_ui::theme::UiTheme;
 
+/// @doc: Verifies that UiTheme roundtrips through RON serialization with all fields preserved
 #[test]
 fn when_ui_theme_roundtrip_ron_then_all_fields_preserved() {
     // Arrange
@@ -20,5 +21,8 @@ fn when_ui_theme_roundtrip_ron_then_all_fields_preserved() {
     let restored: UiTheme = ron::from_str(&ron_str).unwrap();
 
     // Assert
-    assert_eq!(restored, theme);
+    assert_eq!(
+        restored, theme,
+        "UiTheme should survive RON roundtrip with all fields intact"
+    );
 }

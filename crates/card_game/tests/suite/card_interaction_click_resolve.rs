@@ -106,8 +106,7 @@ fn when_card_and_reader_overlap_then_topmost_card_picked() {
     );
 }
 
-/// Calling `spawn_visual_card` attaches `Clickable` and the `on_card_clicked` observer,
-/// so clicking the card at its center produces a `PickCard` intent.
+/// @doc: `spawn_visual_card` attaches `Clickable` and `on_card_clicked` observer — clicking a spawned card produces a `PickCard` intent
 #[test]
 fn when_card_spawned_via_spawn_visual_card_then_click_resolves_to_pick_card() {
     use card_game::card::identity::definition::{
@@ -163,7 +162,7 @@ fn when_card_spawned_via_spawn_visual_card_then_click_resolves_to_pick_card() {
     );
 }
 
-/// Clicking a reader (no card on top) starts reader drag via the observer.
+/// @doc: Clicking a reader (no card on top) starts reader drag via the reader's click observer
 #[test]
 fn when_reader_clicked_alone_then_reader_drag_starts() {
     use card_game::card::reader::spawn::spawn_reader;
@@ -187,10 +186,14 @@ fn when_reader_clicked_alone_then_reader_drag_starts() {
     // Assert
     let reader_drag = world.resource::<card_game::card::reader::ReaderDragState>();
     assert!(reader_drag.dragging.is_some(), "reader drag should start");
-    assert_eq!(reader_drag.dragging.as_ref().unwrap().entity, reader_entity);
+    assert_eq!(
+        reader_drag.dragging.as_ref().unwrap().entity,
+        reader_entity,
+        "reader drag must reference the clicked reader entity"
+    );
 }
 
-/// Clicking a `JackSocket` (from `spawn_screen_device`) sets `PendingCable.source`.
+/// @doc: Clicking a `JackSocket` (from `spawn_screen_device`) sets `PendingCable.source` to the jack entity
 #[test]
 fn when_socket_clicked_then_pending_cable_source_set() {
     use card_game::card::screen_device::spawn_screen_device;
@@ -224,8 +227,7 @@ fn when_socket_clicked_then_pending_cable_source_set() {
     assert_eq!(pending.source, Some(jack_entity));
 }
 
-/// The original double-pick bug: clicking a card sitting on a reader must only
-/// fire the card pick (topmost by `SortOrder`), not also start reader drag.
+/// @doc: Double-pick bug fix: clicking a card sitting on a reader must only fire the card pick (topmost by SortOrder), not also start reader drag
 #[test]
 fn when_card_on_reader_clicked_only_card_picked_not_reader() {
     use card_game::card::identity::definition::{

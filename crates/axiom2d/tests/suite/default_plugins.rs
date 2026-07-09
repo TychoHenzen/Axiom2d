@@ -19,6 +19,7 @@ fn app_with_default_plugins() -> engine_app::prelude::App {
     app
 }
 
+/// @doc: Verifies that a pressed key event is reflected in InputState.just_pressed after a frame runs
 #[test]
 fn when_key_pressed_and_frame_runs_then_input_state_reflects_key() {
     // Arrange
@@ -37,10 +38,12 @@ fn when_key_pressed_and_frame_runs_then_input_state_reflects_key() {
     assert!(
         app.world()
             .resource::<engine_input::prelude::InputState>()
-            .just_pressed(KeyCode::Space)
+            .just_pressed(KeyCode::Space),
+        "InputState should reflect pressed key after frame runs"
     );
 }
 
+/// @doc: Verifies that DeltaTime is updated when the frame advances with a FakeClock
 #[test]
 fn when_frame_advanced_with_fake_clock_then_delta_time_is_updated() {
     // Arrange
@@ -55,9 +58,14 @@ fn when_frame_advanced_with_fake_clock_then_delta_time_is_updated() {
 
     // Assert
     let dt = app.world().resource::<engine_core::prelude::DeltaTime>();
-    assert_eq!(dt.0, engine_core::prelude::Seconds(0.016));
+    assert_eq!(
+        dt.0,
+        engine_core::prelude::Seconds(0.016),
+        "DeltaTime should match the FakeClock advance value"
+    );
 }
 
+/// @doc: Verifies that Children component is created for entities spawned with ChildOf after a frame runs
 #[test]
 fn when_child_of_entity_spawned_then_children_component_created_after_frame() {
     // Arrange
@@ -73,10 +81,12 @@ fn when_child_of_entity_spawned_then_children_component_created_after_frame() {
     assert!(
         app.world()
             .get::<engine_scene::prelude::Children>(parent)
-            .is_some()
+            .is_some(),
+        "Children component should be created on parent after ChildOf hierarchy maintenance"
     );
 }
 
+/// @doc: Verifies that GlobalTransform2D is set correctly for an entity with a Transform2D after a frame runs
 #[test]
 fn when_entity_has_transform2d_then_global_transform_set_after_frame() {
     use engine_core::prelude::{Transform2D, Vec2};
@@ -99,9 +109,14 @@ fn when_entity_has_transform2d_then_global_transform_set_after_frame() {
         .world()
         .get::<engine_scene::prelude::GlobalTransform2D>(entity)
         .expect("GlobalTransform2D should be set");
-    assert_eq!(global.0.translation, Vec2::new(100.0, 200.0));
+    assert_eq!(
+        global.0.translation,
+        Vec2::new(100.0, 200.0),
+        "GlobalTransform2D should reflect the Transform2D position"
+    );
 }
 
+/// @doc: Verifies that EffectiveVisibility is set to false for an entity with Visible(false) after a frame runs
 #[test]
 fn when_entity_has_visible_false_then_effective_visibility_false_after_frame() {
     // Arrange
@@ -119,9 +134,10 @@ fn when_entity_has_visible_false_then_effective_visibility_false_after_frame() {
         .world()
         .get::<engine_scene::prelude::EffectiveVisibility>(entity)
         .expect("EffectiveVisibility should be set");
-    assert!(!eff.0);
+    assert!(!eff.0, "Entity with Visible(false) should have EffectiveVisibility(false)");
 }
 
+/// @doc: Verifies that the renderer's clear method is called when a renderer is injected and a frame runs
 #[cfg(feature = "render")]
 #[test]
 fn when_renderer_injected_and_frame_runs_then_clear_called() {
@@ -138,9 +154,13 @@ fn when_renderer_injected_and_frame_runs_then_clear_called() {
 
     // Assert
     let calls = log.lock().unwrap();
-    assert!(calls.contains(&"clear".to_string()));
+    assert!(
+        calls.contains(&"clear".to_string()),
+        "renderer clear should be called each frame"
+    );
 }
 
+/// @doc: Verifies that draw_sprite is called when a sprite entity exists and a frame runs
 #[cfg(feature = "render")]
 #[test]
 fn when_sprite_entity_exists_and_frame_runs_then_draw_sprite_called() {
@@ -173,9 +193,13 @@ fn when_sprite_entity_exists_and_frame_runs_then_draw_sprite_called() {
 
     // Assert
     let calls = log.lock().unwrap();
-    assert!(calls.iter().any(|c| c.starts_with("draw_sprite")));
+    assert!(
+        calls.iter().any(|c| c.starts_with("draw_sprite")),
+        "renderer draw_sprite should be called when a sprite entity exists"
+    );
 }
 
+/// @doc: Verifies that draw_shape is called when a shape entity exists and a frame runs
 #[cfg(feature = "render")]
 #[test]
 fn when_shape_entity_exists_and_frame_runs_then_draw_shape_called() {
@@ -205,9 +229,13 @@ fn when_shape_entity_exists_and_frame_runs_then_draw_shape_called() {
 
     // Assert
     let calls = log.lock().unwrap();
-    assert!(calls.iter().any(|c| c.starts_with("draw_shape")));
+    assert!(
+        calls.iter().any(|c| c.starts_with("draw_shape")),
+        "renderer draw_shape should be called when a shape entity exists"
+    );
 }
 
+/// @doc: Verifies that upload_atlas is called when a TextureAtlas is inserted and a frame runs
 #[cfg(feature = "render")]
 #[test]
 fn when_atlas_inserted_and_frame_runs_then_upload_atlas_called() {
@@ -231,9 +259,13 @@ fn when_atlas_inserted_and_frame_runs_then_upload_atlas_called() {
 
     // Assert
     let calls = log.lock().unwrap();
-    assert!(calls.contains(&"upload_atlas".to_string()));
+    assert!(
+        calls.contains(&"upload_atlas".to_string()),
+        "renderer upload_atlas should be called when a TextureAtlas is present"
+    );
 }
 
+/// @doc: Verifies that upload_atlas runs before draw_sprite in the same frame when both atlas and sprite are present
 #[cfg(feature = "render")]
 #[test]
 fn when_atlas_uploaded_then_draw_sprite_also_called_same_frame() {
@@ -283,6 +315,7 @@ fn when_atlas_uploaded_then_draw_sprite_also_called_same_frame() {
     );
 }
 
+/// @doc: Verifies that the PlaySound event bus resource is present when the audio feature is enabled
 #[cfg(feature = "audio")]
 #[test]
 fn when_audio_feature_on_then_play_sound_bus_is_present() {
@@ -293,10 +326,12 @@ fn when_audio_feature_on_then_play_sound_bus_is_present() {
     assert!(
         app.world()
             .get_resource::<engine_core::prelude::EventBus<engine_audio::playback::PlaySound>>()
-            .is_some()
+            .is_some(),
+        "PlaySound event bus should be registered when audio feature is on"
     );
 }
 
+/// @doc: Verifies that AudioRes is present when the audio feature is enabled
 #[cfg(feature = "audio")]
 #[test]
 fn when_audio_feature_on_then_audio_res_is_present() {
@@ -307,10 +342,12 @@ fn when_audio_feature_on_then_audio_res_is_present() {
     assert!(
         app.world()
             .get_resource::<engine_audio::audio_res::AudioRes>()
-            .is_some()
+            .is_some(),
+        "AudioRes should be registered when audio feature is on"
     );
 }
 
+/// @doc: Verifies that a pressed mouse button is reflected in MouseState.just_pressed after a frame runs
 #[test]
 fn when_mouse_button_pressed_and_frame_runs_then_mouse_state_reflects_button() {
     // Arrange
@@ -329,10 +366,12 @@ fn when_mouse_button_pressed_and_frame_runs_then_mouse_state_reflects_button() {
     assert!(
         app.world()
             .resource::<engine_input::prelude::MouseState>()
-            .just_pressed(MouseButton::Left)
+            .just_pressed(MouseButton::Left),
+        "MouseState should reflect pressed mouse button after frame runs"
     );
 }
 
+/// @doc: Verifies that just_pressed is cleared on the second frame while pressed remains true
 #[test]
 fn when_mouse_button_pressed_and_two_frames_run_then_just_pressed_cleared() {
     // Arrange
@@ -350,10 +389,17 @@ fn when_mouse_button_pressed_and_two_frames_run_then_just_pressed_cleared() {
 
     // Assert
     let mouse = app.world().resource::<engine_input::prelude::MouseState>();
-    assert!(!mouse.just_pressed(MouseButton::Left));
-    assert!(mouse.pressed(MouseButton::Left));
+    assert!(
+        !mouse.just_pressed(MouseButton::Left),
+        "just_pressed should be cleared after the second frame"
+    );
+    assert!(
+        mouse.pressed(MouseButton::Left),
+        "pressed should remain true after the second frame"
+    );
 }
 
+/// @doc: Verifies that compile_shader is called when a shader is registered and a frame runs
 #[cfg(feature = "render")]
 #[test]
 fn when_shader_registered_and_frame_runs_then_compile_shader_called() {
@@ -379,6 +425,7 @@ fn when_shader_registered_and_frame_runs_then_compile_shader_called() {
     );
 }
 
+/// @doc: Verifies that just_pressed is false on the second frame while pressed remains true for a key event
 #[test]
 fn when_key_pressed_and_second_frame_runs_then_just_pressed_is_false() {
     // Arrange
@@ -398,15 +445,18 @@ fn when_key_pressed_and_second_frame_runs_then_just_pressed_is_false() {
     assert!(
         !app.world()
             .resource::<engine_input::prelude::InputState>()
-            .just_pressed(KeyCode::Space)
+            .just_pressed(KeyCode::Space),
+        "just_pressed should be cleared after the second frame with no new events"
     );
     assert!(
         app.world()
             .resource::<engine_input::prelude::InputState>()
-            .pressed(KeyCode::Space)
+            .pressed(KeyCode::Space),
+        "pressed should remain true after the second frame"
     );
 }
 
+/// @doc: Verifies that inserting SkipSplash causes a sentinel SplashScreen with done=true to be inserted
 #[test]
 fn when_skip_splash_inserted_then_splash_screen_is_done() {
     // Arrange

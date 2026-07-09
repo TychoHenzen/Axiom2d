@@ -46,6 +46,7 @@ fn spawn_combiner(world: &mut World) -> (Entity, Entity, Entity, Entity) {
     (device, input_a, input_b, output)
 }
 
+/// @doc: When both combiner inputs are None, the output remains None — no signal to combine
 #[test]
 fn when_both_inputs_none_then_output_is_none() {
     // Arrange
@@ -57,9 +58,10 @@ fn when_both_inputs_none_then_output_is_none() {
 
     // Assert
     let jack = world.get::<Jack<SignatureSpace>>(output).unwrap();
-    assert!(jack.data.is_none());
+    assert!(jack.data.is_none(), "output should be None when both inputs are None");
 }
 
+/// @doc: When only input A has a signal, the output passes it through unchanged
 #[test]
 fn when_only_input_a_has_signal_then_output_passes_through() {
     // Arrange
@@ -73,9 +75,14 @@ fn when_only_input_a_has_signal_then_output_passes_through() {
 
     // Assert
     let jack = world.get::<Jack<SignatureSpace>>(output).unwrap();
-    assert_eq!(jack.data.as_ref(), Some(&signal));
+    assert_eq!(
+        jack.data.as_ref(),
+        Some(&signal),
+        "single-input signal should pass through to output"
+    );
 }
 
+/// @doc: When only input B has a signal, the output passes it through unchanged (symmetric to input A)
 #[test]
 fn when_only_input_b_has_signal_then_output_passes_through() {
     // Arrange
@@ -89,9 +96,14 @@ fn when_only_input_b_has_signal_then_output_passes_through() {
 
     // Assert
     let jack = world.get::<Jack<SignatureSpace>>(output).unwrap();
-    assert_eq!(jack.data.as_ref(), Some(&signal));
+    assert_eq!(
+        jack.data.as_ref(),
+        Some(&signal),
+        "single-input signal on input B should pass through to output"
+    );
 }
 
+/// @doc: Two signals are merged into a single SignatureSpace with combined control points
 #[test]
 fn when_both_inputs_have_signals_then_output_combines_control_points() {
     // Arrange
@@ -113,10 +125,17 @@ fn when_both_inputs_have_signals_then_output_combines_control_points() {
         2,
         "must have 2 control points"
     );
-    assert_eq!(combined.control_points[0], sig_a.control_points[0]);
-    assert_eq!(combined.control_points[1], sig_b.control_points[0]);
+    assert_eq!(
+        combined.control_points[0], sig_a.control_points[0],
+        "first control point should match signal A"
+    );
+    assert_eq!(
+        combined.control_points[1], sig_b.control_points[0],
+        "second control point should match signal B"
+    );
 }
 
+/// @doc: Combined volume is the sum of individual input sphere volumes
 #[test]
 fn when_both_inputs_have_signals_then_output_volume_is_sum() {
     // Arrange
@@ -144,6 +163,7 @@ fn when_both_inputs_have_signals_then_output_volume_is_sum() {
     );
 }
 
+/// @doc: Chained combiners merge and sort control points from multiple upstream signals
 #[test]
 fn when_combiner_chained_then_points_merged_and_sorted() {
     // Arrange — two combiners: C1 merges A+B, C2 takes C1's output + C
@@ -183,18 +203,22 @@ fn when_combiner_chained_then_points_merged_and_sorted() {
     );
     assert_eq!(
         combined.control_points[0],
-        CardSignature::new([0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        CardSignature::new([0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        "control point 0 should be sig_a"
     );
     assert_eq!(
         combined.control_points[1],
-        CardSignature::new([0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        CardSignature::new([0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        "control point 1 should be sig_c"
     );
     assert_eq!(
         combined.control_points[2],
-        CardSignature::new([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        CardSignature::new([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        "control point 2 should be sig_b"
     );
 }
 
+/// @doc: Swapping input order between two combiners with identical signals produces identical output
 #[test]
 fn when_canonical_sort_then_same_points_different_order_produce_identical_output() {
     // Arrange
@@ -237,6 +261,7 @@ fn when_canonical_sort_then_same_points_different_order_produce_identical_output
     );
 }
 
+/// @doc: A combined capsule-space contains midpoints between control points but rejects distant points
 #[test]
 fn when_capsule_contains_midpoint_then_returns_true_and_far_point_false() {
     // Arrange
@@ -249,9 +274,15 @@ fn when_capsule_contains_midpoint_then_returns_true_and_far_point_false() {
 
     // Act / Assert — midpoint of segment is inside the capsule
     let midpoint = CardSignature::new([0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-    assert!(capsule.contains(&midpoint));
+    assert!(
+        capsule.contains(&midpoint),
+        "midpoint between control points should be inside capsule"
+    );
 
     // Act / Assert — point far from the segment is outside
     let far = CardSignature::new([0.25, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-    assert!(!capsule.contains(&far));
+    assert!(
+        !capsule.contains(&far),
+        "point far from segment should be outside capsule"
+    );
 }

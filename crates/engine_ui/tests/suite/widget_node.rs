@@ -5,6 +5,7 @@ use engine_ui::layout::{Anchor, FlexDirection, FlexLayout, Margin};
 use engine_ui::widget::{Text, UiNode};
 use glam::Vec2;
 
+/// @doc: Verifies that UiNode roundtrips through RON serialization with all fields preserved
 #[test]
 fn when_ui_node_roundtrip_ron_then_preserved() {
     // Arrange
@@ -25,9 +26,13 @@ fn when_ui_node_roundtrip_ron_then_preserved() {
     let restored: UiNode = ron::from_str(&ron_str).unwrap();
 
     // Assert
-    assert_eq!(restored, node);
+    assert_eq!(
+        restored, node,
+        "UiNode should survive RON roundtrip with all fields intact"
+    );
 }
 
+/// @doc: Verifies that FlexLayout roundtrips through RON serialization with all fields preserved
 #[test]
 fn when_flex_layout_roundtrip_ron_then_preserved() {
     // Arrange
@@ -41,9 +46,13 @@ fn when_flex_layout_roundtrip_ron_then_preserved() {
     let restored: FlexLayout = ron::from_str(&ron_str).unwrap();
 
     // Assert
-    assert_eq!(restored, layout);
+    assert_eq!(
+        restored, layout,
+        "FlexLayout should survive RON roundtrip with all fields intact"
+    );
 }
 
+/// @doc: Verifies that Text roundtrips through RON serialization with all fields preserved
 #[test]
 fn when_text_roundtrip_ron_then_preserved() {
     // Arrange
@@ -59,5 +68,8 @@ fn when_text_roundtrip_ron_then_preserved() {
     let restored: Text = ron::from_str(&ron_str).unwrap();
 
     // Assert
-    assert_eq!(restored, text);
+    assert_eq!(
+        restored, text,
+        "Text should survive RON roundtrip with all fields intact"
+    );
 }

@@ -106,6 +106,7 @@ fn when_ctrl_held_and_cursor_over_occupied_slot_and_no_drag_then_hovered_entity_
     assert_eq!(preview.hovered_entity, Some(card_entity));
 }
 
+/// @doc: When the stash is hidden, the hover preview must not activate regardless of cursor position or Ctrl state.
 #[test]
 fn when_stash_hidden_then_hovered_entity_none() {
     // Arrange
@@ -121,7 +122,8 @@ fn when_stash_hidden_then_hovered_entity_none() {
         world
             .resource::<StashHoverPreview>()
             .hovered_entity
-            .is_none()
+            .is_none(),
+        "hovered entity must be None when stash is hidden"
     );
 }
 
@@ -141,10 +143,12 @@ fn when_no_ctrl_pressed_then_hovered_entity_none() {
         world
             .resource::<StashHoverPreview>()
             .hovered_entity
-            .is_none()
+            .is_none(),
+        "hovered entity must be None when no Ctrl is pressed"
     );
 }
 
+/// @doc: Right Ctrl key is equivalent to Left Ctrl for triggering the hover preview.
 #[test]
 fn when_ctrl_right_pressed_then_hovered_entity_set() {
     // Arrange
@@ -160,10 +164,12 @@ fn when_ctrl_right_pressed_then_hovered_entity_set() {
     // Assert
     assert_eq!(
         world.resource::<StashHoverPreview>().hovered_entity,
-        Some(card_entity)
+        Some(card_entity),
+        "Right Ctrl should trigger hover preview the same as Left Ctrl"
     );
 }
 
+/// @doc: Cursor over an empty stash slot must not activate the hover preview.
 #[test]
 fn when_cursor_over_empty_slot_then_hovered_entity_none() {
     // Arrange
@@ -184,10 +190,12 @@ fn when_cursor_over_empty_slot_then_hovered_entity_none() {
         world
             .resource::<StashHoverPreview>()
             .hovered_entity
-            .is_none()
+            .is_none(),
+        "hovered entity must be None when cursor is over an empty slot"
     );
 }
 
+/// @doc: Cursor far outside the stash area must not activate the hover preview.
 #[test]
 fn when_cursor_outside_stash_area_then_hovered_entity_none() {
     // Arrange
@@ -205,7 +213,8 @@ fn when_cursor_outside_stash_area_then_hovered_entity_none() {
         world
             .resource::<StashHoverPreview>()
             .hovered_entity
-            .is_none()
+            .is_none(),
+        "hovered entity must be None when cursor is far from stash area"
     );
 }
 
@@ -233,10 +242,12 @@ fn when_drag_active_then_hovered_entity_none() {
         world
             .resource::<StashHoverPreview>()
             .hovered_entity
-            .is_none()
+            .is_none(),
+        "hovered entity must be None when a drag is active"
     );
 }
 
+/// @doc: When preview conditions fail after having been met, the hovered entity must be cleared the next frame.
 #[test]
 fn when_conditions_fail_after_hovering_then_hovered_entity_cleared() {
     // Arrange — first frame: hover
@@ -245,7 +256,8 @@ fn when_conditions_fail_after_hovering_then_hovered_entity_cleared() {
     run_system(&mut world);
     assert_eq!(
         world.resource::<StashHoverPreview>().hovered_entity,
-        Some(card_entity)
+        Some(card_entity),
+        "first frame should establish hover"
     );
 
     // Arrange — second frame: release Ctrl
@@ -259,7 +271,8 @@ fn when_conditions_fail_after_hovering_then_hovered_entity_cleared() {
         world
             .resource::<StashHoverPreview>()
             .hovered_entity
-            .is_none()
+            .is_none(),
+        "hovered entity must be cleared when Ctrl is released"
     );
 }
 
@@ -295,6 +308,7 @@ fn spawn_card_in_world(world: &mut World) -> Entity {
     )
 }
 
+/// @doc: When nothing is hovered, no colored mesh draw calls are produced by the render system.
 #[test]
 fn when_hovered_entity_none_then_no_colored_mesh_drawn() {
     // Arrange
@@ -337,6 +351,7 @@ fn when_hovered_entity_set_then_baked_front_mesh_drawn() {
     );
 }
 
+/// @doc: When the viewport has zero area, the render system must not produce draw calls (no division by zero).
 #[test]
 fn when_viewport_zero_then_no_mesh_drawn() {
     use engine_core::prelude::{DeltaTime, Seconds};
@@ -363,7 +378,10 @@ fn when_viewport_zero_then_no_mesh_drawn() {
 
     // Assert
     let calls = mesh_log.lock().unwrap();
-    assert!(calls.is_empty());
+    assert!(
+        calls.is_empty(),
+        "no mesh should be drawn when viewport is zero-area"
+    );
 }
 
 /// @doc: The Lissajous orbit must return zero at t=0 so the fake cursor starts at
@@ -381,6 +399,7 @@ fn when_lissajous_at_time_zero_then_offset_is_zero() {
     );
 }
 
+/// @doc: Lissajous offset must never exceed the ORBIT_AMPLITUDE-scaled half-extents at any time sample.
 #[test]
 fn when_lissajous_at_any_time_then_within_amplitude_bounds() {
     // Arrange — sample many time points

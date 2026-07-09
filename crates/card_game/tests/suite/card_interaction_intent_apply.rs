@@ -62,9 +62,19 @@ fn when_pick_card_table_intent_applied_then_drag_state_set_with_correct_entity_a
         .resource::<DragState>()
         .dragging
         .expect("DragState should be Some after applying PickCard intent");
-    assert_eq!(drag.entity, card_entity);
-    assert_eq!(drag.origin_zone, CardZone::Table);
-    assert!(!drag.stash_cursor_follow);
+    assert_eq!(
+        drag.entity, card_entity,
+        "DragState should reference the picked card entity"
+    );
+    assert_eq!(
+        drag.origin_zone,
+        CardZone::Table,
+        "origin_zone should match the card's zone on pick"
+    );
+    assert!(
+        !drag.stash_cursor_follow,
+        "table pick should not set stash cursor follow"
+    );
 }
 
 /// @doc: A `PickCard` intent for a Table card must issue a `SetCollisionGroup` command with both
@@ -211,14 +221,18 @@ fn when_pick_from_stash_intent_applied_then_drag_state_set_and_slot_vacated() {
         .resource::<DragState>()
         .dragging
         .expect("DragState should be Some after applying PickFromStash");
-    assert_eq!(drag.entity, card_entity);
+    assert_eq!(
+        drag.entity, card_entity,
+        "DragState should reference the picked card entity"
+    );
     assert_eq!(
         drag.origin_zone,
         CardZone::Stash {
             page: 0,
             col: 2,
             row: 3,
-        }
+        },
+        "origin_zone should match the stash slot coordinates"
     );
     assert!(
         drag.stash_cursor_follow,
@@ -390,7 +404,10 @@ fn when_release_on_table_with_snap_back_then_position_restored() {
     world.flush();
 
     // Assert
-    assert!(world.resource::<DragState>().dragging.is_none());
+    assert!(
+        world.resource::<DragState>().dragging.is_none(),
+        "DragState must be cleared after release with snap_back"
+    );
     let transform = world.entity(card_entity).get::<Transform2D>().unwrap();
     assert_eq!(
         transform.position,
@@ -436,8 +453,14 @@ fn when_release_on_hand_intent_applied_then_card_added_to_hand_and_physics_remov
     world.flush();
 
     // Assert
-    assert!(world.resource::<DragState>().dragging.is_none());
-    assert!(world.resource::<Hand>().cards().contains(&card_entity));
+    assert!(
+        world.resource::<DragState>().dragging.is_none(),
+        "DragState must be cleared after release on hand"
+    );
+    assert!(
+        world.resource::<Hand>().cards().contains(&card_entity),
+        "card must be added to Hand resource on release to hand"
+    );
     let physics: Vec<_> = world
         .resource_mut::<EventBus<PhysicsCommand>>()
         .drain()
@@ -533,7 +556,10 @@ fn when_release_on_hand_but_hand_full_then_card_stays_on_table() {
     world.flush();
 
     // Assert
-    assert!(world.resource::<DragState>().dragging.is_none());
+    assert!(
+        world.resource::<DragState>().dragging.is_none(),
+        "DragState must be cleared when release to full hand"
+    );
     assert!(
         !world.resource::<Hand>().cards().contains(&card_entity),
         "card should not be in full hand"
@@ -576,10 +602,14 @@ fn when_release_on_stash_intent_applied_then_card_placed_in_grid() {
     run_system(&mut world);
 
     // Assert
-    assert!(world.resource::<DragState>().dragging.is_none());
+    assert!(
+        world.resource::<DragState>().dragging.is_none(),
+        "DragState must be cleared after release on stash"
+    );
     assert_eq!(
         world.resource::<StashGrid>().get(0, 3, 2),
-        Some(&card_entity)
+        Some(&card_entity),
+        "card must be placed in the target stash slot"
     );
     let physics: Vec<_> = world
         .resource_mut::<EventBus<PhysicsCommand>>()

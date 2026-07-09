@@ -1,6 +1,7 @@
 use engine_physics::collider::Collider;
 use glam::Vec2;
 
+/// @doc: Verifies that convex polygon collider debug formatting matches the expected snapshot.
 #[test]
 fn when_convex_polygon_collider_debug_formatted_then_snapshot_matches() {
     // Arrange
@@ -19,6 +20,7 @@ fn when_convex_polygon_collider_debug_formatted_then_snapshot_matches() {
     insta::assert_snapshot!(debug);
 }
 
+/// @doc: Verifies that all collider variants (Circle, Aabb, ConvexPolygon) survive RON serialization round-trip with equal values.
 #[test]
 fn when_collider_variants_serialized_to_ron_then_each_deserializes_to_equal_value() {
     // Arrange
@@ -38,6 +40,10 @@ fn when_collider_variants_serialized_to_ron_then_each_deserializes_to_equal_valu
         let back: Collider = ron::from_str(&ron).unwrap();
 
         // Assert
-        assert_eq!(*collider, back);
+        assert_eq!(
+            *collider, back,
+            "collider variant {:?} failed RON round-trip",
+            collider
+        );
     }
 }

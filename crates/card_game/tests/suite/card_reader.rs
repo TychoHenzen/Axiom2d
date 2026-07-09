@@ -51,6 +51,7 @@ fn run_insert(world: &mut World) {
     schedule.run(world);
 }
 
+/// @doc: Clicking a reader entity triggers the observer, setting `ReaderDragState` with the correct grab offset
 #[test]
 fn when_reader_clicked_then_starts_reader_drag() {
     // Arrange
@@ -89,10 +90,12 @@ fn when_reader_clicked_then_starts_reader_drag() {
         Some(DeviceDragInfo {
             entity: reader,
             grab_offset: Vec2::new(10.0, -5.0),
-        })
+        }),
+        "reader drag state must contain the reader entity and correct cursor offset"
     );
 }
 
+/// @doc: Mouse release while dragging a reader clears `ReaderDragState` so the reader stops following the cursor
 #[test]
 fn when_mouse_released_while_reader_dragging_then_clears_reader_drag() {
     // Arrange
@@ -114,7 +117,10 @@ fn when_mouse_released_while_reader_dragging_then_clears_reader_drag() {
     run_reader_release(&mut world);
 
     // Assert
-    assert!(world.resource::<ReaderDragState>().dragging.is_none());
+    assert!(
+        world.resource::<ReaderDragState>().dragging.is_none(),
+        "reader drag should be cleared after mouse release"
+    );
 }
 
 // Canonical signature used in insert/eject scenario helpers — shared so
@@ -270,7 +276,10 @@ fn when_no_readers_then_no_angular_velocity_commands() {
     run_rotation_lock(&mut world);
 
     // Assert
-    assert!(world.resource::<EventBus<PhysicsCommand>>().is_empty());
+    assert!(
+        world.resource::<EventBus<PhysicsCommand>>().is_empty(),
+        "no readers means no SetAngularVelocity commands should be queued"
+    );
 }
 
 /// @doc: After migration to the physics command layer, the rotation-lock system
