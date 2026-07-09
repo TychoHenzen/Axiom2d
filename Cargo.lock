@@ -3519,6 +3519,7 @@ dependencies = [
  "rand",
  "rand_chacha",
  "terrain",
+ "tracing",
  "tracing-subscriber",
 ]
 

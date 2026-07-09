@@ -4,6 +4,7 @@ use std::fmt::Write as _;
 
 use axiom2d::prelude::*;
 use bytemuck::bytes_of;
+use tracing::warn;
 use engine_ecs::schedule::Phase;
 use engine_input::mouse::{MouseButton, MouseState};
 use engine_render::camera::Camera2D;
@@ -386,7 +387,10 @@ fn generate_wfc_grid(
             }
             dual
         }
-        Err(_) => DualGrid::new(width, height, TerrainId(0)),
+        Err(_) => {
+            warn!("WFC grid collapse failed: seed={seed}");
+            DualGrid::new(width, height, TerrainId(0))
+        }
     }
 }
 
@@ -401,25 +405,38 @@ fn terrain_input_system(
     mut wfc_generate: ResMut<WfcGenerateRequested>,
     mut query: Query<&mut Material2d>,
 ) {
-    // Mode toggle
+    handle_mode_requests(&input, &mut mode_switch, &mut wfc_generate, &mut wfc_state);
+    let changed = handle_terrain_selection(&input, &mut selected, materials.0.len());
+    let changed = handle_parameter_adjustment(&input, &mut materials.0[selected.0]) || changed;
+    if changed && *mode == ViewerMode::SingleMaterial {
+        update_single_material_quad(quad, &mut query, &materials.0[selected.0]);
+    }
+}
+
+fn handle_mode_requests(
+    input: &InputState,
+    mode_switch: &mut ModeSwitchRequested,
+    wfc_generate: &mut WfcGenerateRequested,
+    wfc_state: &mut WfcState,
+) {
     if input.just_pressed(KeyCode::Tab) {
         mode_switch.0 = true;
     }
-
-    // G: generate WFC grid (current seed)
     if input.just_pressed(KeyCode::KeyG) {
         wfc_generate.0 = true;
     }
-    // N: re-roll seed and generate
     if input.just_pressed(KeyCode::KeyN) {
         wfc_state.seed += 1;
         wfc_generate.0 = true;
     }
+}
 
-    let count = materials.0.len();
+fn handle_terrain_selection(
+    input: &InputState,
+    selected: &mut SelectedTerrain,
+    count: usize,
+) -> bool {
     let mut changed = false;
-
-    // --- Terrain type switching ---
     if input.just_pressed(KeyCode::ArrowRight) || input.just_pressed(KeyCode::KeyD) {
         selected.0 = (selected.0 + 1) % count;
         changed = true;
@@ -428,64 +445,52 @@ fn terrain_input_system(
         selected.0 = (selected.0 + count - 1) % count;
         changed = true;
     }
-    let key_map = [
-        KeyCode::Digit1,
-        KeyCode::Digit2,
-        KeyCode::Digit3,
-        KeyCode::Digit4,
-        KeyCode::Digit5,
-        KeyCode::Digit6,
-    ];
+    let key_map = [KeyCode::Digit1, KeyCode::Digit2, KeyCode::Digit3, KeyCode::Digit4, KeyCode::Digit5, KeyCode::Digit6];
     for (i, key) in key_map.iter().enumerate() {
         if i < count && input.just_pressed(*key) {
             selected.0 = i;
             changed = true;
         }
     }
+    changed
+}
 
-    // --- Parameter adjustment ---
-    let step = if input.pressed(KeyCode::ShiftLeft) {
-        0.5
-    } else {
-        0.1
+fn handle_parameter_adjustment(input: &InputState, mat: &mut TerrainMaterial) -> bool {
+    let step = if input.pressed(KeyCode::ShiftLeft) { 0.5 } else { 0.1 };
+    let mut changed = false;
+
+    let mut adjust = |index: usize, delta: f32, min: f32, _max: f32| {
+        let new = (mat.params[index] + delta).max(min);
+        if new != mat.params[index] {
+            mat.params[index] = new;
+            changed = true;
+        }
     };
-    let mat = &mut materials.0[selected.0];
+    macro_rules! mul {
+        ($key:expr, $idx:expr, $scale:expr, $min:expr, $max:expr) => {
+            if input.just_pressed($key) {
+                adjust($idx, step * $scale, $min, $max);
+            }
+        };
+    }
+    mul!(KeyCode::KeyQ, 0, -1.0, 0.1, 100.0);
+    mul!(KeyCode::KeyW, 0, 1.0, 0.1, 100.0);
+    mul!(KeyCode::KeyE, 1, -0.5, 0.0, 10.0);
+    mul!(KeyCode::KeyR, 1, 0.5, 0.0, 10.0);
+    mul!(KeyCode::KeyT, 2, -0.5, 0.0, 10.0);
+    mul!(KeyCode::KeyY, 2, 0.5, 0.0, 10.0);
+    changed
+}
 
-    // Q/W: frequency
-    if input.just_pressed(KeyCode::KeyQ) {
-        mat.params[0] = (mat.params[0] - step).max(0.1);
-        changed = true;
-    }
-    if input.just_pressed(KeyCode::KeyW) {
-        mat.params[0] += step;
-        changed = true;
-    }
-    // E/R: amplitude
-    if input.just_pressed(KeyCode::KeyE) {
-        mat.params[1] = (mat.params[1] - step * 0.5).max(0.0);
-        changed = true;
-    }
-    if input.just_pressed(KeyCode::KeyR) {
-        mat.params[1] += step * 0.5;
-        changed = true;
-    }
-    // T/Y: warp strength
-    if input.just_pressed(KeyCode::KeyT) {
-        mat.params[2] = (mat.params[2] - step * 0.5).max(0.0);
-        changed = true;
-    }
-    if input.just_pressed(KeyCode::KeyY) {
-        mat.params[2] += step * 0.5;
-        changed = true;
-    }
-
-    // Only update the single quad in SingleMaterial mode
-    if changed
-        && *mode == ViewerMode::SingleMaterial
-        && let Some(ref quad) = quad
+fn update_single_material_quad(
+    quad: Option<Res<TerrainQuadEntity>>,
+    query: &mut Query<&mut Material2d>,
+    mat: &TerrainMaterial,
+) {
+    if let Some(ref quad) = quad
         && let Ok(mut mat2d) = query.get_mut(quad.0)
     {
-        mat2d.uniforms = build_single_material_uniform(&materials.0[selected.0]);
+        mat2d.uniforms = build_single_material_uniform(mat);
     }
 }
 
@@ -505,20 +510,23 @@ fn mode_switch_system(world: &mut World) {
     let materials = world.resource::<TerrainMaterials>().clone();
     let selected = world.resource::<SelectedTerrain>().0;
 
-    // Determine target mode
-    let target = if gen_requested {
-        ViewerMode::WfcGrid
-    } else {
-        // Tab cycles
-        match current_mode {
-            ViewerMode::SingleMaterial => ViewerMode::DualGrid,
-            ViewerMode::DualGrid => ViewerMode::WfcGrid,
-            ViewerMode::WfcGrid => ViewerMode::SingleMaterial,
-        }
-    };
+    let target = if gen_requested { ViewerMode::WfcGrid } else { next_mode(current_mode) };
 
-    // Clean up current mode
-    match current_mode {
+    cleanup_current_mode(world, current_mode);
+    spawn_target_mode(world, target, shader, &materials.0, selected);
+    world.insert_resource(target);
+}
+
+fn next_mode(current: ViewerMode) -> ViewerMode {
+    match current {
+        ViewerMode::SingleMaterial => ViewerMode::DualGrid,
+        ViewerMode::DualGrid => ViewerMode::WfcGrid,
+        ViewerMode::WfcGrid => ViewerMode::SingleMaterial,
+    }
+}
+
+fn cleanup_current_mode(world: &mut World, mode: ViewerMode) {
+    match mode {
         ViewerMode::SingleMaterial => {
             let quad_entity = world.resource::<TerrainQuadEntity>().0;
             world.despawn(quad_entity);
@@ -530,47 +538,42 @@ fn mode_switch_system(world: &mut World) {
             }
         }
     }
+}
 
-    // Set up target mode
+fn spawn_target_mode(
+    world: &mut World,
+    target: ViewerMode,
+    shader: engine_render::shader::ShaderHandle,
+    materials: &[TerrainMaterial],
+    selected: usize,
+) {
     match target {
         ViewerMode::SingleMaterial => {
             let mesh = build_quad_mesh(350.0);
-            let uniforms = build_single_material_uniform(&materials.0[selected]);
-
+            let uniforms = build_single_material_uniform(&materials[selected]);
             let entity = world
                 .spawn((
-                    Transform2D {
-                        position: Vec2::ZERO,
-                        rotation: 0.0,
-                        scale: Vec2::ONE,
-                    },
+                    Transform2D { position: Vec2::ZERO, rotation: 0.0, scale: Vec2::ONE },
                     GlobalTransform2D(Affine2::IDENTITY),
                     ColorMesh(mesh),
-                    Material2d {
-                        shader,
-                        uniforms,
-                        ..Material2d::default()
-                    },
+                    Material2d { shader, uniforms, ..Material2d::default() },
                     RenderLayer::Background,
                     SortOrder::default(),
                 ))
                 .id();
-
             world.insert_resource(TerrainQuadEntity(entity));
         }
         ViewerMode::DualGrid => {
-            let entities = spawn_dual_grid(world, shader, &materials.0);
+            let entities = spawn_dual_grid(world, shader, materials);
             world.insert_resource(GridTileEntities(entities));
         }
         ViewerMode::WfcGrid => {
             let seed = world.resource::<WfcState>().seed;
-            let grid = generate_wfc_grid(&materials.0, 20, 15, seed);
-            let entities = spawn_grid_tiles(world, &grid, shader, &materials.0, 60.0);
+            let grid = generate_wfc_grid(materials, 20, 15, seed);
+            let entities = spawn_grid_tiles(world, &grid, shader, materials, 60.0);
             world.insert_resource(GridTileEntities(entities));
         }
     }
-
-    world.insert_resource(target);
 }
 
 fn hud_update_system(
