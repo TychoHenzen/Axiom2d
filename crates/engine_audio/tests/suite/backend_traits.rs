@@ -118,3 +118,43 @@ fn when_play_on_all_tracks_then_play_count_accumulates() {
     // Assert
     assert_eq!(backend.play_count(), 5, "play count should be 5 after one play on each of 5 tracks");
 }
+
+/// @doc: A freshly created NullAudioBackend has a play count of zero.
+#[test]
+fn when_backend_new_then_play_count_zero() {
+    // Arrange / Act
+    let backend = NullAudioBackend::new();
+
+    // Assert
+    assert_eq!(backend.play_count(), 0, "new backend should have zero play count");
+}
+
+/// @doc: Calling set_volume on NullAudioBackend is a no-op and does not alter play count.
+#[test]
+fn when_set_volume_then_play_count_unchanged() {
+    // Arrange
+    let mut backend = NullAudioBackend::new();
+    let sound = minimal_sound();
+    backend.play_on_track(&sound, MixerTrack::Sfx);
+
+    // Act
+    backend.set_volume(0.5);
+
+    // Assert
+    assert_eq!(backend.play_count(), 1, "set_volume should not change play count");
+}
+
+/// @doc: Calling set_track_volume on NullAudioBackend is a no-op and does not alter play count.
+#[test]
+fn when_set_track_volume_then_play_count_unchanged() {
+    // Arrange
+    let mut backend = NullAudioBackend::new();
+    let sound = minimal_sound();
+    backend.play_on_track(&sound, MixerTrack::Sfx);
+
+    // Act
+    backend.set_track_volume(MixerTrack::Music, 0.3);
+
+    // Assert
+    assert_eq!(backend.play_count(), 1, "set_track_volume should not change play count");
+}

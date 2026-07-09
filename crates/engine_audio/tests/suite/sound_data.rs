@@ -90,3 +90,52 @@ fn when_quad_audio_then_frame_count_is_quarter_sample_len() {
     // Assert
     assert_eq!(frames, 2, "quad frame_count should be 8 / 4 = 2");
 }
+
+/// @doc: A single stereo sample (odd count) truncates to zero frames — edge case of integer division.
+#[test]
+fn when_one_sample_stereo_then_frame_count_zero() {
+    // Arrange
+    let sound = SoundData {
+        samples: vec![0.5],
+        sample_rate: 44_100,
+        channels: 2,
+    };
+
+    // Act
+    let frames = sound.frame_count();
+
+    // Assert
+    assert_eq!(frames, 0, "stereo frame_count with 1 sample should be 0 (1 / 2)");
+}
+
+/// @doc: Mono audio with a single sample still produces one frame.
+#[test]
+fn when_one_sample_mono_then_frame_count_one() {
+    // Arrange
+    let sound = SoundData {
+        samples: vec![-0.3],
+        sample_rate: 22_050,
+        channels: 1,
+    };
+
+    // Act
+    let frames = sound.frame_count();
+
+    // Assert
+    assert_eq!(frames, 1, "mono frame_count with 1 sample should be 1");
+}
+
+/// @doc: Zero channels causes division by zero panic — callers must ensure channels > 0.
+#[test]
+#[should_panic]
+fn when_zero_channels_then_frame_count_panics() {
+    // Arrange
+    let sound = SoundData {
+        samples: vec![0.0; 4],
+        sample_rate: 44_100,
+        channels: 0,
+    };
+
+    // Act — division by zero panics
+    let _ = sound.frame_count();
+}

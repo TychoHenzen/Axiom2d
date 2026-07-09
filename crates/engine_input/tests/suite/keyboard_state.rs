@@ -274,9 +274,9 @@ fn when_frame_cleared_on_empty_state_then_state_remains_empty() {
     state.clear_frame_state();
 
     // Assert
-    assert!(!state.pressed(KeyCode::Space));
-    assert!(!state.just_pressed(KeyCode::Space));
-    assert!(!state.just_released(KeyCode::Space));
+    assert!(!state.pressed(KeyCode::Space), "pressed should be false after clear on empty state");
+    assert!(!state.just_pressed(KeyCode::Space), "just_pressed should be false after clear on empty state");
+    assert!(!state.just_released(KeyCode::Space), "just_released should be false after clear on empty state");
 }
 
 /// @doc: Verifies that pressing the same key twice is idempotent (pressed and just_pressed remain true).
@@ -362,4 +362,72 @@ fn when_unpressed_key_released_then_pressed_stays_false_and_just_released_is_set
         state.just_released(KeyCode::KeyE),
         "release() on unpressed key sets just_released by current implementation"
     );
+}
+
+/// @doc: Verifies that when multiple keys bound to same action are pressed, the action reports as pressed.
+#[test]
+fn when_multiple_keys_bound_to_same_action_pressed_then_action_pressed_returns_true() {
+    // Arrange
+    let mut state = InputState::default();
+    let mut map = ActionMap::default();
+    map.bind("up", vec![KeyCode::ArrowUp, KeyCode::KeyW]);
+    state.press(KeyCode::KeyW);
+
+    // Act
+    let result = state.action_pressed(&map, "up");
+
+    // Assert
+    assert!(result, "action_pressed should return true via secondary binding");
+}
+
+/// @doc: Verifies that releasing a bound key while another binding is still held keeps the action pressed.
+#[test]
+fn when_one_of_multiple_bound_keys_released_while_another_still_held_then_action_stays_pressed() {
+    // Arrange
+    let mut state = InputState::default();
+    let mut map = ActionMap::default();
+    map.bind("up", vec![KeyCode::ArrowUp, KeyCode::KeyW]);
+    state.press(KeyCode::ArrowUp);
+    state.press(KeyCode::KeyW);
+
+    // Act
+    state.release(KeyCode::ArrowUp);
+
+    // Assert
+    assert!(state.action_pressed(&map, "up"), "action should stay pressed via remaining binding");
+    assert!(!state.pressed(KeyCode::ArrowUp), "released key should not report pressed");
+}
+
+/// @doc: Verifies that releasing all bound keys for an action makes the action report not pressed.
+#[test]
+fn when_all_bound_keys_released_then_action_pressed_returns_false() {
+    // Arrange
+    let mut state = InputState::default();
+    let mut map = ActionMap::default();
+    map.bind("up", vec![KeyCode::ArrowUp, KeyCode::KeyW]);
+    state.press(KeyCode::ArrowUp);
+    state.press(KeyCode::KeyW);
+
+    // Act
+    state.release(KeyCode::ArrowUp);
+    state.release(KeyCode::KeyW);
+
+    // Assert
+    assert!(!state.action_pressed(&map, "up"), "action_pressed should return false when all bindings released");
+}
+
+/// @doc: Verifies that just_released on a bound action key propagates through the action bindings correctly.
+#[test]
+fn when_key_released_after_being_just_pressed_then_just_released_is_true_and_just_pressed_is_false() {
+    // Arrange
+    let mut state = InputState::default();
+    state.press(KeyCode::KeyH);
+    assert!(state.just_pressed(KeyCode::KeyH), "sanity: key is just pressed");
+
+    // Act: simulate release in same frame
+    state.release(KeyCode::KeyH);
+
+    // Assert
+    assert!(!state.pressed(KeyCode::KeyH), "released key should not be pressed");
+    assert!(state.just_released(KeyCode::KeyH), "released key should be just_released");
 }

@@ -178,3 +178,57 @@ fn when_spawn_reader_then_jack_is_not_a_child() {
     let children = &world.get::<Children>(reader).unwrap().0;
     assert!(!children.contains(&jack), "jack entity should not appear in reader's Children");
 }
+
+/// @doc: Running hierarchy maintenance twice is idempotent — children are not duplicated.
+#[test]
+fn when_hierarchy_maintenance_run_twice_then_children_not_duplicated() {
+    // Arrange
+    let mut world = World::new();
+    let (reader, _) = spawn_reader(&mut world, Vec2::ZERO);
+    run_hierarchy(&mut world);
+
+    // Act
+    run_hierarchy(&mut world);
+
+    // Assert
+    let children = world.get::<Children>(reader).unwrap();
+    assert_eq!(
+        children.0.len(),
+        6,
+        "running hierarchy maintenance twice should not duplicate children"
+    );
+}
+
+/// @doc: The jack socket entity has no parent (no ChildOf component).
+#[test]
+fn when_spawn_reader_then_jack_has_no_parent() {
+    // Arrange
+    let mut world = World::new();
+
+    // Act
+    let (_, jack) = spawn_reader(&mut world, Vec2::ZERO);
+    run_hierarchy(&mut world);
+
+    // Assert
+    assert!(
+        world.get::<ChildOf>(jack).is_none(),
+        "jack socket should be a root entity with no parent"
+    );
+}
+
+/// @doc: The reader root entity itself has no parent (no ChildOf component).
+#[test]
+fn when_spawn_reader_then_reader_has_no_parent() {
+    // Arrange
+    let mut world = World::new();
+
+    // Act
+    let (reader, _) = spawn_reader(&mut world, Vec2::ZERO);
+    run_hierarchy(&mut world);
+
+    // Assert
+    assert!(
+        world.get::<ChildOf>(reader).is_none(),
+        "reader root should be a root entity with no parent"
+    );
+}

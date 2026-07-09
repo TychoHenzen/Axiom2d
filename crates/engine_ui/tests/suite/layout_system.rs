@@ -228,3 +228,91 @@ fn when_child_has_margin_then_margin_in_spacing() {
         "child_b position should account for child_a width + child_a right margin + child_b left margin"
     );
 }
+
+/// @doc: A parent with FlexLayout but zero children does not panic — empty layout is a no-op.
+#[test]
+fn when_no_children_then_layout_does_not_panic() {
+    // Arrange
+    let mut world = World::new();
+    let parent = spawn_flex_parent(
+        &mut world,
+        FlexLayout {
+            direction: FlexDirection::Row,
+            gap: 10.0,
+        },
+        Vec2::ZERO,
+    );
+    // No children spawned
+
+    // Act — should not panic
+    run_layout(&mut world);
+
+    // Assert — parent still exists, no crash
+    assert!(
+        world.get::<Transform2D>(parent).is_some(),
+        "parent entity should persist after layout with no children"
+    );
+}
+
+/// @doc: A child with zero size (0x0) does not cause layout panics or incorrect sibling placement.
+#[test]
+fn when_child_has_zero_size_then_layout_does_not_panic() {
+    // Arrange
+    let mut world = World::new();
+    let parent = spawn_flex_parent(
+        &mut world,
+        FlexLayout {
+            direction: FlexDirection::Row,
+            gap: 5.0,
+        },
+        Vec2::ZERO,
+    );
+    spawn_ui_child(&mut world, parent, Vec2::ZERO, Margin::default());
+    let child_b = spawn_ui_child(&mut world, parent, Vec2::new(30.0, 10.0), Margin::default());
+
+    // Act
+    run_layout(&mut world);
+
+    // Assert — zero-size child doesn't break subsequent layout
+    let transform = world.entity(child_b).get::<Transform2D>().unwrap();
+    assert_eq!(
+        transform.position,
+        Vec2::new(5.0, 0.0),
+        "second child should be at gap=5.0 after a zero-size first child"
+    );
+}
+
+/// @doc: A negative left margin pushes the child left of the layout origin.
+#[test]
+fn when_negative_margin_then_child_position_reflects_it() {
+    // Arrange
+    let mut world = World::new();
+    let parent = spawn_flex_parent(
+        &mut world,
+        FlexLayout {
+            direction: FlexDirection::Row,
+            gap: 0.0,
+        },
+        Vec2::new(100.0, 0.0),
+    );
+    let child = spawn_ui_child(
+        &mut world,
+        parent,
+        Vec2::new(40.0, 20.0),
+        Margin {
+            left: -10.0,
+            ..Margin::default()
+        },
+    );
+
+    // Act
+    run_layout(&mut world);
+
+    // Assert
+    let transform = world.entity(child).get::<Transform2D>().unwrap();
+    assert_eq!(
+        transform.position,
+        Vec2::new(90.0, 0.0),
+        "child with negative left margin should shift left relative to parent"
+    );
+}

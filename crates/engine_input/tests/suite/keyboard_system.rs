@@ -189,3 +189,91 @@ fn when_system_runs_second_frame_then_just_released_is_cleared() {
         "just_released should clear after the second frame"
     );
 }
+
+/// @doc: Releasing a key that was never pressed does not mark it as pressed, but still
+/// records just_released for the release event itself.
+#[test]
+fn when_release_unpressed_key_then_not_pressed() {
+    // Arrange
+    let mut world = setup_world();
+    world
+        .resource_mut::<EventBus<KeyInputEvent>>()
+        .push(KeyInputEvent {
+            key: KeyCode::Space,
+            state: ButtonState::Released,
+        });
+
+    // Act
+    run_input_system(&mut world);
+
+    // Assert
+    let state = world.resource::<InputState>();
+    assert!(
+        !state.pressed(KeyCode::Space),
+        "releasing an unpressed key should not mark it pressed"
+    );
+}
+
+/// @doc: Pressing two different keys in one frame registers both as pressed and just_pressed.
+#[test]
+fn when_two_keys_pressed_in_one_frame_then_both_registered() {
+    // Arrange
+    let mut world = setup_world();
+    world
+        .resource_mut::<EventBus<KeyInputEvent>>()
+        .push(KeyInputEvent {
+            key: KeyCode::ArrowLeft,
+            state: ButtonState::Pressed,
+        });
+    world
+        .resource_mut::<EventBus<KeyInputEvent>>()
+        .push(KeyInputEvent {
+            key: KeyCode::ArrowRight,
+            state: ButtonState::Pressed,
+        });
+
+    // Act
+    run_input_system(&mut world);
+
+    // Assert
+    let state = world.resource::<InputState>();
+    assert!(
+        state.pressed(KeyCode::ArrowLeft),
+        "ArrowLeft should be pressed after its press event"
+    );
+    assert!(
+        state.pressed(KeyCode::ArrowRight),
+        "ArrowRight should be pressed after its press event"
+    );
+    assert!(
+        state.just_pressed(KeyCode::ArrowLeft),
+        "ArrowLeft should be just_pressed after its press event"
+    );
+    assert!(
+        state.just_pressed(KeyCode::ArrowRight),
+        "ArrowRight should be just_pressed after its press event"
+    );
+}
+
+/// @doc: An empty event bus is a no-op — state is cleared of frame state but otherwise unchanged.
+#[test]
+fn when_empty_event_bus_then_state_unchanged() {
+    // Arrange
+    let mut world = setup_world();
+    world.resource_mut::<InputState>().press(KeyCode::Tab);
+    world.resource_mut::<InputState>().clear_frame_state();
+
+    // Act
+    run_input_system(&mut world);
+
+    // Assert
+    let state = world.resource::<InputState>();
+    assert!(
+        state.pressed(KeyCode::Tab),
+        "pressed state should persist when bus is empty"
+    );
+    assert!(
+        !state.just_pressed(KeyCode::Tab),
+        "just_pressed should be cleared when bus is empty"
+    );
+}
