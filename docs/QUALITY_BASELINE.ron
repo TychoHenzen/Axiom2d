@@ -20,7 +20,7 @@
         "shader_errors": 0,
     },
     "soft": {
-        "test_count_total": 1752,
+        "test_count_total": 1764,
         "smell_markers_total": 0,
         "unsafe_blocks_total": 2,
         "unwrap_in_prod_total": 0,
@@ -45,7 +45,7 @@
         "notes": [
             "unsafe_blocks_total=2: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
             "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
-            "test_count_total=1752: all #[test] and #[tokio::test] across workspace (including tools/)",
+            "test_count_total=1764: all #[test] and #[tokio::test] across workspace (including tools/)",
             "smell_markers_total=0: no TODO/FIXME/HACK in production code",
         ],
     },
