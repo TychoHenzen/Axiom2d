@@ -4,6 +4,7 @@ use axiom2d::prelude::*;
 
 /// @doc: Verifies `SPLASH_DURATION` is a positive finite constant.
 #[test]
+#[allow(clippy::assertions_on_constants)]
 fn when_splash_duration_constant_then_is_positive_and_finite() {
     // Assert
     assert!(SPLASH_DURATION > 0.0, "SPLASH_DURATION should be positive");

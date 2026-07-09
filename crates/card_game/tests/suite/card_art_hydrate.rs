@@ -1,3 +1,4 @@
+#![allow(clippy::manual_let_else)]
 //! Tests for compact generated shape data hydration functions.
 //!
 //! Verifies that `hydrate_shapes`, `hydrate_shapes_compact`, and

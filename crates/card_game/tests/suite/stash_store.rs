@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::assertions_on_constants)]
 
 use bevy_ecs::prelude::{Schedule, World};
 use card_game::booster::device::{BoosterDragState, BoosterMachine};

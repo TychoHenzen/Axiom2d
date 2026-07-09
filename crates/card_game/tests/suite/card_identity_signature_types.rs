@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::no_effect_underscore_binding)]
 
 use card_game::card::identity::signature::{
     Aspect, CardSignature, Element, Rarity, RarityTierConfig,
