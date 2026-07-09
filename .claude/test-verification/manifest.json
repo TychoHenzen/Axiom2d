@@ -1,9 +1,9 @@
 {
   "project_root": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d",
   "cycle": {
-    "phase": "done",
-    "cycle_number": 4,
-    "last_file_processed": "crates/engine_ui/src/unified_render.rs",
+    "phase": "fix",
+    "cycle_number": 5,
+    "last_file_processed": "crates/engine_ui/tests/suite/layout_system.rs",
     "files_verified_this_cycle": [
       "crates/axiom2d/tests/suite/default_plugins.rs",
       "crates/axiom2d/tests/suite/splash_animation.rs",
@@ -164,31 +164,16 @@
       "crates/terrain/tests/suite/wfc.rs"
     ],
     "files_fixed_this_cycle": [
-      "crates/card_game/src/booster/device.rs",
-      "crates/card_game/src/booster/opening.rs",
-      "crates/card_game/src/card/jack_cable/mod.rs",
-      "crates/card_game/src/card/jack_cable/geom.rs",
-      "crates/card_game/src/card/jack_cable/render.rs",
-      "crates/card_game/src/card/jack_socket.rs",
-      "crates/card_game/src/card/screen_device.rs",
-      "crates/card_game/src/stash/pages.rs",
-      "crates/card_game/src/stash/store.rs",
-      "crates/engine_render/src/font.rs",
-      "crates/card_game/src/booster/device.rs",
-      "crates/card_game/src/booster/opening.rs",
-      "crates/card_game/src/card/jack_cable/mod.rs",
-      "crates/card_game/src/card/jack_cable/geom.rs",
-      "crates/card_game/src/card/jack_cable/render.rs",
-      "crates/card_game/src/card/jack_socket.rs",
-      "crates/card_game/src/card/screen_device.rs",
-      "crates/card_game/src/stash/pages.rs",
-      "crates/card_game/src/stash/store.rs",
-      "crates/engine_render/src/font.rs",
-      "crates/engine_render/src/wgpu_renderer/renderer_trait.rs",
-      "crates/engine_render/src/shape/tessellate.rs",
-      "crates/engine_ui/src/unified_render.rs"
+      "crates/engine_input/tests/suite/mouse_state.rs",
+      "crates/card_game/tests/suite/card_reader_spawn.rs",
+      "crates/card_game/tests/suite/stash_toggle.rs",
+      "crates/engine_audio/tests/suite/backend_traits.rs",
+      "crates/engine_audio/tests/suite/sound_data.rs",
+      "crates/engine_input/tests/suite/keyboard_system.rs",
+      "crates/engine_ui/tests/suite/layout_system.rs",
+      "crates/engine_input/tests/suite/keyboard_state.rs"
     ],
-    "started_at": "2026-07-09T12:55:07.157715+00:00",
+    "started_at": "2026-07-09T23:59:23.542364",
     "last_updated": "2026-07-09T20:09:59.047901+00:00",
     "tooling": {
       "language": "rust",
@@ -3645,19 +3630,19 @@
       ]
     },
     "crates/card_game/tests/suite/card_reader_spawn.rs": {
-      "hash": "77d4971353059b4c9fa3732b9bed2aa88efd2386b055fcbe0e32d30d9227ce0c",
+      "hash": "874225a691e7b5594e4ecd257b131b45a3e2f1aea044ca30a3331c9b0f321304",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
         "determinism": 10.0,
         "isolation": 8,
         "clarity": 7.0,
-        "coverage_depth": 3.3,
+        "coverage_depth": 7.0,
         "speed": 10.0,
-        "diagnostics": 7.2,
+        "diagnostics": 8.5,
         "assertion_triviality": 10
       },
-      "overall": 7.9,
+      "overall": 8.5,
       "metrics": {
         "test_function_count": 6,
         "total_assertions": 6,
@@ -3699,22 +3684,7 @@
         "has_custom_matchers": false,
         "zero_assertion_functions": 0
       },
-      "findings": [
-        {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "file",
-          "detail": "Coverage depth 3.3: 0/6 error path tests",
-          "suggestion": "Add error path and edge case tests"
-        },
-        {
-          "severity": "low",
-          "category": "clarity",
-          "location": "file",
-          "detail": "No @doc: annotations on test functions",
-          "suggestion": "Add /// @doc: annotations to describe test behaviors"
-        }
-      ]
+      "findings": []
     },
     "crates/card_game/tests/suite/card_reader_volume.rs": {
       "hash": "50f14d2ff4f4ded7e82ac3f3f08db15c9bbe74e6b99dcc50363157e3df35c7a5",
@@ -5568,19 +5538,19 @@
       ]
     },
     "crates/card_game/tests/suite/stash_toggle.rs": {
-      "hash": "5c0ce88709f37974bdabd2f0e235e9b3e15dd1e069218dbdf976b34fd65f753a",
+      "hash": "58449500d8ccd0704df4c6b2308b5a072d96c3888d3fc24921c89b546be95fc6",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
         "determinism": 10.0,
         "isolation": 8,
         "clarity": 7.0,
-        "coverage_depth": 3.3,
+        "coverage_depth": 7.0,
         "speed": 10.0,
-        "diagnostics": 7.2,
+        "diagnostics": 8.5,
         "assertion_triviality": 10
       },
-      "overall": 7.9,
+      "overall": 8.5,
       "metrics": {
         "test_function_count": 2,
         "total_assertions": 2,
@@ -5622,15 +5592,7 @@
         "has_custom_matchers": false,
         "zero_assertion_functions": 0
       },
-      "findings": [
-        {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "file",
-          "detail": "Coverage depth 3.3: 0/2 error path tests",
-          "suggestion": "Add error path and edge case tests"
-        }
-      ]
+      "findings": []
     },
     "crates/card_game/tests/suite/store.rs": {
       "hash": "e3eaa9722d78652861bc82d46d57df8f6f5b9cea8030367d7bc13dc9b3052c1c",
@@ -6304,19 +6266,19 @@
       "findings": []
     },
     "crates/engine_audio/tests/suite/backend_traits.rs": {
-      "hash": "8503a62ddf068038d52f64638c3fd733351be5340aaf8e142b4d3ba6a642b1d1",
+      "hash": "98fbc9f72b7416acc2800cb0b4a8450a5230ebbd9004ccc5c0cfff396c017c59",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
         "determinism": 10.0,
         "isolation": 8,
         "clarity": 7.0,
-        "coverage_depth": 3.3,
+        "coverage_depth": 7.0,
         "speed": 10.0,
-        "diagnostics": 7.2,
+        "diagnostics": 8.5,
         "assertion_triviality": 10
       },
-      "overall": 7.9,
+      "overall": 8.5,
       "metrics": {
         "test_function_count": 4,
         "total_assertions": 4,
@@ -6358,15 +6320,7 @@
         "has_custom_matchers": false,
         "zero_assertion_functions": 0
       },
-      "findings": [
-        {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "file",
-          "detail": "Coverage depth 3.3: 0/4 error path tests",
-          "suggestion": "Add error path and edge case tests"
-        }
-      ]
+      "findings": []
     },
     "crates/engine_audio/tests/suite/mixer.rs": {
       "hash": "034f0269294b85100cc97bec7130dc45873fc940b3543aee2888561b9a469fda",
@@ -6582,19 +6536,19 @@
       ]
     },
     "crates/engine_audio/tests/suite/sound_data.rs": {
-      "hash": "bff524d91de5312ebf65afe832c2d54df5e524989f091320592a6bc5ead3fbe4",
+      "hash": "89fc493c91038756f7ace24310fb16893aab5ab4b4f3588622ace13f82d6fd00",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
         "determinism": 10.0,
         "isolation": 8,
         "clarity": 7.0,
-        "coverage_depth": 3.3,
+        "coverage_depth": 7.0,
         "speed": 10.0,
-        "diagnostics": 7.2,
+        "diagnostics": 8.5,
         "assertion_triviality": 10
       },
-      "overall": 7.9,
+      "overall": 8.5,
       "metrics": {
         "test_function_count": 2,
         "total_assertions": 2,
@@ -6636,15 +6590,7 @@
         "has_custom_matchers": false,
         "zero_assertion_functions": 0
       },
-      "findings": [
-        {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "file",
-          "detail": "Coverage depth 3.3: 0/2 error path tests",
-          "suggestion": "Add error path and edge case tests"
-        }
-      ]
+      "findings": []
     },
     "crates/engine_audio/tests/suite/sound_effect.rs": {
       "hash": "f24af46b8b1c1209056b1740b42af6034d785797aa5ad35c3f2ee27239d8ef80",
@@ -7566,19 +7512,19 @@
       ]
     },
     "crates/engine_input/tests/suite/keyboard_state.rs": {
-      "hash": "b15d7512f2b982f0257eac0cad44db24658874c27cda22ba968b777647ba3dd3",
+      "hash": "08ea8ce9e3ff6dcb4297966a78a5032fe481b99e4869f093f657ffce626e9941",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
-        "assertion_quality": 7.3,
+        "assertion_quality": 8.0,
         "determinism": 10.0,
         "isolation": 8,
         "clarity": 7.0,
-        "coverage_depth": 4.5,
+        "coverage_depth": 7.0,
         "speed": 10.0,
-        "diagnostics": 7.7,
+        "diagnostics": 8.5,
         "assertion_triviality": 10
       },
-      "overall": 7.8,
+      "overall": 8.8,
       "metrics": {
         "test_function_count": 19,
         "total_assertions": 24,
@@ -7620,37 +7566,22 @@
         "has_custom_matchers": false,
         "zero_assertion_functions": 0
       },
-      "findings": [
-        {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "file",
-          "detail": "Coverage depth 3.3: 0/16 error path tests",
-          "suggestion": "Add error path and edge case tests"
-        },
-        {
-          "severity": "low",
-          "category": "clarity",
-          "location": "file",
-          "detail": "No @doc: annotations on test functions",
-          "suggestion": "Add /// @doc: annotations to describe test behaviors"
-        }
-      ]
+      "findings": []
     },
     "crates/engine_input/tests/suite/keyboard_system.rs": {
-      "hash": "06431907e3f9901cdaffc59f751f18636a2e07f0877b65f35a1e15e75acd1252",
+      "hash": "49f4fc00c68128757413b3fec9f9eb584690fb93874d06e91f75b54e280d5631",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.1,
         "determinism": 10.0,
         "isolation": 8,
         "clarity": 7.0,
-        "coverage_depth": 3.4,
+        "coverage_depth": 7.0,
         "speed": 10.0,
-        "diagnostics": 7.2,
+        "diagnostics": 8.5,
         "assertion_triviality": 10
       },
-      "overall": 7.9,
+      "overall": 8.5,
       "metrics": {
         "test_function_count": 7,
         "total_assertions": 8,
@@ -7692,37 +7623,22 @@
         "has_custom_matchers": false,
         "zero_assertion_functions": 0
       },
-      "findings": [
-        {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "file",
-          "detail": "Coverage depth 3.4: 0/7 error path tests",
-          "suggestion": "Add error path and edge case tests"
-        },
-        {
-          "severity": "low",
-          "category": "clarity",
-          "location": "file",
-          "detail": "No @doc: annotations on test functions",
-          "suggestion": "Add /// @doc: annotations to describe test behaviors"
-        }
-      ]
+      "findings": []
     },
     "crates/engine_input/tests/suite/mouse_state.rs": {
-      "hash": "6b15a008c40257605634ed0812af1b8f13e614c0829f13d3dcf10621b23cc17a",
+      "hash": "d26c3f77a549730a17816735c910a87f018134283f11b3b70624275e7e86646a",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 8.2,
         "determinism": 10.0,
         "isolation": 8,
         "clarity": 7.0,
-        "coverage_depth": 4.1,
+        "coverage_depth": 7.0,
         "speed": 10.0,
-        "diagnostics": 4.7,
+        "diagnostics": 8.5,
         "assertion_triviality": 10
       },
-      "overall": 7.7,
+      "overall": 8.9,
       "metrics": {
         "test_function_count": 22,
         "total_assertions": 23,
@@ -7764,22 +7680,7 @@
         "has_custom_matchers": false,
         "zero_assertion_functions": 0
       },
-      "findings": [
-        {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "file",
-          "detail": "Coverage depth 3.6: 0/19 error path tests",
-          "suggestion": "Add error path and edge case tests"
-        },
-        {
-          "severity": "low",
-          "category": "clarity",
-          "location": "file",
-          "detail": "No @doc: annotations on test functions",
-          "suggestion": "Add /// @doc: annotations to describe test behaviors"
-        }
-      ]
+      "findings": []
     },
     "crates/engine_input/tests/suite/mouse_system.rs": {
       "hash": "3694d690cf1302ae521633c5fd865ab326bd7b2d861d4d29826dab49519a27a2",
@@ -10371,19 +10272,19 @@
       ]
     },
     "crates/engine_ui/tests/suite/layout_system.rs": {
-      "hash": "1a43eff7bb641cbbfdac2d7b1382644ec6fc7b7f57a12f9a45412cdf1a42f4fa",
+      "hash": "f6c75b03e320b28b61bd422217e084b0abe08ca45545495698e521ef48f5eca1",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
         "determinism": 10.0,
         "isolation": 8,
         "clarity": 7.0,
-        "coverage_depth": 3.3,
+        "coverage_depth": 7.0,
         "speed": 10.0,
-        "diagnostics": 7.2,
+        "diagnostics": 8.5,
         "assertion_triviality": 10
       },
-      "overall": 7.9,
+      "overall": 8.5,
       "metrics": {
         "test_function_count": 6,
         "total_assertions": 6,
@@ -10425,22 +10326,7 @@
         "has_custom_matchers": false,
         "zero_assertion_functions": 0
       },
-      "findings": [
-        {
-          "severity": "high",
-          "category": "coverage_depth",
-          "location": "file",
-          "detail": "Coverage depth 3.3: 0/6 error path tests",
-          "suggestion": "Add error path and edge case tests"
-        },
-        {
-          "severity": "low",
-          "category": "clarity",
-          "location": "file",
-          "detail": "No @doc: annotations on test functions",
-          "suggestion": "Add /// @doc: annotations to describe test behaviors"
-        }
-      ]
+      "findings": []
     },
     "crates/engine_ui/tests/suite/render.rs": {
       "hash": "71f1117ae3af2fa07b280ee339af372d0bf5a0d129be53626cb17ed3636d1149",
@@ -11669,7 +11555,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 1,
+        "score": 3,
         "long_lines": 0,
         "long_functions": [
           {
@@ -11701,7 +11587,7 @@
             "cc": 17
           }
         ],
-        "unnecessary_else_count": 4
+        "unnecessary_else_count": 0
       },
       "last_analyzed": "2026-07-09T19:25:28.450225+00:00"
     },
@@ -11769,7 +11655,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 3,
+        "score": 5,
         "long_lines": 0,
         "long_functions": [
           {
@@ -11796,7 +11682,7 @@
             "cc": 12
           }
         ],
-        "unnecessary_else_count": 1
+        "unnecessary_else_count": 0
       },
       "last_analyzed": "2026-07-09T19:25:28.450735+00:00"
     },
@@ -19266,7 +19152,7 @@
             "cc": 6
           }
         ],
-        "unnecessary_else_count": 2
+        "unnecessary_else_count": 0
       }
     },
     "crates/card_game/src/card/component.rs": {
@@ -19432,16 +19318,11 @@
       "lines": 866,
       "functions": 1,
       "observability": {
-        "score": 5,
+        "score": 8,
         "log_statements": 0,
         "error_handlers": 1,
         "error_handlers_logged": 0,
-        "anti_patterns": [
-          {
-            "type": "no_logs_with_errors",
-            "detail": "1 error handlers, 0 logs"
-          }
-        ]
+        "anti_patterns": []
       },
       "brevity": {
         "score": 8,
@@ -20107,7 +19988,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 1,
+        "score": 3,
         "long_lines": 0,
         "long_functions": [
           {
@@ -20164,7 +20045,7 @@
             "cc": 6
           }
         ],
-        "unnecessary_else_count": 5
+        "unnecessary_else_count": 0
       }
     },
     "crates/card_game/src/card/jack_socket.rs": {
@@ -20179,7 +20060,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 2,
+        "score": 4,
         "long_lines": 0,
         "long_functions": [
           {
@@ -20211,7 +20092,7 @@
             "cc": 11
           }
         ],
-        "unnecessary_else_count": 3
+        "unnecessary_else_count": 0
       },
       "last_analyzed": "2026-07-09T19:25:28.450854+00:00"
     },
@@ -20892,7 +20773,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 2,
+        "score": 4,
         "long_lines": 0,
         "long_functions": [
           {
@@ -20918,7 +20799,7 @@
         ],
         "file_too_long": true,
         "high_complexity_functions": [],
-        "unnecessary_else_count": 3
+        "unnecessary_else_count": 0
       },
       "last_analyzed": "2026-07-09T19:25:28.450988+00:00"
     },
@@ -20947,16 +20828,11 @@
       "lines": 59,
       "functions": 8,
       "observability": {
-        "score": 5,
+        "score": 8,
         "log_statements": 0,
         "error_handlers": 1,
         "error_handlers_logged": 0,
-        "anti_patterns": [
-          {
-            "type": "no_logs_with_errors",
-            "detail": "1 error handlers, 0 logs"
-          }
-        ]
+        "anti_patterns": []
       },
       "brevity": {
         "score": 10,
@@ -21146,16 +21022,11 @@
       "lines": 127,
       "functions": 16,
       "observability": {
-        "score": 4,
+        "score": 8,
         "log_statements": 0,
         "error_handlers": 2,
         "error_handlers_logged": 0,
-        "anti_patterns": [
-          {
-            "type": "no_logs_with_errors",
-            "detail": "2 error handlers, 0 logs"
-          }
-        ]
+        "anti_patterns": []
       },
       "brevity": {
         "score": 10,
@@ -21250,7 +21121,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 3,
+        "score": 5,
         "long_lines": 0,
         "long_functions": [
           {
@@ -21282,7 +21153,7 @@
             "cc": 7
           }
         ],
-        "unnecessary_else_count": 1
+        "unnecessary_else_count": 0
       },
       "last_analyzed": "2026-07-09T19:25:28.451084+00:00"
     },
@@ -21390,7 +21261,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 1,
+        "score": 3,
         "long_lines": 0,
         "long_functions": [
           {
@@ -21447,7 +21318,7 @@
             "cc": 6
           }
         ],
-        "unnecessary_else_count": 8
+        "unnecessary_else_count": 0
       },
       "last_analyzed": "2026-07-09T19:25:28.451191+00:00"
     },
@@ -23170,16 +23041,11 @@
       "lines": 169,
       "functions": 10,
       "observability": {
-        "score": 4,
+        "score": 8,
         "log_statements": 0,
         "error_handlers": 2,
         "error_handlers_logged": 0,
-        "anti_patterns": [
-          {
-            "type": "no_logs_with_errors",
-            "detail": "2 error handlers, 0 logs"
-          }
-        ]
+        "anti_patterns": []
       },
       "brevity": {
         "score": 9,
@@ -23282,7 +23148,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 3,
+        "score": 5,
         "long_lines": 0,
         "long_functions": [
           {
@@ -23309,7 +23175,7 @@
             "cc": 9
           }
         ],
-        "unnecessary_else_count": 1
+        "unnecessary_else_count": 0
       },
       "last_analyzed": "2026-07-09T19:25:28.451289+00:00"
     },
@@ -23632,16 +23498,11 @@
       "lines": 282,
       "functions": 15,
       "observability": {
-        "score": 4,
+        "score": 8,
         "log_statements": 0,
         "error_handlers": 6,
         "error_handlers_logged": 0,
-        "anti_patterns": [
-          {
-            "type": "no_logs_with_errors",
-            "detail": "6 error handlers, 0 logs"
-          }
-        ]
+        "anti_patterns": []
       },
       "brevity": {
         "score": 6,
@@ -23886,7 +23747,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 1,
+        "score": 3,
         "long_lines": 0,
         "long_functions": [
           {
@@ -23918,7 +23779,7 @@
             "cc": 8
           }
         ],
-        "unnecessary_else_count": 3
+        "unnecessary_else_count": 0
       },
       "last_analyzed": "2026-07-09T19:25:28.451394+00:00"
     },
@@ -24473,7 +24334,7 @@
         "anti_patterns": []
       },
       "brevity": {
-        "score": 3,
+        "score": 5,
         "long_lines": 0,
         "long_functions": [
           {
@@ -24500,7 +24361,7 @@
             "cc": 16
           }
         ],
-        "unnecessary_else_count": 1
+        "unnecessary_else_count": 0
       },
       "last_analyzed": "2026-07-09T19:25:28.451576+00:00"
     },
@@ -24944,16 +24805,11 @@
       "lines": 214,
       "functions": 12,
       "observability": {
-        "score": 4,
+        "score": 8,
         "log_statements": 0,
         "error_handlers": 2,
         "error_handlers_logged": 0,
-        "anti_patterns": [
-          {
-            "type": "no_logs_with_errors",
-            "detail": "2 error handlers, 0 logs"
-          }
-        ]
+        "anti_patterns": []
       },
       "brevity": {
         "score": 7,
@@ -24981,16 +24837,11 @@
       "lines": 632,
       "functions": 16,
       "observability": {
-        "score": 5,
+        "score": 8,
         "log_statements": 0,
         "error_handlers": 1,
         "error_handlers_logged": 0,
-        "anti_patterns": [
-          {
-            "type": "no_logs_with_errors",
-            "detail": "1 error handlers, 0 logs"
-          }
-        ]
+        "anti_patterns": []
       },
       "brevity": {
         "score": 1,
