@@ -34,7 +34,7 @@ fn when_entity_has_child_of_then_hierarchy_system_adds_it_to_parent_children() {
     let children = world
         .get::<Children>(parent)
         .expect("parent should have Children component");
-    assert!(children.0.contains(&child));
+    assert!(children.0.contains(&child), "parent Children should contain child spawned with ChildOf");
 }
 
 #[test]
@@ -52,9 +52,9 @@ fn when_two_children_share_same_parent_then_children_contains_both() {
     let children = world
         .get::<Children>(parent)
         .expect("parent should have Children");
-    assert_eq!(children.0.len(), 2);
-    assert!(children.0.contains(&child_a));
-    assert!(children.0.contains(&child_b));
+    assert_eq!(children.0.len(), 2, "parent Children should contain both children");
+    assert!(children.0.contains(&child_a), "parent Children should contain child_a");
+    assert!(children.0.contains(&child_b), "parent Children should contain child_b");
 }
 
 #[test]
@@ -73,11 +73,11 @@ fn when_two_parents_each_have_one_child_then_each_parent_children_is_independent
     let children_a = world
         .get::<Children>(parent_a)
         .expect("parent_a should have Children");
-    assert_eq!(children_a.0, vec![child_x]);
+    assert_eq!(children_a.0, vec![child_x], "parent_a should have only child_x");
     let children_b = world
         .get::<Children>(parent_b)
         .expect("parent_b should have Children");
-    assert_eq!(children_b.0, vec![child_y]);
+    assert_eq!(children_b.0, vec![child_y], "parent_b should have only child_y");
 }
 
 #[test]
@@ -98,8 +98,8 @@ fn when_multiple_children_belong_to_parent_then_children_vec_is_sorted_by_entity
         .expect("parent should have Children");
     let mut sorted = children.0.clone();
     sorted.sort();
-    assert_eq!(children.0, sorted);
-    assert_eq!(children.0, vec![child_a, child_b, child_c]);
+    assert_eq!(children.0, sorted, "Children vec should be sorted by entity ID");
+    assert_eq!(children.0, vec![child_a, child_b, child_c], "all three children should be in order");
 }
 
 #[test]
@@ -117,7 +117,7 @@ fn when_system_runs_twice_with_no_changes_then_children_remains_stable() {
     let children = world
         .get::<Children>(parent)
         .expect("parent should have Children");
-    assert_eq!(children.0, vec![child]);
+    assert_eq!(children.0, vec![child], "Children should remain stable on second run");
 }
 
 /// @doc: `hierarchy_maintenance_system` rebuilds `Children` from scratch each frame — reparenting is automatic
@@ -138,7 +138,7 @@ fn when_child_of_is_removed_then_parent_children_no_longer_contains_that_child()
     let children = world
         .get::<Children>(parent)
         .expect("parent should have Children");
-    assert_eq!(children.0, vec![child_b]);
+    assert_eq!(children.0, vec![child_b], "removed ChildOf should remove child from parent Children");
 }
 
 /// @doc: Stale `Children` components are cleaned up when no `ChildOf` references remain for that parent
@@ -155,7 +155,7 @@ fn when_last_child_of_is_removed_then_parent_children_component_is_removed() {
     run_hierarchy_system(&mut world);
 
     // Assert
-    assert!(world.get::<Children>(parent).is_none());
+    assert!(world.get::<Children>(parent).is_none(), "parent Children should be removed when last child_of is removed");
 }
 
 #[test]
@@ -175,7 +175,7 @@ fn when_child_entity_is_despawned_then_parent_children_no_longer_contains_that_c
     let children = world
         .get::<Children>(parent)
         .expect("parent should have Children");
-    assert_eq!(children.0, vec![child_b]);
+    assert_eq!(children.0, vec![child_b], "despawned child should be removed from parent Children");
 }
 
 proptest::proptest! {
@@ -227,7 +227,7 @@ fn when_only_child_is_despawned_then_parent_children_component_is_removed() {
     run_hierarchy_system(&mut world);
 
     // Assert
-    assert!(world.get::<Children>(parent).is_none());
+    assert!(world.get::<Children>(parent).is_none(), "parent Children should be removed when only child is despawned");
 }
 
 #[test]
@@ -244,11 +244,11 @@ fn when_child_is_reparented_then_old_parent_loses_child_and_new_parent_gains_it(
     run_hierarchy_system(&mut world);
 
     // Assert
-    assert!(world.get::<Children>(old_parent).is_none());
+    assert!(world.get::<Children>(old_parent).is_none(), "old parent should lose Children after child reparented");
     let new_children = world
         .get::<Children>(new_parent)
         .expect("new parent should have Children");
-    assert_eq!(new_children.0, vec![child]);
+    assert_eq!(new_children.0, vec![child], "new parent should gain the reparented child");
 }
 
 #[test]
@@ -281,5 +281,5 @@ fn when_hierarchy_system_reruns_without_changes_then_children_are_not_marked_cha
     let children = world
         .get::<Children>(parent)
         .expect("parent should still have Children");
-    assert_eq!(children.0, vec![child]);
+    assert_eq!(children.0, vec![child], "unchanged hierarchy should still have correct children");
 }

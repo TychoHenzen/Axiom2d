@@ -43,7 +43,7 @@ fn when_one_plugin_added_then_plugin_count_is_one() {
     app.add_plugin(NoOpPlugin);
 
     // Assert
-    assert_eq!(app.plugin_count(), 1);
+    assert_eq!(app.plugin_count(), 1, "one plugin should produce count of 1");
 }
 
 /// @doc: Multiple plugins must each increment count — counting must not collapse duplicate registrations
@@ -56,7 +56,7 @@ fn when_two_distinct_plugins_added_then_plugin_count_is_two() {
     app.add_plugin(NoOpPlugin).add_plugin(AnotherNoOpPlugin);
 
     // Assert
-    assert_eq!(app.plugin_count(), 2);
+    assert_eq!(app.plugin_count(), 2, "two distinct plugins should produce count of 2");
 }
 
 struct CountingPlugin {
@@ -82,7 +82,7 @@ fn when_plugin_added_then_build_called_exactly_once() {
     App::new().add_plugin(plugin);
 
     // Assert
-    assert_eq!(counter.get(), 1);
+    assert_eq!(counter.get(), 1, "plugin build should be called exactly once");
 }
 
 /// @doc: `handle_redraw` must invoke `renderer.present()` — missing present swallows drawn frames
@@ -99,7 +99,7 @@ fn when_handle_redraw_called_then_present_called_via_renderer_res() {
     app.handle_redraw();
 
     // Assert
-    assert_eq!(log.lock().unwrap().as_slice(), &["present"]);
+    assert_eq!(log.lock().unwrap().as_slice(), &["present"], "handle_redraw must call renderer.present()");
 }
 
 /// @doc: Systems must run during `handle_redraw` — non-execution breaks game loop integration
@@ -253,6 +253,7 @@ fn when_systems_in_all_phases_then_run_in_canonical_order() {
 /// @doc: `add_systems` must support builder chaining — broken chaining breaks fluent configuration API
 #[test]
 fn when_add_systems_chained_then_builder_pattern_works() {
+    // Arrange
     fn noop() {}
 
     // Act
@@ -269,7 +270,7 @@ fn when_new_app_created_then_eighteen_schedules_exist() {
     let app = App::new();
 
     // Assert
-    assert_eq!(app.schedule_count(), 18);
+    assert_eq!(app.schedule_count(), 18, "App should initialize all 18 phase schedules");
 }
 
 /// @doc: Draw calls always precede present — rendering into a swapped buffer would show stale frames
@@ -291,7 +292,7 @@ fn when_render_phase_system_uses_renderer_res_then_draw_calls_precede_present() 
     app.handle_redraw();
 
     // Assert
-    assert_eq!(log.lock().unwrap().as_slice(), &["clear", "present"]);
+    assert_eq!(log.lock().unwrap().as_slice(), &["clear", "present"], "draw calls should precede present");
 }
 
 /// @doc: Systems and present must both run — broken system execution or present skipping breaks rendering
@@ -350,7 +351,7 @@ fn when_handle_resize_called_then_renderer_resize_is_called() {
     app.handle_resize(1024, 768);
 
     // Assert
-    assert_eq!(log.lock().unwrap().as_slice(), &["resize"]);
+    assert_eq!(log.lock().unwrap().as_slice(), &["resize"], "handle_resize must call renderer.resize()");
 }
 
 /// @doc: Resize updates both the `WindowSize` resource and calls `renderer.resize()` — dual sync
@@ -423,13 +424,14 @@ fn when_app_receives_keyboard_press_then_event_pushed_to_bus() {
         .resource_mut::<engine_core::prelude::EventBus<KeyInputEvent>>()
         .drain()
         .collect();
-    assert_eq!(events.len(), 1);
+    assert_eq!(events.len(), 1, "one event should be produced for a key press");
     assert_eq!(
         events[0],
         KeyInputEvent {
             key: KeyCode::ArrowLeft,
             state: ButtonState::Pressed,
-        }
+        },
+        "event should match the pressed ArrowLeft key"
     );
 }
 
@@ -454,13 +456,14 @@ fn when_app_receives_keyboard_release_then_release_event_pushed_to_bus() {
         .resource_mut::<engine_core::prelude::EventBus<KeyInputEvent>>()
         .drain()
         .collect();
-    assert_eq!(events.len(), 1);
+    assert_eq!(events.len(), 1, "one event should be produced for a key release");
     assert_eq!(
         events[0],
         KeyInputEvent {
             key: KeyCode::ArrowLeft,
             state: ButtonState::Released,
-        }
+        },
+        "event should match the released ArrowLeft key"
     );
 }
 
@@ -485,7 +488,8 @@ fn when_app_receives_unidentified_physical_key_then_bus_remains_empty() {
     assert!(
         app.world()
             .resource::<engine_core::prelude::EventBus<KeyInputEvent>>()
-            .is_empty()
+            .is_empty(),
+        "unidentified physical key should not produce input events"
     );
 }
 
@@ -510,7 +514,8 @@ fn when_app_receives_synthetic_keyboard_press_then_bus_remains_empty() {
     assert!(
         app.world()
             .resource::<engine_core::prelude::EventBus<KeyInputEvent>>()
-            .is_empty()
+            .is_empty(),
+        "synthetic key press should not produce input events"
     );
 }
 

@@ -28,6 +28,7 @@ fn when_uv_gradient_shader_parsed_with_naga_then_no_error() {
 
 #[test]
 fn when_uv_gradient_shader_source_inspected_then_camera_and_model_uniforms_declared() {
+    // Arrange / Act (static source inspection)
     // Assert
     assert!(
         UV_GRADIENT_WGSL.contains("@group(0) @binding(0)"),
@@ -41,6 +42,7 @@ fn when_uv_gradient_shader_source_inspected_then_camera_and_model_uniforms_decla
 
 #[test]
 fn when_uv_gradient_shader_source_inspected_then_vertex_inputs_at_location0_and_location1() {
+    // Arrange / Act (static source inspection)
     // Assert
     assert!(
         UV_GRADIENT_WGSL.contains("@location(0)"),
@@ -58,7 +60,7 @@ fn when_rarity_is_common_then_shader_variant_is_none() {
     let variant = ShaderVariant::from_rarity(Rarity::Common);
 
     // Assert
-    assert_eq!(variant, ShaderVariant::None);
+    assert_eq!(variant, ShaderVariant::None, "Common rarity should map to ShaderVariant::None");
 }
 
 #[test]
@@ -67,7 +69,7 @@ fn when_rarity_is_uncommon_then_shader_variant_is_embossed() {
     let variant = ShaderVariant::from_rarity(Rarity::Uncommon);
 
     // Assert
-    assert_eq!(variant, ShaderVariant::Embossed);
+    assert_eq!(variant, ShaderVariant::Embossed, "Uncommon rarity should map to ShaderVariant::Embossed");
 }
 
 #[test]
@@ -76,7 +78,7 @@ fn when_rarity_is_rare_then_shader_variant_is_glow() {
     let variant = ShaderVariant::from_rarity(Rarity::Rare);
 
     // Assert
-    assert_eq!(variant, ShaderVariant::Glow);
+    assert_eq!(variant, ShaderVariant::Glow, "Rare rarity should map to ShaderVariant::Glow");
 }
 
 #[test]
@@ -85,7 +87,7 @@ fn when_rarity_is_epic_then_shader_variant_is_glossy() {
     let variant = ShaderVariant::from_rarity(Rarity::Epic);
 
     // Assert
-    assert_eq!(variant, ShaderVariant::Glossy);
+    assert_eq!(variant, ShaderVariant::Glossy, "Epic rarity should map to ShaderVariant::Glossy");
 }
 
 #[test]
@@ -94,7 +96,7 @@ fn when_rarity_is_legendary_then_shader_variant_is_foil() {
     let variant = ShaderVariant::from_rarity(Rarity::Legendary);
 
     // Assert
-    assert_eq!(variant, ShaderVariant::Foil);
+    assert_eq!(variant, ShaderVariant::Foil, "Legendary rarity should map to ShaderVariant::Foil");
 }
 
 #[test]
@@ -107,7 +109,7 @@ fn when_registering_card_art_shader_twice_then_handles_differ() {
     let second = register_card_art_shader(&mut registry);
 
     // Assert
-    assert_ne!(first.0, second.0);
+    assert_ne!(first.0, second.0, "two registrations should produce distinct handles");
 }
 
 fn assert_variant_shader_valid(source: &str, name: &str) {
@@ -132,21 +134,25 @@ fn assert_variant_shader_valid(source: &str, name: &str) {
 
 #[test]
 fn when_glossy_shader_parsed_and_inspected_then_valid_with_correct_bindings() {
+    // Act / Assert
     assert_variant_shader_valid(GLOSSY_WGSL, "glossy");
 }
 
 #[test]
 fn when_embossed_shader_parsed_and_inspected_then_valid_with_correct_bindings() {
+    // Act / Assert
     assert_variant_shader_valid(EMBOSSED_WGSL, "embossed");
 }
 
 #[test]
 fn when_foil_shader_parsed_and_inspected_then_valid_with_correct_bindings() {
+    // Act / Assert
     assert_variant_shader_valid(FOIL_WGSL, "foil");
 }
 
 #[test]
 fn when_foil_shader_source_inspected_then_uses_in_uv_for_surface_detail() {
+    // Arrange / Act (static source inspection)
     // Assert — foil uses per-shape UV for micro-detail surface variation
     assert!(
         FOIL_WGSL.contains("in.uv"),
@@ -156,11 +162,13 @@ fn when_foil_shader_source_inspected_then_uses_in_uv_for_surface_detail() {
 
 #[test]
 fn when_glow_shader_parsed_and_inspected_then_valid_with_correct_bindings() {
+    // Act / Assert
     assert_variant_shader_valid(GLOW_WGSL, "glow");
 }
 
 #[test]
 fn when_glow_shader_inspected_then_uses_per_cell_phase() {
+    // Arrange / Act (static source inspection)
     // Assert — glow shader uses hashed cell phase for sparkle orientation
     assert!(
         GLOW_WGSL.contains("phase"),
@@ -210,7 +218,7 @@ fn when_art_region_params_converted_to_bytes_then_size_is_thirty_two_bytes() {
     let bytes = bytemuck::bytes_of(&params);
 
     // Assert
-    assert_eq!(bytes.len(), 32);
+    assert_eq!(bytes.len(), 32, "ArtRegionParams should be exactly 32 bytes for GPU uniform alignment");
 }
 
 /// @doc: Dormant tier cards have low signature intensity — the Worn effect
@@ -226,7 +234,7 @@ fn when_tier_is_dormant_then_condition_effect_is_worn() {
     let effect = ConditionEffect::from_tier(tier);
 
     // Assert
-    assert_eq!(effect, ConditionEffect::Worn);
+    assert_eq!(effect, ConditionEffect::Worn, "Dormant tier should produce Worn effect");
 }
 
 /// @doc: Active tier is the baseline condition — no visual distortion applied.
@@ -241,7 +249,7 @@ fn when_tier_is_active_then_condition_effect_is_none() {
     let effect = ConditionEffect::from_tier(tier);
 
     // Assert
-    assert_eq!(effect, ConditionEffect::None);
+    assert_eq!(effect, ConditionEffect::None, "Active tier should produce no condition effect");
 }
 
 /// @doc: Intense tier cards have extreme signature values — the Shiny effect
@@ -256,7 +264,7 @@ fn when_tier_is_intense_then_condition_effect_is_shiny() {
     let effect = ConditionEffect::from_tier(tier);
 
     // Assert
-    assert_eq!(effect, ConditionEffect::Shiny);
+    assert_eq!(effect, ConditionEffect::Shiny, "Intense tier should produce Shiny effect");
 }
 
 // --- gem shader tests ---
@@ -266,11 +274,13 @@ fn when_tier_is_intense_then_condition_effect_is_shiny() {
 /// at startup; missing bind groups cause silent rendering failures for all gem overlays.
 #[test]
 fn when_gem_shader_parsed_and_inspected_then_valid_with_correct_bindings() {
+    // Act / Assert
     assert_variant_shader_valid(GEM_WGSL, "gem");
 }
 
 #[test]
 fn when_gem_shader_inspected_then_accepts_position_color_and_uv_vertex_inputs() {
+    // Arrange / Act (static source inspection)
     // Assert
     assert!(
         GEM_WGSL.contains("@location(0)"),
@@ -291,6 +301,7 @@ fn when_gem_shader_inspected_then_accepts_position_color_and_uv_vertex_inputs() 
 /// would be a flat polygon with no light-catching effect — defeating the entire feature.
 #[test]
 fn when_gem_shader_inspected_then_contains_specular_computation() {
+    // Arrange / Act (static source inspection)
     // Assert
     assert!(
         GEM_WGSL.contains("half_vec") || GEM_WGSL.contains("half_dir"),
@@ -307,6 +318,7 @@ fn when_gem_shader_inspected_then_contains_specular_computation() {
 /// cut gemstone; without them the gem looks like a smooth embossed button instead.
 #[test]
 fn when_gem_shader_inspected_then_contains_facet_normal_logic() {
+    // Arrange / Act (static source inspection)
     // Assert
     assert!(
         GEM_WGSL.contains("facet") || GEM_WGSL.contains("normal"),
@@ -323,7 +335,7 @@ fn when_registering_gem_shader_then_handle_is_retrievable() {
     let gem = register_gem_shader(&mut registry);
 
     // Assert
-    assert_eq!(registry.lookup(gem.0), Some(GEM_WGSL));
+    assert_eq!(registry.lookup(gem.0), Some(GEM_WGSL), "gem shader handle should resolve in registry");
 }
 
 #[test]
@@ -335,10 +347,10 @@ fn when_registering_variant_shaders_then_all_handles_are_retrievable() {
     let variants = register_variant_shaders(&mut registry);
 
     // Assert
-    assert_eq!(registry.lookup(variants.embossed), Some(EMBOSSED_WGSL));
-    assert_eq!(registry.lookup(variants.glow), Some(GLOW_WGSL));
-    assert_eq!(registry.lookup(variants.glossy), Some(GLOSSY_WGSL));
-    assert_eq!(registry.lookup(variants.foil), Some(FOIL_WGSL));
+    assert_eq!(registry.lookup(variants.embossed), Some(EMBOSSED_WGSL), "embossed variant shader should resolve in registry");
+    assert_eq!(registry.lookup(variants.glow), Some(GLOW_WGSL), "glow variant shader should resolve in registry");
+    assert_eq!(registry.lookup(variants.glossy), Some(GLOSSY_WGSL), "glossy variant shader should resolve in registry");
+    assert_eq!(registry.lookup(variants.foil), Some(FOIL_WGSL), "foil variant shader should resolve in registry");
 }
 
 /// @doc: `TierShaders` resource must hold valid shader handles for both Dormant
@@ -354,6 +366,6 @@ fn when_registering_tier_shaders_then_both_handles_are_retrievable() {
     let tiers = register_tier_shaders(&mut registry);
 
     // Assert
-    assert_eq!(registry.lookup(tiers.dormant), Some(DORMANT_WGSL));
-    assert_eq!(registry.lookup(tiers.intense), Some(INTENSE_WGSL));
+    assert_eq!(registry.lookup(tiers.dormant), Some(DORMANT_WGSL), "dormant tier shader should resolve in registry");
+    assert_eq!(registry.lookup(tiers.intense), Some(INTENSE_WGSL), "intense tier shader should resolve in registry");
 }
