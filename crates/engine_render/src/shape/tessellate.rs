@@ -66,7 +66,10 @@ fn fill_circle(
         &opts,
         &mut BuffersBuilder::new(geo, |v: FillVertex| v.position().to_array()),
     )
-    .map_err(TessellateError::Circle)
+    .map_err(|e| {
+        tracing::warn!("fill_circle tessellation failed: {e}");
+        TessellateError::Circle(e)
+    })
 }
 
 fn fill_polygon(
@@ -84,7 +87,10 @@ fn fill_polygon(
         &opts,
         &mut BuffersBuilder::new(geo, |v: FillVertex| v.position().to_array()),
     )
-    .map_err(TessellateError::Polygon)
+    .map_err(|e| {
+        tracing::warn!("fill_polygon tessellation failed: {e}");
+        TessellateError::Polygon(e)
+    })
 }
 
 fn fill_path(
@@ -99,7 +105,10 @@ fn fill_path(
         &opts,
         &mut BuffersBuilder::new(geo, |v: FillVertex| v.position().to_array()),
     )
-    .map_err(TessellateError::Path)
+    .map_err(|e| {
+        tracing::warn!("fill_path tessellation failed: {e}");
+        TessellateError::Path(e)
+    })
 }
 
 fn build_lyon_path(commands: &[PathCommand]) -> LyonPath {
@@ -203,7 +212,10 @@ fn stroke_circle(
         opts,
         &mut BuffersBuilder::new(geo, |v: StrokeVertex| v.position().to_array()),
     )
-    .map_err(TessellateError::Circle)
+    .map_err(|e| {
+        tracing::warn!("stroke_circle tessellation failed: {e}");
+        TessellateError::Circle(e)
+    })
 }
 
 fn stroke_polygon(
@@ -218,7 +230,10 @@ fn stroke_polygon(
         opts,
         &mut BuffersBuilder::new(geo, |v: StrokeVertex| v.position().to_array()),
     )
-    .map_err(TessellateError::Path)
+    .map_err(|e| {
+        tracing::warn!("stroke_polygon tessellation failed: {e}");
+        TessellateError::Path(e)
+    })
 }
 
 fn polygon_to_lyon_path(points: &[Vec2]) -> LyonPath {
@@ -247,7 +262,10 @@ fn stroke_path(
         opts,
         &mut BuffersBuilder::new(geo, |v: StrokeVertex| v.position().to_array()),
     )
-    .map_err(TessellateError::Path)
+    .map_err(|e| {
+        tracing::warn!("stroke_path tessellation failed: {e}");
+        TessellateError::Path(e)
+    })
 }
 
 pub fn shape_aabb(variant: &ShapeVariant) -> (Vec2, Vec2) {
