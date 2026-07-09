@@ -308,6 +308,54 @@ fn when_screen_pos_set_to_origin_then_screen_pos_is_zero() {
     assert_eq!(state.screen_pos(), Vec2::ZERO);
 }
 
+/// @doc: Verifies that releasing a mouse button that was never pressed still sets just_released (by current impl).
+#[test]
+fn when_unpressed_button_released_then_just_released_is_set() {
+    // Arrange
+    let mut state = MouseState::default();
+
+    // Act
+    state.release(MouseButton::Middle);
+
+    // Assert
+    assert!(!state.pressed(MouseButton::Middle));
+    assert!(state.just_released(MouseButton::Middle), "just_released set even for never-pressed button");
+}
+
+/// @doc: Verifies that pressing and releasing two different buttons are tracked independently.
+#[test]
+fn when_two_different_buttons_used_independently_then_states_are_isolated() {
+    // Arrange
+    let mut state = MouseState::default();
+
+    // Act
+    state.press(MouseButton::Left);
+    state.press(MouseButton::Right);
+    state.release(MouseButton::Left);
+
+    // Assert
+    assert!(state.pressed(MouseButton::Right), "Right should still be pressed");
+    assert!(!state.pressed(MouseButton::Left), "Left should be released");
+    assert!(state.just_released(MouseButton::Left), "Left should be just_released");
+}
+
+/// @doc: Verifies that world position is preserved across frame clears (only button state resets).
+#[test]
+fn when_world_pos_set_then_clear_frame_state_does_not_reset_world_pos() {
+    // Arrange
+    let mut state = MouseState::default();
+    state.set_world_pos(Vec2::new(42.0, 99.0));
+    state.press(MouseButton::Left);
+
+    // Act
+    state.clear_frame_state();
+
+    // Assert
+    assert_eq!(state.world_pos(), Vec2::new(42.0, 99.0), "world_pos should persist across frame clear");
+    assert!(!state.just_pressed(MouseButton::Left), "just_pressed should reset");
+    assert!(state.pressed(MouseButton::Left), "pressed should persist");
+}
+
 /// @doc: Verifies that negative scroll delta values are tracked correctly by the accumulator.
 #[test]
 fn when_negative_scroll_delta_accumulated_then_delta_is_negative() {

@@ -1,9 +1,9 @@
 {
   "project_root": "C:\\Users\\siriu\\RustroverProjects\\Axiom2d",
   "cycle": {
-    "phase": "fix",
-    "cycle_number": 1,
-    "last_file_processed": null,
+    "phase": "done",
+    "cycle_number": 4,
+    "last_file_processed": "crates/engine_ui/src/unified_render.rs",
     "files_verified_this_cycle": [
       "crates/axiom2d/tests/suite/default_plugins.rs",
       "crates/axiom2d/tests/suite/splash_animation.rs",
@@ -163,9 +163,33 @@
       "crates/terrain/tests/suite/tile_def.rs",
       "crates/terrain/tests/suite/wfc.rs"
     ],
-    "files_fixed_this_cycle": [],
+    "files_fixed_this_cycle": [
+      "crates/card_game/src/booster/device.rs",
+      "crates/card_game/src/booster/opening.rs",
+      "crates/card_game/src/card/jack_cable/mod.rs",
+      "crates/card_game/src/card/jack_cable/geom.rs",
+      "crates/card_game/src/card/jack_cable/render.rs",
+      "crates/card_game/src/card/jack_socket.rs",
+      "crates/card_game/src/card/screen_device.rs",
+      "crates/card_game/src/stash/pages.rs",
+      "crates/card_game/src/stash/store.rs",
+      "crates/engine_render/src/font.rs",
+      "crates/card_game/src/booster/device.rs",
+      "crates/card_game/src/booster/opening.rs",
+      "crates/card_game/src/card/jack_cable/mod.rs",
+      "crates/card_game/src/card/jack_cable/geom.rs",
+      "crates/card_game/src/card/jack_cable/render.rs",
+      "crates/card_game/src/card/jack_socket.rs",
+      "crates/card_game/src/card/screen_device.rs",
+      "crates/card_game/src/stash/pages.rs",
+      "crates/card_game/src/stash/store.rs",
+      "crates/engine_render/src/font.rs",
+      "crates/engine_render/src/wgpu_renderer/renderer_trait.rs",
+      "crates/engine_render/src/shape/tessellate.rs",
+      "crates/engine_ui/src/unified_render.rs"
+    ],
     "started_at": "2026-07-09T12:55:07.157715+00:00",
-    "last_updated": "2026-07-09T22:00:00Z",
+    "last_updated": "2026-07-09T20:09:59.047901+00:00",
     "tooling": {
       "language": "rust",
       "test_framework": "cargo-test",
@@ -181,15 +205,15 @@
     "target_source_brevity": 7,
     "results": {
       "test_avg_score": 8.3,
-      "file_coverage_pct": 32.3,
+      "file_coverage_pct": 98.2,
       "source_observability_avg": 8.4,
       "source_brevity_avg": 9.4,
       "files_at_target": 149,
       "files_below_minimum": 0,
       "files_below_threshold": 8,
       "total_files": 157,
-      "line_coverage_pct": null,
-      "branch_coverage_pct": null,
+      "line_coverage_pct": 87.3,
+      "branch_coverage_pct": 87.3,
       "source_observability_min": 4,
       "source_brevity_below_7": 30
     },
@@ -224,7 +248,8 @@
       "crates/engine_scene/tests/suite/visibility.rs",
       "crates/card_game/tests/suite/card_component.rs",
       "crates/card_game/tests/suite/card_identity_nouns.rs"
-    ]
+    ],
+    "completed_at": "2026-07-09T20:09:59.048082+00:00"
   },
   "last_full_run": "2026-07-09T12:55:07.157715+00:00",
   "last_partial_run": null,
@@ -3620,7 +3645,7 @@
       ]
     },
     "crates/card_game/tests/suite/card_reader_spawn.rs": {
-      "hash": "d8e43c63810c24320f4019d471f0bda08465aec1db86284895eb78630059c92a",
+      "hash": "77d4971353059b4c9fa3732b9bed2aa88efd2386b055fcbe0e32d30d9227ce0c",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -5543,7 +5568,7 @@
       ]
     },
     "crates/card_game/tests/suite/stash_toggle.rs": {
-      "hash": "38934afe6bd0fcebf378b85d74e1d76d6440ab19801cda8ff69cda32412d423c",
+      "hash": "5c0ce88709f37974bdabd2f0e235e9b3e15dd1e069218dbdf976b34fd65f753a",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -6279,7 +6304,7 @@
       "findings": []
     },
     "crates/engine_audio/tests/suite/backend_traits.rs": {
-      "hash": "9107d8f11974135832b983e638bf8be801dee175e117174d7df10efdccc73fed",
+      "hash": "8503a62ddf068038d52f64638c3fd733351be5340aaf8e142b4d3ba6a642b1d1",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -6557,7 +6582,7 @@
       ]
     },
     "crates/engine_audio/tests/suite/sound_data.rs": {
-      "hash": "de8945c865489cbbe1f02c6c4a3023196faacb9eb9f2c036331742650e07d131",
+      "hash": "bff524d91de5312ebf65afe832c2d54df5e524989f091320592a6bc5ead3fbe4",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 9.3,
@@ -7541,7 +7566,7 @@
       ]
     },
     "crates/engine_input/tests/suite/keyboard_state.rs": {
-      "hash": "ee5d8b7c8813955d8183c9ec5a3726feddc4f691f7b74e1c7f9f746901d5228f",
+      "hash": "b15d7512f2b982f0257eac0cad44db24658874c27cda22ba968b777647ba3dd3",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 7.3,
@@ -7685,7 +7710,7 @@
       ]
     },
     "crates/engine_input/tests/suite/mouse_state.rs": {
-      "hash": "c875f06d033a45377c3a331fe3ed2ce0fde4b8ff52e850581a9fe092f29d6a8b",
+      "hash": "6b15a008c40257605634ed0812af1b8f13e614c0829f13d3dcf10621b23cc17a",
       "last_verified": "2026-07-09T12:55:07.157715+00:00",
       "scores": {
         "assertion_quality": 8.2,
@@ -11339,2918 +11364,105 @@
   },
   "coverage": {
     "total_source_files": 613,
-    "tested": 198,
+    "tested": 602,
     "possibly_tested": 0,
-    "untested": 415,
-    "untested_files": [
-      {
-        "path": "crates/axiom2d/src/lib.rs",
-        "lines": 3,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/axiom2d/src/prelude.rs",
-        "lines": 21,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/acorn_t_01.rs",
-        "lines": 165,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/amber_stone_t.rs",
-        "lines": 89,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_01_t.rs",
-        "lines": 155,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_02_t.rs",
-        "lines": 106,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_03_t.rs",
-        "lines": 101,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_04_t.rs",
-        "lines": 111,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_05_t.rs",
-        "lines": 119,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_06_t.rs",
-        "lines": 95,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_07_t.rs",
-        "lines": 121,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_08_t.rs",
-        "lines": 83,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_09_t.rs",
-        "lines": 90,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_100_t.rs",
-        "lines": 224,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_101_t.rs",
-        "lines": 325,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_102_t.rs",
-        "lines": 187,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_103_t.rs",
-        "lines": 249,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_104_t.rs",
-        "lines": 320,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_105_t.rs",
-        "lines": 247,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_106_t.rs",
-        "lines": 210,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_107_t.rs",
-        "lines": 164,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_108_t.rs",
-        "lines": 164,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_109_t.rs",
-        "lines": 85,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_10_t.rs",
-        "lines": 149,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_110_t.rs",
-        "lines": 160,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_111_t.rs",
-        "lines": 130,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_112_t.rs",
-        "lines": 149,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_113_t.rs",
-        "lines": 233,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_114_t.rs",
-        "lines": 177,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_115_t.rs",
-        "lines": 182,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_116_t.rs",
-        "lines": 175,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_117_t.rs",
-        "lines": 126,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_118_t.rs",
-        "lines": 180,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_119_t.rs",
-        "lines": 155,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_11_t.rs",
-        "lines": 142,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_120_t.rs",
-        "lines": 173,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_121_t.rs",
-        "lines": 175,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_122_t.rs",
-        "lines": 90,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_123_t.rs",
-        "lines": 158,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_124_t.rs",
-        "lines": 116,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_125_t.rs",
-        "lines": 155,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_126_t.rs",
-        "lines": 89,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_127_t.rs",
-        "lines": 124,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_128_t.rs",
-        "lines": 161,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_129_t.rs",
-        "lines": 195,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_12_t.rs",
-        "lines": 118,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_130_t.rs",
-        "lines": 220,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_13_t.rs",
-        "lines": 132,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_14_t.rs",
-        "lines": 94,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_15_t.rs",
-        "lines": 133,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_16_t.rs",
-        "lines": 128,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_17_t.rs",
-        "lines": 112,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_18_t.rs",
-        "lines": 209,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_19_t.rs",
-        "lines": 80,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_20_t.rs",
-        "lines": 142,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_21_t.rs",
-        "lines": 137,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_22_t.rs",
-        "lines": 72,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_23_t.rs",
-        "lines": 107,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_24_t.rs",
-        "lines": 180,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_25_t.rs",
-        "lines": 173,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_26_t.rs",
-        "lines": 77,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_27_t.rs",
-        "lines": 143,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_28_t.rs",
-        "lines": 116,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_29_t.rs",
-        "lines": 164,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_30_t.rs",
-        "lines": 94,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_31_t.rs",
-        "lines": 152,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_32_t.rs",
-        "lines": 118,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_33_t.rs",
-        "lines": 70,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_34_t.rs",
-        "lines": 85,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_35_t.rs",
-        "lines": 121,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_36_t.rs",
-        "lines": 124,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_37_t.rs",
-        "lines": 206,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_38_t.rs",
-        "lines": 112,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_39_t.rs",
-        "lines": 211,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_40_t.rs",
-        "lines": 181,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_41_t.rs",
-        "lines": 142,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_42_t.rs",
-        "lines": 78,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_43_t.rs",
-        "lines": 102,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_44_t.rs",
-        "lines": 161,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_45_t.rs",
-        "lines": 98,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_46_t.rs",
-        "lines": 117,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_47_t.rs",
-        "lines": 66,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_48_t.rs",
-        "lines": 93,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_49_t.rs",
-        "lines": 137,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_50_t.rs",
-        "lines": 104,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_51_t.rs",
-        "lines": 109,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_52_t.rs",
-        "lines": 80,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_53_t.rs",
-        "lines": 113,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_54_t.rs",
-        "lines": 153,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_55_t.rs",
-        "lines": 125,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_56_t.rs",
-        "lines": 125,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_57_t.rs",
-        "lines": 84,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_58_t.rs",
-        "lines": 106,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_59_t.rs",
-        "lines": 114,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_60_t.rs",
-        "lines": 127,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_61_t.rs",
-        "lines": 102,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_62_t.rs",
-        "lines": 98,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_63_t.rs",
-        "lines": 136,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_64_t.rs",
-        "lines": 197,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_65_t.rs",
-        "lines": 97,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_66_t.rs",
-        "lines": 80,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_67_t.rs",
-        "lines": 201,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_68_t.rs",
-        "lines": 141,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_69_t.rs",
-        "lines": 73,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_70_t.rs",
-        "lines": 87,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_71_t.rs",
-        "lines": 136,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_72_t.rs",
-        "lines": 104,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_73_t.rs",
-        "lines": 74,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_74_t.rs",
-        "lines": 62,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_75_t.rs",
-        "lines": 101,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_76_t.rs",
-        "lines": 120,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_77_t.rs",
-        "lines": 145,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_78_t.rs",
-        "lines": 132,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_79_t.rs",
-        "lines": 121,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_80_t.rs",
-        "lines": 77,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_81_t.rs",
-        "lines": 140,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_82_t.rs",
-        "lines": 123,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_83_t.rs",
-        "lines": 154,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_84_t.rs",
-        "lines": 129,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_85_t.rs",
-        "lines": 129,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_86_t.rs",
-        "lines": 117,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_87_t.rs",
-        "lines": 80,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_88_t.rs",
-        "lines": 152,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_89_t.rs",
-        "lines": 152,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_90_t.rs",
-        "lines": 88,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_91_t.rs",
-        "lines": 146,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_92_t.rs",
-        "lines": 83,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_93_t.rs",
-        "lines": 138,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_94_t.rs",
-        "lines": 274,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_95_t.rs",
-        "lines": 84,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_96_t.rs",
-        "lines": 123,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_97_t.rs",
-        "lines": 197,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_98_t.rs",
-        "lines": 232,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/barbarian_icons_99_t.rs",
-        "lines": 177,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/crt_t_01.rs",
-        "lines": 135,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/cs_t_01.rs",
-        "lines": 111,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/cs_t_02.rs",
-        "lines": 102,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/cs_t_03.rs",
-        "lines": 169,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/cs_t_04.rs",
-        "lines": 157,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/cs_t_05.rs",
-        "lines": 249,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/cs_t_06.rs",
-        "lines": 128,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/cs_t_07.rs",
-        "lines": 122,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/ff_01_t.rs",
-        "lines": 61,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/ff_02_t.rs",
-        "lines": 93,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gem_f_t_01.rs",
-        "lines": 58,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_136.rs",
-        "lines": 85,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_137.rs",
-        "lines": 98,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_138.rs",
-        "lines": 80,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_139.rs",
-        "lines": 107,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_140.rs",
-        "lines": 93,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_141.rs",
-        "lines": 84,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_142.rs",
-        "lines": 90,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_143.rs",
-        "lines": 81,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_144.rs",
-        "lines": 89,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_145.rs",
-        "lines": 72,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_146.rs",
-        "lines": 89,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_147.rs",
-        "lines": 66,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_148.rs",
-        "lines": 120,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_149.rs",
-        "lines": 90,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_150.rs",
-        "lines": 240,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_151.rs",
-        "lines": 151,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_152.rs",
-        "lines": 130,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_153.rs",
-        "lines": 63,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_154.rs",
-        "lines": 151,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_155.rs",
-        "lines": 72,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_156.rs",
-        "lines": 150,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_157.rs",
-        "lines": 194,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_158.rs",
-        "lines": 141,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_159.rs",
-        "lines": 104,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_160.rs",
-        "lines": 135,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_161.rs",
-        "lines": 84,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_162.rs",
-        "lines": 90,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_163.rs",
-        "lines": 119,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gems_add_164.rs",
-        "lines": 123,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gen_rb_t_01.rs",
-        "lines": 112,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_01.rs",
-        "lines": 62,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_02.rs",
-        "lines": 55,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_03.rs",
-        "lines": 107,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_04.rs",
-        "lines": 73,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_05.rs",
-        "lines": 61,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_06.rs",
-        "lines": 42,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_07.rs",
-        "lines": 72,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_08.rs",
-        "lines": 59,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_09.rs",
-        "lines": 139,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_10.rs",
-        "lines": 130,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_11.rs",
-        "lines": 62,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_12.rs",
-        "lines": 157,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_13.rs",
-        "lines": 60,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_14.rs",
-        "lines": 65,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/gm_t_15.rs",
-        "lines": 57,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_01.rs",
-        "lines": 130,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_02.rs",
-        "lines": 256,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_03.rs",
-        "lines": 133,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_04.rs",
-        "lines": 130,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_05.rs",
-        "lines": 170,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_06.rs",
-        "lines": 160,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_07.rs",
-        "lines": 218,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_08.rs",
-        "lines": 117,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_09.rs",
-        "lines": 183,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_10.rs",
-        "lines": 157,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_11.rs",
-        "lines": 145,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_12.rs",
-        "lines": 221,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_13.rs",
-        "lines": 171,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_14.rs",
-        "lines": 117,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/hb_t_15.rs",
-        "lines": 283,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/ice_stone_t.rs",
-        "lines": 116,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_01.rs",
-        "lines": 103,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_01_small_gem_t.rs",
-        "lines": 74,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_02.rs",
-        "lines": 56,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_02_medium_gem_t.rs",
-        "lines": 81,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_03.rs",
-        "lines": 99,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_03_big_gem_t.rs",
-        "lines": 85,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_04.rs",
-        "lines": 85,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_04_large_gem_t.rs",
-        "lines": 88,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_05.rs",
-        "lines": 121,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_05_pure_gem_t.rs",
-        "lines": 78,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_06.rs",
-        "lines": 90,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_06_royal_gem_t.rs",
-        "lines": 98,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_07.rs",
-        "lines": 80,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_08.rs",
-        "lines": 95,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_09.rs",
-        "lines": 59,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_10.rs",
-        "lines": 62,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_100.rs",
-        "lines": 72,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_101.rs",
-        "lines": 59,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_102.rs",
-        "lines": 139,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_103.rs",
-        "lines": 130,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_104.rs",
-        "lines": 62,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_105.rs",
-        "lines": 157,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_106.rs",
-        "lines": 60,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_107.rs",
-        "lines": 65,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_108.rs",
-        "lines": 57,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_109.rs",
-        "lines": 116,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_11.rs",
-        "lines": 87,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_110.rs",
-        "lines": 126,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_111.rs",
-        "lines": 94,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_112.rs",
-        "lines": 78,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_113.rs",
-        "lines": 168,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_114.rs",
-        "lines": 123,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_116.rs",
-        "lines": 249,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_117.rs",
-        "lines": 161,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_118.rs",
-        "lines": 139,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_119.rs",
-        "lines": 158,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_12.rs",
-        "lines": 78,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_120.rs",
-        "lines": 84,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_121.rs",
-        "lines": 60,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_122.rs",
-        "lines": 67,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_123.rs",
-        "lines": 101,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_124.rs",
-        "lines": 108,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_125.rs",
-        "lines": 108,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_126.rs",
-        "lines": 88,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_127.rs",
-        "lines": 102,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_128.rs",
-        "lines": 113,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_129.rs",
-        "lines": 113,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_13.rs",
-        "lines": 77,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_130.rs",
-        "lines": 73,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_131.rs",
-        "lines": 65,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_132.rs",
-        "lines": 56,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_133.rs",
-        "lines": 68,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_134.rs",
-        "lines": 69,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_135.rs",
-        "lines": 96,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_14.rs",
-        "lines": 54,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_15.rs",
-        "lines": 67,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_16.rs",
-        "lines": 83,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_17.rs",
-        "lines": 88,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_18.rs",
-        "lines": 80,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_19.rs",
-        "lines": 78,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_20.rs",
-        "lines": 120,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_21.rs",
-        "lines": 71,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_22.rs",
-        "lines": 71,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_23.rs",
-        "lines": 74,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_24.rs",
-        "lines": 120,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_25.rs",
-        "lines": 110,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_26.rs",
-        "lines": 70,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_27.rs",
-        "lines": 137,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_28.rs",
-        "lines": 128,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_29.rs",
-        "lines": 86,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_30.rs",
-        "lines": 74,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_31.rs",
-        "lines": 101,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_32.rs",
-        "lines": 90,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_33.rs",
-        "lines": 81,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_34.rs",
-        "lines": 95,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_35.rs",
-        "lines": 91,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_36.rs",
-        "lines": 101,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_37.rs",
-        "lines": 100,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_38.rs",
-        "lines": 110,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_39.rs",
-        "lines": 68,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_40.rs",
-        "lines": 96,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_41.rs",
-        "lines": 86,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_42.rs",
-        "lines": 27,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_43.rs",
-        "lines": 107,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_44.rs",
-        "lines": 57,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_45.rs",
-        "lines": 99,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_46.rs",
-        "lines": 84,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_47.rs",
-        "lines": 113,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_48.rs",
-        "lines": 83,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_49.rs",
-        "lines": 92,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_50.rs",
-        "lines": 115,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_51.rs",
-        "lines": 95,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_52.rs",
-        "lines": 80,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_53.rs",
-        "lines": 99,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_54.rs",
-        "lines": 60,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_55.rs",
-        "lines": 95,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_56.rs",
-        "lines": 99,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_57.rs",
-        "lines": 113,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_58.rs",
-        "lines": 77,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_59.rs",
-        "lines": 83,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_60.rs",
-        "lines": 67,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_61.rs",
-        "lines": 86,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_62.rs",
-        "lines": 54,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_63.rs",
-        "lines": 132,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_64.rs",
-        "lines": 70,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_65.rs",
-        "lines": 69,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_66.rs",
-        "lines": 90,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_67.rs",
-        "lines": 151,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_68.rs",
-        "lines": 55,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_69.rs",
-        "lines": 123,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_70.rs",
-        "lines": 73,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_71.rs",
-        "lines": 111,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_72.rs",
-        "lines": 127,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_73.rs",
-        "lines": 69,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_74.rs",
-        "lines": 75,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_75.rs",
-        "lines": 57,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_76.rs",
-        "lines": 71,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_77.rs",
-        "lines": 47,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_78.rs",
-        "lines": 92,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_79.rs",
-        "lines": 76,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_80.rs",
-        "lines": 44,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_81.rs",
-        "lines": 95,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_82.rs",
-        "lines": 91,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_83.rs",
-        "lines": 74,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_84.rs",
-        "lines": 81,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_85.rs",
-        "lines": 85,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_86.rs",
-        "lines": 88,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_87.rs",
-        "lines": 78,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_88.rs",
-        "lines": 98,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_89.rs",
-        "lines": 89,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_90.rs",
-        "lines": 135,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_91.rs",
-        "lines": 93,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_92.rs",
-        "lines": 58,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_93.rs",
-        "lines": 112,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_94.rs",
-        "lines": 62,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_95.rs",
-        "lines": 55,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_96.rs",
-        "lines": 107,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_97.rs",
-        "lines": 73,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_98.rs",
-        "lines": 61,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/img_99.rs",
-        "lines": 42,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/in_t_01.rs",
-        "lines": 121,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/in_t_02.rs",
-        "lines": 74,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/in_t_03.rs",
-        "lines": 147,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/in_t_04.rs",
-        "lines": 104,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/in_t_05.rs",
-        "lines": 84,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/in_t_06.rs",
-        "lines": 107,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/in_t_07.rs",
-        "lines": 123,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/in_t_08.rs",
-        "lines": 122,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/lf_n_01_t.rs",
-        "lines": 123,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/lily_t.rs",
-        "lines": 221,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/ore_f_t_01.rs",
-        "lines": 126,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/ore_f_t_02.rs",
-        "lines": 135,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/sp_gem_t.rs",
-        "lines": 94,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/stellar_tear_t.rs",
-        "lines": 78,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/t_01_a.rs",
-        "lines": 168,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/generated/t_02_a.rs",
-        "lines": 123,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/art/repository.rs",
-        "lines": 3747,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/identity/name_pools/adjectives.rs",
-        "lines": 865,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/identity/signature/algorithms.rs",
-        "lines": 31,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/interaction/game_state_param.rs",
-        "lines": 18,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/card_game/src/card/reader/eject.rs",
-        "lines": 60,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/reader/insert.rs",
-        "lines": 71,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/reader/rotation_lock.rs",
-        "lines": 17,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/card_game/src/card/rendering/baked_render.rs",
-        "lines": 48,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/rendering/face_layout.rs",
-        "lines": 78,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/card_game/src/card/rendering/geometry.rs",
-        "lines": 33,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/card/rendering/spawn_table_card/text.rs",
-        "lines": 50,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/card_game/src/lib.rs",
-        "lines": 7,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/card_game/src/prelude.rs",
-        "lines": 75,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
+    "untested": 11,
+    "line_coverage_available": true,
+    "overall_line_pct": 87.3,
+    "overall_branch_pct": 87.3,
+    "untested_files": [],
+    "weakly_covered": [],
+    "entry_points_untested": [
       {
         "path": "crates/card_game_bin/src/card_data.rs",
-        "lines": 86,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
+        "lines": 87,
+        "reason": "Entry point or binary crate \u00e2\u20ac\u201d no separate test binary",
+        "risk": "low",
+        "line_coverage_pct": 0,
+        "branch_coverage_pct": 0
       },
       {
         "path": "crates/card_game_bin/src/main.rs",
-        "lines": 152,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
+        "lines": 153,
+        "reason": "Entry point or binary crate \u00e2\u20ac\u201d no separate test binary",
+        "risk": "low",
+        "line_coverage_pct": 0,
+        "branch_coverage_pct": 0
       },
       {
-        "path": "crates/demo/src/lib.rs",
-        "lines": 49,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/engine_app/src/lib.rs",
-        "lines": 5,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_app/src/prelude.rs",
-        "lines": 5,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_app/src/profiler_plugin.rs",
-        "lines": 36,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/engine_app/src/window_size.rs",
-        "lines": 17,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
+        "path": "crates/engine_assets/src/asset_server.rs",
+        "lines": 85,
+        "reason": "Entry point or binary crate \u00e2\u20ac\u201d no separate test binary",
+        "risk": "low",
+        "line_coverage_pct": 0,
+        "branch_coverage_pct": 0
       },
       {
         "path": "crates/engine_assets/src/handle.rs",
-        "lines": 57,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
+        "lines": 58,
+        "reason": "Entry point or binary crate \u00e2\u20ac\u201d no separate test binary",
+        "risk": "low",
+        "line_coverage_pct": 0,
+        "branch_coverage_pct": 0
       },
       {
         "path": "crates/engine_assets/src/lib.rs",
-        "lines": 3,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
+        "lines": 4,
+        "reason": "Entry point or binary crate \u00e2\u20ac\u201d no separate test binary",
+        "risk": "low",
+        "line_coverage_pct": 0,
+        "branch_coverage_pct": 0
       },
       {
         "path": "crates/engine_assets/src/prelude.rs",
-        "lines": 2,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
+        "lines": 3,
+        "reason": "Entry point or binary crate \u00e2\u20ac\u201d no separate test binary",
+        "risk": "low",
+        "line_coverage_pct": 0,
+        "branch_coverage_pct": 0
       },
       {
-        "path": "crates/engine_audio/src/audio_res.rs",
-        "lines": 26,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/engine_audio/src/playback/buffer.rs",
-        "lines": 50,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/engine_audio/src/playback/id.rs",
-        "lines": 2,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_audio/src/prelude.rs",
-        "lines": 9,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_audio/src/test_helpers.rs",
-        "lines": 9,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_core/src/error.rs",
-        "lines": 9,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_core/src/prelude.rs",
-        "lines": 10,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
+        "path": "crates/engine_ecs/src/lib.rs",
+        "lines": 3,
+        "reason": "Entry point or binary crate \u00e2\u20ac\u201d no separate test binary",
+        "risk": "low",
+        "line_coverage_pct": 0,
+        "branch_coverage_pct": 0
       },
       {
         "path": "crates/engine_ecs/src/prelude.rs",
-        "lines": 8,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_input/src/button_state.rs",
-        "lines": 14,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_input/src/key_code.rs",
-        "lines": 215,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/engine_input/src/keyboard/buffer.rs",
-        "lines": 11,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_input/src/mouse/buffer.rs",
-        "lines": 20,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_input/src/mouse_button.rs",
-        "lines": 23,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/engine_input/src/prelude.rs",
-        "lines": 8,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_physics/src/collision_event.rs",
-        "lines": 17,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_physics/src/physics_res.rs",
-        "lines": 26,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
-      },
-      {
-        "path": "crates/engine_physics/src/prelude.rs",
-        "lines": 10,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_physics/src/rigid_body.rs",
         "lines": 9,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
+        "reason": "Entry point or binary crate \u00e2\u20ac\u201d no separate test binary",
+        "risk": "low",
+        "line_coverage_pct": 0,
+        "branch_coverage_pct": 0
       },
       {
-        "path": "crates/engine_render/src/prelude.rs",
-        "lines": 28,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
+        "path": "crates/engine_ecs/src/schedule.rs",
+        "lines": 78,
+        "reason": "Entry point or binary crate \u00e2\u20ac\u201d no separate test binary",
+        "risk": "low",
+        "line_coverage_pct": 0,
+        "branch_coverage_pct": 0
       },
       {
-        "path": "crates/engine_render/src/sprite.rs",
-        "lines": 25,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "medium"
+        "path": "crates/particle_poc/src/main.rs",
+        "lines": 2900,
+        "reason": "Entry point or binary crate \u00e2\u20ac\u201d no separate test binary",
+        "risk": "low",
+        "line_coverage_pct": 0,
+        "branch_coverage_pct": 0
       },
       {
-        "path": "crates/engine_render/src/testing/helpers.rs",
-        "lines": 12,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_render/src/wgpu_renderer/gpu_init.rs",
-        "lines": 493,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/engine_render/src/window.rs",
-        "lines": 20,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_scene/src/prelude.rs",
-        "lines": 6,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_ui/src/draw_command.rs",
-        "lines": 93,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
-      },
-      {
-        "path": "crates/engine_ui/src/layout/margin.rs",
-        "lines": 9,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_ui/src/prelude.rs",
-        "lines": 15,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/engine_ui/src/ui_event.rs",
-        "lines": 13,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/terrain/src/prelude.rs",
-        "lines": 12,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "low"
-      },
-      {
-        "path": "crates/terrain/src/tile_def/example.rs",
-        "lines": 178,
-        "test_match": "untested",
-        "matching_test": null,
-        "risk": "high"
+        "path": "crates/terrain_viewer/src/main.rs",
+        "lines": 632,
+        "reason": "Entry point or binary crate \u00e2\u20ac\u201d no separate test binary",
+        "risk": "low",
+        "line_coverage_pct": 0,
+        "branch_coverage_pct": 0
       }
     ],
-    "weakly_covered": [],
-    "entry_points_untested": []
+    "file_coverage_pct": 98.2
   },
   "source_quality": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -14446,7 +11658,7 @@
       }
     },
     "crates/card_game/src/booster/device.rs": {
-      "hash": "3287c97cfaa5c5f8a91569150be8e4471cbf8b3aa1754eefd9e9bdeb22e13f41",
+      "hash": "8765b14013ce104946db5f1405b82c72517f595b483b50318cfcfece71f10b90",
       "lines": 415,
       "functions": 7,
       "observability": {
@@ -14490,7 +11702,8 @@
           }
         ],
         "unnecessary_else_count": 4
-      }
+      },
+      "last_analyzed": "2026-07-09T19:25:28.450225+00:00"
     },
     "crates/card_game/src/booster/double_click.rs": {
       "hash": "e285344e88e315ad4068ff5c675b49718ad8b179b4f07d02f25b4cc0464f3678",
@@ -14545,7 +11758,7 @@
       }
     },
     "crates/card_game/src/booster/opening.rs": {
-      "hash": "8c370c1de15b4567a3240d8dae76b2d4c1be72f62be6f5e2a8776984e3cf6e80",
+      "hash": "a800239ecaaaef92bac813b00cf8b4dff984f5ca079a057c8a59eb4fc857c1fd",
       "lines": 439,
       "functions": 17,
       "observability": {
@@ -14584,7 +11797,8 @@
           }
         ],
         "unnecessary_else_count": 1
-      }
+      },
+      "last_analyzed": "2026-07-09T19:25:28.450735+00:00"
     },
     "crates/card_game/src/booster/pack.rs": {
       "hash": "a1dacda73453f291bd84fac55d1042715b3e694009068c98ea7a851e30735e6c",
@@ -22954,7 +20168,7 @@
       }
     },
     "crates/card_game/src/card/jack_socket.rs": {
-      "hash": "d7e22a5c8c83812b4c996748312103845715f24a968bc70e9370034152f02541",
+      "hash": "c07a6bf3ef3018001f5394f4cc2685339e5a347cbda9132b450777da4e7ef49e",
       "lines": 297,
       "functions": 7,
       "observability": {
@@ -22998,7 +20212,8 @@
           }
         ],
         "unnecessary_else_count": 3
-      }
+      },
+      "last_analyzed": "2026-07-09T19:25:28.450854+00:00"
     },
     "crates/card_game/src/card/mod.rs": {
       "hash": "56590d84bad3a71e0e14e78c068352f859f7feb92db0a97e5287c51c72d6b816",
@@ -23666,7 +20881,7 @@
       }
     },
     "crates/card_game/src/card/screen_device.rs": {
-      "hash": "91609429a86dbc4dbeb10af5addc4ff10fa14a0c39df2dec43d3ccc87ce66c3e",
+      "hash": "6b1184eb5d3516716d62179543c29dbe04933f5ce95e2a69e93df233c5f72ebc",
       "lines": 601,
       "functions": 23,
       "observability": {
@@ -23704,7 +20919,8 @@
         "file_too_long": true,
         "high_complexity_functions": [],
         "unnecessary_else_count": 3
-      }
+      },
+      "last_analyzed": "2026-07-09T19:25:28.450988+00:00"
     },
     "crates/card_game/src/card/zone_config.rs": {
       "hash": "5f61b0e60e1c6e58ecac79690740c8ceb38a2d71a0e57b321574c96a0152afe3",
@@ -24023,7 +21239,7 @@
       }
     },
     "crates/card_game/src/stash/pages.rs": {
-      "hash": "fcaf41cc4eec2f7a5ff103bc5a3fece0411b7ff151ad593382b23780c5069e6a",
+      "hash": "6bd49ebc81123d6b5ce8a06c7ba57a3635a3a793f5c9c003274651be3ca75fde",
       "lines": 219,
       "functions": 6,
       "observability": {
@@ -24067,7 +21283,8 @@
           }
         ],
         "unnecessary_else_count": 1
-      }
+      },
+      "last_analyzed": "2026-07-09T19:25:28.451084+00:00"
     },
     "crates/card_game/src/stash/render.rs": {
       "hash": "aca8f467d54fb42fbfec88e9e64927be06f406582490a9381be04b2dc9b857fd",
@@ -24162,7 +21379,7 @@
       }
     },
     "crates/card_game/src/stash/store.rs": {
-      "hash": "913a91a69f4c0f642f847ff9fa579a6e726681c72603cb8c0cff43e4b3f6f75f",
+      "hash": "19905e88595daa03d984c3655b651aa50e08ae89af0b0c22f76b80a048ab08c8",
       "lines": 929,
       "functions": 41,
       "observability": {
@@ -24231,7 +21448,8 @@
           }
         ],
         "unnecessary_else_count": 8
-      }
+      },
+      "last_analyzed": "2026-07-09T19:25:28.451191+00:00"
     },
     "crates/card_game/src/stash/toggle.rs": {
       "hash": "c3b3395a8dbeade2958ebdabced1d4c207d53c60e1311bfb7ef130d96f5543e4",
@@ -26053,7 +23271,7 @@
       }
     },
     "crates/engine_render/src/font.rs": {
-      "hash": "ef69a884f22b833c557baeb00277bdcc8773683ce9156c34cd2ed6530bcfb8c7",
+      "hash": "e3de10e68020b094c7479eb3bb26904a55f36d29db83ff70ad3e6cef795ee519",
       "lines": 381,
       "functions": 24,
       "observability": {
@@ -26092,7 +23310,8 @@
           }
         ],
         "unnecessary_else_count": 1
-      }
+      },
+      "last_analyzed": "2026-07-09T19:25:28.451289+00:00"
     },
     "crates/engine_render/src/image_data.rs": {
       "hash": "6fe39f13952dfebca07869b0b82846a892d023c582e9bae2036179706b3b37d6",
@@ -26409,7 +23628,7 @@
       }
     },
     "crates/engine_render/src/shape/tessellate.rs": {
-      "hash": "de25b483e88a174b3a628add32b93974c92050cf24b0f7c4575b306a72d763f4",
+      "hash": "c11b66071024d657400a5ca9ea4f3a7430fd2f332c87ec269fdb21dd897d05b6",
       "lines": 282,
       "functions": 15,
       "observability": {
@@ -26448,7 +23667,8 @@
           }
         ],
         "unnecessary_else_count": 0
-      }
+      },
+      "last_analyzed": "2026-07-09T19:25:28.451483+00:00"
     },
     "crates/engine_render/src/sprite.rs": {
       "hash": "1b2ce6cafa6d051d74360765da25708e95004d4524b0b6e61c905fcf20d555e3",
@@ -26655,7 +23875,7 @@
       }
     },
     "crates/engine_render/src/wgpu_renderer/renderer_trait.rs": {
-      "hash": "91da6171b573a7289716f01911528acc750525d4ff0bb7a616e2624a68b5a4b2",
+      "hash": "59a25f00643d65447b25d05581fe2b67eabeffadad5688a8c5207b499c8b01e5",
       "lines": 673,
       "functions": 39,
       "observability": {
@@ -26699,7 +23919,8 @@
           }
         ],
         "unnecessary_else_count": 3
-      }
+      },
+      "last_analyzed": "2026-07-09T19:25:28.451394+00:00"
     },
     "crates/engine_render/src/wgpu_renderer/shaders.rs": {
       "hash": "6bd2d3e1890630ab93e2ff63d093f40ddcaa2f43b41de2901d6ca8e7d8a76236",
@@ -27241,7 +24462,7 @@
       }
     },
     "crates/engine_ui/src/unified_render.rs": {
-      "hash": "561c4f50cf281a1a187ef0ee49565830c22e6b71933ea59b414d48e0c9c79d53",
+      "hash": "c763c459c74f94e288b580e4bb5af1ddc6b3228964f152f9932dc1d00a5e002c",
       "lines": 453,
       "functions": 10,
       "observability": {
@@ -27280,7 +24501,8 @@
           }
         ],
         "unnecessary_else_count": 1
-      }
+      },
+      "last_analyzed": "2026-07-09T19:25:28.451576+00:00"
     },
     "crates/engine_ui/src/widget/button.rs": {
       "hash": "0a0fdf3e32d19a2d81b75352b28b0dda71358d4a90d21affc55e35a4e75562e9",
@@ -27415,7 +24637,7 @@
       }
     },
     "crates/particle_poc/src/main.rs": {
-      "hash": "1f9bf36bda1db72dbaa379ae131493dcf6ab153e751dda3ff8e564b4ef39d495",
+      "hash": "373a7dfd6dee32f100bbcb6a541035fadef14f35cf512edee7d9472136249da6",
       "lines": 2900,
       "functions": 40,
       "observability": {
@@ -27755,7 +24977,7 @@
       }
     },
     "crates/terrain_viewer/src/main.rs": {
-      "hash": "e636c03ae3aa41dae19640bdd9fd79eda3a7bcf12af46bf5fd8006aea2b23869",
+      "hash": "1152629000318d27c04d97b14c7866ba26732c58a51965f457a5a17446b0f4b4",
       "lines": 632,
       "functions": 16,
       "observability": {

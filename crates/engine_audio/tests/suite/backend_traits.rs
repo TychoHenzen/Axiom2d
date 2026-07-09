@@ -2,6 +2,7 @@
 
 use engine_audio::backend::{AudioBackend, NullAudioBackend};
 use engine_audio::mixer::MixerTrack;
+use engine_audio::playback::PlaybackId;
 use engine_audio::sound::SoundData;
 
 fn minimal_sound() -> SoundData {
@@ -69,4 +70,51 @@ fn when_three_sounds_played_then_play_count_returns_three() {
 
     // Assert
     assert_eq!(backend.play_count(), 3, "play count should accumulate to 3 after three plays");
+}
+
+/// @doc: Playing a zero-sample sound still increments play count — backend doesn't validate sample data.
+#[test]
+fn when_empty_sound_played_then_play_count_increments() {
+    // Arrange
+    let mut backend = NullAudioBackend::new();
+    let empty = SoundData {
+        samples: vec![],
+        sample_rate: 44_100,
+        channels: 1,
+    };
+
+    // Act
+    backend.play_on_track(&empty, MixerTrack::Sfx);
+
+    // Assert
+    assert_eq!(backend.play_count(), 1, "play count should increment even with empty SoundData");
+}
+
+/// @doc: Stopping an unregistered PlaybackId is a no-op and must not panic.
+#[test]
+fn when_stop_unknown_id_then_no_panic() {
+    // Arrange
+    let mut backend = NullAudioBackend::new();
+
+    // Act
+    backend.stop(PlaybackId(999));
+
+    // Assert — reached without panic
+    assert_eq!(backend.play_count(), 0, "play count unchanged after stopping unknown ID");
+}
+
+/// @doc: All MixerTrack variants (Master, Music, Sfx, Ambient, Ui) accept playback.
+#[test]
+fn when_play_on_all_tracks_then_play_count_accumulates() {
+    // Arrange
+    let mut backend = NullAudioBackend::new();
+    let sound = minimal_sound();
+
+    // Act
+    for track in &MixerTrack::ALL {
+        backend.play_on_track(&sound, *track);
+    }
+
+    // Assert
+    assert_eq!(backend.play_count(), 5, "play count should be 5 after one play on each of 5 tracks");
 }
