@@ -96,18 +96,18 @@ struct App {
     close_requested: bool,
 }
 
-/// Resolve the default manifest path ("shape list.json" at workspace root).
+/// Resolve the default manifest path ("shape list.json" in tools/img-to-shape/).
 fn default_manifest_path() -> PathBuf {
     if let Ok(exe) = std::env::current_exe() {
         let mut dir = exe.parent().map(Path::to_path_buf);
         while let Some(d) = dir {
             if d.join("Cargo.toml").exists() && d.join("crates").exists() {
-                return d.join("shape list.json");
+                return d.join("tools").join("img-to-shape").join("shape list.json");
             }
             dir = d.parent().map(Path::to_path_buf);
         }
     }
-    PathBuf::from("shape list.json")
+    PathBuf::from("tools/img-to-shape/shape list.json")
 }
 
 impl App {

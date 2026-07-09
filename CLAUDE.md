@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Axiom2d is an LLM-optimized 2D game engine written in Rust. The engine is complete (10 engine crates + `axiom2d` facade + `demo`, 1100+ tests). A physics-based card game has been built on top (`card_game` + `card_game_bin` crates, 530+ tests). The full architectural vision is documented in `docs/Axiom_Blueprint.md`. Completed implementation milestones are in `docs/Completed_Milestones.md`. The active work backlog lives in `docs/BACKLOG.md`. Historical roadmaps and debt audits are kept in `docs/archive/`. Design principles are codified in `docs/architecture_bible.md`.
+Axiom2d is an LLM-optimized 2D game engine written in Rust. The engine is complete (10 engine crates + `axiom2d` facade + `demo`, 1100+ tests). A physics-based card game has been built on top (`card_game` + `card_game_bin` crates, 530+ tests). The full architectural vision is documented in `docs/Axiom_Blueprint.md`. Completed implementation milestones are in `docs/Completed_Milestones.md`. The active work backlog lives in `docs/BACKLOG.md`. Design principles are codified in `docs/architecture_bible.md`.
 
 ## Current Focus: Card Game
 

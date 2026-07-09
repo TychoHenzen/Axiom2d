@@ -48,3 +48,11 @@ mutants.out.old/
 AGENTS.md
 .codeevolve
 test-verification/
+
+# Diagnostic logs
+diag_*.log
+
+# Test artifacts
+test_audit_*.json
+test_scores.json
+temp_scores.py
