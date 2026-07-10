@@ -179,20 +179,25 @@ done
 
 # Calculate cumulative stats from all existing rows + new row
 # (Python: parse all table rows, add current, compute cumulative)
-python3 << PYEOF
-import re, os
-from datetime import datetime
+# NOTE: heredoc delimiter quoted ('PYEOF') to prevent bash from
+# expanding backticks / regex escapes inside the Python code.
+export TRACKING_DOC
+export TOTAL_MUTANTS TOTAL_CAUGHT TOTAL_MISSED TOTAL_TIMEOUT TOTAL_UNVIABLE
+export ROW FILE_DETAIL COMMIT_SHA TODAY
+python3 << 'PYEOF'
+import os
+import re
 
-doc = "$TRACKING_DOC"
-row_total = $TOTAL_MUTANTS
-row_caught = $TOTAL_CAUGHT
-row_missed = $TOTAL_MISSED
-row_timeout = $TOTAL_TIMEOUT
-row_unviable = $TOTAL_UNVIABLE
-new_row = "$ROW"
-file_detail = """$FILE_DETAIL"""
-commit_sha = "$COMMIT_SHA"
-run_date = "$TODAY"
+doc = os.environ["TRACKING_DOC"]
+row_total = int(os.environ["TOTAL_MUTANTS"])
+row_caught = int(os.environ["TOTAL_CAUGHT"])
+row_missed = int(os.environ["TOTAL_MISSED"])
+row_timeout = int(os.environ["TOTAL_TIMEOUT"])
+row_unviable = int(os.environ["TOTAL_UNVIABLE"])
+new_row = os.environ["ROW"]
+file_detail = os.environ["FILE_DETAIL"]
+commit_sha = os.environ["COMMIT_SHA"]
+run_date = os.environ["TODAY"]
 
 # Read existing doc
 if os.path.exists(doc):
@@ -242,7 +247,7 @@ Over weeks, covers the codebase without combinatorial explosion.
 and all mutants generated for it are tested. Over time, this builds a picture
 of mutation coverage across the workspace.
 
-**Last run**: {run_date} (\`{commit_sha}\`)
+**Last run**: {run_date} (`{commit_sha}`)
 
 ---
 
@@ -263,7 +268,7 @@ else:
 
     # Update last run line
     old_last = re.search(r'\*\*Last run\*\*:.*', content)
-    new_last = f"**Last run**: {run_date} (\\`{commit_sha}\\`)"
+    new_last = f"**Last run**: {run_date} (`{commit_sha}`)"
     if old_last:
         content = content.replace(old_last.group(0), new_last)
 
