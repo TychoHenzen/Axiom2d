@@ -172,10 +172,14 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Discard any dirty source files left by cargo-mutants --in-place
+          git checkout -- crates/ 2>/dev/null || true
           git add docs/MICRO_MUTATIONS.md
           if ! git diff --cached --quiet; then
             git commit -m "docs: update micro-mutation tracking (${{ github.run_number }})"
-            git push
+            # Pull before push in case another job (e.g. autofix) advanced master
+            git pull --rebase origin master || true
+            git push || echo "::warning::Failed to push micro-mutation report — will retry next run"
           else
             echo "No changes to tracking doc"
           fi
@@ -231,21 +235,34 @@ jobs:
           FAILED=0
 
           check_ratchet() {
-            local name=$1 current=$2 baseline=$3
-            if [ "$current" -gt "$baseline" ]; then
-              echo "::error title=Quality Regression::$name regressed: $current > $baseline (baseline)"
-              FAILED=1
-            elif [ "$current" -lt "$baseline" ]; then
-              echo "::notice title=Quality Improved::$name improved: $current < $baseline (baseline). Run update-baseline to ratchet down."
+            local name=$1 current=$2 baseline=$3 direction=$4
+            if [ "$direction" = "higher" ]; then
+              # higher-is-better (e.g., test count)
+              if [ "$current" -lt "$baseline" ]; then
+                echo "::error title=Quality Regression::$name regressed: $current < $baseline (baseline)"
+                FAILED=1
+              elif [ "$current" -gt "$baseline" ]; then
+                echo "::notice title=Quality Improved::$name improved: $current > $baseline (baseline). Run update-baseline to ratchet up."
+              else
+                echo "::notice title=$name (ok)::$name: $current (baseline: $baseline)"
+              fi
             else
-              echo "::notice title=$name (ok)::$name: $current (baseline: $baseline)"
+              # lower-is-better (smells, unsafe, unwrap)
+              if [ "$current" -gt "$baseline" ]; then
+                echo "::error title=Quality Regression::$name regressed: $current > $baseline (baseline)"
+                FAILED=1
+              elif [ "$current" -lt "$baseline" ]; then
+                echo "::notice title=Quality Improved::$name improved: $current < $baseline (baseline). Run update-baseline to ratchet down."
+              else
+                echo "::notice title=$name (ok)::$name: $current (baseline: $baseline)"
+              fi
             fi
           }
 
-          check_ratchet "test_count"      "${{ steps.tests.outputs.count }}"         "${{ steps.baseline.outputs.test_count }}"
-          check_ratchet "smell_markers"   "${{ steps.smells.outputs.count }}"         "${{ steps.baseline.outputs.smell }}"
-          check_ratchet "unsafe_blocks"   "${{ steps.unsafe_blocks.outputs.count }}"  "${{ steps.baseline.outputs.unsafe }}"
-          check_ratchet "unwrap_in_prod"  "${{ steps.unwrap_count.outputs.count }}"   "${{ steps.baseline.outputs.unwrap }}"
+          check_ratchet "test_count"      "${{ steps.tests.outputs.count }}"         "${{ steps.baseline.outputs.test_count }}" "higher"
+          check_ratchet "smell_markers"   "${{ steps.smells.outputs.count }}"         "${{ steps.baseline.outputs.smell }}"      "lower"
+          check_ratchet "unsafe_blocks"   "${{ steps.unsafe_blocks.outputs.count }}"  "${{ steps.baseline.outputs.unsafe }}"     "lower"
+          check_ratchet "unwrap_in_prod"  "${{ steps.unwrap_count.outputs.count }}"   "${{ steps.baseline.outputs.unwrap }}"     "lower"
 
           if [ "$FAILED" -ne 0 ]; then
             echo ""
