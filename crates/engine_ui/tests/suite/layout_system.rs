@@ -233,7 +233,7 @@ fn when_child_has_margin_then_margin_in_spacing() {
     );
 }
 
-/// @doc: A parent with FlexLayout but zero children does not panic — empty layout is a no-op.
+/// @doc: A parent with `FlexLayout` but zero children does not panic — empty layout is a no-op.
 #[test]
 fn when_no_children_then_layout_does_not_panic() {
     // Arrange

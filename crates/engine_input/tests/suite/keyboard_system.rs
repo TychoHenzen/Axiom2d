@@ -191,7 +191,7 @@ fn when_system_runs_second_frame_then_just_released_is_cleared() {
 }
 
 /// @doc: Releasing a key that was never pressed does not mark it as pressed, but still
-/// records just_released for the release event itself.
+/// records `just_released` for the release event itself.
 #[test]
 fn when_release_unpressed_key_then_not_pressed() {
     // Arrange
@@ -214,7 +214,7 @@ fn when_release_unpressed_key_then_not_pressed() {
     );
 }
 
-/// @doc: Pressing two different keys in one frame registers both as pressed and just_pressed.
+/// @doc: Pressing two different keys in one frame registers both as pressed and `just_pressed`.
 #[test]
 fn when_two_keys_pressed_in_one_frame_then_both_registered() {
     // Arrange

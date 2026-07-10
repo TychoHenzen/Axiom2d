@@ -96,30 +96,51 @@ impl HeadlessRenderer {
         let (camera_bind_group_layout, camera_uniform_buffer, camera_bind_group) =
             Self::create_camera_resources(&device);
         let quad_pipelines = Self::create_quad_pipelines(
-            &device, &shader, &texture_bind_group_layout, &camera_bind_group_layout,
+            &device,
+            &shader,
+            &texture_bind_group_layout,
+            &camera_bind_group_layout,
         );
         let quad_vertex_buffer = Self::create_quad_vertex_buffer(&device);
         let index_buffer = Self::create_quad_index_buffer(&device);
         let shape_shader = Self::create_shape_shader(&device);
         let (model_bind_group_layout, model_uniform_align, default_material_bind_group) =
             Self::create_shape_pipeline_resources(
-                &device, &shape_shader, &camera_bind_group_layout,
+                &device,
+                &shape_shader,
+                &camera_bind_group_layout,
             );
         let shape_pipelines = Self::create_shape_pipelines(
-            &device, &shape_shader, &camera_bind_group_layout, &model_bind_group_layout,
+            &device,
+            &shape_shader,
+            &camera_bind_group_layout,
+            &model_bind_group_layout,
         );
         Self {
-            device, queue, output_texture, width, height,
-            quad_pipelines, quad_vertex_buffer, index_buffer,
-            texture_bind_group_layout, texture_bind_group,
-            camera_uniform_buffer, camera_bind_group,
-            shape_pipelines, model_bind_group_layout,
-            default_material_bind_group, model_uniform_align,
+            device,
+            queue,
+            output_texture,
+            width,
+            height,
+            quad_pipelines,
+            quad_vertex_buffer,
+            index_buffer,
+            texture_bind_group_layout,
+            texture_bind_group,
+            camera_uniform_buffer,
+            camera_bind_group,
+            shape_pipelines,
+            model_bind_group_layout,
+            default_material_bind_group,
+            model_uniform_align,
             clear_color: Color::BLACK,
-            pending_instances: Vec::new(), instance_blend_modes: Vec::new(),
+            pending_instances: Vec::new(),
+            instance_blend_modes: Vec::new(),
             current_blend_mode: BlendMode::Alpha,
-            shape_batch: ShapeBatch::new(), shape_blend_modes: Vec::new(),
-            shape_index_offsets: Vec::new(), shape_models: Vec::new(),
+            shape_batch: ShapeBatch::new(),
+            shape_blend_modes: Vec::new(),
+            shape_index_offsets: Vec::new(),
+            shape_models: Vec::new(),
             glyph_cache: crate::font::GlyphCache::new(),
         }
     }
@@ -127,9 +148,15 @@ impl HeadlessRenderer {
     fn create_output_texture(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
         device.create_texture(&wgpu::TextureDescriptor {
             label: None,
-            size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
-            mip_level_count: 1, sample_count: 1,
-            dimension: wgpu::TextureDimension::D2, format: HEADLESS_FORMAT,
+            size: wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: HEADLESS_FORMAT,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         })
@@ -143,21 +170,26 @@ impl HeadlessRenderer {
     }
 
     fn create_quad_texture_resources(
-        device: &wgpu::Device, queue: &wgpu::Queue, shader: &wgpu::ShaderModule,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        shader: &wgpu::ShaderModule,
     ) -> (wgpu::BindGroupLayout, wgpu::BindGroup) {
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[
                 wgpu::BindGroupLayoutEntry {
-                    binding: 0, visibility: wgpu::ShaderStages::FRAGMENT,
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
-                        multisampled: false, view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
                         sample_type: wgpu::TextureSampleType::Float { filterable: true },
                     },
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 1, visibility: wgpu::ShaderStages::FRAGMENT,
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
@@ -165,8 +197,14 @@ impl HeadlessRenderer {
         });
         let _ = shader;
         let bg = create_texture_bind_group(
-            device, queue, &layout,
-            TextureData { width: 1, height: 1, data: &[255; 4] },
+            device,
+            queue,
+            &layout,
+            TextureData {
+                width: 1,
+                height: 1,
+                data: &[255; 4],
+            },
         );
         (layout, bg)
     }
@@ -177,34 +215,43 @@ impl HeadlessRenderer {
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0, visibility: wgpu::ShaderStages::VERTEX,
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false, min_binding_size: None,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
                 },
                 count: None,
             }],
         });
         let identity: [[f32; 4]; 4] = [
-            [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0],
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
         ];
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None, contents: bytemuck::cast_slice(&identity),
+            label: None,
+            contents: bytemuck::cast_slice(&identity),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
         let bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None, layout: &layout,
+            label: None,
+            layout: &layout,
             entries: &[wgpu::BindGroupEntry {
-                binding: 0, resource: buffer.as_entire_binding(),
+                binding: 0,
+                resource: buffer.as_entire_binding(),
             }],
         });
         (layout, buffer, bg)
     }
 
     fn create_quad_pipelines(
-        device: &wgpu::Device, shader: &wgpu::ShaderModule,
-        tex_layout: &wgpu::BindGroupLayout, cam_layout: &wgpu::BindGroupLayout,
+        device: &wgpu::Device,
+        shader: &wgpu::ShaderModule,
+        tex_layout: &wgpu::BindGroupLayout,
+        cam_layout: &wgpu::BindGroupLayout,
     ) -> [wgpu::RenderPipeline; 3] {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -213,32 +260,48 @@ impl HeadlessRenderer {
         });
         BlendMode::ALL.map(|mode| {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: None, layout: Some(&pipeline_layout),
+                label: None,
+                layout: Some(&pipeline_layout),
                 vertex: wgpu::VertexState {
-                    module: shader, entry_point: Some("vs_main"),
+                    module: shader,
+                    entry_point: Some("vs_main"),
                     buffers: &[
                         wgpu::VertexBufferLayout {
                             array_stride: size_of::<QuadVertex>() as wgpu::BufferAddress,
                             step_mode: wgpu::VertexStepMode::Vertex,
                             attributes: &[wgpu::VertexAttribute {
                                 format: wgpu::VertexFormat::Float32x2,
-                                offset: 0, shader_location: 0,
+                                offset: 0,
+                                shader_location: 0,
                             }],
                         },
                         wgpu::VertexBufferLayout {
                             array_stride: size_of::<Instance>() as wgpu::BufferAddress,
                             step_mode: wgpu::VertexStepMode::Instance,
                             attributes: &[
-                                wgpu::VertexAttribute { format: wgpu::VertexFormat::Float32x4, offset: 0, shader_location: 1 },
-                                wgpu::VertexAttribute { format: wgpu::VertexFormat::Float32x4, offset: 16, shader_location: 2 },
-                                wgpu::VertexAttribute { format: wgpu::VertexFormat::Float32x4, offset: 32, shader_location: 3 },
+                                wgpu::VertexAttribute {
+                                    format: wgpu::VertexFormat::Float32x4,
+                                    offset: 0,
+                                    shader_location: 1,
+                                },
+                                wgpu::VertexAttribute {
+                                    format: wgpu::VertexFormat::Float32x4,
+                                    offset: 16,
+                                    shader_location: 2,
+                                },
+                                wgpu::VertexAttribute {
+                                    format: wgpu::VertexFormat::Float32x4,
+                                    offset: 32,
+                                    shader_location: 3,
+                                },
                             ],
                         },
                     ],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 },
                 fragment: Some(wgpu::FragmentState {
-                    module: shader, entry_point: Some("fs_main"),
+                    module: shader,
+                    entry_point: Some("fs_main"),
                     targets: &[Some(wgpu::ColorTargetState {
                         format: HEADLESS_FORMAT,
                         blend: Some(blend_mode_to_blend_state(mode)),
@@ -247,22 +310,26 @@ impl HeadlessRenderer {
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 }),
                 primitive: wgpu::PrimitiveState::default(),
-                depth_stencil: None, multisample: wgpu::MultisampleState::default(),
-                multiview: None, cache: None,
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState::default(),
+                multiview: None,
+                cache: None,
             })
         })
     }
 
     fn create_quad_vertex_buffer(device: &wgpu::Device) -> wgpu::Buffer {
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None, contents: bytemuck::cast_slice(&QUAD_VERTICES),
+            label: None,
+            contents: bytemuck::cast_slice(&QUAD_VERTICES),
             usage: wgpu::BufferUsages::VERTEX,
         })
     }
 
     fn create_quad_index_buffer(device: &wgpu::Device) -> wgpu::Buffer {
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None, contents: bytemuck::cast_slice(&QUAD_INDICES),
+            label: None,
+            contents: bytemuck::cast_slice(&QUAD_INDICES),
             usage: wgpu::BufferUsages::INDEX,
         })
     }
@@ -275,13 +342,15 @@ impl HeadlessRenderer {
     }
 
     fn create_shape_pipeline_resources(
-        device: &wgpu::Device, shape_shader: &wgpu::ShaderModule,
+        device: &wgpu::Device,
+        shape_shader: &wgpu::ShaderModule,
         cam_layout: &wgpu::BindGroupLayout,
     ) -> (wgpu::BindGroupLayout, u32, wgpu::BindGroup) {
         let model_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0, visibility: wgpu::ShaderStages::VERTEX,
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: true,
@@ -293,7 +362,8 @@ impl HeadlessRenderer {
         let material_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0, visibility: wgpu::ShaderStages::FRAGMENT,
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -306,25 +376,32 @@ impl HeadlessRenderer {
         let _ = cam_layout;
         let align = device.limits().min_uniform_buffer_offset_alignment;
         let mat_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None, contents: &[0u8; 32], usage: wgpu::BufferUsages::UNIFORM,
+            label: None,
+            contents: &[0u8; 32],
+            usage: wgpu::BufferUsages::UNIFORM,
         });
         let mat_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None, layout: &material_layout,
+            label: None,
+            layout: &material_layout,
             entries: &[wgpu::BindGroupEntry {
-                binding: 0, resource: mat_buf.as_entire_binding(),
+                binding: 0,
+                resource: mat_buf.as_entire_binding(),
             }],
         });
         (model_layout, align, mat_bg)
     }
 
     fn create_shape_pipelines(
-        device: &wgpu::Device, shape_shader: &wgpu::ShaderModule,
-        cam_layout: &wgpu::BindGroupLayout, model_layout: &wgpu::BindGroupLayout,
+        device: &wgpu::Device,
+        shape_shader: &wgpu::ShaderModule,
+        cam_layout: &wgpu::BindGroupLayout,
+        model_layout: &wgpu::BindGroupLayout,
     ) -> [wgpu::RenderPipeline; 3] {
         let material_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0, visibility: wgpu::ShaderStages::FRAGMENT,
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -340,22 +417,37 @@ impl HeadlessRenderer {
         });
         BlendMode::ALL.map(|mode| {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: None, layout: Some(&pipeline_layout),
+                label: None,
+                layout: Some(&pipeline_layout),
                 vertex: wgpu::VertexState {
-                    module: shape_shader, entry_point: Some("vs_shape"),
+                    module: shape_shader,
+                    entry_point: Some("vs_shape"),
                     buffers: &[wgpu::VertexBufferLayout {
                         array_stride: size_of::<ShapeVertex>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Vertex,
                         attributes: &[
-                            wgpu::VertexAttribute { format: wgpu::VertexFormat::Float32x2, offset: 0, shader_location: 0 },
-                            wgpu::VertexAttribute { format: wgpu::VertexFormat::Float32x4, offset: 8, shader_location: 1 },
-                            wgpu::VertexAttribute { format: wgpu::VertexFormat::Float32x2, offset: 24, shader_location: 2 },
+                            wgpu::VertexAttribute {
+                                format: wgpu::VertexFormat::Float32x2,
+                                offset: 0,
+                                shader_location: 0,
+                            },
+                            wgpu::VertexAttribute {
+                                format: wgpu::VertexFormat::Float32x4,
+                                offset: 8,
+                                shader_location: 1,
+                            },
+                            wgpu::VertexAttribute {
+                                format: wgpu::VertexFormat::Float32x2,
+                                offset: 24,
+                                shader_location: 2,
+                            },
                         ],
                     }],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 },
                 fragment: Some(wgpu::FragmentState {
-                    module: shape_shader, entry_point: Some("fs_shape"),
+                    module: shape_shader,
+                    entry_point: Some("fs_shape"),
                     targets: &[Some(wgpu::ColorTargetState {
                         format: HEADLESS_FORMAT,
                         blend: Some(blend_mode_to_blend_state(mode)),
@@ -364,8 +456,10 @@ impl HeadlessRenderer {
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 }),
                 primitive: wgpu::PrimitiveState::default(),
-                depth_stencil: None, multisample: wgpu::MultisampleState::default(),
-                multiview: None, cache: None,
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState::default(),
+                multiview: None,
+                cache: None,
             })
         })
     }

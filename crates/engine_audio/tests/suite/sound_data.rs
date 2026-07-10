@@ -111,7 +111,10 @@ fn when_one_sample_stereo_then_frame_count_zero() {
     let frames = sound.frame_count();
 
     // Assert
-    assert_eq!(frames, 0, "stereo frame_count with 1 sample should be 0 (1 / 2)");
+    assert_eq!(
+        frames, 0,
+        "stereo frame_count with 1 sample should be 0 (1 / 2)"
+    );
 }
 
 /// @doc: Mono audio with a single sample still produces one frame.
