@@ -442,7 +442,7 @@ impl HeadlessCapture {
         }
         let slice = staging.slice(..);
         slice.map_async(wgpu::MapMode::Read, |r| {
-            r.expect("map phasing count staging")
+            r.expect("map phasing count staging");
         });
         self.device.poll(wgpu::Maintain::Wait);
         let data = slice.get_mapped_range();
