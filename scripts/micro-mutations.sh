@@ -327,18 +327,35 @@ def run_mutation(file_path):
         import shutil
         shutil.rmtree(MUTANTS_OUT_DIR)
 
-    result = subprocess.run(
-        ["cargo", "mutants", "--file", file_path, "--in-place",
-         "--timeout", str(TIMEOUT), "--cap-lints=true", "--no-shuffle", "-vV"],
-        capture_output=True, text=True,
-        cwd=str(PROJECT_ROOT),
-        timeout=int(TIMEOUT) * 10 + 120,  # generous timeout for cargo build + mutants
-        encoding=SUBPROCESS_ENCODING, errors='replace'
-    )
+    # Per-mutant timeout is TIMEOUT seconds. Whole-file timeout accounts for
+    # initial build (~120s) + many mutants each taking up to TIMEOUT seconds.
+    # 30 mutants * 45s = 1350s, so: TIMEOUT * 60 + 300 (max ~50 min per file).
+    wrapper_timeout = max(int(TIMEOUT) * 60 + 300, 1200)
 
-    stdout = result.stdout
-    stderr = result.stderr
-    exit_code = result.returncode
+    try:
+        result = subprocess.run(
+            ["cargo", "mutants", "--file", file_path, "--in-place",
+             "--timeout", str(TIMEOUT), "--cap-lints=true", "--no-shuffle", "-vV"],
+            capture_output=True, text=True,
+            cwd=str(PROJECT_ROOT),
+            timeout=wrapper_timeout,
+            encoding=SUBPROCESS_ENCODING, errors='replace'
+        )
+        stdout = result.stdout
+        stderr = result.stderr
+        exit_code = result.returncode
+    except subprocess.TimeoutExpired:
+        return {
+            "total": 0, "caught": 0, "missed": 0, "timeout": 0, "unviable": 0,
+            "status": "error",
+            "error": f"cargo-mutants timed out after {wrapper_timeout}s (per-mutant timeout was {TIMEOUT}s)",
+        }
+    except Exception as e:
+        return {
+            "total": 0, "caught": 0, "missed": 0, "timeout": 0, "unviable": 0,
+            "status": "error",
+            "error": f"subprocess failed: {e}"[:500],
+        }
 
     # Detect "0 mutants" case
     if "Found 0 mutants to test" in stdout or "Found 0 mutants to test" in stderr:
@@ -596,10 +613,32 @@ def init_state():
 # ═══════════════════════════════════════════════════════════════════════════════════
 
 def main_run():
+    try:
+        _main_run_impl()
+    except Exception as e:
+        warn(f"Unexpected crash: {e}")
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        # Try to save whatever state we had before crash
+        try:
+            save_state(_current_state)
+            md = generate_markdown(_current_state)
+            with open(TRACKING_DOC, 'w', encoding=FILE_ENCODING) as f:
+                f.write(md)
+        except Exception:
+            pass
+        sys.exit(1)
+
+# Module-level mutable for crash recovery
+_current_state = None
+
+def _main_run_impl():
+    global _current_state
     log("Micro-mutation run starting")
     log(f"  sample_size={SAMPLE_SIZE}, timeout={TIMEOUT}s")
 
     state = load_state()
+    _current_state = state
     now_str = datetime.now(timezone.utc).isoformat()
     now_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
