@@ -73,7 +73,7 @@ A 3-tier ratcheting gate enforces that code quality only improves over time. Ful
 
 When quality improves (e.g., test count increases), run `--update` to ratchet the baseline down. Intentional regressions require an override entry in the baseline RON file with a reason.
 
-Mutation testing (`cargo-mutants`) is run locally via the `/mutant-hunt` skill in Claude Code — too slow for CI.
+Mutation testing (`cargo-mutants`) is run locally via the `/mutant-hunt` skill in Claude Code — too slow for CI. A **micro-mutation** job runs daily in `quality.yml` (1 random source file, stochastic coverage over time). Results tracked in `docs/MICRO_MUTATIONS.md`, updated by `scripts/micro-mutations.sh`.
 
 ## Architecture
 

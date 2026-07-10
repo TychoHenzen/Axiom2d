@@ -5,6 +5,9 @@ on:
     - cron: "0 6 * * *" # Daily at 06:00 UTC
   workflow_dispatch: # Manual trigger
 
+permissions:
+  contents: write
+
 env:
   CARGO_TERM_COLOR: always
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -139,6 +142,43 @@ jobs:
       - name: Fail if duplicates found
         if: steps.jscpd.outputs.duplicates_found == 'true'
         run: exit 1
+
+  micro-mutations:
+    name: "Micro-mutations (randomized subset)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --locked
+
+      - name: Run micro-mutations
+        id: mutations
+        run: bash scripts/micro-mutations.sh
+        continue-on-error: true
+
+      - name: Commit tracking doc update
+        if: always() && steps.mutations.outcome != 'skipped'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/MICRO_MUTATIONS.md
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: update micro-mutation tracking (${{ github.run_number }})"
+            git push
+          else
+            echo "No changes to tracking doc"
+          fi
 
   soft-gate:
     name: "Soft Ratchet Gate (no regressions allowed)"

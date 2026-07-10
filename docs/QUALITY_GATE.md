@@ -179,12 +179,13 @@ Overrides are reviewed during PR and must include a reason.
 | quality.yml shaders | Hard | naga validation |
 | quality.yml duplicates | Soft | jscpd — fails on ANY duplicate blocks currently; gate makes it ratcheted |
 | TECH_DEBT_LEDGER.md | Advisory | Manual/scripted structural scoring — feeds trend advisories |
+| MICRO_MUTATIONS.md | Advisory | Stochastic mutation testing (1 random file/day in CI) — see `scripts/micro-mutations.sh` |
 
 ## Future Dimensions
 
 Dimensions to add as tooling matures:
 
-- **Mutation score** (`cargo mutants`): % mutants killed. Too slow for CI today; run locally via `/mutant-hunt` skill.
+- **Mutation score** (`cargo mutants`): % mutants killed. Full runs too slow for CI; stochastic micro-mutation runs daily (1 random file, `quality.yml` → `docs/MICRO_MUTATIONS.md`). Full hunt via `/mutant-hunt` skill.
 - **Architectural coupling** (code-review-graph): cross-community edge count. Graph needs full build first.
 - **Test coverage %** (`cargo llvm-cov`): per-crate line coverage. Currently collected but not gated.
 - **Comment quality**: ratio of `///` doc comments to `pub` items. Measure documentation coverage.
