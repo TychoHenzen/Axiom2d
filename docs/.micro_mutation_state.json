@@ -1,0 +1,1803 @@
+{
+  "cumulative": {
+    "caught": 0,
+    "error": 0,
+    "files_tested": 1,
+    "missed": 0,
+    "runs": 1,
+    "timeout": 0,
+    "total_mutants": 0,
+    "unviable": 0,
+    "zero_mutant": 0
+  },
+  "files": {
+    "crates/axiom2d/src/default_plugins.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 154,
+      "recent_commits": 1
+    },
+    "crates/axiom2d/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 3,
+      "recent_commits": 0
+    },
+    "crates/axiom2d/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 20,
+      "recent_commits": 0
+    },
+    "crates/axiom2d/src/splash/animation.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 68,
+      "recent_commits": 1
+    },
+    "crates/axiom2d/src/splash/letters.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 270,
+      "recent_commits": 1
+    },
+    "crates/axiom2d/src/splash/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 13,
+      "recent_commits": 2
+    },
+    "crates/axiom2d/src/splash/render.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 279,
+      "recent_commits": 1
+    },
+    "crates/axiom2d/src/splash/types.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 92,
+      "recent_commits": 2
+    },
+    "crates/card_game/benches/bake.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 56,
+      "recent_commits": 1
+    },
+    "crates/card_game/benches/stress.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 50,
+      "recent_commits": 1
+    },
+    "crates/card_game/build.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 74,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/booster/device.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 377,
+      "recent_commits": 5
+    },
+    "crates/card_game/src/booster/double_click.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 112,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/booster/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 5,
+      "recent_commits": 0
+    },
+    "crates/card_game/src/booster/opening.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 421,
+      "recent_commits": 5
+    },
+    "crates/card_game/src/booster/pack.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 118,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/booster/sampling.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 124,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/art/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 49,
+      "recent_commits": 0
+    },
+    "crates/card_game/src/card/art_selection.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 119,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/combiner_device.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 253,
+      "recent_commits": 3
+    },
+    "crates/card_game/src/card/component.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 47,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/identity/base_type.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 156,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/identity/card_description.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 42,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/identity/card_name.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 113,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/identity/definition.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 141,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/identity/gem_sockets.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 138,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/identity/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 10,
+      "recent_commits": 0
+    },
+    "crates/card_game/src/card/identity/name_pools/adjectives.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 865,
+      "recent_commits": 0
+    },
+    "crates/card_game/src/card/identity/name_pools/compound_parts.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 354,
+      "recent_commits": 0
+    },
+    "crates/card_game/src/card/identity/name_pools/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 28,
+      "recent_commits": 0
+    },
+    "crates/card_game/src/card/identity/name_pools/nouns.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 319,
+      "recent_commits": 0
+    },
+    "crates/card_game/src/card/identity/name_pools/syllables.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 33,
+      "recent_commits": 0
+    },
+    "crates/card_game/src/card/identity/name_pools/templates.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 87,
+      "recent_commits": 0
+    },
+    "crates/card_game/src/card/identity/residual.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 77,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/identity/signature.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 4,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/identity/signature/algorithms.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 29,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/identity/signature/types.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 204,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/identity/signature_profile.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 56,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/identity/visual_params.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 55,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/apply.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 314,
+      "recent_commits": 4
+    },
+    "crates/card_game/src/card/interaction/camera_drag.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 43,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/click_resolve.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 136,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/card/interaction/damping.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 36,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/drag.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 54,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/drag_state.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 24,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/card/interaction/flip.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 49,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/flip_animation.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 47,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/game_state_param.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 16,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/intent.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 40,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 14,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/physics_helpers.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 35,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/pick.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 6,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/release.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 2,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/interaction/release/target.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 121,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/card/interaction/sleep.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 34,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/jack_cable/geom.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 182,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/jack_cable/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 112,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/jack_cable/render.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 284,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/card/jack_socket.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 303,
+      "recent_commits": 5
+    },
+    "crates/card_game/src/card/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 14,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/reader.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 22,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/card/reader/components.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 20,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/card/reader/drag.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 67,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/reader/eject.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 54,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/reader/glow.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 60,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/reader/insert.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 61,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/reader/pick.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 21,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/card/reader/rotation_lock.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 15,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/reader/signature_space.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 106,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/card/reader/spawn.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 229,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/card/reader/volume.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 68,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/art_shader.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 113,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/bake.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 151,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/baked_mesh.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 23,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/baked_render.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 46,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/debug_sleep_indicator.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 56,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/card/rendering/debug_spawn.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 79,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/drop_zone_glow.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 51,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/face_layout.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 74,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/geometry.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 29,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/gpu_card_mesh.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 10,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 12,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/render_layer.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 29,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/spawn_table_card.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 135,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/spawn_table_card/overlay.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 227,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/rendering/spawn_table_card/text.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 45,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/card/screen_device.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 389,
+      "recent_commits": 10
+    },
+    "crates/card_game/src/card/screen_geometry.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 175,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/card/zone_config.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 43,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/hand/cards.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 52,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/hand/layout.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 132,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/hand/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 3,
+      "recent_commits": 0
+    },
+    "crates/card_game/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 7,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/plugin.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 203,
+      "recent_commits": 3
+    },
+    "crates/card_game/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 73,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/stash/boundary.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 68,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/stash/constants.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 25,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/stash/grid.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 113,
+      "recent_commits": 3
+    },
+    "crates/card_game/src/stash/hover.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 135,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/stash/layout.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 39,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/stash/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 10,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/stash/pages.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 232,
+      "recent_commits": 3
+    },
+    "crates/card_game/src/stash/render.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 144,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/stash/render/drag_preview.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 97,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/stash/render/models.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 12,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/stash/render/slots.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 122,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/stash/store.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 555,
+      "recent_commits": 11
+    },
+    "crates/card_game/src/stash/store_render.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 319,
+      "recent_commits": 2
+    },
+    "crates/card_game/src/stash/toggle.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 10,
+      "recent_commits": 1
+    },
+    "crates/card_game/src/terrain/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 4,
+      "recent_commits": 1
+    },
+    "crates/engine_app/src/app.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 287,
+      "recent_commits": 1
+    },
+    "crates/engine_app/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 5,
+      "recent_commits": 0
+    },
+    "crates/engine_app/src/mouse_world_pos_system.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 18,
+      "recent_commits": 1
+    },
+    "crates/engine_app/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 5,
+      "recent_commits": 0
+    },
+    "crates/engine_app/src/profiler_plugin.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 31,
+      "recent_commits": 1
+    },
+    "crates/engine_app/src/window_size.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 15,
+      "recent_commits": 1
+    },
+    "crates/engine_assets/src/asset_server.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 72,
+      "recent_commits": 1
+    },
+    "crates/engine_assets/src/handle.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 47,
+      "recent_commits": 1
+    },
+    "crates/engine_assets/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 3,
+      "recent_commits": 0
+    },
+    "crates/engine_assets/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 2,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/audio_res.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 21,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/backend/cpal.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 118,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/backend/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 4,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/backend/traits.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 36,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 8,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/mixer.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 44,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/mixer_engine.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 31,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/playback/buffer.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 43,
+      "recent_commits": 1
+    },
+    "crates/engine_audio/src/playback/id.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 2,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/playback/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 6,
+      "recent_commits": 1
+    },
+    "crates/engine_audio/src/playback/system.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 63,
+      "recent_commits": 1
+    },
+    "crates/engine_audio/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 9,
+      "recent_commits": 1
+    },
+    "crates/engine_audio/src/sound/data.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 12,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/sound/effect.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 30,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/sound/library.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 15,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/sound/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 6,
+      "recent_commits": 0
+    },
+    "crates/engine_audio/src/spatial.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 80,
+      "recent_commits": 1
+    },
+    "crates/engine_audio/src/test_helpers.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 8,
+      "recent_commits": 0
+    },
+    "crates/engine_core/benches/spring.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 97,
+      "recent_commits": 1
+    },
+    "crates/engine_core/benches/stress.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 65,
+      "recent_commits": 1
+    },
+    "crates/engine_core/src/color.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 57,
+      "recent_commits": 1
+    },
+    "crates/engine_core/src/error.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 8,
+      "recent_commits": 1
+    },
+    "crates/engine_core/src/event_bus.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 37,
+      "recent_commits": 1
+    },
+    "crates/engine_core/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 10,
+      "recent_commits": 0
+    },
+    "crates/engine_core/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 10,
+      "recent_commits": 0
+    },
+    "crates/engine_core/src/profiler.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 111,
+      "recent_commits": 1
+    },
+    "crates/engine_core/src/scale_spring.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 70,
+      "recent_commits": 1
+    },
+    "crates/engine_core/src/spring.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 15,
+      "recent_commits": 1
+    },
+    "crates/engine_core/src/time.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 123,
+      "recent_commits": 1
+    },
+    "crates/engine_core/src/transform.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 23,
+      "recent_commits": 1
+    },
+    "crates/engine_core/src/types.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 44,
+      "recent_commits": 1
+    },
+    "crates/engine_ecs/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 2,
+      "recent_commits": 0
+    },
+    "crates/engine_ecs/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 7,
+      "recent_commits": 0
+    },
+    "crates/engine_ecs/src/schedule.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 72,
+      "recent_commits": 1
+    },
+    "crates/engine_input/src/action_map.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 23,
+      "recent_commits": 1
+    },
+    "crates/engine_input/src/button_state.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 13,
+      "recent_commits": 1
+    },
+    "crates/engine_input/src/key_code.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 213,
+      "recent_commits": 1
+    },
+    "crates/engine_input/src/keyboard/buffer.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 9,
+      "recent_commits": 1
+    },
+    "crates/engine_input/src/keyboard/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 6,
+      "recent_commits": 0
+    },
+    "crates/engine_input/src/keyboard/state.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 43,
+      "recent_commits": 1
+    },
+    "crates/engine_input/src/keyboard/system.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 14,
+      "recent_commits": 1
+    },
+    "crates/engine_input/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 7,
+      "recent_commits": 0
+    },
+    "crates/engine_input/src/mouse/buffer.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 18,
+      "recent_commits": 1
+    },
+    "crates/engine_input/src/mouse/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 7,
+      "recent_commits": 0
+    },
+    "crates/engine_input/src/mouse/state.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 67,
+      "recent_commits": 1
+    },
+    "crates/engine_input/src/mouse/system.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 24,
+      "recent_commits": 1
+    },
+    "crates/engine_input/src/mouse_button.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 22,
+      "recent_commits": 1
+    },
+    "crates/engine_input/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 7,
+      "recent_commits": 0
+    },
+    "crates/engine_physics/benches/physics.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 66,
+      "recent_commits": 1
+    },
+    "crates/engine_physics/benches/stress.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 45,
+      "recent_commits": 1
+    },
+    "crates/engine_physics/src/collider.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 9,
+      "recent_commits": 1
+    },
+    "crates/engine_physics/src/collision_event.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 14,
+      "recent_commits": 1
+    },
+    "crates/engine_physics/src/hit_test.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 11,
+      "recent_commits": 1
+    },
+    "crates/engine_physics/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 244,
+      "recent_commits": 1
+    },
+    "crates/engine_physics/src/physics_backend.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 155,
+      "recent_commits": 2
+    },
+    "crates/engine_physics/src/physics_command.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 54,
+      "recent_commits": 2
+    },
+    "crates/engine_physics/src/physics_command_apply_system.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 65,
+      "recent_commits": 2
+    },
+    "crates/engine_physics/src/physics_res.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 21,
+      "recent_commits": 1
+    },
+    "crates/engine_physics/src/physics_step_system.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 20,
+      "recent_commits": 1
+    },
+    "crates/engine_physics/src/physics_sync_system.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 17,
+      "recent_commits": 1
+    },
+    "crates/engine_physics/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 10,
+      "recent_commits": 0
+    },
+    "crates/engine_physics/src/rapier_backend.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 336,
+      "recent_commits": 2
+    },
+    "crates/engine_physics/src/rigid_body.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 8,
+      "recent_commits": 1
+    },
+    "crates/engine_render/benches/font.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 133,
+      "recent_commits": 1
+    },
+    "crates/engine_render/benches/stress.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 73,
+      "recent_commits": 1
+    },
+    "crates/engine_render/benches/tessellation.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 106,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/atlas.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 163,
+      "recent_commits": 3
+    },
+    "crates/engine_render/src/bloom.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 43,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/camera.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 139,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/clear.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 13,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/culling.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 58,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/font.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 352,
+      "recent_commits": 5
+    },
+    "crates/engine_render/src/image_data.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 25,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 28,
+      "recent_commits": 0
+    },
+    "crates/engine_render/src/material.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 73,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 28,
+      "recent_commits": 0
+    },
+    "crates/engine_render/src/rect.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 22,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/renderer.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 138,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/shader.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 66,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/shape/cache.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 16,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/shape/components.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 125,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/shape/geometry.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 75,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/shape/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 19,
+      "recent_commits": 0
+    },
+    "crates/engine_render/src/shape/path.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 148,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/shape/render.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 24,
+      "recent_commits": 2
+    },
+    "crates/engine_render/src/shape/tessellate.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 275,
+      "recent_commits": 3
+    },
+    "crates/engine_render/src/sprite.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 22,
+      "recent_commits": 1
+    },
+    "crates/engine_render/src/testing/helpers.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 10,
+      "recent_commits": 0
+    },
+    "crates/engine_render/src/testing/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 385,
+      "recent_commits": 0
+    },
+    "crates/engine_render/src/testing/visual_regression.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 815,
+      "recent_commits": 3
+    },
+    "crates/engine_render/src/window.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 19,
+      "recent_commits": 1
+    },
+    "crates/engine_scene/src/hierarchy.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 37,
+      "recent_commits": 1
+    },
+    "crates/engine_scene/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 7,
+      "recent_commits": 0
+    },
+    "crates/engine_scene/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 6,
+      "recent_commits": 0
+    },
+    "crates/engine_scene/src/render_order.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 29,
+      "recent_commits": 1
+    },
+    "crates/engine_scene/src/sort_propagation.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 58,
+      "recent_commits": 1
+    },
+    "crates/engine_scene/src/spawn_child.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 10,
+      "recent_commits": 1
+    },
+    "crates/engine_scene/src/transform_propagation.rs": {
+      "error_count": 0,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-10",
+      "lines": 74,
+      "recent_commits": 1
+    },
+    "crates/engine_scene/src/visibility.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 86,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/draw_command.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 84,
+      "recent_commits": 2
+    },
+    "crates/engine_ui/src/interaction.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 84,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/layout/anchor.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 28,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/layout/flex.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 39,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/layout/margin.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 8,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/layout/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 8,
+      "recent_commits": 0
+    },
+    "crates/engine_ui/src/layout/system.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 30,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 14,
+      "recent_commits": 0
+    },
+    "crates/engine_ui/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 15,
+      "recent_commits": 0
+    },
+    "crates/engine_ui/src/render.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 19,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/text_render.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 55,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/theme.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 24,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/ui_event.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 11,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/unified_render.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 448,
+      "recent_commits": 4
+    },
+    "crates/engine_ui/src/widget/button.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 42,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/widget/mod.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 11,
+      "recent_commits": 0
+    },
+    "crates/engine_ui/src/widget/node.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 37,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/widget/panel.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 76,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/widget/progress_bar.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 59,
+      "recent_commits": 1
+    },
+    "crates/engine_ui/src/widget/text.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 22,
+      "recent_commits": 1
+    },
+    "crates/particle_poc/src/capture.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 930,
+      "recent_commits": 5
+    },
+    "crates/particle_poc/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 1186,
+      "recent_commits": 2
+    },
+    "crates/particle_poc/src/main.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 91,
+      "recent_commits": 31
+    },
+    "crates/particle_poc/src/state.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 1492,
+      "recent_commits": 4
+    },
+    "crates/terrain/src/dual_grid.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 116,
+      "recent_commits": 2
+    },
+    "crates/terrain/src/lib.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 15,
+      "recent_commits": 6
+    },
+    "crates/terrain/src/material.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 130,
+      "recent_commits": 3
+    },
+    "crates/terrain/src/prelude.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 12,
+      "recent_commits": 4
+    },
+    "crates/terrain/src/shader.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 6,
+      "recent_commits": 1
+    },
+    "crates/terrain/src/tile_def.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 298,
+      "recent_commits": 2
+    },
+    "crates/terrain/src/tile_def/example.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 165,
+      "recent_commits": 2
+    },
+    "crates/terrain/src/wfc.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 188,
+      "recent_commits": 3
+    },
+    "crates/terrain_viewer/src/main.rs": {
+      "error_count": 0,
+      "last_result": null,
+      "last_tested": null,
+      "lines": 594,
+      "recent_commits": 9
+    }
+  },
+  "runs": [
+    {
+      "commit": "60616b7",
+      "date": "2026-07-10",
+      "file": "crates/engine_scene/src/transform_propagation.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    }
+  ]
+}

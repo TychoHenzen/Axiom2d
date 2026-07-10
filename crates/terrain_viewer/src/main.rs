@@ -459,6 +459,7 @@ fn handle_terrain_selection(
     changed
 }
 
+#[allow(clippy::neg_multiply)]
 fn handle_parameter_adjustment(input: &InputState, mat: &mut TerrainMaterial) -> bool {
     let step = if input.pressed(KeyCode::ShiftLeft) {
         0.5

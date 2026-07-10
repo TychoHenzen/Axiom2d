@@ -43,8 +43,24 @@ jobs:
       - name: Verify formatting
         run: cargo fmt --all --check
 
-  build-and-test:
+  clippy:
     needs: autofix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - name: Hard-gate clippy
+        run: cargo clippy --workspace --all-targets --keep-going -- -D warnings
+
+  build-and-test:
+    needs: [autofix, clippy]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

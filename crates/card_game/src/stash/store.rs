@@ -529,9 +529,8 @@ fn sell_device_basic(world: &mut World, entity: Entity, jack_entities: &[Entity]
 }
 
 fn sell_screen(world: &mut World, entity: Entity) {
-    let device = match world.get::<crate::card::screen_device::ScreenDevice>(entity) {
-        Some(d) => d,
-        None => return,
+    let Some(device) = world.get::<crate::card::screen_device::ScreenDevice>(entity) else {
+        return;
     };
     sell_device_basic(
         world,
@@ -542,10 +541,10 @@ fn sell_screen(world: &mut World, entity: Entity) {
 }
 
 fn sell_combiner(world: &mut World, entity: Entity) {
-    let (in_a, in_b, out) = match world.get::<CombinerDevice>(entity) {
-        Some(d) => (d.input_a, d.input_b, d.output),
-        None => return,
+    let Some(device) = world.get::<CombinerDevice>(entity) else {
+        return;
     };
+    let (in_a, in_b, out) = (device.input_a, device.input_b, device.output);
     let refund = StoreItemKind::Combiner.refund_value();
     despawn_connected_cables(world, &[in_a, in_b, out]);
     for jack in [in_a, in_b, out] {

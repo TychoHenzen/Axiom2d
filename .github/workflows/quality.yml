@@ -178,7 +178,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Discard any dirty source files left by cargo-mutants --in-place
           git checkout -- crates/ 2>/dev/null || true
-          git add docs/MICRO_MUTATIONS.md
+          git add docs/MICRO_MUTATIONS.md docs/.micro_mutation_state.json
           if ! git diff --cached --quiet; then
             git commit -m "docs: update micro-mutation tracking (${{ github.run_number }})"
             # Pull before push in case another job (e.g. autofix) advanced master
