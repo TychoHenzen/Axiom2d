@@ -716,16 +716,31 @@ impl State {
         let cx = sim.machines[0].pos_x;
         let cy = sim.machines[0].pos_y;
         let paddle_color = [0.45f32, 0.50, 0.60];
+        // Push paddle center outward from perimeter so the tracing point
+        // sits at 90% toward the inner edge instead of at center.
+        let paddle_push = PADDLE_HH * 0.9;
         for p in 0..PADDLE_COUNT {
             let s = (paddle_phase + p as f32 * cap_perim / PADDLE_COUNT as f32) % cap_perim;
             let (pos, local_tangent) =
                 Self::capsule_perimeter_point(s, CAPSULE_HALF_LEN, CAPSULE_RADIUS);
             let lx = pos[0];
             let ly = pos[1];
+
+            // Outward normal in capsule-local space: direction from centerline to perimeter.
+            let nearest_lx = lx.clamp(-CAPSULE_HALF_LEN, CAPSULE_HALF_LEN);
+            let out_lx = lx - nearest_lx;
+            let out_ly = ly; // centerline at y=0
+            let out_len = (out_lx * out_lx + out_ly * out_ly).sqrt();
+            let n_lx = out_lx / out_len;
+            let n_ly = out_ly / out_len;
+            // Transform outward normal to world space (same rotation as positions).
+            let nwx = -n_lx * c_sin - n_ly * c_cos;
+            let nwy = n_lx * c_cos - n_ly * c_sin;
+
             // Capsule long axis = X in capsule-local, but conveyor long axis = local Y.
             // Rotate by π/2+θ so capsule X → world dir (-sin_θ, cos_θ).
-            let wx = cx - lx * c_sin - ly * c_cos;
-            let wy = cy + lx * c_cos - ly * c_sin;
+            let wx = cx - lx * c_sin - ly * c_cos + nwx * paddle_push;
+            let wy = cy + lx * c_cos - ly * c_sin + nwy * paddle_push;
             let world_tangent = local_tangent + std::f32::consts::FRAC_PI_2 + conveyor_angle;
             let idx = (real_n + p) as usize;
             sim.machines[idx] = GpuMachine {

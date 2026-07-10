@@ -200,6 +200,11 @@ fn project(@builtin(global_invocation_id) id: vec3<u32>) {
             // particles forward like a railgun).
             if dist >= r { continue; }
             if dist < 1e-9 {
+                // Particle center is fully inside the expanded OBB.
+                // Compute distance to nearest expanded-OBB face — this is the
+                // penetration depth beyond the particle radius. Push outward
+                // along that face with overlap = r + min_d so the correction
+                // scales with how deep the particle is embedded.
                 let hw_e = hw + frame_disp;
                 let dl = local_x + hw_e;  // dist to left face
                 let dr = hw_e - local_x;  // dist to right face
@@ -211,16 +216,18 @@ fn project(@builtin(global_invocation_id) id: vec3<u32>) {
                 if db < min_d { min_d = db; push = vec2(0.0, -1.0); }
                 if dt < min_d { min_d = dt; push = vec2(0.0, 1.0); }
                 n = world_from_local(push, c, s);
+                overlap = r + min_d;
             } else {
                 n = world_from_local(local_delta / dist, c, s);
+                overlap = r - dist;
             }
-            overlap = r - dist;
             is_paddle = true;
         }
 
-        // Paddle compliance is 1/4 of body stiffness — paddles nudge,
-        // not bludgeon. Full body compliance would launch particles at
-        // near-cap velocity from a moving paddle smacking a dense pile.
+        // Paddle compliance reduced to avoid scattering particles.
+        // The nearest-face push + depth-scaled overlap (r + min_d for deep
+        // penetration) already prevents phasing; compliance stays low so
+        // paddles nudge particles along the belt rather than dispersing them.
         if is_paddle {
             let paddle_c = 0.125 / f32(params.sub_steps);
             machine_corr += overlap * n * paddle_c;

@@ -422,6 +422,71 @@ impl HeadlessCapture {
         all
     }
 
+    /// Read back phasing event count from GPU atomic counter.
+    /// Must be called after `step()` / `step_n()` — the count is reset each frame.
+    pub fn read_phasing_count(&self) -> u32 {
+        let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("read_phasing_count_staging"),
+            size: 4,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        {
+            let mut encoder = self
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("read_phasing_count"),
+                });
+            encoder.copy_buffer_to_buffer(
+                &self.buffers.phasing_count_buf,
+                0,
+                &staging,
+                0,
+                4,
+            );
+            self.queue.submit(std::iter::once(encoder.finish()));
+        }
+        let slice = staging.slice(..);
+        slice.map_async(wgpu::MapMode::Read, |r| r.expect("map phasing count staging"));
+        self.device.poll(wgpu::Maintain::Wait);
+        let data = slice.get_mapped_range();
+        let count = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+        drop(data);
+        staging.unmap();
+        count
+    }
+
+    /// Read back particle velocities from GPU.
+    pub fn read_velocities(&self, count: u32) -> Vec<[f32; 2]> {
+        if count == 0 {
+            return Vec::new();
+        }
+        let bytes = u64::from(count) * 8;
+        let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("read_vel_staging"),
+            size: bytes,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        {
+            let mut encoder = self
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("read_vel"),
+                });
+            encoder.copy_buffer_to_buffer(&self.buffers.velocities, 0, &staging, 0, bytes);
+            self.queue.submit(std::iter::once(encoder.finish()));
+        }
+        let slice = staging.slice(..);
+        slice.map_async(wgpu::MapMode::Read, |r| r.expect("map vel staging"));
+        self.device.poll(wgpu::Maintain::Wait);
+        let data = slice.get_mapped_range();
+        let velocities: Vec<[f32; 2]> = bytemuck::cast_slice(&data[..bytes as usize]).to_vec();
+        drop(data);
+        staging.unmap();
+        velocities
+    }
+
     /// Render current state to off-screen texture and read back RGBA pixels.
     /// Returns packed `[width * height * 4]` bytes.
     pub fn render_to_buffer(&mut self) -> Vec<u8> {
@@ -833,13 +898,28 @@ impl HeadlessCapture {
         let cx = sim.machines[0].pos_x;
         let cy = sim.machines[0].pos_y;
         let paddle_color = [0.45f32, 0.50, 0.60];
+        // Push paddle center outward from perimeter so the tracing point
+        // sits at 90% toward the inner edge instead of at center.
+        let paddle_push = PADDLE_HH * 0.9;
         for p in 0..PADDLE_COUNT {
             let s = (paddle_phase + p as f32 * cap_perim / PADDLE_COUNT as f32) % cap_perim;
             let (pos, local_tangent) = capsule_perimeter_point(s, CAPSULE_HALF_LEN, CAPSULE_RADIUS);
             let lx = pos[0];
             let ly = pos[1];
-            let wx = cx - lx * c_sin - ly * c_cos;
-            let wy = cy + lx * c_cos - ly * c_sin;
+
+            // Outward normal in capsule-local space: direction from centerline to perimeter.
+            let nearest_lx = lx.clamp(-CAPSULE_HALF_LEN, CAPSULE_HALF_LEN);
+            let out_lx = lx - nearest_lx;
+            let out_ly = ly; // centerline at y=0
+            let out_len = (out_lx * out_lx + out_ly * out_ly).sqrt();
+            let n_lx = out_lx / out_len;
+            let n_ly = out_ly / out_len;
+            // Transform outward normal to world space (same rotation as positions).
+            let nwx = -n_lx * c_sin - n_ly * c_cos;
+            let nwy = n_lx * c_cos - n_ly * c_sin;
+
+            let wx = cx - lx * c_sin - ly * c_cos + nwx * paddle_push;
+            let wy = cy + lx * c_cos - ly * c_sin + nwy * paddle_push;
             let world_tangent = local_tangent + std::f32::consts::FRAC_PI_2 + conveyor_angle;
             let idx = (real_n + p) as usize;
             sim.machines[idx] = GpuMachine {

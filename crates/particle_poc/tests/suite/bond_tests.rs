@@ -5,7 +5,7 @@ use particle_poc::capture::{CaptureConfig, HeadlessCapture};
 use particle_poc::{CAPSULE_RADIUS, GREEN_SPECIES, INVALID_BOND};
 
 /// Use production `particle_radius` (0.002) so the spatial hash grid works correctly.
-/// Grid `cell_size` = 1.6/256 = 0.00625 ≥ 2*r = 0.004, so neighbor search covers adjacent particles.
+/// Grid `cell_size` = 1.6/256 = 0.00625 >= 2*r = 0.004, so neighbor search covers adjacent particles.
 fn bond_test_config() -> CaptureConfig {
     CaptureConfig {
         width: 64,
@@ -138,4 +138,69 @@ fn when_particles_on_belt_surface_then_stable() {
             "particle {i}: y={py:.4} out of bounds"
         );
     }
+}
+
+/// 10k particles densely packed at the conveyor bottom where paddles orbit.
+/// Verifies no particle center ends up inside any paddle OBB (phasing),
+/// and no particle is launched at extreme velocity.
+/// @doc: 10k particles at conveyor bottom never phase through paddle OBBs
+#[test]
+fn when_10k_particles_at_conveyor_bottom_then_no_paddle_phasing() {
+    let r = 0.002;
+    let count = 10000u32;
+    let config = CaptureConfig {
+        width: 64,
+        height: 64,
+        particle_radius: r,
+        gravity: -1.2,
+        sub_steps: 16,
+        num_particles: count,
+        ..Default::default()
+    };
+    let Some(mut capture) = HeadlessCapture::try_new(config) else {
+        return;
+    };
+
+    // Dense grid just above conveyor bottom surface.
+    // Conveyor bottom end cap is at world y ~ -0.415 (center [-0.156, -0.376]
+    // minus capsule radius 0.055). Pack 100x100 particles around this region.
+    let spacing = 2.5 * r; // 0.005 -- particles settle together under gravity
+    let cols = 100u32;
+    let rows = 100u32;
+    let n = (cols * rows).min(count);
+    let y_start = -0.41;
+    let x_start = -0.3;
+    let mut positions = Vec::with_capacity(n as usize);
+    let mut species = Vec::with_capacity(n as usize);
+    for i in 0..n {
+        let col = i % cols;
+        let row = i / cols;
+        let x = x_start + col as f32 * spacing;
+        let y = y_start + row as f32 * spacing;
+        positions.push([x, y]);
+        species.push(i % 3);
+    }
+    capture.spawn_at(&positions, &species);
+
+    // 2 seconds: particles settle into dense pile, paddles make multiple passes.
+    capture.step_n(120);
+
+    // No particle center inside paddle OBB.
+    let phasing_count = capture.read_phasing_count();
+    assert_eq!(
+        phasing_count, 0,
+        "paddles pushed through particles -- {phasing_count} phasing events"
+    );
+
+    // No launched particles. Velocity cap is at 1.9; 2.0 gives epsilon headroom.
+    let velocities = capture.read_velocities(n);
+    let max_speed = velocities
+        .iter()
+        .map(|v| (v[0] * v[0] + v[1] * v[1]).sqrt())
+        .max_by(|a, b| a.partial_cmp(b).unwrap())
+        .unwrap_or(0.0);
+    assert!(
+        max_speed < 2.0,
+        "particles launched -- max speed {max_speed:.2} exceeds 2.0"
+    );
 }
