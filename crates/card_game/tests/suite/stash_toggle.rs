@@ -106,7 +106,7 @@ fn when_non_tab_key_pressed_then_stash_unchanged() {
     );
 }
 
-/// @doc: Tab held across two frames toggles only once — just_pressed clears after first frame.
+/// @doc: Tab held across two frames toggles only once — `just_pressed` clears after first frame.
 #[test]
 fn when_tab_held_two_frames_then_toggles_only_once() {
     // Arrange
@@ -118,7 +118,10 @@ fn when_tab_held_two_frames_then_toggles_only_once() {
 
     // Act — first frame toggles hidden → visible
     run_system(&mut world);
-    assert!(world.resource::<StashVisible>().0, "stash should be visible after first Tab press");
+    assert!(
+        world.resource::<StashVisible>().0,
+        "stash should be visible after first Tab press"
+    );
 
     // Advance frame state: clear just_pressed while keeping pressed=true (key held)
     world.resource_mut::<InputState>().clear_frame_state();
@@ -126,7 +129,10 @@ fn when_tab_held_two_frames_then_toggles_only_once() {
     run_system(&mut world);
 
     // Assert — stays visible, no double-toggle
-    assert!(world.resource::<StashVisible>().0, "stash should stay visible when Tab held across frames");
+    assert!(
+        world.resource::<StashVisible>().0,
+        "stash should stay visible when Tab held across frames"
+    );
 }
 
 /// @doc: Press Tab, release, press Tab again — stash toggles twice and returns to original state.
@@ -141,7 +147,10 @@ fn when_tab_release_tab_then_returns_to_original_state() {
 
     // Act — first press: hidden → visible
     run_system(&mut world);
-    assert!(world.resource::<StashVisible>().0, "stash should be visible after first Tab press");
+    assert!(
+        world.resource::<StashVisible>().0,
+        "stash should be visible after first Tab press"
+    );
 
     // Release Tab and clear frame state
     world.resource_mut::<InputState>().clear_frame_state();
@@ -150,11 +159,14 @@ fn when_tab_release_tab_then_returns_to_original_state() {
     run_system(&mut world);
 
     // Assert — back to hidden
-    assert!(!world.resource::<StashVisible>().0, "stash should return to hidden after Tab press-release-press");
+    assert!(
+        !world.resource::<StashVisible>().0,
+        "stash should return to hidden after Tab press-release-press"
+    );
 }
 
-/// @doc: When resources are present in default state (StashVisible not inserted), the system panics.
-/// This test verifies the system requires StashVisible to exist — the behavior is intentional.
+/// @doc: When resources are present in default state (`StashVisible` not inserted), the system panics.
+/// This test verifies the system requires `StashVisible` to exist — the behavior is intentional.
 #[test]
 #[should_panic(expected = "StashVisible")]
 fn when_stash_visible_missing_then_system_panics() {

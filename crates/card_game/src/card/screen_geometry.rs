@@ -1,8 +1,8 @@
 //! Signal geometry helpers for screen device rendering.
 
+use engine_render::prelude::ShapeVariant;
 use glam::Vec2;
 use std::f32::consts::TAU;
-use engine_render::prelude::ShapeVariant;
 
 const SIGNAL_SEGMENTS: usize = 32;
 const PANEL_SPLINE_SUBDIVISIONS: usize = 8;

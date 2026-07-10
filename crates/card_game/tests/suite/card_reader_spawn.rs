@@ -208,7 +208,7 @@ fn when_hierarchy_maintenance_run_twice_then_children_not_duplicated() {
     );
 }
 
-/// @doc: The jack socket entity has no parent (no ChildOf component).
+/// @doc: The jack socket entity has no parent (no `ChildOf` component).
 #[test]
 fn when_spawn_reader_then_jack_has_no_parent() {
     // Arrange
@@ -225,7 +225,7 @@ fn when_spawn_reader_then_jack_has_no_parent() {
     );
 }
 
-/// @doc: The reader root entity itself has no parent (no ChildOf component).
+/// @doc: The reader root entity itself has no parent (no `ChildOf` component).
 #[test]
 fn when_spawn_reader_then_reader_has_no_parent() {
     // Arrange

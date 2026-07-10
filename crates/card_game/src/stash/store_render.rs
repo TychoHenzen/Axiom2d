@@ -1,23 +1,24 @@
 use bevy_ecs::prelude::{Query, Res, ResMut};
 use engine_core::color::Color;
 use engine_render::font::measure_text;
-use engine_render::prelude::{Camera2D, QUAD_INDICES, RendererRes, rect_vertices, resolve_viewport_camera, screen_to_world};
+use engine_render::prelude::{
+    Camera2D, QUAD_INDICES, RendererRes, rect_vertices, resolve_viewport_camera, screen_to_world,
+};
 use engine_render::shape::TessellatedMesh;
 use engine_scene::prelude::{RenderLayer, SortOrder};
 use engine_ui::draw_command::{DrawCommand, DrawQueue};
 use glam::Vec2;
 
-use super::store::{
-    StoreCatalog, StoreItemKind, StoreWallet,
-    STORE_BODY_FONT, STORE_COIN_FONT, STORE_HIGHLIGHT_COLOR, STORE_ITEM_HEIGHT,
-    STORE_ITEM_WIDTH, STORE_PANEL_FILL, STORE_PREVIEW_DARK, STORE_PREVIEW_LIGHT,
-    STORE_PREVIEW_MID, STORE_PRICE_COLOR, STORE_PRICE_FONT, STORE_TEXT_COLOR,
-    STORE_TITLE_FONT, store_item_layout, storage_tab_purchase_cost,
-};
+use super::constants::GRID_MARGIN;
 use super::grid::StashGrid;
 use super::store::store_item_bounds;
+use super::store::{
+    STORE_BODY_FONT, STORE_COIN_FONT, STORE_HIGHLIGHT_COLOR, STORE_ITEM_HEIGHT, STORE_ITEM_WIDTH,
+    STORE_PANEL_FILL, STORE_PREVIEW_DARK, STORE_PREVIEW_LIGHT, STORE_PREVIEW_MID,
+    STORE_PRICE_COLOR, STORE_PRICE_FONT, STORE_TEXT_COLOR, STORE_TITLE_FONT, StoreCatalog,
+    StoreItemKind, StoreWallet, storage_tab_purchase_cost, store_item_layout,
+};
 use super::toggle::StashVisible;
-use super::constants::GRID_MARGIN;
 
 fn draw_screen_rect(
     queue: &mut DrawQueue,

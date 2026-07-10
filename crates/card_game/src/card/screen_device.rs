@@ -15,7 +15,7 @@ use crate::card::interaction::click_resolve::{ClickHitShape, Clickable, ClickedE
 use crate::card::jack_cable::{CableCollider, Jack, JackDirection};
 use crate::card::jack_socket::{JackSocket, on_socket_clicked};
 use crate::card::reader::SignatureSpace;
-use crate::card::screen_geometry::*;
+use crate::card::screen_geometry::{build_signal_polyline, clipped_signal_circle};
 
 const DISPLAY_COUNT: usize = 4;
 const PANEL_HALF: f32 = 50.0;
@@ -316,7 +316,6 @@ pub fn screen_release_system(mouse: Res<MouseState>, mut screen_drag: ResMut<Scr
         screen_drag.dragging = None;
     }
 }
-
 
 #[cfg(test)]
 mod tests {

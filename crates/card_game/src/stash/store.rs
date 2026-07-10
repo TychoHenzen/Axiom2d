@@ -294,7 +294,11 @@ pub(super) fn store_item_layout(grid_width: u8, item_count: usize, index: usize)
     (left, top)
 }
 
-pub(super) fn store_item_bounds(grid_width: u8, item_count: usize, index: usize) -> (f32, f32, f32, f32) {
+pub(super) fn store_item_bounds(
+    grid_width: u8,
+    item_count: usize,
+    index: usize,
+) -> (f32, f32, f32, f32) {
     let (left, top) = store_item_layout(grid_width, item_count, index);
     (left, top, left + STORE_ITEM_WIDTH, top + STORE_ITEM_HEIGHT)
 }
@@ -615,4 +619,3 @@ fn sell_booster(world: &mut World, entity: Entity) {
     despawn_entity_tree(world, entity);
     world.resource_mut::<StoreWallet>().refund(refund);
 }
-
