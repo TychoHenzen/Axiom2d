@@ -437,17 +437,13 @@ impl HeadlessCapture {
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                     label: Some("read_phasing_count"),
                 });
-            encoder.copy_buffer_to_buffer(
-                &self.buffers.phasing_count_buf,
-                0,
-                &staging,
-                0,
-                4,
-            );
+            encoder.copy_buffer_to_buffer(&self.buffers.phasing_count_buf, 0, &staging, 0, 4);
             self.queue.submit(std::iter::once(encoder.finish()));
         }
         let slice = staging.slice(..);
-        slice.map_async(wgpu::MapMode::Read, |r| r.expect("map phasing count staging"));
+        slice.map_async(wgpu::MapMode::Read, |r| {
+            r.expect("map phasing count staging")
+        });
         self.device.poll(wgpu::Maintain::Wait);
         let data = slice.get_mapped_range();
         let count = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
