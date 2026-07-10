@@ -193,24 +193,49 @@ fn project(@builtin(global_invocation_id) id: vec3<u32>) {
             let closest_y = clamp(local_y, -hh, hh);
             let local_delta = vec2(local_x - closest_x, local_y - closest_y);
             let dist = length(local_delta);
-            if dist >= r || dist < 1e-9 { continue; }
-            n = world_from_local(local_delta / dist, c, s);
+
+            // dist < 1e-9: particle center is fully inside the expanded OBB.
+            // Old code skipped these (phasing bug). Push outward along the
+            // nearest expanded-OBB face — NOT always +X (which launches
+            // particles forward like a railgun).
+            if dist >= r { continue; }
+            if dist < 1e-9 {
+                let hw_e = hw + frame_disp;
+                let dl = local_x + hw_e;  // dist to left face
+                let dr = hw_e - local_x;  // dist to right face
+                let db = local_y + hh;    // dist to bottom face
+                let dt = hh - local_y;    // dist to top face
+                var push = vec2(-1.0, 0.0);
+                var min_d = dl;
+                if dr < min_d { min_d = dr; push = vec2(1.0, 0.0); }
+                if db < min_d { min_d = db; push = vec2(0.0, -1.0); }
+                if dt < min_d { min_d = dt; push = vec2(0.0, 1.0); }
+                n = world_from_local(push, c, s);
+            } else {
+                n = world_from_local(local_delta / dist, c, s);
+            }
             overlap = r - dist;
             is_paddle = true;
         }
 
-        let compliance = 0.5 / f32(params.sub_steps);
-        machine_corr += overlap * n * compliance;
-
+        // Paddle compliance is 1/4 of body stiffness — paddles nudge,
+        // not bludgeon. Full body compliance would launch particles at
+        // near-cap velocity from a moving paddle smacking a dense pile.
         if is_paddle {
+            let paddle_c = 0.125 / f32(params.sub_steps);
+            machine_corr += overlap * n * paddle_c;
+
             let surf_disp = vec2(c, s) * mach.angular_velocity * params.dt;
             let rel_disp = disp_i - surf_disp;
             let tang_rel = rel_disp - dot(rel_disp, n) * n;
             let tang_len = length(tang_rel);
             if tang_len > 1e-9 {
-                let scale = min(params.friction_mu * overlap * compliance / tang_len, 1.0);
+                let scale = min(params.friction_mu * overlap * paddle_c / tang_len, 1.0);
                 machine_corr -= 0.5 * tang_rel * scale;
             }
+        } else {
+            let compliance = 0.5 / f32(params.sub_steps);
+            machine_corr += overlap * n * compliance;
         }
     }
 

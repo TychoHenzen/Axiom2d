@@ -107,15 +107,10 @@ fn detect_phasing(@builtin(global_invocation_id) id: vec3<u32>) {
 
         // Check if particle center is inside expanded OBB.
         if local_x >= -hw_back && local_x <= hw_back && local_y >= -hh && local_y <= hh {
-            // Compute penetration relative to unexpanded OBB.
-            let closest_x = clamp(local_x, -mach.half_width, mach.half_width);
-            let closest_y = clamp(local_y, -mach.half_height, mach.half_height);
-            let dx = local_x - closest_x;
-            let dy = local_y - closest_y;
-            let pen = r - sqrt(dx * dx + dy * dy);
-            // Only flag deep penetration (> 1.5 * particle_radius past surface).
-            // pen ≈ r for normal contact (particle center at OBB edge).
-            if pen <= 1.5 * r { continue; }
+            // Particle center inside UNEXPANDED paddle OBB = phasing.
+            let inside = local_x >= -mach.half_width && local_x <= mach.half_width
+                      && local_y >= -mach.half_height && local_y <= mach.half_height;
+            if !inside { continue; }
 
             let slot = atomicAdd(&phasing_amt, 1u);
             if slot >= MAX_DETECT_PHASING { continue; }
@@ -123,7 +118,8 @@ fn detect_phasing(@builtin(global_invocation_id) id: vec3<u32>) {
             let base = slot * PHASING_ENTRY_WORDS;
             phasing_data[base + 0u] = m;
             phasing_data[base + 1u] = i;
-            phasing_data[base + 2u] = bitcast<u32>(pen);
+            // Depth = r (particle center is inside paddle volume).
+            phasing_data[base + 2u] = bitcast<u32>(r);
         }
     }
 }
