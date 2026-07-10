@@ -6,8 +6,13 @@ use engine_render::prelude::{Shape, ShapeVariant};
 use engine_scene::prelude::Visible;
 use glam::Vec2;
 
-use super::geom::{polyline_to_ribbon, segment_crosses_convex_polygon, segment_intersects_convex_polygon, polygon_centroid};
-use super::{CableCollider, CABLE_COLOR, CABLE_HALF_THICKNESS, WireEndpoints, WrapAnchor, WrapWire};
+use super::geom::{
+    polygon_centroid, polyline_to_ribbon, segment_crosses_convex_polygon,
+    segment_intersects_convex_polygon,
+};
+use super::{
+    CABLE_COLOR, CABLE_HALF_THICKNESS, CableCollider, WireEndpoints, WrapAnchor, WrapWire,
+};
 
 /// Update anchor world positions from obstacle transforms each frame.
 pub fn wrap_update_system(

@@ -22,7 +22,7 @@ fn run_mouse_system(world: &mut World) {
     schedule.run(world);
 }
 
-/// @doc: Verifies that mouse_input_system marks a button as pressed from a press event in the bus.
+/// @doc: Verifies that `mouse_input_system` marks a button as pressed from a press event in the bus.
 #[test]
 fn when_press_event_in_bus_then_mouse_input_system_sets_button_pressed() {
     // Arrange
@@ -41,7 +41,7 @@ fn when_press_event_in_bus_then_mouse_input_system_sets_button_pressed() {
     assert!(world.resource::<MouseState>().pressed(MouseButton::Left));
 }
 
-/// @doc: Verifies that mouse_input_system marks a button as just pressed from a press event.
+/// @doc: Verifies that `mouse_input_system` marks a button as just pressed from a press event.
 #[test]
 fn when_press_event_in_bus_then_mouse_input_system_sets_just_pressed() {
     // Arrange
@@ -64,7 +64,7 @@ fn when_press_event_in_bus_then_mouse_input_system_sets_just_pressed() {
     );
 }
 
-/// @doc: Verifies that mouse_input_system marks a button as just released and clears pressed state from a release event.
+/// @doc: Verifies that `mouse_input_system` marks a button as just released and clears pressed state from a release event.
 #[test]
 fn when_release_event_in_bus_then_mouse_input_system_sets_just_released() {
     // Arrange
@@ -87,7 +87,7 @@ fn when_release_event_in_bus_then_mouse_input_system_sets_just_released() {
     assert!(!state.pressed(MouseButton::Left));
 }
 
-/// @doc: Verifies that mouse_input_system drains the event bus after processing.
+/// @doc: Verifies that `mouse_input_system` drains the event bus after processing.
 #[test]
 fn when_mouse_input_system_runs_then_bus_is_drained() {
     // Arrange
@@ -106,7 +106,7 @@ fn when_mouse_input_system_runs_then_bus_is_drained() {
     assert!(world.resource::<EventBus<MouseInputEvent>>().is_empty());
 }
 
-/// @doc: Verifies that scroll_clear_system resets accumulated scroll delta to zero.
+/// @doc: Verifies that `scroll_clear_system` resets accumulated scroll delta to zero.
 #[test]
 fn when_scroll_clear_system_runs_then_scroll_delta_zeroed() {
     // Arrange
@@ -152,7 +152,7 @@ fn when_mouse_input_system_runs_second_frame_then_just_pressed_is_cleared() {
     );
 }
 
-/// @doc: Verifies that mouse_input_system updates screen position from a move event.
+/// @doc: Verifies that `mouse_input_system` updates screen position from a move event.
 #[test]
 fn when_move_event_in_bus_then_mouse_input_system_sets_screen_pos() {
     // Arrange
@@ -173,7 +173,7 @@ fn when_move_event_in_bus_then_mouse_input_system_sets_screen_pos() {
     );
 }
 
-/// @doc: Verifies that mouse_input_system accumulates scroll delta from a scroll event.
+/// @doc: Verifies that `mouse_input_system` accumulates scroll delta from a scroll event.
 #[test]
 fn when_scroll_event_in_bus_then_mouse_input_system_accumulates_scroll_delta() {
     // Arrange
@@ -194,7 +194,7 @@ fn when_scroll_event_in_bus_then_mouse_input_system_accumulates_scroll_delta() {
     );
 }
 
-/// @doc: Verifies that mouse_input_system is a no-op when the event bus is empty (state unchanged).
+/// @doc: Verifies that `mouse_input_system` is a no-op when the event bus is empty (state unchanged).
 #[test]
 fn when_no_mouse_events_in_bus_then_mouse_state_unchanged() {
     // Arrange

@@ -162,10 +162,15 @@ fn collect_shape_draws(
         let stroke_cmd = stroke.and_then(|s| {
             tessellate_stroke(&shape.variant, s.width)
                 .ok()
-                .map(|sm| StrokeCommand { mesh: sm, color: s.color })
+                .map(|sm| StrokeCommand {
+                    mesh: sm,
+                    color: s.color,
+                })
         });
         push_sorted_command(
-            commands, layer, order,
+            commands,
+            layer,
+            order,
             DrawCommand::Shape {
                 mesh,
                 color: shape.color,
@@ -183,7 +188,9 @@ fn collect_text_draws(query: &Query<TextItem>, commands: &mut Vec<SortedDrawComm
             continue;
         }
         push_sorted_command(
-            commands, layer, order,
+            commands,
+            layer,
+            order,
             DrawCommand::Text {
                 content: text.content.clone(),
                 font_size: text.font_size,
@@ -201,7 +208,9 @@ fn collect_color_mesh_draws(query: &Query<ColorMeshItem>, commands: &mut Vec<Sor
             continue;
         }
         push_sorted_command(
-            commands, layer, order,
+            commands,
+            layer,
+            order,
             DrawCommand::ColorMesh {
                 mesh: mesh.0.clone(),
                 model: affine2_to_mat4(&transform.0),
@@ -221,7 +230,9 @@ fn collect_persistent_mesh_draws(
             continue;
         }
         push_sorted_command(
-            commands, layer, order,
+            commands,
+            layer,
+            order,
             DrawCommand::PersistentMesh {
                 handle: pcm.0,
                 model: affine2_to_mat4(&transform.0),
@@ -243,7 +254,9 @@ fn collect_sprite_draws(
         }
         let pos = transform.0.translation;
         push_sorted_command(
-            commands, layer, order,
+            commands,
+            layer,
+            order,
             DrawCommand::Sprite {
                 rect: Rect {
                     x: Pixels(pos.x),

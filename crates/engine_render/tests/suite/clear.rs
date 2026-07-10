@@ -7,7 +7,7 @@ use engine_render::clear::{ClearColor, clear_system};
 use engine_render::renderer::RendererRes;
 use engine_render::testing::SpyRenderer;
 
-/// @doc: Verifies that the clear_system forwards the ClearColor resource value to the renderer's clear method
+/// @doc: Verifies that the `clear_system` forwards the `ClearColor` resource value to the renderer's clear method
 #[test]
 fn when_clear_system_runs_then_renderer_clear_receives_clear_color_value() {
     // Arrange

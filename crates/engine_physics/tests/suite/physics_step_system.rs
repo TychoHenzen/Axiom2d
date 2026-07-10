@@ -38,7 +38,7 @@ fn when_system_runs_then_backend_is_stepped() {
     );
 }
 
-/// @doc: When no collisions occur during the step, the CollisionEvent bus must remain empty.
+/// @doc: When no collisions occur during the step, the `CollisionEvent` bus must remain empty.
 #[test]
 fn when_system_runs_with_no_events_then_buffer_remains_empty() {
     // Arrange
@@ -80,7 +80,7 @@ fn when_system_runs_twice_then_backend_stepped_twice() {
     );
 }
 
-/// @doc: When the backend reports collision events, the system must forward them into the ECS EventBus.
+/// @doc: When the backend reports collision events, the system must forward them into the ECS `EventBus`.
 #[test]
 fn when_backend_produces_events_then_buffer_contains_them() {
     // Arrange

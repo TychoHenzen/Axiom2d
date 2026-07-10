@@ -2,9 +2,7 @@
 
 use std::sync::Arc;
 
-use particle_poc::{
-    parse_flag_arg, State, MAX_PARTICLES, SUB_STEPS, WINDOW_HEIGHT, WINDOW_WIDTH,
-};
+use particle_poc::{MAX_PARTICLES, SUB_STEPS, State, WINDOW_HEIGHT, WINDOW_WIDTH, parse_flag_arg};
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};

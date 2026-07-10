@@ -123,7 +123,9 @@ pub fn spawn_booster_machine(world: &mut World, position: Vec2) -> (Entity, Enti
 
     world.entity_mut(device_entity).observe(on_booster_clicked);
     world.entity_mut(input_jack).observe(on_socket_clicked);
-    world.entity_mut(button_entity).observe(on_seal_button_clicked);
+    world
+        .entity_mut(button_entity)
+        .observe(on_seal_button_clicked);
 
     (device_entity, input_jack)
 }
@@ -162,7 +164,9 @@ fn spawn_booster_input_jack(world: &mut World, position: Vec2) -> Entity {
 fn spawn_booster_seal_button(world: &mut World, position: Vec2, device_entity: Entity) -> Entity {
     world
         .spawn((
-            BoosterSealButton { machine_entity: device_entity },
+            BoosterSealButton {
+                machine_entity: device_entity,
+            },
             Transform2D {
                 position: position + BUTTON_OFFSET,
                 rotation: 0.0,
@@ -348,7 +352,11 @@ fn seal_rng_from_space(space: &SignatureSpace) -> rand_chacha::ChaCha8Rng {
     ChaCha8Rng::seed_from_u64(seed_bytes)
 }
 
-fn seal_card_count(world: &World, space: &SignatureSpace, rng: &mut rand_chacha::ChaCha8Rng) -> usize {
+fn seal_card_count(
+    world: &World,
+    space: &SignatureSpace,
+    rng: &mut rand_chacha::ChaCha8Rng,
+) -> usize {
     use crate::card::component::Card;
     use rand::Rng;
     let base_count: usize = rng.random_range(5..=15);

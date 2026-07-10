@@ -20,7 +20,7 @@ fn when_convex_polygon_collider_debug_formatted_then_snapshot_matches() {
     insta::assert_snapshot!(debug);
 }
 
-/// @doc: Verifies that all collider variants (Circle, Aabb, ConvexPolygon) survive RON serialization round-trip with equal values.
+/// @doc: Verifies that all collider variants (Circle, Aabb, `ConvexPolygon`) survive RON serialization round-trip with equal values.
 #[test]
 fn when_collider_variants_serialized_to_ron_then_each_deserializes_to_equal_value() {
     // Arrange
@@ -42,8 +42,7 @@ fn when_collider_variants_serialized_to_ron_then_each_deserializes_to_equal_valu
         // Assert
         assert_eq!(
             *collider, back,
-            "collider variant {:?} failed RON round-trip",
-            collider
+            "collider variant {collider:?} failed RON round-trip"
         );
     }
 }
@@ -60,9 +59,11 @@ fn when_circle_radius_is_zero_then_serializes_and_deserializes() {
 
     // Assert
     assert_eq!(
-        collider, back,
+        collider,
+        back,
         "Circle(0.0) should round-trip: {} -> {}",
-        ron, ron::to_string(&back).unwrap()
+        ron,
+        ron::to_string(&back).unwrap()
     );
 }
 
@@ -79,8 +80,7 @@ fn when_circle_radius_is_negative_then_serializes_and_deserializes() {
     // Assert
     assert_eq!(
         collider, back,
-        "Circle(-5.0) should round-trip, got {:?}",
-        back
+        "Circle(-5.0) should round-trip, got {back:?}"
     );
 }
 
@@ -95,9 +95,5 @@ fn when_aabb_extent_is_zero_then_serializes_and_deserializes() {
     let back: Collider = ron::from_str(&ron).unwrap();
 
     // Assert
-    assert_eq!(
-        collider, back,
-        "Aabb(ZERO) should round-trip, got {:?}",
-        back
-    );
+    assert_eq!(collider, back, "Aabb(ZERO) should round-trip, got {back:?}");
 }

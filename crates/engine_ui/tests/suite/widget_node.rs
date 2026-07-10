@@ -5,7 +5,7 @@ use engine_ui::layout::{Anchor, FlexDirection, FlexLayout, Margin};
 use engine_ui::widget::{Text, UiNode};
 use glam::Vec2;
 
-/// @doc: Verifies that UiNode roundtrips through RON serialization with all fields preserved
+/// @doc: Verifies that `UiNode` roundtrips through RON serialization with all fields preserved
 #[test]
 fn when_ui_node_roundtrip_ron_then_preserved() {
     // Arrange
@@ -32,7 +32,7 @@ fn when_ui_node_roundtrip_ron_then_preserved() {
     );
 }
 
-/// @doc: Verifies that FlexLayout roundtrips through RON serialization with all fields preserved
+/// @doc: Verifies that `FlexLayout` roundtrips through RON serialization with all fields preserved
 #[test]
 fn when_flex_layout_roundtrip_ron_then_preserved() {
     // Arrange

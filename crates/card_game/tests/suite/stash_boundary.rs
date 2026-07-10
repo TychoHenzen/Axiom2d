@@ -67,7 +67,10 @@ fn when_no_drag_then_no_physics_calls() {
 
     // Assert
     let commands = drain_physics_commands(&mut world);
-    assert!(commands.is_empty(), "no drag should produce no physics commands");
+    assert!(
+        commands.is_empty(),
+        "no drag should produce no physics commands"
+    );
 }
 
 #[test]
@@ -91,7 +94,10 @@ fn when_stash_follow_and_cursor_in_stash_then_no_physics_calls() {
 
     // Assert
     let commands = drain_physics_commands(&mut world);
-    assert!(commands.is_empty(), "stash-follow mode with cursor in stash should produce no physics commands");
+    assert!(
+        commands.is_empty(),
+        "stash-follow mode with cursor in stash should produce no physics commands"
+    );
     assert!(
         world
             .resource::<DragState>()
@@ -132,7 +138,10 @@ fn when_stash_follow_and_cursor_exits_stash_then_physics_body_added() {
         })
         .collect();
     assert_eq!(add_bodies.len(), 1, "add_body should be called once");
-    assert_eq!(add_bodies[0], entity, "exiting stash should add physics body for the dragged entity");
+    assert_eq!(
+        add_bodies[0], entity,
+        "exiting stash should add physics body for the dragged entity"
+    );
 }
 
 #[test]
@@ -222,7 +231,10 @@ fn when_physics_drag_and_cursor_enters_stash_then_physics_body_removed() {
         })
         .collect();
     assert_eq!(remove_bodies.len(), 1, "remove_body should be called once");
-    assert_eq!(remove_bodies[0], entity, "entering stash should remove physics body for the dragged entity");
+    assert_eq!(
+        remove_bodies[0], entity,
+        "entering stash should remove physics body for the dragged entity"
+    );
 }
 
 #[test]

@@ -121,7 +121,7 @@ fn when_frame_cleared_then_just_released_is_false() {
     );
 }
 
-/// @doc: Verifies that action_pressed returns false when the action is not bound in the map.
+/// @doc: Verifies that `action_pressed` returns false when the action is not bound in the map.
 #[test]
 fn when_action_not_in_map_then_action_pressed_returns_false() {
     // Arrange
@@ -133,10 +133,13 @@ fn when_action_not_in_map_then_action_pressed_returns_false() {
     let result = state.action_pressed(&map, "jump");
 
     // Assert
-    assert!(!result, "action_pressed should return false when the action is not bound in the map");
+    assert!(
+        !result,
+        "action_pressed should return false when the action is not bound in the map"
+    );
 }
 
-/// @doc: Verifies that action_pressed returns false when the bound key is not pressed.
+/// @doc: Verifies that `action_pressed` returns false when the bound key is not pressed.
 #[test]
 fn when_bound_key_is_not_pressed_then_action_pressed_returns_false() {
     // Arrange
@@ -148,10 +151,13 @@ fn when_bound_key_is_not_pressed_then_action_pressed_returns_false() {
     let result = state.action_pressed(&map, "jump");
 
     // Assert
-    assert!(!result, "action_pressed should return false when the bound key is not pressed");
+    assert!(
+        !result,
+        "action_pressed should return false when the bound key is not pressed"
+    );
 }
 
-/// @doc: Verifies that action_pressed returns true when the bound key is pressed.
+/// @doc: Verifies that `action_pressed` returns true when the bound key is pressed.
 #[test]
 fn when_bound_key_is_pressed_then_action_pressed_returns_true() {
     // Arrange
@@ -164,10 +170,13 @@ fn when_bound_key_is_pressed_then_action_pressed_returns_true() {
     let result = state.action_pressed(&map, "jump");
 
     // Assert
-    assert!(result, "action_pressed should return true when the bound key is pressed");
+    assert!(
+        result,
+        "action_pressed should return true when the bound key is pressed"
+    );
 }
 
-/// @doc: Verifies that action_just_pressed returns false when the action is not bound in the map.
+/// @doc: Verifies that `action_just_pressed` returns false when the action is not bound in the map.
 #[test]
 fn when_action_not_in_map_then_action_just_pressed_returns_false() {
     // Arrange
@@ -179,10 +188,13 @@ fn when_action_not_in_map_then_action_just_pressed_returns_false() {
     let result = state.action_just_pressed(&map, "jump");
 
     // Assert
-    assert!(!result, "action_just_pressed should return false when the action is not bound");
+    assert!(
+        !result,
+        "action_just_pressed should return false when the action is not bound"
+    );
 }
 
-/// @doc: Verifies that action_just_pressed returns true when the bound key is just pressed.
+/// @doc: Verifies that `action_just_pressed` returns true when the bound key is just pressed.
 #[test]
 fn when_bound_key_is_just_pressed_then_action_just_pressed_returns_true() {
     // Arrange
@@ -195,10 +207,13 @@ fn when_bound_key_is_just_pressed_then_action_just_pressed_returns_true() {
     let result = state.action_just_pressed(&map, "jump");
 
     // Assert
-    assert!(result, "action_just_pressed should return true when the bound key is just pressed");
+    assert!(
+        result,
+        "action_just_pressed should return true when the bound key is just pressed"
+    );
 }
 
-/// @doc: Verifies that action_just_pressed returns false for a held key after frame clear.
+/// @doc: Verifies that `action_just_pressed` returns false for a held key after frame clear.
 #[test]
 fn when_bound_key_held_across_frame_clear_then_action_just_pressed_returns_false() {
     // Arrange
@@ -212,10 +227,13 @@ fn when_bound_key_held_across_frame_clear_then_action_just_pressed_returns_false
     let result = state.action_just_pressed(&map, "jump");
 
     // Assert
-    assert!(!result, "action_just_pressed should return false for a held key after frame clear");
+    assert!(
+        !result,
+        "action_just_pressed should return false for a held key after frame clear"
+    );
 }
 
-/// @doc: Verifies that action_just_pressed returns true when any one of multiple bound keys is just pressed.
+/// @doc: Verifies that `action_just_pressed` returns true when any one of multiple bound keys is just pressed.
 #[test]
 fn when_one_of_multiple_bound_keys_is_just_pressed_then_action_just_pressed_returns_true() {
     // Arrange
@@ -228,10 +246,13 @@ fn when_one_of_multiple_bound_keys_is_just_pressed_then_action_just_pressed_retu
     let result = state.action_just_pressed(&map, "move_right");
 
     // Assert
-    assert!(result, "action_just_pressed should return true when one of multiple bound keys is just pressed");
+    assert!(
+        result,
+        "action_just_pressed should return true when one of multiple bound keys is just pressed"
+    );
 }
 
-/// @doc: Verifies that action_pressed returns true when any one of multiple bound keys is pressed.
+/// @doc: Verifies that `action_pressed` returns true when any one of multiple bound keys is pressed.
 #[test]
 fn when_one_of_multiple_bound_keys_is_pressed_then_action_pressed_returns_true() {
     // Arrange
@@ -244,7 +265,10 @@ fn when_one_of_multiple_bound_keys_is_pressed_then_action_pressed_returns_true()
     let result = state.action_pressed(&map, "move_right");
 
     // Assert
-    assert!(result, "action_pressed should return true when one of multiple bound keys is pressed");
+    assert!(
+        result,
+        "action_pressed should return true when one of multiple bound keys is pressed"
+    );
 }
 
 /// @doc: Verifies that a held key remains pressed across frame clears.
@@ -264,7 +288,7 @@ fn when_frame_cleared_then_held_key_stays_pressed() {
     );
 }
 
-/// @doc: Verifies that clearing frame state on a fresh default InputState is a no-op.
+/// @doc: Verifies that clearing frame state on a fresh default `InputState` is a no-op.
 #[test]
 fn when_frame_cleared_on_empty_state_then_state_remains_empty() {
     // Arrange
@@ -279,7 +303,7 @@ fn when_frame_cleared_on_empty_state_then_state_remains_empty() {
     assert!(!state.just_released(KeyCode::Space), "just_released should be false after clear on empty state");
 }
 
-/// @doc: Verifies that pressing the same key twice is idempotent (pressed and just_pressed remain true).
+/// @doc: Verifies that pressing the same key twice is idempotent (pressed and `just_pressed` remain true).
 #[test]
 fn when_same_key_pressed_twice_then_state_is_still_pressed() {
     // Arrange
@@ -300,7 +324,7 @@ fn when_same_key_pressed_twice_then_state_is_still_pressed() {
     );
 }
 
-/// @doc: Verifies that just_released returns false for a key that was only pressed (not released).
+/// @doc: Verifies that `just_released` returns false for a key that was only pressed (not released).
 #[test]
 fn when_key_is_held_then_just_released_returns_false() {
     // Arrange
@@ -311,26 +335,35 @@ fn when_key_is_held_then_just_released_returns_false() {
     let released = state.just_released(KeyCode::Space);
 
     // Assert
-    assert!(!released, "just_released should return false for a held key that was not released");
+    assert!(
+        !released,
+        "just_released should return false for a held key that was not released"
+    );
 }
 
-/// @doc: Verifies that just_released transitions from true to false after frame clear.
+/// @doc: Verifies that `just_released` transitions from true to false after frame clear.
 #[test]
 fn when_key_released_and_frame_cleared_then_just_released_returns_false() {
     // Arrange
     let mut state = InputState::default();
     state.press(KeyCode::Space);
     state.release(KeyCode::Space);
-    assert!(state.just_released(KeyCode::Space), "sanity: just_released true after release");
+    assert!(
+        state.just_released(KeyCode::Space),
+        "sanity: just_released true after release"
+    );
 
     // Act
     state.clear_frame_state();
 
     // Assert
-    assert!(!state.just_released(KeyCode::Space), "just_released should be false after frame clear");
+    assert!(
+        !state.just_released(KeyCode::Space),
+        "just_released should be false after frame clear"
+    );
 }
 
-/// @doc: Verifies that just_released is true when a key is released without ever having been pressed.
+/// @doc: Verifies that `just_released` is true when a key is released without ever having been pressed.
 #[test]
 fn when_never_pressed_key_is_released_then_just_released_is_set() {
     // Arrange
@@ -340,10 +373,13 @@ fn when_never_pressed_key_is_released_then_just_released_is_set() {
     state.release(KeyCode::KeyF);
 
     // Assert
-    assert!(state.just_released(KeyCode::KeyF), "release on never-pressed key sets just_released by current impl");
+    assert!(
+        state.just_released(KeyCode::KeyF),
+        "release on never-pressed key sets just_released by current impl"
+    );
 }
 
-/// @doc: Verifies that releasing a key that was never pressed marks it as just_released but pressed stays false.
+/// @doc: Verifies that releasing a key that was never pressed marks it as `just_released` but pressed stays false.
 #[test]
 fn when_unpressed_key_released_then_pressed_stays_false_and_just_released_is_set() {
     // Arrange

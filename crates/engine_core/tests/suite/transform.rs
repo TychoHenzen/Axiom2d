@@ -17,7 +17,10 @@ fn when_transform2d_serialized_to_ron_then_deserializes_to_equal_value() {
     let back: Transform2D = ron::from_str(&ron).unwrap();
 
     // Assert
-    assert_eq!(transform, back, "RON roundtrip should produce equal Transform2D");
+    assert_eq!(
+        transform, back,
+        "RON roundtrip should produce equal Transform2D"
+    );
 }
 
 #[test]
@@ -33,7 +36,10 @@ fn when_transform2d_with_negative_rotation_serialized_to_ron_then_roundtrip_pres
     let back: Transform2D = ron::from_str(&ron).unwrap();
 
     // Assert
-    assert_eq!(transform, back, "negative rotation should survive RON roundtrip");
+    assert_eq!(
+        transform, back,
+        "negative rotation should survive RON roundtrip"
+    );
 }
 
 #[test]
@@ -42,7 +48,11 @@ fn when_default_transform_converted_to_affine2_then_equals_identity() {
     let affine = Transform2D::default().to_affine2();
 
     // Assert
-    assert_eq!(affine, Affine2::IDENTITY, "default Transform2D should convert to identity Affine2");
+    assert_eq!(
+        affine,
+        Affine2::IDENTITY,
+        "default Transform2D should convert to identity Affine2"
+    );
 }
 
 #[test]
@@ -57,7 +67,11 @@ fn when_transform_has_translation_only_then_affine2_is_pure_translation() {
     let affine = t.to_affine2();
 
     // Assert
-    assert_eq!(affine, Affine2::from_translation(Vec2::new(3.0, 5.0)), "transform with only translation should produce pure translation affine");
+    assert_eq!(
+        affine,
+        Affine2::from_translation(Vec2::new(3.0, 5.0)),
+        "transform with only translation should produce pure translation affine"
+    );
 }
 
 #[test]
@@ -72,7 +86,11 @@ fn when_transform_has_rotation_only_then_affine2_is_pure_rotation() {
     let affine = t.to_affine2();
 
     // Assert
-    assert_eq!(affine, Affine2::from_angle(std::f32::consts::FRAC_PI_2), "transform with only rotation should produce pure rotation affine");
+    assert_eq!(
+        affine,
+        Affine2::from_angle(std::f32::consts::FRAC_PI_2),
+        "transform with only rotation should produce pure rotation affine"
+    );
 }
 
 #[test]
@@ -87,7 +105,11 @@ fn when_transform_has_scale_only_then_affine2_is_pure_scale() {
     let affine = t.to_affine2();
 
     // Assert
-    assert_eq!(affine, Affine2::from_scale(Vec2::new(2.0, 3.0)), "transform with only scale should produce pure scale affine");
+    assert_eq!(
+        affine,
+        Affine2::from_scale(Vec2::new(2.0, 3.0)),
+        "transform with only scale should produce pure scale affine"
+    );
 }
 
 #[test]
@@ -108,7 +130,10 @@ fn when_transform_has_all_components_then_affine2_matches_scale_angle_translatio
         std::f32::consts::FRAC_PI_4,
         Vec2::new(10.0, -5.0),
     );
-    assert_eq!(affine, expected, "transform with all components should match scale-angle-translation affine");
+    assert_eq!(
+        affine, expected,
+        "transform with all components should match scale-angle-translation affine"
+    );
 }
 
 /// @doc: Transform composition order is scale-then-rotate-then-translate (SRT).
@@ -129,8 +154,14 @@ fn when_transform_composed_then_order_is_scale_rotate_translate() {
 
     // Assert
     let translation = affine.translation;
-    assert!((translation.x - 1.0).abs() < 1e-6, "translation x should equal position.x in SRT order");
-    assert!(translation.y.abs() < 1e-6, "translation y should be zero in pure-x translation SRT order");
+    assert!(
+        (translation.x - 1.0).abs() < 1e-6,
+        "translation x should equal position.x in SRT order"
+    );
+    assert!(
+        translation.y.abs() < 1e-6,
+        "translation y should be zero in pure-x translation SRT order"
+    );
 }
 
 /// @doc: Negative scale enables horizontal flip (used during card flip
@@ -148,7 +179,11 @@ fn when_transform_has_negative_scale_then_affine2_preserves_flip() {
     let affine = t.to_affine2();
 
     // Assert
-    assert_eq!(affine, Affine2::from_scale(Vec2::new(-1.0, 1.0)), "negative scale should be preserved in affine conversion");
+    assert_eq!(
+        affine,
+        Affine2::from_scale(Vec2::new(-1.0, 1.0)),
+        "negative scale should be preserved in affine conversion"
+    );
 }
 
 proptest::proptest! {
@@ -189,7 +224,16 @@ fn when_transform_has_full_circle_rotation_then_affine2_is_near_identity() {
 
     // Assert
     let id = Affine2::IDENTITY;
-    assert!((affine.matrix2.x_axis - id.matrix2.x_axis).length() < 1e-6, "x_axis should be near identity after full-circle rotation");
-    assert!((affine.matrix2.y_axis - id.matrix2.y_axis).length() < 1e-6, "y_axis should be near identity after full-circle rotation");
-    assert!((affine.translation - id.translation).length() < 1e-6, "translation should be unchanged after full-circle rotation");
+    assert!(
+        (affine.matrix2.x_axis - id.matrix2.x_axis).length() < 1e-6,
+        "x_axis should be near identity after full-circle rotation"
+    );
+    assert!(
+        (affine.matrix2.y_axis - id.matrix2.y_axis).length() < 1e-6,
+        "y_axis should be near identity after full-circle rotation"
+    );
+    assert!(
+        (affine.translation - id.translation).length() < 1e-6,
+        "translation should be unchanged after full-circle rotation"
+    );
 }

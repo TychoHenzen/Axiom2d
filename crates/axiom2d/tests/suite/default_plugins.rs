@@ -19,7 +19,7 @@ fn app_with_default_plugins() -> engine_app::prelude::App {
     app
 }
 
-/// @doc: Verifies that a pressed key event is reflected in InputState.just_pressed after a frame runs
+/// @doc: Verifies that a pressed key event is reflected in `InputState.just_pressed` after a frame runs
 #[test]
 fn when_key_pressed_and_frame_runs_then_input_state_reflects_key() {
     // Arrange
@@ -43,7 +43,7 @@ fn when_key_pressed_and_frame_runs_then_input_state_reflects_key() {
     );
 }
 
-/// @doc: Verifies that DeltaTime is updated when the frame advances with a FakeClock
+/// @doc: Verifies that `DeltaTime` is updated when the frame advances with a `FakeClock`
 #[test]
 fn when_frame_advanced_with_fake_clock_then_delta_time_is_updated() {
     // Arrange
@@ -65,7 +65,7 @@ fn when_frame_advanced_with_fake_clock_then_delta_time_is_updated() {
     );
 }
 
-/// @doc: Verifies that Children component is created for entities spawned with ChildOf after a frame runs
+/// @doc: Verifies that Children component is created for entities spawned with `ChildOf` after a frame runs
 #[test]
 fn when_child_of_entity_spawned_then_children_component_created_after_frame() {
     // Arrange
@@ -86,7 +86,7 @@ fn when_child_of_entity_spawned_then_children_component_created_after_frame() {
     );
 }
 
-/// @doc: Verifies that GlobalTransform2D is set correctly for an entity with a Transform2D after a frame runs
+/// @doc: Verifies that `GlobalTransform2D` is set correctly for an entity with a `Transform2D` after a frame runs
 #[test]
 fn when_entity_has_transform2d_then_global_transform_set_after_frame() {
     use engine_core::prelude::{Transform2D, Vec2};
@@ -116,7 +116,7 @@ fn when_entity_has_transform2d_then_global_transform_set_after_frame() {
     );
 }
 
-/// @doc: Verifies that EffectiveVisibility is set to false for an entity with Visible(false) after a frame runs
+/// @doc: Verifies that `EffectiveVisibility` is set to false for an entity with Visible(false) after a frame runs
 #[test]
 fn when_entity_has_visible_false_then_effective_visibility_false_after_frame() {
     // Arrange
@@ -134,7 +134,10 @@ fn when_entity_has_visible_false_then_effective_visibility_false_after_frame() {
         .world()
         .get::<engine_scene::prelude::EffectiveVisibility>(entity)
         .expect("EffectiveVisibility should be set");
-    assert!(!eff.0, "Entity with Visible(false) should have EffectiveVisibility(false)");
+    assert!(
+        !eff.0,
+        "Entity with Visible(false) should have EffectiveVisibility(false)"
+    );
 }
 
 /// @doc: Verifies that the renderer's clear method is called when a renderer is injected and a frame runs
@@ -160,7 +163,7 @@ fn when_renderer_injected_and_frame_runs_then_clear_called() {
     );
 }
 
-/// @doc: Verifies that draw_sprite is called when a sprite entity exists and a frame runs
+/// @doc: Verifies that `draw_sprite` is called when a sprite entity exists and a frame runs
 #[cfg(feature = "render")]
 #[test]
 fn when_sprite_entity_exists_and_frame_runs_then_draw_sprite_called() {
@@ -199,7 +202,7 @@ fn when_sprite_entity_exists_and_frame_runs_then_draw_sprite_called() {
     );
 }
 
-/// @doc: Verifies that draw_shape is called when a shape entity exists and a frame runs
+/// @doc: Verifies that `draw_shape` is called when a shape entity exists and a frame runs
 #[cfg(feature = "render")]
 #[test]
 fn when_shape_entity_exists_and_frame_runs_then_draw_shape_called() {
@@ -235,7 +238,7 @@ fn when_shape_entity_exists_and_frame_runs_then_draw_shape_called() {
     );
 }
 
-/// @doc: Verifies that upload_atlas is called when a TextureAtlas is inserted and a frame runs
+/// @doc: Verifies that `upload_atlas` is called when a `TextureAtlas` is inserted and a frame runs
 #[cfg(feature = "render")]
 #[test]
 fn when_atlas_inserted_and_frame_runs_then_upload_atlas_called() {
@@ -265,7 +268,7 @@ fn when_atlas_inserted_and_frame_runs_then_upload_atlas_called() {
     );
 }
 
-/// @doc: Verifies that upload_atlas runs before draw_sprite in the same frame when both atlas and sprite are present
+/// @doc: Verifies that `upload_atlas` runs before `draw_sprite` in the same frame when both atlas and sprite are present
 #[cfg(feature = "render")]
 #[test]
 fn when_atlas_uploaded_then_draw_sprite_also_called_same_frame() {
@@ -315,7 +318,7 @@ fn when_atlas_uploaded_then_draw_sprite_also_called_same_frame() {
     );
 }
 
-/// @doc: Verifies that the PlaySound event bus resource is present when the audio feature is enabled
+/// @doc: Verifies that the `PlaySound` event bus resource is present when the audio feature is enabled
 #[cfg(feature = "audio")]
 #[test]
 fn when_audio_feature_on_then_play_sound_bus_is_present() {
@@ -331,7 +334,7 @@ fn when_audio_feature_on_then_play_sound_bus_is_present() {
     );
 }
 
-/// @doc: Verifies that AudioRes is present when the audio feature is enabled
+/// @doc: Verifies that `AudioRes` is present when the audio feature is enabled
 #[cfg(feature = "audio")]
 #[test]
 fn when_audio_feature_on_then_audio_res_is_present() {
@@ -347,7 +350,7 @@ fn when_audio_feature_on_then_audio_res_is_present() {
     );
 }
 
-/// @doc: Verifies that a pressed mouse button is reflected in MouseState.just_pressed after a frame runs
+/// @doc: Verifies that a pressed mouse button is reflected in `MouseState.just_pressed` after a frame runs
 #[test]
 fn when_mouse_button_pressed_and_frame_runs_then_mouse_state_reflects_button() {
     // Arrange
@@ -371,7 +374,7 @@ fn when_mouse_button_pressed_and_frame_runs_then_mouse_state_reflects_button() {
     );
 }
 
-/// @doc: Verifies that just_pressed is cleared on the second frame while pressed remains true
+/// @doc: Verifies that `just_pressed` is cleared on the second frame while pressed remains true
 #[test]
 fn when_mouse_button_pressed_and_two_frames_run_then_just_pressed_cleared() {
     // Arrange
@@ -399,7 +402,7 @@ fn when_mouse_button_pressed_and_two_frames_run_then_just_pressed_cleared() {
     );
 }
 
-/// @doc: Verifies that compile_shader is called when a shader is registered and a frame runs
+/// @doc: Verifies that `compile_shader` is called when a shader is registered and a frame runs
 #[cfg(feature = "render")]
 #[test]
 fn when_shader_registered_and_frame_runs_then_compile_shader_called() {
@@ -425,7 +428,7 @@ fn when_shader_registered_and_frame_runs_then_compile_shader_called() {
     );
 }
 
-/// @doc: Verifies that just_pressed is false on the second frame while pressed remains true for a key event
+/// @doc: Verifies that `just_pressed` is false on the second frame while pressed remains true for a key event
 #[test]
 fn when_key_pressed_and_second_frame_runs_then_just_pressed_is_false() {
     // Arrange
@@ -456,7 +459,7 @@ fn when_key_pressed_and_second_frame_runs_then_just_pressed_is_false() {
     );
 }
 
-/// @doc: Verifies that inserting SkipSplash causes a sentinel SplashScreen with done=true to be inserted
+/// @doc: Verifies that inserting `SkipSplash` causes a sentinel `SplashScreen` with done=true to be inserted
 #[test]
 fn when_skip_splash_inserted_then_splash_screen_is_done() {
     // Arrange

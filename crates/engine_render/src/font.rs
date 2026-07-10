@@ -189,10 +189,10 @@ pub fn balanced_wrap_text(text: &str, font_size: f32, max_width: f32) -> Vec<Str
     if words.len() == 1 {
         return vec![words[0].to_string()];
     }
-    compute_balanced_split(&face, &words, font_size, max_width)
-        .map_or_else(|| wrap_text(text, font_size, max_width), |split| {
-            vec![words[..split].join(" "), words[split..].join(" ")]
-        })
+    compute_balanced_split(&face, &words, font_size, max_width).map_or_else(
+        || wrap_text(text, font_size, max_width),
+        |split| vec![words[..split].join(" "), words[split..].join(" ")],
+    )
 }
 
 fn compute_balanced_split(
@@ -226,7 +226,9 @@ fn build_prefix_widths(face: &ttf_parser::Face, words: &[&str], font_size: f32) 
     widths.push(0.0_f32);
     for word in words {
         let w = measure_text_with_face(face, word, font_size);
-        let prev = *widths.last().expect("prefix widths always starts with a zero entry");
+        let prev = *widths
+            .last()
+            .expect("prefix widths always starts with a zero entry");
         widths.push(prev + w);
     }
     widths

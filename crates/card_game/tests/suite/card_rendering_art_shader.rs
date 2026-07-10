@@ -60,7 +60,11 @@ fn when_rarity_is_common_then_shader_variant_is_none() {
     let variant = ShaderVariant::from_rarity(Rarity::Common);
 
     // Assert
-    assert_eq!(variant, ShaderVariant::None, "Common rarity should map to ShaderVariant::None");
+    assert_eq!(
+        variant,
+        ShaderVariant::None,
+        "Common rarity should map to ShaderVariant::None"
+    );
 }
 
 #[test]
@@ -69,7 +73,11 @@ fn when_rarity_is_uncommon_then_shader_variant_is_embossed() {
     let variant = ShaderVariant::from_rarity(Rarity::Uncommon);
 
     // Assert
-    assert_eq!(variant, ShaderVariant::Embossed, "Uncommon rarity should map to ShaderVariant::Embossed");
+    assert_eq!(
+        variant,
+        ShaderVariant::Embossed,
+        "Uncommon rarity should map to ShaderVariant::Embossed"
+    );
 }
 
 #[test]
@@ -78,7 +86,11 @@ fn when_rarity_is_rare_then_shader_variant_is_glow() {
     let variant = ShaderVariant::from_rarity(Rarity::Rare);
 
     // Assert
-    assert_eq!(variant, ShaderVariant::Glow, "Rare rarity should map to ShaderVariant::Glow");
+    assert_eq!(
+        variant,
+        ShaderVariant::Glow,
+        "Rare rarity should map to ShaderVariant::Glow"
+    );
 }
 
 #[test]
@@ -87,7 +99,11 @@ fn when_rarity_is_epic_then_shader_variant_is_glossy() {
     let variant = ShaderVariant::from_rarity(Rarity::Epic);
 
     // Assert
-    assert_eq!(variant, ShaderVariant::Glossy, "Epic rarity should map to ShaderVariant::Glossy");
+    assert_eq!(
+        variant,
+        ShaderVariant::Glossy,
+        "Epic rarity should map to ShaderVariant::Glossy"
+    );
 }
 
 #[test]
@@ -96,7 +112,11 @@ fn when_rarity_is_legendary_then_shader_variant_is_foil() {
     let variant = ShaderVariant::from_rarity(Rarity::Legendary);
 
     // Assert
-    assert_eq!(variant, ShaderVariant::Foil, "Legendary rarity should map to ShaderVariant::Foil");
+    assert_eq!(
+        variant,
+        ShaderVariant::Foil,
+        "Legendary rarity should map to ShaderVariant::Foil"
+    );
 }
 
 #[test]
@@ -109,7 +129,10 @@ fn when_registering_card_art_shader_twice_then_handles_differ() {
     let second = register_card_art_shader(&mut registry);
 
     // Assert
-    assert_ne!(first.0, second.0, "two registrations should produce distinct handles");
+    assert_ne!(
+        first.0, second.0,
+        "two registrations should produce distinct handles"
+    );
 }
 
 fn assert_variant_shader_valid(source: &str, name: &str) {
@@ -218,7 +241,11 @@ fn when_art_region_params_converted_to_bytes_then_size_is_thirty_two_bytes() {
     let bytes = bytemuck::bytes_of(&params);
 
     // Assert
-    assert_eq!(bytes.len(), 32, "ArtRegionParams should be exactly 32 bytes for GPU uniform alignment");
+    assert_eq!(
+        bytes.len(),
+        32,
+        "ArtRegionParams should be exactly 32 bytes for GPU uniform alignment"
+    );
 }
 
 /// @doc: Dormant tier cards have low signature intensity — the Worn effect
@@ -234,7 +261,11 @@ fn when_tier_is_dormant_then_condition_effect_is_worn() {
     let effect = ConditionEffect::from_tier(tier);
 
     // Assert
-    assert_eq!(effect, ConditionEffect::Worn, "Dormant tier should produce Worn effect");
+    assert_eq!(
+        effect,
+        ConditionEffect::Worn,
+        "Dormant tier should produce Worn effect"
+    );
 }
 
 /// @doc: Active tier is the baseline condition — no visual distortion applied.
@@ -249,7 +280,11 @@ fn when_tier_is_active_then_condition_effect_is_none() {
     let effect = ConditionEffect::from_tier(tier);
 
     // Assert
-    assert_eq!(effect, ConditionEffect::None, "Active tier should produce no condition effect");
+    assert_eq!(
+        effect,
+        ConditionEffect::None,
+        "Active tier should produce no condition effect"
+    );
 }
 
 /// @doc: Intense tier cards have extreme signature values — the Shiny effect
@@ -264,7 +299,11 @@ fn when_tier_is_intense_then_condition_effect_is_shiny() {
     let effect = ConditionEffect::from_tier(tier);
 
     // Assert
-    assert_eq!(effect, ConditionEffect::Shiny, "Intense tier should produce Shiny effect");
+    assert_eq!(
+        effect,
+        ConditionEffect::Shiny,
+        "Intense tier should produce Shiny effect"
+    );
 }
 
 // --- gem shader tests ---
@@ -335,7 +374,11 @@ fn when_registering_gem_shader_then_handle_is_retrievable() {
     let gem = register_gem_shader(&mut registry);
 
     // Assert
-    assert_eq!(registry.lookup(gem.0), Some(GEM_WGSL), "gem shader handle should resolve in registry");
+    assert_eq!(
+        registry.lookup(gem.0),
+        Some(GEM_WGSL),
+        "gem shader handle should resolve in registry"
+    );
 }
 
 #[test]
@@ -347,10 +390,26 @@ fn when_registering_variant_shaders_then_all_handles_are_retrievable() {
     let variants = register_variant_shaders(&mut registry);
 
     // Assert
-    assert_eq!(registry.lookup(variants.embossed), Some(EMBOSSED_WGSL), "embossed variant shader should resolve in registry");
-    assert_eq!(registry.lookup(variants.glow), Some(GLOW_WGSL), "glow variant shader should resolve in registry");
-    assert_eq!(registry.lookup(variants.glossy), Some(GLOSSY_WGSL), "glossy variant shader should resolve in registry");
-    assert_eq!(registry.lookup(variants.foil), Some(FOIL_WGSL), "foil variant shader should resolve in registry");
+    assert_eq!(
+        registry.lookup(variants.embossed),
+        Some(EMBOSSED_WGSL),
+        "embossed variant shader should resolve in registry"
+    );
+    assert_eq!(
+        registry.lookup(variants.glow),
+        Some(GLOW_WGSL),
+        "glow variant shader should resolve in registry"
+    );
+    assert_eq!(
+        registry.lookup(variants.glossy),
+        Some(GLOSSY_WGSL),
+        "glossy variant shader should resolve in registry"
+    );
+    assert_eq!(
+        registry.lookup(variants.foil),
+        Some(FOIL_WGSL),
+        "foil variant shader should resolve in registry"
+    );
 }
 
 /// @doc: `TierShaders` resource must hold valid shader handles for both Dormant
@@ -366,6 +425,14 @@ fn when_registering_tier_shaders_then_both_handles_are_retrievable() {
     let tiers = register_tier_shaders(&mut registry);
 
     // Assert
-    assert_eq!(registry.lookup(tiers.dormant), Some(DORMANT_WGSL), "dormant tier shader should resolve in registry");
-    assert_eq!(registry.lookup(tiers.intense), Some(INTENSE_WGSL), "intense tier shader should resolve in registry");
+    assert_eq!(
+        registry.lookup(tiers.dormant),
+        Some(DORMANT_WGSL),
+        "dormant tier shader should resolve in registry"
+    );
+    assert_eq!(
+        registry.lookup(tiers.intense),
+        Some(INTENSE_WGSL),
+        "intense tier shader should resolve in registry"
+    );
 }

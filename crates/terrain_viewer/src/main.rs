@@ -4,7 +4,6 @@ use std::fmt::Write as _;
 
 use axiom2d::prelude::*;
 use bytemuck::bytes_of;
-use tracing::warn;
 use engine_ecs::schedule::Phase;
 use engine_input::mouse::{MouseButton, MouseState};
 use engine_render::camera::Camera2D;
@@ -19,6 +18,7 @@ use terrain::material::{TerrainId, TerrainMaterial, default_materials};
 use terrain::shader::register_terrain_shader;
 use terrain::wfc::{ConstraintTable, Grid as WfcGrid, collapse};
 use terrain::{TerrainMaterials, TerrainShader};
+use tracing::warn;
 
 /// Currently selected terrain type index.
 #[derive(Resource, Debug)]
@@ -375,22 +375,19 @@ fn generate_wfc_grid(
     let mut wfc_grid = WfcGrid::new(width, height);
     let mut rng = ChaCha8Rng::seed_from_u64(seed);
 
-    match collapse(&mut wfc_grid, &constraints, &mut rng) {
-        Ok(()) => {
-            let mut dual = DualGrid::new(width, height, TerrainId(0));
-            for y in 0..height {
-                for x in 0..width {
-                    if let Some(id) = wfc_grid.get(x, y) {
-                        dual.set(x, y, id);
-                    }
+    if let Ok(()) = collapse(&mut wfc_grid, &constraints, &mut rng) {
+        let mut dual = DualGrid::new(width, height, TerrainId(0));
+        for y in 0..height {
+            for x in 0..width {
+                if let Some(id) = wfc_grid.get(x, y) {
+                    dual.set(x, y, id);
                 }
             }
-            dual
         }
-        Err(_) => {
-            warn!("WFC grid collapse failed: seed={seed}");
-            DualGrid::new(width, height, TerrainId(0))
-        }
+        dual
+    } else {
+        warn!("WFC grid collapse failed: seed={seed}");
+        DualGrid::new(width, height, TerrainId(0))
     }
 }
 
@@ -445,7 +442,14 @@ fn handle_terrain_selection(
         selected.0 = (selected.0 + count - 1) % count;
         changed = true;
     }
-    let key_map = [KeyCode::Digit1, KeyCode::Digit2, KeyCode::Digit3, KeyCode::Digit4, KeyCode::Digit5, KeyCode::Digit6];
+    let key_map = [
+        KeyCode::Digit1,
+        KeyCode::Digit2,
+        KeyCode::Digit3,
+        KeyCode::Digit4,
+        KeyCode::Digit5,
+        KeyCode::Digit6,
+    ];
     for (i, key) in key_map.iter().enumerate() {
         if i < count && input.just_pressed(*key) {
             selected.0 = i;
@@ -456,7 +460,11 @@ fn handle_terrain_selection(
 }
 
 fn handle_parameter_adjustment(input: &InputState, mat: &mut TerrainMaterial) -> bool {
-    let step = if input.pressed(KeyCode::ShiftLeft) { 0.5 } else { 0.1 };
+    let step = if input.pressed(KeyCode::ShiftLeft) {
+        0.5
+    } else {
+        0.1
+    };
     let mut changed = false;
 
     let mut adjust = |index: usize, delta: f32, min: f32, _max: f32| {
@@ -510,7 +518,11 @@ fn mode_switch_system(world: &mut World) {
     let materials = world.resource::<TerrainMaterials>().clone();
     let selected = world.resource::<SelectedTerrain>().0;
 
-    let target = if gen_requested { ViewerMode::WfcGrid } else { next_mode(current_mode) };
+    let target = if gen_requested {
+        ViewerMode::WfcGrid
+    } else {
+        next_mode(current_mode)
+    };
 
     cleanup_current_mode(world, current_mode);
     spawn_target_mode(world, target, shader, &materials.0, selected);
@@ -553,10 +565,18 @@ fn spawn_target_mode(
             let uniforms = build_single_material_uniform(&materials[selected]);
             let entity = world
                 .spawn((
-                    Transform2D { position: Vec2::ZERO, rotation: 0.0, scale: Vec2::ONE },
+                    Transform2D {
+                        position: Vec2::ZERO,
+                        rotation: 0.0,
+                        scale: Vec2::ONE,
+                    },
                     GlobalTransform2D(Affine2::IDENTITY),
                     ColorMesh(mesh),
-                    Material2d { shader, uniforms, ..Material2d::default() },
+                    Material2d {
+                        shader,
+                        uniforms,
+                        ..Material2d::default()
+                    },
                     RenderLayer::Background,
                     SortOrder::default(),
                 ))

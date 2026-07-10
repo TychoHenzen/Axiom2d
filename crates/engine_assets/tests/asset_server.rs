@@ -25,7 +25,10 @@ fn when_adding_second_asset_then_returns_different_handle() {
     let second = server.add("world".to_string());
 
     // Assert
-    assert_ne!(first, second, "two different asset handles should not be equal");
+    assert_ne!(
+        first, second,
+        "two different asset handles should not be equal"
+    );
     assert_eq!(second.id, 1, "second asset handle should have id 1");
 }
 
@@ -39,7 +42,11 @@ fn when_getting_by_handle_then_returns_stored_value() {
     let value = server.get(handle);
 
     // Assert
-    assert_eq!(value, Some(&"hello".to_string()), "get should return the stored value");
+    assert_eq!(
+        value,
+        Some(&"hello".to_string()),
+        "get should return the stored value"
+    );
 }
 
 #[test]
@@ -67,7 +74,11 @@ fn when_getting_mut_then_mutation_is_visible_on_next_get() {
     }
 
     // Assert
-    assert_eq!(server.get(handle), Some(&"world".to_string()), "mutation via get_mut should be visible on subsequent get");
+    assert_eq!(
+        server.get(handle),
+        Some(&"world".to_string()),
+        "mutation via get_mut should be visible on subsequent get"
+    );
 }
 
 #[test]
@@ -79,7 +90,11 @@ fn when_asset_added_then_ref_count_is_one() {
     let handle = server.add("hello".to_string());
 
     // Assert
-    assert_eq!(server.ref_count(handle), Some(1), "initially ref count should be 1");
+    assert_eq!(
+        server.ref_count(handle),
+        Some(1),
+        "initially ref count should be 1"
+    );
 }
 
 #[test]
@@ -92,7 +107,11 @@ fn when_clone_handle_called_then_ref_count_increments() {
     server.clone_handle(handle);
 
     // Assert
-    assert_eq!(server.ref_count(handle), Some(2), "ref count should be 2 after clone_handle");
+    assert_eq!(
+        server.ref_count(handle),
+        Some(2),
+        "ref count should be 2 after clone_handle"
+    );
 }
 
 /// @doc: Reference-counted removal — decrementing a shared handle must not
@@ -111,8 +130,16 @@ fn when_remove_with_ref_count_above_one_then_decrements_without_evicting() {
 
     // Assert
     assert!(removed, "remove should return true when handle exists");
-    assert_eq!(server.ref_count(handle), Some(1), "ref count should decrement to 1 after one removal");
-    assert_eq!(server.get(handle), Some(&"hello".to_string()), "asset should still be accessible after shared removal");
+    assert_eq!(
+        server.ref_count(handle),
+        Some(1),
+        "ref count should decrement to 1 after one removal"
+    );
+    assert_eq!(
+        server.get(handle),
+        Some(&"hello".to_string()),
+        "asset should still be accessible after shared removal"
+    );
 }
 
 /// @doc: Final remove evicts the asset from the server — the handle becomes
@@ -129,8 +156,16 @@ fn when_remove_with_ref_count_one_then_evicts_asset() {
 
     // Assert
     assert!(removed, "final remove should return true");
-    assert_eq!(server.get(handle), None, "asset should be evicted after final remove");
-    assert_eq!(server.ref_count(handle), None, "ref count should be None after eviction");
+    assert_eq!(
+        server.get(handle),
+        None,
+        "asset should be evicted after final remove"
+    );
+    assert_eq!(
+        server.ref_count(handle),
+        None,
+        "ref count should be None after eviction"
+    );
 }
 
 #[test]
@@ -158,7 +193,7 @@ proptest::proptest! {
             server.clone_handle(handle);
         }
         let expected_initial = 1 + clone_count;
-        assert_eq!(server.ref_count(handle), Some(expected_initial), "initial ref count after {clone_count} clones should be {}", expected_initial);
+        assert_eq!(server.ref_count(handle), Some(expected_initial), "initial ref count after {clone_count} clones should be {expected_initial}");
 
         // Act — remove (clone_count) times, asset should still exist
         for k in 0..clone_count {
@@ -190,7 +225,10 @@ fn when_loading_nonexistent_file_then_returns_io_error() {
     let result = server.load("/no/such/file.ron");
 
     // Assert
-    assert!(matches!(result, Err(AssetError::Io(_))), "loading nonexistent file should return Io error");
+    assert!(
+        matches!(result, Err(AssetError::Io(_))),
+        "loading nonexistent file should return Io error"
+    );
 }
 
 #[test]
@@ -206,7 +244,10 @@ fn when_loading_invalid_ron_then_returns_parse_error() {
     let result = server.load(path.to_str().unwrap());
 
     // Assert
-    assert!(matches!(result, Err(AssetError::Parse(_))), "loading invalid RON should return Parse error");
+    assert!(
+        matches!(result, Err(AssetError::Parse(_))),
+        "loading invalid RON should return Parse error"
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -223,6 +264,10 @@ fn when_loading_valid_ron_file_then_returns_handle_to_deserialized_value() {
     let handle = server.load(path.to_str().unwrap()).unwrap();
 
     // Assert
-    assert_eq!(server.get(handle), Some(&vec![1, 2, 3]), "loaded RON file should be retrievable via handle");
+    assert_eq!(
+        server.get(handle),
+        Some(&vec![1, 2, 3]),
+        "loaded RON file should be retrievable via handle"
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }

@@ -58,7 +58,10 @@ fn when_both_inputs_none_then_output_is_none() {
 
     // Assert
     let jack = world.get::<Jack<SignatureSpace>>(output).unwrap();
-    assert!(jack.data.is_none(), "output should be None when both inputs are None");
+    assert!(
+        jack.data.is_none(),
+        "output should be None when both inputs are None"
+    );
 }
 
 /// @doc: When only input A has a signal, the output passes it through unchanged
@@ -103,7 +106,7 @@ fn when_only_input_b_has_signal_then_output_passes_through() {
     );
 }
 
-/// @doc: Two signals are merged into a single SignatureSpace with combined control points
+/// @doc: Two signals are merged into a single `SignatureSpace` with combined control points
 #[test]
 fn when_both_inputs_have_signals_then_output_combines_control_points() {
     // Arrange

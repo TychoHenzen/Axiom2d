@@ -124,7 +124,9 @@ pub fn find_stash_slot_at(screen_pos: Vec2, grid_width: u8, grid_height: u8) -> 
     let col = (rel_x / SLOT_STRIDE_W) as u8;
     let row = (rel_y / SLOT_STRIDE_H) as u8;
     if col >= grid_width || row >= grid_height {
-        warn!("find_stash_slot_at: computed slot ({col}, {row}) out of grid ({grid_width}x{grid_height})");
+        warn!(
+            "find_stash_slot_at: computed slot ({col}, {row}) out of grid ({grid_width}x{grid_height})"
+        );
         return None;
     }
     Some((col, row))

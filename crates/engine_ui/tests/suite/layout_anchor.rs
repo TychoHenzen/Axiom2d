@@ -16,7 +16,7 @@ fn when_center_anchor_then_negative_half_size() {
     assert_eq!(offset, Vec2::new(-50.0, -30.0));
 }
 
-/// @doc: TopLeft anchor produces zero offset — the position is the top-left corner.
+/// @doc: `TopLeft` anchor produces zero offset — the position is the top-left corner.
 #[test]
 fn when_top_left_anchor_then_zero_offset() {
     // Arrange
@@ -29,7 +29,7 @@ fn when_top_left_anchor_then_zero_offset() {
     assert_eq!(offset, Vec2::ZERO);
 }
 
-/// @doc: TopRight anchor offsets by negative width so the right edge aligns with the position.
+/// @doc: `TopRight` anchor offsets by negative width so the right edge aligns with the position.
 #[test]
 fn when_top_right_anchor_then_negative_width() {
     // Arrange
@@ -42,7 +42,7 @@ fn when_top_right_anchor_then_negative_width() {
     assert_eq!(offset, Vec2::new(-80.0, 0.0));
 }
 
-/// @doc: BottomCenter anchor offsets by half width and full negative height.
+/// @doc: `BottomCenter` anchor offsets by half width and full negative height.
 #[test]
 fn when_bottom_center_anchor_then_half_width_full_height() {
     // Arrange
