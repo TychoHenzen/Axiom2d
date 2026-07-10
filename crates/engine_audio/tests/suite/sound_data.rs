@@ -136,7 +136,7 @@ fn when_one_sample_mono_then_frame_count_one() {
 
 /// @doc: Zero channels causes division by zero panic — callers must ensure channels > 0.
 #[test]
-#[should_panic(expected = "division by zero")]
+#[should_panic(expected = "divide by zero")]
 fn when_zero_channels_then_frame_count_panics() {
     // Arrange
     let sound = SoundData {
