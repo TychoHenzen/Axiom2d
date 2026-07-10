@@ -230,29 +230,31 @@ jobs:
           echo "count=$count" >> "$GITHUB_OUTPUT"
 
       - name: Check ratchets
+        id: ratchets
         run: |
           set -e
           FAILED=0
+          IMPROVED=0
 
           check_ratchet() {
             local name=$1 current=$2 baseline=$3 direction=$4
             if [ "$direction" = "higher" ]; then
-              # higher-is-better (e.g., test count)
               if [ "$current" -lt "$baseline" ]; then
                 echo "::error title=Quality Regression::$name regressed: $current < $baseline (baseline)"
                 FAILED=1
               elif [ "$current" -gt "$baseline" ]; then
-                echo "::notice title=Quality Improved::$name improved: $current > $baseline (baseline). Run update-baseline to ratchet up."
+                echo "::notice title=Quality Improved::$name improved: $current > $baseline (baseline). Auto-ratcheting."
+                IMPROVED=1
               else
                 echo "::notice title=$name (ok)::$name: $current (baseline: $baseline)"
               fi
             else
-              # lower-is-better (smells, unsafe, unwrap)
               if [ "$current" -gt "$baseline" ]; then
                 echo "::error title=Quality Regression::$name regressed: $current > $baseline (baseline)"
                 FAILED=1
               elif [ "$current" -lt "$baseline" ]; then
-                echo "::notice title=Quality Improved::$name improved: $current < $baseline (baseline). Run update-baseline to ratchet down."
+                echo "::notice title=Quality Improved::$name improved: $current < $baseline (baseline). Auto-ratcheting."
+                IMPROVED=1
               else
                 echo "::notice title=$name (ok)::$name: $current (baseline: $baseline)"
               fi
@@ -271,4 +273,61 @@ jobs:
             exit 1
           fi
 
-          echo "::notice::All soft ratchets passed. Quality has not regressed."
+          echo "improved=$IMPROVED" >> "$GITHUB_OUTPUT"
+          echo "All soft ratchets passed. Quality has not regressed."
+
+      - name: Auto-ratchet baseline
+        if: steps.ratchets.outputs.improved == '1'
+        run: |
+          test_count="${{ steps.tests.outputs.count }}"
+          smell="${{ steps.smells.outputs.count }}"
+          unsafe="${{ steps.unsafe_blocks.outputs.count }}"
+          unwrap="${{ steps.unwrap_count.outputs.count }}"
+          today=$(date -I 2>/dev/null || date +%Y-%m-%d)
+
+          cat > docs/QUALITY_BASELINE.ron << RONEOF
+          {
+              "hard": {
+                  "clippy_warnings": 0,
+                  "audit_vulnerabilities": 0,
+                  "unused_dependencies": 0,
+                  "doc_warnings": 0,
+                  "dead_code_items": 0,
+                  "shader_errors": 0,
+              },
+              "soft": {
+                  "test_count_total": $test_count,
+                  "smell_markers_total": $smell,
+                  "unsafe_blocks_total": $unsafe,
+                  "unwrap_in_prod_total": $unwrap,
+                  "expect_in_prod_total": 92,
+              },
+              "advisory_maxima": {
+                  "magic_literals_per_file": 320,
+                  "function_length_lines": 861,
+                  "nesting_depth": 12,
+                  "file_length_lines": 861,
+              },
+              "overrides": {},
+              "meta": {
+                  "last_updated": "$today",
+                  "schema_version": 1,
+                  "notes": [
+                      "unsafe_blocks_total=$unsafe: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
+                      "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
+                      "test_count_total=$test_count: all #[test] and #[tokio::test] across workspace (including tools/)",
+                      "smell_markers_total=$smell: no TODO/FIXME/HACK in production code",
+                  ],
+              },
+          }
+          RONEOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/QUALITY_BASELINE.ron
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: auto-ratchet quality baseline ($today)"
+            git pull --rebase origin master || true
+            git push || echo "::warning::Failed to push baseline update — will retry next run"
+            echo "::notice::Baseline auto-ratcheted to current metrics."
+          fi
