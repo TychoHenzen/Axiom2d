@@ -4,9 +4,9 @@ Stochastic mutation testing — one random source file per daily CI run.
 Selection weighted by **staleness** (50%), **file size** (30%), and **git churn** (20%).
 Over weeks, covers the codebase without combinatorial explosion.
 
-**Cumulative (all runs)**: 0 mutants | 0 caught | 0 missed | 0 timeout | 0 unviable | 0 zero-mutant | 0 errors | **catch rate: N/A** | 1 runs | 1 files tested
+**Cumulative (all runs)**: 26 mutants | 22 caught | 0 missed | 0 timeout | 4 unviable | 0 zero-mutant | 0 errors | **catch rate: 100.0%** | 4 runs | 4 files tested
 
-**Last run**: 2026-07-10 (`60616b7`)
+**Last run**: 2026-07-11 (`daecf46`)
 
 ---
 
@@ -16,9 +16,9 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 
 | Priority | File | Lines | Churn | Stale | Last Tested | Result | Status |
 |----------|------|-------|-------|-------|-------------|--------|--------|
-| 95% | `crates/card_game/src/stash/store.rs` | 555 | 11 | 90d | never | — | ⬜ |
+| 95% | `crates/terrain_viewer/src/main.rs` | 594 | 10 | 90d | never | — | ⬜ |
+| 95% | `crates/card_game/src/stash/store.rs` | 555 | 12 | 90d | never | — | ⬜ |
 | 93% | `crates/card_game/src/card/screen_device.rs` | 389 | 10 | 90d | never | — | ⬜ |
-| 93% | `crates/terrain_viewer/src/main.rs` | 594 | 9 | 90d | never | — | ⬜ |
 | 88% | `crates/particle_poc/src/main.rs` | 91 | 31 | 90d | never | — | ⬜ |
 | 87% | `crates/particle_poc/src/capture.rs` | 930 | 5 | 90d | never | — | ⬜ |
 | 87% | `crates/particle_poc/src/state.rs` | 1492 | 4 | 90d | never | — | ⬜ |
@@ -76,7 +76,6 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 | 71% | `crates/card_game/src/card/identity/gem_sockets.rs` | 138 | 1 | 90d | never | — | ⬜ |
 | 71% | `crates/engine_render/src/renderer.rs` | 138 | 1 | 90d | never | — | ⬜ |
 | 71% | `crates/card_game/src/card/rendering/spawn_table_card.rs` | 135 | 1 | 90d | never | — | ⬜ |
-| 71% | `crates/engine_render/benches/font.rs` | 133 | 1 | 90d | never | — | ⬜ |
 | 71% | `crates/card_game/src/hand/layout.rs` | 132 | 1 | 90d | never | — | ⬜ |
 | 71% | `crates/engine_render/src/shape/components.rs` | 125 | 1 | 90d | never | — | ⬜ |
 | 71% | `crates/card_game/src/booster/sampling.rs` | 124 | 1 | 90d | never | — | ⬜ |
@@ -90,23 +89,20 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 | 71% | `crates/card_game/src/card/jack_cable/mod.rs` | 112 | 1 | 90d | never | — | ⬜ |
 | 71% | `crates/engine_core/src/profiler.rs` | 111 | 1 | 90d | never | — | ⬜ |
 | 70% | `crates/engine_physics/src/physics_command_apply_system.rs` | 65 | 2 | 90d | never | — | ⬜ |
-| 70% | `crates/engine_render/benches/tessellation.rs` | 106 | 1 | 90d | never | — | ⬜ |
 | 70% | `crates/card_game/src/stash/render/drag_preview.rs` | 97 | 1 | 90d | never | — | ⬜ |
-| 70% | `crates/engine_core/benches/spring.rs` | 97 | 1 | 90d | never | — | ⬜ |
 | 70% | `crates/card_game/src/card/rendering/debug_sleep_indicator.rs` | 56 | 2 | 90d | never | — | ⬜ |
 | 70% | `crates/engine_physics/src/physics_command.rs` | 54 | 2 | 90d | never | — | ⬜ |
 | 70% | `crates/card_game/src/hand/cards.rs` | 52 | 2 | 90d | never | — | ⬜ |
 | 70% | `crates/engine_scene/src/visibility.rs` | 86 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/engine_ui/src/interaction.rs` | 84 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/engine_audio/src/spatial.rs` | 80 | 1 | 90d | never | — | ⬜ |
-| 69% | `crates/card_game/src/card/rendering/debug_spawn.rs` | 79 | 1 | 90d | never | — | ⬜ |
+| 69% | `crates/engine_render/benches/font.rs` | 133 | 0 | 90d | never | — | ⬜ |
 | 69% | `crates/card_game/src/card/identity/residual.rs` | 77 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/engine_ui/src/widget/panel.rs` | 76 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/engine_render/src/shape/geometry.rs` | 75 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/card_game/build.rs` | 74 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/card_game/src/card/rendering/face_layout.rs` | 74 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/card_game/src/prelude.rs` | 73 | 1 | 90d | never | — | ⬜ |
-| 69% | `crates/engine_render/benches/stress.rs` | 73 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/engine_render/src/material.rs` | 73 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/engine_assets/src/asset_server.rs` | 72 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/engine_ecs/src/schedule.rs` | 72 | 1 | 90d | never | — | ⬜ |
@@ -117,17 +113,15 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 | 69% | `crates/card_game/src/stash/boundary.rs` | 68 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/card_game/src/card/reader/drag.rs` | 67 | 1 | 90d | never | — | ⬜ |
 | 69% | `crates/engine_input/src/mouse/state.rs` | 67 | 1 | 90d | never | — | ⬜ |
-| 68% | `crates/engine_physics/benches/physics.rs` | 66 | 1 | 90d | never | — | ⬜ |
-| 68% | `crates/engine_render/src/shader.rs` | 66 | 1 | 90d | never | — | ⬜ |
-| 68% | `crates/engine_core/benches/stress.rs` | 65 | 1 | 90d | never | — | ⬜ |
+| 68% | `crates/engine_render/benches/tessellation.rs` | 106 | 0 | 90d | never | — | ⬜ |
 | 68% | `crates/engine_audio/src/playback/system.rs` | 63 | 1 | 90d | never | — | ⬜ |
 | 68% | `crates/card_game/src/card/reader/insert.rs` | 61 | 1 | 90d | never | — | ⬜ |
 | 68% | `crates/card_game/src/card/reader/glow.rs` | 60 | 1 | 90d | never | — | ⬜ |
 | 68% | `crates/engine_ui/src/widget/progress_bar.rs` | 59 | 1 | 90d | never | — | ⬜ |
+| 68% | `crates/engine_core/benches/spring.rs` | 97 | 0 | 90d | never | — | ⬜ |
 | 68% | `crates/engine_render/src/culling.rs` | 58 | 1 | 90d | never | — | ⬜ |
 | 68% | `crates/engine_scene/src/sort_propagation.rs` | 58 | 1 | 90d | never | — | ⬜ |
 | 68% | `crates/engine_core/src/color.rs` | 57 | 1 | 90d | never | — | ⬜ |
-| 68% | `crates/card_game/benches/bake.rs` | 56 | 1 | 90d | never | — | ⬜ |
 | 68% | `crates/card_game/src/card/identity/signature_profile.rs` | 56 | 1 | 90d | never | — | ⬜ |
 | 68% | `crates/terrain/src/prelude.rs` | 12 | 4 | 90d | never | — | ⬜ |
 | 68% | `crates/card_game/src/card/identity/visual_params.rs` | 55 | 1 | 90d | never | — | ⬜ |
@@ -136,15 +130,14 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 | 68% | `crates/card_game/src/card/reader/eject.rs` | 54 | 1 | 90d | never | — | ⬜ |
 | 68% | `crates/card_game/src/card/identity/name_pools/templates.rs` | 87 | 0 | 90d | never | — | ⬜ |
 | 67% | `crates/card_game/src/card/rendering/drop_zone_glow.rs` | 51 | 1 | 90d | never | — | ⬜ |
-| 67% | `crates/card_game/benches/stress.rs` | 50 | 1 | 90d | never | — | ⬜ |
 | 67% | `crates/card_game/src/card/interaction/flip.rs` | 49 | 1 | 90d | never | — | ⬜ |
 | 67% | `crates/card_game/src/card/component.rs` | 47 | 1 | 90d | never | — | ⬜ |
 | 67% | `crates/card_game/src/card/interaction/flip_animation.rs` | 47 | 1 | 90d | never | — | ⬜ |
 | 67% | `crates/engine_assets/src/handle.rs` | 47 | 1 | 90d | never | — | ⬜ |
 | 67% | `crates/card_game/src/card/rendering/baked_render.rs` | 46 | 1 | 90d | never | — | ⬜ |
 | 67% | `crates/card_game/src/card/rendering/spawn_table_card/text.rs` | 45 | 1 | 90d | never | — | ⬜ |
-| 67% | `crates/engine_physics/benches/stress.rs` | 45 | 1 | 90d | never | — | ⬜ |
 | 67% | `crates/engine_core/src/types.rs` | 44 | 1 | 90d | never | — | ⬜ |
+| 67% | `crates/engine_render/benches/stress.rs` | 73 | 0 | 90d | never | — | ⬜ |
 | 67% | `crates/card_game/src/card/interaction/camera_drag.rs` | 43 | 1 | 90d | never | — | ⬜ |
 | 67% | `crates/card_game/src/card/zone_config.rs` | 43 | 1 | 90d | never | — | ⬜ |
 | 67% | `crates/engine_audio/src/playback/buffer.rs` | 43 | 1 | 90d | never | — | ⬜ |
@@ -155,6 +148,8 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 | 67% | `crates/card_game/src/card/interaction/intent.rs` | 40 | 1 | 90d | never | — | ⬜ |
 | 66% | `crates/card_game/src/card/interaction/drag_state.rs` | 24 | 2 | 90d | never | — | ⬜ |
 | 66% | `crates/engine_render/src/shape/render.rs` | 24 | 2 | 90d | never | — | ⬜ |
+| 66% | `crates/engine_physics/benches/physics.rs` | 66 | 0 | 90d | never | — | ⬜ |
+| 66% | `crates/engine_core/benches/stress.rs` | 65 | 0 | 90d | never | — | ⬜ |
 | 66% | `crates/card_game/src/stash/layout.rs` | 39 | 1 | 90d | never | — | ⬜ |
 | 66% | `crates/engine_ui/src/layout/flex.rs` | 39 | 1 | 90d | never | — | ⬜ |
 | 66% | `crates/engine_core/src/event_bus.rs` | 37 | 1 | 90d | never | — | ⬜ |
@@ -165,8 +160,10 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 | 66% | `crates/card_game/src/card/interaction/physics_helpers.rs` | 35 | 1 | 90d | never | — | ⬜ |
 | 66% | `crates/card_game/src/card/reader/pick.rs` | 21 | 2 | 90d | never | — | ⬜ |
 | 66% | `crates/card_game/src/card/interaction/sleep.rs` | 34 | 1 | 90d | never | — | ⬜ |
+| 66% | `crates/card_game/benches/bake.rs` | 56 | 0 | 90d | never | — | ⬜ |
 | 66% | `crates/card_game/src/card/reader/components.rs` | 20 | 2 | 90d | never | — | ⬜ |
 | 66% | `crates/engine_app/src/profiler_plugin.rs` | 31 | 1 | 90d | never | — | ⬜ |
+| 65% | `crates/card_game/benches/stress.rs` | 50 | 0 | 90d | never | — | ⬜ |
 | 65% | `crates/engine_ui/src/layout/system.rs` | 30 | 1 | 90d | never | — | ⬜ |
 | 65% | `crates/card_game/src/card/art/mod.rs` | 49 | 0 | 90d | never | — | ⬜ |
 | 65% | `crates/card_game/src/card/identity/signature/algorithms.rs` | 29 | 1 | 90d | never | — | ⬜ |
@@ -174,6 +171,7 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 | 65% | `crates/card_game/src/card/rendering/render_layer.rs` | 29 | 1 | 90d | never | — | ⬜ |
 | 65% | `crates/engine_scene/src/render_order.rs` | 29 | 1 | 90d | never | — | ⬜ |
 | 65% | `crates/engine_ui/src/layout/anchor.rs` | 28 | 1 | 90d | never | — | ⬜ |
+| 65% | `crates/engine_physics/benches/stress.rs` | 45 | 0 | 90d | never | — | ⬜ |
 | 65% | `crates/engine_audio/src/mixer.rs` | 44 | 0 | 90d | never | — | ⬜ |
 | 65% | `crates/card_game/src/stash/constants.rs` | 25 | 1 | 90d | never | — | ⬜ |
 | 65% | `crates/engine_render/src/image_data.rs` | 25 | 1 | 90d | never | — | ⬜ |
@@ -182,7 +180,6 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 | 64% | `crates/card_game/src/card/rendering/baked_mesh.rs` | 23 | 1 | 90d | never | — | ⬜ |
 | 64% | `crates/engine_core/src/transform.rs` | 23 | 1 | 90d | never | — | ⬜ |
 | 64% | `crates/engine_input/src/action_map.rs` | 23 | 1 | 90d | never | — | ⬜ |
-| 64% | `crates/engine_input/src/mouse_button.rs` | 22 | 1 | 90d | never | — | ⬜ |
 | 64% | `crates/engine_render/src/rect.rs` | 22 | 1 | 90d | never | — | ⬜ |
 | 64% | `crates/engine_render/src/sprite.rs` | 22 | 1 | 90d | never | — | ⬜ |
 | 64% | `crates/engine_ui/src/widget/text.rs` | 22 | 1 | 90d | never | — | ⬜ |
@@ -267,7 +264,10 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 | 53% | `crates/engine_assets/src/prelude.rs` | 2 | 0 | 90d | never | — | ⬜ |
 | 53% | `crates/engine_audio/src/playback/id.rs` | 2 | 0 | 90d | never | — | ⬜ |
 | 53% | `crates/engine_ecs/src/lib.rs` | 2 | 0 | 90d | never | — | ⬜ |
-| 19% | `crates/engine_scene/src/transform_propagation.rs` | 74 | 1 | today | 2026-07-10 | 0 mutants | ✅ |
+| 19% | `crates/engine_scene/src/transform_propagation.rs` | 74 | 1 | 1d | 2026-07-10 | 0 mutants | ✅ |
+| 19% | `crates/card_game/src/card/rendering/debug_spawn.rs` | 79 | 1 | today | 2026-07-11 | 3/3 (100%) | ✅ |
+| 18% | `crates/engine_render/src/shader.rs` | 66 | 1 | today | 2026-07-11 | 19/22 (86%) | ✅ |
+| 14% | `crates/engine_input/src/mouse_button.rs` | 22 | 1 | today | 2026-07-11 | 0/1 (0%) | ⚠️ |
 
 ---
 
@@ -275,6 +275,9 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 
 | Date | Commit | File | Total | Caught | Missed | Timeout | Unviable | Status |
 |------|--------|------|-------|--------|--------|---------|----------|--------|
+| 2026-07-11 | `daecf46` | `crates/card_game/src/card/rendering/debug_spawn.rs` | 3 | 3 | 0 | 0 | 0 | ✅ |
+| 2026-07-11 | `daecf46` | `crates/engine_input/src/mouse_button.rs` | 1 | 0 | 0 | 0 | 1 | ✅ |
+| 2026-07-11 | `daecf46` | `crates/engine_render/src/shader.rs` | 22 | 19 | 0 | 0 | 3 | ✅ |
 | 2026-07-10 | `60616b7` | `crates/engine_scene/src/transform_propagation.rs` | 0 | 0 | 0 | 0 | 0 | ✅ |
 
 ---
