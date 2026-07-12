@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 22,
+    "caught": 50,
     "error": 0,
-    "files_tested": 4,
-    "missed": 0,
-    "runs": 4,
+    "files_tested": 7,
+    "missed": 15,
+    "runs": 7,
     "timeout": 0,
-    "total_mutants": 26,
-    "unviable": 4,
-    "zero_mutant": 0
+    "total_mutants": 85,
+    "unviable": 20,
+    "zero_mutant": 2
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -58,7 +58,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 279,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/axiom2d/src/splash/types.rs": {
       "error_count": 0,
@@ -114,7 +114,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 421,
-      "recent_commits": 5
+      "recent_commits": 4
     },
     "crates/card_game/src/booster/pack.rs": {
       "error_count": 0,
@@ -251,8 +251,16 @@
     },
     "crates/card_game/src/card/identity/signature.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-12",
       "lines": 4,
       "recent_commits": 1
     },
@@ -626,7 +634,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 389,
-      "recent_commits": 10
+      "recent_commits": 8
     },
     "crates/card_game/src/card/screen_geometry.rs": {
       "error_count": 0,
@@ -766,7 +774,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 555,
-      "recent_commits": 12
+      "recent_commits": 9
     },
     "crates/card_game/src/stash/store_render.rs": {
       "error_count": 0,
@@ -917,8 +925,16 @@
     },
     "crates/engine_audio/src/playback/id.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-12",
       "lines": 2,
       "recent_commits": 0
     },
@@ -1468,7 +1484,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 24,
-      "recent_commits": 2
+      "recent_commits": 1
     },
     "crates/engine_render/src/shape/tessellate.rs": {
       "error_count": 0,
@@ -1493,8 +1509,16 @@
     },
     "crates/engine_render/src/testing/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 28,
+        "error": null,
+        "missed": 15,
+        "status": "ok",
+        "timeout": 0,
+        "total": 59,
+        "unviable": 16
+      },
+      "last_tested": "2026-07-12",
       "lines": 385,
       "recent_commits": 0
     },
@@ -1503,7 +1527,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 815,
-      "recent_commits": 3
+      "recent_commits": 2
     },
     "crates/engine_render/src/window.rs": {
       "error_count": 0,
@@ -1862,6 +1886,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 3,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "e918008",
+      "date": "2026-07-12",
+      "file": "crates/card_game/src/card/identity/signature.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "e918008",
+      "date": "2026-07-12",
+      "file": "crates/engine_render/src/testing/mod.rs",
+      "result": {
+        "caught": 28,
+        "error": null,
+        "missed": 15,
+        "status": "ok",
+        "timeout": 0,
+        "total": 59,
+        "unviable": 16
+      }
+    },
+    {
+      "commit": "e918008",
+      "date": "2026-07-12",
+      "file": "crates/engine_audio/src/playback/id.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
         "unviable": 0
       }
     }
