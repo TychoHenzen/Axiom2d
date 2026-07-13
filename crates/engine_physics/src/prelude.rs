@@ -6,5 +6,6 @@ pub use crate::physics_command_apply_system::physics_command_apply_system;
 pub use crate::physics_res::PhysicsRes;
 pub use crate::physics_step_system::physics_step_system;
 pub use crate::physics_sync_system::physics_sync_system;
+pub use crate::plugin::PhysicsPlugin;
 pub use crate::rapier_backend::RapierBackend;
 pub use crate::rigid_body::RigidBody;

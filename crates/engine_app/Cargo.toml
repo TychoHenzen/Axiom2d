@@ -6,12 +6,16 @@ version.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = ["render"]
+render = ["dep:engine_render"]
+
 [dependencies]
 bevy_ecs = { workspace = true }
 engine_core = { path = "../engine_core" }
 engine_ecs = { path = "../engine_ecs" }
 engine_input = { path = "../engine_input" }
-engine_render = { path = "../engine_render" }
+engine_render = { path = "../engine_render", optional = true }
 glam = { workspace = true }
 winit = { workspace = true }
 

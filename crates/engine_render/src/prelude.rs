@@ -13,6 +13,7 @@ pub use crate::material::{
     BlendMode, Material2d, TextureBinding, apply_material, effective_blend_mode,
     effective_shader_handle,
 };
+pub use crate::plugin::RenderPlugin;
 pub use crate::rect::Rect;
 pub use crate::renderer::{
     GpuMeshHandle, IDENTITY_MODEL, NullRenderer, RenderError, Renderer, RendererRes,
@@ -25,4 +26,4 @@ pub use crate::shape::{
     sample_quadratic, split_contours, tessellate, tessellate_stroke, unit_quad_model,
 };
 pub use crate::sprite::Sprite;
-pub use crate::window::WindowConfig;
+pub use engine_core::prelude::WindowConfig;

@@ -1,6 +1,7 @@
 pub mod draw_command;
 pub mod interaction;
 pub mod layout;
+pub mod plugin;
 pub mod prelude;
 pub mod render;
 pub mod text_render;

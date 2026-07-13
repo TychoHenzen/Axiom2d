@@ -8,7 +8,7 @@ use engine_core::types::TextureId;
 
 use crate::renderer::GpuMeshHandle;
 use crate::shader::ShaderHandle;
-use crate::window::WindowConfig;
+use engine_core::prelude::WindowConfig;
 
 use super::bloom::PostProcessResources;
 use super::gpu_init;

@@ -7,4 +7,5 @@ pub use crate::spring::spring_step;
 pub use crate::time::{ClockRes, DeltaTime, FixedTimestep, SystemClock, time_system};
 pub use crate::transform::Transform2D;
 pub use crate::types::{Pixels, Seconds, TextureId};
+pub use crate::window::WindowConfig;
 pub use glam::{Affine2, Vec2};

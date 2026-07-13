@@ -8,7 +8,7 @@ workspace = true
 
 [features]
 default = ["render", "audio", "physics"]
-render = ["dep:engine_render"]
+render = ["dep:engine_render", "engine_app/render"]
 audio = ["dep:engine_audio"]
 physics = ["dep:engine_physics"]
 
@@ -17,7 +17,7 @@ bevy_ecs = { workspace = true }
 glam = { workspace = true }
 engine_assets = { path = "../engine_assets" }
 engine_core = { path = "../engine_core" }
-engine_app = { path = "../engine_app" }
+engine_app = { path = "../engine_app", default-features = false }
 engine_ecs = { path = "../engine_ecs" }
 engine_input = { path = "../engine_input" }
 engine_audio = { path = "../engine_audio", optional = true }

@@ -3,6 +3,7 @@ pub mod backend;
 pub mod mixer;
 pub mod mixer_engine;
 pub mod playback;
+pub mod plugin;
 pub mod prelude;
 pub mod sound;
 pub mod spatial;

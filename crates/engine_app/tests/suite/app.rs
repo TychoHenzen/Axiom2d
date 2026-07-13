@@ -8,13 +8,13 @@ use std::time::Duration;
 use engine_app::app::format_window_title;
 use engine_app::prelude::*;
 use engine_core::color::Color;
+use engine_core::prelude::WindowConfig;
 use engine_core::time::{DeltaTime, FixedTimestep};
 use engine_core::types::{Pixels, Seconds};
 use engine_ecs::prelude::{Phase, Res, ResMut, Resource};
 use engine_input::prelude::{ButtonState, KeyCode, KeyInputEvent};
 use engine_render::prelude::RendererRes;
 use engine_render::testing::SpyRenderer;
-use engine_render::window::WindowConfig;
 
 #[derive(Resource)]
 struct Counter(u32);
@@ -106,6 +106,12 @@ fn when_handle_redraw_called_then_present_called_via_renderer_res() {
 
     let mut app = App::new();
     app.set_renderer(Box::new(spy));
+    // Register post-render hook to call present() on the renderer.
+    app.on_post_render(|app| {
+        if let Some(mut renderer) = app.world_mut().get_resource_mut::<RendererRes>() {
+            renderer.present();
+        }
+    });
 
     // Act
     app.handle_redraw();
@@ -307,6 +313,11 @@ fn when_render_phase_system_uses_renderer_res_then_draw_calls_precede_present() 
     let mut app = App::new();
     app.add_systems(Phase::Render, render_system);
     app.set_renderer(Box::new(spy));
+    app.on_post_render(|app| {
+        if let Some(mut renderer) = app.world_mut().get_resource_mut::<RendererRes>() {
+            renderer.present();
+        }
+    });
 
     // Act
     app.handle_redraw();
@@ -330,6 +341,11 @@ fn when_update_systems_exist_then_schedules_run_and_present_called() {
     app.world_mut().insert_resource(Counter(0));
     app.add_systems(Phase::Update, increment);
     app.set_renderer(Box::new(spy));
+    app.on_post_render(|app| {
+        if let Some(mut renderer) = app.world_mut().get_resource_mut::<RendererRes>() {
+            renderer.present();
+        }
+    });
 
     // Act
     app.handle_redraw();
@@ -370,6 +386,11 @@ fn when_handle_resize_called_then_renderer_resize_is_called() {
 
     let mut app = App::new();
     app.set_renderer(Box::new(spy));
+    app.on_resize(|app, width, height| {
+        if let Some(mut renderer) = app.world_mut().get_resource_mut::<RendererRes>() {
+            renderer.resize(width, height);
+        }
+    });
 
     // Act
     app.handle_resize(1024, 768);
@@ -848,4 +869,14 @@ fn when_startup_system_runs_then_update_system_observes_side_effects_same_frame(
 
     // Assert — Update must see Flag(true) set by Startup in the same frame
     assert_eq!(app.world().resource::<Counter>().0, 1);
+}
+
+/// @doc: `handle_redraw` must not panic when no renderer is present — supports headless mode
+#[test]
+fn when_no_render_plugin_then_handle_redraw_does_not_panic() {
+    // Arrange: no set_renderer, no on_post_render hook
+    let mut app = App::new();
+
+    // Act + Assert: must not panic
+    app.handle_redraw();
 }

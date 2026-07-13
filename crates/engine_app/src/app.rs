@@ -12,20 +12,28 @@ use engine_input::key_code::KeyCode;
 use engine_input::mouse_button::MouseButton;
 
 use engine_core::prelude::EventBus;
+use engine_core::prelude::WindowConfig;
 use engine_core::profiler::FrameProfiler;
 use engine_core::types::Pixels;
 use engine_ecs::prelude::{
     IntoScheduleConfigs, PHASE_COUNT, Phase, Schedule, ScheduleSystem, World,
 };
 use engine_input::prelude::{KeyInputEvent, MouseInputEvent};
+#[cfg(feature = "render")]
 use engine_render::prelude::RendererRes;
-use engine_render::window::WindowConfig;
 
 use crate::window_size::WindowSize;
 
 pub trait Plugin {
     fn build(&self, app: &mut App);
 }
+
+/// Callback fired after window creation. The window is accessible via [`App::window`].
+pub type OnResumed = Box<dyn FnMut(&mut App)>;
+/// Callback fired on window resize events.
+pub type OnResize = Box<dyn FnMut(&mut App, u32, u32)>;
+/// Callback fired after all phases in `handle_redraw`, before frame timing completes.
+pub type OnPostRender = Box<dyn FnMut(&mut App)>;
 
 pub struct App {
     plugin_count: usize,
@@ -34,6 +42,9 @@ pub struct App {
     window: Option<Arc<Window>>,
     world: World,
     schedules: [Schedule; PHASE_COUNT],
+    resume_hooks: Vec<OnResumed>,
+    resize_hooks: Vec<OnResize>,
+    post_render_hooks: Vec<OnPostRender>,
 }
 
 impl App {
@@ -49,6 +60,9 @@ impl App {
             window: None,
             world,
             schedules: Phase::ALL.map(Schedule::new),
+            resume_hooks: Vec::new(),
+            resize_hooks: Vec::new(),
+            post_render_hooks: Vec::new(),
         }
     }
 
@@ -56,6 +70,11 @@ impl App {
         self.update_window_size(config.width, config.height);
         self.window_config = config;
         self
+    }
+
+    /// Returns a copy of the current window configuration.
+    pub fn window_config(&self) -> WindowConfig {
+        self.window_config
     }
 
     pub fn add_plugin(&mut self, plugin: impl Plugin) -> &mut Self {
@@ -76,6 +95,20 @@ impl App {
         &mut self.world
     }
 
+    #[doc(hidden)]
+    pub fn window(&self) -> Option<&Arc<Window>> {
+        self.window.as_ref()
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "render")]
+    pub fn set_renderer(
+        &mut self,
+        renderer: Box<dyn engine_render::renderer::Renderer + Send + Sync>,
+    ) {
+        self.world.insert_resource(RendererRes::new(renderer));
+    }
+
     pub fn schedule_count(&self) -> usize {
         PHASE_COUNT
     }
@@ -89,12 +122,23 @@ impl App {
         self
     }
 
-    #[doc(hidden)]
-    pub fn set_renderer(
-        &mut self,
-        renderer: Box<dyn engine_render::renderer::Renderer + Send + Sync>,
-    ) {
-        self.world.insert_resource(RendererRes::new(renderer));
+    /// Register a callback invoked after window creation.
+    /// The window is accessible via [`App::window`].
+    pub fn on_resumed(&mut self, hook: impl FnMut(&mut App) + 'static) -> &mut Self {
+        self.resume_hooks.push(Box::new(hook));
+        self
+    }
+
+    /// Register a callback invoked on window resize events.
+    pub fn on_resize(&mut self, hook: impl FnMut(&mut App, u32, u32) + 'static) -> &mut Self {
+        self.resize_hooks.push(Box::new(hook));
+        self
+    }
+
+    /// Register a callback invoked after all phases in `handle_redraw`.
+    pub fn on_post_render(&mut self, hook: impl FnMut(&mut App) + 'static) -> &mut Self {
+        self.post_render_hooks.push(Box::new(hook));
+        self
     }
 
     #[doc(hidden)]
@@ -158,9 +202,12 @@ impl App {
     #[doc(hidden)]
     pub fn handle_resize(&mut self, width: u32, height: u32) {
         self.update_window_size(width, height);
-        if let Some(mut renderer) = self.world.get_resource_mut::<RendererRes>() {
-            renderer.resize(width, height);
+        // Fire resize hooks (e.g. RenderPlugin resizes the GPU surface).
+        let mut hooks = std::mem::take(&mut self.resize_hooks);
+        for hook in &mut hooks {
+            hook(self, width, height);
         }
+        self.resize_hooks = hooks;
     }
 
     fn run_schedule(&mut self, phase: Phase) {
@@ -203,9 +250,12 @@ impl App {
                 _ => self.run_schedule(phase),
             }
         }
-        if let Some(mut renderer) = self.world.get_resource_mut::<RendererRes>() {
-            renderer.present();
+        // Fire post-render hooks (e.g. RenderPlugin calls present()).
+        let mut hooks = std::mem::take(&mut self.post_render_hooks);
+        for hook in &mut hooks {
+            hook(self);
         }
+        self.post_render_hooks = hooks;
         if let Some(mut profiler) = self.world.get_resource_mut::<FrameProfiler>() {
             profiler.end_frame();
         }
@@ -252,10 +302,14 @@ impl ApplicationHandler for App {
                 .create_window(attrs)
                 .expect("failed to create window"),
         );
-        let renderer = engine_render::create_renderer(window.clone(), &self.window_config);
+        self.window = Some(window);
 
-        self.world.insert_resource(RendererRes::new(renderer));
-        self.window = Some(window.clone());
+        // Fire resume hooks (e.g. RenderPlugin creates the renderer).
+        let mut hooks = std::mem::take(&mut self.resume_hooks);
+        for hook in &mut hooks {
+            hook(self);
+        }
+        self.resume_hooks = hooks;
 
         // Reset the clock so the first DeltaTime is near-zero, not the
         // seconds spent on GPU initialization.
@@ -270,8 +324,10 @@ impl ApplicationHandler for App {
         for _ in 0..3 {
             self.handle_redraw();
         }
-        window.set_visible(true);
-        window.request_redraw();
+        if let Some(window) = self.window.as_ref() {
+            window.set_visible(true);
+            window.request_redraw();
+        }
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {

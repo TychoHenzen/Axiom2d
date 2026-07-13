@@ -3,7 +3,7 @@ use std::sync::Arc;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::window::WindowConfig;
+use engine_core::prelude::WindowConfig;
 
 use super::shaders::{SHADER_SRC, SHAPE_SHADER_SRC};
 use super::types::{

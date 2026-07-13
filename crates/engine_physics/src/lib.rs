@@ -7,6 +7,7 @@ pub mod physics_command_apply_system;
 pub mod physics_res;
 pub mod physics_step_system;
 pub mod physics_sync_system;
+pub mod plugin;
 pub mod prelude;
 pub mod rapier_backend;
 pub mod rigid_body;
