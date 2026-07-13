@@ -47,11 +47,12 @@ safe_count() {
     set -e
 }
 
-# Parse RON value: grep for key, extract first number
+# Parse RON value: grep for key, extract number after colon (avoids capturing digits in key name)
 ron_value() {
     set +e
     local val
-    val=$(grep "\"$1\"" "$BASELINE" 2>/dev/null | grep -o '[0-9]\+' | head -1)
+    # sed: match the key, then capture the number (int or float) after the colon
+    val=$(sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\([0-9.]\+\).*/\\1/p" "$BASELINE" 2>/dev/null | head -1)
     set -e
     echo "${val:-0}"
 }
@@ -110,11 +111,14 @@ check_soft_ratchets() {
     echo ""
 
     # Extract baselines
-    local base_test base_smell base_unsafe base_unwrap
+    local base_test base_smell base_unsafe base_unwrap base_cyclo base_cov base_clones
     base_test=$(ron_value "test_count_total")
     base_smell=$(ron_value "smell_markers_total")
     base_unsafe=$(ron_value "unsafe_blocks_total")
     base_unwrap=$(ron_value "unwrap_in_prod_total")
+    base_cyclo=$(ron_value "cyclomatic_over_10")
+    base_cov=$(ron_value "line_coverage_pct")
+    base_clones=$(ron_value "jscpd_clone_count")
 
     # Test count
     local cur_test
@@ -135,6 +139,45 @@ check_soft_ratchets() {
     local cur_unwrap
     cur_unwrap=$(safe_count '\.unwrap()' "*.rs" "tests/" "benches/" "particle_poc/")
     check_dimension "unwrap() in prod" "$cur_unwrap" "$base_unwrap" "lower"
+
+    # Cyclomatic complexity (optional — needs arborist-cli)
+    local cur_cyclo
+    if command -v arborist &>/dev/null; then
+        set +e
+        cur_cyclo=$(arborist crates/ --languages rust --format json 2>/dev/null | python3 -c "import json,sys;data=json.load(sys.stdin);print(sum(1 for f in data for func in f.get('functions',[]) if func.get('cyclomatic',0)>10))" 2>/dev/null)
+        set -e
+        cur_cyclo="${cur_cyclo:-0}"
+        check_dimension "cyclomatic CC > 10" "$cur_cyclo" "$base_cyclo" "lower"
+    else
+        printf "  %-35s ${YELLOW}SKIP${NC} (arborist-cli not installed)\n" "cyclomatic CC > 10:"
+    fi
+
+    # Code coverage (optional — needs cargo-llvm-cov)
+    local cur_cov
+    if command -v cargo-llvm-cov &>/dev/null && [ "${base_cov:-0}" != "0" ]; then
+        set +e
+        cur_cov=$(cargo llvm-cov --workspace --summary-only 2>/dev/null | grep "^TOTAL" | awk '{print $4}' | tr -d '%')
+        set -e
+        if [ -n "$cur_cov" ] && [ "$cur_cov" != "0" ]; then
+            check_dimension_float "line coverage %" "$cur_cov" "$base_cov" "higher"
+        else
+            printf "  %-35s ${YELLOW}SKIP${NC} (coverage data unavailable)\n" "line coverage %:"
+        fi
+    else
+        printf "  %-35s ${YELLOW}SKIP${NC} (cargo-llvm-cov not installed)\n" "line coverage %:"
+    fi
+
+    # Code duplication (optional — needs npx/jscpd)
+    local cur_clones
+    if command -v npx &>/dev/null && [ "${base_clones:-0}" != "0" ]; then
+        set +e
+        cur_clones=$(npx jscpd crates/ --pattern "**/*.rs" --min-tokens 50 --min-lines 5 --mode strict 2>&1 | grep -c "Clone found" || echo "0")
+        set -e
+        cur_clones="${cur_clones:-0}"
+        check_dimension "jscpd clone count" "$cur_clones" "$base_clones" "lower"
+    else
+        printf "  %-35s ${YELLOW}SKIP${NC} (npx/jscpd not available)\n" "jscpd clone count:"
+    fi
 
     echo ""
     echo -e "${CYAN}Soft ratchets: ${GREEN}$PASS passed${NC}, ${RED}$FAIL failed${NC}, ${YELLOW}$WARN improved${NC}"
@@ -170,6 +213,43 @@ check_dimension() {
     fi
 }
 
+check_dimension_float() {
+    local name="$1" current="$2" baseline="$3" direction="$4"
+
+    printf "  %-35s " "$name:"
+    if [ "$direction" = "higher" ]; then
+        result=$(echo "$current < $baseline" | bc -l 2>/dev/null)
+        if [ "$result" = "1" ]; then
+            echo -e "${RED}REGRESSED${NC}  ($current < baseline $baseline)"
+            FAIL=$((FAIL + 1))
+        else
+            result=$(echo "$current > $baseline" | bc -l 2>/dev/null)
+            if [ "$result" = "1" ]; then
+                echo -e "${YELLOW}IMPROVED${NC}  ($current > baseline $baseline — ratchet me!)"
+                WARN=$((WARN + 1))
+            else
+                echo -e "${GREEN}OK${NC}        ($current = baseline)"
+                PASS=$((PASS + 1))
+            fi
+        fi
+    else
+        result=$(echo "$current > $baseline" | bc -l 2>/dev/null)
+        if [ "$result" = "1" ]; then
+            echo -e "${RED}REGRESSED${NC}  ($current > baseline $baseline)"
+            FAIL=$((FAIL + 1))
+        else
+            result=$(echo "$current < $baseline" | bc -l 2>/dev/null)
+            if [ "$result" = "1" ]; then
+                echo -e "${YELLOW}IMPROVED${NC}  ($current < baseline $baseline — ratchet me!)"
+                WARN=$((WARN + 1))
+            else
+                echo -e "${GREEN}OK${NC}        ($current = baseline)"
+                PASS=$((PASS + 1))
+            fi
+        fi
+    fi
+}
+
 # ─── Diff Mode ────────────────────────────────────────────────────────────────
 
 show_diff() {
@@ -177,8 +257,8 @@ show_diff() {
     echo -e "${CYAN}═══ Current vs Baseline Diff ═══${NC}"
     echo ""
 
-    local cur_test cur_smell cur_unsafe cur_unwrap
-    local base_test base_smell base_unsafe base_unwrap
+    local cur_test cur_smell cur_unsafe cur_unwrap cur_cyclo cur_cov cur_clones
+    local base_test base_smell base_unsafe base_unwrap base_cyclo base_cov base_clones
 
     cur_test=$(safe_count '#\[test\]\|#\[tokio::test\]' "*.rs")
     cur_smell=$(safe_count 'TODO\|FIXME\|HACK' "*.rs" "tests/")
@@ -189,6 +269,26 @@ show_diff() {
     base_smell=$(ron_value "smell_markers_total")
     base_unsafe=$(ron_value "unsafe_blocks_total")
     base_unwrap=$(ron_value "unwrap_in_prod_total")
+    base_cyclo=$(ron_value "cyclomatic_over_10")
+    base_cov=$(ron_value "line_coverage_pct")
+    base_clones=$(ron_value "jscpd_clone_count")
+
+    # New dimensions (optional tools)
+    if command -v arborist &>/dev/null; then
+        cur_cyclo=$(arborist crates/ --languages rust --format json 2>/dev/null | python3 -c "import json,sys;data=json.load(sys.stdin);print(sum(1 for f in data for func in f.get('functions',[]) if func.get('cyclomatic',0)>10))" 2>/dev/null || echo "N/A")
+    else
+        cur_cyclo="N/A"
+    fi
+    if command -v cargo-llvm-cov &>/dev/null; then
+        cur_cov=$(cargo llvm-cov --workspace --summary-only 2>/dev/null | grep "^TOTAL" | awk '{print $4}' | tr -d '%' || echo "N/A")
+    else
+        cur_cov="N/A"
+    fi
+    if command -v npx &>/dev/null; then
+        cur_clones=$(npx jscpd crates/ --pattern "**/*.rs" --min-tokens 50 --min-lines 5 --mode strict 2>&1 | grep -c "Clone found" 2>/dev/null || echo "0")
+    else
+        cur_clones="N/A"
+    fi
 
     printf "  %-30s %12s %12s %12s\n" "Dimension" "Current" "Baseline" "Delta"
     printf "  %-30s %12s %12s %12s\n" "---------" "-------" "--------" "-----"
@@ -196,6 +296,9 @@ show_diff() {
     printf "  %-30s %12s %12s %+12s\n" "smell_markers" "$cur_smell" "$base_smell" "$((cur_smell - base_smell))"
     printf "  %-30s %12s %12s %+12s\n" "unsafe_blocks" "$cur_unsafe" "$base_unsafe" "$((cur_unsafe - base_unsafe))"
     printf "  %-30s %12s %12s %+12s\n" "unwrap_in_prod" "$cur_unwrap" "$base_unwrap" "$((cur_unwrap - base_unwrap))"
+    printf "  %-30s %12s %12s %12s\n" "cyclomatic_CC>10" "$cur_cyclo" "$base_cyclo" "--"
+    printf "  %-30s %12s %12s %12s\n" "line_coverage_pct" "$cur_cov" "$base_cov" "--"
+    printf "  %-30s %12s %12s %12s\n" "jscpd_clone_count" "$cur_clones" "$base_clones" "--"
 
     echo ""
 }
@@ -206,12 +309,29 @@ update_baseline() {
     echo ""
     echo -e "${YELLOW}Updating baseline to current metrics...${NC}"
 
-    local cur_test cur_smell cur_unsafe cur_unwrap today
+    local cur_test cur_smell cur_unsafe cur_unwrap cur_cyclo cur_cov cur_clones today
     cur_test=$(safe_count '#\[test\]\|#\[tokio::test\]' "*.rs")
     cur_smell=$(safe_count 'TODO\|FIXME\|HACK' "*.rs" "tests/")
     cur_unsafe=$(safe_count '\bunsafe\b' "*.rs" "tests/")
     cur_unwrap=$(safe_count '\.unwrap()' "*.rs" "tests/" "benches/" "particle_poc/")
     today=$(date -I 2>/dev/null || date +%Y-%m-%d)
+
+    # New dimensions — try current value, fall back to existing baseline
+    if command -v arborist &>/dev/null; then
+        cur_cyclo=$(arborist crates/ --languages rust --format json 2>/dev/null | python3 -c "import json,sys;data=json.load(sys.stdin);print(sum(1 for f in data for func in f.get('functions',[]) if func.get('cyclomatic',0)>10))" 2>/dev/null || ron_value "cyclomatic_over_10")
+    else
+        cur_cyclo=$(ron_value "cyclomatic_over_10")
+    fi
+    if command -v cargo-llvm-cov &>/dev/null; then
+        cur_cov=$(cargo llvm-cov --workspace --summary-only 2>/dev/null | grep "^TOTAL" | awk '{print $4}' | tr -d '%' || ron_value "line_coverage_pct")
+    else
+        cur_cov=$(ron_value "line_coverage_pct")
+    fi
+    if command -v npx &>/dev/null; then
+        cur_clones=$(npx jscpd crates/ --pattern "**/*.rs" --min-tokens 50 --min-lines 5 --mode strict 2>&1 | grep -c "Clone found" 2>/dev/null || ron_value "jscpd_clone_count")
+    else
+        cur_clones=$(ron_value "jscpd_clone_count")
+    fi
 
     cat > "$BASELINE" << RONEOF
 // Quality Gate Baseline — ratchet thresholds for CI enforcement.
@@ -241,6 +361,9 @@ update_baseline() {
         "unsafe_blocks_total": $cur_unsafe,
         "unwrap_in_prod_total": $cur_unwrap,
         "expect_in_prod_total": 92,
+        "cyclomatic_over_10": $cur_cyclo,
+        "line_coverage_pct": $cur_cov,
+        "jscpd_clone_count": $cur_clones,
     },
     "advisory_maxima": {
         "magic_literals_per_file": 320,
@@ -257,12 +380,15 @@ update_baseline() {
     },
     "meta": {
         "last_updated": "$today",
-        "schema_version": 1,
+        "schema_version": 2,
         "notes": [
             "unsafe_blocks_total=$cur_unsafe: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
             "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
             "test_count_total=$cur_test: all #[test] and #[tokio::test] across workspace (including tools/)",
             "smell_markers_total=$cur_smell: no TODO/FIXME/HACK in production code",
+            "cyclomatic_over_10=$cur_cyclo: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
+            "line_coverage_pct=$cur_cov: workspace line coverage from cargo-llvm-cov",
+            "jscpd_clone_count=$cur_clones: duplicate code clones detected by jscpd (min-tokens=50)",
         ],
     },
 }

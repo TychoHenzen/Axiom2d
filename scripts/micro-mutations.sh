@@ -9,15 +9,15 @@
 #   ./scripts/micro-mutations.sh --init-state          # Seed state file from scratch
 #
 # CI: called from quality.yml "micro-mutations" job.
-# Reads/writes docs/.micro_mutation_state.json (machine-readable).
-# Regenerates docs/MICRO_MUTATIONS.md (human-readable) each run.
+# Reads/writes quality/.micro_mutation_state.json (machine-readable).
+# Regenerates quality/MICRO_MUTATIONS.md (human-readable) each run.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-STATE_FILE="$PROJECT_ROOT/docs/.micro_mutation_state.json"
-TRACKING_DOC="$PROJECT_ROOT/docs/MICRO_MUTATIONS.md"
+STATE_FILE="$PROJECT_ROOT/quality/.micro_mutation_state.json"
+TRACKING_DOC="$PROJECT_ROOT/quality/MICRO_MUTATIONS.md"
 MUTANTS_OUT_DIR="$PROJECT_ROOT/mutants.out"
 SAMPLE_SIZE="${MICRO_SAMPLE_SIZE:-1}"
 TIMEOUT="${MICRO_TIMEOUT:-45}"

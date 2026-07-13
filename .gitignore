@@ -35,6 +35,10 @@ profile.json.gz
 mutants.out/
 mutants.out.old/
 
+# Quality CI output (coverage, dup reports — only tracking docs are versioned)
+quality/coverage/
+quality/duplicates/
+
 # Worktrees
 .worktrees/
 

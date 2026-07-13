@@ -177,17 +177,17 @@ Overrides are reviewed during PR and must include a reason.
 | quality.yml udeps | Hard | Fails on unused deps |
 | quality.yml dead-code | Hard | `RUSTFLAGS=-D dead_code` |
 | quality.yml shaders | Hard | naga validation |
-| quality.yml duplicates | Soft | jscpd — fails on ANY duplicate blocks currently; gate makes it ratcheted |
+| quality.yml duplicates | Soft | jscpd clone count — ratchet prevents regression |
 | TECH_DEBT_LEDGER.md | Advisory | Manual/scripted structural scoring — feeds trend advisories |
-| MICRO_MUTATIONS.md | Advisory | Stochastic mutation testing (1 random file/day in CI) — see `scripts/micro-mutations.sh` |
+| quality/MICRO_MUTATIONS.md | Advisory | Stochastic mutation testing (1 random file/day in CI) — see `scripts/micro-mutations.sh` |
+| quality.yml complexity | Soft | Functions with cyclomatic complexity >10 (arborist-cli) — ratchet prevents regression |
+| quality.yml coverage | Soft | Line coverage % (cargo-llvm-cov) — ratchet prevents regression |
 
 ## Future Dimensions
 
 Dimensions to add as tooling matures:
 
-- **Mutation score** (`cargo mutants`): % mutants killed. Full runs too slow for CI; stochastic micro-mutation runs daily (1 random file, `quality.yml` → `docs/MICRO_MUTATIONS.md`). Full hunt via `/mutant-hunt` skill.
+- **Mutation score** (`cargo mutants`): % mutants killed. Full runs too slow for CI; stochastic micro-mutation runs daily (1 random file, `quality.yml` → `quality/MICRO_MUTATIONS.md`). Full hunt via `/mutant-hunt` skill.
 - **Architectural coupling** (code-review-graph): cross-community edge count. Graph needs full build first.
-- **Test coverage %** (`cargo llvm-cov`): per-crate line coverage. Currently collected but not gated.
 - **Comment quality**: ratio of `///` doc comments to `pub` items. Measure documentation coverage.
-- **Cyclomatic complexity**: per-function McCabe score. Needs tooling (not in clippy yet).
 - **Deprecation debt**: count of deprecated API uses. Future Rust editions may add this.

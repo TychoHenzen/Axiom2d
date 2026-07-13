@@ -50,6 +50,8 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
+    outputs:
+      coverage_pct: ${{ steps.extract.outputs.coverage_pct }}
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -62,12 +64,48 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Generate coverage
-        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
+        id: extract
+        run: |
+          mkdir -p quality/coverage
+          cargo llvm-cov --workspace --lcov --output-path quality/coverage/lcov.info 2>&1 | tee coverage.log
+          COV_PCT=$(grep "^TOTAL" coverage.log | awk '{print $4}' | tr -d '%')
+          echo "coverage_pct=${COV_PCT}" >> "$GITHUB_OUTPUT"
+          echo "Coverage: ${COV_PCT}"
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report
-          path: lcov.info
+          path: quality/coverage/
+
+  complexity:
+    runs-on: ubuntu-latest
+    outputs:
+      cyclo_over_10: ${{ steps.cyclo.outputs.cyclo_over_10 }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - name: Install arborist-cli
+        run: cargo install arborist-cli --locked
+      - name: Count functions with CC > 10
+        id: cyclo
+        run: |
+          # arborist --exceeds-only --threshold N filters by cognitive, not cyclomatic.
+          # Use JSON output and count cyclomatic > 10 in python.
+          COUNT=$(arborist crates/ --languages rust --format json 2>/dev/null | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          total = 0
+          for file_entry in data:
+              for func in file_entry.get('functions', []):
+                  if func.get('cyclomatic', 0) > 10:
+                      total += 1
+          print(total)
+          ")
+          echo "cyclo_over_10=${COUNT}" >> "$GITHUB_OUTPUT"
+          echo "Functions with CC > 10: ${COUNT}"
 
   udeps:
     runs-on: ubuntu-latest
@@ -123,6 +161,8 @@ jobs:
 
   duplicates:
     runs-on: ubuntu-latest
+    outputs:
+      clone_count: ${{ steps.jscpd.outputs.clone_count }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
@@ -132,16 +172,18 @@ jobs:
         run: npm install -g jscpd
       - name: Detect duplicate code
         id: jscpd
-        run: jscpd crates/ --pattern "**/*.rs" --min-tokens 50 --reporters consoleFull --output jscpd-report || echo "duplicates_found=true" >> "$GITHUB_OUTPUT"
+        run: |
+          mkdir -p quality/duplicates
+          npx jscpd crates/ --pattern "**/*.rs" --min-tokens 50 --min-lines 5 --mode strict --reporters consoleFull --output quality/duplicates 2>&1 | tee jscpd.log
+          CLONE_COUNT=$(grep -c "Clone found" jscpd.log || echo "0")
+          echo "clone_count=${CLONE_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "Clones found: ${CLONE_COUNT}"
       - name: Upload duplicate report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: jscpd-report
-          path: jscpd-report/
-      - name: Fail if duplicates found
-        if: steps.jscpd.outputs.duplicates_found == 'true'
-        run: exit 1
+          path: quality/duplicates/
 
   micro-mutations:
     name: "Micro-mutations (randomized subset)"
@@ -165,7 +207,9 @@ jobs:
 
       - name: Run micro-mutations
         id: mutations
-        run: bash scripts/micro-mutations.sh
+        run: |
+          mkdir -p quality
+          bash scripts/micro-mutations.sh
         env:
           MICRO_SAMPLE_SIZE: ${{ vars.MICRO_SAMPLE_SIZE }}
           MICRO_TIMEOUT: ${{ vars.MICRO_TIMEOUT }}
@@ -178,7 +222,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Discard any dirty source files left by cargo-mutants --in-place
           git checkout -- crates/ 2>/dev/null || true
-          git add docs/MICRO_MUTATIONS.md docs/.micro_mutation_state.json
+          git add quality/MICRO_MUTATIONS.md quality/.micro_mutation_state.json
           if ! git diff --cached --quiet; then
             git commit -m "docs: update micro-mutation tracking (${{ github.run_number }})"
             # Pull before push in case another job (e.g. autofix) advanced master
@@ -191,7 +235,7 @@ jobs:
   soft-gate:
     name: "Soft Ratchet Gate (no regressions allowed)"
     runs-on: ubuntu-latest
-    needs: [clippy, audit, doc, udeps, shaders, dead-code, duplicates]
+    needs: [clippy, audit, doc, udeps, shaders, dead-code, duplicates, complexity, coverage]
     if: always() && !cancelled()
     steps:
       - uses: actions/checkout@v5
@@ -199,15 +243,28 @@ jobs:
       - name: Parse baseline
         id: baseline
         run: |
-          # Extract numeric baseline values from RON file
-          test_count=$(grep '"test_count_total"' docs/QUALITY_BASELINE.ron | grep -o '[0-9]\+' | head -1)
-          smell=$(grep '"smell_markers_total"' docs/QUALITY_BASELINE.ron | grep -o '[0-9]\+' | head -1)
-          unsafe=$(grep '"unsafe_blocks_total"' docs/QUALITY_BASELINE.ron | grep -o '[0-9]\+' | head -1)
-          unwrap=$(grep '"unwrap_in_prod_total"' docs/QUALITY_BASELINE.ron | grep -o '[0-9]\+' | head -1)
-          echo "test_count=$test_count" >> "$GITHUB_OUTPUT"
-          echo "smell=$smell" >> "$GITHUB_OUTPUT"
-          echo "unsafe=$unsafe" >> "$GITHUB_OUTPUT"
-          echo "unwrap=$unwrap" >> "$GITHUB_OUTPUT"
+          # Extract numeric baseline values from RON file.
+          # Use sed to capture number after colon — avoids capturing digits in key names
+          # (e.g. "cyclomatic_over_10": 29  must return 29, not 10).
+          extract_val() {
+            sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\([0-9.]\+\).*/\\1/p" docs/QUALITY_BASELINE.ron | head -1
+          }
+          test_count=$(extract_val "test_count_total")
+          smell=$(extract_val "smell_markers_total")
+          unsafe=$(extract_val "unsafe_blocks_total")
+          unwrap=$(extract_val "unwrap_in_prod_total")
+          cyclo=$(extract_val "cyclomatic_over_10")
+          cov=$(extract_val "line_coverage_pct")
+          clones=$(extract_val "jscpd_clone_count")
+          expect=$(extract_val "expect_in_prod_total")
+          echo "test_count=${test_count:-0}" >> "$GITHUB_OUTPUT"
+          echo "smell=${smell:-0}" >> "$GITHUB_OUTPUT"
+          echo "unsafe=${unsafe:-0}" >> "$GITHUB_OUTPUT"
+          echo "unwrap=${unwrap:-0}" >> "$GITHUB_OUTPUT"
+          echo "cyclo=${cyclo:-0}" >> "$GITHUB_OUTPUT"
+          echo "cov=${cov:-0}" >> "$GITHUB_OUTPUT"
+          echo "clones=${clones:-0}" >> "$GITHUB_OUTPUT"
+          echo "expect=${expect:-92}" >> "$GITHUB_OUTPUT"
 
       - name: Count test functions
         id: tests
@@ -265,10 +322,29 @@ jobs:
             fi
           }
 
+          # Integer comparisons
           check_ratchet "test_count"      "${{ steps.tests.outputs.count }}"         "${{ steps.baseline.outputs.test_count }}" "higher"
           check_ratchet "smell_markers"   "${{ steps.smells.outputs.count }}"         "${{ steps.baseline.outputs.smell }}"      "lower"
           check_ratchet "unsafe_blocks"   "${{ steps.unsafe_blocks.outputs.count }}"  "${{ steps.baseline.outputs.unsafe }}"     "lower"
           check_ratchet "unwrap_in_prod"  "${{ steps.unwrap_count.outputs.count }}"   "${{ steps.baseline.outputs.unwrap }}"     "lower"
+
+          check_ratchet "cyclomatic_over_10" "${{ needs.complexity.outputs.cyclo_over_10 }}"  "${{ steps.baseline.outputs.cyclo }}"     "lower"
+          check_ratchet "jscpd_clone_count"  "${{ needs.duplicates.outputs.clone_count }}"     "${{ steps.baseline.outputs.clones }}"    "lower"
+
+          # Coverage is float — use bc for comparison
+          cov_current="${{ needs.coverage.outputs.coverage_pct }}"
+          cov_baseline="${{ steps.baseline.outputs.cov }}"
+          cov_compare=$(echo "$cov_current < $cov_baseline" | bc -l)
+          cov_equal=$(echo "$cov_current == $cov_baseline" | bc -l)
+          if [ "$cov_compare" -eq 1 ]; then
+            echo "::error title=Quality Regression::line_coverage regressed: ${cov_current}% < ${cov_baseline}% (baseline)"
+            FAILED=1
+          elif [ "$cov_equal" -eq 0 ]; then
+            echo "::notice title=Quality Improved::line_coverage improved: ${cov_current}% > ${cov_baseline}% (baseline). Auto-ratcheting."
+            IMPROVED=1
+          else
+            echo "::notice title=line_coverage (ok)::line_coverage: ${cov_current}% (baseline: ${cov_baseline}%)"
+          fi
 
           if [ "$FAILED" -ne 0 ]; then
             echo ""
@@ -287,6 +363,9 @@ jobs:
           smell="${{ steps.smells.outputs.count }}"
           unsafe="${{ steps.unsafe_blocks.outputs.count }}"
           unwrap="${{ steps.unwrap_count.outputs.count }}"
+          cyclo="${{ needs.complexity.outputs.cyclo_over_10 }}"
+          cov="${{ needs.coverage.outputs.coverage_pct }}"
+          clones="${{ needs.duplicates.outputs.clone_count }}"
           today=$(date -I 2>/dev/null || date +%Y-%m-%d)
 
           cat > docs/QUALITY_BASELINE.ron << RONEOF
@@ -305,6 +384,9 @@ jobs:
                   "unsafe_blocks_total": $unsafe,
                   "unwrap_in_prod_total": $unwrap,
                   "expect_in_prod_total": 92,
+                  "cyclomatic_over_10": $cyclo,
+                  "line_coverage_pct": $cov,
+                  "jscpd_clone_count": $clones,
               },
               "advisory_maxima": {
                   "magic_literals_per_file": 320,
@@ -315,12 +397,15 @@ jobs:
               "overrides": {},
               "meta": {
                   "last_updated": "$today",
-                  "schema_version": 1,
+                  "schema_version": 2,
                   "notes": [
                       "unsafe_blocks_total=$unsafe: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
                       "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
                       "test_count_total=$test_count: all #[test] and #[tokio::test] across workspace (including tools/)",
                       "smell_markers_total=$smell: no TODO/FIXME/HACK in production code",
+                      "cyclomatic_over_10=$cyclo: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
+                      "line_coverage_pct=$cov: workspace line coverage from cargo-llvm-cov",
+                      "jscpd_clone_count=$clones: duplicate code clones detected by jscpd (min-tokens=50)",
                   ],
               },
           }
