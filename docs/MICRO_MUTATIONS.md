@@ -82,7 +82,6 @@ All 252 eligible source files. Sorted by selection priority (staleness × size �
 | 71% | `crates/card_game/src/stash/render/slots.rs` | 122 | 1 | 90d | never | — | ⬜ |
 | 71% | `crates/card_game/src/card/art_selection.rs` | 119 | 1 | 90d | never | — | ⬜ |
 | 71% | `crates/card_game/src/booster/pack.rs` | 118 | 1 | 90d | never | — | ⬜ |
-| 71% | `crates/card_game/src/card/identity/card_name.rs` | 113 | 1 | 90d | never | — | ⬜ |
 | 71% | `crates/card_game/src/card/rendering/art_shader.rs` | 113 | 1 | 90d | never | — | ⬜ |
 | 71% | `crates/card_game/src/booster/double_click.rs` | 112 | 1 | 90d | never | — | ⬜ |
 | 71% | `crates/card_game/src/card/jack_cable/mod.rs` | 112 | 1 | 90d | never | — | ⬜ |

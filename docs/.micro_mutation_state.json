@@ -174,8 +174,16 @@
     },
     "crates/card_game/src/card/identity/card_name.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-10",
       "lines": 113,
       "recent_commits": 1
     },
@@ -774,7 +782,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 555,
-      "recent_commits": 9
+      "recent_commits": 12
     },
     "crates/card_game/src/stash/store_render.rs": {
       "error_count": 0,
