@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 50,
+    "caught": 63,
     "error": 0,
-    "files_tested": 7,
+    "files_tested": 11,
     "missed": 15,
-    "runs": 7,
+    "runs": 10,
     "timeout": 0,
-    "total_mutants": 85,
-    "unviable": 20,
-    "zero_mutant": 2
+    "total_mutants": 105,
+    "unviable": 27,
+    "zero_mutant": 4
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -48,8 +48,16 @@
     },
     "crates/axiom2d/src/splash/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-13",
       "lines": 13,
       "recent_commits": 2
     },
@@ -642,7 +650,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 389,
-      "recent_commits": 8
+      "recent_commits": 7
     },
     "crates/card_game/src/card/screen_geometry.rs": {
       "error_count": 0,
@@ -782,7 +790,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 555,
-      "recent_commits": 12
+      "recent_commits": 8
     },
     "crates/card_game/src/stash/store_render.rs": {
       "error_count": 0,
@@ -1032,8 +1040,16 @@
     },
     "crates/engine_core/src/error.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-13",
       "lines": 8,
       "recent_commits": 1
     },
@@ -1081,8 +1097,16 @@
     },
     "crates/engine_core/src/time.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 13,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 20,
+        "unviable": 7
+      },
+      "last_tested": "2026-07-13",
       "lines": 123,
       "recent_commits": 1
     },
@@ -1499,7 +1523,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 275,
-      "recent_commits": 3
+      "recent_commits": 2
     },
     "crates/engine_render/src/sprite.rs": {
       "error_count": 0,
@@ -1929,6 +1953,48 @@
       "commit": "e918008",
       "date": "2026-07-12",
       "file": "crates/engine_audio/src/playback/id.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "ce526fd",
+      "date": "2026-07-13",
+      "file": "crates/engine_core/src/time.rs",
+      "result": {
+        "caught": 13,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 20,
+        "unviable": 7
+      }
+    },
+    {
+      "commit": "ce526fd",
+      "date": "2026-07-13",
+      "file": "crates/engine_core/src/error.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "ce526fd",
+      "date": "2026-07-13",
+      "file": "crates/axiom2d/src/splash/mod.rs",
       "result": {
         "caught": 0,
         "error": null,
