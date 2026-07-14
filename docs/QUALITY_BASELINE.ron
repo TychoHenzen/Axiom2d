@@ -1,15 +1,3 @@
-// Quality Gate Baseline — ratchet thresholds for CI enforcement.
-// Auto-updated: 2026-07-13
-//
-// RULES:
-//   Hard gates: current value must be 0. Any increase → CI FAIL.
-//   Soft ratchets: current value must be <= baseline. Any increase → CI FAIL.
-//     Decrease auto-updates baseline (quality improved).
-//   Trend advisories: warn only. Do not block CI.
-//
-// To override a soft ratchet (intentional regression):
-//   Add an entry to overrides{} with reason, then update the baseline value.
-
 {
     "hard": {
         "clippy_warnings": 0,
@@ -20,13 +8,13 @@
         "shader_errors": 0,
     },
     "soft": {
-        "test_count_total": 1820,
+        "test_count_total": 1821,
         "smell_markers_total": 0,
         "unsafe_blocks_total": 2,
         "unwrap_in_prod_total": 0,
         "expect_in_prod_total": 92,
         "cyclomatic_over_10": 29,
-        "line_coverage_pct": 78.67,
+        "line_coverage_pct": ,
         "jscpd_clone_count": 1197,
     },
     "advisory_maxima": {
@@ -35,23 +23,17 @@
         "nesting_depth": 12,
         "file_length_lines": 861,
     },
-    "overrides": {
-        // "unsafe_blocks_total": {
-        //     "value": 3,
-        //     "reason": "GPU buffer mapping requires unsafe for zero-copy",
-        //     "pr": "#NNN",
-        // },
-    },
+    "overrides": {},
     "meta": {
-        "last_updated": "2026-07-13",
+        "last_updated": "2026-07-14",
         "schema_version": 2,
         "notes": [
             "unsafe_blocks_total=2: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
             "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
-            "test_count_total=1820: all #[test] and #[tokio::test] across workspace (including tools/)",
+            "test_count_total=1821: all #[test] and #[tokio::test] across workspace (including tools/)",
             "smell_markers_total=0: no TODO/FIXME/HACK in production code",
             "cyclomatic_over_10=29: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
-            "line_coverage_pct=78.67: workspace line coverage from cargo-llvm-cov",
+            "line_coverage_pct=: workspace line coverage from cargo-llvm-cov",
             "jscpd_clone_count=1197: duplicate code clones detected by jscpd (min-tokens=50)",
         ],
     },
