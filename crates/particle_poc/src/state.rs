@@ -1,9 +1,9 @@
 // State implementation — extracted from main.rs
 #![allow(clippy::wildcard_imports)]
 
+use std::fmt::Write;
 use std::sync::Arc;
 use std::time::Instant;
-use std::fmt::Write;
 
 use rapier2d::prelude::*;
 use winit::window::Window;
