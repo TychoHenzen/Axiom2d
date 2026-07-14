@@ -24,8 +24,11 @@ struct Params {
     grid_cell_size: f32,
     grid_width: u32,
     grid_height: u32,
-    _pad0: u32,
-    _pad1: u32,
+    disable_velocity_cap: u32,
+    sub_steps: u32,
+    kill_y: f32,
+    _pad_final: u32,
+    _pad_final2: u32,
 }
 
 struct BondSlot {
@@ -180,7 +183,7 @@ fn form_bonds_resolve(@builtin(global_invocation_id) id: vec3<u32>) {
     for (var s = 0u; s < SLOTS_PER_PARTICLE; s++) {
         let p = bonds[base + s].partner;
         if p == INVALID_BOND { continue; }
-        if !any_slot_points_to(p, i) {
+        if p >= params.particle_count || !any_slot_points_to(p, i) {
             bonds[base + s].partner = INVALID_BOND;
             bonds[base + s].rest = 0.0;
         }

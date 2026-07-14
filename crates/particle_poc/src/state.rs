@@ -10,6 +10,302 @@ use winit::window::Window;
 use crate::*;
 
 impl State {
+    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+        if new_size.width > 0 && new_size.height > 0 {
+            self.surface_config.width = new_size.width;
+            self.surface_config.height = new_size.height;
+            self.surface.configure(&self.device, &self.surface_config);
+        }
+    }
+
+    // Phase 4: Convert screen pixel position to world coordinates.
+    fn screen_to_world(&self, sx: f32, sy: f32) -> [f32; 2] {
+        // NDC [-1,1] — same mapping as vertex shader: clip_x = world_x / aspect.
+        let ndc_x = sx / self.surface_config.width as f32 * 2.0 - 1.0;
+        let ndc_y = 1.0 - sy / self.surface_config.height as f32 * 2.0;
+        // Shader: ndc_x = world_x / aspect → world_x = ndc_x * aspect
+        // Shader: ndc_y = world_y           → world_y = ndc_y
+        [ndc_x * (self.surface_config.width as f32 / self.surface_config.height as f32), ndc_y]
+    }
+
+    // Phase 4: Scroll wheel adjusts brush size in Draw mode.
+    pub fn scroll(&mut self, delta: f32) {
+        if self.mode == Mode::Draw {
+            self.brush_radius = (self.brush_radius + delta * 0.02).clamp(0.02, 0.5);
+        }
+    }
+
+    // Phase 4: Toggle between Drag and Draw mode.
+    pub fn toggle_mode(&mut self) {
+        self.mode = match self.mode {
+            Mode::Drag => Mode::Draw,
+            Mode::Draw => Mode::Drag,
+        };
+        self.dragging = None;
+        self.dragging_endpoint = None;
+        self.window.set_title(&format!(
+            "Particle Idle PoC | {} Mode | FPS: {:.0} | Particles: {}",
+            if self.mode == Mode::Drag {
+                "Drag"
+            } else {
+                "Draw"
+            },
+            self.fps_tracker.fps,
+            self.sim_params.particle_count,
+        ));
+    }
+
+    // Phase 4: Mouse movement handler.
+    pub fn mouse_move(&mut self, sx: f32, sy: f32) {
+        let world = self.screen_to_world(sx, sy);
+        self.mouse_world = world;
+
+        match self.mode {
+            Mode::Drag => {
+                // Update dragged machine position.
+                if let Some(idx) = self.dragging {
+                    self.reposition_machine(idx, world);
+                } else if let Some(ep) = self.dragging_endpoint {
+                    self.reposition_endpoint(ep, world);
+                }
+            }
+            Mode::Draw => {
+                // Paint SDF if mouse button held. Erase mode tracked from button.
+                if self.dragging.is_some() {
+                    self.paint_sdf(world, self.draw_erase);
+                }
+            }
+        }
+    }
+
+    // Phase 4: Mouse button handler.
+    pub fn mouse_button(&mut self, pressed: bool, secondary: bool) {
+        match self.mode {
+            Mode::Drag => {
+                if pressed && !secondary {
+                    // Check for conveyor endpoint hit first.
+                    if let Some(ep) = self.hit_test_endpoint(self.mouse_world) {
+                        self.dragging_endpoint = Some(ep);
+                        return;
+                    }
+                    // Check for machine OBB hit.
+                    if let Some(idx) = self.hit_test_machine(self.mouse_world) {
+                        self.dragging = Some(idx);
+                        return;
+                    }
+                }
+                if !pressed {
+                    self.dragging = None;
+                    self.dragging_endpoint = None;
+                }
+            }
+            Mode::Draw => {
+                if pressed {
+                    self.dragging = Some(0); // marker that we're drawing
+                    self.draw_erase = secondary;
+                    self.paint_sdf(self.mouse_world, secondary);
+                } else {
+                    self.dragging = None;
+                }
+            }
+        }
+    }
+
+    // Phase 4: Hit-test against conveyor endpoint handles.
+    fn hit_test_endpoint(&self, world: [f32; 2]) -> Option<u8> {
+        let handle_radius = 0.03; // visual grab handle radius in world units
+        let ea = self.conveyor_endpoints.endpoint_a;
+        let eb = self.conveyor_endpoints.endpoint_b;
+        let da = (world[0] - ea[0], world[1] - ea[1]);
+        let db = (world[0] - eb[0], world[1] - eb[1]);
+        if (da.0 * da.0 + da.1 * da.1) < handle_radius * handle_radius {
+            return Some(0);
+        }
+        if (db.0 * db.0 + db.1 * db.1) < handle_radius * handle_radius {
+            return Some(1);
+        }
+        None
+    }
+
+    // Phase 4: Hit-test against machine OBBs.
+    fn hit_test_machine(&self, world: [f32; 2]) -> Option<usize> {
+        for (i, def) in self.machines.iter().enumerate() {
+            // Skip paddles, only draggable machines have Rapier bodies.
+            if def.kind == MachineKind::Paddle {
+                continue;
+            }
+            let Some(body) = self.rapier.bodies.get(def.body_handle) else {
+                continue;
+            };
+            let pos = body.position();
+            let t = pos.translation;
+            let angle = pos.rotation.angle();
+            let (hw, hh) = match def.kind {
+                MachineKind::Conveyor => {
+                    let ea = self.conveyor_endpoints.endpoint_a;
+                    let eb = self.conveyor_endpoints.endpoint_b;
+                    let half = 0.5 * ((eb[0] - ea[0]).powi(2) + (eb[1] - ea[1]).powi(2)).sqrt();
+                    (CAPSULE_RADIUS, half)
+                }
+                MachineKind::Spawner => (0.06, 0.06),
+                _ => (SENSOR_HALF, SENSOR_HALF),
+            };
+            // Transform world point to machine-local.
+            let dx = world[0] - t.x;
+            let dy = world[1] - t.y;
+            let lx = dx * angle.cos() + dy * angle.sin();
+            let ly = -dx * angle.sin() + dy * angle.cos();
+            let margin = 0.02; // slight expansion for easier clicking
+            if lx.abs() < hw + margin && ly.abs() < hh + margin {
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    // Phase 4: Reposition a machine at a new world position.
+    fn reposition_machine(&mut self, idx: usize, world: [f32; 2]) {
+        let Some(body) = self.rapier.bodies.get_mut(self.machines[idx].body_handle) else {
+            return;
+        };
+        body.set_translation(Vec2::new(world[0], world[1]), true);
+    }
+
+    // Phase 4: Reposition a conveyor endpoint.
+    fn reposition_endpoint(&mut self, ep: u8, world: [f32; 2]) {
+        match ep {
+            0 => self.conveyor_endpoints.endpoint_a = world,
+            1 => self.conveyor_endpoints.endpoint_b = world,
+            _ => return,
+        }
+        self.rebuild_conveyor_rapier();
+    }
+
+    // Phase 4: Rebuild conveyor Rapier body from endpoints.
+    fn rebuild_conveyor_rapier(&mut self) {
+        let ea = self.conveyor_endpoints.endpoint_a;
+        let eb = self.conveyor_endpoints.endpoint_b;
+        let pivot = [(ea[0] + eb[0]) * 0.5, (ea[1] + eb[1]) * 0.5];
+        let dx = eb[0] - ea[0];
+        let dy = eb[1] - ea[1];
+        let angle = dy.atan2(dx);
+
+        if let Some(conveyor) = self
+            .machines
+            .iter()
+            .find(|d| d.kind == MachineKind::Conveyor)
+        {
+            let bh = conveyor.body_handle;
+            if let Some(body) = self.rapier.bodies.get_mut(bh) {
+                body.set_translation(Vec2::new(pivot[0], pivot[1]), true);
+                body.set_rotation(Rot2::new(angle), true);
+            }
+            // Remove old collider, then attach new one with updated dimensions.
+            // GPU-side collision uses capsule geometry from endpoints; Rapier
+            // collider only needed for CPU hit-test which doesn't apply here,
+            // so we skip collider rebuild and just update body transform.
+        }
+    }
+
+    // Phase 4: Paint/erase into the SDF grid with explicit brush radius.
+    fn paint_sdf_world(&mut self, world: [f32; 2], brush_radius: f32, erase: bool) {
+        let half_w = self.sim_params.wall_max_x;
+        let half_h = self.sim_params.wall_max_y;
+        let res = SDF_RES as f32;
+        let gx = ((world[0] + half_w) / (2.0 * half_w) * res) as i32;
+        let gy = ((world[1] + half_h) / (2.0 * half_h) * res) as i32;
+        let brush_px = (brush_radius / (2.0 * half_w) * res) as i32;
+
+        for dy in -brush_px..=brush_px {
+            for dx in -brush_px..=brush_px {
+                let px = gx + dx;
+                let py = gy + dy;
+                if px >= 0 && px < SDF_RES as i32 && py >= 0 && py < SDF_RES as i32 {
+                    if ((dx * dx + dy * dy) as f32).sqrt() <= brush_px as f32 {
+                        let idx = (py as u32 * SDF_RES + px as u32) as usize;
+                        if erase {
+                            self.sdf_grid[idx] = 1.0;
+                        } else {
+                            self.sdf_grid[idx] = -1.0;
+                        }
+                    }
+                }
+            }
+        }
+        self.sdf_dirty = true;
+    }
+
+    // Phase 4: Paint/erase into the SDF grid using current brush_radius.
+    fn paint_sdf(&mut self, world: [f32; 2], erase: bool) {
+        self.paint_sdf_world(world, self.brush_radius, erase);
+    }
+
+    fn upload_sdf_gpu(&mut self) {
+        let sdf_data = sdf_for_upload(&self.sdf_grid, SDF_RES);
+        let bytes = bytemuck::cast_slice(&sdf_data);
+        self.queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &self.buffers.sdf_tex,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            bytes,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(SDF_RES * 4),
+                rows_per_image: Some(SDF_RES),
+            },
+            wgpu::Extent3d {
+                width: SDF_RES,
+                height: SDF_RES,
+                depth_or_array_layers: 1,
+            },
+        );
+        self.queue.write_buffer(
+            &self.buffers.sdf_params_buf,
+            0,
+            bytemuck::bytes_of(&SdfParams {
+                resolution: SDF_RES,
+                world_min_x: self.sim_params.wall_min_x,
+                world_min_y: self.sim_params.wall_min_y,
+                world_max_x: self.sim_params.wall_max_x,
+                world_max_y: self.sim_params.wall_max_y,
+            }),
+        );
+        self.sdf_dirty = false;
+    }
+
+    fn spawn_particles(&mut self, positions: &[[f32; 2]], species: &[u32]) {
+        let count = positions.len().min(species.len()) as u32;
+        if count == 0 {
+            return;
+        }
+        let offset = u64::from(self.sim_params.particle_count);
+        let mut velocities = vec![[0.0f32; 2]; count as usize];
+        if self.sim_params.gravity != 0.0 {
+            for v in &mut velocities {
+                *v = [0.0, -0.5];
+            }
+        }
+        self.queue.write_buffer(
+            &self.buffers.positions,
+            offset * 8,
+            bytemuck::cast_slice(positions),
+        );
+        self.queue.write_buffer(
+            &self.buffers.velocities,
+            offset * 8,
+            bytemuck::cast_slice(&velocities),
+        );
+        self.queue.write_buffer(
+            &self.buffers.species,
+            offset * 4,
+            bytemuck::cast_slice(species),
+        );
+        self.sim_params.particle_count += count;
+    }
+
     #[allow(clippy::fn_params_excessive_bools)]
     pub fn new(
         window: Arc<Window>,
@@ -20,6 +316,7 @@ impl State {
         test_bond_break: bool,
         test_paddle_stability: bool,
         test_paddle_root_cause: bool,
+        test_sdf_bowl: bool,
         num_particles: u32,
         sub_steps: u32,
     ) -> Self {
@@ -88,21 +385,39 @@ impl State {
             mapped_at_creation: false,
         });
 
-        let (particle_bg, grid_bg) = create_bind_groups(
+        // Phase 4: Create SDF texture view and initialize grid.
+        let sdf_tex_view = buffers
+            .sdf_tex
+            .create_view(&wgpu::TextureViewDescriptor::default());
+        let sdf_viz_tex_view = buffers
+            .sdf_tex
+            .create_view(&wgpu::TextureViewDescriptor::default());
+        let sdf_grid = vec![1.0f32; (SDF_RES * SDF_RES) as usize]; // far outside = all white
+
+        let kill_bgl = create_kill_bgl(&device);
+        let (particle_bg, grid_bg, kill_bg) = create_bind_groups(
             &device,
             &buffers,
             &machine_params_buf,
             &particle_bgl,
             &grid_bgl,
+            &kill_bgl,
+            &sdf_tex_view,
         );
         let detection_bg =
             create_detection_bg(&device, &buffers, &machine_params_buf, &detection_bgl);
-        let pipelines = create_pipelines(&device, &particle_bgl, &grid_bgl, &detection_bgl);
+        let pipelines =
+            create_pipelines(&device, &particle_bgl, &grid_bgl, &kill_bgl, &detection_bgl);
         let render = create_render_state(&device, &buffers, surface_config.format);
+        let sdf_viz = create_sdf_viz_state(
+            &device,
+            &sdf_viz_tex_view,
+            surface_config.format,
+        );
 
         let sim_params = SimParams {
             particle_count: 0,
-            dt: 1.0 / 960.0,
+            dt: FIXED_DT / SUB_STEPS as f32,
             // Scaled so max free-fall speed (from full box height ≈ 1.5) is
             // sqrt(2·1.2·1.5) ≈ 1.9 ≈ one particle radius per substep — the
             // hard ceiling below which particles cannot tunnel through each
@@ -121,6 +436,9 @@ impl State {
             grid_height: GRID_H,
             disable_velocity_cap: 0,
             sub_steps,
+            kill_y: KILL_Y,
+            _pad_final: 0,
+            _pad_final2: 0,
         };
 
         // Initialize reaction matrix.
@@ -160,9 +478,33 @@ impl State {
         );
 
         // Create machine definitions, CPU state, and Rapier2D bodies.
-        let (machines, machines_cpu, rapier) = init_machines(rapier);
+        let conveyor_endpoints = ConveyorEndpoints::default();
+        let (machines, machines_cpu, rapier) = init_machines(rapier, &conveyor_endpoints);
+        let spawner_count = machines
+            .iter()
+            .filter(|d| d.kind == MachineKind::Spawner)
+            .count();
 
-        Self {
+        let kill_count_staging = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("kill_count_staging"),
+            size: 4,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let kill_indices_staging = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("kill_indices_staging"),
+            size: u64::from(MAX_KILLS_PER_FRAME) * 4,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let swap_scratch = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("swap_scratch"),
+            size: 32, // enough for 1 particle: pos(8) + vel(8) + prev(8) + species(4) = 28, round up
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
+        let mut state = Self {
             window,
             device,
             queue,
@@ -171,8 +513,10 @@ impl State {
             buffers,
             particle_bg,
             grid_bg,
+            kill_bg,
             pipelines,
             render,
+            sdf_viz,
             detection_bg,
             sim_params,
             fps_tracker: FpsTracker::new(),
@@ -185,6 +529,7 @@ impl State {
             test_bond_break,
             test_paddle_stability,
             test_paddle_root_cause,
+            test_sdf_bowl,
             test_phase: 0,
             test_report_done: false,
             diagnose,
@@ -203,7 +548,65 @@ impl State {
             phasing_staging: None,
             outlier_count_staging: None,
             phasing_count_staging: None,
+            sdf_grid,
+            sdf_dirty: false,
+            conveyor_endpoints,
+            mode: Mode::Drag,
+            mouse_world: [0.0, 0.0],
+            dragging: None,
+            dragging_endpoint: None,
+            draw_erase: false,
+            brush_radius: BRUSH_RADIUS,
+            last_frame: None,
+            spawner_next_fire: vec![Instant::now() + std::time::Duration::from_secs(10); spawner_count],
+            no_benchmark: false, // set by main.rs if --no-benchmark
+            physics_accumulator: 0.0,
+            kill_count_staging,
+            kill_indices_staging,
+            swap_scratch,
+            kill_data_pending: false,
+        };
+        // Reset fps_tracker.last_frame so first frame's wall-clock dt doesn't
+        // include GPU init time (otherwise first spawn batch fires ~15s late).
+        state.fps_tracker.last_frame = Instant::now();
+
+        // Phase 4: Upload initial SDF grid (128.0 = far from any wall) + params.
+        {
+            let sdf_data = vec![128.0f32; (SDF_RES * SDF_RES) as usize];
+            let bytes = bytemuck::cast_slice(&sdf_data);
+            state.queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &state.buffers.sdf_tex,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                bytes,
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(SDF_RES * 4),
+                    rows_per_image: Some(SDF_RES),
+                },
+                wgpu::Extent3d {
+                    width: SDF_RES,
+                    height: SDF_RES,
+                    depth_or_array_layers: 1,
+                },
+            );
+            state.queue.write_buffer(
+                &state.buffers.sdf_params_buf,
+                0,
+                bytemuck::bytes_of(&SdfParams {
+                    resolution: SDF_RES,
+                    world_min_x: state.sim_params.wall_min_x,
+                    world_min_y: state.sim_params.wall_min_y,
+                    world_max_x: state.sim_params.wall_max_x,
+                    world_max_y: state.sim_params.wall_max_y,
+                }),
+            );
         }
+
+        state
     }
 
     fn verify_stability(&mut self) -> bool {
@@ -539,14 +942,6 @@ impl State {
         );
     }
 
-    pub fn resize(&mut self, size: winit::dpi::PhysicalSize<u32>) {
-        if size.width > 0 && size.height > 0 {
-            self.surface_config.width = size.width;
-            self.surface_config.height = size.height;
-            self.surface.configure(&self.device, &self.surface_config);
-        }
-    }
-
     /// Capsule perimeter parameterization: given arc-length `s` along the
     /// perimeter, returns (`local_x`, `local_y`, `tangent_angle`) in capsule-local
     /// coordinates where the capsule is centered at origin, long axis along X.
@@ -587,22 +982,20 @@ impl State {
     }
 
     fn update_machines(&mut self) {
-        let dt = 1.0 / 60.0;
+        let dt = FIXED_DT;
         self.machine_time += dt;
 
-        // Read GPU counters from previous frame's compute pass.
-        // The copy (counters → staging) was submitted last frame in simulate().
-        // On frame 0 the staging is all zeros (fresh buffer) — safe no-op.
+        // Read GPU counters from previous simulate()'s compute pass.
         {
-            let slice = self.counters_staging.slice(..);
-            slice.map_async(wgpu::MapMode::Read, |_| {});
+            let counter_slice = self.counters_staging.slice(..);
+            counter_slice.map_async(wgpu::MapMode::Read, |_| {});
             self.device.poll(wgpu::Maintain::Wait);
-            let data = slice.get_mapped_range();
+
+            let data = counter_slice.get_mapped_range();
             let counters: &[u32] = bytemuck::cast_slice(&data[..self.machines.len() * 4]);
             for (i, cpu) in self.machines_cpu.iter_mut().enumerate() {
                 let eaten = counters.get(i).copied().unwrap_or(0);
                 cpu.consumed_this_frame = eaten;
-                // Conveyor has no recipe — skip tracking.
                 if cpu.recipe.input_count > 0 {
                     cpu.input_accumulated += eaten;
                     cpu.cycle_timer -= dt;
@@ -617,13 +1010,119 @@ impl State {
             self.counters_staging.unmap();
         }
 
-        // Reset GPU counters to zero for this frame's compute pass.
+        // Kill barrier swap-remove: only process when simulate() actually ran
+        // (staging data is only valid after a simulate() call).
+        if self.kill_data_pending {
+            self.kill_data_pending = false;
+
+            let kc_slice = self.kill_count_staging.slice(..);
+            kc_slice.map_async(wgpu::MapMode::Read, |_| {});
+            self.device.poll(wgpu::Maintain::Wait);
+            let kc_data = kc_slice.get_mapped_range();
+            let kill_count = u32::from_ne_bytes([kc_data[0], kc_data[1], kc_data[2], kc_data[3]])
+                .min(MAX_KILLS_PER_FRAME);
+            drop(kc_data);
+            self.kill_count_staging.unmap();
+
+            if kill_count > 0 {
+                let ki_slice = self.kill_indices_staging.slice(..u64::from(kill_count) * 4);
+                ki_slice.map_async(wgpu::MapMode::Read, |_| {});
+                self.device.poll(wgpu::Maintain::Wait);
+                let ki_data = ki_slice.get_mapped_range();
+                let killed: &[u32] = bytemuck::cast_slice(&ki_data);
+                let mut killed_vec: Vec<u32> = killed.to_vec();
+                drop(ki_data);
+                self.kill_indices_staging.unmap();
+
+                // Sort descending so swap source (last alive) is never a killed particle.
+                killed_vec.sort_unstable_by(|a, b| b.cmp(a));
+                killed_vec.dedup();
+
+                let mut encoder =
+                    self.device
+                        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                            label: Some("kill_swap"),
+                        });
+                for &dead_idx in &killed_vec {
+                    let pc = self.sim_params.particle_count;
+                    if dead_idx >= pc {
+                        continue;
+                    }
+                    let last_idx = pc - 1;
+                    if dead_idx < last_idx {
+                        let src_pos_off = u64::from(last_idx) * 8;
+                        let dst_off = u64::from(dead_idx) * 8;
+                        let src_spec_off = u64::from(last_idx) * 4;
+                        let dst_spec_off = u64::from(dead_idx) * 4;
+                        let src_bond_off = u64::from(last_idx) * 4 * size_of::<BondSlot>() as u64;
+                        let dst_bond_off =
+                            u64::from(dead_idx) * 4 * size_of::<BondSlot>() as u64;
+                        encoder.copy_buffer_to_buffer(
+                            &self.buffers.positions, src_pos_off,
+                            &self.swap_scratch, 0,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.swap_scratch, 0,
+                            &self.buffers.positions, dst_off,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.buffers.velocities, src_pos_off,
+                            &self.swap_scratch, 0,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.swap_scratch, 0,
+                            &self.buffers.velocities, dst_off,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.buffers.prev_positions, src_pos_off,
+                            &self.swap_scratch, 0,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.swap_scratch, 0,
+                            &self.buffers.prev_positions, dst_off,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.buffers.species, src_spec_off,
+                            &self.swap_scratch, 0,
+                            4,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.swap_scratch, 0,
+                            &self.buffers.species, dst_spec_off,
+                            4,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.buffers.bonds, src_bond_off,
+                            &self.swap_scratch, 0,
+                            32,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.swap_scratch, 0,
+                            &self.buffers.bonds, dst_bond_off,
+                            32,
+                        );
+                    }
+                    self.sim_params.particle_count -= 1;
+                }
+                self.queue.submit(std::iter::once(encoder.finish()));
+            }
+        }
+
+        // Reset GPU counters + kill count for this frame's compute pass.
         let zeros = [0u32; MAX_MACHINES as usize];
         self.queue.write_buffer(
             &self.buffers.machine_counters,
             0,
             bytemuck::cast_slice(&zeros),
         );
+        self.queue
+            .write_buffer(&self.buffers.kill_count_buf, 0, &[0u8; 4]);
 
         // Step Rapier2D to get updated transforms.
         self.rapier.integration_parameters.dt = dt;
@@ -642,11 +1141,29 @@ impl State {
             &(),
         );
 
-        // Capsule conveyor body stays at fixed angle — no rotation.
-        // Paddles orbit along capsule perimeter at CONVEYOR_SPEED.
-        let conveyor_angle = CONVEYOR_ANGLE_DEG.to_radians();
+        // Phase 4: Conveyor geometry from endpoints (not hardcoded angle).
+        let ea = self.conveyor_endpoints.endpoint_a;
+        let eb = self.conveyor_endpoints.endpoint_b;
+        let conv_half =
+            0.5 * ((eb[0] - ea[0]) * (eb[0] - ea[0]) + (eb[1] - ea[1]) * (eb[1] - ea[1])).sqrt();
+        let conveyor_angle = (eb[1] - ea[1]).atan2(eb[0] - ea[0]);
         let (c_cos, c_sin) = (conveyor_angle.cos(), conveyor_angle.sin());
-        let cap_perim = 2.0 * std::f32::consts::PI * CAPSULE_RADIUS + 4.0 * CAPSULE_HALF_LEN;
+
+        // Sync Rapier conveyor body to endpoint geometry every frame.
+        // This guarantees the body transform matches the visual endpoint positions
+        // regardless of drag timing vs physics step ordering.
+        let pivot = [(ea[0] + eb[0]) * 0.5, (ea[1] + eb[1]) * 0.5];
+        if let Some(conveyor) = self
+            .machines
+            .iter()
+            .find(|d| d.kind == MachineKind::Conveyor)
+            && let Some(body) = self.rapier.bodies.get_mut(conveyor.body_handle)
+        {
+            body.set_translation(Vec2::new(pivot[0], pivot[1]), true);
+            body.set_rotation(Rot2::new(conveyor_angle), true);
+        }
+
+        let cap_perim = 2.0 * std::f32::consts::PI * CAPSULE_RADIUS + 4.0 * conv_half;
         let paddle_phase =
             (self.machine_time * CONVEYOR_SPEED * cap_perim / std::f32::consts::TAU) % cap_perim;
 
@@ -665,11 +1182,11 @@ impl State {
             let pos = body.position();
             let t = pos.translation;
             let angle = pos.rotation.angle();
-            let (hw, hh) = if def.kind as u32 == 0 {
+            let (hw, hh) = if def.kind == MachineKind::Conveyor {
                 // Capsule body: interior of the tilted conveyor belt.
-                // Must match Rapier collider shape: half_width = CAPSULE_RADIUS,
-                // half_height = CAPSULE_HALF_LEN. Particles cannot pass through.
-                (CAPSULE_RADIUS, CAPSULE_HALF_LEN)
+                (CAPSULE_RADIUS, conv_half)
+            } else if def.kind == MachineKind::Spawner {
+                (0.06, 0.06)
             } else {
                 (SENSOR_HALF, SENSOR_HALF)
             };
@@ -683,7 +1200,7 @@ impl State {
                 kind: def.kind as u32,
                 input_species: def.input_species,
                 output_species: def.output_species,
-                angular_velocity: if def.kind as u32 == 0 {
+                angular_velocity: if def.kind == MachineKind::Conveyor {
                     CONVEYOR_SPEED
                 } else {
                     0.0
@@ -694,8 +1211,10 @@ impl State {
             let brightness = 0.6 + 0.4 * activity;
             let cb = cpu.color_base;
             // Render track slightly thinner than collision hull.
-            let (rhw, rhh) = if def.kind as u32 == 0 {
-                (CAPSULE_RADIUS * 0.8, CAPSULE_HALF_LEN)
+            let (rhw, rhh) = if def.kind == MachineKind::Conveyor {
+                (CAPSULE_RADIUS * 0.8, conv_half)
+            } else if def.kind == MachineKind::Spawner {
+                (hw * 0.9, hh * 0.9) // slightly smaller for border
             } else {
                 (hw, hh)
             };
@@ -721,13 +1240,12 @@ impl State {
         let paddle_push = PADDLE_HH * 0.9;
         for p in 0..PADDLE_COUNT {
             let s = (paddle_phase + p as f32 * cap_perim / PADDLE_COUNT as f32) % cap_perim;
-            let (pos, local_tangent) =
-                Self::capsule_perimeter_point(s, CAPSULE_HALF_LEN, CAPSULE_RADIUS);
+            let (pos, local_tangent) = Self::capsule_perimeter_point(s, conv_half, CAPSULE_RADIUS);
             let lx = pos[0];
             let ly = pos[1];
 
             // Outward normal in capsule-local space: direction from centerline to perimeter.
-            let nearest_lx = lx.clamp(-CAPSULE_HALF_LEN, CAPSULE_HALF_LEN);
+            let nearest_lx = lx.clamp(-conv_half, conv_half);
             let out_lx = lx - nearest_lx;
             let out_ly = ly; // centerline at y=0
             let out_len = (out_lx * out_lx + out_ly * out_ly).sqrt();
@@ -778,58 +1296,81 @@ impl State {
     }
 
     fn spawn(&mut self) {
-        let current = self.sim_params.particle_count;
-        let to_spawn = SPAWN_RATE.min(MAX_PARTICLES - current);
-        if to_spawn == 0 {
-            return;
-        }
+        // Phase 4: Spawner-based batched delivery using Instant-based timers.
+        let batch_size = SPAWNER_BATCH_SIZE;
 
-        let mut positions = Vec::with_capacity(to_spawn as usize);
-        let mut velocities = Vec::with_capacity(to_spawn as usize);
-        let mut species = Vec::with_capacity(to_spawn as usize);
+        // Count spawners (kind == Spawner).
+        let spawner_indices: Vec<(usize, u32)> = self
+            .machines
+            .iter()
+            .enumerate()
+            .filter(|(_, d)| d.kind == MachineKind::Spawner)
+            .map(|(i, d)| (i, d.output_species))
+            .collect();
 
-        let r = self.sim_params.particle_radius;
-        // Each hopper gets roughly half. Alternating which hopper fires first
-        // keeps the split even over time.
-        let left_count = to_spawn / 2;
-        let right_count = to_spawn - left_count;
+        let now = Instant::now();
+        let mut positions = Vec::new();
+        let mut velocities = Vec::new();
+        let mut species_vec = Vec::new();
 
-        // Helper: fill one hopper's row
-        let mut spawn_hopper = |count: u32, center_x: f32, half_w: f32, sp: u32| {
-            let hopper_width = 2.0 * half_w;
-            let spacing = hopper_width / count as f32;
-            let max_jitter = 0.5 * (spacing - 2.0 * r).max(0.0);
-            for i in 0..count {
-                let hash = (current + i + sp * SPAWN_RATE).wrapping_mul(0x9E37_79B9);
-                let jitter = (((hash >> 16) ^ hash) as f32 / u32::MAX as f32) - 0.5;
-                let t = (i as f32 + 0.5) / count as f32;
-                let x = center_x - half_w + t * hopper_width + jitter * max_jitter;
-                positions.push([x, HOPPER_Y]);
-                velocities.push([0.0f32, -0.5]);
-                species.push(sp);
+        for (spawner_idx, &(machine_idx, sp)) in spawner_indices.iter().enumerate() {
+            if spawner_idx >= self.spawner_next_fire.len() {
+                break;
             }
-        };
+            if now < self.spawner_next_fire[spawner_idx] {
+                continue;
+            }
 
-        spawn_hopper(left_count, HOPPER_LEFT_X, HOPPER_LEFT_HALF, 0);
-        spawn_hopper(right_count, HOPPER_RIGHT_X, HOPPER_RIGHT_HALF, 1);
+            let current = self.sim_params.particle_count;
+            let to_spawn = batch_size.min(MAX_PARTICLES - current);
+            if to_spawn == 0 {
+                continue;
+            }
+            self.spawner_next_fire[spawner_idx] = now + std::time::Duration::from_secs_f32(SPAWNER_INTERVAL);
 
-        let offset = u64::from(current);
-        self.queue.write_buffer(
-            &self.buffers.positions,
-            offset * 8,
-            bytemuck::cast_slice(&positions),
-        );
-        self.queue.write_buffer(
-            &self.buffers.velocities,
-            offset * 8,
-            bytemuck::cast_slice(&velocities),
-        );
-        self.queue.write_buffer(
-            &self.buffers.species,
-            offset * 4,
-            bytemuck::cast_slice(&species),
-        );
-        self.sim_params.particle_count = current + to_spawn;
+            let body = self
+                .rapier
+                .bodies
+                .get(self.machines[machine_idx].body_handle);
+            if let Some(body) = body {
+                let pos = body.position();
+                let cx = pos.translation.x;
+                let cy = pos.translation.y;
+                let hw = 0.06; // spawner half-width
+                let r = self.sim_params.particle_radius;
+                let spacing = (2.0 * hw) / to_spawn as f32;
+                let max_jitter = 0.5 * (spacing - 2.0 * r).max(0.0);
+                let start_offset = positions.len() as u32;
+                for i in 0..to_spawn {
+                    let hash = (current + i + sp * batch_size).wrapping_mul(0x9E37_79B9);
+                    let jitter = (((hash >> 16) ^ hash) as f32 / u32::MAX as f32) - 0.5;
+                    let t = (i as f32 + 0.5) / to_spawn as f32;
+                    let x = cx - hw + t * 2.0 * hw + jitter * max_jitter;
+                    positions.push([x, cy]);
+                    velocities.push([0.0f32, -0.5]);
+                    species_vec.push(sp);
+                }
+                let new_total = current + to_spawn;
+                let old_total = self.sim_params.particle_count;
+                self.sim_params.particle_count = new_total;
+                let offset = u64::from(old_total);
+                self.queue.write_buffer(
+                    &self.buffers.positions,
+                    offset * 8,
+                    bytemuck::cast_slice(&positions[(start_offset as usize)..]),
+                );
+                self.queue.write_buffer(
+                    &self.buffers.velocities,
+                    offset * 8,
+                    bytemuck::cast_slice(&velocities[(start_offset as usize)..]),
+                );
+                self.queue.write_buffer(
+                    &self.buffers.species,
+                    offset * 4,
+                    bytemuck::cast_slice(&species_vec[(start_offset as usize)..]),
+                );
+            }
+        }
     }
 
     fn spawn_all(&mut self) {
@@ -1235,6 +1776,7 @@ impl State {
             pass.set_pipeline(&self.pipelines.solve_bonds);
             pass.dispatch_workgroups(particle_wg, 1, 1);
 
+            pass.set_bind_group(2, &self.kill_bg, &[]);
             pass.set_pipeline(&self.pipelines.apply);
             pass.dispatch_workgroups(particle_wg, 1, 1);
         }
@@ -1329,7 +1871,23 @@ impl State {
             0,
             u64::from(MAX_MACHINES) * 4,
         );
+        // Copy kill barrier data → staging for next frame's CPU swap-remove.
+        encoder.copy_buffer_to_buffer(
+            &self.buffers.kill_count_buf,
+            0,
+            &self.kill_count_staging,
+            0,
+            4,
+        );
+        encoder.copy_buffer_to_buffer(
+            &self.buffers.kill_indices_buf,
+            0,
+            &self.kill_indices_staging,
+            0,
+            u64::from(MAX_KILLS_PER_FRAME) * 4,
+        );
         self.queue.submit(std::iter::once(encoder.finish()));
+        self.kill_data_pending = true;
     }
 
     fn read_outliers(&mut self, _frame: u32) -> (f32, usize) {
@@ -1390,9 +1948,157 @@ impl State {
         const WARMUP_FRAMES: u32 = 10;
         const BENCH_DURATION_SECS: f64 = 10.0;
 
-        self.update_machines();
+        {
+            let now = Instant::now();
+            let raw_dt = if let Some(prev) = self.last_frame {
+                now.duration_since(prev).as_secs_f32()
+            } else {
+                0.0
+            };
+            self.last_frame = Some(now);
+            self.physics_accumulator += raw_dt.min(FIXED_DT);
+        }
 
-        if self.test_bond_form || self.test_bond_constrain || self.test_bond_break {
+        // Phase 4: Upload SDF grid to GPU texture when dirty.
+        // Must run BEFORE simulate() — project.wgsl samples the texture in the compute pass.
+        if self.sdf_dirty {
+            let sdf_data = sdf_for_upload(&self.sdf_grid, SDF_RES);
+            let bytes = bytemuck::cast_slice(&sdf_data);
+            self.queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &self.buffers.sdf_tex,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                bytes,
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(SDF_RES * 4),
+                    rows_per_image: Some(SDF_RES),
+                },
+                wgpu::Extent3d {
+                    width: SDF_RES,
+                    height: SDF_RES,
+                    depth_or_array_layers: 1,
+                },
+            );
+            // SDF params are static — only write once per dirty cycle.
+            self.queue.write_buffer(
+                &self.buffers.sdf_params_buf,
+                0,
+                bytemuck::bytes_of(&SdfParams {
+                    resolution: SDF_RES,
+                    world_min_x: self.sim_params.wall_min_x,
+                    world_min_y: self.sim_params.wall_min_y,
+                    world_max_x: self.sim_params.wall_max_x,
+                    world_max_y: self.sim_params.wall_max_y,
+                }),
+            );
+            self.sdf_dirty = false;
+        }
+
+        let um_start = Instant::now();
+        self.update_machines();
+        let um_us = um_start.elapsed().as_micros();
+        if um_us > 2000 {
+            eprintln!(
+                "perf: update_machines={um_us}us pc={}",
+                self.sim_params.particle_count,
+            );
+        }
+
+        if self.test_sdf_bowl {
+            if self.test_phase == 0 {
+                let brush: f32 = 0.06;
+                let step: f32 = 0.005;
+                let cx: f32 = -0.30;
+                let cy: f32 = -0.55;
+                let rx: f32 = 0.32;
+                let ry: f32 = 0.15;
+                let rx_out = rx + brush;
+                let ry_out = ry + brush;
+                let rx_in: f32 = rx - brush;
+                let ry_in: f32 = ry - brush;
+
+                let y_min = cy - ry_out;
+                let x_min = cx - rx_out;
+                let x_max = cx + rx_out;
+
+                let mut y: f32 = y_min;
+                while y <= cy + brush * 0.5 {
+                    let dy_out = (y - cy) / ry_out;
+                    let dy_in = (y - cy) / ry_in;
+                    let xh_out = if dy_out.abs() <= 1.0 { rx_out * (1.0 - dy_out * dy_out).sqrt() } else { 0.0 };
+                    let xh_in  = if dy_in.abs()  <= 1.0 { rx_in  * (1.0 - dy_in  * dy_in).sqrt()  } else { 0.0 };
+                    if xh_out > 0.0 {
+                        let mut x: f32 = x_min;
+                        while x <= x_max {
+                            let dx = (x - cx).abs();
+                            if y <= cy && dx <= xh_out + brush * 0.3 && (xh_in < 0.01 || dx >= xh_in - brush * 0.3) {
+                                self.paint_sdf_world([x, y], brush, false);
+                            }
+                            x += step;
+                        }
+                    }
+                    y += step;
+                }
+                self.upload_sdf_gpu();
+
+                let count = 100u32;
+                let mut positions = Vec::with_capacity(count as usize);
+                let mut species = Vec::with_capacity(count as usize);
+                for i in 0..count {
+                    let a = (i as f32 / count as f32) * std::f32::consts::TAU;
+                    positions.push([cx + 0.06 * a.cos(), -0.48 + 0.04 * a.sin()]);
+                    species.push(1);
+                }
+                self.spawn_particles(&positions, &species);
+            }
+            self.fps_tracker.begin_frame();
+            self.device.poll(wgpu::Maintain::Wait);
+            self.simulate();
+
+            // Log particle positions every 10 frames.
+            if self.test_phase.is_multiple_of(10) {
+                let pc = self.sim_params.particle_count;
+                let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("pos_log_staging"),
+                    size: u64::from(pc) * 8,
+                    usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                    mapped_at_creation: false,
+                });
+                {
+                    let mut encoder = self
+                        .device
+                        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                            label: Some("pos_log"),
+                        });
+                    encoder.copy_buffer_to_buffer(
+                        &self.buffers.positions,
+                        0,
+                        &staging,
+                        0,
+                        u64::from(pc) * 8,
+                    );
+                    self.queue.submit(std::iter::once(encoder.finish()));
+                }
+                let slice = staging.slice(..);
+                slice.map_async(wgpu::MapMode::Read, |r| r.expect("map pos log"));
+                self.device.poll(wgpu::Maintain::Wait);
+                let data = slice.get_mapped_range();
+                let positions: &[[f32; 2]] = bytemuck::cast_slice(&data[..pc as usize * 8]);
+                let mut log_line = format!("frame {:>5}: ", self.test_phase);
+                for (i, p) in positions.iter().enumerate() {
+                    log_line.push_str(&format!("  p{i}=({:.4},{:.4})", p[0], p[1]));
+                }
+                eprintln!("{log_line}");
+                drop(data);
+                staging.unmap();
+            }
+
+            self.test_phase += 1;
+        } else if self.test_bond_form || self.test_bond_constrain || self.test_bond_break {
             self.fps_tracker.begin_frame();
             self.device.poll(wgpu::Maintain::Wait);
             let null_machines = MachineParams::default();
@@ -1417,7 +2123,6 @@ impl State {
                 self.test_setup();
             }
             self.test_phase += 1;
-            self.update_machines();
             if self.bench_frame == WARMUP_FRAMES {
                 self.bench_start = Some(Instant::now());
             }
@@ -1470,7 +2175,20 @@ impl State {
         } else {
             self.fps_tracker.begin_frame();
             self.spawn();
-            self.simulate();
+            let sim_start = Instant::now();
+            let mut sim_count = 0u32;
+            while self.physics_accumulator >= FIXED_DT {
+                self.simulate();
+                self.physics_accumulator -= FIXED_DT;
+                sim_count += 1;
+            }
+            let sim_us = sim_start.elapsed().as_micros();
+            if sim_count > 0 && sim_us > 2000 {
+                eprintln!(
+                    "perf: sim={sim_us}us ({sim_count}x) pc={}",
+                    self.sim_params.particle_count,
+                );
+            }
         }
 
         if self.diagnose {
@@ -1483,11 +2201,16 @@ impl State {
             }
         }
 
+        let cursor_active = u32::from(self.mode == Mode::Draw);
         let render_params = RenderParams {
             screen_width: self.surface_config.width as f32,
             screen_height: self.surface_config.height as f32,
             particle_radius: self.sim_params.particle_radius,
             particle_count: self.sim_params.particle_count,
+            cursor_x: self.mouse_world[0],
+            cursor_y: self.mouse_world[1],
+            cursor_radius: self.brush_radius,
+            cursor_active,
         };
         self.queue.write_buffer(
             &self.render.params_buf,
@@ -1545,11 +2268,33 @@ impl State {
                 pass.draw(0..machine_count * 6, 0..1);
             }
 
-            // Draw particles on top.
-            if self.sim_params.particle_count > 0 {
+            // SDF wall visualization overlay (between machines and particles).
+            {
+                let viz_params = SdfVizParams {
+                    screen_width: self.surface_config.width as f32,
+                    screen_height: self.surface_config.height as f32,
+                    world_min_x: self.sim_params.wall_min_x,
+                    world_min_y: self.sim_params.wall_min_y,
+                    world_max_x: self.sim_params.wall_max_x,
+                    world_max_y: self.sim_params.wall_max_y,
+                };
+                self.queue.write_buffer(
+                    &self.sdf_viz.params_buf,
+                    0,
+                    bytemuck::bytes_of(&viz_params),
+                );
+                pass.set_pipeline(&self.sdf_viz.pipeline);
+                pass.set_bind_group(0, &self.sdf_viz.bind_group, &[]);
+                pass.draw(0..6, 0..1); // full-screen quad
+            }
+
+            // Draw particles on top (plus cursor quad when in Draw mode).
+            let cursor_verts = if cursor_active != 0 { 6u32 } else { 0u32 };
+            let total_verts = self.sim_params.particle_count * 6 + cursor_verts;
+            if total_verts > 0 {
                 pass.set_pipeline(&self.render.pipeline);
                 pass.set_bind_group(0, &self.render.bind_group, &[]);
-                pass.draw(0..self.sim_params.particle_count * 6, 0..1);
+                pass.draw(0..total_verts, 0..1);
             }
         }
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -1583,8 +2328,10 @@ impl State {
                 self.bench_done = true;
             }
         } else if self.fps_tracker.end_frame() {
+            let mode_str = if self.mode == Mode::Drag { "Drag" } else { "Draw" };
             self.window.set_title(&format!(
-                "Particle Idle PoC | FPS: {:.0} | Particles: {} | Sim: {:.2}ms",
+                "Particle Idle PoC | {} | FPS: {:.0} | Particles: {} | Sim: {:.2}ms",
+                mode_str,
                 self.fps_tracker.fps, self.sim_params.particle_count, self.fps_tracker.sim_time_ms,
             ));
         }

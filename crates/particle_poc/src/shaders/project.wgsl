@@ -38,12 +38,22 @@ struct MachineParams {
     machines: array<Machine, MAX_MACHINES>,
 }
 
+struct SdfParams {
+    resolution: u32,
+    world_min_x: f32,
+    world_min_y: f32,
+    world_max_x: f32,
+    world_max_y: f32,
+}
+
 @group(0) @binding(0) var<storage, read_write> positions: array<vec2<f32>>;
 @group(0) @binding(1) var<storage, read_write> velocities: array<vec2<f32>>;
 @group(0) @binding(3) var<storage, read_write> corrections: array<vec2<f32>>;
 @group(0) @binding(4) var<storage, read_write> prev_positions: array<vec2<f32>>;
 @group(0) @binding(7) var<uniform> params: Params;
 @group(0) @binding(8) var<storage, read> machine_params: MachineParams;
+@group(0) @binding(11) var sdf_tex: texture_2d<f32>;
+@group(0) @binding(12) var<uniform> sdf_params: SdfParams;
 
 @group(1) @binding(0) var<storage, read_write> cell_indices: array<u32>;
 @group(1) @binding(1) var<storage, read_write> cell_counts: array<u32>;
@@ -268,6 +278,35 @@ fn project(@builtin(global_invocation_id) id: vec3<u32>) {
     corrections[i] = correction;
 }
 
+// SDF sampling for apply-pass wall enforcement (bilinear interpolation).
+fn sample_sdf_apply(pos: vec2<f32>) -> f32 {
+    let inv_w = 1.0 / (sdf_params.world_max_x - sdf_params.world_min_x);
+    let inv_h = 1.0 / (sdf_params.world_max_y - sdf_params.world_min_y);
+    let u = clamp((pos.x - sdf_params.world_min_x) * inv_w, 0.0, 1.0);
+    let v = clamp((pos.y - sdf_params.world_min_y) * inv_h, 0.0, 1.0);
+    let sres = f32(sdf_params.resolution);
+    let px = u * sres - 0.5;
+    let py = v * sres - 0.5;
+    let max_i = i32(sdf_params.resolution) - 1;
+    let x0 = u32(clamp(i32(floor(px)), 0, max_i));
+    let y0 = u32(clamp(i32(floor(py)), 0, max_i));
+    let x1 = u32(clamp(i32(x0) + 1, 0, max_i));
+    let y1 = u32(clamp(i32(y0) + 1, 0, max_i));
+    let fx = clamp(px - floor(px), 0.0, 1.0);
+    let fy = clamp(py - floor(py), 0.0, 1.0);
+    let v00 = textureLoad(sdf_tex, vec2<u32>(x0, y0), 0).x;
+    let v10 = textureLoad(sdf_tex, vec2<u32>(x1, y0), 0).x;
+    let v01 = textureLoad(sdf_tex, vec2<u32>(x0, y1), 0).x;
+    let v11 = textureLoad(sdf_tex, vec2<u32>(x1, y1), 0).x;
+    return mix(mix(v00, v10, fx), mix(v01, v11, fx), fy);
+}
+
+fn sdf_gradient_apply(pos: vec2<f32>, eps: f32) -> vec2<f32> {
+    let gx = sample_sdf_apply(pos + vec2(eps, 0.0)) - sample_sdf_apply(pos - vec2(eps, 0.0));
+    let gy = sample_sdf_apply(pos + vec2(0.0, eps)) - sample_sdf_apply(pos - vec2(0.0, eps));
+    return vec2(gx, gy);
+}
+
 // Apply unified PBD correction, clamp walls, recompute velocity.
 // Safety velocity cap defaults on; optional disable for root-cause testing.
 const MAX_SPEED: f32 = 1.9;
@@ -282,6 +321,27 @@ fn apply(@builtin(global_invocation_id) id: vec3<u32>) {
 
     var pos = positions[i] + corrections[i];
 
+    // SDF wall enforcement after corrections — prevents machine/particle
+    // corrections from pushing particles into painted walls.
+    // Try gradient push, verify result. If push failed, revert.
+    let cell_size = (sdf_params.world_max_x - sdf_params.world_min_x) / f32(sdf_params.resolution);
+    let r_texels = r / cell_size;
+    {
+        let d = sample_sdf_apply(pos);
+        if d < r_texels {
+            let grad = sdf_gradient_apply(pos, cell_size);
+            let glen = length(grad);
+            if glen > 1e-6 {
+                let n = grad / glen;
+                pos += n * (r_texels - d) * cell_size;
+            }
+            let d2 = sample_sdf_apply(pos);
+            if d2 < r_texels {
+                pos = prev;
+            }
+        }
+    }
+
     // Wall clamp.
     pos.x = clamp(pos.x, params.wall_min_x + r, params.wall_max_x - r);
     pos.y = clamp(pos.y, params.wall_min_y + r, params.wall_max_y - r);
@@ -292,6 +352,15 @@ fn apply(@builtin(global_invocation_id) id: vec3<u32>) {
         let speed = length(v);
         if speed > MAX_SPEED {
             pos = prev + (v / speed) * MAX_SPEED * params.dt;
+        }
+    }
+
+    // Final SDF safety: if wall clamp or velocity cap moved particle into
+    // wall, revert to pre-correction position as last resort.
+    {
+        let d_final = sample_sdf_apply(pos);
+        if d_final < r_texels {
+            pos = prev;
         }
     }
 

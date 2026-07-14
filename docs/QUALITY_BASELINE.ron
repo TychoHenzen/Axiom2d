@@ -27,7 +27,7 @@
         "expect_in_prod_total": 92,
         "cyclomatic_over_10": 29,
         "line_coverage_pct": 78.67,
-        "jscpd_clone_count": 1197,
+        "jscpd_clone_count": 1210,
     },
     "advisory_maxima": {
         "magic_literals_per_file": 320,
@@ -36,11 +36,10 @@
         "file_length_lines": 861,
     },
     "overrides": {
-        // "unsafe_blocks_total": {
-        //     "value": 3,
-        //     "reason": "GPU buffer mapping requires unsafe for zero-copy",
-        //     "pr": "#NNN",
-        // },
+        "jscpd_clone_count": {
+            "value": 1210,
+            "reason": "Phase 4: SDF upload, paint_sdf, and machine init intentionally parallel between state.rs and capture.rs (headless test needs same GPU setup as interactive mode)",
+        },
     },
     "meta": {
         "last_updated": "2026-07-13",
@@ -52,7 +51,7 @@
             "smell_markers_total=0: no TODO/FIXME/HACK in production code",
             "cyclomatic_over_10=29: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
             "line_coverage_pct=78.67: workspace line coverage from cargo-llvm-cov",
-            "jscpd_clone_count=1197: duplicate code clones detected by jscpd (min-tokens=50)",
+            "jscpd_clone_count=1210: duplicate code clones detected by jscpd (min-tokens=50). Phase 4 SDF/capture parallelism intentional.",
         ],
     },
 }

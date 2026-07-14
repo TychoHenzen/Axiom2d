@@ -11,8 +11,7 @@ pub const WINDOW_WIDTH: u32 = 1280;
 pub const WINDOW_HEIGHT: u32 = 720;
 pub const MAX_PARTICLES: u32 = 100000;
 pub const WORKGROUP_SIZE: u32 = 256;
-pub const SPAWN_RATE: u32 = 130;
-// Two hoppers: Red on left, Blue on right. Particles meet in center where mixer spins.
+// Phase 4: spawners replace old hopper system (SPAWNER_BATCH_SIZE + SPAWNER_INTERVAL).
 pub const HOPPER_LEFT_X: f32 = -0.45;
 pub const HOPPER_LEFT_HALF: f32 = 0.2;
 pub const HOPPER_RIGHT_X: f32 = 0.45;
@@ -21,8 +20,12 @@ pub const HOPPER_Y: f32 = 0.75;
 pub const GRID_W: u32 = 256;
 pub const GRID_H: u32 = 256;
 pub const TOTAL_GRID_CELLS: u32 = GRID_W * GRID_H;
-// 8 substeps of dt=1/480 = exactly 1/60s per frame.
 pub const SUB_STEPS: u32 = 16;
+/// Fixed physics timestep — simulation always advances in 1/60s increments.
+/// Per-substep dt = `FIXED_DT` / `SUB_STEPS` (GPU and Rapier both use this).
+pub const FIXED_DT: f32 = 1.0 / 60.0;
+/// Max particles that can be killed in a single frame (ring buffer size for GPU→CPU swap-remove).
+pub const MAX_KILLS_PER_FRAME: u32 = 4096;
 
 pub const MAX_SPECIES: u32 = 8;
 pub const MAX_MACHINES: u32 = 16;
@@ -52,6 +55,92 @@ pub const BOND_COMPLIANCE: f32 = 0.04;
 
 pub const MAX_OUTLIERS: u32 = 64;
 pub const MAX_PHASING: u32 = 32;
+
+// Phase 4: Spawner + SDF + Kill barrier constants
+pub const SPAWNER_BATCH_SIZE: u32 = 1000;
+pub const SPAWNER_INTERVAL: f32 = 60.0;
+pub const SDF_RES: u32 = 256;
+pub const KILL_Y: f32 = -0.8;
+pub const BRUSH_RADIUS: f32 = 0.15;
+
+/// Convert a binary occupancy grid (negative = wall, positive = free)
+/// into a signed distance field with distances in texel units.
+/// Uses BFS from boundary cells for approximate EDT.
+/// Positive = free space distance to wall, negative = depth inside wall.
+pub fn compute_distance_field(grid: &mut [f32], res: u32) {
+    use std::collections::VecDeque;
+
+    let n = (res * res) as usize;
+    let mut dist = vec![f32::MAX; n];
+    let mut queue = VecDeque::with_capacity(n / 4);
+    let res_i = res as i32;
+
+    // Seed boundary cells: any cell adjacent to a cell of opposite sign.
+    for y in 0..res_i {
+        for x in 0..res_i {
+            let idx = (y as u32 * res + x as u32) as usize;
+            let inside = grid[idx] < 0.0;
+            let mut on_boundary = false;
+            for &(dx, dy) in &[(1i32, 0i32), (-1, 0), (0, 1), (0, -1)] {
+                let nx = x + dx;
+                let ny = y + dy;
+                if nx >= 0 && nx < res_i && ny >= 0 && ny < res_i {
+                    let ni = (ny as u32 * res + nx as u32) as usize;
+                    if (grid[ni] < 0.0) != inside {
+                        on_boundary = true;
+                        break;
+                    }
+                }
+            }
+            if on_boundary {
+                dist[idx] = 0.5;
+                queue.push_back((x as u32, y as u32));
+            }
+        }
+    }
+
+    // BFS propagation with 8-connectivity.
+    while let Some((x, y)) = queue.pop_front() {
+        let idx = (y * res + x) as usize;
+        let d = dist[idx];
+        for &(dx, dy) in &[
+            (1i32, 0i32), (-1, 0), (0, 1), (0, -1),
+            (1, 1), (1, -1), (-1, 1), (-1, -1),
+        ] {
+            let nx = x as i32 + dx;
+            let ny = y as i32 + dy;
+            if nx < 0 || nx >= res_i || ny < 0 || ny >= res_i {
+                continue;
+            }
+            let ni = (ny as u32 * res + nx as u32) as usize;
+            let step = if dx.abs() + dy.abs() > 1 {
+                std::f32::consts::SQRT_2
+            } else {
+                1.0
+            };
+            let nd = d + step;
+            if nd < dist[ni] {
+                dist[ni] = nd;
+                queue.push_back((nx as u32, ny as u32));
+            }
+        }
+    }
+
+    // Apply sign: negative inside wall, positive in free space.
+    for i in 0..n {
+        let sign = if grid[i] < 0.0 { -1.0 } else { 1.0 };
+        grid[i] = sign * dist[i];
+    }
+}
+
+/// Compute distance field on a copy of the binary grid, returning the
+/// SDF-ready data for GPU upload. Leaves the original grid unchanged
+/// so further painting works on binary values.
+pub fn sdf_for_upload(grid: &[f32], res: u32) -> Vec<f32> {
+    let mut copy = grid.to_vec();
+    compute_distance_field(&mut copy, res);
+    copy
+}
 
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
@@ -94,6 +183,9 @@ pub struct SimParams {
     pub grid_height: u32,
     pub disable_velocity_cap: u32,
     pub sub_steps: u32,
+    pub kill_y: f32,
+    pub _pad_final: u32,  // wgpu 24.x uniform alignment
+    pub _pad_final2: u32, // wgpu 24.x uniform alignment
 }
 
 #[repr(u32)]
@@ -104,6 +196,7 @@ pub enum MachineKind {
     Grinder = 1,
     Heater = 2,
     Paddle = 3,
+    Spawner = 4,
 }
 
 // GPU-compatible machine uniform (must match WGSL Machine struct layout).
@@ -193,6 +286,10 @@ pub struct RenderParams {
     pub screen_height: f32,
     pub particle_radius: f32,
     pub particle_count: u32,
+    pub cursor_x: f32,
+    pub cursor_y: f32,
+    pub cursor_radius: f32,
+    pub cursor_active: u32,
 }
 
 // GPU-compatible machine render data (must match WGSL MachineRender struct).
@@ -234,6 +331,61 @@ pub struct MachineRenderParams {
     pub machine_count: u32,
 }
 
+// Phase 4: SDF wall params — matched by WGSL SdfParams struct.
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+pub struct SdfParams {
+    pub resolution: u32,
+    pub world_min_x: f32,
+    pub world_min_y: f32,
+    pub world_max_x: f32,
+    pub world_max_y: f32,
+}
+
+// SDF visualization overlay params (matched by sdf_viz.wgsl).
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+pub struct SdfVizParams {
+    pub screen_width: f32,
+    pub screen_height: f32,
+    pub world_min_x: f32,
+    pub world_min_y: f32,
+    pub world_max_x: f32,
+    pub world_max_y: f32,
+}
+
+// Phase 4: Conveyor endpoint state for drag interaction.
+#[derive(Copy, Clone)]
+pub struct ConveyorEndpoints {
+    pub endpoint_a: [f32; 2],
+    pub endpoint_b: [f32; 2],
+}
+
+impl Default for ConveyorEndpoints {
+    fn default() -> Self {
+        let angle = CONVEYOR_ANGLE_DEG.to_radians();
+        let (s, c) = (angle.sin(), angle.cos());
+        let pivot = [0.0f32, -0.22f32];
+        Self {
+            endpoint_a: [
+                pivot[0] - c * CAPSULE_HALF_LEN,
+                pivot[1] - s * CAPSULE_HALF_LEN,
+            ],
+            endpoint_b: [
+                pivot[0] + c * CAPSULE_HALF_LEN,
+                pivot[1] + s * CAPSULE_HALF_LEN,
+            ],
+        }
+    }
+}
+
+// Phase 4: Input modes.
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum Mode {
+    Drag,
+    Draw,
+}
+
 pub fn parse_flag_arg(name: &str, default: u32) -> u32 {
     let mut args = std::env::args();
     while let Some(arg) = args.next() {
@@ -270,6 +422,12 @@ pub struct Buffers {
     pub outlier_count_buf: wgpu::Buffer,
     pub phasing_buf: wgpu::Buffer,
     pub phasing_count_buf: wgpu::Buffer,
+    // Phase 4: SDF wall texture + params.
+    pub sdf_tex: wgpu::Texture,
+    pub sdf_params_buf: wgpu::Buffer,
+    // Kill barrier: atomic counter + ring buffer (GPU writes killed indices, CPU swap-removes).
+    pub kill_count_buf: wgpu::Buffer,
+    pub kill_indices_buf: wgpu::Buffer,
 }
 
 pub struct ComputePipelines {
@@ -294,6 +452,12 @@ pub struct MachineRenderState {
     pub bind_group: wgpu::BindGroup,
     pub params_buf: wgpu::Buffer,
     pub data_buf: wgpu::Buffer,
+}
+
+pub struct SdfVizState {
+    pub pipeline: wgpu::RenderPipeline,
+    pub bind_group: wgpu::BindGroup,
+    pub params_buf: wgpu::Buffer,
 }
 
 pub struct RenderState {
@@ -329,8 +493,10 @@ pub struct State {
     pub buffers: Buffers,
     pub particle_bg: wgpu::BindGroup,
     pub grid_bg: wgpu::BindGroup,
+    pub kill_bg: wgpu::BindGroup,
     pub pipelines: ComputePipelines,
     pub render: RenderState,
+    pub sdf_viz: SdfVizState,
     pub detection_bg: wgpu::BindGroup,
     pub sim_params: SimParams,
     pub fps_tracker: FpsTracker,
@@ -343,6 +509,7 @@ pub struct State {
     pub test_bond_break: bool,
     pub test_paddle_stability: bool,
     pub test_paddle_root_cause: bool,
+    pub test_sdf_bowl: bool,
     pub test_phase: u32,
     pub test_report_done: bool,
     pub diagnose: bool,
@@ -361,6 +528,30 @@ pub struct State {
     pub phasing_staging: Option<wgpu::Buffer>,
     pub outlier_count_staging: Option<wgpu::Buffer>,
     pub phasing_count_staging: Option<wgpu::Buffer>,
+    // Phase 4: SDF walls.
+    pub sdf_grid: Vec<f32>,
+    pub sdf_dirty: bool,
+    // Phase 4: Conveyor endpoints.
+    pub conveyor_endpoints: ConveyorEndpoints,
+    // Phase 4: Input mode + drag state.
+    pub mode: Mode,
+    pub mouse_world: [f32; 2],
+    pub dragging: Option<usize>,       // machine index being dragged
+    pub dragging_endpoint: Option<u8>, // 0 = endpoint_a, 1 = endpoint_b
+    pub draw_erase: bool,              // true = erasing, false = painting in Draw mode
+    pub brush_radius: f32,             // current brush radius (adjusted by scroll)
+    pub last_frame: Option<Instant>,   // real wall-clock frame time
+    // Phase 4: Spawner timers (per-spawner Instant for wall-clock batching).
+    pub spawner_next_fire: Vec<Instant>,
+    pub no_benchmark: bool,
+    /// Fixed-timestep accumulator — when >= `FIXED_DT`, we step physics.
+    pub physics_accumulator: f32,
+    /// Staging buffers for kill barrier GPU→CPU readback.
+    pub kill_count_staging: wgpu::Buffer,
+    pub kill_indices_staging: wgpu::Buffer,
+    /// Scratch buffer for swap-remove: holds one particle's data (pos+vel+prev = 24 bytes).
+    pub swap_scratch: wgpu::Buffer,
+    pub kill_data_pending: bool,
 }
 
 pub struct FpsTracker {
@@ -368,7 +559,7 @@ pub struct FpsTracker {
     frame_count: u32,
     fps: f32,
     sim_time_ms: f32,
-    last_frame: Instant,
+    pub last_frame: Instant,
 }
 
 impl Default for FpsTracker {
@@ -408,6 +599,19 @@ impl FpsTracker {
     }
 }
 
+pub fn sdf_texture_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
+    wgpu::BindGroupLayoutEntry {
+        binding,
+        visibility: wgpu::ShaderStages::COMPUTE,
+        ty: wgpu::BindingType::Texture {
+            sample_type: wgpu::TextureSampleType::Float { filterable: false },
+            view_dimension: wgpu::TextureViewDimension::D2,
+            multisampled: false,
+        },
+        count: None,
+    }
+}
+
 pub fn create_buffers(device: &wgpu::Device) -> Buffers {
     let particle_storage = wgpu::BufferUsages::STORAGE
         | wgpu::BufferUsages::COPY_DST
@@ -439,7 +643,9 @@ pub fn create_buffers(device: &wgpu::Device) -> Buffers {
         prev_positions: device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("prev_positions"),
             size: u64::from(MAX_PARTICLES) * 8,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         }),
         species: device.create_buffer(&wgpu::BufferDescriptor {
@@ -536,6 +742,42 @@ pub fn create_buffers(device: &wgpu::Device) -> Buffers {
                 | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         }),
+        sdf_tex: device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("sdf_tex"),
+            size: wgpu::Extent3d {
+                width: SDF_RES,
+                height: SDF_RES,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::R32Float,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::COPY_SRC,
+            view_formats: &[],
+        }),
+        sdf_params_buf: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("sdf_params"),
+            size: size_of::<SdfParams>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        }),
+        kill_count_buf: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("kill_count"),
+            size: 4,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        }),
+        kill_indices_buf: device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("kill_indices"),
+            size: u64::from(MAX_KILLS_PER_FRAME) * 4,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        }),
     }
 }
 
@@ -578,6 +820,8 @@ pub fn create_particle_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
             storage_entry(8, true),   // machine_params (read-only storage)
             storage_entry(9, true),   // reaction_matrix (read-only storage)
             storage_entry(10, false), // bonds (flat array, 4 slots per particle)
+            sdf_texture_entry(11),    // sdf_tex (float texture, read-only)
+            uniform_entry(12),        // sdf_params
         ],
     })
 }
@@ -612,13 +856,25 @@ pub fn create_grid_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     })
 }
 
+pub fn create_kill_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("kill_bgl"),
+        entries: &[
+            storage_entry(0, false), // kill_count (atomic<u32>)
+            storage_entry(1, false), // kill_indices (array<u32>)
+        ],
+    })
+}
+
 pub fn create_bind_groups(
     device: &wgpu::Device,
     buffers: &Buffers,
     machine_params_buf: &wgpu::Buffer,
     particle_bgl: &wgpu::BindGroupLayout,
     grid_bgl: &wgpu::BindGroupLayout,
-) -> (wgpu::BindGroup, wgpu::BindGroup) {
+    kill_bgl: &wgpu::BindGroupLayout,
+    sdf_tex_view: &wgpu::TextureView,
+) -> (wgpu::BindGroup, wgpu::BindGroup, wgpu::BindGroup) {
     let particle_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("particle_bg"),
         layout: particle_bgl,
@@ -659,6 +915,14 @@ pub fn create_bind_groups(
                 binding: 10,
                 resource: buffers.bonds.as_entire_binding(),
             },
+            wgpu::BindGroupEntry {
+                binding: 11,
+                resource: wgpu::BindingResource::TextureView(sdf_tex_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 12,
+                resource: buffers.sdf_params_buf.as_entire_binding(),
+            },
         ],
     });
     let grid_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -691,7 +955,21 @@ pub fn create_bind_groups(
             },
         ],
     });
-    (particle_bg, grid_bg)
+    let kill_bg = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("kill_bg"),
+        layout: kill_bgl,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: buffers.kill_count_buf.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: buffers.kill_indices_buf.as_entire_binding(),
+            },
+        ],
+    });
+    (particle_bg, grid_bg, kill_bg)
 }
 
 pub fn make_compute_pipeline(
@@ -761,6 +1039,7 @@ pub fn create_pipelines(
     device: &wgpu::Device,
     particle_bgl: &wgpu::BindGroupLayout,
     grid_bgl: &wgpu::BindGroupLayout,
+    kill_bgl: &wgpu::BindGroupLayout,
     detection_bgl: &wgpu::BindGroupLayout,
 ) -> ComputePipelines {
     let integrate_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -771,6 +1050,11 @@ pub fn create_pipelines(
     let spatial_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("spatial_pl"),
         bind_group_layouts: &[particle_bgl, grid_bgl],
+        push_constant_ranges: &[],
+    });
+    let apply_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("apply_pl"),
+        bind_group_layouts: &[particle_bgl, grid_bgl, kill_bgl],
         push_constant_ranges: &[],
     });
     let detection_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -841,7 +1125,7 @@ pub fn create_pipelines(
             "project",
             "project",
         ),
-        apply: make_compute_pipeline(device, &spatial_layout, &project_shader, "apply", "apply"),
+        apply: make_compute_pipeline(device, &apply_layout, &project_shader, "apply", "apply"),
         reaction: make_compute_pipeline(
             device,
             &spatial_layout,
@@ -1130,20 +1414,126 @@ fn create_machine_render_state(
     }
 }
 
+pub fn create_sdf_viz_state(
+    device: &wgpu::Device,
+    sdf_tex_view: &wgpu::TextureView,
+    format: wgpu::TextureFormat,
+) -> SdfVizState {
+    let params_buf = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("sdf_viz_params"),
+        size: size_of::<SdfVizParams>() as u64,
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+
+    let bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("sdf_viz_bgl"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    });
+
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("sdf_viz_bg"),
+        layout: &bgl,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(sdf_tex_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: params_buf.as_entire_binding(),
+            },
+        ],
+    });
+
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("sdf_viz_pl"),
+        bind_group_layouts: &[&bgl],
+        push_constant_ranges: &[],
+    });
+
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("sdf_viz"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/sdf_viz.wgsl").into()),
+    });
+
+    let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("sdf_viz"),
+        layout: Some(&pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: Some("vs_main"),
+            buffers: &[],
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: Some("fs_main"),
+            targets: &[Some(wgpu::ColorTargetState {
+                format,
+                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+        }),
+        primitive: wgpu::PrimitiveState {
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            ..Default::default()
+        },
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview: None,
+        cache: None,
+    });
+
+    SdfVizState {
+        pipeline,
+        bind_group,
+        params_buf,
+    }
+}
+
 pub fn init_machines(
     mut rapier: RapierState,
+    endpoints: &ConveyorEndpoints,
 ) -> (Vec<MachineDef>, Vec<MachineCpuState>, RapierState) {
-    let mut machines = Vec::with_capacity(3);
-    let mut cpu_states = Vec::with_capacity(3);
+    let mut machines = Vec::with_capacity(6); // conveyor + grinder + heater + 2 spawners
+    let mut cpu_states = Vec::with_capacity(6);
 
-    // Conveyor: capsule-shaped belt tilted diagonally.
+    // Conveyor: capsule-shaped belt defined by two draggable endpoints.
     // Paddles ride along the perimeter, computed in update_machines().
-    // The body is a kinematic OBB at CONVEYOR_ANGLE_DEG — particles collide
-    // with the full capsule interior so they can't pass through.
-    let conv_angle = CONVEYOR_ANGLE_DEG.to_radians();
+    // The body is a kinematic OBB — particles collide with the full capsule
+    // interior so they can't pass through.
+    let ea = endpoints.endpoint_a;
+    let eb = endpoints.endpoint_b;
+    let pivot = [(ea[0] + eb[0]) * 0.5, (ea[1] + eb[1]) * 0.5];
+    let dx = eb[0] - ea[0];
+    let dy = eb[1] - ea[1];
+    let conv_angle = dy.atan2(dx);
+    let conv_half = 0.5 * (dx * dx + dy * dy).sqrt();
     let conv_body_hw = CAPSULE_RADIUS; // perpendicular to belt
-    let conv_body_hh = CAPSULE_HALF_LEN; // along belt
-    let pivot = [0.0, -0.22];
+    let conv_body_hh = conv_half; // along belt
     {
         let body = RigidBodyBuilder::kinematic_position_based()
             .translation(Vec2::new(pivot[0], pivot[1]))
@@ -1246,6 +1636,77 @@ pub fn init_machines(
             cycle_timer: 1.5,
             consumed_this_frame: 0,
             color_base: [0.85, 0.25, 0.1],
+        });
+    }
+
+    // Spawner (Red, species 0) — at left hopper position.
+    let spawner_half = 0.06;
+    {
+        let body = RigidBodyBuilder::fixed()
+            .translation(Vec2::new(HOPPER_LEFT_X, HOPPER_Y))
+            .build();
+        let body_handle = rapier.bodies.insert(body);
+        rapier.colliders.insert_with_parent(
+            ColliderBuilder::cuboid(spawner_half, spawner_half)
+                .sensor(true)
+                .build(),
+            body_handle,
+            &mut rapier.bodies,
+        );
+        machines.push(MachineDef {
+            kind: MachineKind::Spawner,
+            body_handle,
+            input_species: 0,
+            output_species: 0,
+        });
+        cpu_states.push(MachineCpuState {
+            recipe: Recipe {
+                input_species: 0,
+                input_count: 0,
+                output_species: 0,
+                output_count: 0,
+                cycle_time: SPAWNER_INTERVAL,
+            },
+            input_accumulated: 0,
+            cycles_completed: 0,
+            cycle_timer: 0.0,
+            consumed_this_frame: 0,
+            color_base: [0.85, 0.15, 0.15], // Red-tinted border
+        });
+    }
+
+    // Spawner (Blue, species 1) — at right hopper position.
+    {
+        let body = RigidBodyBuilder::fixed()
+            .translation(Vec2::new(HOPPER_RIGHT_X, HOPPER_Y))
+            .build();
+        let body_handle = rapier.bodies.insert(body);
+        rapier.colliders.insert_with_parent(
+            ColliderBuilder::cuboid(spawner_half, spawner_half)
+                .sensor(true)
+                .build(),
+            body_handle,
+            &mut rapier.bodies,
+        );
+        machines.push(MachineDef {
+            kind: MachineKind::Spawner,
+            body_handle,
+            input_species: 1,
+            output_species: 1,
+        });
+        cpu_states.push(MachineCpuState {
+            recipe: Recipe {
+                input_species: 1,
+                input_count: 0,
+                output_species: 1,
+                output_count: 0,
+                cycle_time: SPAWNER_INTERVAL,
+            },
+            input_accumulated: 0,
+            cycles_completed: 0,
+            cycle_timer: 0.0,
+            consumed_this_frame: 0,
+            color_base: [0.15, 0.15, 0.85], // Blue-tinted border
         });
     }
 

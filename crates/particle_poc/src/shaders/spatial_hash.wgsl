@@ -11,8 +11,11 @@ struct Params {
     grid_cell_size: f32,
     grid_width: u32,
     grid_height: u32,
-    _pad0: u32,
-    _pad1: u32,
+    disable_velocity_cap: u32,
+    sub_steps: u32,
+    kill_y: f32,
+    _pad_final: u32,
+    _pad_final2: u32,
 }
 
 @group(0) @binding(0) var<storage, read_write> positions: array<vec2<f32>>;

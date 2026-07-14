@@ -16,6 +16,9 @@ struct DetParams {
     grid_height: u32,
     disable_velocity_cap: u32,
     sub_steps: u32,
+    kill_y: f32,
+    _pad_final: u32,
+    _pad_final2: u32,
 }
 
 const MAX_MACHINES: u32 = 16u;

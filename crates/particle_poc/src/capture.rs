@@ -65,9 +65,11 @@ pub struct HeadlessCapture {
     buffers: Buffers,
     particle_bg: wgpu::BindGroup,
     grid_bg: wgpu::BindGroup,
+    kill_bg: wgpu::BindGroup,
     detection_bg: wgpu::BindGroup,
     pipelines: ComputePipelines,
     render: RenderState,
+    sdf_viz: SdfVizState,
     sim_params: SimParams,
     rapier: RapierState,
     machines: Vec<MachineDef>,
@@ -79,6 +81,8 @@ pub struct HeadlessCapture {
     phasing_staging: Option<wgpu::Buffer>,
     outlier_count_staging: Option<wgpu::Buffer>,
     phasing_count_staging: Option<wgpu::Buffer>,
+    /// CPU-side SDF grid for painting walls in headless tests.
+    pub sdf_grid: Vec<f32>,
 }
 
 impl HeadlessCapture {
@@ -135,21 +139,37 @@ impl HeadlessCapture {
             mapped_at_creation: false,
         });
 
-        let (particle_bg, grid_bg) = create_bind_groups(
+        let sdf_tex_view = buffers
+            .sdf_tex
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        let kill_bgl = create_kill_bgl(&device);
+        let (particle_bg, grid_bg, kill_bg) = create_bind_groups(
             &device,
             &buffers,
             &machine_params_buf,
             &particle_bgl,
             &grid_bgl,
+            &kill_bgl,
+            &sdf_tex_view,
         );
         let detection_bg =
             create_detection_bg(&device, &buffers, &machine_params_buf, &detection_bgl);
-        let pipelines = create_pipelines(&device, &particle_bgl, &grid_bgl, &detection_bgl);
+        let pipelines =
+            create_pipelines(&device, &particle_bgl, &grid_bgl, &kill_bgl, &detection_bgl);
         let render = create_render_state(&device, &buffers, HEADLESS_FORMAT);
+        let sdf_viz_tex_view = buffers
+            .sdf_tex
+            .create_view(&wgpu::TextureViewDescriptor::default());
+        let sdf_viz = create_sdf_viz_state(
+            &device,
+            &sdf_viz_tex_view,
+            HEADLESS_FORMAT,
+        );
 
         let sim_params = SimParams {
             particle_count: 0,
-            dt: 1.0 / 960.0,
+            dt: FIXED_DT / SUB_STEPS as f32,
             gravity: config.gravity,
             particle_radius: config.particle_radius,
             wall_min_x: config.wall_min_x,
@@ -162,6 +182,9 @@ impl HeadlessCapture {
             grid_height: GRID_H,
             disable_velocity_cap: 0,
             sub_steps: config.sub_steps,
+            kill_y: KILL_Y,
+            _pad_final: 0,
+            _pad_final2: 0,
         };
 
         // Initialize reaction matrix.
@@ -184,6 +207,44 @@ impl HeadlessCapture {
             queue.write_buffer(&buffers.bonds, 0, bytemuck::cast_slice(&invalid_bonds));
         }
 
+        // Phase 4: Initialize SDF texture (all-1.0 = no walls) + params uniform.
+        // Without this the GPU sees garbage values — dividing by zero in world→texel mapping.
+        let sdf_data;
+        {
+            sdf_data = vec![128.0f32; (SDF_RES * SDF_RES) as usize];
+            let bytes = bytemuck::cast_slice(&sdf_data);
+            queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &buffers.sdf_tex,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                bytes,
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(SDF_RES * 4),
+                    rows_per_image: Some(SDF_RES),
+                },
+                wgpu::Extent3d {
+                    width: SDF_RES,
+                    height: SDF_RES,
+                    depth_or_array_layers: 1,
+                },
+            );
+            queue.write_buffer(
+                &buffers.sdf_params_buf,
+                0,
+                bytemuck::bytes_of(&SdfParams {
+                    resolution: SDF_RES,
+                    world_min_x: sim_params.wall_min_x,
+                    world_min_y: sim_params.wall_min_y,
+                    world_max_x: sim_params.wall_max_x,
+                    world_max_y: sim_params.wall_max_y,
+                }),
+            );
+        }
+
         let counters_staging = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("counters_staging"),
             size: u64::from(MAX_MACHINES) * 4,
@@ -196,7 +257,7 @@ impl HeadlessCapture {
             bytemuck::cast_slice(&[0u32; MAX_MACHINES as usize]),
         );
 
-        let (machines, machines_cpu, rapier) = init_machines(rapier);
+        let (machines, machines_cpu, rapier) = init_machines(rapier, &ConveyorEndpoints::default());
 
         Some(Self {
             device,
@@ -207,9 +268,11 @@ impl HeadlessCapture {
             buffers,
             particle_bg,
             grid_bg,
+            kill_bg,
             detection_bg,
             pipelines,
             render,
+            sdf_viz,
             sim_params,
             rapier,
             machines,
@@ -221,6 +284,7 @@ impl HeadlessCapture {
             phasing_staging: None,
             outlier_count_staging: None,
             phasing_count_staging: None,
+            sdf_grid: sdf_data,
         })
     }
 
@@ -318,6 +382,14 @@ impl HeadlessCapture {
             .write_buffer(&self.buffers.bonds, 0, bytemuck::cast_slice(&bonds));
     }
 
+    /// Disable machine physics (conveyor + paddles) for SDF-only tests.
+    pub fn disable_machines(&mut self) {
+        let zero = Box::new(MachineParams::default());
+        self.queue
+            .write_buffer(&self.machine_params_buf, 0, bytemuck::bytes_of(&*zero));
+        self.machines.clear();
+    }
+
     /// Run one frame: update machines, simulate, write render params.
     pub fn step(&mut self) {
         self.update_machines();
@@ -328,6 +400,111 @@ impl HeadlessCapture {
     pub fn step_n(&mut self, n: u32) {
         for _ in 0..n {
             self.step();
+        }
+    }
+
+    /// Read back SDF value at a world position from GPU (for testing).
+    pub fn read_sdf_at(&self, world: [f32; 2]) -> f32 {
+        // Read the entire SDF texture to staging buffer and check.
+        let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("sdf_staging"),
+            size: (SDF_RES * SDF_RES * 4) as u64,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        {
+            let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("sdf_read") });
+            encoder.copy_texture_to_buffer(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &self.buffers.sdf_tex,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                wgpu::TexelCopyBufferInfo {
+                    buffer: &staging,
+                    layout: wgpu::TexelCopyBufferLayout {
+                        offset: 0,
+                        bytes_per_row: Some(SDF_RES * 4),
+                        rows_per_image: Some(SDF_RES),
+                    },
+                },
+                wgpu::Extent3d { width: SDF_RES, height: SDF_RES, depth_or_array_layers: 1 },
+            );
+            self.queue.submit(std::iter::once(encoder.finish()));
+        }
+        let slice = staging.slice(..);
+        slice.map_async(wgpu::MapMode::Read, |r| r.expect("sdf map"));
+        self.device.poll(wgpu::Maintain::Wait);
+        let data = slice.get_mapped_range();
+        let grid: &[f32] = bytemuck::cast_slice(&data[..]);
+
+        let inv_w = 1.0 / (self.sim_params.wall_max_x - self.sim_params.wall_min_x);
+        let inv_h = 1.0 / (self.sim_params.wall_max_y - self.sim_params.wall_min_y);
+        let u = ((world[0] - self.sim_params.wall_min_x) * inv_w).clamp(0.0, 0.999);
+        let v = ((world[1] - self.sim_params.wall_min_y) * inv_h).clamp(0.0, 0.999);
+        let ix = ((u * SDF_RES as f32) as u32).min(SDF_RES - 1);
+        let iy = ((v * SDF_RES as f32) as u32).min(SDF_RES - 1);
+        let val = grid[(iy * SDF_RES + ix) as usize];
+        drop(data);
+        staging.unmap();
+        val
+    }
+
+    /// Upload the current SDF grid to the GPU texture for collision.
+    /// Computes a proper signed distance field from the binary occupancy grid
+    /// before uploading, so the GPU can use gradients for push-out direction.
+    /// Must be called after painting into `self.sdf_grid` and before `step()`.
+    pub fn upload_sdf(&self) {
+        let sdf_data = sdf_for_upload(&self.sdf_grid, SDF_RES);
+        let bytes = bytemuck::cast_slice(&sdf_data);
+        self.queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &self.buffers.sdf_tex,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            bytes,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(SDF_RES * 4),
+                rows_per_image: Some(SDF_RES),
+            },
+            wgpu::Extent3d {
+                width: SDF_RES,
+                height: SDF_RES,
+                depth_or_array_layers: 1,
+            },
+        );
+    }
+
+    /// Paint a line onto the SDF grid (Bresenham-style for thick brush).
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    pub fn paint_sdf(&mut self, world: [f32; 2], brush_radius: f32, erase: bool) {
+        let half_w = self.sim_params.wall_max_x;
+        let half_h = self.sim_params.wall_max_y;
+        let res = SDF_RES as f32;
+        let gx = ((world[0] + half_w) / (2.0 * half_w) * res) as i32;
+        let gy = ((world[1] + half_h) / (2.0 * half_h) * res) as i32;
+        let brush_px = (brush_radius / (2.0 * half_w) * res) as i32;
+
+        for dy in -brush_px..=brush_px {
+            for dx in -brush_px..=brush_px {
+                let px = gx + dx;
+                let py = gy + dy;
+                if px >= 0 && px < SDF_RES as i32 && py >= 0 && py < SDF_RES as i32 {
+                    let dist = ((dx * dx + dy * dy) as f32).sqrt();
+                    if dist <= brush_px as f32 {
+                        let idx = (py as u32 * SDF_RES + px as u32) as usize;
+                        if erase {
+                            self.sdf_grid[idx] = 1.0;
+                        } else {
+                            self.sdf_grid[idx] = -1.0;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -535,13 +712,37 @@ impl HeadlessCapture {
                 pass.draw(0..machine_count * 6, 0..1);
             }
 
-            // Draw particles on top.
+            // SDF wall visualization overlay.
+            {
+                let viz_params = SdfVizParams {
+                    screen_width: self.width as f32,
+                    screen_height: self.height as f32,
+                    world_min_x: self.sim_params.wall_min_x,
+                    world_min_y: self.sim_params.wall_min_y,
+                    world_max_x: self.sim_params.wall_max_x,
+                    world_max_y: self.sim_params.wall_max_y,
+                };
+                self.queue.write_buffer(
+                    &self.sdf_viz.params_buf,
+                    0,
+                    bytemuck::bytes_of(&viz_params),
+                );
+                pass.set_pipeline(&self.sdf_viz.pipeline);
+                pass.set_bind_group(0, &self.sdf_viz.bind_group, &[]);
+                pass.draw(0..6, 0..1);
+            }
+
+            // Draw particles on top (cursor disabled in headless mode).
             if self.sim_params.particle_count > 0 {
                 let render_params = RenderParams {
                     screen_width: self.width as f32,
                     screen_height: self.height as f32,
                     particle_radius: self.sim_params.particle_radius,
                     particle_count: self.sim_params.particle_count,
+                    cursor_x: 0.0,
+                    cursor_y: 0.0,
+                    cursor_radius: 0.0,
+                    cursor_active: 0,
                 };
                 self.queue.write_buffer(
                     &self.render.params_buf,
@@ -681,6 +882,7 @@ impl HeadlessCapture {
             pass.set_pipeline(&self.pipelines.solve_bonds);
             pass.dispatch_workgroups(particle_wg, 1, 1);
 
+            pass.set_bind_group(2, &self.kill_bg, &[]);
             pass.set_pipeline(&self.pipelines.apply);
             pass.dispatch_workgroups(particle_wg, 1, 1);
         }
@@ -773,7 +975,7 @@ impl HeadlessCapture {
     }
 
     fn update_machines(&mut self) {
-        let dt = 1.0 / 60.0;
+        let dt = FIXED_DT;
         self.machine_time += dt;
 
         // Read GPU counters from previous frame.

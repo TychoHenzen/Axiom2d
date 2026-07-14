@@ -2,32 +2,38 @@
 
 use std::sync::Arc;
 
-use particle_poc::{MAX_PARTICLES, SUB_STEPS, State, WINDOW_HEIGHT, WINDOW_WIDTH, parse_flag_arg};
+use particle_poc::{State, WINDOW_HEIGHT, WINDOW_WIDTH, parse_flag_arg};
 use winit::application::ApplicationHandler;
-use winit::event::WindowEvent;
+use winit::event::KeyEvent;
+use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
 
 fn main() {
     let benchmark = std::env::args().any(|a| a == "--benchmark");
     let diagnose = std::env::args().any(|a| a == "--diagnose");
+    let no_benchmark = std::env::args().any(|a| a == "--no-benchmark");
     let test_bond_form = std::env::args().any(|a| a == "--test-bond-form");
     let test_bond_constrain = std::env::args().any(|a| a == "--test-bond-constrain");
     let test_bond_break = std::env::args().any(|a| a == "--test-bond-break");
     let test_paddle_stability = std::env::args().any(|a| a == "--test-paddle-stability");
     let test_paddle_root_cause = std::env::args().any(|a| a == "--test-paddle-root-cause");
-    let num_particles = parse_flag_arg("--particles", MAX_PARTICLES);
-    let sub_steps = parse_flag_arg("--substeps", SUB_STEPS);
+    let test_sdf_bowl = std::env::args().any(|a| a == "--test-sdf-bowl");
+    let num_particles = parse_flag_arg("--particles", particle_poc::MAX_PARTICLES);
+    let sub_steps = parse_flag_arg("--substeps", particle_poc::SUB_STEPS);
     let event_loop = EventLoop::new().expect("event loop");
     let mut app = App {
         state: None,
         benchmark,
         diagnose,
+        no_benchmark,
         test_bond_form,
         test_bond_constrain,
         test_bond_break,
         test_paddle_stability,
         test_paddle_root_cause,
+        test_sdf_bowl,
         num_particles,
         sub_steps,
     };
@@ -39,11 +45,13 @@ struct App {
     state: Option<State>,
     benchmark: bool,
     diagnose: bool,
+    no_benchmark: bool,
     test_bond_form: bool,
     test_bond_constrain: bool,
     test_bond_break: bool,
     test_paddle_stability: bool,
     test_paddle_root_cause: bool,
+    test_sdf_bowl: bool,
     num_particles: u32,
     sub_steps: u32,
 }
@@ -62,8 +70,8 @@ impl ApplicationHandler for App {
                 )
                 .expect("window"),
         );
-        self.state = Some(State::new(
-            window,
+        let mut state = State::new(
+            window.clone(),
             self.benchmark,
             self.diagnose,
             self.test_bond_form,
@@ -71,9 +79,12 @@ impl ApplicationHandler for App {
             self.test_bond_break,
             self.test_paddle_stability,
             self.test_paddle_root_cause,
+            self.test_sdf_bowl,
             self.num_particles,
             self.sub_steps,
-        ));
+        );
+        state.no_benchmark = self.no_benchmark;
+        self.state = Some(state);
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -90,6 +101,38 @@ impl ApplicationHandler for App {
                 } else {
                     state.window.request_redraw();
                 }
+            }
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        state: ElementState::Pressed,
+                        logical_key: key,
+                        ..
+                    },
+                ..
+            } => {
+                if key == Key::Named(NamedKey::Tab) {
+                    state.toggle_mode();
+                }
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                state.mouse_move(position.x as f32, position.y as f32);
+            }
+            WindowEvent::MouseWheel { delta, .. } => {
+                let dy = match delta {
+                    winit::event::MouseScrollDelta::LineDelta(_, y) => y,
+                    winit::event::MouseScrollDelta::PixelDelta(pos) => pos.y as f32 / 100.0,
+                };
+                state.scroll(dy);
+            }
+            WindowEvent::MouseInput {
+                state: button_state,
+                button,
+                ..
+            } => {
+                let pressed = button_state == ElementState::Pressed;
+                let secondary = button == MouseButton::Right;
+                state.mouse_button(pressed, secondary);
             }
             _ => {}
         }
