@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 use std::time::Instant;
+use std::fmt::Write;
 
 use rapier2d::prelude::*;
 use winit::window::Window;
@@ -2126,7 +2127,7 @@ impl State {
                 let positions: &[[f32; 2]] = bytemuck::cast_slice(&data[..pc as usize * 8]);
                 let mut log_line = format!("frame {:>5}: ", self.test_phase);
                 for (i, p) in positions.iter().enumerate() {
-                    log_line.push_str(&format!("  p{i}=({:.4},{:.4})", p[0], p[1]));
+                    let _ = write!(log_line, "  p{i}=({:.4},{:.4})", p[0], p[1]);
                 }
                 eprintln!("{log_line}");
                 drop(data);

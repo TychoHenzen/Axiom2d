@@ -174,6 +174,7 @@ pub struct ReactionMatrix {
 
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
+#[allow(clippy::pub_underscore_fields)]
 pub struct SimParams {
     pub particle_count: u32,
     pub dt: f32,
