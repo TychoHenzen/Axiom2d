@@ -25,7 +25,10 @@ impl State {
         let ndc_y = 1.0 - sy / self.surface_config.height as f32 * 2.0;
         // Shader: ndc_x = world_x / aspect → world_x = ndc_x * aspect
         // Shader: ndc_y = world_y           → world_y = ndc_y
-        [ndc_x * (self.surface_config.width as f32 / self.surface_config.height as f32), ndc_y]
+        [
+            ndc_x * (self.surface_config.width as f32 / self.surface_config.height as f32),
+            ndc_y,
+        ]
     }
 
     // Phase 4: Scroll wheel adjusts brush size in Draw mode.
@@ -220,14 +223,17 @@ impl State {
             for dx in -brush_px..=brush_px {
                 let px = gx + dx;
                 let py = gy + dy;
-                if px >= 0 && px < SDF_RES as i32 && py >= 0 && py < SDF_RES as i32 {
-                    if ((dx * dx + dy * dy) as f32).sqrt() <= brush_px as f32 {
-                        let idx = (py as u32 * SDF_RES + px as u32) as usize;
-                        if erase {
-                            self.sdf_grid[idx] = 1.0;
-                        } else {
-                            self.sdf_grid[idx] = -1.0;
-                        }
+                if px >= 0
+                    && px < SDF_RES as i32
+                    && py >= 0
+                    && py < SDF_RES as i32
+                    && ((dx * dx + dy * dy) as f32).sqrt() <= brush_px as f32
+                {
+                    let idx = (py as u32 * SDF_RES + px as u32) as usize;
+                    if erase {
+                        self.sdf_grid[idx] = 1.0;
+                    } else {
+                        self.sdf_grid[idx] = -1.0;
                     }
                 }
             }
@@ -409,11 +415,7 @@ impl State {
         let pipelines =
             create_pipelines(&device, &particle_bgl, &grid_bgl, &kill_bgl, &detection_bgl);
         let render = create_render_state(&device, &buffers, surface_config.format);
-        let sdf_viz = create_sdf_viz_state(
-            &device,
-            &sdf_viz_tex_view,
-            surface_config.format,
-        );
+        let sdf_viz = create_sdf_viz_state(&device, &sdf_viz_tex_view, surface_config.format);
 
         let sim_params = SimParams {
             particle_count: 0,
@@ -558,7 +560,10 @@ impl State {
             draw_erase: false,
             brush_radius: BRUSH_RADIUS,
             last_frame: None,
-            spawner_next_fire: vec![Instant::now() + std::time::Duration::from_secs(10); spawner_count],
+            spawner_next_fire: vec![
+                Instant::now() + std::time::Duration::from_secs(10);
+                spawner_count
+            ],
             no_benchmark: false, // set by main.rs if --no-benchmark
             physics_accumulator: 0.0,
             kill_count_staging,
@@ -1055,56 +1060,75 @@ impl State {
                         let src_spec_off = u64::from(last_idx) * 4;
                         let dst_spec_off = u64::from(dead_idx) * 4;
                         let src_bond_off = u64::from(last_idx) * 4 * size_of::<BondSlot>() as u64;
-                        let dst_bond_off =
-                            u64::from(dead_idx) * 4 * size_of::<BondSlot>() as u64;
+                        let dst_bond_off = u64::from(dead_idx) * 4 * size_of::<BondSlot>() as u64;
                         encoder.copy_buffer_to_buffer(
-                            &self.buffers.positions, src_pos_off,
-                            &self.swap_scratch, 0,
+                            &self.buffers.positions,
+                            src_pos_off,
+                            &self.swap_scratch,
+                            0,
                             8,
                         );
                         encoder.copy_buffer_to_buffer(
-                            &self.swap_scratch, 0,
-                            &self.buffers.positions, dst_off,
+                            &self.swap_scratch,
+                            0,
+                            &self.buffers.positions,
+                            dst_off,
                             8,
                         );
                         encoder.copy_buffer_to_buffer(
-                            &self.buffers.velocities, src_pos_off,
-                            &self.swap_scratch, 0,
+                            &self.buffers.velocities,
+                            src_pos_off,
+                            &self.swap_scratch,
+                            0,
                             8,
                         );
                         encoder.copy_buffer_to_buffer(
-                            &self.swap_scratch, 0,
-                            &self.buffers.velocities, dst_off,
+                            &self.swap_scratch,
+                            0,
+                            &self.buffers.velocities,
+                            dst_off,
                             8,
                         );
                         encoder.copy_buffer_to_buffer(
-                            &self.buffers.prev_positions, src_pos_off,
-                            &self.swap_scratch, 0,
+                            &self.buffers.prev_positions,
+                            src_pos_off,
+                            &self.swap_scratch,
+                            0,
                             8,
                         );
                         encoder.copy_buffer_to_buffer(
-                            &self.swap_scratch, 0,
-                            &self.buffers.prev_positions, dst_off,
+                            &self.swap_scratch,
+                            0,
+                            &self.buffers.prev_positions,
+                            dst_off,
                             8,
                         );
                         encoder.copy_buffer_to_buffer(
-                            &self.buffers.species, src_spec_off,
-                            &self.swap_scratch, 0,
+                            &self.buffers.species,
+                            src_spec_off,
+                            &self.swap_scratch,
+                            0,
                             4,
                         );
                         encoder.copy_buffer_to_buffer(
-                            &self.swap_scratch, 0,
-                            &self.buffers.species, dst_spec_off,
+                            &self.swap_scratch,
+                            0,
+                            &self.buffers.species,
+                            dst_spec_off,
                             4,
                         );
                         encoder.copy_buffer_to_buffer(
-                            &self.buffers.bonds, src_bond_off,
-                            &self.swap_scratch, 0,
+                            &self.buffers.bonds,
+                            src_bond_off,
+                            &self.swap_scratch,
+                            0,
                             32,
                         );
                         encoder.copy_buffer_to_buffer(
-                            &self.swap_scratch, 0,
-                            &self.buffers.bonds, dst_bond_off,
+                            &self.swap_scratch,
+                            0,
+                            &self.buffers.bonds,
+                            dst_bond_off,
                             32,
                         );
                     }
@@ -1326,7 +1350,8 @@ impl State {
             if to_spawn == 0 {
                 continue;
             }
-            self.spawner_next_fire[spawner_idx] = now + std::time::Duration::from_secs_f32(SPAWNER_INTERVAL);
+            self.spawner_next_fire[spawner_idx] =
+                now + std::time::Duration::from_secs_f32(SPAWNER_INTERVAL);
 
             let body = self
                 .rapier
@@ -2029,13 +2054,24 @@ impl State {
                 while y <= cy + brush * 0.5 {
                     let dy_out = (y - cy) / ry_out;
                     let dy_in = (y - cy) / ry_in;
-                    let xh_out = if dy_out.abs() <= 1.0 { rx_out * (1.0 - dy_out * dy_out).sqrt() } else { 0.0 };
-                    let xh_in  = if dy_in.abs()  <= 1.0 { rx_in  * (1.0 - dy_in  * dy_in).sqrt()  } else { 0.0 };
+                    let xh_out = if dy_out.abs() <= 1.0 {
+                        rx_out * (1.0 - dy_out * dy_out).sqrt()
+                    } else {
+                        0.0
+                    };
+                    let xh_in = if dy_in.abs() <= 1.0 {
+                        rx_in * (1.0 - dy_in * dy_in).sqrt()
+                    } else {
+                        0.0
+                    };
                     if xh_out > 0.0 {
                         let mut x: f32 = x_min;
                         while x <= x_max {
                             let dx = (x - cx).abs();
-                            if y <= cy && dx <= xh_out + brush * 0.3 && (xh_in < 0.01 || dx >= xh_in - brush * 0.3) {
+                            if y <= cy
+                                && dx <= xh_out + brush * 0.3
+                                && (xh_in < 0.01 || dx >= xh_in - brush * 0.3)
+                            {
                                 self.paint_sdf_world([x, y], brush, false);
                             }
                             x += step;
@@ -2069,11 +2105,11 @@ impl State {
                     mapped_at_creation: false,
                 });
                 {
-                    let mut encoder = self
-                        .device
-                        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                            label: Some("pos_log"),
-                        });
+                    let mut encoder =
+                        self.device
+                            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                                label: Some("pos_log"),
+                            });
                     encoder.copy_buffer_to_buffer(
                         &self.buffers.positions,
                         0,
@@ -2328,11 +2364,17 @@ impl State {
                 self.bench_done = true;
             }
         } else if self.fps_tracker.end_frame() {
-            let mode_str = if self.mode == Mode::Drag { "Drag" } else { "Draw" };
+            let mode_str = if self.mode == Mode::Drag {
+                "Drag"
+            } else {
+                "Draw"
+            };
             self.window.set_title(&format!(
                 "Particle Idle PoC | {} | FPS: {:.0} | Particles: {} | Sim: {:.2}ms",
                 mode_str,
-                self.fps_tracker.fps, self.sim_params.particle_count, self.fps_tracker.sim_time_ms,
+                self.fps_tracker.fps,
+                self.sim_params.particle_count,
+                self.fps_tracker.sim_time_ms,
             ));
         }
     }

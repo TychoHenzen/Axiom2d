@@ -161,11 +161,7 @@ impl HeadlessCapture {
         let sdf_viz_tex_view = buffers
             .sdf_tex
             .create_view(&wgpu::TextureViewDescriptor::default());
-        let sdf_viz = create_sdf_viz_state(
-            &device,
-            &sdf_viz_tex_view,
-            HEADLESS_FORMAT,
-        );
+        let sdf_viz = create_sdf_viz_state(&device, &sdf_viz_tex_view, HEADLESS_FORMAT);
 
         let sim_params = SimParams {
             particle_count: 0,
@@ -408,12 +404,16 @@ impl HeadlessCapture {
         // Read the entire SDF texture to staging buffer and check.
         let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("sdf_staging"),
-            size: (SDF_RES * SDF_RES * 4) as u64,
+            size: u64::from(SDF_RES * SDF_RES * 4),
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
         {
-            let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("sdf_read") });
+            let mut encoder = self
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("sdf_read"),
+                });
             encoder.copy_texture_to_buffer(
                 wgpu::TexelCopyTextureInfo {
                     texture: &self.buffers.sdf_tex,
@@ -429,7 +429,11 @@ impl HeadlessCapture {
                         rows_per_image: Some(SDF_RES),
                     },
                 },
-                wgpu::Extent3d { width: SDF_RES, height: SDF_RES, depth_or_array_layers: 1 },
+                wgpu::Extent3d {
+                    width: SDF_RES,
+                    height: SDF_RES,
+                    depth_or_array_layers: 1,
+                },
             );
             self.queue.submit(std::iter::once(encoder.finish()));
         }

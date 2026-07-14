@@ -104,8 +104,14 @@ pub fn compute_distance_field(grid: &mut [f32], res: u32) {
         let idx = (y * res + x) as usize;
         let d = dist[idx];
         for &(dx, dy) in &[
-            (1i32, 0i32), (-1, 0), (0, 1), (0, -1),
-            (1, 1), (1, -1), (-1, 1), (-1, -1),
+            (1i32, 0i32),
+            (-1, 0),
+            (0, 1),
+            (0, -1),
+            (1, 1),
+            (1, -1),
+            (-1, 1),
+            (-1, -1),
         ] {
             let nx = x as i32 + dx;
             let ny = y as i32 + dy;
@@ -753,7 +759,9 @@ pub fn create_buffers(device: &wgpu::Device) -> Buffers {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::R32Float,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::COPY_SRC,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         }),
         sdf_params_buf: device.create_buffer(&wgpu::BufferDescriptor {
