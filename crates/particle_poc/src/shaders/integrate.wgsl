@@ -19,9 +19,14 @@ struct Params {
     grid_cell_size: f32,
     grid_width: u32,
     grid_height: u32,
-    _pad0: u32,
-    _pad1: u32,
+    disable_velocity_cap: u32,
+    sub_steps: u32,
+    kill_y: f32,
+    _pad_final: u32,
+    _pad_final2: u32,
 }
+
+const MAX_KILLS_PER_FRAME: u32 = 4096u;
 
 @group(0) @binding(0) var<storage, read_write> positions: array<vec2<f32>>;
 @group(0) @binding(1) var<storage, read_write> velocities: array<vec2<f32>>;
@@ -29,6 +34,8 @@ struct Params {
 @group(0) @binding(7) var<uniform> params: Params;
 @group(0) @binding(11) var sdf_tex: texture_2d<f32>;
 @group(0) @binding(12) var<uniform> sdf_params: SdfParams;
+@group(1) @binding(0) var<storage, read_write> kill_count: atomic<u32>;
+@group(1) @binding(1) var<storage, read_write> kill_indices: array<u32>;
 
 // Sample SDF texture at world position with bilinear interpolation.
 // Returns signed distance in texel units: positive = free, negative = wall.
@@ -122,6 +129,16 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
             if d2 < r_texels {
                 p = pos;
             }
+        }
+    }
+
+    // Kill barrier: mark particles below kill Y for removal.
+    // Must run before wall clamp so particles that fall below KILL_Y
+    // aren't saved by the clamp before apply gets to check.
+    if p.y < params.kill_y {
+        let slot = atomicAdd(&kill_count, 1u);
+        if slot < MAX_KILLS_PER_FRAME {
+            kill_indices[slot] = i;
         }
     }
 

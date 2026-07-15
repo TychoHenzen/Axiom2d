@@ -60,7 +60,7 @@ pub const MAX_PHASING: u32 = 32;
 pub const SPAWNER_BATCH_SIZE: u32 = 1000;
 pub const SPAWNER_INTERVAL: f32 = 60.0;
 pub const SDF_RES: u32 = 256;
-pub const KILL_Y: f32 = -0.8;
+pub const KILL_Y: f32 = -0.75;
 pub const BRUSH_RADIUS: f32 = 0.15;
 
 /// Convert a binary occupancy grid (negative = wall, positive = free)
@@ -1053,7 +1053,7 @@ pub fn create_pipelines(
 ) -> ComputePipelines {
     let integrate_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("integrate_pl"),
-        bind_group_layouts: &[particle_bgl],
+        bind_group_layouts: &[particle_bgl, kill_bgl],
         push_constant_ranges: &[],
     });
     let spatial_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

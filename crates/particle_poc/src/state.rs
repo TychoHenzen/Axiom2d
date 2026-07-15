@@ -1776,11 +1776,12 @@ impl State {
                 ..Default::default()
             });
             pass.set_bind_group(0, &self.particle_bg, &[]);
-            pass.set_bind_group(1, &self.grid_bg, &[]);
+            pass.set_bind_group(1, &self.kill_bg, &[]);
 
             pass.set_pipeline(&self.pipelines.predict);
             pass.dispatch_workgroups(particle_wg, 1, 1);
 
+            pass.set_bind_group(1, &self.grid_bg, &[]);
             pass.set_pipeline(&self.pipelines.morton_keys);
             pass.dispatch_workgroups(particle_wg, 1, 1);
 

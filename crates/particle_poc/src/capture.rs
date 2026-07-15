@@ -81,6 +81,10 @@ pub struct HeadlessCapture {
     phasing_staging: Option<wgpu::Buffer>,
     outlier_count_staging: Option<wgpu::Buffer>,
     phasing_count_staging: Option<wgpu::Buffer>,
+    kill_count_staging: wgpu::Buffer,
+    kill_indices_staging: wgpu::Buffer,
+    swap_scratch: wgpu::Buffer,
+    kill_data_pending: bool,
     /// CPU-side SDF grid for painting walls in headless tests.
     pub sdf_grid: Vec<f32>,
 }
@@ -253,6 +257,25 @@ impl HeadlessCapture {
             bytemuck::cast_slice(&[0u32; MAX_MACHINES as usize]),
         );
 
+        let kill_count_staging = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("kill_count_staging"),
+            size: 4,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let kill_indices_staging = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("kill_indices_staging"),
+            size: u64::from(MAX_KILLS_PER_FRAME) * 4,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let swap_scratch = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("swap_scratch"),
+            size: 32,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
         let (machines, machines_cpu, rapier) = init_machines(rapier, &ConveyorEndpoints::default());
 
         Some(Self {
@@ -280,6 +303,10 @@ impl HeadlessCapture {
             phasing_staging: None,
             outlier_count_staging: None,
             phasing_count_staging: None,
+            kill_count_staging,
+            kill_indices_staging,
+            swap_scratch,
+            kill_data_pending: false,
             sdf_grid: sdf_data,
         })
     }
@@ -860,11 +887,12 @@ impl HeadlessCapture {
                 ..Default::default()
             });
             pass.set_bind_group(0, &self.particle_bg, &[]);
-            pass.set_bind_group(1, &self.grid_bg, &[]);
+            pass.set_bind_group(1, &self.kill_bg, &[]);
 
             pass.set_pipeline(&self.pipelines.predict);
             pass.dispatch_workgroups(particle_wg, 1, 1);
 
+            pass.set_bind_group(1, &self.grid_bg, &[]);
             pass.set_pipeline(&self.pipelines.morton_keys);
             pass.dispatch_workgroups(particle_wg, 1, 1);
 
@@ -974,8 +1002,24 @@ impl HeadlessCapture {
             0,
             u64::from(MAX_MACHINES) * 4,
         );
+        // Copy kill barrier data to staging for CPU readback.
+        encoder.copy_buffer_to_buffer(
+            &self.buffers.kill_count_buf,
+            0,
+            &self.kill_count_staging,
+            0,
+            4,
+        );
+        encoder.copy_buffer_to_buffer(
+            &self.buffers.kill_indices_buf,
+            0,
+            &self.kill_indices_staging,
+            0,
+            u64::from(MAX_KILLS_PER_FRAME) * 4,
+        );
 
         self.queue.submit(std::iter::once(encoder.finish()));
+        self.kill_data_pending = true;
     }
 
     fn update_machines(&mut self) {
@@ -1006,13 +1050,136 @@ impl HeadlessCapture {
             self.counters_staging.unmap();
         }
 
-        // Reset GPU counters.
+        // Kill barrier swap-remove.
+        if self.kill_data_pending {
+            self.kill_data_pending = false;
+
+            let kc_slice = self.kill_count_staging.slice(..);
+            kc_slice.map_async(wgpu::MapMode::Read, |_| {});
+            self.device.poll(wgpu::Maintain::Wait);
+            let kc_data = kc_slice.get_mapped_range();
+            let kill_count = u32::from_ne_bytes([kc_data[0], kc_data[1], kc_data[2], kc_data[3]])
+                .min(MAX_KILLS_PER_FRAME);
+            drop(kc_data);
+            self.kill_count_staging.unmap();
+
+            if kill_count > 0 {
+                let ki_slice = self.kill_indices_staging.slice(..u64::from(kill_count) * 4);
+                ki_slice.map_async(wgpu::MapMode::Read, |_| {});
+                self.device.poll(wgpu::Maintain::Wait);
+                let ki_data = ki_slice.get_mapped_range();
+                let killed: &[u32] = bytemuck::cast_slice(&ki_data);
+                let mut killed_vec: Vec<u32> = killed.to_vec();
+                drop(ki_data);
+                self.kill_indices_staging.unmap();
+
+                killed_vec.sort_unstable_by(|a, b| b.cmp(a));
+                killed_vec.dedup();
+
+                let mut encoder =
+                    self.device
+                        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                            label: Some("kill_swap"),
+                        });
+                for &dead_idx in &killed_vec {
+                    let pc = self.sim_params.particle_count;
+                    if dead_idx >= pc {
+                        continue;
+                    }
+                    let last_idx = pc - 1;
+                    if dead_idx < last_idx {
+                        let src_pos_off = u64::from(last_idx) * 8;
+                        let dst_off = u64::from(dead_idx) * 8;
+                        let src_spec_off = u64::from(last_idx) * 4;
+                        let dst_spec_off = u64::from(dead_idx) * 4;
+                        let src_bond_off = u64::from(last_idx) * 4 * size_of::<BondSlot>() as u64;
+                        let dst_bond_off = u64::from(dead_idx) * 4 * size_of::<BondSlot>() as u64;
+                        encoder.copy_buffer_to_buffer(
+                            &self.buffers.positions,
+                            src_pos_off,
+                            &self.swap_scratch,
+                            0,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.swap_scratch,
+                            0,
+                            &self.buffers.positions,
+                            dst_off,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.buffers.velocities,
+                            src_pos_off,
+                            &self.swap_scratch,
+                            0,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.swap_scratch,
+                            0,
+                            &self.buffers.velocities,
+                            dst_off,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.buffers.prev_positions,
+                            src_pos_off,
+                            &self.swap_scratch,
+                            0,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.swap_scratch,
+                            0,
+                            &self.buffers.prev_positions,
+                            dst_off,
+                            8,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.buffers.species,
+                            src_spec_off,
+                            &self.swap_scratch,
+                            0,
+                            4,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.swap_scratch,
+                            0,
+                            &self.buffers.species,
+                            dst_spec_off,
+                            4,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.buffers.bonds,
+                            src_bond_off,
+                            &self.swap_scratch,
+                            0,
+                            32,
+                        );
+                        encoder.copy_buffer_to_buffer(
+                            &self.swap_scratch,
+                            0,
+                            &self.buffers.bonds,
+                            dst_bond_off,
+                            32,
+                        );
+                    }
+                    self.sim_params.particle_count -= 1;
+                }
+                self.queue.submit(std::iter::once(encoder.finish()));
+            }
+        }
+
+        // Reset GPU counters and kill count.
         let zeros = [0u32; MAX_MACHINES as usize];
         self.queue.write_buffer(
             &self.buffers.machine_counters,
             0,
             bytemuck::cast_slice(&zeros),
         );
+        self.queue
+            .write_buffer(&self.buffers.kill_count_buf, 0, &[0u8; 4]);
 
         // Step Rapier2D.
         self.rapier.integration_parameters.dt = dt;

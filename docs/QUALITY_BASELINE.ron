@@ -27,7 +27,7 @@
         "expect_in_prod_total": 92,
         "cyclomatic_over_10": 29,
         "line_coverage_pct": 78.67,
-        "jscpd_clone_count": 1211,
+        "jscpd_clone_count": 1214,
     },
     "advisory_maxima": {
         "magic_literals_per_file": 320,
@@ -37,8 +37,8 @@
     },
     "overrides": {
         "jscpd_clone_count": {
-            "value": 1211,
-            "reason": "Phase 4: SDF upload, paint_sdf, and machine init intentionally parallel between state.rs and capture.rs (headless test needs same GPU setup as interactive mode)",
+            "value": 1214,
+            "reason": "Phase 4 SDF/capture + kill barrier parallelism between state.rs and capture.rs (headless test harness mirrors interactive GPU setup including kill data pipeline intentionally)",
         },
     },
     "meta": {
@@ -51,7 +51,7 @@
             "smell_markers_total=0: no TODO/FIXME/HACK in production code",
             "cyclomatic_over_10=29: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
             "line_coverage_pct=78.67: workspace line coverage from cargo-llvm-cov",
-            "jscpd_clone_count=1211: duplicate code clones detected by jscpd (min-tokens=50). Phase 4 SDF/capture parallelism intentional.",
+            "jscpd_clone_count=1214: duplicate code clones detected by jscpd (min-tokens=50). Phase 4 SDF/capture + kill barrier parallelism intentional.",
         ],
     },
 }

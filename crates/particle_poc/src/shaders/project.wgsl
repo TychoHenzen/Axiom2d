@@ -13,7 +13,12 @@ struct Params {
     grid_height: u32,
     disable_velocity_cap: u32,
     sub_steps: u32,
+    kill_y: f32,
+    _pad_final: u32,
+    _pad_final2: u32,
 }
+
+const MAX_KILLS_PER_FRAME: u32 = 4096u;
 
 const MAX_MACHINES: u32 = 16u;
 
@@ -59,6 +64,9 @@ struct SdfParams {
 @group(1) @binding(1) var<storage, read_write> cell_counts: array<u32>;
 @group(1) @binding(2) var<storage, read_write> cell_offsets: array<u32>;
 @group(1) @binding(3) var<storage, read_write> sorted_indices: array<u32>;
+
+@group(2) @binding(0) var<storage, read_write> kill_count: atomic<u32>;
+@group(2) @binding(1) var<storage, read_write> kill_indices: array<u32>;
 
 fn cell_coords(cell: u32) -> vec2<i32> {
     return vec2<i32>(i32(cell % params.grid_width), i32(cell / params.grid_width));
@@ -339,6 +347,16 @@ fn apply(@builtin(global_invocation_id) id: vec3<u32>) {
             if d2 < r_texels {
                 pos = prev;
             }
+        }
+    }
+
+    // Kill barrier: mark particles below kill Y for removal.
+    // Runs before wall clamp so particles below KILL_Y aren't clamped back
+    // above the threshold before the check.
+    if pos.y < params.kill_y {
+        let slot = atomicAdd(&kill_count, 1u);
+        if slot < MAX_KILLS_PER_FRAME {
+            kill_indices[slot] = i;
         }
     }
 
