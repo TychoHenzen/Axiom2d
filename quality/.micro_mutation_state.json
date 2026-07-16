@@ -1,20 +1,28 @@
 {
   "cumulative": {
-    "caught": 88,
+    "caught": 93,
     "error": 0,
-    "files_tested": 17,
-    "missed": 15,
-    "runs": 16,
+    "files_tested": 20,
+    "missed": 1252,
+    "runs": 19,
     "timeout": 0,
-    "total_mutants": 131,
-    "unviable": 28,
-    "zero_mutant": 6
+    "total_mutants": 1375,
+    "unviable": 30,
+    "zero_mutant": 7
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 5,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 6,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-16",
       "lines": 203,
       "recent_commits": 1
     },
@@ -473,8 +481,16 @@
     },
     "crates/card_game/src/card/reader.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-16",
       "lines": 22,
       "recent_commits": 1
     },
@@ -1852,15 +1868,15 @@
       "error_count": 0,
       "last_result": null,
       "last_tested": null,
-      "lines": 1127,
-      "recent_commits": 7
+      "lines": 1288,
+      "recent_commits": 8
     },
     "crates/particle_poc/src/lib.rs": {
       "error_count": 0,
       "last_result": null,
       "last_tested": null,
       "lines": 1632,
-      "recent_commits": 5
+      "recent_commits": 6
     },
     "crates/particle_poc/src/main.rs": {
       "error_count": 0,
@@ -1871,10 +1887,18 @@
     },
     "crates/particle_poc/src/state.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
-      "lines": 2245,
-      "recent_commits": 8
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 1236,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1238,
+        "unviable": 2
+      },
+      "last_tested": "2026-07-16",
+      "lines": 2246,
+      "recent_commits": 9
     },
     "crates/terrain/src/dual_grid.rs": {
       "error_count": 0,
@@ -2155,6 +2179,48 @@
       "commit": "582977f",
       "date": "2026-07-15",
       "file": "crates/card_game/src/card/interaction/release.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "b867689",
+      "date": "2026-07-16",
+      "file": "crates/particle_poc/src/state.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 1236,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1238,
+        "unviable": 2
+      }
+    },
+    {
+      "commit": "b867689",
+      "date": "2026-07-16",
+      "file": "crates/axiom2d/src/default_plugins.rs",
+      "result": {
+        "caught": 5,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 6,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "b867689",
+      "date": "2026-07-16",
+      "file": "crates/card_game/src/card/reader.rs",
       "result": {
         "caught": 0,
         "error": null,
