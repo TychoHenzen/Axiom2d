@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 93,
+    "caught": 97,
     "error": 0,
-    "files_tested": 20,
-    "missed": 1252,
-    "runs": 19,
+    "files_tested": 23,
+    "missed": 1254,
+    "runs": 22,
     "timeout": 0,
-    "total_mutants": 1375,
-    "unviable": 30,
-    "zero_mutant": 7
+    "total_mutants": 1382,
+    "unviable": 31,
+    "zero_mutant": 8
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -117,7 +117,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 377,
-      "recent_commits": 3
+      "recent_commits": 2
     },
     "crates/card_game/src/booster/double_click.rs": {
       "error_count": 0,
@@ -173,7 +173,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 253,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/component.rs": {
       "error_count": 0,
@@ -262,8 +262,16 @@
     },
     "crates/card_game/src/card/identity/name_pools/syllables.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 2,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 2,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-17",
       "lines": 33,
       "recent_commits": 0
     },
@@ -329,7 +337,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 314,
-      "recent_commits": 2
+      "recent_commits": 1
     },
     "crates/card_game/src/card/interaction/camera_drag.rs": {
       "error_count": 0,
@@ -343,7 +351,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 136,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/interaction/damping.rs": {
       "error_count": 0,
@@ -364,7 +372,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 24,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/interaction/flip.rs": {
       "error_count": 0,
@@ -435,7 +443,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 121,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/interaction/sleep.rs": {
       "error_count": 0,
@@ -470,7 +478,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 303,
-      "recent_commits": 3
+      "recent_commits": 2
     },
     "crates/card_game/src/card/mod.rs": {
       "error_count": 0,
@@ -492,14 +500,14 @@
       },
       "last_tested": "2026-07-16",
       "lines": 22,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/reader/components.rs": {
       "error_count": 0,
       "last_result": null,
       "last_tested": null,
       "lines": 20,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/reader/drag.rs": {
       "error_count": 0,
@@ -534,7 +542,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 21,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/reader/rotation_lock.rs": {
       "error_count": 0,
@@ -548,7 +556,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 106,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/reader/spawn.rs": {
       "error_count": 0,
@@ -682,7 +690,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 389,
-      "recent_commits": 5
+      "recent_commits": 4
     },
     "crates/card_game/src/card/screen_geometry.rs": {
       "error_count": 0,
@@ -738,7 +746,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 73,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/stash/boundary.rs": {
       "error_count": 0,
@@ -766,7 +774,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 135,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/stash/layout.rs": {
       "error_count": 0,
@@ -794,7 +802,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 144,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/stash/render/drag_preview.rs": {
       "error_count": 0,
@@ -822,7 +830,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 555,
-      "recent_commits": 6
+      "recent_commits": 5
     },
     "crates/card_game/src/stash/store_render.rs": {
       "error_count": 0,
@@ -977,7 +985,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 43,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/engine_audio/src/playback/id.rs": {
       "error_count": 0,
@@ -999,14 +1007,14 @@
       "last_result": null,
       "last_tested": null,
       "lines": 6,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/engine_audio/src/playback/system.rs": {
       "error_count": 0,
       "last_result": null,
       "last_tested": null,
       "lines": 63,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/engine_audio/src/plugin.rs": {
       "error_count": 0,
@@ -1020,7 +1028,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 10,
-      "recent_commits": 2
+      "recent_commits": 1
     },
     "crates/engine_audio/src/sound/data.rs": {
       "error_count": 0,
@@ -1055,7 +1063,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 80,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/engine_audio/src/test_helpers.rs": {
       "error_count": 0,
@@ -1322,8 +1330,16 @@
     },
     "crates/engine_physics/benches/stress.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-17",
       "lines": 45,
       "recent_commits": 0
     },
@@ -1916,17 +1932,25 @@
     },
     "crates/terrain/src/material.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 2,
+        "error": null,
+        "missed": 2,
+        "status": "ok",
+        "timeout": 0,
+        "total": 5,
+        "unviable": 1
+      },
+      "last_tested": "2026-07-17",
       "lines": 130,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/terrain/src/prelude.rs": {
       "error_count": 0,
       "last_result": null,
       "last_tested": null,
       "lines": 12,
-      "recent_commits": 3
+      "recent_commits": 2
     },
     "crates/terrain/src/shader.rs": {
       "error_count": 0,
@@ -2228,6 +2252,48 @@
         "status": "no_mutants",
         "timeout": 0,
         "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "c75ce3e",
+      "date": "2026-07-17",
+      "file": "crates/engine_physics/benches/stress.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "c75ce3e",
+      "date": "2026-07-17",
+      "file": "crates/terrain/src/material.rs",
+      "result": {
+        "caught": 2,
+        "error": null,
+        "missed": 2,
+        "status": "ok",
+        "timeout": 0,
+        "total": 5,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "c75ce3e",
+      "date": "2026-07-17",
+      "file": "crates/card_game/src/card/identity/name_pools/syllables.rs",
+      "result": {
+        "caught": 2,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 2,
         "unviable": 0
       }
     }
