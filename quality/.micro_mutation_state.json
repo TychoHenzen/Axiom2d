@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 97,
+    "caught": 113,
     "error": 0,
-    "files_tested": 23,
-    "missed": 1254,
-    "runs": 22,
+    "files_tested": 26,
+    "missed": 1260,
+    "runs": 25,
     "timeout": 0,
-    "total_mutants": 1382,
-    "unviable": 31,
+    "total_mutants": 1406,
+    "unviable": 33,
     "zero_mutant": 8
   },
   "files": {
@@ -337,7 +337,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 314,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/interaction/camera_drag.rs": {
       "error_count": 0,
@@ -407,7 +407,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 14,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/interaction/physics_helpers.rs": {
       "error_count": 0,
@@ -450,7 +450,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 34,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/jack_cable/geom.rs": {
       "error_count": 0,
@@ -605,7 +605,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 56,
-      "recent_commits": 2
+      "recent_commits": 1
     },
     "crates/card_game/src/card/rendering/debug_spawn.rs": {
       "error_count": 0,
@@ -655,7 +655,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 12,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/card/rendering/render_layer.rs": {
       "error_count": 0,
@@ -708,8 +708,16 @@
     },
     "crates/card_game/src/hand/cards.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 13,
+        "error": null,
+        "missed": 2,
+        "status": "ok",
+        "timeout": 0,
+        "total": 16,
+        "unviable": 1
+      },
+      "last_tested": "2026-07-18",
       "lines": 52,
       "recent_commits": 1
     },
@@ -739,7 +747,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 203,
-      "recent_commits": 2
+      "recent_commits": 1
     },
     "crates/card_game/src/prelude.rs": {
       "error_count": 0,
@@ -1369,28 +1377,28 @@
       "last_result": null,
       "last_tested": null,
       "lines": 245,
-      "recent_commits": 2
+      "recent_commits": 1
     },
     "crates/engine_physics/src/physics_backend.rs": {
       "error_count": 0,
       "last_result": null,
       "last_tested": null,
       "lines": 155,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/engine_physics/src/physics_command.rs": {
       "error_count": 0,
       "last_result": null,
       "last_tested": null,
       "lines": 54,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/engine_physics/src/physics_command_apply_system.rs": {
       "error_count": 0,
       "last_result": null,
       "last_tested": null,
       "lines": 65,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/engine_physics/src/physics_res.rs": {
       "error_count": 0,
@@ -1432,7 +1440,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 336,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/engine_physics/src/rigid_body.rs": {
       "error_count": 0,
@@ -1578,8 +1586,16 @@
     },
     "crates/engine_render/src/shape/cache.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-18",
       "lines": 16,
       "recent_commits": 0
     },
@@ -1735,8 +1751,16 @@
     },
     "crates/engine_ui/src/draw_command.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 2,
+        "error": null,
+        "missed": 4,
+        "status": "ok",
+        "timeout": 0,
+        "total": 7,
+        "unviable": 1
+      },
+      "last_tested": "2026-07-18",
       "lines": 84,
       "recent_commits": 1
     },
@@ -2295,6 +2319,48 @@
         "timeout": 0,
         "total": 2,
         "unviable": 0
+      }
+    },
+    {
+      "commit": "edf23df",
+      "date": "2026-07-18",
+      "file": "crates/engine_ui/src/draw_command.rs",
+      "result": {
+        "caught": 2,
+        "error": null,
+        "missed": 4,
+        "status": "ok",
+        "timeout": 0,
+        "total": 7,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "edf23df",
+      "date": "2026-07-18",
+      "file": "crates/engine_render/src/shape/cache.rs",
+      "result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "edf23df",
+      "date": "2026-07-18",
+      "file": "crates/card_game/src/hand/cards.rs",
+      "result": {
+        "caught": 13,
+        "error": null,
+        "missed": 2,
+        "status": "ok",
+        "timeout": 0,
+        "total": 16,
+        "unviable": 1
       }
     }
   ]
