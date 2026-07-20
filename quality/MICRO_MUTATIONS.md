@@ -4,9 +4,9 @@ Stochastic mutation testing — one random source file per daily CI run.
 Selection weighted by **staleness** (50%), **file size** (30%), and **git churn** (20%).
 Over weeks, covers the codebase without combinatorial explosion.
 
-**Cumulative (all runs)**: 1431 mutants | 133 caught | 1261 missed | 4 timeout | 33 unviable | 9 zero-mutant | 0 errors | **catch rate: 9.5%** | 28 runs | 29 files tested
+**Cumulative (all runs)**: 1461 mutants | 152 caught | 1272 missed | 4 timeout | 33 unviable | 10 zero-mutant | 0 errors | **catch rate: 10.7%** | 31 runs | 32 files tested
 
-**Last run**: 2026-07-19 (`c340a29`)
+**Last run**: 2026-07-20 (`8b1ff40`)
 
 ---
 
@@ -40,7 +40,6 @@ All 256 eligible source files. Sorted by selection priority (staleness × size �
 | 74% | `crates/engine_render/src/atlas.rs` | 163 | 2 | 90d | never | — | ⬜ |
 | 74% | `crates/engine_physics/src/lib.rs` | 245 | 1 | 90d | never | — | ⬜ |
 | 73% | `crates/card_game/src/card/identity/name_pools/compound_parts.rs` | 354 | 0 | 90d | never | — | ⬜ |
-| 73% | `crates/card_game/src/plugin.rs` | 203 | 1 | 90d | never | — | ⬜ |
 | 73% | `crates/engine_physics/src/rapier_backend.rs` | 336 | 0 | 90d | never | — | ⬜ |
 | 73% | `crates/card_game/src/card/identity/name_pools/nouns.rs` | 319 | 0 | 90d | never | — | ⬜ |
 | 73% | `crates/card_game/src/card/interaction/apply.rs` | 314 | 0 | 90d | never | — | ⬜ |
@@ -53,6 +52,7 @@ All 256 eligible source files. Sorted by selection priority (staleness × size �
 | 71% | `crates/card_game/src/card/rendering/spawn_table_card/overlay.rs` | 227 | 0 | 90d | never | — | ⬜ |
 | 71% | `crates/engine_input/src/key_code.rs` | 213 | 0 | 90d | never | — | ⬜ |
 | 71% | `crates/card_game/src/card/identity/signature/types.rs` | 204 | 0 | 90d | never | — | ⬜ |
+| 71% | `crates/card_game/src/plugin.rs` | 203 | 0 | 90d | never | — | ⬜ |
 | 71% | `crates/card_game/src/card/jack_cable/mod.rs` | 112 | 1 | 90d | never | — | ⬜ |
 | 70% | `crates/card_game/src/card/identity/base_type.rs` | 156 | 0 | 90d | never | — | ⬜ |
 | 70% | `crates/engine_physics/src/physics_backend.rs` | 155 | 0 | 90d | never | — | ⬜ |
@@ -85,8 +85,6 @@ All 256 eligible source files. Sorted by selection priority (staleness × size �
 | 68% | `crates/engine_render/benches/tessellation.rs` | 106 | 0 | 90d | never | — | ⬜ |
 | 68% | `crates/card_game/src/stash/render/drag_preview.rs` | 97 | 0 | 90d | never | — | ⬜ |
 | 68% | `crates/engine_core/benches/spring.rs` | 97 | 0 | 90d | never | — | ⬜ |
-| 68% | `crates/card_game/src/card/rendering/debug_sleep_indicator.rs` | 56 | 1 | 90d | never | — | ⬜ |
-| 68% | `crates/card_game/src/card/identity/name_pools/templates.rs` | 87 | 0 | 90d | never | — | ⬜ |
 | 68% | `crates/engine_scene/src/visibility.rs` | 86 | 0 | 90d | never | — | ⬜ |
 | 67% | `crates/engine_ui/src/interaction.rs` | 84 | 0 | 90d | never | — | ⬜ |
 | 67% | `crates/engine_audio/src/spatial.rs` | 80 | 0 | 90d | never | — | ⬜ |
@@ -116,6 +114,7 @@ All 256 eligible source files. Sorted by selection priority (staleness × size �
 | 66% | `crates/engine_core/src/color.rs` | 57 | 0 | 90d | never | — | ⬜ |
 | 66% | `crates/card_game/benches/bake.rs` | 56 | 0 | 90d | never | — | ⬜ |
 | 66% | `crates/card_game/src/card/identity/signature_profile.rs` | 56 | 0 | 90d | never | — | ⬜ |
+| 66% | `crates/card_game/src/card/rendering/debug_sleep_indicator.rs` | 56 | 0 | 90d | never | — | ⬜ |
 | 66% | `crates/card_game/src/card/identity/visual_params.rs` | 55 | 0 | 90d | never | — | ⬜ |
 | 66% | `crates/engine_ui/src/text_render.rs` | 55 | 0 | 90d | never | — | ⬜ |
 | 66% | `crates/card_game/src/card/interaction/drag.rs` | 54 | 0 | 90d | never | — | ⬜ |
@@ -192,9 +191,7 @@ All 256 eligible source files. Sorted by selection priority (staleness × size �
 | 61% | `crates/engine_ui/src/plugin.rs` | 11 | 1 | 90d | never | — | ⬜ |
 | 61% | `crates/engine_app/src/mouse_world_pos_system.rs` | 18 | 0 | 90d | never | — | ⬜ |
 | 61% | `crates/engine_input/src/mouse/buffer.rs` | 18 | 0 | 90d | never | — | ⬜ |
-| 61% | `crates/engine_physics/src/physics_sync_system.rs` | 17 | 0 | 90d | never | — | ⬜ |
 | 61% | `crates/card_game/src/stash/mod.rs` | 10 | 1 | 90d | never | — | ⬜ |
-| 61% | `crates/engine_audio/src/prelude.rs` | 10 | 1 | 90d | never | — | ⬜ |
 | 61% | `crates/card_game/src/card/interaction/game_state_param.rs` | 16 | 0 | 90d | never | — | ⬜ |
 | 61% | `crates/card_game/src/card/reader/rotation_lock.rs` | 15 | 0 | 90d | never | — | ⬜ |
 | 61% | `crates/engine_app/src/window_size.rs` | 15 | 0 | 90d | never | — | ⬜ |
@@ -243,35 +240,38 @@ All 256 eligible source files. Sorted by selection priority (staleness × size �
 | 54% | `crates/engine_assets/src/lib.rs` | 3 | 0 | 90d | never | — | ⬜ |
 | 53% | `crates/engine_assets/src/prelude.rs` | 2 | 0 | 90d | never | — | ⬜ |
 | 53% | `crates/engine_ecs/src/lib.rs` | 2 | 0 | 90d | never | — | ⬜ |
-| 50% | `crates/particle_poc/src/state.rs` | 2246 | 9 | 3d | 2026-07-16 | 0/1238 (0%) | ⚠️ |
-| 27% | `crates/engine_render/src/testing/mod.rs` | 385 | 0 | 7d | 2026-07-12 | 28/59 (47%) | ⚠️ |
-| 26% | `crates/axiom2d/src/splash/letters.rs` | 270 | 1 | 4d | 2026-07-15 | 0 mutants | ➖ |
-| 25% | `crates/axiom2d/src/default_plugins.rs` | 203 | 1 | 3d | 2026-07-16 | 5/6 (83%) | ⚠️ |
-| 24% | `crates/card_game/src/card/identity/card_name.rs` | 113 | 0 | 9d | 2026-07-10 | 0 mutants | ✅ |
-| 22% | `crates/engine_core/src/time.rs` | 123 | 0 | 6d | 2026-07-13 | 13/20 (65%) | ✅ |
-| 22% | `crates/engine_scene/src/transform_propagation.rs` | 74 | 0 | 9d | 2026-07-10 | 0 mutants | ✅ |
-| 22% | `crates/card_game/src/card/rendering/debug_spawn.rs` | 79 | 0 | 8d | 2026-07-11 | 3/3 (100%) | ✅ |
-| 21% | `crates/engine_render/src/shader.rs` | 66 | 0 | 8d | 2026-07-11 | 19/22 (86%) | ✅ |
-| 20% | `crates/terrain/src/material.rs` | 130 | 0 | 2d | 2026-07-17 | 2/5 (40%) | ⚠️ |
-| 20% | `crates/axiom2d/src/splash/mod.rs` | 15 | 3 | 6d | 2026-07-13 | 0 mutants | ➖ |
-| 20% | `crates/engine_ui/src/draw_command.rs` | 84 | 1 | 1d | 2026-07-18 | 2/7 (29%) | ⚠️ |
-| 18% | `crates/card_game/src/hand/cards.rs` | 52 | 1 | 1d | 2026-07-18 | 13/16 (81%) | ⚠️ |
-| 18% | `crates/engine_render/src/bloom.rs` | 43 | 0 | 5d | 2026-07-14 | 22/22 (100%) | ✅ |
-| 17% | `crates/engine_core/src/scale_spring.rs` | 70 | 0 | today | 2026-07-19 | 14/19 (74%) | ⚠️ |
-| 17% | `crates/engine_input/src/mouse_button.rs` | 22 | 0 | 8d | 2026-07-11 | 0/1 (0%) | ⚠️ |
-| 16% | `crates/engine_physics/benches/stress.rs` | 45 | 0 | 2d | 2026-07-17 | 0 mutants | ➖ |
-| 15% | `crates/engine_audio/src/mixer.rs` | 44 | 0 | today | 2026-07-19 | 6/6 (100%) | ✅ |
-| 15% | `crates/card_game/src/card/identity/name_pools/syllables.rs` | 33 | 0 | 2d | 2026-07-17 | 2/2 (100%) | ✅ |
-| 14% | `crates/card_game/src/card/reader.rs` | 22 | 0 | 3d | 2026-07-16 | 0 mutants | ➖ |
-| 13% | `crates/engine_input/src/keyboard/system.rs` | 14 | 0 | 4d | 2026-07-15 | 1/1 (100%) | ✅ |
-| 12% | `crates/engine_render/src/rect.rs` | 22 | 0 | today | 2026-07-19 | 0 mutants | ➖ |
-| 12% | `crates/card_game/src/stash/toggle.rs` | 10 | 0 | 5d | 2026-07-14 | 2/2 (100%) | ✅ |
-| 12% | `crates/engine_render/src/testing/helpers.rs` | 10 | 0 | 5d | 2026-07-14 | 0/1 (0%) | ⚠️ |
-| 12% | `crates/engine_core/src/error.rs` | 8 | 0 | 6d | 2026-07-13 | 0 mutants | ➖ |
-| 11% | `crates/engine_render/src/shape/cache.rs` | 16 | 0 | 1d | 2026-07-18 | 1/1 (100%) | ✅ |
-| 9% | `crates/card_game/src/card/identity/signature.rs` | 4 | 0 | 7d | 2026-07-12 | 0 mutants | ➖ |
-| 7% | `crates/engine_audio/src/playback/id.rs` | 2 | 0 | 7d | 2026-07-12 | 0 mutants | ➖ |
-| 5% | `crates/card_game/src/card/interaction/release.rs` | 2 | 0 | 4d | 2026-07-15 | 0 mutants | ➖ |
+| 50% | `crates/particle_poc/src/state.rs` | 2246 | 9 | 4d | 2026-07-16 | 0/1238 (0%) | ⚠️ |
+| 28% | `crates/engine_render/src/testing/mod.rs` | 385 | 0 | 8d | 2026-07-12 | 28/59 (47%) | ⚠️ |
+| 27% | `crates/axiom2d/src/splash/letters.rs` | 270 | 1 | 5d | 2026-07-15 | 0 mutants | ➖ |
+| 25% | `crates/axiom2d/src/default_plugins.rs` | 203 | 1 | 4d | 2026-07-16 | 5/6 (83%) | ⚠️ |
+| 24% | `crates/card_game/src/card/identity/card_name.rs` | 113 | 0 | 10d | 2026-07-10 | 0 mutants | ✅ |
+| 23% | `crates/engine_core/src/time.rs` | 123 | 0 | 7d | 2026-07-13 | 13/20 (65%) | ✅ |
+| 22% | `crates/engine_scene/src/transform_propagation.rs` | 74 | 0 | 10d | 2026-07-10 | 0 mutants | ✅ |
+| 22% | `crates/card_game/src/card/rendering/debug_spawn.rs` | 79 | 0 | 9d | 2026-07-11 | 3/3 (100%) | ✅ |
+| 21% | `crates/engine_render/src/shader.rs` | 66 | 0 | 9d | 2026-07-11 | 19/22 (86%) | ✅ |
+| 21% | `crates/terrain/src/material.rs` | 130 | 0 | 3d | 2026-07-17 | 2/5 (40%) | ⚠️ |
+| 21% | `crates/axiom2d/src/splash/mod.rs` | 15 | 3 | 7d | 2026-07-13 | 0 mutants | ➖ |
+| 19% | `crates/card_game/src/hand/cards.rs` | 52 | 1 | 2d | 2026-07-18 | 13/16 (81%) | ⚠️ |
+| 19% | `crates/engine_ui/src/draw_command.rs` | 84 | 0 | 2d | 2026-07-18 | 2/7 (29%) | ⚠️ |
+| 18% | `crates/engine_render/src/bloom.rs` | 43 | 0 | 6d | 2026-07-14 | 22/22 (100%) | ✅ |
+| 18% | `crates/card_game/src/card/identity/name_pools/templates.rs` | 87 | 0 | today | 2026-07-20 | 18/29 (62%) | ⚠️ |
+| 17% | `crates/engine_core/src/scale_spring.rs` | 70 | 0 | 1d | 2026-07-19 | 14/19 (74%) | ⚠️ |
+| 17% | `crates/engine_input/src/mouse_button.rs` | 22 | 0 | 9d | 2026-07-11 | 0/1 (0%) | ⚠️ |
+| 17% | `crates/engine_physics/benches/stress.rs` | 45 | 0 | 3d | 2026-07-17 | 0 mutants | ➖ |
+| 15% | `crates/engine_audio/src/mixer.rs` | 44 | 0 | 1d | 2026-07-19 | 6/6 (100%) | ✅ |
+| 15% | `crates/card_game/src/card/identity/name_pools/syllables.rs` | 33 | 0 | 3d | 2026-07-17 | 2/2 (100%) | ✅ |
+| 14% | `crates/card_game/src/card/reader.rs` | 22 | 0 | 4d | 2026-07-16 | 0 mutants | ➖ |
+| 13% | `crates/engine_input/src/keyboard/system.rs` | 14 | 0 | 5d | 2026-07-15 | 1/1 (100%) | ✅ |
+| 13% | `crates/engine_render/src/rect.rs` | 22 | 0 | 1d | 2026-07-19 | 0 mutants | ➖ |
+| 12% | `crates/card_game/src/stash/toggle.rs` | 10 | 0 | 6d | 2026-07-14 | 2/2 (100%) | ✅ |
+| 12% | `crates/engine_render/src/testing/helpers.rs` | 10 | 0 | 6d | 2026-07-14 | 0/1 (0%) | ⚠️ |
+| 12% | `crates/engine_core/src/error.rs` | 8 | 0 | 7d | 2026-07-13 | 0 mutants | ➖ |
+| 12% | `crates/engine_render/src/shape/cache.rs` | 16 | 0 | 2d | 2026-07-18 | 1/1 (100%) | ✅ |
+| 11% | `crates/engine_physics/src/physics_sync_system.rs` | 17 | 0 | today | 2026-07-20 | 1/1 (100%) | ✅ |
+| 11% | `crates/engine_audio/src/prelude.rs` | 10 | 1 | today | 2026-07-20 | 0 mutants | ➖ |
+| 10% | `crates/card_game/src/card/identity/signature.rs` | 4 | 0 | 8d | 2026-07-12 | 0 mutants | ➖ |
+| 7% | `crates/engine_audio/src/playback/id.rs` | 2 | 0 | 8d | 2026-07-12 | 0 mutants | ➖ |
+| 6% | `crates/card_game/src/card/interaction/release.rs` | 2 | 0 | 5d | 2026-07-15 | 0 mutants | ➖ |
 
 ---
 
@@ -279,6 +279,9 @@ All 256 eligible source files. Sorted by selection priority (staleness × size �
 
 | Date | Commit | File | Total | Caught | Missed | Timeout | Unviable | Status |
 |------|--------|------|-------|--------|--------|---------|----------|--------|
+| 2026-07-20 | `8b1ff40` | `crates/card_game/src/card/identity/name_pools/templates.rs` | 29 | 18 | 11 | 0 | 0 | ✅ |
+| 2026-07-20 | `8b1ff40` | `crates/engine_physics/src/physics_sync_system.rs` | 1 | 1 | 0 | 0 | 0 | ✅ |
+| 2026-07-20 | `8b1ff40` | `crates/engine_audio/src/prelude.rs` | 0 | 0 | 0 | 0 | 0 | 0 mutants |
 | 2026-07-19 | `c340a29` | `crates/engine_render/src/rect.rs` | 0 | 0 | 0 | 0 | 0 | 0 mutants |
 | 2026-07-19 | `c340a29` | `crates/engine_core/src/scale_spring.rs` | 19 | 14 | 1 | 4 | 0 | ✅ |
 | 2026-07-19 | `c340a29` | `crates/engine_audio/src/mixer.rs` | 6 | 6 | 0 | 0 | 0 | ✅ |
@@ -306,7 +309,6 @@ All 256 eligible source files. Sorted by selection priority (staleness × size �
 | 2026-07-11 | `daecf46` | `crates/card_game/src/card/rendering/debug_spawn.rs` | 3 | 3 | 0 | 0 | 0 | ✅ |
 | 2026-07-11 | `daecf46` | `crates/engine_input/src/mouse_button.rs` | 1 | 0 | 0 | 0 | 1 | ✅ |
 | 2026-07-11 | `daecf46` | `crates/engine_render/src/shader.rs` | 22 | 19 | 0 | 0 | 3 | ✅ |
-| 2026-07-10 | `60616b7` | `crates/engine_scene/src/transform_propagation.rs` | 0 | 0 | 0 | 0 | 0 | ✅ |
 
 ---
 
