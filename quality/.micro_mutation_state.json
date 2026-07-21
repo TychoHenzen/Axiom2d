@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 152,
+    "caught": 161,
     "error": 0,
-    "files_tested": 32,
-    "missed": 1272,
-    "runs": 31,
+    "files_tested": 35,
+    "missed": 1306,
+    "runs": 34,
     "timeout": 4,
-    "total_mutants": 1461,
-    "unviable": 33,
+    "total_mutants": 1506,
+    "unviable": 35,
     "zero_mutant": 10
   },
   "files": {
@@ -519,8 +519,16 @@
     },
     "crates/card_game/src/card/reader/drag.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 5,
+        "error": null,
+        "missed": 3,
+        "status": "ok",
+        "timeout": 0,
+        "total": 9,
+        "unviable": 1
+      },
+      "last_tested": "2026-07-21",
       "lines": 67,
       "recent_commits": 0
     },
@@ -568,8 +576,16 @@
     },
     "crates/card_game/src/card/reader/spawn.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 31,
+        "status": "ok",
+        "timeout": 0,
+        "total": 32,
+        "unviable": 1
+      },
+      "last_tested": "2026-07-21",
       "lines": 229,
       "recent_commits": 0
     },
@@ -1756,8 +1772,16 @@
     },
     "crates/engine_scene/src/render_order.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 4,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 4,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-21",
       "lines": 29,
       "recent_commits": 0
     },
@@ -2493,6 +2517,48 @@
         "timeout": 0,
         "total": 29,
         "unviable": 0
+      }
+    },
+    {
+      "commit": "1dd9bd7",
+      "date": "2026-07-21",
+      "file": "crates/card_game/src/card/reader/spawn.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 31,
+        "status": "ok",
+        "timeout": 0,
+        "total": 32,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "1dd9bd7",
+      "date": "2026-07-21",
+      "file": "crates/engine_scene/src/render_order.rs",
+      "result": {
+        "caught": 4,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 4,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "1dd9bd7",
+      "date": "2026-07-21",
+      "file": "crates/card_game/src/card/reader/drag.rs",
+      "result": {
+        "caught": 5,
+        "error": null,
+        "missed": 3,
+        "status": "ok",
+        "timeout": 0,
+        "total": 9,
+        "unviable": 1
       }
     }
   ]
