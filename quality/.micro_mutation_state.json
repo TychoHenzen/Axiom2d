@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 161,
+    "caught": 163,
     "error": 0,
-    "files_tested": 35,
+    "files_tested": 38,
     "missed": 1306,
-    "runs": 34,
+    "runs": 37,
     "timeout": 4,
-    "total_mutants": 1506,
-    "unviable": 35,
-    "zero_mutant": 10
+    "total_mutants": 1509,
+    "unviable": 36,
+    "zero_mutant": 11
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -248,8 +248,16 @@
     },
     "crates/card_game/src/card/identity/name_pools/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 1
+      },
+      "last_tested": "2026-07-22",
       "lines": 28,
       "recent_commits": 0
     },
@@ -768,8 +776,16 @@
     },
     "crates/card_game/src/plugin.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 2,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 2,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-22",
       "lines": 203,
       "recent_commits": 0
     },
@@ -1122,8 +1138,16 @@
     },
     "crates/engine_core/benches/spring.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-22",
       "lines": 97,
       "recent_commits": 0
     },
@@ -2559,6 +2583,48 @@
         "timeout": 0,
         "total": 9,
         "unviable": 1
+      }
+    },
+    {
+      "commit": "feb7251",
+      "date": "2026-07-22",
+      "file": "crates/card_game/src/plugin.rs",
+      "result": {
+        "caught": 2,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 2,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "feb7251",
+      "date": "2026-07-22",
+      "file": "crates/card_game/src/card/identity/name_pools/mod.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "feb7251",
+      "date": "2026-07-22",
+      "file": "crates/engine_core/benches/spring.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
       }
     }
   ]
