@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 163,
+    "caught": 225,
     "error": 0,
-    "files_tested": 38,
-    "missed": 1306,
-    "runs": 37,
+    "files_tested": 41,
+    "missed": 1365,
+    "runs": 40,
     "timeout": 4,
-    "total_mutants": 1509,
-    "unviable": 36,
+    "total_mutants": 1636,
+    "unviable": 42,
     "zero_mutant": 11
   },
   "files": {
@@ -156,8 +156,16 @@
     },
     "crates/card_game/src/card/art/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 17,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 18,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-23",
       "lines": 49,
       "recent_commits": 0
     },
@@ -399,8 +407,16 @@
     },
     "crates/card_game/src/card/interaction/flip_animation.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 21,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 23,
+        "unviable": 1
+      },
+      "last_tested": "2026-07-23",
       "lines": 47,
       "recent_commits": 0
     },
@@ -719,8 +735,16 @@
     },
     "crates/card_game/src/card/screen_device.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 24,
+        "error": null,
+        "missed": 57,
+        "status": "ok",
+        "timeout": 0,
+        "total": 86,
+        "unviable": 5
+      },
+      "last_tested": "2026-07-23",
       "lines": 389,
       "recent_commits": 4
     },
@@ -2624,6 +2648,48 @@
         "status": "no_mutants",
         "timeout": 0,
         "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "8192ea8",
+      "date": "2026-07-23",
+      "file": "crates/card_game/src/card/screen_device.rs",
+      "result": {
+        "caught": 24,
+        "error": null,
+        "missed": 57,
+        "status": "ok",
+        "timeout": 0,
+        "total": 86,
+        "unviable": 5
+      }
+    },
+    {
+      "commit": "8192ea8",
+      "date": "2026-07-23",
+      "file": "crates/card_game/src/card/interaction/flip_animation.rs",
+      "result": {
+        "caught": 21,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 23,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "8192ea8",
+      "date": "2026-07-23",
+      "file": "crates/card_game/src/card/art/mod.rs",
+      "result": {
+        "caught": 17,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 18,
         "unviable": 0
       }
     }
