@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 225,
+    "caught": 233,
     "error": 0,
-    "files_tested": 41,
+    "files_tested": 44,
     "missed": 1365,
-    "runs": 40,
+    "runs": 43,
     "timeout": 4,
-    "total_mutants": 1636,
-    "unviable": 42,
+    "total_mutants": 1647,
+    "unviable": 45,
     "zero_mutant": 11
   },
   "files": {
@@ -1005,8 +1005,16 @@
     },
     "crates/engine_audio/src/audio_res.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 2,
+        "unviable": 2
+      },
+      "last_tested": "2026-07-24",
       "lines": 21,
       "recent_commits": 0
     },
@@ -1463,8 +1471,16 @@
     },
     "crates/engine_physics/src/hit_test.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 8,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 8,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-24",
       "lines": 11,
       "recent_commits": 0
     },
@@ -1842,8 +1858,16 @@
     },
     "crates/engine_scene/src/spawn_child.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 1
+      },
+      "last_tested": "2026-07-24",
       "lines": 10,
       "recent_commits": 0
     },
@@ -2690,6 +2714,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 18,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "d215ea7",
+      "date": "2026-07-24",
+      "file": "crates/engine_scene/src/spawn_child.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "d215ea7",
+      "date": "2026-07-24",
+      "file": "crates/engine_audio/src/audio_res.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 2,
+        "unviable": 2
+      }
+    },
+    {
+      "commit": "d215ea7",
+      "date": "2026-07-24",
+      "file": "crates/engine_physics/src/hit_test.rs",
+      "result": {
+        "caught": 8,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 8,
         "unviable": 0
       }
     }
