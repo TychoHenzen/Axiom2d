@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 290,
+    "caught": 291,
     "error": 1,
-    "files_tested": 47,
+    "files_tested": 49,
     "missed": 1365,
-    "runs": 46,
+    "runs": 49,
     "timeout": 4,
-    "total_mutants": 1707,
-    "unviable": 48,
-    "zero_mutant": 12
+    "total_mutants": 1709,
+    "unviable": 49,
+    "zero_mutant": 13
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -185,8 +185,16 @@
     },
     "crates/card_game/src/card/component.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 1
+      },
+      "last_tested": "2026-07-26",
       "lines": 47,
       "recent_commits": 0
     },
@@ -324,7 +332,7 @@
         "total": 0,
         "unviable": 0
       },
-      "last_tested": "2026-07-12",
+      "last_tested": "2026-07-26",
       "lines": 4,
       "recent_commits": 0
     },
@@ -443,8 +451,16 @@
     },
     "crates/card_game/src/card/interaction/physics_helpers.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-26",
       "lines": 35,
       "recent_commits": 0
     },
@@ -2815,6 +2831,48 @@
       "commit": "10632da",
       "date": "2026-07-25",
       "file": "crates/engine_input/src/prelude.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "caa8844",
+      "date": "2026-07-26",
+      "file": "crates/card_game/src/card/interaction/physics_helpers.rs",
+      "result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "caa8844",
+      "date": "2026-07-26",
+      "file": "crates/card_game/src/card/component.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "caa8844",
+      "date": "2026-07-26",
+      "file": "crates/card_game/src/card/identity/signature.rs",
       "result": {
         "caught": 0,
         "error": null,
