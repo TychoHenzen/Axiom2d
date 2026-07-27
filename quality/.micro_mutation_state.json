@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 291,
+    "caught": 292,
     "error": 1,
-    "files_tested": 49,
+    "files_tested": 52,
     "missed": 1365,
-    "runs": 49,
+    "runs": 52,
     "timeout": 4,
-    "total_mutants": 1709,
-    "unviable": 49,
-    "zero_mutant": 13
+    "total_mutants": 1712,
+    "unviable": 51,
+    "zero_mutant": 14
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -444,8 +444,16 @@
     },
     "crates/card_game/src/card/interaction/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-27",
       "lines": 14,
       "recent_commits": 0
     },
@@ -1094,8 +1102,16 @@
     },
     "crates/engine_audio/src/playback/buffer.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 2,
+        "unviable": 2
+      },
+      "last_tested": "2026-07-27",
       "lines": 43,
       "recent_commits": 0
     },
@@ -1661,8 +1677,16 @@
     },
     "crates/engine_render/src/clear.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-27",
       "lines": 13,
       "recent_commits": 0
     },
@@ -2873,6 +2897,48 @@
       "commit": "caa8844",
       "date": "2026-07-26",
       "file": "crates/card_game/src/card/identity/signature.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "0ca77c4",
+      "date": "2026-07-27",
+      "file": "crates/engine_render/src/clear.rs",
+      "result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "0ca77c4",
+      "date": "2026-07-27",
+      "file": "crates/engine_audio/src/playback/buffer.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 2,
+        "unviable": 2
+      }
+    },
+    {
+      "commit": "0ca77c4",
+      "date": "2026-07-27",
+      "file": "crates/card_game/src/card/interaction/mod.rs",
       "result": {
         "caught": 0,
         "error": null,
