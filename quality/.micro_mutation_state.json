@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 292,
+    "caught": 344,
     "error": 1,
-    "files_tested": 52,
-    "missed": 1365,
-    "runs": 52,
+    "files_tested": 55,
+    "missed": 1416,
+    "runs": 55,
     "timeout": 4,
-    "total_mutants": 1712,
-    "unviable": 51,
-    "zero_mutant": 14
+    "total_mutants": 1824,
+    "unviable": 60,
+    "zero_mutant": 15
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -114,8 +114,16 @@
     },
     "crates/card_game/src/booster/device.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 7,
+        "error": null,
+        "missed": 34,
+        "status": "ok",
+        "timeout": 0,
+        "total": 49,
+        "unviable": 8
+      },
+      "last_tested": "2026-07-28",
       "lines": 377,
       "recent_commits": 2
     },
@@ -171,8 +179,16 @@
     },
     "crates/card_game/src/card/art_selection.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 45,
+        "error": null,
+        "missed": 17,
+        "status": "ok",
+        "timeout": 0,
+        "total": 63,
+        "unviable": 1
+      },
+      "last_tested": "2026-07-28",
       "lines": 119,
       "recent_commits": 0
     },
@@ -401,8 +417,16 @@
     },
     "crates/card_game/src/card/interaction/drag_state.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-28",
       "lines": 24,
       "recent_commits": 0
     },
@@ -2947,6 +2971,48 @@
         "timeout": 0,
         "total": 0,
         "unviable": 0
+      }
+    },
+    {
+      "commit": "20c3c5a",
+      "date": "2026-07-28",
+      "file": "crates/card_game/src/card/interaction/drag_state.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "20c3c5a",
+      "date": "2026-07-28",
+      "file": "crates/card_game/src/card/art_selection.rs",
+      "result": {
+        "caught": 45,
+        "error": null,
+        "missed": 17,
+        "status": "ok",
+        "timeout": 0,
+        "total": 63,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "20c3c5a",
+      "date": "2026-07-28",
+      "file": "crates/card_game/src/booster/device.rs",
+      "result": {
+        "caught": 7,
+        "error": null,
+        "missed": 34,
+        "status": "ok",
+        "timeout": 0,
+        "total": 49,
+        "unviable": 8
       }
     }
   ]
