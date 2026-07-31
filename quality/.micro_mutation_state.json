@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 392,
+    "caught": 407,
     "error": 1,
-    "files_tested": 61,
+    "files_tested": 64,
     "missed": 1421,
-    "runs": 61,
+    "runs": 64,
     "timeout": 4,
-    "total_mutants": 1884,
+    "total_mutants": 1899,
     "unviable": 67,
-    "zero_mutant": 18
+    "zero_mutant": 19
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -878,8 +878,16 @@
     },
     "crates/card_game/src/stash/boundary.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 12,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 12,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-31",
       "lines": 68,
       "recent_commits": 0
     },
@@ -1389,8 +1397,16 @@
     },
     "crates/engine_core/src/window.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-31",
       "lines": 19,
       "recent_commits": 1
     },
@@ -2081,8 +2097,16 @@
     },
     "crates/engine_ui/src/layout/system.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 3,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 3,
+        "unviable": 0
+      },
+      "last_tested": "2026-07-31",
       "lines": 30,
       "recent_commits": 0
     },
@@ -3144,6 +3168,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 4,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "d123ed8",
+      "date": "2026-07-31",
+      "file": "crates/engine_ui/src/layout/system.rs",
+      "result": {
+        "caught": 3,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 3,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "d123ed8",
+      "date": "2026-07-31",
+      "file": "crates/card_game/src/stash/boundary.rs",
+      "result": {
+        "caught": 12,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 12,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "d123ed8",
+      "date": "2026-07-31",
+      "file": "crates/engine_core/src/window.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
         "unviable": 0
       }
     }
