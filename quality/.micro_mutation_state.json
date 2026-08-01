@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 407,
+    "caught": 417,
     "error": 1,
-    "files_tested": 64,
+    "files_tested": 67,
     "missed": 1421,
-    "runs": 64,
+    "runs": 67,
     "timeout": 4,
-    "total_mutants": 1899,
-    "unviable": 67,
+    "total_mutants": 1917,
+    "unviable": 75,
     "zero_mutant": 19
   },
   "files": {
@@ -1318,8 +1318,16 @@
     },
     "crates/engine_core/src/event_bus.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 6,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 14,
+        "unviable": 8
+      },
+      "last_tested": "2026-08-01",
       "lines": 37,
       "recent_commits": 0
     },
@@ -1635,8 +1643,16 @@
     },
     "crates/engine_physics/src/physics_command_apply_system.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-01",
       "lines": 65,
       "recent_commits": 0
     },
@@ -2112,8 +2128,16 @@
     },
     "crates/engine_ui/src/lib.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 3,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 3,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-01",
       "lines": 15,
       "recent_commits": 1
     },
@@ -3210,6 +3234,48 @@
         "status": "no_mutants",
         "timeout": 0,
         "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "00dafab",
+      "date": "2026-08-01",
+      "file": "crates/engine_physics/src/physics_command_apply_system.rs",
+      "result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "00dafab",
+      "date": "2026-08-01",
+      "file": "crates/engine_core/src/event_bus.rs",
+      "result": {
+        "caught": 6,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 14,
+        "unviable": 8
+      }
+    },
+    {
+      "commit": "00dafab",
+      "date": "2026-08-01",
+      "file": "crates/engine_ui/src/lib.rs",
+      "result": {
+        "caught": 3,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 3,
         "unviable": 0
       }
     }
