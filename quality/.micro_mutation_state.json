@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 417,
+    "caught": 418,
     "error": 1,
-    "files_tested": 67,
+    "files_tested": 70,
     "missed": 1421,
-    "runs": 67,
+    "runs": 70,
     "timeout": 4,
-    "total_mutants": 1917,
-    "unviable": 75,
-    "zero_mutant": 19
+    "total_mutants": 1919,
+    "unviable": 76,
+    "zero_mutant": 21
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -28,8 +28,16 @@
     },
     "crates/axiom2d/src/lib.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-02",
       "lines": 3,
       "recent_commits": 0
     },
@@ -614,8 +622,16 @@
     },
     "crates/card_game/src/card/reader/eject.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 2,
+        "unviable": 1
+      },
+      "last_tested": "2026-08-02",
       "lines": 54,
       "recent_commits": 0
     },
@@ -1427,8 +1443,16 @@
     },
     "crates/engine_ecs/src/prelude.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-02",
       "lines": 7,
       "recent_commits": 0
     },
@@ -3276,6 +3300,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 3,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "6e0312d",
+      "date": "2026-08-02",
+      "file": "crates/card_game/src/card/reader/eject.rs",
+      "result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 2,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "6e0312d",
+      "date": "2026-08-02",
+      "file": "crates/axiom2d/src/lib.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "6e0312d",
+      "date": "2026-08-02",
+      "file": "crates/engine_ecs/src/prelude.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
         "unviable": 0
       }
     }
