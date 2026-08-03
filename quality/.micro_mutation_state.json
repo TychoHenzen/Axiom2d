@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 418,
+    "caught": 461,
     "error": 1,
-    "files_tested": 70,
-    "missed": 1421,
-    "runs": 70,
-    "timeout": 4,
-    "total_mutants": 1919,
-    "unviable": 76,
+    "files_tested": 72,
+    "missed": 1422,
+    "runs": 73,
+    "timeout": 8,
+    "total_mutants": 1969,
+    "unviable": 78,
     "zero_mutant": 21
   },
   "files": {
@@ -340,8 +340,16 @@
     },
     "crates/card_game/src/card/identity/residual.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 26,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 28,
+        "unviable": 2
+      },
+      "last_tested": "2026-08-03",
       "lines": 77,
       "recent_commits": 0
     },
@@ -1379,7 +1387,7 @@
         "total": 19,
         "unviable": 0
       },
-      "last_tested": "2026-07-19",
+      "last_tested": "2026-08-03",
       "lines": 70,
       "recent_commits": 0
     },
@@ -2230,8 +2238,16 @@
     },
     "crates/engine_ui/src/widget/node.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 3,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 3,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-03",
       "lines": 37,
       "recent_commits": 0
     },
@@ -3342,6 +3358,48 @@
         "status": "no_mutants",
         "timeout": 0,
         "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "40b6017",
+      "date": "2026-08-03",
+      "file": "crates/card_game/src/card/identity/residual.rs",
+      "result": {
+        "caught": 26,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 28,
+        "unviable": 2
+      }
+    },
+    {
+      "commit": "40b6017",
+      "date": "2026-08-03",
+      "file": "crates/engine_core/src/scale_spring.rs",
+      "result": {
+        "caught": 14,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 4,
+        "total": 19,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "40b6017",
+      "date": "2026-08-03",
+      "file": "crates/engine_ui/src/widget/node.rs",
+      "result": {
+        "caught": 3,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 3,
         "unviable": 0
       }
     }
