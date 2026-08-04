@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 461,
+    "caught": 462,
     "error": 1,
-    "files_tested": 72,
+    "files_tested": 75,
     "missed": 1422,
-    "runs": 73,
+    "runs": 76,
     "timeout": 8,
-    "total_mutants": 1969,
+    "total_mutants": 1970,
     "unviable": 78,
-    "zero_mutant": 21
+    "zero_mutant": 23
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -108,8 +108,16 @@
     },
     "crates/card_game/benches/stress.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-04",
       "lines": 50,
       "recent_commits": 0
     },
@@ -1697,8 +1705,16 @@
     },
     "crates/engine_physics/src/physics_step_system.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-04",
       "lines": 20,
       "recent_commits": 0
     },
@@ -1754,8 +1770,16 @@
     },
     "crates/engine_render/benches/stress.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-04",
       "lines": 73,
       "recent_commits": 0
     },
@@ -3400,6 +3424,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 3,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "8b4f8e7",
+      "date": "2026-08-04",
+      "file": "crates/card_game/benches/stress.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "8b4f8e7",
+      "date": "2026-08-04",
+      "file": "crates/engine_render/benches/stress.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "8b4f8e7",
+      "date": "2026-08-04",
+      "file": "crates/engine_physics/src/physics_step_system.rs",
+      "result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
         "unviable": 0
       }
     }
