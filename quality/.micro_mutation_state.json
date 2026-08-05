@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 462,
+    "caught": 479,
     "error": 1,
-    "files_tested": 75,
+    "files_tested": 76,
     "missed": 1422,
-    "runs": 76,
+    "runs": 79,
     "timeout": 8,
-    "total_mutants": 1970,
-    "unviable": 78,
+    "total_mutants": 1988,
+    "unviable": 79,
     "zero_mutant": 23
   },
   "files": {
@@ -1185,7 +1185,7 @@
         "total": 6,
         "unviable": 0
       },
-      "last_tested": "2026-07-19",
+      "last_tested": "2026-08-05",
       "lines": 44,
       "recent_commits": 0
     },
@@ -1379,8 +1379,16 @@
     },
     "crates/engine_core/src/profiler.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 10,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 11,
+        "unviable": 1
+      },
+      "last_tested": "2026-08-05",
       "lines": 111,
       "recent_commits": 0
     },
@@ -1729,7 +1737,7 @@
         "total": 1,
         "unviable": 0
       },
-      "last_tested": "2026-07-20",
+      "last_tested": "2026-08-05",
       "lines": 17,
       "recent_commits": 0
     },
@@ -3466,6 +3474,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "cfb358e",
+      "date": "2026-08-05",
+      "file": "crates/engine_core/src/profiler.rs",
+      "result": {
+        "caught": 10,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 11,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "cfb358e",
+      "date": "2026-08-05",
+      "file": "crates/engine_physics/src/physics_sync_system.rs",
+      "result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "cfb358e",
+      "date": "2026-08-05",
+      "file": "crates/engine_audio/src/mixer.rs",
+      "result": {
+        "caught": 6,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 6,
         "unviable": 0
       }
     }
