@@ -2,13 +2,13 @@
   "cumulative": {
     "caught": 479,
     "error": 1,
-    "files_tested": 76,
-    "missed": 1422,
-    "runs": 79,
+    "files_tested": 79,
+    "missed": 1950,
+    "runs": 82,
     "timeout": 8,
-    "total_mutants": 1988,
-    "unviable": 79,
-    "zero_mutant": 23
+    "total_mutants": 2519,
+    "unviable": 82,
+    "zero_mutant": 25
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -275,8 +275,16 @@
     },
     "crates/card_game/src/card/identity/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-06",
       "lines": 10,
       "recent_commits": 0
     },
@@ -1764,8 +1772,16 @@
     },
     "crates/engine_physics/src/rigid_body.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-06",
       "lines": 8,
       "recent_commits": 0
     },
@@ -2306,8 +2322,16 @@
     },
     "crates/particle_poc/src/capture.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 528,
+        "status": "ok",
+        "timeout": 0,
+        "total": 531,
+        "unviable": 3
+      },
+      "last_tested": "2026-08-06",
       "lines": 1288,
       "recent_commits": 8
     },
@@ -3516,6 +3540,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 6,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "dc37285",
+      "date": "2026-08-06",
+      "file": "crates/particle_poc/src/capture.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 528,
+        "status": "ok",
+        "timeout": 0,
+        "total": 531,
+        "unviable": 3
+      }
+    },
+    {
+      "commit": "dc37285",
+      "date": "2026-08-06",
+      "file": "crates/engine_physics/src/rigid_body.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "dc37285",
+      "date": "2026-08-06",
+      "file": "crates/card_game/src/card/identity/mod.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
         "unviable": 0
       }
     }
