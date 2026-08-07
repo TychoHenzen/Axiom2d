@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 479,
+    "caught": 514,
     "error": 1,
-    "files_tested": 79,
+    "files_tested": 82,
     "missed": 1950,
-    "runs": 82,
+    "runs": 85,
     "timeout": 8,
-    "total_mutants": 2519,
+    "total_mutants": 2554,
     "unviable": 82,
-    "zero_mutant": 25
+    "zero_mutant": 26
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -50,8 +50,16 @@
     },
     "crates/axiom2d/src/splash/animation.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 9,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 9,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-07",
       "lines": 68,
       "recent_commits": 0
     },
@@ -1250,8 +1258,16 @@
     },
     "crates/engine_audio/src/plugin.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-07",
       "lines": 14,
       "recent_commits": 1
     },
@@ -2158,8 +2174,16 @@
     },
     "crates/engine_ui/src/interaction.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 26,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 26,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-07",
       "lines": 84,
       "recent_commits": 0
     },
@@ -3582,6 +3606,48 @@
         "status": "no_mutants",
         "timeout": 0,
         "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "6a8e5a1",
+      "date": "2026-08-07",
+      "file": "crates/engine_ui/src/interaction.rs",
+      "result": {
+        "caught": 26,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 26,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "6a8e5a1",
+      "date": "2026-08-07",
+      "file": "crates/engine_audio/src/plugin.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "6a8e5a1",
+      "date": "2026-08-07",
+      "file": "crates/axiom2d/src/splash/animation.rs",
+      "result": {
+        "caught": 9,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 9,
         "unviable": 0
       }
     }
