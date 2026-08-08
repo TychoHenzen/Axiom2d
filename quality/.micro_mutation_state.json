@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 514,
+    "caught": 550,
     "error": 1,
-    "files_tested": 82,
-    "missed": 1950,
-    "runs": 85,
+    "files_tested": 84,
+    "missed": 1955,
+    "runs": 88,
     "timeout": 8,
-    "total_mutants": 2554,
+    "total_mutants": 2595,
     "unviable": 82,
-    "zero_mutant": 26
+    "zero_mutant": 28
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -1172,7 +1172,7 @@
         "total": 0,
         "unviable": 0
       },
-      "last_tested": "2026-07-29",
+      "last_tested": "2026-08-08",
       "lines": 4,
       "recent_commits": 0
     },
@@ -1884,8 +1884,16 @@
     },
     "crates/engine_render/src/culling.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 36,
+        "error": null,
+        "missed": 5,
+        "status": "ok",
+        "timeout": 0,
+        "total": 41,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-08",
       "lines": 58,
       "recent_commits": 0
     },
@@ -2254,8 +2262,16 @@
     },
     "crates/engine_ui/src/prelude.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-08",
       "lines": 15,
       "recent_commits": 0
     },
@@ -3648,6 +3664,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 9,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "cdfb412",
+      "date": "2026-08-08",
+      "file": "crates/engine_ui/src/prelude.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "cdfb412",
+      "date": "2026-08-08",
+      "file": "crates/engine_render/src/culling.rs",
+      "result": {
+        "caught": 36,
+        "error": null,
+        "missed": 5,
+        "status": "ok",
+        "timeout": 0,
+        "total": 41,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "cdfb412",
+      "date": "2026-08-08",
+      "file": "crates/engine_audio/src/backend/mod.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
         "unviable": 0
       }
     }
