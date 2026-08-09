@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 550,
+    "caught": 562,
     "error": 1,
-    "files_tested": 84,
+    "files_tested": 87,
     "missed": 1955,
-    "runs": 88,
+    "runs": 91,
     "timeout": 8,
-    "total_mutants": 2595,
+    "total_mutants": 2607,
     "unviable": 82,
-    "zero_mutant": 28
+    "zero_mutant": 29
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -305,8 +305,16 @@
     },
     "crates/card_game/src/card/identity/name_pools/compound_parts.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 8,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 8,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-09",
       "lines": 354,
       "recent_commits": 0
     },
@@ -1506,8 +1514,16 @@
     },
     "crates/engine_ecs/src/schedule.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 4,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 4,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-09",
       "lines": 72,
       "recent_commits": 0
     },
@@ -2101,8 +2117,16 @@
     },
     "crates/engine_scene/src/prelude.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-09",
       "lines": 6,
       "recent_commits": 0
     },
@@ -3706,6 +3730,48 @@
         "status": "no_mutants",
         "timeout": 0,
         "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "4ffa617",
+      "date": "2026-08-09",
+      "file": "crates/card_game/src/card/identity/name_pools/compound_parts.rs",
+      "result": {
+        "caught": 8,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 8,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "4ffa617",
+      "date": "2026-08-09",
+      "file": "crates/engine_scene/src/prelude.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "4ffa617",
+      "date": "2026-08-09",
+      "file": "crates/engine_ecs/src/schedule.rs",
+      "result": {
+        "caught": 4,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 4,
         "unviable": 0
       }
     }
