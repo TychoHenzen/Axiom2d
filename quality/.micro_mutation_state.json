@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 562,
+    "caught": 622,
     "error": 1,
-    "files_tested": 87,
-    "missed": 1955,
-    "runs": 91,
+    "files_tested": 90,
+    "missed": 1969,
+    "runs": 94,
     "timeout": 8,
-    "total_mutants": 2607,
-    "unviable": 82,
-    "zero_mutant": 29
+    "total_mutants": 2690,
+    "unviable": 91,
+    "zero_mutant": 30
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -438,8 +438,16 @@
     },
     "crates/card_game/src/card/interaction/apply.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 12,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 13,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-10",
       "lines": 314,
       "recent_commits": 0
     },
@@ -1404,8 +1412,16 @@
     },
     "crates/engine_core/src/prelude.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-10",
       "lines": 11,
       "recent_commits": 1
     },
@@ -1878,8 +1894,16 @@
     },
     "crates/engine_render/src/camera.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 48,
+        "error": null,
+        "missed": 13,
+        "status": "ok",
+        "timeout": 0,
+        "total": 70,
+        "unviable": 9
+      },
+      "last_tested": "2026-08-10",
       "lines": 139,
       "recent_commits": 0
     },
@@ -3773,6 +3797,48 @@
         "timeout": 0,
         "total": 4,
         "unviable": 0
+      }
+    },
+    {
+      "commit": "baa4760",
+      "date": "2026-08-10",
+      "file": "crates/card_game/src/card/interaction/apply.rs",
+      "result": {
+        "caught": 12,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 13,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "baa4760",
+      "date": "2026-08-10",
+      "file": "crates/engine_core/src/prelude.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "baa4760",
+      "date": "2026-08-10",
+      "file": "crates/engine_render/src/camera.rs",
+      "result": {
+        "caught": 48,
+        "error": null,
+        "missed": 13,
+        "status": "ok",
+        "timeout": 0,
+        "total": 70,
+        "unviable": 9
       }
     }
   ]
