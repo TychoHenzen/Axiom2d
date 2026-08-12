@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 623,
+    "caught": 635,
     "error": 1,
-    "files_tested": 93,
-    "missed": 1983,
-    "runs": 97,
+    "files_tested": 96,
+    "missed": 2000,
+    "runs": 100,
     "timeout": 8,
-    "total_mutants": 2705,
+    "total_mutants": 2734,
     "unviable": 91,
-    "zero_mutant": 31
+    "zero_mutant": 33
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -906,8 +906,16 @@
     },
     "crates/card_game/src/hand/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-12",
       "lines": 3,
       "recent_commits": 0
     },
@@ -935,8 +943,16 @@
     },
     "crates/card_game/src/prelude.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-12",
       "lines": 73,
       "recent_commits": 0
     },
@@ -1014,8 +1030,16 @@
     },
     "crates/card_game/src/stash/render/drag_preview.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 12,
+        "error": null,
+        "missed": 17,
+        "status": "ok",
+        "timeout": 0,
+        "total": 29,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-12",
       "lines": 97,
       "recent_commits": 0
     },
@@ -3904,6 +3928,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "73cd6df",
+      "date": "2026-08-12",
+      "file": "crates/card_game/src/hand/mod.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "73cd6df",
+      "date": "2026-08-12",
+      "file": "crates/card_game/src/prelude.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "73cd6df",
+      "date": "2026-08-12",
+      "file": "crates/card_game/src/stash/render/drag_preview.rs",
+      "result": {
+        "caught": 12,
+        "error": null,
+        "missed": 17,
+        "status": "ok",
+        "timeout": 0,
+        "total": 29,
         "unviable": 0
       }
     }
