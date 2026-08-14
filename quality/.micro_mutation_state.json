@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 647,
+    "caught": 652,
     "error": 1,
-    "files_tested": 99,
-    "missed": 2001,
-    "runs": 103,
+    "files_tested": 101,
+    "missed": 2003,
+    "runs": 106,
     "timeout": 8,
-    "total_mutants": 2751,
-    "unviable": 95,
-    "zero_mutant": 34
+    "total_mutants": 2760,
+    "unviable": 97,
+    "zero_mutant": 35
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -842,8 +842,16 @@
     },
     "crates/card_game/src/card/rendering/spawn_table_card.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 3,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 4,
+        "unviable": 1
+      },
+      "last_tested": "2026-08-14",
       "lines": 135,
       "recent_commits": 0
     },
@@ -1723,8 +1731,16 @@
     },
     "crates/engine_physics/benches/physics.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-14",
       "lines": 66,
       "recent_commits": 0
     },
@@ -2549,7 +2565,7 @@
         "total": 5,
         "unviable": 1
       },
-      "last_tested": "2026-07-17",
+      "last_tested": "2026-08-14",
       "lines": 130,
       "recent_commits": 0
     },
@@ -4037,6 +4053,48 @@
         "timeout": 0,
         "total": 3,
         "unviable": 1
+      }
+    },
+    {
+      "commit": "6cb252d",
+      "date": "2026-08-14",
+      "file": "crates/card_game/src/card/rendering/spawn_table_card.rs",
+      "result": {
+        "caught": 3,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 4,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "6cb252d",
+      "date": "2026-08-14",
+      "file": "crates/terrain/src/material.rs",
+      "result": {
+        "caught": 2,
+        "error": null,
+        "missed": 2,
+        "status": "ok",
+        "timeout": 0,
+        "total": 5,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "6cb252d",
+      "date": "2026-08-14",
+      "file": "crates/engine_physics/benches/physics.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
       }
     }
   ]
