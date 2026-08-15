@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 652,
+    "caught": 656,
     "error": 1,
-    "files_tested": 101,
-    "missed": 2003,
-    "runs": 106,
+    "files_tested": 104,
+    "missed": 2007,
+    "runs": 109,
     "timeout": 8,
-    "total_mutants": 2760,
-    "unviable": 97,
-    "zero_mutant": 35
+    "total_mutants": 2771,
+    "unviable": 100,
+    "zero_mutant": 36
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -835,8 +835,16 @@
     },
     "crates/card_game/src/card/rendering/render_layer.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 2,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 3,
+        "unviable": 1
+      },
+      "last_tested": "2026-08-15",
       "lines": 29,
       "recent_commits": 0
     },
@@ -1220,8 +1228,16 @@
     },
     "crates/engine_audio/src/backend/cpal.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 2,
+        "error": null,
+        "missed": 4,
+        "status": "ok",
+        "timeout": 0,
+        "total": 8,
+        "unviable": 2
+      },
+      "last_tested": "2026-08-15",
       "lines": 118,
       "recent_commits": 0
     },
@@ -1308,8 +1324,16 @@
     },
     "crates/engine_audio/src/playback/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-15",
       "lines": 6,
       "recent_commits": 0
     },
@@ -4095,6 +4119,48 @@
         "timeout": 0,
         "total": 0,
         "unviable": 0
+      }
+    },
+    {
+      "commit": "fab08a2",
+      "date": "2026-08-15",
+      "file": "crates/engine_audio/src/playback/mod.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "fab08a2",
+      "date": "2026-08-15",
+      "file": "crates/engine_audio/src/backend/cpal.rs",
+      "result": {
+        "caught": 2,
+        "error": null,
+        "missed": 4,
+        "status": "ok",
+        "timeout": 0,
+        "total": 8,
+        "unviable": 2
+      }
+    },
+    {
+      "commit": "fab08a2",
+      "date": "2026-08-15",
+      "file": "crates/card_game/src/card/rendering/render_layer.rs",
+      "result": {
+        "caught": 2,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 3,
+        "unviable": 1
       }
     }
   ]
