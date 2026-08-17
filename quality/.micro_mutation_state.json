@@ -1,14 +1,14 @@
 {
   "cumulative": {
     "caught": 765,
-    "error": 1,
-    "files_tested": 105,
-    "missed": 2039,
-    "runs": 112,
+    "error": 2,
+    "files_tested": 107,
+    "missed": 2040,
+    "runs": 115,
     "timeout": 8,
-    "total_mutants": 2913,
+    "total_mutants": 2914,
     "unviable": 101,
-    "zero_mutant": 36
+    "zero_mutant": 37
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -276,9 +276,17 @@
       "recent_commits": 0
     },
     "crates/card_game/src/card/identity/definition.rs": {
-      "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "error_count": 1,
+      "last_result": {
+        "caught": 0,
+        "error": "cargo-mutants timed out after 3000s (per-mutant timeout was 45s)",
+        "missed": 0,
+        "status": "error",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-17",
       "lines": 141,
       "recent_commits": 0
     },
@@ -1326,7 +1334,7 @@
         "total": 0,
         "unviable": 0
       },
-      "last_tested": "2026-07-12",
+      "last_tested": "2026-08-17",
       "lines": 2,
       "recent_commits": 0
     },
@@ -2071,8 +2079,16 @@
     },
     "crates/engine_render/src/plugin.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-17",
       "lines": 23,
       "recent_commits": 1
     },
@@ -4211,6 +4227,48 @@
         "timeout": 0,
         "total": 63,
         "unviable": 1
+      }
+    },
+    {
+      "commit": "0673496",
+      "date": "2026-08-17",
+      "file": "crates/card_game/src/card/identity/definition.rs",
+      "result": {
+        "caught": 0,
+        "error": "cargo-mutants timed out after 3000s (per-mutant timeout was 45s)",
+        "missed": 0,
+        "status": "error",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "0673496",
+      "date": "2026-08-17",
+      "file": "crates/engine_render/src/plugin.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "0673496",
+      "date": "2026-08-17",
+      "file": "crates/engine_audio/src/playback/id.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
       }
     }
   ]
