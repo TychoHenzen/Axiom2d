@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 765,
+    "caught": 787,
     "error": 2,
-    "files_tested": 107,
-    "missed": 2040,
-    "runs": 115,
+    "files_tested": 109,
+    "missed": 2082,
+    "runs": 118,
     "timeout": 8,
-    "total_mutants": 2914,
-    "unviable": 101,
-    "zero_mutant": 37
+    "total_mutants": 2985,
+    "unviable": 108,
+    "zero_mutant": 38
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -773,8 +773,16 @@
     },
     "crates/card_game/src/card/rendering/bake.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 9,
+        "error": null,
+        "missed": 42,
+        "status": "ok",
+        "timeout": 0,
+        "total": 51,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-18",
       "lines": 151,
       "recent_commits": 0
     },
@@ -1569,7 +1577,7 @@
         "total": 20,
         "unviable": 7
       },
-      "last_tested": "2026-07-13",
+      "last_tested": "2026-08-18",
       "lines": 123,
       "recent_commits": 0
     },
@@ -1910,8 +1918,16 @@
     },
     "crates/engine_physics/src/prelude.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-18",
       "lines": 11,
       "recent_commits": 1
     },
@@ -4261,6 +4277,48 @@
       "commit": "0673496",
       "date": "2026-08-17",
       "file": "crates/engine_audio/src/playback/id.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "dc57a2a",
+      "date": "2026-08-18",
+      "file": "crates/engine_core/src/time.rs",
+      "result": {
+        "caught": 13,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 20,
+        "unviable": 7
+      }
+    },
+    {
+      "commit": "dc57a2a",
+      "date": "2026-08-18",
+      "file": "crates/card_game/src/card/rendering/bake.rs",
+      "result": {
+        "caught": 9,
+        "error": null,
+        "missed": 42,
+        "status": "ok",
+        "timeout": 0,
+        "total": 51,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "dc57a2a",
+      "date": "2026-08-18",
+      "file": "crates/engine_physics/src/prelude.rs",
       "result": {
         "caught": 0,
         "error": null,
