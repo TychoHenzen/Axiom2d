@@ -1,12 +1,12 @@
 {
   "cumulative": {
-    "caught": 787,
-    "error": 2,
-    "files_tested": 109,
-    "missed": 2082,
-    "runs": 118,
+    "caught": 801,
+    "error": 3,
+    "files_tested": 111,
+    "missed": 2083,
+    "runs": 121,
     "timeout": 8,
-    "total_mutants": 2985,
+    "total_mutants": 3000,
     "unviable": 108,
     "zero_mutant": 38
   },
@@ -418,8 +418,16 @@
     },
     "crates/card_game/src/card/identity/signature/algorithms.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 14,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 15,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-20",
       "lines": 29,
       "recent_commits": 0
     },
@@ -600,8 +608,16 @@
     },
     "crates/card_game/src/card/interaction/release/target.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-20",
       "lines": 121,
       "recent_commits": 0
     },
@@ -1106,7 +1122,7 @@
       "recent_commits": 0
     },
     "crates/card_game/src/stash/store.rs": {
-      "error_count": 1,
+      "error_count": 2,
       "last_result": {
         "caught": 0,
         "error": "cargo-mutants timed out after 3000s (per-mutant timeout was 45s)",
@@ -1116,7 +1132,7 @@
         "total": 0,
         "unviable": 0
       },
-      "last_tested": "2026-07-25",
+      "last_tested": "2026-08-20",
       "lines": 555,
       "recent_commits": 5
     },
@@ -4324,6 +4340,48 @@
         "error": null,
         "missed": 0,
         "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "1efd1b1",
+      "date": "2026-08-20",
+      "file": "crates/card_game/src/card/identity/signature/algorithms.rs",
+      "result": {
+        "caught": 14,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 15,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "1efd1b1",
+      "date": "2026-08-20",
+      "file": "crates/card_game/src/stash/store.rs",
+      "result": {
+        "caught": 0,
+        "error": "cargo-mutants timed out after 3000s (per-mutant timeout was 45s)",
+        "missed": 0,
+        "status": "error",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "1efd1b1",
+      "date": "2026-08-20",
+      "file": "crates/card_game/src/card/interaction/release/target.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
         "timeout": 0,
         "total": 0,
         "unviable": 0
