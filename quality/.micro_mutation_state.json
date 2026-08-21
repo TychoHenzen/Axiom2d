@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 801,
+    "caught": 838,
     "error": 3,
-    "files_tested": 111,
-    "missed": 2083,
-    "runs": 121,
+    "files_tested": 114,
+    "missed": 2086,
+    "runs": 124,
     "timeout": 8,
-    "total_mutants": 3000,
-    "unviable": 108,
-    "zero_mutant": 38
+    "total_mutants": 3042,
+    "unviable": 110,
+    "zero_mutant": 39
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -680,8 +680,16 @@
     },
     "crates/card_game/src/card/reader/components.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 7,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 7,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-21",
       "lines": 20,
       "recent_commits": 0
     },
@@ -1175,8 +1183,16 @@
     },
     "crates/engine_app/src/app.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 30,
+        "error": null,
+        "missed": 3,
+        "status": "ok",
+        "timeout": 0,
+        "total": 35,
+        "unviable": 2
+      },
+      "last_tested": "2026-08-21",
       "lines": 337,
       "recent_commits": 1
     },
@@ -2651,8 +2667,16 @@
     },
     "crates/terrain/src/prelude.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-21",
       "lines": 12,
       "recent_commits": 2
     },
@@ -4382,6 +4406,48 @@
         "error": null,
         "missed": 0,
         "status": "ok",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "ad6ee6c",
+      "date": "2026-08-21",
+      "file": "crates/card_game/src/card/reader/components.rs",
+      "result": {
+        "caught": 7,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 7,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "ad6ee6c",
+      "date": "2026-08-21",
+      "file": "crates/engine_app/src/app.rs",
+      "result": {
+        "caught": 30,
+        "error": null,
+        "missed": 3,
+        "status": "ok",
+        "timeout": 0,
+        "total": 35,
+        "unviable": 2
+      }
+    },
+    {
+      "commit": "ad6ee6c",
+      "date": "2026-08-21",
+      "file": "crates/terrain/src/prelude.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
         "timeout": 0,
         "total": 0,
         "unviable": 0
