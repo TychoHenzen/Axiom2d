@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 838,
+    "caught": 872,
     "error": 3,
-    "files_tested": 114,
-    "missed": 2086,
-    "runs": 124,
+    "files_tested": 115,
+    "missed": 2101,
+    "runs": 127,
     "timeout": 8,
-    "total_mutants": 3042,
-    "unviable": 110,
-    "zero_mutant": 39
+    "total_mutants": 3107,
+    "unviable": 126,
+    "zero_mutant": 40
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -1337,7 +1337,7 @@
         "total": 6,
         "unviable": 0
       },
-      "last_tested": "2026-08-05",
+      "last_tested": "2026-08-22",
       "lines": 44,
       "recent_commits": 0
     },
@@ -1644,8 +1644,16 @@
     },
     "crates/engine_ecs/src/lib.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-22",
       "lines": 2,
       "recent_commits": 0
     },
@@ -2282,7 +2290,7 @@
         "total": 59,
         "unviable": 16
       },
-      "last_tested": "2026-07-12",
+      "last_tested": "2026-08-22",
       "lines": 385,
       "recent_commits": 0
     },
@@ -4443,6 +4451,48 @@
       "commit": "ad6ee6c",
       "date": "2026-08-21",
       "file": "crates/terrain/src/prelude.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "df0eba7",
+      "date": "2026-08-22",
+      "file": "crates/engine_render/src/testing/mod.rs",
+      "result": {
+        "caught": 28,
+        "error": null,
+        "missed": 15,
+        "status": "ok",
+        "timeout": 0,
+        "total": 59,
+        "unviable": 16
+      }
+    },
+    {
+      "commit": "df0eba7",
+      "date": "2026-08-22",
+      "file": "crates/engine_audio/src/mixer.rs",
+      "result": {
+        "caught": 6,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 6,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "df0eba7",
+      "date": "2026-08-22",
+      "file": "crates/engine_ecs/src/lib.rs",
       "result": {
         "caught": 0,
         "error": null,
