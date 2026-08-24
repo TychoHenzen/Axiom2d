@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 888,
+    "caught": 933,
     "error": 3,
-    "files_tested": 118,
-    "missed": 2106,
-    "runs": 130,
+    "files_tested": 119,
+    "missed": 2123,
+    "runs": 133,
     "timeout": 8,
-    "total_mutants": 3131,
-    "unviable": 129,
-    "zero_mutant": 41
+    "total_mutants": 3194,
+    "unviable": 130,
+    "zero_mutant": 43
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -220,7 +220,7 @@
         "total": 63,
         "unviable": 1
       },
-      "last_tested": "2026-08-16",
+      "last_tested": "2026-08-24",
       "lines": 119,
       "recent_commits": 0
     },
@@ -1214,8 +1214,16 @@
     },
     "crates/engine_app/src/lib.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-24",
       "lines": 6,
       "recent_commits": 1
     },
@@ -1405,7 +1413,7 @@
         "total": 0,
         "unviable": 0
       },
-      "last_tested": "2026-08-15",
+      "last_tested": "2026-08-24",
       "lines": 6,
       "recent_commits": 0
     },
@@ -4566,6 +4574,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 16,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "c994c32",
+      "date": "2026-08-24",
+      "file": "crates/engine_audio/src/playback/mod.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "c994c32",
+      "date": "2026-08-24",
+      "file": "crates/engine_app/src/lib.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "c994c32",
+      "date": "2026-08-24",
+      "file": "crates/card_game/src/card/art_selection.rs",
+      "result": {
+        "caught": 45,
+        "error": null,
+        "missed": 17,
+        "status": "ok",
+        "timeout": 0,
+        "total": 63,
         "unviable": 1
       }
     }
