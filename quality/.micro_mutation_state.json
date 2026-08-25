@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 933,
+    "caught": 935,
     "error": 3,
-    "files_tested": 119,
-    "missed": 2123,
-    "runs": 133,
+    "files_tested": 121,
+    "missed": 2125,
+    "runs": 136,
     "timeout": 8,
-    "total_mutants": 3194,
-    "unviable": 130,
-    "zero_mutant": 43
+    "total_mutants": 3200,
+    "unviable": 132,
+    "zero_mutant": 44
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -965,8 +965,16 @@
     },
     "crates/card_game/src/card/zone_config.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 1
+      },
+      "last_tested": "2026-08-25",
       "lines": 43,
       "recent_commits": 0
     },
@@ -1792,8 +1800,16 @@
     },
     "crates/engine_input/src/mouse/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-25",
       "lines": 7,
       "recent_commits": 0
     },
@@ -2701,7 +2717,7 @@
         "total": 5,
         "unviable": 1
       },
-      "last_tested": "2026-08-14",
+      "last_tested": "2026-08-25",
       "lines": 130,
       "recent_commits": 0
     },
@@ -4617,6 +4633,48 @@
         "timeout": 0,
         "total": 63,
         "unviable": 1
+      }
+    },
+    {
+      "commit": "d24dfc6",
+      "date": "2026-08-25",
+      "file": "crates/card_game/src/card/zone_config.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "d24dfc6",
+      "date": "2026-08-25",
+      "file": "crates/terrain/src/material.rs",
+      "result": {
+        "caught": 2,
+        "error": null,
+        "missed": 2,
+        "status": "ok",
+        "timeout": 0,
+        "total": 5,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "d24dfc6",
+      "date": "2026-08-25",
+      "file": "crates/engine_input/src/mouse/mod.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
       }
     }
   ]
