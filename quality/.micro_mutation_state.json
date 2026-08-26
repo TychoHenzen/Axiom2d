@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 935,
+    "caught": 996,
     "error": 3,
-    "files_tested": 121,
-    "missed": 2125,
-    "runs": 136,
+    "files_tested": 124,
+    "missed": 2240,
+    "runs": 139,
     "timeout": 8,
-    "total_mutants": 3200,
-    "unviable": 132,
+    "total_mutants": 3382,
+    "unviable": 138,
     "zero_mutant": 44
   },
   "files": {
@@ -359,8 +359,16 @@
     },
     "crates/card_game/src/card/identity/name_pools/nouns.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 3,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 3,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-26",
       "lines": 319,
       "recent_commits": 0
     },
@@ -2147,8 +2155,16 @@
     },
     "crates/engine_render/src/font.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 54,
+        "error": null,
+        "missed": 113,
+        "status": "ok",
+        "timeout": 0,
+        "total": 173,
+        "unviable": 6
+      },
+      "last_tested": "2026-08-26",
       "lines": 352,
       "recent_commits": 3
     },
@@ -2351,8 +2367,16 @@
     },
     "crates/engine_scene/src/hierarchy.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 4,
+        "error": null,
+        "missed": 2,
+        "status": "ok",
+        "timeout": 0,
+        "total": 6,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-26",
       "lines": 37,
       "recent_commits": 0
     },
@@ -4675,6 +4699,48 @@
         "timeout": 0,
         "total": 0,
         "unviable": 0
+      }
+    },
+    {
+      "commit": "e943391",
+      "date": "2026-08-26",
+      "file": "crates/engine_scene/src/hierarchy.rs",
+      "result": {
+        "caught": 4,
+        "error": null,
+        "missed": 2,
+        "status": "ok",
+        "timeout": 0,
+        "total": 6,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "e943391",
+      "date": "2026-08-26",
+      "file": "crates/card_game/src/card/identity/name_pools/nouns.rs",
+      "result": {
+        "caught": 3,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 3,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "e943391",
+      "date": "2026-08-26",
+      "file": "crates/engine_render/src/font.rs",
+      "result": {
+        "caught": 54,
+        "error": null,
+        "missed": 113,
+        "status": "ok",
+        "timeout": 0,
+        "total": 173,
+        "unviable": 6
       }
     }
   ]
