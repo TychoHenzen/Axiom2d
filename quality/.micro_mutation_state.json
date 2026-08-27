@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 996,
+    "caught": 1008,
     "error": 3,
-    "files_tested": 124,
-    "missed": 2240,
-    "runs": 139,
+    "files_tested": 126,
+    "missed": 2246,
+    "runs": 142,
     "timeout": 8,
-    "total_mutants": 3382,
-    "unviable": 138,
+    "total_mutants": 3403,
+    "unviable": 141,
     "zero_mutant": 44
   },
   "files": {
@@ -479,8 +479,16 @@
     },
     "crates/card_game/src/card/identity/visual_params.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 6,
+        "error": null,
+        "missed": 3,
+        "status": "ok",
+        "timeout": 0,
+        "total": 11,
+        "unviable": 2
+      },
+      "last_tested": "2026-08-27",
       "lines": 55,
       "recent_commits": 0
     },
@@ -728,7 +736,7 @@
         "total": 9,
         "unviable": 1
       },
-      "last_tested": "2026-07-21",
+      "last_tested": "2026-08-27",
       "lines": 67,
       "recent_commits": 0
     },
@@ -843,8 +851,16 @@
     },
     "crates/card_game/src/card/rendering/baked_render.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-27",
       "lines": 46,
       "recent_commits": 0
     },
@@ -4741,6 +4757,48 @@
         "timeout": 0,
         "total": 173,
         "unviable": 6
+      }
+    },
+    {
+      "commit": "2fbedea",
+      "date": "2026-08-27",
+      "file": "crates/card_game/src/card/rendering/baked_render.rs",
+      "result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "2fbedea",
+      "date": "2026-08-27",
+      "file": "crates/card_game/src/card/reader/drag.rs",
+      "result": {
+        "caught": 5,
+        "error": null,
+        "missed": 3,
+        "status": "ok",
+        "timeout": 0,
+        "total": 9,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "2fbedea",
+      "date": "2026-08-27",
+      "file": "crates/card_game/src/card/identity/visual_params.rs",
+      "result": {
+        "caught": 6,
+        "error": null,
+        "missed": 3,
+        "status": "ok",
+        "timeout": 0,
+        "total": 11,
+        "unviable": 2
       }
     }
   ]
