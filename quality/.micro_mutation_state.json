@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 1008,
+    "caught": 1011,
     "error": 3,
-    "files_tested": 126,
-    "missed": 2246,
-    "runs": 142,
+    "files_tested": 129,
+    "missed": 2250,
+    "runs": 145,
     "timeout": 8,
-    "total_mutants": 3403,
-    "unviable": 141,
-    "zero_mutant": 44
+    "total_mutants": 3413,
+    "unviable": 144,
+    "zero_mutant": 45
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -1304,8 +1304,16 @@
     },
     "crates/engine_assets/src/handle.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 2,
+        "error": null,
+        "missed": 4,
+        "status": "ok",
+        "timeout": 0,
+        "total": 9,
+        "unviable": 3
+      },
+      "last_tested": "2026-08-28",
       "lines": 47,
       "recent_commits": 0
     },
@@ -2230,8 +2238,16 @@
     },
     "crates/engine_render/src/prelude.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-28",
       "lines": 29,
       "recent_commits": 1
     },
@@ -2632,8 +2648,16 @@
     },
     "crates/engine_ui/src/widget/button.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-28",
       "lines": 42,
       "recent_commits": 0
     },
@@ -4799,6 +4823,48 @@
         "timeout": 0,
         "total": 11,
         "unviable": 2
+      }
+    },
+    {
+      "commit": "90eede3",
+      "date": "2026-08-28",
+      "file": "crates/engine_render/src/prelude.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "90eede3",
+      "date": "2026-08-28",
+      "file": "crates/engine_assets/src/handle.rs",
+      "result": {
+        "caught": 2,
+        "error": null,
+        "missed": 4,
+        "status": "ok",
+        "timeout": 0,
+        "total": 9,
+        "unviable": 3
+      }
+    },
+    {
+      "commit": "90eede3",
+      "date": "2026-08-28",
+      "file": "crates/engine_ui/src/widget/button.rs",
+      "result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
       }
     }
   ]
