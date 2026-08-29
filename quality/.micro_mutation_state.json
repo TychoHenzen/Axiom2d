@@ -1,12 +1,12 @@
 {
   "cumulative": {
-    "caught": 1011,
+    "caught": 1071,
     "error": 3,
-    "files_tested": 129,
+    "files_tested": 130,
     "missed": 2250,
-    "runs": 145,
+    "runs": 148,
     "timeout": 8,
-    "total_mutants": 3413,
+    "total_mutants": 3473,
     "unviable": 144,
     "zero_mutant": 45
   },
@@ -1057,7 +1057,7 @@
         "total": 2,
         "unviable": 0
       },
-      "last_tested": "2026-07-22",
+      "last_tested": "2026-08-29",
       "lines": 203,
       "recent_commits": 0
     },
@@ -1957,8 +1957,16 @@
     },
     "crates/engine_physics/src/physics_backend.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 36,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 36,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-29",
       "lines": 155,
       "recent_commits": 0
     },
@@ -2128,7 +2136,7 @@
         "total": 22,
         "unviable": 0
       },
-      "last_tested": "2026-07-14",
+      "last_tested": "2026-08-29",
       "lines": 43,
       "recent_commits": 0
     },
@@ -4864,6 +4872,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "5977973",
+      "date": "2026-08-29",
+      "file": "crates/card_game/src/plugin.rs",
+      "result": {
+        "caught": 2,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 2,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "5977973",
+      "date": "2026-08-29",
+      "file": "crates/engine_physics/src/physics_backend.rs",
+      "result": {
+        "caught": 36,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 36,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "5977973",
+      "date": "2026-08-29",
+      "file": "crates/engine_render/src/bloom.rs",
+      "result": {
+        "caught": 22,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 22,
         "unviable": 0
       }
     }
