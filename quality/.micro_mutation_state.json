@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 1185,
+    "caught": 1215,
     "error": 3,
-    "files_tested": 131,
-    "missed": 2339,
-    "runs": 151,
+    "files_tested": 133,
+    "missed": 2381,
+    "runs": 154,
     "timeout": 8,
-    "total_mutants": 3681,
+    "total_mutants": 3753,
     "unviable": 149,
-    "zero_mutant": 46
+    "zero_mutant": 47
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -428,7 +428,7 @@
         "total": 0,
         "unviable": 0
       },
-      "last_tested": "2026-07-26",
+      "last_tested": "2026-08-31",
       "lines": 4,
       "recent_commits": 0
     },
@@ -1115,8 +1115,16 @@
     },
     "crates/card_game/src/stash/hover.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 16,
+        "error": null,
+        "missed": 42,
+        "status": "ok",
+        "timeout": 0,
+        "total": 58,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-31",
       "lines": 135,
       "recent_commits": 0
     },
@@ -2700,8 +2708,16 @@
     },
     "crates/engine_ui/src/widget/progress_bar.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 14,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 14,
+        "unviable": 0
+      },
+      "last_tested": "2026-08-31",
       "lines": 59,
       "recent_commits": 0
     },
@@ -4965,6 +4981,48 @@
         "timeout": 0,
         "total": 200,
         "unviable": 5
+      }
+    },
+    {
+      "commit": "c545a50",
+      "date": "2026-08-31",
+      "file": "crates/card_game/src/card/identity/signature.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "c545a50",
+      "date": "2026-08-31",
+      "file": "crates/engine_ui/src/widget/progress_bar.rs",
+      "result": {
+        "caught": 14,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 14,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "c545a50",
+      "date": "2026-08-31",
+      "file": "crates/card_game/src/stash/hover.rs",
+      "result": {
+        "caught": 16,
+        "error": null,
+        "missed": 42,
+        "status": "ok",
+        "timeout": 0,
+        "total": 58,
+        "unviable": 0
       }
     }
   ]
