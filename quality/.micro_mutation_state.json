@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 1225,
-    "error": 3,
-    "files_tested": 135,
-    "missed": 2409,
-    "runs": 157,
+    "caught": 1243,
+    "error": 4,
+    "files_tested": 137,
+    "missed": 2413,
+    "runs": 160,
     "timeout": 8,
-    "total_mutants": 3792,
-    "unviable": 150,
+    "total_mutants": 3815,
+    "unviable": 151,
     "zero_mutant": 48
   },
   "files": {
@@ -1217,9 +1217,17 @@
       "recent_commits": 5
     },
     "crates/card_game/src/stash/store_render.rs": {
-      "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "error_count": 1,
+      "last_result": {
+        "caught": 0,
+        "error": "cargo-mutants timed out after 3000s (per-mutant timeout was 45s)",
+        "missed": 0,
+        "status": "error",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-02",
       "lines": 319,
       "recent_commits": 2
     },
@@ -1431,8 +1439,16 @@
     },
     "crates/engine_audio/src/mixer_engine.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 16,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 16,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-02",
       "lines": 31,
       "recent_commits": 0
     },
@@ -2536,7 +2552,7 @@
         "total": 7,
         "unviable": 1
       },
-      "last_tested": "2026-07-18",
+      "last_tested": "2026-09-02",
       "lines": 84,
       "recent_commits": 0
     },
@@ -5080,6 +5096,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 28,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "c4681be",
+      "date": "2026-09-02",
+      "file": "crates/engine_ui/src/draw_command.rs",
+      "result": {
+        "caught": 2,
+        "error": null,
+        "missed": 4,
+        "status": "ok",
+        "timeout": 0,
+        "total": 7,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "c4681be",
+      "date": "2026-09-02",
+      "file": "crates/engine_audio/src/mixer_engine.rs",
+      "result": {
+        "caught": 16,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 16,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "c4681be",
+      "date": "2026-09-02",
+      "file": "crates/card_game/src/stash/store_render.rs",
+      "result": {
+        "caught": 0,
+        "error": "cargo-mutants timed out after 3000s (per-mutant timeout was 45s)",
+        "missed": 0,
+        "status": "error",
+        "timeout": 0,
+        "total": 0,
         "unviable": 0
       }
     }
