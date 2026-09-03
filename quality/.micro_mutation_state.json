@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 1243,
+    "caught": 1248,
     "error": 4,
-    "files_tested": 137,
-    "missed": 2413,
-    "runs": 160,
+    "files_tested": 140,
+    "missed": 2415,
+    "runs": 163,
     "timeout": 8,
-    "total_mutants": 3815,
+    "total_mutants": 3822,
     "unviable": 151,
-    "zero_mutant": 48
+    "zero_mutant": 49
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -574,8 +574,16 @@
     },
     "crates/card_game/src/card/interaction/game_state_param.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-03",
       "lines": 16,
       "recent_commits": 0
     },
@@ -1719,8 +1727,16 @@
     },
     "crates/engine_core/src/transform.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-03",
       "lines": 23,
       "recent_commits": 0
     },
@@ -2536,8 +2552,16 @@
     },
     "crates/engine_scene/src/visibility.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 4,
+        "error": null,
+        "missed": 2,
+        "status": "ok",
+        "timeout": 0,
+        "total": 6,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-03",
       "lines": 86,
       "recent_commits": 0
     },
@@ -5136,6 +5160,48 @@
         "error": "cargo-mutants timed out after 3000s (per-mutant timeout was 45s)",
         "missed": 0,
         "status": "error",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "9968731",
+      "date": "2026-09-03",
+      "file": "crates/engine_core/src/transform.rs",
+      "result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "9968731",
+      "date": "2026-09-03",
+      "file": "crates/engine_scene/src/visibility.rs",
+      "result": {
+        "caught": 4,
+        "error": null,
+        "missed": 2,
+        "status": "ok",
+        "timeout": 0,
+        "total": 6,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "9968731",
+      "date": "2026-09-03",
+      "file": "crates/card_game/src/card/interaction/game_state_param.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
         "timeout": 0,
         "total": 0,
         "unviable": 0
