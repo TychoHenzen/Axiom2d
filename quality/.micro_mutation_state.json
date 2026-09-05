@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 1289,
+    "caught": 1362,
     "error": 4,
-    "files_tested": 141,
-    "missed": 2415,
-    "runs": 166,
+    "files_tested": 143,
+    "missed": 2436,
+    "runs": 169,
     "timeout": 8,
-    "total_mutants": 3863,
-    "unviable": 151,
+    "total_mutants": 3962,
+    "unviable": 156,
     "zero_mutant": 49
   },
   "files": {
@@ -568,7 +568,7 @@
         "total": 23,
         "unviable": 1
       },
-      "last_tested": "2026-07-23",
+      "last_tested": "2026-09-05",
       "lines": 47,
       "recent_commits": 0
     },
@@ -1713,8 +1713,16 @@
     },
     "crates/engine_core/src/spring.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 25,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 25,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-05",
       "lines": 15,
       "recent_commits": 0
     },
@@ -2014,8 +2022,16 @@
     },
     "crates/engine_physics/src/lib.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 27,
+        "error": null,
+        "missed": 20,
+        "status": "ok",
+        "timeout": 0,
+        "total": 51,
+        "unviable": 4
+      },
+      "last_tested": "2026-09-05",
       "lines": 245,
       "recent_commits": 1
     },
@@ -5254,6 +5270,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 1,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "1282a0d",
+      "date": "2026-09-05",
+      "file": "crates/engine_physics/src/lib.rs",
+      "result": {
+        "caught": 27,
+        "error": null,
+        "missed": 20,
+        "status": "ok",
+        "timeout": 0,
+        "total": 51,
+        "unviable": 4
+      }
+    },
+    {
+      "commit": "1282a0d",
+      "date": "2026-09-05",
+      "file": "crates/card_game/src/card/interaction/flip_animation.rs",
+      "result": {
+        "caught": 21,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 23,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "1282a0d",
+      "date": "2026-09-05",
+      "file": "crates/engine_core/src/spring.rs",
+      "result": {
+        "caught": 25,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 25,
         "unviable": 0
       }
     }
