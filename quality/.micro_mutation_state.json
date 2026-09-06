@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 1362,
+    "caught": 1378,
     "error": 4,
-    "files_tested": 143,
+    "files_tested": 145,
     "missed": 2436,
-    "runs": 169,
+    "runs": 172,
     "timeout": 8,
-    "total_mutants": 3962,
+    "total_mutants": 3978,
     "unviable": 156,
-    "zero_mutant": 49
+    "zero_mutant": 51
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -1456,7 +1456,7 @@
         "total": 16,
         "unviable": 0
       },
-      "last_tested": "2026-09-02",
+      "last_tested": "2026-09-06",
       "lines": 31,
       "recent_commits": 0
     },
@@ -2635,15 +2635,31 @@
     },
     "crates/engine_ui/src/layout/margin.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-06",
       "lines": 8,
       "recent_commits": 0
     },
     "crates/engine_ui/src/layout/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-06",
       "lines": 8,
       "recent_commits": 0
     },
@@ -5312,6 +5328,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 25,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "9d29fa1",
+      "date": "2026-09-06",
+      "file": "crates/engine_audio/src/mixer_engine.rs",
+      "result": {
+        "caught": 16,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 16,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "9d29fa1",
+      "date": "2026-09-06",
+      "file": "crates/engine_ui/src/layout/mod.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "9d29fa1",
+      "date": "2026-09-06",
+      "file": "crates/engine_ui/src/layout/margin.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
         "unviable": 0
       }
     }
