@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 1378,
+    "caught": 1390,
     "error": 4,
-    "files_tested": 145,
-    "missed": 2436,
-    "runs": 172,
+    "files_tested": 148,
+    "missed": 2469,
+    "runs": 175,
     "timeout": 8,
-    "total_mutants": 3978,
-    "unviable": 156,
+    "total_mutants": 4026,
+    "unviable": 159,
     "zero_mutant": 51
   },
   "files": {
@@ -1507,8 +1507,16 @@
     },
     "crates/engine_audio/src/playback/system.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 8,
+        "error": null,
+        "missed": 9,
+        "status": "ok",
+        "timeout": 0,
+        "total": 18,
+        "unviable": 1
+      },
+      "last_tested": "2026-09-07",
       "lines": 63,
       "recent_commits": 0
     },
@@ -1825,8 +1833,16 @@
     },
     "crates/engine_input/src/action_map.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 4,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 6,
+        "unviable": 2
+      },
+      "last_tested": "2026-09-07",
       "lines": 23,
       "recent_commits": 0
     },
@@ -2429,8 +2445,16 @@
     },
     "crates/engine_render/src/shape/render.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 24,
+        "status": "ok",
+        "timeout": 0,
+        "total": 24,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-07",
       "lines": 24,
       "recent_commits": 0
     },
@@ -5371,6 +5395,48 @@
         "timeout": 0,
         "total": 0,
         "unviable": 0
+      }
+    },
+    {
+      "commit": "62c2c80",
+      "date": "2026-09-07",
+      "file": "crates/engine_audio/src/playback/system.rs",
+      "result": {
+        "caught": 8,
+        "error": null,
+        "missed": 9,
+        "status": "ok",
+        "timeout": 0,
+        "total": 18,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "62c2c80",
+      "date": "2026-09-07",
+      "file": "crates/engine_render/src/shape/render.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 24,
+        "status": "ok",
+        "timeout": 0,
+        "total": 24,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "62c2c80",
+      "date": "2026-09-07",
+      "file": "crates/engine_input/src/action_map.rs",
+      "result": {
+        "caught": 4,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 6,
+        "unviable": 2
       }
     }
   ]
