@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 1390,
+    "caught": 1412,
     "error": 4,
-    "files_tested": 148,
-    "missed": 2469,
-    "runs": 175,
-    "timeout": 8,
-    "total_mutants": 4026,
-    "unviable": 159,
-    "zero_mutant": 51
+    "files_tested": 149,
+    "missed": 2479,
+    "runs": 178,
+    "timeout": 12,
+    "total_mutants": 4063,
+    "unviable": 160,
+    "zero_mutant": 52
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -1516,7 +1516,7 @@
         "total": 18,
         "unviable": 1
       },
-      "last_tested": "2026-09-07",
+      "last_tested": "2026-09-08",
       "lines": 63,
       "recent_commits": 0
     },
@@ -1715,7 +1715,7 @@
         "total": 19,
         "unviable": 0
       },
-      "last_tested": "2026-08-03",
+      "last_tested": "2026-09-08",
       "lines": 70,
       "recent_commits": 0
     },
@@ -2127,8 +2127,16 @@
     },
     "crates/engine_physics/src/plugin.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-08",
       "lines": 14,
       "recent_commits": 1
     },
@@ -5437,6 +5445,48 @@
         "timeout": 0,
         "total": 6,
         "unviable": 2
+      }
+    },
+    {
+      "commit": "d841b70",
+      "date": "2026-09-08",
+      "file": "crates/engine_core/src/scale_spring.rs",
+      "result": {
+        "caught": 14,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 4,
+        "total": 19,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "d841b70",
+      "date": "2026-09-08",
+      "file": "crates/engine_audio/src/playback/system.rs",
+      "result": {
+        "caught": 8,
+        "error": null,
+        "missed": 9,
+        "status": "ok",
+        "timeout": 0,
+        "total": 18,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "d841b70",
+      "date": "2026-09-08",
+      "file": "crates/engine_physics/src/plugin.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
       }
     }
   ]
