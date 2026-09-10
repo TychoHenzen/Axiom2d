@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 1416,
+    "caught": 1477,
     "error": 4,
     "files_tested": 149,
-    "missed": 2483,
-    "runs": 181,
+    "missed": 2573,
+    "runs": 184,
     "timeout": 12,
-    "total_mutants": 4073,
-    "unviable": 162,
+    "total_mutants": 4227,
+    "unviable": 165,
     "zero_mutant": 53
   },
   "files": {
@@ -142,7 +142,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 74,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/booster/device.rs": {
       "error_count": 0,
@@ -286,15 +286,15 @@
     "crates/card_game/src/card/identity/definition.rs": {
       "error_count": 1,
       "last_result": {
-        "caught": 0,
-        "error": "cargo-mutants timed out after 3000s (per-mutant timeout was 45s)",
-        "missed": 0,
-        "status": "error",
+        "caught": 60,
+        "error": null,
+        "missed": 90,
+        "status": "ok",
         "timeout": 0,
-        "total": 0,
-        "unviable": 0
+        "total": 152,
+        "unviable": 2
       },
-      "last_tested": "2026-08-17",
+      "last_tested": "2026-09-10",
       "lines": 141,
       "recent_commits": 0
     },
@@ -1068,7 +1068,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 7,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/card_game/src/plugin.rs": {
       "error_count": 0,
@@ -1267,7 +1267,7 @@
       },
       "last_tested": "2026-07-30",
       "lines": 4,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/engine_app/src/app.rs": {
       "error_count": 0,
@@ -2587,7 +2587,7 @@
         "total": 1,
         "unviable": 1
       },
-      "last_tested": "2026-07-24",
+      "last_tested": "2026-09-10",
       "lines": 10,
       "recent_commits": 0
     },
@@ -2801,7 +2801,7 @@
         "total": 1,
         "unviable": 0
       },
-      "last_tested": "2026-08-28",
+      "last_tested": "2026-09-10",
       "lines": 42,
       "recent_commits": 0
     },
@@ -2920,7 +2920,7 @@
       "last_result": null,
       "last_tested": null,
       "lines": 15,
-      "recent_commits": 1
+      "recent_commits": 0
     },
     "crates/terrain/src/material.rs": {
       "error_count": 0,
@@ -2950,7 +2950,7 @@
       },
       "last_tested": "2026-08-21",
       "lines": 12,
-      "recent_commits": 2
+      "recent_commits": 0
     },
     "crates/terrain/src/shader.rs": {
       "error_count": 0,
@@ -2972,14 +2972,14 @@
       },
       "last_tested": "2026-08-30",
       "lines": 298,
-      "recent_commits": 2
+      "recent_commits": 0
     },
     "crates/terrain/src/tile_def/example.rs": {
       "error_count": 0,
       "last_result": null,
       "last_tested": null,
       "lines": 165,
-      "recent_commits": 2
+      "recent_commits": 0
     },
     "crates/terrain/src/wfc.rs": {
       "error_count": 0,
@@ -5529,6 +5529,48 @@
         "timeout": 0,
         "total": 7,
         "unviable": 1
+      }
+    },
+    {
+      "commit": "869e022",
+      "date": "2026-09-10",
+      "file": "crates/card_game/src/card/identity/definition.rs",
+      "result": {
+        "caught": 60,
+        "error": null,
+        "missed": 90,
+        "status": "ok",
+        "timeout": 0,
+        "total": 152,
+        "unviable": 2
+      }
+    },
+    {
+      "commit": "869e022",
+      "date": "2026-09-10",
+      "file": "crates/engine_scene/src/spawn_child.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "869e022",
+      "date": "2026-09-10",
+      "file": "crates/engine_ui/src/widget/button.rs",
+      "result": {
+        "caught": 1,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
+        "unviable": 0
       }
     }
   ]
