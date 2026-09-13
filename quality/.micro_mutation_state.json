@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 1666,
+    "caught": 1698,
     "error": 4,
-    "files_tested": 153,
-    "missed": 2760,
-    "runs": 190,
+    "files_tested": 155,
+    "missed": 2767,
+    "runs": 193,
     "timeout": 12,
-    "total_mutants": 4614,
-    "unviable": 176,
-    "zero_mutant": 53
+    "total_mutants": 4655,
+    "unviable": 178,
+    "zero_mutant": 54
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -519,7 +519,7 @@
         "total": 13,
         "unviable": 0
       },
-      "last_tested": "2026-08-10",
+      "last_tested": "2026-09-13",
       "lines": 314,
       "recent_commits": 0
     },
@@ -715,8 +715,16 @@
     },
     "crates/card_game/src/card/jack_socket.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 20,
+        "error": null,
+        "missed": 6,
+        "status": "ok",
+        "timeout": 0,
+        "total": 28,
+        "unviable": 2
+      },
+      "last_tested": "2026-09-13",
       "lines": 303,
       "recent_commits": 2
     },
@@ -1879,8 +1887,16 @@
     },
     "crates/engine_input/src/key_code.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-13",
       "lines": 213,
       "recent_commits": 0
     },
@@ -5687,6 +5703,48 @@
         "timeout": 0,
         "total": 118,
         "unviable": 1
+      }
+    },
+    {
+      "commit": "0e9407c",
+      "date": "2026-09-13",
+      "file": "crates/card_game/src/card/interaction/apply.rs",
+      "result": {
+        "caught": 12,
+        "error": null,
+        "missed": 1,
+        "status": "ok",
+        "timeout": 0,
+        "total": 13,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "0e9407c",
+      "date": "2026-09-13",
+      "file": "crates/engine_input/src/key_code.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "0e9407c",
+      "date": "2026-09-13",
+      "file": "crates/card_game/src/card/jack_socket.rs",
+      "result": {
+        "caught": 20,
+        "error": null,
+        "missed": 6,
+        "status": "ok",
+        "timeout": 0,
+        "total": 28,
+        "unviable": 2
       }
     }
   ]
