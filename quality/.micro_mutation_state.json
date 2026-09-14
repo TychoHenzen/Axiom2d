@@ -2,13 +2,13 @@
   "cumulative": {
     "caught": 1698,
     "error": 4,
-    "files_tested": 155,
+    "files_tested": 157,
     "missed": 2767,
-    "runs": 193,
+    "runs": 196,
     "timeout": 12,
     "total_mutants": 4655,
     "unviable": 178,
-    "zero_mutant": 54
+    "zero_mutant": 57
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -666,7 +666,7 @@
         "total": 0,
         "unviable": 0
       },
-      "last_tested": "2026-07-15",
+      "last_tested": "2026-09-14",
       "lines": 2,
       "recent_commits": 0
     },
@@ -730,8 +730,16 @@
     },
     "crates/card_game/src/card/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-14",
       "lines": 14,
       "recent_commits": 1
     },
@@ -884,8 +892,16 @@
     },
     "crates/card_game/src/card/rendering/baked_mesh.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-14",
       "lines": 23,
       "recent_commits": 0
     },
@@ -5745,6 +5761,48 @@
         "timeout": 0,
         "total": 28,
         "unviable": 2
+      }
+    },
+    {
+      "commit": "7298d2c",
+      "date": "2026-09-14",
+      "file": "crates/card_game/src/card/rendering/baked_mesh.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "7298d2c",
+      "date": "2026-09-14",
+      "file": "crates/card_game/src/card/interaction/release.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "7298d2c",
+      "date": "2026-09-14",
+      "file": "crates/card_game/src/card/mod.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
       }
     }
   ]
