@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 1698,
+    "caught": 1740,
     "error": 4,
-    "files_tested": 157,
+    "files_tested": 159,
     "missed": 2767,
-    "runs": 196,
+    "runs": 199,
     "timeout": 12,
-    "total_mutants": 4655,
-    "unviable": 178,
-    "zero_mutant": 57
+    "total_mutants": 4698,
+    "unviable": 179,
+    "zero_mutant": 58
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -384,7 +384,7 @@
         "total": 3,
         "unviable": 0
       },
-      "last_tested": "2026-08-26",
+      "last_tested": "2026-09-15",
       "lines": 319,
       "recent_commits": 0
     },
@@ -1644,8 +1644,16 @@
     },
     "crates/engine_audio/src/spatial.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 39,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 40,
+        "unviable": 1
+      },
+      "last_tested": "2026-09-15",
       "lines": 80,
       "recent_commits": 0
     },
@@ -1925,8 +1933,16 @@
     },
     "crates/engine_input/src/keyboard/mod.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-15",
       "lines": 6,
       "recent_commits": 0
     },
@@ -5803,6 +5819,48 @@
         "timeout": 0,
         "total": 0,
         "unviable": 0
+      }
+    },
+    {
+      "commit": "201762c",
+      "date": "2026-09-15",
+      "file": "crates/card_game/src/card/identity/name_pools/nouns.rs",
+      "result": {
+        "caught": 3,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 3,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "201762c",
+      "date": "2026-09-15",
+      "file": "crates/engine_input/src/keyboard/mod.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "201762c",
+      "date": "2026-09-15",
+      "file": "crates/engine_audio/src/spatial.rs",
+      "result": {
+        "caught": 39,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 40,
+        "unviable": 1
       }
     }
   ]
