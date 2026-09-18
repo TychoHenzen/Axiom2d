@@ -1,13 +1,13 @@
 {
   "cumulative": {
-    "caught": 1750,
+    "caught": 1785,
     "error": 4,
-    "files_tested": 161,
-    "missed": 4005,
-    "runs": 205,
+    "files_tested": 163,
+    "missed": 4030,
+    "runs": 208,
     "timeout": 12,
-    "total_mutants": 5956,
-    "unviable": 189,
+    "total_mutants": 6022,
+    "unviable": 195,
     "zero_mutant": 61
   },
   "files": {
@@ -161,8 +161,16 @@
     },
     "crates/card_game/src/booster/double_click.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 5,
+        "error": null,
+        "missed": 5,
+        "status": "ok",
+        "timeout": 0,
+        "total": 13,
+        "unviable": 3
+      },
+      "last_tested": "2026-09-18",
       "lines": 112,
       "recent_commits": 0
     },
@@ -429,7 +437,7 @@
         "total": 28,
         "unviable": 2
       },
-      "last_tested": "2026-08-03",
+      "last_tested": "2026-09-18",
       "lines": 77,
       "recent_commits": 0
     },
@@ -1009,8 +1017,16 @@
     },
     "crates/card_game/src/card/rendering/spawn_table_card/overlay.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 4,
+        "error": null,
+        "missed": 20,
+        "status": "ok",
+        "timeout": 0,
+        "total": 25,
+        "unviable": 1
+      },
+      "last_tested": "2026-09-18",
       "lines": 227,
       "recent_commits": 0
     },
@@ -5961,6 +5977,48 @@
         "timeout": 0,
         "total": 6,
         "unviable": 0
+      }
+    },
+    {
+      "commit": "bb54cde",
+      "date": "2026-09-18",
+      "file": "crates/card_game/src/card/identity/residual.rs",
+      "result": {
+        "caught": 26,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 28,
+        "unviable": 2
+      }
+    },
+    {
+      "commit": "bb54cde",
+      "date": "2026-09-18",
+      "file": "crates/card_game/src/card/rendering/spawn_table_card/overlay.rs",
+      "result": {
+        "caught": 4,
+        "error": null,
+        "missed": 20,
+        "status": "ok",
+        "timeout": 0,
+        "total": 25,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "bb54cde",
+      "date": "2026-09-18",
+      "file": "crates/card_game/src/booster/double_click.rs",
+      "result": {
+        "caught": 5,
+        "error": null,
+        "missed": 5,
+        "status": "ok",
+        "timeout": 0,
+        "total": 13,
+        "unviable": 3
       }
     }
   ]
