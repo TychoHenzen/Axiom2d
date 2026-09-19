@@ -1,14 +1,14 @@
 {
   "cumulative": {
-    "caught": 1785,
+    "caught": 1816,
     "error": 4,
-    "files_tested": 163,
+    "files_tested": 166,
     "missed": 4030,
-    "runs": 208,
+    "runs": 211,
     "timeout": 12,
-    "total_mutants": 6022,
+    "total_mutants": 6053,
     "unviable": 195,
-    "zero_mutant": 61
+    "zero_mutant": 63
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -1497,8 +1497,16 @@
     },
     "crates/engine_audio/src/lib.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-19",
       "lines": 9,
       "recent_commits": 1
     },
@@ -2608,8 +2616,16 @@
     },
     "crates/engine_render/src/testing/visual_regression.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 31,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 31,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-19",
       "lines": 815,
       "recent_commits": 2
     },
@@ -2867,8 +2883,16 @@
     },
     "crates/engine_ui/src/theme.rs": {
       "error_count": 0,
-      "last_result": null,
-      "last_tested": null,
+      "last_result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      },
+      "last_tested": "2026-09-19",
       "lines": 24,
       "recent_commits": 0
     },
@@ -6019,6 +6043,48 @@
         "timeout": 0,
         "total": 13,
         "unviable": 3
+      }
+    },
+    {
+      "commit": "5fe8366",
+      "date": "2026-09-19",
+      "file": "crates/engine_ui/src/theme.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "5fe8366",
+      "date": "2026-09-19",
+      "file": "crates/engine_audio/src/lib.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "5fe8366",
+      "date": "2026-09-19",
+      "file": "crates/engine_render/src/testing/visual_regression.rs",
+      "result": {
+        "caught": 31,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 31,
+        "unviable": 0
       }
     }
   ]
