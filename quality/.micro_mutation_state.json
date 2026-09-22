@@ -4,11 +4,11 @@
     "error": 4,
     "files_tested": 168,
     "missed": 4061,
-    "runs": 217,
+    "runs": 220,
     "timeout": 12,
-    "total_mutants": 6091,
-    "unviable": 199,
-    "zero_mutant": 65
+    "total_mutants": 6092,
+    "unviable": 200,
+    "zero_mutant": 67
   },
   "files": {
     "crates/axiom2d/src/default_plugins.rs": {
@@ -133,7 +133,7 @@
         "total": 0,
         "unviable": 0
       },
-      "last_tested": "2026-08-04",
+      "last_tested": "2026-09-22",
       "lines": 50,
       "recent_commits": 0
     },
@@ -266,7 +266,7 @@
         "total": 1,
         "unviable": 1
       },
-      "last_tested": "2026-07-26",
+      "last_tested": "2026-09-22",
       "lines": 47,
       "recent_commits": 0
     },
@@ -2923,7 +2923,7 @@
         "total": 0,
         "unviable": 0
       },
-      "last_tested": "2026-09-16",
+      "last_tested": "2026-09-22",
       "lines": 11,
       "recent_commits": 0
     },
@@ -6184,6 +6184,48 @@
         "status": "ok",
         "timeout": 0,
         "total": 32,
+        "unviable": 1
+      }
+    },
+    {
+      "commit": "7e2ed7d",
+      "date": "2026-09-22",
+      "file": "crates/engine_ui/src/ui_event.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "7e2ed7d",
+      "date": "2026-09-22",
+      "file": "crates/card_game/benches/stress.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "no_mutants",
+        "timeout": 0,
+        "total": 0,
+        "unviable": 0
+      }
+    },
+    {
+      "commit": "7e2ed7d",
+      "date": "2026-09-22",
+      "file": "crates/card_game/src/card/component.rs",
+      "result": {
+        "caught": 0,
+        "error": null,
+        "missed": 0,
+        "status": "ok",
+        "timeout": 0,
+        "total": 1,
         "unviable": 1
       }
     }
