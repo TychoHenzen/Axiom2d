@@ -1,0 +1,36 @@
+name: CodeQL
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["master"]
+  schedule:
+    - cron: "22 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: CodeQL Rust
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          languages: rust
+          build-mode: manual
+      - name: Build engine workspace
+        run: cargo build --workspace
+      - name: Build tools workspace
+        run: cargo build --manifest-path tools/Cargo.toml --workspace
+      - uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1

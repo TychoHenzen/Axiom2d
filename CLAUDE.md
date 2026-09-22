@@ -75,6 +75,14 @@ When quality improves (e.g., test count increases), run `--update` to ratchet th
 
 Mutation testing (`cargo-mutants`) is run locally via the `/mutant-hunt` skill in Claude Code — too slow for CI. A **micro-mutation** job runs daily in `quality.yml` (1 random source file, stochastic coverage over time). Results tracked in `quality/MICRO_MUTATIONS.md`, updated by `scripts/micro-mutations.sh`.
 
+## GitHub Delivery Workflow
+
+- Ideas enter the linked `All Repositories` Project through `/add-backlog-idea` as Backlog issues.
+- `/refine-backlog-item` prepares an issue as a Todo PBI.
+- `/next-ticket` implements and pushes one issue branch; `/submit-draft-pr` creates its draft pull request.
+- Review remains read-only until explicit acceptance.
+- `/complete-pr` alone marks work ready, merges, confirms the linked issue, and deletes the branch.
+
 ## Architecture
 
 The engine follows a **Bevy-inspired archetypal ECS** pattern optimized for LLM code generation. Key design principles:

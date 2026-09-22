@@ -2,7 +2,7 @@
 
 use img_to_shape_gui::state::AppState;
 
-/// @doc: New AppState has default values that are safe to query
+/// @doc: New `AppState` has default values that are safe to query
 #[test]
 fn when_new_app_state_then_defaults_are_valid() {
     // Arrange / Act
@@ -44,7 +44,7 @@ fn when_image_loaded_then_color_count_positive() {
     );
 }
 
-/// @doc: generate_export_code produces non-empty string after image load
+/// @doc: `generate_export_code` produces non-empty string after image load
 #[test]
 fn when_image_loaded_then_generate_export_code_is_non_empty() {
     // Arrange
@@ -63,7 +63,7 @@ fn when_image_loaded_then_generate_export_code_is_non_empty() {
     );
 }
 
-/// @doc: generate_art_file produces non-empty result after image load
+/// @doc: `generate_art_file` produces non-empty result after image load
 #[test]
 fn when_image_loaded_then_generate_art_file_is_ok() {
     // Arrange
