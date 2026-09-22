@@ -2,6 +2,8 @@
 
 How complexity, coverage, and duplication metrics are integrated into Axiom2d's CI and quality gates.
 
+The scheduled quality metrics and `docs/QUALITY_BASELINE.ron` intentionally cover the engine workspace under `crates/`. The fast CI workflow separately checks the tools workspace with build, test, Clippy, and audit jobs.
+
 ## Cyclomatic Complexity
 
 **Tool:** [`arborist-cli`](https://crates.io/crates/arborist-cli) — Rust-native, reports cognitive + cyclomatic complexity per function.
@@ -87,7 +89,7 @@ npx jscpd crates/ --pattern "**/*.rs" --min-tokens 50 --min-lines 5 --mode stric
 **CI integration:**
 1. `quality.yml` `duplicates` job runs jscpd, counts "Clone found" lines, outputs `clone_count`
 2. `soft-gate` job reads `needs.duplicates.outputs.clone_count` and ratchets against `jscpd_clone_count` in baseline
-3. Formerly a hard-fail gate — now a soft ratchet with auto-ratchet on improvement
+3. Formerly a hard-fail gate — now a soft ratchet with reviewed baseline updates on improvement
 
 **Proof format for DoDs:**
 ```json
@@ -122,7 +124,7 @@ Current baselines in `docs/QUALITY_BASELINE.ron`:
 }
 ```
 
-All three are soft ratchets — they allow improvement (auto-ratchet down) but block regression.
+All three are soft ratchets — they allow improvement through a reviewed baseline update but block regression.
 
 ## Local Check
 

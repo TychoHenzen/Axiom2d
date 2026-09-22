@@ -25,7 +25,7 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Clippy
-        run: cargo clippy --workspace --all-targets --keep-going -- -D warnings
+        run: cargo clippy --workspace --all-targets --keep-going --locked -- -D warnings
 
   audit:
     runs-on: ubuntu-latest
@@ -37,11 +37,15 @@ jobs:
       - uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 # v1.2.7
         with:
           file: Cargo.lock
+          # Linux-only wayland-scanner still brings quick-xml below 0.41 transitively.
+          # Keep these two IDs scoped to that upstream path until it publishes a fix.
           ignore: RUSTSEC-2026-0194,RUSTSEC-2026-0195
           createIssues: "false"
       - uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 # v1.2.7
         with:
           file: tools/Cargo.lock
+          # wayland-scanner and zbus_xml pin the affected quick-xml versions transitively.
+          # The tools workspace's direct quick-xml dependency is already on 0.41.
           ignore: RUSTSEC-2026-0194,RUSTSEC-2026-0195
           createIssues: "false"
 
@@ -56,7 +60,7 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Build docs
-        run: cargo doc --workspace --no-deps
+        run: cargo doc --workspace --no-deps --locked
         env:
           RUSTDOCFLAGS: -D warnings
 
@@ -80,7 +84,7 @@ jobs:
         id: extract
         run: |
           mkdir -p quality/coverage
-          cargo llvm-cov --workspace --lcov --output-path quality/coverage/lcov.info 2>&1 | tee coverage.log
+          cargo llvm-cov --workspace --locked --lcov --output-path quality/coverage/lcov.info 2>&1 | tee coverage.log
           COV_PCT=$(grep "^TOTAL" coverage.log | awk '{print $4}' | tr -d '%')
           echo "coverage_pct=${COV_PCT}" >> "$GITHUB_OUTPUT"
           echo "Coverage: ${COV_PCT}"
@@ -133,7 +137,7 @@ jobs:
       - name: Install cargo-udeps
         run: cargo install cargo-udeps --locked
       - name: Check for unused dependencies
-        run: cargo +nightly udeps --workspace --all-targets
+        run: cargo +nightly udeps --workspace --all-targets --locked
 
   shaders:
     runs-on: ubuntu-latest
@@ -174,7 +178,7 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Check for dead code
-        run: cargo build --workspace --all-targets
+        run: cargo build --workspace --all-targets --locked
         env:
           RUSTFLAGS: "-D dead_code"
 

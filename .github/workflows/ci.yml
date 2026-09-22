@@ -35,16 +35,16 @@ jobs:
           cargo fmt --manifest-path tools/Cargo.toml --all --check
       - name: Run Clippy
         run: |
-          cargo clippy --workspace --all-targets --keep-going -- -D warnings
-          cargo clippy --manifest-path tools/Cargo.toml --workspace --all-targets --keep-going -- -D warnings
+          cargo clippy --workspace --all-targets --keep-going --locked -- -D warnings
+          cargo clippy --manifest-path tools/Cargo.toml --workspace --all-targets --keep-going --locked -- -D warnings
       - name: Build and test engine workspace
         run: |
-          cargo build --workspace
-          cargo test --workspace
+          cargo build --workspace --locked
+          cargo test --workspace --locked
       - name: Build and test tools workspace
         run: |
-          cargo build --manifest-path tools/Cargo.toml --workspace
-          cargo test --manifest-path tools/Cargo.toml --workspace
+          cargo build --manifest-path tools/Cargo.toml --workspace --locked
+          cargo test --manifest-path tools/Cargo.toml --workspace --locked
 
   audit:
     name: Cargo audit
@@ -59,11 +59,15 @@ jobs:
       - uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 # v1.2.7
         with:
           file: Cargo.lock
+          # Linux-only wayland-scanner still brings quick-xml below 0.41 transitively.
+          # Keep these two IDs scoped to that upstream path until it publishes a fix.
           ignore: RUSTSEC-2026-0194,RUSTSEC-2026-0195
           createIssues: "false"
       - uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 # v1.2.7
         with:
           file: tools/Cargo.lock
+          # wayland-scanner and zbus_xml pin the affected quick-xml versions transitively.
+          # The tools workspace's direct quick-xml dependency is already on 0.41.
           ignore: RUSTSEC-2026-0194,RUSTSEC-2026-0195
           createIssues: "false"
 
@@ -89,4 +93,4 @@ jobs:
       - name: Run visual regression tests
         env:
           WGPU_BACKEND: vulkan
-        run: cargo test -p engine_render --test main -- --test-threads=1
+        run: cargo test -p engine_render --test main --locked -- --test-threads=1

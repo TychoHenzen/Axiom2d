@@ -1,10 +1,10 @@
 // Quality Gate Baseline — ratchet thresholds for CI enforcement.
-// Auto-updated: 2026-07-14
+// Maintained manually in reviewed changes; CI reports comparisons but does not modify this file.
 //
 // RULES:
 //   Hard gates: current value must be 0. Any increase → CI FAIL.
 //   Soft ratchets: current value must be <= baseline. Any increase → CI FAIL.
-//     Decrease auto-updates baseline (quality improved).
+//     A decrease may be recorded in a reviewed change when quality improves.
 //   Trend advisories: warn only. Do not block CI.
 //
 // To override a soft ratchet (intentional regression):
@@ -47,10 +47,10 @@
         "notes": [
             "unsafe_blocks_total=2: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
             "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
-            "test_count_total=1821: all #[test] and #[tokio::test] across workspace (including tools/)",
+            "test_count_total=1821: all #[test] and #[tokio::test] in the engine workspace (crates/)",
             "smell_markers_total=0: no TODO/FIXME/HACK in production code",
             "cyclomatic_over_10=29: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
-            "line_coverage_pct=78.67: workspace line coverage from cargo-llvm-cov",
+            "line_coverage_pct=78.67: engine workspace line coverage from cargo-llvm-cov",
             "jscpd_clone_count=1214: duplicate code clones detected by jscpd (min-tokens=50). Phase 4 SDF/capture + kill barrier parallelism intentional.",
         ],
     },

@@ -140,15 +140,7 @@ Proofs run on the HOST OS - write OS-correct commands (no bash on Windows).
 
   - [x] Proof: `cargo clippy --all-targets --all-features` -> Clippy passes with zero warnings (current: 1 warning, fix it) <!--p:{"type":"exit_code","value":0}-->
   - [ ] Proof: `cargo fmt --all -- --check` -> All files properly formatted <!--p:{"type":"exit_code","value":0}-->
-    > ⚠ Diff in \\?\C:\Users\siriu\RustroverProjects\Axiom2d\crates\particle_poc\src\state.rs:896:
-             // Conveyor has input_count=0 so recipe code above ignores it.
-             // Decrement alive particle count by killed count.
-             let killed = counters.first().copied().unwrap_or(0);
-[3
   - [ ] Proof: `cargo test --all -- --skip when_10k_particles_at_conveyor_bottom_then_no_paddle_phasing` -> All workspace tests pass <!--p:{"type":"exit_code","value":0}-->
-    > ⚠    Compiling particle_poc v0.1.0 (C:\Users\siriu\RustroverProjects\Axiom2d\crates\particle_poc)
-warning: card_game@0.1.0: tiled-to-shapes: no TSX files in assets/terrain/ — generated tileset is empty. Add TSX + PNG tilesheet pairs to populate.
-error: failed to remove file `C:\Users\siriu\RustroverPr
 
 ### Spawner System [x]
 
@@ -195,11 +187,6 @@ error: failed to remove file `C:\Users\siriu\RustroverPr
   - [x] Proof: `grep -i "sdf\|SdfParams" crates/particle_poc/src/state.rs crates/particle_poc/src/lib.rs` -> SDF buffer + params wired into simulate() create_buffers() pipeline <!--p:{"type":"output_contains","value":"sdf"}-->
   - [x] Proof: `grep "paint_sdf\|sdf_dirty\|MouseInput\|no_benchmark" crates/particle_poc/src/state.rs crates/particle_poc/src/main.rs` -> cargo run --no-benchmark: Draw mode → paint SDF → Drag → particles collide with drawn wall. <!--p:{"type":"output_contains","value":"paint_sdf"}-->
   - [ ] Proof: `cargo build -p particle_poc 2>&1 && echo "BUILD_PASS"` -> cargo build succeeds — binary compiles with spawners, SDF, mode toggle, kill barrier, draggable conveyor + machines, all wired into main.rs entry point. <!--p:{"type":"output_contains","value":"BUILD_PASS"}-->
-    > ⚠    Compiling particle_poc v0.1.0 (C:\Users\siriu\RustroverProjects\Axiom2d\crates\particle_poc)
-error: failed to remove file `C:\Users\siriu\RustroverProjects\Axiom2d\target\debug\particle_poc.exe`
-
-Caused by:
-  Access is denied. (os error 5)
 
 
 ### Manual Verification [x]

@@ -21,7 +21,9 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # Rust 1.94.0
+        with:
+          toolchain: 1.94.0
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
@@ -30,7 +32,7 @@ jobs:
           languages: rust
           build-mode: none
       - name: Build engine workspace
-        run: cargo build --workspace
+        run: cargo build --workspace --locked
       - name: Build tools workspace
-        run: cargo build --manifest-path tools/Cargo.toml --workspace
+        run: cargo build --manifest-path tools/Cargo.toml --workspace --locked
       - uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1

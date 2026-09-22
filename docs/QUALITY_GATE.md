@@ -27,17 +27,21 @@ Ratchet-based quality enforcement. Quality can only improve over time — any re
 └──────────────────────────────────────────────────────────┘
 ```
 
+## Workspace Scope
+
+The fast CI workflow validates both the engine workspace and the separate tools workspace. The scheduled quality jobs and this baseline intentionally measure the engine workspace under `crates/`; tools are covered by the fast build, test, Clippy, and audit jobs rather than these aggregate metrics.
+
 ## Dimensions
 
 ### Tier 1: Hard Gates (must be zero — failure blocks merge)
 
 | Dimension | Metric | How Measured | Current |
 |-----------|--------|-------------|---------|
-| `clippy_warnings` | Warning count | `cargo clippy --workspace --all-targets -- -D warnings` count | 0 |
+| `clippy_warnings` | Warning count | engine workspace `cargo clippy --workspace --all-targets -- -D warnings` count | 0 |
 | `audit_vulnerabilities` | Known CVEs | `cargo audit` (built into quality.yml) | 0 |
 | `unused_dependencies` | Unused crate deps | `cargo udeps --workspace --all-targets` | TBD |
-| `doc_warnings` | Rustdoc warnings | `cargo doc --workspace --no-deps` with `RUSTDOCFLAGS=-D warnings` | 0 |
-| `dead_code` | Dead code items | `cargo build --workspace --all-targets` with `RUSTFLAGS=-D dead_code` | 0 |
+| `doc_warnings` | Rustdoc warnings | engine workspace `cargo doc --workspace --no-deps` with `RUSTDOCFLAGS=-D warnings` | 0 |
+| `dead_code` | Dead code items | engine workspace `cargo build --workspace --all-targets` with `RUSTFLAGS=-D dead_code` | 0 |
 | `shader_validity` | Invalid WGSL | `naga` validation of all `.wgsl` files | 0 |
 
 Rationale: These are always bugs or near-bugs. Zero tolerance.
@@ -50,7 +54,7 @@ Rationale: These are always bugs or near-bugs. Zero tolerance.
 | `smell_markers` | TODO/FIXME/HACK in production code | per crate | 0 |
 | `unsafe_blocks` | `unsafe { }` blocks in production code | per crate | 2 total |
 | `unwrap_in_prod` | `.unwrap()` in non-test code | per crate | 11 |
-| `duplicate_blocks` | jscpd clone detection | workspace | per quality.yml |
+| `duplicate_blocks` | jscpd clone detection | engine workspace | per quality.yml |
 
 Rationale: These are quality indicators that should never get worse. Improvements (lower counts) may ratchet the baseline down through a reviewed change.
 
@@ -62,7 +66,7 @@ Rationale: These are quality indicators that should never get worse. Improvement
 | `max_function_length` | Longest function per file | top-10 files |
 | `max_nesting_depth` | Deepest nest per file | top-10 files |
 | `file_length` | Lines per file | top-10 files |
-| `arch_gaps` | Isolated nodes, thin communities | workspace |
+| `arch_gaps` | Isolated nodes, thin communities | engine workspace |
 
 Rationale: These have false positives (data tables, trait definitions, vertex coordinates). Tracking for awareness; blocks via human judgment.
 
