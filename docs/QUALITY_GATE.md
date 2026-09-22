@@ -52,7 +52,7 @@ Rationale: These are always bugs or near-bugs. Zero tolerance.
 | `unwrap_in_prod` | `.unwrap()` in non-test code | per crate | 11 |
 | `duplicate_blocks` | jscpd clone detection | workspace | per quality.yml |
 
-Rationale: These are quality indicators that should never get worse. Improvements (lower counts) auto-ratchet the baseline down.
+Rationale: These are quality indicators that should never get worse. Improvements (lower counts) may ratchet the baseline down through a reviewed change.
 
 ### Tier 3: Trend Advisories (warn only — does not block)
 
@@ -102,7 +102,7 @@ Rationale: These have false positives (data tables, trait definitions, vertex co
 
 ## How It Works
 
-### CI Check (daily, `quality.yml`)
+### Quality Workflow (daily or manual, `quality.yml`)
 
 1. Each quality job outputs metrics as a JSON artifact
 2. `quality-gate` job downloads all artifacts, aggregates into current metrics
@@ -110,7 +110,7 @@ Rationale: These have false positives (data tables, trait definitions, vertex co
    - Hard gates: current > 0 → **FAIL**
    - Soft ratchets: current > baseline → **FAIL**
    - Trend advisories: current > baseline → **WARN** (annotation on job)
-4. If PASS: optionally auto-updates baseline (commits lower thresholds back to repo)
+4. If PASS: a maintainer may update the baseline locally and include the reviewed change in a PR.
 
 ### Local Check
 
@@ -124,26 +124,23 @@ Rationale: These have false positives (data tables, trait definitions, vertex co
 # Full gate (hard + soft — slow, runs cargo builds)
 ./scripts/quality-gate-check.sh
 
-# Auto-update baseline after improvement
+# Update baseline after reviewing an improvement
 ./scripts/quality-gate-check.sh --update
 
 # Install git pre-commit hook
 ./scripts/quality-gate-check.sh --install-hooks
 ```
 
-### Auto-Baseline Updates
+### Baseline Updates
 
-When quality improves:
-1. CI detects current < baseline for any soft ratchet dimension
-2. Posts a PR updating `QUALITY_BASELINE.ron` with new lower values
-3. PR title: `chore: ratchet quality baseline down (X improvements)`
+When quality improves, run `--update` locally, inspect `QUALITY_BASELINE.ron`, and include the reviewed change in the same PR as the improvement. Scheduled CI reports the comparison but does not create commits or PRs.
 
 Manual trigger: `cargo run --bin quality-gate -- update-baseline`
 
 ## Ratcheting Rules
 
 1. **Hard gates can't regress.** If clippy-warnings goes 0→1, gate fails. Period.
-2. **Soft ratchets can't regress.** If unsafe_blocks goes 2→3, gate fails. If it goes 2→1, baseline auto-updates to 1.
+2. **Soft ratchets can't regress.** If unsafe_blocks goes 2→3, gate fails. If it goes 2→1, a reviewed baseline change may set the threshold to 1.
 3. **Trend advisories don't block.** If max_function_length goes 861→900, job annotates a warning but doesn't fail.
 4. **New crates start at zero.** When a new crate is added, its metrics initialize at current values (not blocked by workspace totals).
 5. **Intentional regressions need explicit approval.** If you must increase a soft ratchet (e.g., adding an `unsafe` block for performance), update the baseline in the same PR with a justification comment in the RON file.
@@ -169,8 +166,9 @@ Overrides are reviewed during PR and must include a reason.
 
 | Existing Check | Gate Tier | Notes |
 |---------------|-----------|-------|
-| CI autofix (clippy --fix + fmt) | Hard | Auto-fixes pushed back to branch |
+| CI formatting and lint checks | Hard | Check-only; fixes are made locally and reviewed |
 | CI build-and-test | Hard | Already blocks merge |
+| CodeQL Rust | Hard | Scheduled and pull-request static analysis |
 | quality.yml clippy | Hard | `-D warnings` fails on any warning |
 | quality.yml audit | Hard | `cargo audit` fails on any vulnerability |
 | quality.yml docs | Hard | `RUSTDOCFLAGS=-D warnings` |
