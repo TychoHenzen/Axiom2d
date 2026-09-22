@@ -119,7 +119,10 @@ fn when_click_reader_tile_then_spawns_reader_copy_and_spends_coins() {
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 0).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
 
     // Act
@@ -137,7 +140,10 @@ fn when_click_screen_tile_then_spawns_screen_copy_and_spends_coins() {
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 1).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
 
     // Act
@@ -155,7 +161,10 @@ fn when_reader_dragged_back_over_store_then_reader_is_sold_and_refunded() {
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 0).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
     run_buy_system(&mut world);
     assert!(world.resource::<ReaderDragState>().dragging.is_some());
@@ -274,7 +283,10 @@ fn when_selling_reader_then_reader_tree_and_jack_are_removed() {
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 0).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
     run_buy_system(&mut world);
     click_at(&mut world, center, false);
@@ -299,7 +311,10 @@ fn when_selling_screen_then_screen_tree_and_jack_are_removed() {
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 1).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
     run_buy_system(&mut world);
     click_at(&mut world, center, false);
@@ -322,7 +337,10 @@ fn when_click_combiner_tile_then_spawns_combiner_and_spends_coins() {
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 2).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
 
     // Act
@@ -340,7 +358,10 @@ fn when_selling_combiner_then_combiner_tree_and_jacks_are_removed() {
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 2).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
     run_buy_system(&mut world);
     click_at(&mut world, center, false);

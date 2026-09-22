@@ -38,8 +38,8 @@ pub fn hand_drop_zone_render_system(
     let bottom_right = screen_to_world(Vec2::new(vw, vh), &camera, vw, vh);
     let width = bottom_right.x - top_left.x;
     let height = bottom_right.y - top_left.y;
-    let cx = (top_left.x + bottom_right.x) * 0.5;
-    let cy = (top_left.y + bottom_right.y) * 0.5;
+    let cx = f32::midpoint(top_left.x, bottom_right.x);
+    let cy = f32::midpoint(top_left.y, bottom_right.y);
 
     let model = unit_quad_model(width, height, cx, cy);
     draw_queue.push(

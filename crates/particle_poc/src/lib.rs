@@ -1536,7 +1536,7 @@ pub fn init_machines(
     // interior so they can't pass through.
     let ea = endpoints.endpoint_a;
     let eb = endpoints.endpoint_b;
-    let pivot = [(ea[0] + eb[0]) * 0.5, (ea[1] + eb[1]) * 0.5];
+    let pivot = [f32::midpoint(ea[0], eb[0]), f32::midpoint(ea[1], eb[1])];
     let dx = eb[0] - ea[0];
     let dy = eb[1] - ea[1];
     let conv_angle = dy.atan2(dx);

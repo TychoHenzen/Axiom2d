@@ -32,7 +32,7 @@ pub(crate) fn color_lerp(a: Color, b: Color, t: f32) -> Color {
 }
 
 pub(crate) fn shade_for_normal(normal: Vec2, light_dir: Vec2, dark: Color, bright: Color) -> Color {
-    let t = (normal.dot(light_dir) + 1.0) * 0.5;
+    let t = f32::midpoint(normal.dot(light_dir), 1.0);
     let t = t.clamp(0.0, 1.0);
     let t = t * t * t;
     color_lerp(dark, bright, t)

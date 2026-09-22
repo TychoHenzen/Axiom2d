@@ -6,7 +6,6 @@
 #![allow(clippy::wildcard_imports)]
 
 use bytemuck;
-use rapier2d::prelude::*;
 
 use crate::*;
 

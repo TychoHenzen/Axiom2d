@@ -123,7 +123,7 @@ fn when_clearing_with_red_then_readback_pixels_are_all_red() {
 
     // Assert
     assert_eq!(pixels.len(), 64 * 64 * 4);
-    for chunk in pixels.chunks_exact(4) {
+    for chunk in pixels.as_chunks::<4>().0 {
         assert_eq!(chunk[0], 255, "R channel");
         assert_eq!(chunk[1], 0, "G channel");
         assert_eq!(chunk[2], 0, "B channel");
@@ -382,7 +382,9 @@ fn when_draw_text_on_headless_then_non_background_pixels_exist() {
 
     // Assert
     let has_non_black = pixels
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .any(|px| px[0] > 0 || px[1] > 0 || px[2] > 0);
     assert!(has_non_black, "draw_text must produce visible pixels");
 }

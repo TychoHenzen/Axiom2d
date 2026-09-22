@@ -70,7 +70,7 @@ pub fn gem_desc_positions(card_size: Vec2) -> [Vec2; 8] {
     // Gem columns sit in the margin between desc strip edge and card edge,
     // centered so they don't exceed card bounds.
     let outer_limit = card_half_w - MAX_GEM_RADIUS;
-    let col_x = (desc_half_w + outer_limit) * 0.5;
+    let col_x = f32::midpoint(desc_half_w, outer_limit);
 
     let step = (desc_half_h * 2.0) / (GEM_DESC_PER_COL as f32 + 1.0);
 
