@@ -7,8 +7,20 @@ import 'package:gps_companion/domain/spawn.dart';
 void main() {
   group('spawnCell determinism', () {
     test('same_inputs_produce_identical_grains', () {
-      final a = spawnCell(cellX: 100, cellY: 200, day: 20000, week: 2900, biome: Biome.forestPark);
-      final b = spawnCell(cellX: 100, cellY: 200, day: 20000, week: 2900, biome: Biome.forestPark);
+      final a = spawnCell(
+        cellX: 100,
+        cellY: 200,
+        day: 20000,
+        week: 2900,
+        biome: Biome.forestPark,
+      );
+      final b = spawnCell(
+        cellX: 100,
+        cellY: 200,
+        day: 20000,
+        week: 2900,
+        biome: Biome.forestPark,
+      );
       expect(a.length, b.length);
       for (var i = 0; i < a.length; i++) {
         expect(a[i].id, b[i].id);
@@ -19,8 +31,20 @@ void main() {
     });
 
     test('different_day_changes_spawn', () {
-      final d1 = spawnCell(cellX: 5, cellY: 5, day: 20000, week: 2900, biome: Biome.urbanResidential);
-      final d2 = spawnCell(cellX: 5, cellY: 5, day: 20001, week: 2900, biome: Biome.urbanResidential);
+      final d1 = spawnCell(
+        cellX: 5,
+        cellY: 5,
+        day: 20000,
+        week: 2900,
+        biome: Biome.urbanResidential,
+      );
+      final d2 = spawnCell(
+        cellX: 5,
+        cellY: 5,
+        day: 20001,
+        week: 2900,
+        biome: Biome.urbanResidential,
+      );
       // Overwhelmingly likely the id sequences differ.
       final ids1 = d1.map((g) => g.id).toList();
       final ids2 = d2.map((g) => g.id).toList();
@@ -30,11 +54,20 @@ void main() {
 
   group('spawnCell biome behaviour', () {
     test('dominant_axis_matches_grain_type', () {
-      final grains = spawnCell(cellX: 1, cellY: 1, day: 19000, week: 2700, biome: Biome.mountainDesert);
+      final grains = spawnCell(
+        cellX: 1,
+        cellY: 1,
+        day: 19000,
+        week: 2700,
+        biome: Biome.mountainDesert,
+      );
       for (final sg in grains) {
         final dom = Grain.dominantAxis(sg.grain.axes);
-        expect(dom, sg.grain.type.axis,
-            reason: 'dominant axis should equal the grain type axis');
+        expect(
+          dom,
+          sg.grain.type.axis,
+          reason: 'dominant axis should equal the grain type axis',
+        );
       }
     });
 
@@ -42,8 +75,20 @@ void main() {
       var forest = 0;
       var historic = 0;
       for (var c = 0; c < 60; c++) {
-        forest += spawnCell(cellX: c, cellY: 3, day: 18000, week: 2600, biome: Biome.forestPark).length;
-        historic += spawnCell(cellX: c, cellY: 3, day: 18000, week: 2600, biome: Biome.historicCultural).length;
+        forest += spawnCell(
+          cellX: c,
+          cellY: 3,
+          day: 18000,
+          week: 2600,
+          biome: Biome.forestPark,
+        ).length;
+        historic += spawnCell(
+          cellX: c,
+          cellY: 3,
+          day: 18000,
+          week: 2600,
+          biome: Biome.historicCultural,
+        ).length;
       }
       // Forest density 300 vs historic 80 — forest should produce more overall.
       expect(forest, greaterThan(historic));

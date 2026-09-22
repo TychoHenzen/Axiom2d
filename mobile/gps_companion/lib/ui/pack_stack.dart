@@ -41,12 +41,11 @@ class PackStackState {
   void tick(double dt) {
     for (var i = 0; i < _packs.length; i++) {
       if (_packs[i].animProgress < 1.0) {
-        final newProgress = (_packs[i].animProgress + dt / 0.5)
-            .clamp(0.0, 1.0); // 0.5s slide-in
-        _packs[i] = PackEntry(
-          id: _packs[i].id,
-          animProgress: newProgress,
-        );
+        final newProgress = (_packs[i].animProgress + dt / 0.5).clamp(
+          0.0,
+          1.0,
+        ); // 0.5s slide-in
+        _packs[i] = PackEntry(id: _packs[i].id, animProgress: newProgress);
       }
     }
   }

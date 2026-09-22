@@ -136,13 +136,15 @@ class AppState extends ChangeNotifier {
     required DateTime timestamp,
     bool isProjected = false,
   }) async {
-    routeLog.add(GpsPoint(
-      lat: lat,
-      lon: lon,
-      speed: speed,
-      timestamp: timestamp,
-      isProjected: isProjected,
-    ));
+    routeLog.add(
+      GpsPoint(
+        lat: lat,
+        lon: lon,
+        speed: speed,
+        timestamp: timestamp,
+        isProjected: isProjected,
+      ),
+    );
     // Persist every ~10 points to limit I/O while keeping log reasonably fresh.
     if (routeLog.points.length % 10 == 0) {
       await routeLogStore.save(routeLog);

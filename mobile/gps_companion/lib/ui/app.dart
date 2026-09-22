@@ -61,7 +61,10 @@ class _HomeShellState extends State<HomeShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.map), label: 'Map'),
           NavigationDestination(icon: Icon(Icons.inventory_2), label: 'Packs'),
-          NavigationDestination(icon: Icon(Icons.qr_code_scanner), label: 'Transfer'),
+          NavigationDestination(
+            icon: Icon(Icons.qr_code_scanner),
+            label: 'Transfer',
+          ),
         ],
       ),
     );

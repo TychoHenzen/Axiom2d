@@ -79,7 +79,8 @@ double _distanceMetres(LatLon a, LatLon b) {
   const metersPerDegLat = 111_320.0;
   final dLat = (a.lat - b.lat) * metersPerDegLat;
   final avgLat = (a.lat + b.lat) / 2.0;
-  final dLon = (a.lon - b.lon) * metersPerDegLat * math.cos(avgLat * math.pi / 180.0);
+  final dLon =
+      (a.lon - b.lon) * metersPerDegLat * math.cos(avgLat * math.pi / 180.0);
   return math.sqrt(dLat * dLat + dLon * dLon);
 }
 

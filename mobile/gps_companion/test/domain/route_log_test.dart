@@ -51,15 +51,23 @@ void main() {
     test('full log with points and marker survives encode → decode', () {
       // Arrange
       final log = RouteLog(week: 2900);
-      log.add(GpsPoint(
-        lat: 51.0, lon: 5.0, speed: 10.0,
-        timestamp: DateTime.utc(2026, 6, 11, 12, 0, 0),
-      ));
-      log.add(GpsPoint(
-        lat: 51.1, lon: 5.1, speed: 15.0,
-        timestamp: DateTime.utc(2026, 6, 11, 12, 0, 5),
-        isProjected: true,
-      ));
+      log.add(
+        GpsPoint(
+          lat: 51.0,
+          lon: 5.0,
+          speed: 10.0,
+          timestamp: DateTime.utc(2026, 6, 11, 12, 0, 0),
+        ),
+      );
+      log.add(
+        GpsPoint(
+          lat: 51.1,
+          lon: 5.1,
+          speed: 15.0,
+          timestamp: DateTime.utc(2026, 6, 11, 12, 0, 5),
+          isProjected: true,
+        ),
+      );
       log.markProcessed();
 
       // Act
@@ -92,32 +100,32 @@ void main() {
   group('RouteLog.unprocessed', () {
     test('all points unprocessed when marker is null', () {
       final log = RouteLog();
-      log.add(GpsPoint(
-        lat: 51.0, lon: 5.0, speed: 0, timestamp: DateTime.now(),
-      ));
+      log.add(
+        GpsPoint(lat: 51.0, lon: 5.0, speed: 0, timestamp: DateTime.now()),
+      );
       expect(log.unprocessed.length, 1);
     });
 
     test('empty when all points processed', () {
       final log = RouteLog();
-      log.add(GpsPoint(
-        lat: 51.0, lon: 5.0, speed: 0, timestamp: DateTime.now(),
-      ));
+      log.add(
+        GpsPoint(lat: 51.0, lon: 5.0, speed: 0, timestamp: DateTime.now()),
+      );
       log.markProcessed();
       expect(log.unprocessed, isEmpty);
     });
 
     test('only returns points after the marker', () {
       final log = RouteLog();
-      log.add(GpsPoint(
-        lat: 51.0, lon: 5.0, speed: 0, timestamp: DateTime.now(),
-      ));
-      log.add(GpsPoint(
-        lat: 51.1, lon: 5.1, speed: 0, timestamp: DateTime.now(),
-      ));
-      log.add(GpsPoint(
-        lat: 51.2, lon: 5.2, speed: 0, timestamp: DateTime.now(),
-      ));
+      log.add(
+        GpsPoint(lat: 51.0, lon: 5.0, speed: 0, timestamp: DateTime.now()),
+      );
+      log.add(
+        GpsPoint(lat: 51.1, lon: 5.1, speed: 0, timestamp: DateTime.now()),
+      );
+      log.add(
+        GpsPoint(lat: 51.2, lon: 5.2, speed: 0, timestamp: DateTime.now()),
+      );
       log.lastPackForgedAtIndex = 0;
       expect(log.unprocessed.length, 2);
     });
@@ -127,9 +135,9 @@ void main() {
     test('clears log when week changes', () {
       final store = RouteLogStore();
       final log = RouteLog(week: 100);
-      log.add(GpsPoint(
-        lat: 51.0, lon: 5.0, speed: 0, timestamp: DateTime.now(),
-      ));
+      log.add(
+        GpsPoint(lat: 51.0, lon: 5.0, speed: 0, timestamp: DateTime.now()),
+      );
       final pruned = store.maybePrune(log, 101);
       expect(pruned.points, isEmpty);
       expect(pruned.lastPackForgedAtIndex, isNull);
@@ -139,9 +147,9 @@ void main() {
     test('keeps log when week is the same', () {
       final store = RouteLogStore();
       final log = RouteLog(week: 100);
-      log.add(GpsPoint(
-        lat: 51.0, lon: 5.0, speed: 0, timestamp: DateTime.now(),
-      ));
+      log.add(
+        GpsPoint(lat: 51.0, lon: 5.0, speed: 0, timestamp: DateTime.now()),
+      );
       final pruned = store.maybePrune(log, 100);
       expect(pruned.points.length, 1);
     });

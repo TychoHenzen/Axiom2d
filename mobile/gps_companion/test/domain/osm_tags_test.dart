@@ -8,8 +8,11 @@ void main() {
       final keys = kOsmBiomeSamples.map((s) => s.key).toSet();
 
       // Act / Assert
-      expect(keys.length, greaterThanOrEqualTo(25),
-          reason: 'spec requires >= 25 distinct OSM tag mappings');
+      expect(
+        keys.length,
+        greaterThanOrEqualTo(25),
+        reason: 'spec requires >= 25 distinct OSM tag mappings',
+      );
     });
 
     test('when_checking_tag_categories_then_all_required_prefixes_present', () {
@@ -17,16 +20,31 @@ void main() {
       final keys = kOsmBiomeSamples.map((s) => s.key).toList();
 
       // Assert — each required OSM category has at least one entry
-      expect(keys.any((k) => k.startsWith('landuse=')), isTrue,
-          reason: 'must have landuse/* mappings');
-      expect(keys.any((k) => k.startsWith('natural=')), isTrue,
-          reason: 'must have natural/* mappings');
-      expect(keys.any((k) => k.startsWith('leisure=')), isTrue,
-          reason: 'must have leisure/* mappings');
-      expect(keys.any((k) => k.startsWith('waterway=')), isTrue,
-          reason: 'must have waterway/* mappings');
-      expect(keys.any((k) => k.startsWith('wetland=')), isTrue,
-          reason: 'must have wetland/* mappings');
+      expect(
+        keys.any((k) => k.startsWith('landuse=')),
+        isTrue,
+        reason: 'must have landuse/* mappings',
+      );
+      expect(
+        keys.any((k) => k.startsWith('natural=')),
+        isTrue,
+        reason: 'must have natural/* mappings',
+      );
+      expect(
+        keys.any((k) => k.startsWith('leisure=')),
+        isTrue,
+        reason: 'must have leisure/* mappings',
+      );
+      expect(
+        keys.any((k) => k.startsWith('waterway=')),
+        isTrue,
+        reason: 'must have waterway/* mappings',
+      );
+      expect(
+        keys.any((k) => k.startsWith('wetland=')),
+        isTrue,
+        reason: 'must have wetland/* mappings',
+      );
     });
   });
 
@@ -37,22 +55,31 @@ void main() {
         final sum = sample.dist.fold(0.0, (a, b) => a + b);
 
         // Assert
-        expect(sum, closeTo(1.0, 0.001),
-            reason: '${sample.key} dist sums to $sum, expected ~1.0');
+        expect(
+          sum,
+          closeTo(1.0, 0.001),
+          reason: '${sample.key} dist sums to $sum, expected ~1.0',
+        );
       }
     });
 
     test('when_checking_dist_length_then_all_have_five_elements', () {
       for (final sample in kOsmBiomeSamples) {
-        expect(sample.dist.length, 5,
-            reason: '${sample.key} dist should have 5 elements');
+        expect(
+          sample.dist.length,
+          5,
+          reason: '${sample.key} dist should have 5 elements',
+        );
       }
     });
 
     test('when_checking_densities_then_all_positive', () {
       for (final sample in kOsmBiomeSamples) {
-        expect(sample.densityPerKm2, greaterThan(0),
-            reason: '${sample.key} density must be positive');
+        expect(
+          sample.densityPerKm2,
+          greaterThan(0),
+          reason: '${sample.key} density must be positive',
+        );
       }
     });
   });
@@ -76,8 +103,11 @@ void main() {
       expect(result, isNotNull);
       // Water is index 2 in dist; should be the dominant element
       final waterWeight = result!.dist[2];
-      expect(waterWeight, greaterThan(0.5),
-          reason: 'natural=water should have water as dominant grain');
+      expect(
+        waterWeight,
+        greaterThan(0.5),
+        reason: 'natural=water should have water as dominant grain',
+      );
     });
 
     test('when_querying_unknown_tag_then_returns_null', () {

@@ -60,7 +60,8 @@ String buildOverpassUrl({
   final s = (dLat < dLon ? dLat : dLon); // use tighter bound for square bbox
   final bbox = '${lat - s},${lon - s},${lat + s},${lon + s}';
 
-  final query = '''
+  final query =
+      '''
 [out:json];
 (
   way["landuse"]($bbox);
@@ -76,8 +77,8 @@ String buildOverpassUrl({
 );
 out geom;
 '''
-      .replaceAll('\n', '')
-      .trim();
+          .replaceAll('\n', '')
+          .trim();
 
   return 'https://overpass-api.de/api/interpreter?data=${Uri.encodeComponent(query)}';
 }
@@ -97,10 +98,13 @@ double _cos(double x) {
   if (x > pi) x -= 2 * pi;
   final x2 = x * x;
   return 1.0 +
-      x2 * (-0.4999999963 +
-          x2 * (0.0416666418 +
-              x2 * (-0.0013888397 +
-                  x2 * (2.47609e-5 + x2 * (-2.605e-7)))));
+      x2 *
+          (-0.4999999963 +
+              x2 *
+                  (0.0416666418 +
+                      x2 *
+                          (-0.0013888397 +
+                              x2 * (2.47609e-5 + x2 * (-2.605e-7)))));
 }
 
 /// Parse raw Overpass JSON into [OverpassResponse].

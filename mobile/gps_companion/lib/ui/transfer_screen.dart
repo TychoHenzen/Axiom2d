@@ -26,7 +26,9 @@ class _TransferScreenState extends State<TransferScreen> {
 
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_busy) return;
-    final raw = capture.barcodes.isEmpty ? null : capture.barcodes.first.rawValue;
+    final raw = capture.barcodes.isEmpty
+        ? null
+        : capture.barcodes.first.rawValue;
     if (raw == null) return;
     setState(() {
       _busy = true;
@@ -76,8 +78,10 @@ class _TransferScreenState extends State<TransferScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('${widget.state.packCount} pack(s) ready to send',
-                    style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  '${widget.state.packCount} pack(s) ready to send',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 16),
                 if (_busy) const CircularProgressIndicator(),
                 if (!_busy)

@@ -40,46 +40,41 @@ class _CachedRegion {
   final String osmValue;
 
   Map<String, dynamic> toJson() => {
-        'g': geometry.map((p) => [p.lat, p.lon]).toList(),
-        'k': osmKey,
-        'v': osmValue,
-      };
+    'g': geometry.map((p) => [p.lat, p.lon]).toList(),
+    'k': osmKey,
+    'v': osmValue,
+  };
 
   factory _CachedRegion.fromJson(Map<String, dynamic> j) => _CachedRegion(
-        geometry: (j['g'] as List)
-            .map((e) {
-              final arr = e as List;
-              return OverpassPoint(
-                  lat: (arr[0] as num).toDouble(),
-                  lon: (arr[1] as num).toDouble());
-            })
-            .toList(),
-        osmKey: j['k'] as String,
-        osmValue: j['v'] as String,
+    geometry: (j['g'] as List).map((e) {
+      final arr = e as List;
+      return OverpassPoint(
+        lat: (arr[0] as num).toDouble(),
+        lon: (arr[1] as num).toDouble(),
       );
+    }).toList(),
+    osmKey: j['k'] as String,
+    osmValue: j['v'] as String,
+  );
 }
 
 /// Cached POI entry: position + category.
 class _CachedPoi {
-  _CachedPoi({
-    required this.lat,
-    required this.lon,
-    required this.category,
-  });
+  _CachedPoi({required this.lat, required this.lon, required this.category});
   final double lat;
   final double lon;
   final MicroBiomeCategory category;
 
   Map<String, dynamic> toJson() => {
-        't': [lat, lon],
-        'c': category.index,
-      };
+    't': [lat, lon],
+    'c': category.index,
+  };
 
   factory _CachedPoi.fromJson(Map<String, dynamic> j) => _CachedPoi(
-        lat: ((j['t'] as List)[0] as num).toDouble(),
-        lon: ((j['t'] as List)[1] as num).toDouble(),
-        category: MicroBiomeCategory.values[(j['c'] as num).toInt()],
-      );
+    lat: ((j['t'] as List)[0] as num).toDouble(),
+    lon: ((j['t'] as List)[1] as num).toDouble(),
+    category: MicroBiomeCategory.values[(j['c'] as num).toInt()],
+  );
 }
 
 /// Per-tile cache payload.
@@ -90,7 +85,11 @@ class _TileCache {
 }
 
 /// Point-in-polygon test via ray casting. [testLat] is Y, [testLon] is X.
-bool _pointInPolygon(double testLat, double testLon, List<OverpassPoint> polygon) {
+bool _pointInPolygon(
+  double testLat,
+  double testLon,
+  List<OverpassPoint> polygon,
+) {
   var inside = false;
   final n = polygon.length;
   for (var i = 0, j = n - 1; i < n; j = i++) {
@@ -157,8 +156,7 @@ MicroBiomeCategory? _poiTagToCategory(Map<String, String> tags) {
 /// Singleton biome resolver. Holds in-memory cache; persists fetched tiles
 /// via shared_preferences.
 class BiomeService {
-  BiomeService({http.Client? httpClient})
-      : _http = httpClient ?? http.Client();
+  BiomeService({http.Client? httpClient}) : _http = httpClient ?? http.Client();
 
   /// Called whenever a new tile finishes loading from the network or prefs.
   /// Use this to mark the fog dirty and recolor cells with the new data.
@@ -208,8 +206,7 @@ class BiomeService {
     final tile = _tileId(lat, lon);
     if (_cache.containsKey(tile)) return; // already in memory
     final last = _lastFetch[tile];
-    if (last != null &&
-        DateTime.now().difference(last) < kPrefetchDebounce) {
+    if (last != null && DateTime.now().difference(last) < kPrefetchDebounce) {
       return;
     }
 
@@ -236,25 +233,24 @@ class BiomeService {
     double lat,
     double lon, {
     List<({List<OverpassPoint> geometry, String osmKey, String osmValue})>
-        regions = const [],
+        regions =
+        const [],
     List<({double lat, double lon, MicroBiomeCategory category})> pois =
         const [],
   }) {
     final tile = _tileId(lat, lon);
     _cache[tile] = _TileCache(
       regions: regions
-          .map((r) => _CachedRegion(
-                geometry: r.geometry,
-                osmKey: r.osmKey,
-                osmValue: r.osmValue,
-              ))
+          .map(
+            (r) => _CachedRegion(
+              geometry: r.geometry,
+              osmKey: r.osmKey,
+              osmValue: r.osmValue,
+            ),
+          )
           .toList(),
       pois: pois
-          .map((p) => _CachedPoi(
-                lat: p.lat,
-                lon: p.lon,
-                category: p.category,
-              ))
+          .map((p) => _CachedPoi(lat: p.lat, lon: p.lon, category: p.category))
           .toList(),
     );
   }
@@ -263,7 +259,9 @@ class BiomeService {
     _lastFetch[tile] = DateTime.now();
     try {
       final url = buildOverpassUrl(lat: lat, lon: lon);
-      final resp = await _http.get(Uri.parse(url)).timeout(Duration(seconds: 8));
+      final resp = await _http
+          .get(Uri.parse(url))
+          .timeout(Duration(seconds: 8));
       if (resp.statusCode != 200) return;
       final parsed = parseOverpassResponse(resp.body);
 
@@ -272,11 +270,13 @@ class BiomeService {
         for (final tagKey in r.tags.keys) {
           final tagVal = r.tags[tagKey]!;
           if (osmTagToBiome(tagKey, tagVal) != null) {
-            regions.add(_CachedRegion(
-              geometry: r.geometry,
-              osmKey: tagKey,
-              osmValue: tagVal,
-            ));
+            regions.add(
+              _CachedRegion(
+                geometry: r.geometry,
+                osmKey: tagKey,
+                osmValue: tagVal,
+              ),
+            );
             break; // first matching tag per region
           }
         }

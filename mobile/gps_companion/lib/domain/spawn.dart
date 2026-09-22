@@ -15,7 +15,12 @@ const double kCellDegrees = 0.0027;
 
 /// A grain placed at a world coordinate.
 class SpawnedGrain {
-  SpawnedGrain({required this.grain, required this.lat, required this.lon, required this.id});
+  SpawnedGrain({
+    required this.grain,
+    required this.lat,
+    required this.lon,
+    required this.id,
+  });
 
   final Grain grain;
   final double lat;
@@ -112,7 +117,11 @@ List<double> axisWeights({
   double cellDegrees = kCellDegrees,
 }) {
   final w = List<double>.filled(8, 0.0);
-  final overlay = leylineOverlay(cellY * cellDegrees, cellX * cellDegrees, week);
+  final overlay = leylineOverlay(
+    cellY * cellDegrees,
+    cellX * cellDegrees,
+    week,
+  );
   final leyBoost = kLeylineAxes.fold<double>(0, (s, a) => s + overlay[a]);
   final leyFrac = leyBoost > 0 ? leyBoost / (1 + leyBoost) : 0.0;
   kBiomeDistribution[biome]!.forEach((type, weight) {
@@ -163,10 +172,15 @@ double _cellAreaKm2(int cellY, double cellDegrees) {
 }
 
 /// Pick a grain type, allowing leyline overlay to inject leyline-only types.
-GrainType _pickType(Map<GrainType, double> dist, List<double> overlay, math.Random rng) {
+GrainType _pickType(
+  Map<GrainType, double> dist,
+  List<double> overlay,
+  math.Random rng,
+) {
   // Leyline injection chance proportional to total leyline boost this cell.
   final leylineBoost = kLeylineAxes.fold<double>(0, (s, a) => s + overlay[a]);
-  if (leylineBoost > 0 && rng.nextDouble() < leylineBoost / (1 + leylineBoost)) {
+  if (leylineBoost > 0 &&
+      rng.nextDouble() < leylineBoost / (1 + leylineBoost)) {
     // Choose among leyline axes weighted by their boost.
     final total = kLeylineAxes.fold<double>(0, (s, a) => s + overlay[a]);
     var t = rng.nextDouble() * total;

@@ -2,11 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gps_companion/domain/grain.dart';
 import 'package:gps_companion/domain/inventory.dart';
 
-Grain _grain(GrainType type, [GrainRarity rarity = GrainRarity.common]) => Grain(
-  axes: List<double>.filled(8, 0.0),
-  type: type,
-  rarity: rarity,
-);
+Grain _grain(GrainType type, [GrainRarity rarity = GrainRarity.common]) =>
+    Grain(axes: List<double>.filled(8, 0.0), type: type, rarity: rarity);
 
 void main() {
   final now = DateTime.utc(2026, 6, 6, 12);

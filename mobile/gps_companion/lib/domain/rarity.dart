@@ -43,6 +43,10 @@ double unitHash(List<double> axes, int seed) {
 
 /// Rarity for a grain with the given axes, seeded deterministically.
 GrainRarity grainRarity(List<double> axes, int seed) {
-  final level = geometricLevel(unitHash(axes, seed), kRarityAdvanceRate, kRarityLevels);
+  final level = geometricLevel(
+    unitHash(axes, seed),
+    kRarityAdvanceRate,
+    kRarityLevels,
+  );
   return GrainRarity.fromLevel(level);
 }

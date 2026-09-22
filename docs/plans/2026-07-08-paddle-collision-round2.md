@@ -1,35 +1,22 @@
-# Fix Paddle Collision — Proper Dissipation + Per-Frame Outlier Detection — Requirements Spec
+# Fix Paddle Collision — Proper Dissipation + Per-Frame Outlier Detection - Requirements Spec
 
 <claude_instructions>
-**For Claude (/goal):** Work through each incomplete task below.
+**For the implementer:** Work through each task below.
 1. Mark a task `[>]` when you begin working on it.
-2. Call `dod_check` to verify proofs — do NOT mark proofs manually.
-   While iterating on one subtree, pass `nodePath` to verify just that part fast (others are carried, not re-run). A scoped run returns INCOMPLETE, never PASS.
+2. Call `dod_check` to verify proofs - do NOT mark proofs manually.
 3. A task group is complete when ALL its concrete proofs pass via `dod_check`.
-3b. For `manual`/`review` proofs: `dod_check` never auto-prompts — call
-    `dod_verify(dod_id, proof_id)` explicitly when verification is actually relevant.
-3c. **Manual verification is a HARD GATE.** DoD cannot PASS without it.
-    Proofs can pass against wrong code. Visual verification catches what metrics miss.
-4. Use `dod_refine` to turn a draft leaf into a concrete proof with a command.
-4b. **Refine incrementally per task group, not all at once.** Scoped dod_check is faster
-    than full runs — use it. Refining 7 drafts at session end = rubber-stamping.
-4c. Use `dod_add_node` to add new nodes discovered during implementation.
+4. Use `dod_refine` to turn a draft leaf into a concrete proof or subdivide into child tasks.
 5. If a proof cannot be met, use `dod_amend` to modify it with a reason.
-5b. **Amending a proof 3+ times is a red flag** — you're probably tuning proofs to pass
-    rather than fixing the bug. Re-examine the approach.
-5c. Proof commands run on the HOST OS — write OS-correct commands (no bash on Windows).
-6. Continue until `dod_check` returns PASS (zero drafts, all proofs pass, manuals verified) — then stop and report done.
-6b. **If the approach isn't working, stop and re-interview.** Don't silently pivot to
-    a different implementation while keeping the old DoD. The DoD must match what you're doing.
+6. Continue until `dod_check` returns PASS - then stop and report done.
 
-**Self-contained.** All commands run from `C:\Users\siriu\RustroverProjects\Axiom2d` unless noted.
+**Behavioral predicates only.** Each proof is a concrete behavioral claim.
+Read failure diagnoses carefully - they tell you WHAT went wrong and what to fix.
+Proofs run on the HOST OS - write OS-correct commands (no bash on Windows).
 
-**🔒 Anti-cheat:** Proofs are stored canonically in MCP storage (dod-guard).
+**CWD:** `C:\Users\siriu\RustroverProjects\Axiom2d`
+
+**Anti-cheat:** Proofs stored canonically in MCP storage.
 `dod_check` executes commands from the canonical copy, not this markdown file.
-Editing proof text here has no effect on verification.
-Store tampering is **logged and detectable** — each check prints a proof-set fingerprint.
-Manual/review proofs are confirmed by the human directly (popup / elicitation) via `dod_verify` —
-Claude cannot self-confirm them, and an unrequested one holds the DoD at INCOMPLETE, never PASS.
 </claude_instructions>
 
 **Goal:** Fix paddle collision energy injection and phasing by moving machine contacts into project pass with Coulomb friction, SOR averaging, and per-substep correction cap. Add GPU-side per-frame velocity outlier and phasing detection so tests catch problems throughout entire benchmark, not just final frame.
@@ -147,17 +134,32 @@ None — all design decisions resolved during interview.
 
 <definition_of_done>
 
-### Code Quality [x]
+### Code Quality [ ]
 
-  - [x] Proof: `cargo clippy -p particle_poc --no-deps -- -D warnings -A clippy::struct_excessive_bools` → Clippy passes with zero warnings on particle_poc crate (struct_excessive_bools allowed: pre-existing on App struct)
-  - [x] Proof: `cargo fmt --all -- --check` → All code properly formatted
-  - [x] Proof: `cargo test` → All 1725+ tests pass, no regressions
+  - [ ] Proof: `cargo clippy -p particle_poc --no-deps -- -D warnings -A clippy::struct_excessive_bools` -> Clippy passes with zero warnings on particle_poc crate (struct_excessive_bools allowed: pre-existing on App struct) <!--p:{"type":"exit_code","value":0}-->
+    > ⚠ ''cargo' is not recognized as an internal or external command,
+operable program or batch file.
+
+
+Diagnosis: Expected exit code 0, got 1. Command failed to execute successfully. Check the error output above.
+  - [ ] Proof: `cargo fmt --all -- --check` -> All code properly formatted <!--p:{"type":"exit_code","value":0}-->
+    > ⚠ ''cargo' is not recognized as an internal or external command,
+operable program or batch file.
+
+
+Diagnosis: Expected exit code 0, got 1. Command failed to execute successfully. Check the error output above.
+  - [ ] Proof: `cargo test` -> All 1725+ tests pass, no regressions <!--p:{"type":"exit_code","value":0}-->
+    > ⚠ ''cargo' is not recognized as an internal or external command,
+operable program or batch file.
+
+
+Diagnosis: Expected exit code 0, got 1. Command failed to execute successfully. Check the error output above.
 
 ### Paddle Collision Fix [~]
 
   **TDD Root-Cause Test** [~]
 
-    - [ ] Proof: `findstr /C:"test-paddle-root-cause" crates\particle_poc\src\main.rs` → --test-paddle-root-cause CLI flag defined and wired to disable velocity cap uniform
+    - [ ] Proof: `findstr /C:"test-paddle-root-cause" crates\particle_poc\src\main.rs` -> --test-paddle-root-cause CLI flag defined and wired to disable velocity cap uniform <!--p:{"type":"output_contains","value":"test-paddle-root-cause"}-->
     - [~] **Draft**: cargo run --release -p particle_poc -- --test-paddle-root-cause exits non-zero on current code because velocity spikes exceed 2.0 without MAX_SPEED cap. Proves bug exists independent of band-aid.
     - [~] **Draft**: cargo run --release -p particle_poc -- --test-paddle-root-cause exits 0 after fix because Coulomb friction + SOR + correction cap limit energy transfer without needing velocity cap.
     - [~] **Draft**: Root-cause test verifies: nan_count==0, max_speed<2.0, tracked_max<2.0, zero OOB. Prints explicit FAIL messages and exits 1 on failure. Assertions check physics output, not cap output.
@@ -191,17 +193,25 @@ None — all design decisions resolved during interview.
 
     - [~] **Draft**: cargo run --release -p particle_poc -- --test-paddle-stability exits 0. All new checks pass: zero outliers above 2.0, zero phasing events, KE stable. 10-second run with 1000 particles near conveyor.
     - [~] **Draft**: cargo run --release -p particle_poc -- --benchmark exits 0. verify_stability() passes: NaN=0, OOB=0, KE outliers=0, max_speed<2.0, tracked_max<2.0. 10-second run with default particle count.
-    - [x] Proof: `cargo run --release -p particle_poc -- --test-bond-form && cargo run --release -p particle_poc -- --test-bond-constrain && cargo run --release -p particle_poc -- --test-bond-break` → All three bond tests (form, constrain, break) exit 0 — machine collision changes don't break bond physics
+    - [x] Proof: `cargo run --release -p particle_poc -- --test-bond-form && cargo run --release -p particle_poc -- --test-bond-constrain && cargo run --release -p particle_poc -- --test-bond-break` -> All three bond tests (form, constrain, break) exit 0 — machine collision changes don't break bond physics <!--p:{"type":"exit_code","value":0}-->
   **Streamline** [ ]
 
-    - [ ] Proof: `findstr /C:"16.0" crates\particle_poc\src\shaders\project.wgsl` → frame_displacement uses f32(sub_steps) not hardcoded 16.0 — findstr returns exit code 1 (no matches for 16.0 literal in project.wgsl)
-    - [ ] Proof: `findstr /C:"disable_velocity_cap" crates\particle_poc\src\main.rs crates\particle_poc\src\shaders\project.wgsl` → Uniform flag exists in both Rust struct definition and WGSL shader — cap is controllable runtime flag, not always-on band-aid
+    - [ ] Proof: `findstr /C:"16.0" crates\particle_poc\src\shaders\project.wgsl` -> frame_displacement uses f32(sub_steps) not hardcoded 16.0 — findstr returns exit code 1 (no matches for 16.0 literal in project.wgsl) <!--p:{"type":"exit_code","value":1}-->
+      > ⚠             let frame_displacement = mach.angular_velocity * params.dt * 16.0;
+
+    - [ ] Proof: `findstr /C:"disable_velocity_cap" crates\particle_poc\src\main.rs crates\particle_poc\src\shaders\project.wgsl` -> Uniform flag exists in both Rust struct definition and WGSL shader — cap is controllable runtime flag, not always-on band-aid <!--p:{"type":"output_contains","value":"disable_velocity_cap"}-->
   **Observability** [ ]
 
-    - [ ] Proof: `findstr /C:"detect_outliers" crates\particle_poc\src\shaders\project.wgsl` → detect_outliers compute entry point declared in WGSL shader
-    - [ ] Proof: `findstr /C:"detect_phasing" crates\particle_poc\src\shaders\project.wgsl` → detect_phasing compute entry point declared in WGSL shader
-    - [ ] Proof: `findstr /C:"outlier" crates\particle_poc\src\main.rs` → Main.rs contains outlier buffer readback code with staging buffer, map_async, and println logging
-    - [ ] Proof: `findstr /C:"phasing" crates\particle_poc\src\main.rs` → Main.rs contains phasing buffer readback code with staging buffer, map_async, and println logging
+    - [ ] Proof: `findstr /C:"detect_outliers" crates\particle_poc\src\shaders\project.wgsl` -> detect_outliers compute entry point declared in WGSL shader <!--p:{"type":"output_contains","value":"detect_outliers"}-->
+    - [ ] Proof: `findstr /C:"detect_phasing" crates\particle_poc\src\shaders\project.wgsl` -> detect_phasing compute entry point declared in WGSL shader <!--p:{"type":"output_contains","value":"detect_phasing"}-->
+    - [ ] Proof: `findstr /C:"outlier" crates\particle_poc\src\main.rs` -> Main.rs contains outlier buffer readback code with staging buffer, map_async, and println logging <!--p:{"type":"output_matches","value":"staging|map_async|println"}-->
+      > ⚠         // Stability: no NaN, no OOB, zero 5σ KE outliers above median.
+        // Read species and bonds for outlier logging.
+        let outlier_threshold = median_ke + 5.0 * stddev_ke;
+        // Count and log outliers in second pass.
+        let mut ke_outliers = 0usize;
+        let mut green_ou
+    - [ ] Proof: `findstr /C:"phasing" crates\particle_poc\src\main.rs` -> Main.rs contains phasing buffer readback code with staging buffer, map_async, and println logging <!--p:{"type":"output_matches","value":"staging|map_async|println"}-->
   **Performance** [~]
 
     - [~] **Draft**: cargo run --release -p particle_poc -- --benchmark --particles 100000 reports average frame time <= 16.67ms (60 FPS) with new per-substep machine collision. Must hold at full 100k particle count.
@@ -210,15 +220,15 @@ None — all design decisions resolved during interview.
     - [~] **Draft**: findstr /C:"cos_angle" project.wgsl shows OBB transform math in one location only (shared helper or project pass), not duplicated in both project and apply passes. Machine collision logic lives in exactly one place.
   **Integration** [~]
 
-    - [ ] Proof: `findstr /C:"detect_outliers" crates\particle_poc\src\main.rs` → detect_outliers compute pipeline created and dispatch called in simulate() loop
-    - [ ] Proof: `findstr /C:"detect_phasing" crates\particle_poc\src\main.rs` → detect_phasing compute pipeline created and dispatch called in simulate() loop
-    - [ ] Proof: `findstr /C:"disable_velocity_cap" crates\particle_poc\src\main.rs` → disable_velocity_cap uniform value written to GPU buffer, controlled by --test-paddle-root-cause flag
+    - [ ] Proof: `findstr /C:"detect_outliers" crates\particle_poc\src\main.rs` -> detect_outliers compute pipeline created and dispatch called in simulate() loop <!--p:{"type":"output_contains","value":"detect_outliers"}-->
+    - [ ] Proof: `findstr /C:"detect_phasing" crates\particle_poc\src\main.rs` -> detect_phasing compute pipeline created and dispatch called in simulate() loop <!--p:{"type":"output_contains","value":"detect_phasing"}-->
+    - [ ] Proof: `findstr /C:"disable_velocity_cap" crates\particle_poc\src\main.rs` -> disable_velocity_cap uniform value written to GPU buffer, controlled by --test-paddle-root-cause flag <!--p:{"type":"output_contains","value":"disable_velocity_cap"}-->
     - [~] **Draft**: cargo run --release -p particle_poc -- --test-paddle-stability exits 0 with all new detection passes (outlier, phasing, KE tracking). Exercises full system end-to-end: WGSL compute passes -> GPU buffers -> CPU readback -> assertions.
 
 ### Manual Verification [x]
 
-  - [~] Proof: `manual` → Peer review of WGSL shader changes (project pass restructuring, Coulomb friction, SOR averaging), Rust test additions (outlier/phasing detection), and frame_displacement fix
-  - [~] Proof: Manual — Run particle_poc without flags. Observe conveyor: particles stay in bucket between paddles, no launching, no phasing through paddles. Verify rendering looks correct. _(awaiting human verification)_
+  - [~] Proof: `manual` -> Peer review of WGSL shader changes (project pass restructuring, Coulomb friction, SOR averaging), Rust test additions (outlier/phasing detection), and frame_displacement fix <!--p:{"type":"review"}-->
+  - [~] Proof: `manual` -> Run particle_poc without flags. Observe conveyor: particles stay in bucket between paddles, no launching, no phasing through paddles. Verify rendering looks correct. <!--p:{"type":"manual"}-->
 
 </definition_of_done>
 

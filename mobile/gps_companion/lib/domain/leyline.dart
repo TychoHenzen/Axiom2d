@@ -33,8 +33,7 @@ double _smooth(double t) => t * t * (3 - 2 * t);
 double noise3(double x, double y, double z) {
   final xi = x.floor(), yi = y.floor(), zi = z.floor();
   final xf = x - xi, yf = y - yi, zf = z - zi;
-  double corner(int dx, int dy, int dz) =>
-      _hashUnit(xi + dx, yi + dy, zi + dz);
+  double corner(int dx, int dy, int dz) => _hashUnit(xi + dx, yi + dy, zi + dz);
   final u = _smooth(xf), v = _smooth(yf), w = _smooth(zf);
   double lerp(double a, double b, double t) => a + (b - a) * t;
   final x00 = lerp(corner(0, 0, 0), corner(1, 0, 0), u);
@@ -57,7 +56,9 @@ class WeeklyTheme {
   final double intensity;
 
   String get label {
-    final names = dominantAxes.map((a) => GrainType.forAxis(a).json).join(' / ');
+    final names = dominantAxes
+        .map((a) => GrainType.forAxis(a).json)
+        .join(' / ');
     return '$names alignment';
   }
 }
@@ -131,7 +132,10 @@ List<double> leylineOverlay(double lat, double lon, int week) {
       // Hotspots whose element matches this week's theme are stronger.
       final axisBoost = theme.dominantAxes.contains(axis) ? 1.4 : 0.7;
       out[axis] +=
-          (1.0 - distM / kLeylineHotspotRadiusM) * theme.intensity * axisBoost * 0.5;
+          (1.0 - distM / kLeylineHotspotRadiusM) *
+          theme.intensity *
+          axisBoost *
+          0.5;
     }
   }
   return out;

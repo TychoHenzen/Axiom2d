@@ -22,8 +22,10 @@ class GalleryScreen extends StatelessWidget {
           final packs = state.boosters;
           if (packs.isEmpty) {
             return const Center(
-              child: Text('No packs yet.\nCollect 100 grains to forge one.',
-                  textAlign: TextAlign.center),
+              child: Text(
+                'No packs yet.\nCollect 100 grains to forge one.',
+                textAlign: TextAlign.center,
+              ),
             );
           }
           return GridView.builder(
@@ -77,7 +79,11 @@ class GalleryScreen extends StatelessWidget {
 }
 
 class _PackTile extends StatelessWidget {
-  const _PackTile({required this.booster, required this.index, required this.onTap});
+  const _PackTile({
+    required this.booster,
+    required this.index,
+    required this.onTap,
+  });
 
   final Booster booster;
   final int index;
@@ -108,8 +114,13 @@ class _PackTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Pack #${index + 1}',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text(
+              'Pack #${index + 1}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             if (theme.isPure)
               const Chip(label: Text('PURE'), backgroundColor: Colors.white70),
             Text(

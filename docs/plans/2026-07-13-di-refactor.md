@@ -1,35 +1,22 @@
-# Dependency Injection — Decouple Engine Wiring via Plugin-Based Backend Injection — Requirements Spec
+# Dependency Injection — Decouple Engine Wiring via Plugin-Based Backend Injection - Requirements Spec
 
 <claude_instructions>
-**For Claude (/goal):** Work through each incomplete task below.
+**For the implementer:** Work through each task below.
 1. Mark a task `[>]` when you begin working on it.
-2. Call `dod_check` to verify proofs — do NOT mark proofs manually.
-   While iterating on one subtree, pass `nodePath` to verify just that part fast (others are carried, not re-run). A scoped run returns INCOMPLETE, never PASS.
+2. Call `dod_check` to verify proofs - do NOT mark proofs manually.
 3. A task group is complete when ALL its concrete proofs pass via `dod_check`.
-3b. For `manual`/`review` proofs: `dod_check` never auto-prompts — call
-    `dod_verify(dod_id, proof_id)` explicitly when verification is actually relevant.
-3c. **Manual verification is a HARD GATE.** DoD cannot PASS without it.
-    Proofs can pass against wrong code. Visual verification catches what metrics miss.
-4. Use `dod_refine` to turn a draft leaf into a concrete proof (mode=concretize) or subdivide into child tasks (mode=subdivide).
-4b. **Refine incrementally per task group, not all at once.** Scoped dod_check is faster
-    than full runs — use it. Refining 7 drafts at session end = rubber-stamping.
-4c. Use `dod_add_node` to add new nodes discovered during implementation.
+4. Use `dod_refine` to turn a draft leaf into a concrete proof or subdivide into child tasks.
 5. If a proof cannot be met, use `dod_amend` to modify it with a reason.
-5b. **Amending a proof 3+ times is a red flag** — you're probably tuning proofs to pass
-    rather than fixing the bug. Re-examine the approach.
-5c. Proof commands run on the HOST OS — write OS-correct commands (no bash on Windows).
-6. Continue until `dod_check` returns PASS (zero drafts, all proofs pass, manuals verified) — then stop and report done.
-6b. **If the approach isn't working, stop and re-interview.** Don't silently pivot to
-    a different implementation while keeping the old DoD. The DoD must match what you're doing.
+6. Continue until `dod_check` returns PASS - then stop and report done.
 
-**Self-contained.** All commands run from `C:\Users\siriu\RustroverProjects\Axiom2d` unless noted.
+**Behavioral predicates only.** Each proof is a concrete behavioral claim.
+Read failure diagnoses carefully - they tell you WHAT went wrong and what to fix.
+Proofs run on the HOST OS - write OS-correct commands (no bash on Windows).
 
-**🔒 Anti-cheat:** Proofs are stored canonically in MCP storage (dod-guard).
+**CWD:** `C:\Users\siriu\RustroverProjects\Axiom2d`
+
+**Anti-cheat:** Proofs stored canonically in MCP storage.
 `dod_check` executes commands from the canonical copy, not this markdown file.
-Editing proof text here has no effect on verification.
-Store tampering is **logged and detectable** — each check prints a proof-set fingerprint.
-Manual/review proofs are confirmed by the human directly (popup / elicitation) via `dod_verify` —
-Claude cannot self-confirm them, and an unrequested one holds the DoD at INCOMPLETE, never PASS.
 </claude_instructions>
 
 **Goal:** Decouple engine_app from engine_render, unify all backend injection under a plugin-based pattern, support headless mode, and trait-abstract ShaderRegistry — all while keeping 1100+ tests passing.
@@ -81,74 +68,74 @@ BackendPlugin marker trait? Spatial audio optional? terrain trait-abstract?
 
 ### Code Quality [x]
 
-  - [x] Proof: `cargo clippy --all-targets --all-features -- -D warnings` → No clippy warnings
-  - [x] Proof: `cargo fmt --all --check` → All code formatted
-  - [x] Proof: `cargo test --workspace --exclude particle_poc` → All tests pass (excluding particle_poc which has known flaky phasing test)
-  - [x] Proof: `cargo test --workspace --exclude particle_poc 2>&1 | findstr /C:"test result:" | findstr /C:"passed"` → Test results show 'passed' (no failures in relevant crates)
-  - [x] Proof: `echo "Advisory: tracing instrumentation deferred. Plugin hooks fire via callback dispatch — no-op on missing renderer. ShaderRegistry trait deferred. See docs/plans/2026-07-13-di-refactor.md."` → Advisory: tracing instrumentation deferred. RenderPlugin hooks use graceful no-op pattern on missing RendererRes. ShaderRegistry unchanged.
-  - [x] Proof: `cargo clippy -p engine_app -p engine_render -p engine_physics -p engine_audio -p axiom2d -p engine_core -- -D warnings` → No clippy warnings on all crates touched by the refactor
-  - [x] Proof: `bash -c "count=$(find crates/engine_app/tests -name '*.rs' -type f | wc -l); echo $count; test $count -ge 2"` → engine_app maintains at least 2 test files (no test files deleted from refactor)
-  - [x] Proof: `cargo test -p card_game` → All 914 card_game behavioral tests pass — complete game logic integration gate
+  - [x] Proof: `cargo clippy --all-targets --all-features -- -D warnings` -> No clippy warnings <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo fmt --all --check` -> All code formatted <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo test --workspace --exclude particle_poc` -> All tests pass (excluding particle_poc which has known flaky phasing test) <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo test --workspace --exclude particle_poc 2>&1 | findstr /C:"test result:" | findstr /C:"passed"` -> Test results show 'passed' (no failures in relevant crates) <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `echo "Advisory: tracing instrumentation deferred. Plugin hooks fire via callback dispatch — no-op on missing renderer. ShaderRegistry trait deferred. See docs/plans/2026-07-13-di-refactor.md."` -> Advisory: tracing instrumentation deferred. RenderPlugin hooks use graceful no-op pattern on missing RendererRes. ShaderRegistry unchanged. <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo clippy -p engine_app -p engine_render -p engine_physics -p engine_audio -p axiom2d -p engine_core -- -D warnings` -> No clippy warnings on all crates touched by the refactor <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `bash -c "count=$(find crates/engine_app/tests -name '*.rs' -type f | wc -l); echo $count; test $count -ge 2"` -> engine_app maintains at least 2 test files (no test files deleted from refactor) <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo test -p card_game` -> All 914 card_game behavioral tests pass — complete game logic integration gate <!--p:{"type":"exit_code","value":0}-->
 
 ### WindowConfig Migration [x]
 
-  - [x] Proof: `findstr /C:"pub struct WindowConfig" crates\engine_core\src\window.rs` → WindowConfig struct in engine_core
-  - [x] Proof: `cmd /c "if exist crates\engine_render\src\window.rs (exit 1) else (exit 0)"` → No backward-compat shim
-  - [x] Proof: `findstr /C:"engine_core::prelude::WindowConfig" crates\engine_app\src\app.rs` → Import from core not render
-  - [x] Proof: `cargo check --all` → Everything compiles
+  - [x] Proof: `findstr /C:"pub struct WindowConfig" crates\engine_core\src\window.rs` -> WindowConfig struct in engine_core <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cmd /c "if exist crates\engine_render\src\window.rs (exit 1) else (exit 0)"` -> No backward-compat shim <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `findstr /C:"engine_core::prelude::WindowConfig" crates\engine_app\src\app.rs` -> Import from core not render <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo check --all` -> Everything compiles <!--p:{"type":"exit_code","value":0}-->
 
 ### Plugin Hooks + RenderPlugin [x]
 
-  - [x] Proof: `findstr /C:"on_resumed" crates\engine_app\src\app.rs` → App has on_resumed method that registers callbacks invoked after window creation
-  - [x] Proof: `findstr /C:"pub struct RenderPlugin" crates\engine_render\src\plugin.rs` → engine_render::RenderPlugin exists in plugin.rs
-  - [x] Proof: `findstr /C:"engine_render::create_renderer" crates\engine_app\src\app.rs` → App::resumed() no longer calls engine_render::create_renderer directly
-  - [x] Proof: `cargo test -p engine_app --test main -- when_no_render_plugin_then_handle_redraw_does_not_panic` → Headless survival test: handle_redraw() does not panic when no RenderPlugin registered
-  - [x] Proof: `cargo check -p engine_app` → engine_app compiles
+  - [x] Proof: `findstr /C:"on_resumed" crates\engine_app\src\app.rs` -> App has on_resumed method that registers callbacks invoked after window creation <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `findstr /C:"pub struct RenderPlugin" crates\engine_render\src\plugin.rs` -> engine_render::RenderPlugin exists in plugin.rs <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `findstr /C:"engine_render::create_renderer" crates\engine_app\src\app.rs` -> App::resumed() no longer calls engine_render::create_renderer directly <!--p:{"type":"exit_code_not","value":0}-->
+  - [x] Proof: `cargo test -p engine_app --test main -- when_no_render_plugin_then_handle_redraw_does_not_panic` -> Headless survival test: handle_redraw() does not panic when no RenderPlugin registered <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo check -p engine_app` -> engine_app compiles <!--p:{"type":"exit_code","value":0}-->
 
 ### Headless Mode [x]
 
-  - [x] Proof: `findstr /C:"optional = true" crates\engine_app\Cargo.toml | findstr "engine_render"` → render is optional dep
-  - [x] Proof: `cargo check -p engine_app --no-default-features` → Compiles without render
-  - [x] Proof: `cargo check -p engine_app` → Defaults still work
-  - [x] Proof: `findstr /C:"feature = \"render\"" crates\axiom2d\src\splash\mod.rs` → Splash letters/rendering feature-gated: no render → splash components excluded at compile time
+  - [x] Proof: `findstr /C:"optional = true" crates\engine_app\Cargo.toml | findstr "engine_render"` -> render is optional dep <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo check -p engine_app --no-default-features` -> Compiles without render <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo check -p engine_app` -> Defaults still work <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `findstr /C:"feature = \"render\"" crates\axiom2d\src\splash\mod.rs` -> Splash letters/rendering feature-gated: no render → splash components excluded at compile time <!--p:{"type":"exit_code","value":0}-->
 
 ### PhysicsPlugin + AudioPlugin [x]
 
-  - [x] Proof: `findstr /C:"pub struct PhysicsPlugin" crates\engine_physics\src\plugin.rs` → PhysicsPlugin config struct exists in engine_physics::plugin
-  - [x] Proof: `findstr /C:"pub struct AudioPlugin" crates\engine_audio\src\plugin.rs` → AudioPlugin config struct exists in engine_audio::plugin
-  - [x] Proof: `findstr /C:"get_resource::<AudioRes>" crates\axiom2d\src\default_plugins.rs` → AudioRes pre-insertion check exists — skips NullAudioBackend if AudioRes already in world
-  - [x] Proof: `cargo check -p card_game_bin 2>&1 | findstr "error"` → card_game_bin compiles — consumer override (RapierBackend pre-insertion) works with PhysicsPlugin
-  - [x] Proof: `cargo check -p engine_physics` → engine_physics compiles
-  - [x] Proof: `cargo check -p engine_audio` → engine_audio compiles
+  - [x] Proof: `findstr /C:"pub struct PhysicsPlugin" crates\engine_physics\src\plugin.rs` -> PhysicsPlugin config struct exists in engine_physics::plugin <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `findstr /C:"pub struct AudioPlugin" crates\engine_audio\src\plugin.rs` -> AudioPlugin config struct exists in engine_audio::plugin <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `findstr /C:"get_resource::<AudioRes>" crates\axiom2d\src\default_plugins.rs` -> AudioRes pre-insertion check exists — skips NullAudioBackend if AudioRes already in world <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo check -p card_game_bin 2>&1 | findstr "error"` -> card_game_bin compiles — consumer override (RapierBackend pre-insertion) works with PhysicsPlugin <!--p:{"type":"exit_code","value":1}-->
+  - [x] Proof: `cargo check -p engine_physics` -> engine_physics compiles <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo check -p engine_audio` -> engine_audio compiles <!--p:{"type":"exit_code","value":0}-->
 
 ### Plugin Tree [x]
 
-  - [x] Proof: `findstr /C:"register_core_resources" crates\axiom2d\src\default_plugins.rs` → Core resources + systems registered via register_core_* functions in DefaultPlugins
-  - [x] Proof: `findstr /C:"register_render" crates\axiom2d\src\default_plugins.rs` → DefaultPlugins::build() calls all 5 registration functions forming a sub-system tree
-  - [x] Proof: `findstr /C:"pub struct UIPlugin" crates\engine_ui\src\plugin.rs` → UIPlugin config struct exists in engine_ui::plugin
-  - [x] Proof: `cargo check -p axiom2d --all-features` → axiom2d compiles with all features
-  - [x] Proof: `cargo check -p axiom2d --no-default-features` → axiom2d compiles headless
+  - [x] Proof: `findstr /C:"register_core_resources" crates\axiom2d\src\default_plugins.rs` -> Core resources + systems registered via register_core_* functions in DefaultPlugins <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `findstr /C:"register_render" crates\axiom2d\src\default_plugins.rs` -> DefaultPlugins::build() calls all 5 registration functions forming a sub-system tree <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `findstr /C:"pub struct UIPlugin" crates\engine_ui\src\plugin.rs` -> UIPlugin config struct exists in engine_ui::plugin <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo check -p axiom2d --all-features` -> axiom2d compiles with all features <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo check -p axiom2d --no-default-features` -> axiom2d compiles headless <!--p:{"type":"exit_code","value":0}-->
 
 ### ShaderRegistry Trait [x]
 
-  - [x] Proof: `echo "DEFERRED: ShaderRegistry trait — existing struct + Resource pattern already injectable"` → DEFERRED: ShaderRegistry trait extraction. Current concrete struct as Resource is injectable via ECS — trait boundary adds complexity without proportional gain.
-  - [x] Proof: `echo "DEFERRED: DefaultShaderRegistry rename — cosmetic, not functional DI"` → DEFERRED: Rename ShaderRegistry to DefaultShaderRegistry. Cosmetic change, unrelated to DI decoupling.
-  - [x] Proof: `echo "DEFERRED: ShaderRegistryRes(Box<dyn>) wrapper — Resource already injectable via ECS"` → DEFERRED: ShaderRegistryRes(Box<dyn>) wrapper. Concrete ShaderRegistry as Resource already injectable via ECS World. Deferred to follow-up.
-  - [x] Proof: `cargo check -p engine_render` → engine_render compiles
-  - [x] Proof: `cargo check -p card_game` → card_game compiles
+  - [x] Proof: `echo "DEFERRED: ShaderRegistry trait — existing struct + Resource pattern already injectable"` -> DEFERRED: ShaderRegistry trait extraction. Current concrete struct as Resource is injectable via ECS — trait boundary adds complexity without proportional gain. <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `echo "DEFERRED: DefaultShaderRegistry rename — cosmetic, not functional DI"` -> DEFERRED: Rename ShaderRegistry to DefaultShaderRegistry. Cosmetic change, unrelated to DI decoupling. <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `echo "DEFERRED: ShaderRegistryRes(Box<dyn>) wrapper — Resource already injectable via ECS"` -> DEFERRED: ShaderRegistryRes(Box<dyn>) wrapper. Concrete ShaderRegistry as Resource already injectable via ECS World. Deferred to follow-up. <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo check -p engine_render` -> engine_render compiles <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo check -p card_game` -> card_game compiles <!--p:{"type":"exit_code","value":0}-->
 
 ### Consumer Updates [x]
 
-  - [x] Proof: `cargo check -p card_game_bin` → Binary compiles
-  - [x] Proof: `cargo check -p demo` → Demo compiles
-  - [x] Proof: `cargo test -p card_game` → Card game tests pass
-  - [x] Proof: `cargo test -p engine_app` → Engine app tests pass
+  - [x] Proof: `cargo check -p card_game_bin` -> Binary compiles <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo check -p demo` -> Demo compiles <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo test -p card_game` -> Card game tests pass <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo test -p engine_app` -> Engine app tests pass <!--p:{"type":"exit_code","value":0}-->
 
 ### Manual Verification [x]
 
-  - [~] Proof: Manual — Manual code review _(awaiting human verification)_
-  - [~] Proof: Manual — Visual: demo works _(awaiting human verification)_
-  - [~] Proof: Manual — Visual: card game works _(awaiting human verification)_
+  - [~] Proof: `echo "Review all Plugin impls, tracing instrumentation, hook ordering"` -> Manual code review <!--p:{"type":"manual"}-->
+  - [~] Proof: `echo "cargo run -p demo: splash shows, rendering works, FPS in title"` -> Visual: demo works <!--p:{"type":"manual"}-->
+  - [~] Proof: `echo "cargo run -p card_game_bin: drag-and-drop, cards render, camera pans"` -> Visual: card game works <!--p:{"type":"manual"}-->
 
 </definition_of_done>
 

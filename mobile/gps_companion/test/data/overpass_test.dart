@@ -17,11 +17,17 @@ void main() {
       final result = parseOverpassResponse(fixtureJson);
 
       // Assert — at least 1 region polygon.
-      expect(result.regions.length, greaterThanOrEqualTo(1),
-          reason: 'fixture has 2 way elements');
+      expect(
+        result.regions.length,
+        greaterThanOrEqualTo(1),
+        reason: 'fixture has 2 way elements',
+      );
       // Assert — at least 1 POI point.
-      expect(result.pois.length, greaterThanOrEqualTo(1),
-          reason: 'fixture has 2 node elements');
+      expect(
+        result.pois.length,
+        greaterThanOrEqualTo(1),
+        reason: 'fixture has 2 node elements',
+      );
     });
 
     test('when_parsing_forest_region_then_has_correct_tags_and_geometry', () {
@@ -33,8 +39,11 @@ void main() {
 
       // Assert
       expect(forest.osmId, 111);
-      expect(forest.geometry.length, greaterThanOrEqualTo(3),
-          reason: 'closed polygon must have ≥3 points');
+      expect(
+        forest.geometry.length,
+        greaterThanOrEqualTo(3),
+        reason: 'closed polygon must have ≥3 points',
+      );
       expect(forest.tags['name'], 'Sample Woods');
     });
 

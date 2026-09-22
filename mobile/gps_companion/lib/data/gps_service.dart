@@ -16,10 +16,10 @@ class GeolocatorGpsService implements GpsService {
 
   @override
   Stream<Position> get positionStream => Geolocator.getPositionStream(
-        locationSettings: AndroidSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 5,
-          intervalDuration: const Duration(seconds: 1),
-        ),
-      );
+    locationSettings: AndroidSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 5,
+      intervalDuration: const Duration(seconds: 1),
+    ),
+  );
 }

@@ -44,19 +44,22 @@ void main() {
   });
 
   group('CoverageMap.harvest', () {
-    test('first sweep paints cells; re-sweeping the same spot yields nothing', () {
-      // Arrange
-      final cov = CoverageMap();
+    test(
+      'first sweep paints cells; re-sweeping the same spot yields nothing',
+      () {
+        // Arrange
+        final cov = CoverageMap();
 
-      // Act
-      final first = cov.harvest(lat: lat, lon: lon, day: day, week: week);
-      final second = cov.harvest(lat: lat, lon: lon, day: day, week: week);
+        // Act
+        final first = cov.harvest(lat: lat, lon: lon, day: day, week: week);
+        final second = cov.harvest(lat: lat, lon: lon, day: day, week: week);
 
-      // Assert — no double-collection of already-painted ground.
-      expect(first.newCells, isNotEmpty);
-      expect(second.newCells, isEmpty);
-      expect(second.grains, isEmpty);
-    });
+        // Assert — no double-collection of already-painted ground.
+        expect(first.newCells, isNotEmpty);
+        expect(second.newCells, isEmpty);
+        expect(second.grains, isEmpty);
+      },
+    );
 
     test('covered set grows by exactly the freshly painted cell count', () {
       final cov = CoverageMap();
@@ -69,7 +72,12 @@ void main() {
       cov.harvest(lat: lat, lon: lon, day: day, week: week);
       final before = cov.cellCount;
       // ~1 km east — disjoint from the first brush.
-      final moved = cov.harvest(lat: lat, lon: lon + 0.015, day: day, week: week);
+      final moved = cov.harvest(
+        lat: lat,
+        lon: lon + 0.015,
+        day: day,
+        week: week,
+      );
       expect(moved.newCells, isNotEmpty);
       expect(cov.cellCount, greaterThan(before));
     });
@@ -83,19 +91,28 @@ void main() {
       }
     });
 
-    test('a tiny sweep accumulates fractional volume without minting a grain', () {
-      // Arrange — a brush too small to gather a whole grain in one step.
-      final cov = CoverageMap();
+    test(
+      'a tiny sweep accumulates fractional volume without minting a grain',
+      () {
+        // Arrange — a brush too small to gather a whole grain in one step.
+        final cov = CoverageMap();
 
-      // Act
-      final r = cov.harvest(lat: lat, lon: lon, day: day, week: week, radiusM: 6);
+        // Act
+        final r = cov.harvest(
+          lat: lat,
+          lon: lon,
+          day: day,
+          week: week,
+          radiusM: 6,
+        );
 
-      // Assert — no rounding to zero: progress is captured as a fraction.
-      expect(r.newCells, isNotEmpty);
-      expect(r.grains, isEmpty);
-      expect(cov.volumeRemainder, greaterThan(0));
-      expect(cov.volumeRemainder, lessThan(1.0));
-    });
+        // Assert — no rounding to zero: progress is captured as a fraction.
+        expect(r.newCells, isNotEmpty);
+        expect(r.grains, isEmpty);
+        expect(cov.volumeRemainder, greaterThan(0));
+        expect(cov.volumeRemainder, lessThan(1.0));
+      },
+    );
 
     test('after minting, the leftover volume is below one grain', () {
       final cov = CoverageMap();
@@ -167,42 +184,73 @@ void main() {
     test('scales with the number of painted cells', () {
       final cov = CoverageMap();
       cov.harvest(lat: lat, lon: lon, day: day, week: week);
-      expect(cov.areaM2(lat), closeTo(cov.cellCount * paintCellAreaM2(lat), 1e-6));
+      expect(
+        cov.areaM2(lat),
+        closeTo(cov.cellCount * paintCellAreaM2(lat), 1e-6),
+      );
     });
   });
 
   group('replayFromLog', () {
-    test('harvest path → replay log → identical covered cells + minted grains', () {
-      // Arrange — harvest a path on the first CoverageMap.
-      final original = CoverageMap();
-      final path = [
-        GpsPoint(lat: lat, lon: lon, speed: 5, timestamp: DateTime.now()),
-        GpsPoint(lat: lat + 0.001, lon: lon, speed: 5, timestamp: DateTime.now()),
-        GpsPoint(lat: lat + 0.002, lon: lon, speed: 5, timestamp: DateTime.now()),
-        GpsPoint(lat: lat + 0.003, lon: lon, speed: 5, timestamp: DateTime.now()),
-        GpsPoint(lat: lat + 0.004, lon: lon, speed: 5, timestamp: DateTime.now()),
-      ];
-      for (final p in path) {
-        original.harvest(lat: p.lat, lon: p.lon, day: day, week: week);
-      }
-      final coveredBefore = Set<String>.from(original.covered);
-      final volumeBefore = original.volumeRemainder;
+    test(
+      'harvest path → replay log → identical covered cells + minted grains',
+      () {
+        // Arrange — harvest a path on the first CoverageMap.
+        final original = CoverageMap();
+        final path = [
+          GpsPoint(lat: lat, lon: lon, speed: 5, timestamp: DateTime.now()),
+          GpsPoint(
+            lat: lat + 0.001,
+            lon: lon,
+            speed: 5,
+            timestamp: DateTime.now(),
+          ),
+          GpsPoint(
+            lat: lat + 0.002,
+            lon: lon,
+            speed: 5,
+            timestamp: DateTime.now(),
+          ),
+          GpsPoint(
+            lat: lat + 0.003,
+            lon: lon,
+            speed: 5,
+            timestamp: DateTime.now(),
+          ),
+          GpsPoint(
+            lat: lat + 0.004,
+            lon: lon,
+            speed: 5,
+            timestamp: DateTime.now(),
+          ),
+        ];
+        for (final p in path) {
+          original.harvest(lat: p.lat, lon: p.lon, day: day, week: week);
+        }
+        final coveredBefore = Set<String>.from(original.covered);
+        final volumeBefore = original.volumeRemainder;
 
-      // Act — replay the same path on a fresh CoverageMap.
-      final replayed = CoverageMap();
-      replayed.replayFromLog(path, day: day, week: week);
+        // Act — replay the same path on a fresh CoverageMap.
+        final replayed = CoverageMap();
+        replayed.replayFromLog(path, day: day, week: week);
 
-      // Assert — covered cells match exactly.
-      expect(replayed.covered, coveredBefore);
-      // Volume remainder matches (same cells × same yields).
-      expect(replayed.volumeRemainder, closeTo(volumeBefore, 1e-9));
-    });
+        // Assert — covered cells match exactly.
+        expect(replayed.covered, coveredBefore);
+        // Volume remainder matches (same cells × same yields).
+        expect(replayed.volumeRemainder, closeTo(volumeBefore, 1e-9));
+      },
+    );
 
     test('replay on already-covered map adds no new cells', () {
       final cov = CoverageMap();
       final points = [
         GpsPoint(lat: lat, lon: lon, speed: 5, timestamp: DateTime.now()),
-        GpsPoint(lat: lat + 0.001, lon: lon, speed: 5, timestamp: DateTime.now()),
+        GpsPoint(
+          lat: lat + 0.001,
+          lon: lon,
+          speed: 5,
+          timestamp: DateTime.now(),
+        ),
       ];
       // Harvest directly first.
       for (final p in points) {

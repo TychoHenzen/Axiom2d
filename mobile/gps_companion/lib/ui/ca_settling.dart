@@ -33,8 +33,8 @@ enum SettleResult {
 class CaSettleParams {
   const CaSettleParams({
     this.angleOfRepose = 32.0, // degrees
-    this.gridWidth = 20,       // cells (matches ~20px tube width at 1px/cell)
-    this.gridHeight = 200,     // cells (matches ~200px tube height)
+    this.gridWidth = 20, // cells (matches ~20px tube width at 1px/cell)
+    this.gridHeight = 200, // cells (matches ~200px tube height)
   });
 
   final double angleOfRepose;
@@ -49,10 +49,9 @@ class CaSettleParams {
 /// 2D grid tracking which cells are occupied by settled pixels.
 class SandGrid {
   SandGrid(CaSettleParams params)
-      : _w = params.gridWidth,
-        _h = params.gridHeight,
-        _cells = List<bool>.filled(
-            params.gridWidth * params.gridHeight, false);
+    : _w = params.gridWidth,
+      _h = params.gridHeight,
+      _cells = List<bool>.filled(params.gridWidth * params.gridHeight, false);
 
   final int _w;
   final int _h;
@@ -83,7 +82,8 @@ SettleResult trySettle({
   required GridCell cell,
   required SandGrid grid,
   required CaSettleParams params,
-  GridCell? nextCell, // output hint (ignored — we use return + out param pattern)
+  GridCell?
+  nextCell, // output hint (ignored — we use return + out param pattern)
 }) {
   final x = cell.x;
   var y = cell.y;
@@ -122,7 +122,8 @@ SettleResult trySettle({
   }
 
   // Check stability: is there support below?
-  final hasSupport = y + 1 >= params.gridHeight ||
+  final hasSupport =
+      y + 1 >= params.gridHeight ||
       grid.isOccupied(x, y + 1) ||
       grid.isOccupied(x - 1, y + 1) ||
       grid.isOccupied(x + 1, y + 1);
@@ -167,10 +168,12 @@ bool hasVerticalPillar(SandGrid grid, CaSettleParams params) {
           if (runLen >= 2) {
             // Check if the bottom cell of the run has support.
             final bottom = runStart;
-            final supported = bottom + 1 >= params.gridHeight ||
+            final supported =
+                bottom + 1 >= params.gridHeight ||
                 grid.isOccupied(x, bottom + 1) ||
                 (x > 0 && grid.isOccupied(x - 1, bottom + 1)) ||
-                (x + 1 < params.gridWidth && grid.isOccupied(x + 1, bottom + 1));
+                (x + 1 < params.gridWidth &&
+                    grid.isOccupied(x + 1, bottom + 1));
             if (!supported) return true;
           }
           runStart = -1;
@@ -182,7 +185,8 @@ bool hasVerticalPillar(SandGrid grid, CaSettleParams params) {
       final runLen = runStart + 1;
       if (runLen >= 2) {
         final bottom = runStart;
-        final supported = bottom + 1 >= params.gridHeight ||
+        final supported =
+            bottom + 1 >= params.gridHeight ||
             grid.isOccupied(x, bottom + 1) ||
             (x > 0 && grid.isOccupied(x - 1, bottom + 1)) ||
             (x + 1 < params.gridWidth && grid.isOccupied(x + 1, bottom + 1));

@@ -200,5 +200,4 @@ final Map<String, BiomeSample> _index = {
 /// Look up the [BiomeSample] for an OSM tag. [key] is the tag key
 /// (e.g. `"landuse"`), [value] is the tag value (e.g. `"forest"`).
 /// Returns `null` for tags with no mapping.
-BiomeSample? osmTagToBiome(String key, String value) =>
-    _index['$key=$value'];
+BiomeSample? osmTagToBiome(String key, String value) => _index['$key=$value'];

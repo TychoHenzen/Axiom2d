@@ -31,7 +31,8 @@ List<GpsPoint> projectIntermediate({
   final now = nowOverride ?? DateTime.now().toUtc();
   if (current.speed < 1.0) return <GpsPoint>[];
 
-  final dtSeconds = current.timestamp.difference(last.timestamp).inMilliseconds / 1000.0;
+  final dtSeconds =
+      current.timestamp.difference(last.timestamp).inMilliseconds / 1000.0;
   if (dtSeconds <= 1.0) return <GpsPoint>[];
 
   final bearingRad = headingDegrees * math.pi / 180.0;
@@ -46,31 +47,42 @@ List<GpsPoint> projectIntermediate({
     final d = current.speed * t;
     final dLat = d * math.cos(bearingRad) / _metersPerDegLat;
     final dLon = d * math.sin(bearingRad) / (_metersPerDegLat * cosLat);
-    out.add(GpsPoint(
-      lat: last.lat + dLat,
-      lon: last.lon + dLon,
-      speed: current.speed,
-      timestamp: last.timestamp.add(Duration(milliseconds: (t * 1000).round())),
-      isProjected: true,
-    ));
+    out.add(
+      GpsPoint(
+        lat: last.lat + dLat,
+        lon: last.lon + dLon,
+        speed: current.speed,
+        timestamp: last.timestamp.add(
+          Duration(milliseconds: (t * 1000).round()),
+        ),
+        isProjected: true,
+      ),
+    );
     t += 1.0;
   }
 
   // Forward projection: extend ahead up to horizon from the current fix.
   var ahead = 1.0;
   final elapsed = now.difference(current.timestamp).inMilliseconds / 1000.0;
-  final horizon = (kMaxProjectionHorizonSeconds - elapsed).clamp(0.0, kMaxProjectionHorizonSeconds);
+  final horizon = (kMaxProjectionHorizonSeconds - elapsed).clamp(
+    0.0,
+    kMaxProjectionHorizonSeconds,
+  );
   while (ahead <= horizon) {
     final d = current.speed * ahead;
     final dLat = d * math.cos(bearingRad) / _metersPerDegLat;
     final dLon = d * math.sin(bearingRad) / (_metersPerDegLat * cosLat);
-    out.add(GpsPoint(
-      lat: current.lat + dLat,
-      lon: current.lon + dLon,
-      speed: current.speed,
-      timestamp: current.timestamp.add(Duration(milliseconds: (ahead * 1000).round())),
-      isProjected: true,
-    ));
+    out.add(
+      GpsPoint(
+        lat: current.lat + dLat,
+        lon: current.lon + dLon,
+        speed: current.speed,
+        timestamp: current.timestamp.add(
+          Duration(milliseconds: (ahead * 1000).round()),
+        ),
+        isProjected: true,
+      ),
+    );
     ahead += 1.0;
   }
 

@@ -49,11 +49,8 @@ class GpsPoint {
 /// Route log: persisted GPS history with a marker tracking which points have
 /// already been processed for booster pack forging.
 class RouteLog {
-  RouteLog({
-    List<GpsPoint>? points,
-    this.lastPackForgedAtIndex,
-    this.week = -1,
-  }) : points = points ?? <GpsPoint>[];
+  RouteLog({List<GpsPoint>? points, this.lastPackForgedAtIndex, this.week = -1})
+    : points = points ?? <GpsPoint>[];
 
   final List<GpsPoint> points;
   int? lastPackForgedAtIndex;
