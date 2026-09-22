@@ -123,7 +123,7 @@ fn s_curve_points() -> Vec<Vec2> {
     let left_top = left_top + Vec2::new(SOCKET_RADIUS, 0.0);
     let left_bot = left_bot + Vec2::new(SOCKET_RADIUS, 0.0);
     let right = right - Vec2::new(SOCKET_RADIUS, 0.0);
-    let mid_x = (left_top.x + right.x) * 0.5;
+    let mid_x = f32::midpoint(left_top.x, right.x);
     vec![
         left_top,
         Vec2::new(mid_x, SOCKET_SPACING * 0.25),

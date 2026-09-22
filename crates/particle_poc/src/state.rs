@@ -5,7 +5,6 @@ use std::fmt::Write;
 use std::sync::Arc;
 use std::time::Instant;
 
-use rapier2d::prelude::*;
 use winit::window::Window;
 
 use crate::*;
@@ -189,7 +188,7 @@ impl State {
     fn rebuild_conveyor_rapier(&mut self) {
         let ea = self.conveyor_endpoints.endpoint_a;
         let eb = self.conveyor_endpoints.endpoint_b;
-        let pivot = [(ea[0] + eb[0]) * 0.5, (ea[1] + eb[1]) * 0.5];
+        let pivot = [f32::midpoint(ea[0], eb[0]), f32::midpoint(ea[1], eb[1])];
         let dx = eb[0] - ea[0];
         let dy = eb[1] - ea[1];
         let angle = dy.atan2(dx);
@@ -685,7 +684,7 @@ impl State {
             }
             let speed = (vx * vx + vy * vy).sqrt();
             max_speed = max_speed.max(speed);
-            let ke = 0.5 * (vx * vx + vy * vy);
+            let ke = f32::midpoint(vx * vx, vy * vy);
             kes.push(ke);
             if px < p.wall_min_x - margin
                 || px > p.wall_max_x + margin
@@ -703,7 +702,7 @@ impl State {
         } else if kes.len() % 2 == 1 {
             kes[kes.len() / 2]
         } else {
-            (kes[kes.len() / 2 - 1] + kes[kes.len() / 2]) * 0.5
+            f32::midpoint(kes[kes.len() / 2 - 1], kes[kes.len() / 2])
         };
         let mean_ke = kes.iter().sum::<f32>() / (kes.len().max(1) as f32);
         let variance = kes
@@ -726,7 +725,7 @@ impl State {
                 if !px.is_finite() || !py.is_finite() || !vx.is_finite() || !vy.is_finite() {
                     continue;
                 }
-                let ke = 0.5 * (vx * vx + vy * vy);
+                let ke = f32::midpoint(vx * vx, vy * vy);
                 if ke > outlier_threshold {
                     outlier_list.push((i, ke));
                     if species[i] == GREEN_SPECIES {
@@ -1177,7 +1176,7 @@ impl State {
         // Sync Rapier conveyor body to endpoint geometry every frame.
         // This guarantees the body transform matches the visual endpoint positions
         // regardless of drag timing vs physics step ordering.
-        let pivot = [(ea[0] + eb[0]) * 0.5, (ea[1] + eb[1]) * 0.5];
+        let pivot = [f32::midpoint(ea[0], eb[0]), f32::midpoint(ea[1], eb[1])];
         if let Some(conveyor) = self
             .machines
             .iter()

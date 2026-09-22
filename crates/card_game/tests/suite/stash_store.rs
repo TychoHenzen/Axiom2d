@@ -360,7 +360,10 @@ fn when_store_not_visible_then_buy_system_does_nothing() {
     // Click at the first reader item
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 0).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
 
     // Act
@@ -384,7 +387,10 @@ fn when_not_on_store_page_then_buy_system_does_nothing() {
     world.resource_mut::<StashGrid>().add_storage_tab();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 0).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
 
     // Act
@@ -405,7 +411,10 @@ fn when_buy_with_insufficient_coins_then_no_purchase() {
     world.insert_resource(StoreWallet::new(5)); // Reader costs 30
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 0).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
 
     // Act
@@ -423,7 +432,10 @@ fn when_buy_booster_machine_then_spawns_and_spends_coins() {
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 3).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
 
     // Act
@@ -449,7 +461,10 @@ fn when_sell_booster_machine_then_refunded_and_despawned() {
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 3).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
     run_buy_system(&mut world);
     click_at(&mut world, center, false);
@@ -473,7 +488,10 @@ fn when_sell_store_not_visible_then_no_sale() {
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 0).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
     run_buy_system(&mut world);
     // Reader is now in drag
@@ -495,7 +513,10 @@ fn when_sell_not_on_store_page_then_no_sale() {
     let mut world = make_store_world();
     let catalog = StoreCatalog::default();
     let bounds = store_item_screen_bounds(world.resource::<StashGrid>(), &catalog, 0).unwrap();
-    let center = Vec2::new((bounds.0 + bounds.2) * 0.5, (bounds.1 + bounds.3) * 0.5);
+    let center = Vec2::new(
+        f32::midpoint(bounds.0, bounds.2),
+        f32::midpoint(bounds.1, bounds.3),
+    );
     click_at(&mut world, center, true);
     run_buy_system(&mut world);
     // Switch to storage page (need 2 pages: store=0, storage=1)

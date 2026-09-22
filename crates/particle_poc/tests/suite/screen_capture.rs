@@ -33,7 +33,7 @@ fn when_single_red_particle_then_pixels_contain_red_channel() {
     // Count pixels with R > G and R > B (red signature).
     let mut red_pixels = 0usize;
     let width = 256;
-    for chunk in pixels.chunks_exact(4) {
+    for chunk in pixels.as_chunks::<4>().0 {
         let r = chunk[0];
         let g = chunk[1];
         let b = chunk[2];
@@ -64,7 +64,7 @@ fn when_red_and_blue_particles_then_both_colors_visible() {
 
     let mut red_pixels = 0usize;
     let mut blue_pixels = 0usize;
-    for chunk in pixels.chunks_exact(4) {
+    for chunk in pixels.as_chunks::<4>().0 {
         let r = chunk[0];
         let g = chunk[1];
         let b = chunk[2];

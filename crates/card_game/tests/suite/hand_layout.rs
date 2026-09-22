@@ -300,7 +300,7 @@ fn when_two_cards_without_spring_then_fan_centered_around_screen_center() {
     // Assert
     let ax = world.get::<Transform2D>(a).unwrap().position.x;
     let bx = world.get::<Transform2D>(b).unwrap().position.x;
-    let midpoint = (ax + bx) * 0.5;
+    let midpoint = f32::midpoint(ax, bx);
     assert!(
         midpoint.abs() < 1e-3,
         "expected midpoint~=0.0, got {midpoint}"
