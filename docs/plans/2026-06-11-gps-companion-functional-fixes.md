@@ -1,18 +1,23 @@
-# GPS Companion — Functional Fixes (Screen On, Background GPS, Coverage Persistence, Polling Rate) — Requirements Spec
+# GPS Companion — Functional Fixes (Screen On, Background GPS, Coverage Persistence, Polling Rate) - Requirements Spec
 
-> **For Claude (/goal):** Work through each incomplete step below.
-> 1. Mark a step `[>]` when you begin working on it.
-> 2. Call `dod_check` to verify proofs — do NOT mark proofs manually.
-> 3. A step is complete when ALL its proofs pass via `dod_check`.
-> 4. If a proof cannot be met, use `dod_amend` to modify it with a reason.
-> 5. Continue until `dod_check` returns PASS — then stop and report done.
->
-> **Self-contained.** All commands run from `C:\Users\siriu\RustroverProjects\Axiom2d\mobile\gps_companion` unless noted.
->
-> **🔒 Anti-cheat:** Proofs are stored canonically in MCP storage (dod-guard).
-> `dod_check` executes commands from the canonical copy, not this markdown file.
-> Editing proof text here has no effect on verification.
-> Store tampering is **logged and detectable** — each check prints a proof-set fingerprint.
+<claude_instructions>
+**For the implementer:** Work through each task below.
+1. Mark a task `[>]` when you begin working on it.
+2. Call `dod_check` to verify proofs - do NOT mark proofs manually.
+3. A task group is complete when ALL its concrete proofs pass via `dod_check`.
+4. Use `dod_refine` to turn a draft leaf into a concrete proof or subdivide into child tasks.
+5. If a proof cannot be met, use `dod_amend` to modify it with a reason.
+6. Continue until `dod_check` returns PASS - then stop and report done.
+
+**Behavioral predicates only.** Each proof is a concrete behavioral claim.
+Read failure diagnoses carefully - they tell you WHAT went wrong and what to fix.
+Proofs run on the HOST OS - write OS-correct commands (no bash on Windows).
+
+**CWD:** `C:\Users\siriu\RustroverProjects\Axiom2d\mobile\gps_companion`
+
+**Anti-cheat:** Proofs stored canonically in MCP storage.
+`dod_check` executes commands from the canonical copy, not this markdown file.
+</claude_instructions>
 
 **Goal:** Make GPS Companion usable for real driving: screen stays on (Map tab), GPS tracks continuously via foreground service (opt-in), coverage persists across app restarts via GPS datapoint log with weekly reset, and polling gaps are filled with dead reckoning projection.
 
@@ -25,15 +30,18 @@
 
 ## Decisions (locked with user)
 
+<decisions>
 1. **Background GPS:** `flutter_background_service` (free/MIT) with `AndroidForegroundType.location`. NOT `flutter_background_geolocation` (commercial). Explicit opt-in toggle, auto-cancels when app re-opened.
 2. **Polling:** moderate rate increase (1s interval) + dead reckoning projection between fixes. Both.
 3. **Coverage persistence:** GPS datapoint log (lat, lon, speed, timestamp) + lastPackForgedAtIndex marker. Replay on app reopen to rebuild CoverageMap state.
 4. **Coverage reset:** weekly (matching leyline cadence), NOT daily.
 5. **Screen keep-on:** Map tab only via wakelock_plus. Release on tab switch / dispose.
 6. **Log retention:** weekly pruning. Points before last-pack marker retained for route display, cleared on week rollover.
+</decisions>
 
 ## Current state
 
+<current_state>
 Verified 2026-06-11 against code:
 - `coverage.dart`: CoverageMap is in-memory only, day-scoped, resets at midnight UTC. `_mintCount` for mint seeds (accrual-order-dependent).
 - `app_state.dart`: CoverageMap created fresh on load (`CoverageMap()`), `_coverageDay = -1`. No persistence of covered cells or signature accumulator.
@@ -43,9 +51,11 @@ Verified 2026-06-11 against code:
 - `pubspec.yaml`: `geolocator: ^14.0.2`, no `wakelock_plus`, no `flutter_background_service`.
 - 31 Dart tests pass, flutter analyze clean.
 - `store.dart`: persists `Inventory` (grains + boosters) only. No route/coverage persistence.
+</current_state>
 
 ## Requirements
 
+<requirements>
 ### 1. Keep screen on (Map tab only)
 - Add `wakelock_plus` package dependency.
 - Enable wakelock when MapScreen is active (initState / tab switch to Map).
@@ -101,9 +111,11 @@ Verified 2026-06-11 against code:
 - No full background tracking when app swiped away (foreground service only, killable by OEM).
 - No route-line visualization on map (datapoint storage enables it, out of scope).
 - No biome-based density coupling (separate DoD: biome_overlay).
+</requirements>
 
 ## Research Notes
 
+<research_notes>
 - `flutter_background_service` (MIT, free): configures foreground service in `main()` before `runApp()`. Requires `AndroidForegroundType.location` on Android 14+. Uses separate isolate for background Dart code. Communication via `service.invoke()` / `service.on()`. Must declare `<service>` in manifest + `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_LOCATION` permissions.
 - `wakelock_plus` (BSD-3, free): `WakelockPlus.enable()` / `WakelockPlus.disable()`. Simple enable/disable. Works on Android via `FLAG_KEEP_SCREEN_ON`.
 - Android location rate: `intervalDuration` in `LocationSettings` maps to Android's `LocationRequest.setInterval()`. 1000ms is default for high-accuracy; reducing below doesn't guarantee faster fixes but prevents throttling.
@@ -111,90 +123,99 @@ Verified 2026-06-11 against code:
 - `shared_preferences` size limit: ~1-2MB on Android depending on device. 10K GPS points ≈ ~500KB JSON. Weekly pruning keeps well under limit.
 - Files to create: `lib/domain/route_log.dart`, `lib/domain/projection.dart`.
 - Files to edit: `pubspec.yaml`, `lib/main.dart`, `lib/ui/map_screen.dart`, `lib/ui/app_state.dart`, `lib/domain/coverage.dart`, `lib/data/store.dart`, `android/app/src/main/AndroidManifest.xml`, `docs/plans/gps_companion_privacy.md`.
+</research_notes>
 
 ## Open Questions
 
+<open_questions>
 - Desktop import plan (grain_unpack.rs) — separate plan, not started.
 - Route-line map visualization — future feature, not scoped here.
+</open_questions>
 
 ---
 
 ## Definition of Done
 
-### Step 1: Add wakelock_plus and flutter_background_service dependencies [x]
+<definition_of_done>
 
-- [x] Proof: `rtk grep "wakelock_plus:" pubspec.yaml` → wakelock_plus present in pubspec.yaml dependencies
-- [x] Proof: `rtk grep "flutter_background_service:" pubspec.yaml` → flutter_background_service present in pubspec.yaml dependencies
-- [x] Proof: `C:\Users\siriu\flutter\bin\flutter pub get` → flutter pub get succeeds with new deps
+### Add wakelock_plus and flutter_background_service dependencies [x]
 
-### Step 2: Keep screen on — Map tab wakelock [x]
+  - [x] Proof: `rtk grep "wakelock_plus:" pubspec.yaml` -> wakelock_plus present in pubspec.yaml dependencies <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "flutter_background_service:" pubspec.yaml` -> flutter_background_service present in pubspec.yaml dependencies <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `C:\Users\siriu\flutter\bin\flutter pub get` -> flutter pub get succeeds with new deps <!--p:{"type":"exit_code","value":0}-->
 
-- [x] Proof: `rtk grep "WakelockPlus" lib/ui/map_screen.dart` → WakelockPlus.enable() called in MapScreen initState or tab activation
-- [x] Proof: `rtk grep "WakelockPlus" lib/ui/map_screen.dart` → WakelockPlus.disable() called in MapScreen dispose or tab deactivation
-- [x] Proof: `rtk grep "WakelockPlus" lib/ui/gallery_screen.dart lib/ui/transfer_screen.dart` → Wakelock NOT used in Gallery or Transfer screens
+### Keep screen on — Map tab wakelock [x]
 
-### Step 3: GPS datapoint log model + persistence [x]
+  - [x] Proof: `rtk grep "WakelockPlus" lib/ui/map_screen.dart` -> WakelockPlus.enable() called in MapScreen initState or tab activation <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "WakelockPlus" lib/ui/map_screen.dart` -> WakelockPlus.disable() called in MapScreen dispose or tab deactivation <!--p:{"type":"output_contains","value":"disable"}-->
+  - [x] Proof: `rtk grep "WakelockPlus" lib/ui/gallery_screen.dart lib/ui/transfer_screen.dart` -> Wakelock NOT used in Gallery or Transfer screens <!--p:{"type":"exit_code","value":1}-->
 
-- [x] Proof: `rtk grep "class GpsPoint" lib/domain/route_log.dart` → GpsPoint class exists with lat, lon, speed, timestamp fields
-- [x] Proof: `rtk grep "lastPackForgedAtIndex" lib/domain/route_log.dart` → lastPackForgedAtIndex field in route log model
-- [x] Proof: `C:\Users\siriu\flutter\bin\flutter test test/domain/route_log_test.dart` → Route log JSON roundtrip test passes
+### GPS datapoint log model + persistence [x]
 
-### Step 4: Coverage replay from datapoint log + weekly reset [x]
+  - [x] Proof: `rtk grep "class GpsPoint" lib/domain/route_log.dart` -> GpsPoint class exists with lat, lon, speed, timestamp fields <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "lastPackForgedAtIndex" lib/domain/route_log.dart` -> lastPackForgedAtIndex field in route log model <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `C:\Users\siriu\flutter\bin\flutter test test/domain/route_log_test.dart` -> Route log JSON roundtrip test passes <!--p:{"type":"exit_code","value":0}-->
 
-- [x] Proof: `rtk grep "_coverageWeek" lib/ui/app_state.dart` → AppState uses _coverageWeek (not _coverageDay)
-- [x] Proof: `rtk grep "weekNumber" lib/ui/app_state.dart` → weekNumber check for coverage reset
-- [x] Proof: `C:\Users\siriu\flutter\bin\flutter test test/domain/coverage_test.dart` → Coverage replay test: harvest path → serialize log → fresh CoverageMap → replay log → identical covered cells + minted grains
-- [x] Proof: `rtk grep "replayRouteLog\|replayFromLog" lib/domain/coverage.dart` → CoverageMap has replay/restore method from GpsPoint list
+### Coverage replay from datapoint log + weekly reset [x]
 
-### Step 5: Dead reckoning position projection [x]
+  - [x] Proof: `rtk grep "_coverageWeek" lib/ui/app_state.dart` -> AppState uses _coverageWeek (not _coverageDay) <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "weekNumber" lib/ui/app_state.dart` -> weekNumber check for coverage reset <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `C:\Users\siriu\flutter\bin\flutter test test/domain/coverage_test.dart` -> Coverage replay test: harvest path → serialize log → fresh CoverageMap → replay log → identical covered cells + minted grains <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "replayRouteLog\|replayFromLog" lib/domain/coverage.dart` -> CoverageMap has replay/restore method from GpsPoint list <!--p:{"type":"exit_code","value":0}-->
 
-- [x] Proof: `rtk grep "class Projection\|projectIntermediate" lib/domain/projection.dart` → Projection logic exists in domain/projection.dart
-- [x] Proof: `C:\Users\siriu\flutter\bin\flutter test test/domain/projection_test.dart` → Projection test: given two GPS fixes 5s apart at 20 m/s, produces ~5 intermediate points along bearing
-- [x] Proof: `rtk grep "isProjected" lib/domain/route_log.dart` → GpsPoint has isProjected flag
-- [x] Proof: `rtk grep "projectIntermediate\|_projectPositions" lib/ui/map_screen.dart` → MapScreen calls projection logic on GPS fixes
+### Dead reckoning position projection [x]
 
-### Step 6: Increase GPS polling rate [x]
+  - [x] Proof: `rtk grep "class Projection\|projectIntermediate" lib/domain/projection.dart` -> Projection logic exists in domain/projection.dart <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `C:\Users\siriu\flutter\bin\flutter test test/domain/projection_test.dart` -> Projection test: given two GPS fixes 5s apart at 20 m/s, produces ~5 intermediate points along bearing <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "isProjected" lib/domain/route_log.dart` -> GpsPoint has isProjected flag <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "projectIntermediate\|_projectPositions" lib/ui/map_screen.dart` -> MapScreen calls projection logic on GPS fixes <!--p:{"type":"exit_code","value":0}-->
 
-- [x] Proof: `rtk grep "intervalDuration" lib/ui/map_screen.dart` → LocationSettings includes intervalDuration
-- [x] Proof: `rtk grep "Duration.*seconds.*1" lib/ui/map_screen.dart` → intervalDuration set to 1 second
+### Increase GPS polling rate [x]
 
-### Step 7: Background GPS service with opt-in toggle [x]
+  - [x] Proof: `rtk grep "intervalDuration" lib/ui/map_screen.dart` -> LocationSettings includes intervalDuration <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "Duration.*seconds.*1" lib/ui/map_screen.dart` -> intervalDuration set to 1 second <!--p:{"type":"exit_code","value":0}-->
 
-- [x] Proof: `rtk grep "FlutterBackgroundService" lib/main.dart` → Background service configured in main.dart
-- [x] Proof: `rtk grep "AndroidForegroundType" lib/main.dart` → AndroidForegroundType.location declared
-- [x] Proof: `rtk grep "Track in Background\|backgroundToggle\|_backgroundEnabled" lib/ui/map_screen.dart` → MapScreen has background tracking toggle button or control
-- [x] Proof: `C:\Users\siriu\flutter\bin\flutter test test/data/transfer_store_test.dart` → Existing transfer/store tests still pass (no regression)
+### Background GPS service with opt-in toggle [x]
 
-### Step 8: Android manifest — foreground service permissions + declaration [x]
+  - [x] Proof: `rtk grep "FlutterBackgroundService" lib/main.dart` -> Background service configured in main.dart <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "AndroidForegroundType" lib/main.dart` -> AndroidForegroundType.location declared <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "Track in Background\|backgroundToggle\|_backgroundEnabled" lib/ui/map_screen.dart` -> MapScreen has background tracking toggle button or control <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `C:\Users\siriu\flutter\bin\flutter test test/data/transfer_store_test.dart` -> Existing transfer/store tests still pass (no regression) <!--p:{"type":"exit_code","value":0}-->
 
-- [x] Proof: `rtk grep "FOREGROUND_SERVICE" android/app/src/main/AndroidManifest.xml` → FOREGROUND_SERVICE permission declared
-- [x] Proof: `rtk grep "FOREGROUND_SERVICE_LOCATION" android/app/src/main/AndroidManifest.xml` → FOREGROUND_SERVICE_LOCATION permission declared
-- [x] Proof: `rtk grep "flutter_background_service.BackgroundService" android/app/src/main/AndroidManifest.xml` → BackgroundService declared in manifest with foregroundServiceType=location
+### Android manifest — foreground service permissions + declaration [x]
 
-### Step 9: Privacy policy update for background location [x]
+  - [x] Proof: `rtk grep "FOREGROUND_SERVICE" android/app/src/main/AndroidManifest.xml` -> FOREGROUND_SERVICE permission declared <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "FOREGROUND_SERVICE_LOCATION" android/app/src/main/AndroidManifest.xml` -> FOREGROUND_SERVICE_LOCATION permission declared <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `rtk grep "flutter_background_service.BackgroundService" android/app/src/main/AndroidManifest.xml` -> BackgroundService declared in manifest with foregroundServiceType=location <!--p:{"type":"exit_code","value":0}-->
 
-- [x] Proof: `rtk grep -i "background\|foreground service" ../../docs/plans/gps_companion_privacy.md` → Privacy policy mentions background/foreground service location usage
+### Privacy policy update for background location [x]
 
-### Step 10: Full build + full test suite passes [x]
+  - [x] Proof: `rtk grep -i "background\|foreground service" ../../docs/plans/gps_companion_privacy.md` -> Privacy policy mentions background/foreground service location usage <!--p:{"type":"exit_code","value":0}-->
 
-- [x] Proof: `C:\Users\siriu\flutter\bin\flutter analyze` → flutter analyze — no errors or warnings
-- [x] Proof: `C:\Users\siriu\flutter\bin\flutter test` → flutter test — full suite passes (existing 31 + new tests)
-- [x] Proof: `C:\Users\siriu\flutter\bin\flutter build apk --debug` → Debug APK builds successfully
+### Full build + full test suite passes [x]
+
+  - [x] Proof: `C:\Users\siriu\flutter\bin\flutter analyze` -> flutter analyze — no errors or warnings <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `C:\Users\siriu\flutter\bin\flutter test` -> flutter test — full suite passes (existing 31 + new tests) <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `C:\Users\siriu\flutter\bin\flutter build apk --debug` -> Debug APK builds successfully <!--p:{"type":"exit_code","value":0}-->
+
+</definition_of_done>
 
 ## Open risks
 
+<open_risks>
 - Aggressive OEM battery optimization (Samsung, Xiaomi, Huawei) may kill foreground service under memory pressure. Mitigation: notification helps, but not guaranteed. Datapoint log survives — coverage replays on next app open.
 - `shared_preferences` load on app start may be slow if log grows large. Mitigation: weekly pruning keeps log bounded to ~1 week of driving data.
 - Dead reckoning accuracy degrades with turns. Mitigation: only project ≤5 seconds ahead; real fix resets position.
+</open_risks>
 
 ## Amendment log
 
-- **2026-06-11T13:06:00.665Z** [step-1/proof-1-3] modified: flutter not on MCP PATH; use absolute path to flutter.bat
-- **2026-06-11T13:06:02.232Z** [step-3/proof-3-3] modified: flutter not on MCP PATH; use absolute path
-- **2026-06-11T13:06:03.747Z** [step-4/proof-4-3] modified: flutter not on MCP PATH; use absolute path
-- **2026-06-11T13:06:05.244Z** [step-5/proof-5-2] modified: flutter not on MCP PATH; use absolute path
-- **2026-06-11T13:06:06.754Z** [step-7/proof-7-4] modified: flutter not on MCP PATH; use absolute path
-- **2026-06-11T13:06:08.578Z** [step-9/proof-9-1] modified: Relative path must account for cwd being mobile/gps_companion
-- **2026-06-11T13:06:10.053Z** [step-10/proof-10-1] modified: flutter not on MCP PATH; use absolute path
-- **2026-06-11T13:06:11.513Z** [step-10/proof-10-2] modified: flutter not on MCP PATH; use absolute path
-- **2026-06-11T13:06:12.849Z** [step-10/proof-10-3] modified: flutter not on MCP PATH; use absolute path
+- **2026-06-11T13:06:00.665Z** [undefined] modified: flutter not on MCP PATH; use absolute path to flutter.bat
+- **2026-06-11T13:06:02.232Z** [undefined] modified: flutter not on MCP PATH; use absolute path
+- **2026-06-11T13:06:03.747Z** [undefined] modified: flutter not on MCP PATH; use absolute path
+- **2026-06-11T13:06:05.244Z** [undefined] modified: flutter not on MCP PATH; use absolute path
+- **2026-06-11T13:06:06.754Z** [undefined] modified: flutter not on MCP PATH; use absolute path
+- **2026-06-11T13:06:08.578Z** [undefined] modified: Relative path must account for cwd being mobile/gps_companion
+- **2026-06-11T13:06:10.053Z** [undefined] modified: flutter not on MCP PATH; use absolute path
+- **2026-06-11T13:06:11.513Z** [undefined] modified: flutter not on MCP PATH; use absolute path
+- **2026-06-11T13:06:12.849Z** [undefined] modified: flutter not on MCP PATH; use absolute path

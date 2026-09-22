@@ -16,8 +16,11 @@ void main() {
       final result = service.sampleAt(51.5, -0.12);
 
       // Assert
-      expect(result, isNull,
-          reason: 'no data seeded → null, not a noData sample');
+      expect(
+        result,
+        isNull,
+        reason: 'no data seeded → null, not a noData sample',
+      );
     });
 
     test('when_cache_hit_in_region_then_returns_biome_sample', () {

@@ -79,7 +79,11 @@ AspectColor aspectColorFor(GrainType type, bool positive) =>
 
 /// All 16 distinct (GrainType, sign) color pairs.
 List<({GrainType type, bool positive, AspectColor color})> get allGrainColors =>
-    GrainType.values.expand((t) => [
-          (type: t, positive: true, color: _warm[t.axis]),
-          (type: t, positive: false, color: _cool[t.axis]),
-        ]).toList();
+    GrainType.values
+        .expand(
+          (t) => [
+            (type: t, positive: true, color: _warm[t.axis]),
+            (type: t, positive: false, color: _cool[t.axis]),
+          ],
+        )
+        .toList();

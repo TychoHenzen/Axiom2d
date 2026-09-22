@@ -46,7 +46,11 @@ class TubePainter extends CustomPainter {
       ..color = Colors.white.withValues(alpha: 0.05);
 
     final wallRect = Rect.fromLTWH(
-        origin.dx - tubeWidth / 2, origin.dy, tubeWidth, tubeHeight);
+      origin.dx - tubeWidth / 2,
+      origin.dy,
+      tubeWidth,
+      tubeHeight,
+    );
 
     canvas.drawRect(wallRect, glassPaint);
     canvas.drawRect(wallRect, tubePaint);

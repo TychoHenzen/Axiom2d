@@ -6,7 +6,7 @@ on:
   workflow_dispatch: # Manual trigger
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -16,35 +16,51 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
+          toolchain: 1.94.0
           components: clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Clippy
-        run: cargo clippy --workspace --all-targets --keep-going -- -D warnings
+        run: cargo clippy --workspace --all-targets --keep-going --locked -- -D warnings
 
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions-rust-lang/audit@v1
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # Rust 1.94.0
         with:
+          toolchain: 1.94.0
+      - uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 # v1.2.7
+        with:
+          file: Cargo.lock
+          # Linux-only wayland-scanner still brings quick-xml below 0.41 transitively.
+          # Keep these two IDs scoped to that upstream path until it publishes a fix.
           ignore: RUSTSEC-2026-0194,RUSTSEC-2026-0195
+          createIssues: "false"
+      - uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 # v1.2.7
+        with:
+          file: tools/Cargo.lock
+          # wayland-scanner and zbus_xml pin the affected quick-xml versions transitively.
+          # The tools workspace's direct quick-xml dependency is already on 0.41.
+          ignore: RUSTSEC-2026-0194,RUSTSEC-2026-0195
+          createIssues: "false"
 
   doc:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # Rust 1.94.0
+        with:
+          toolchain: 1.94.0
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Build docs
-        run: cargo doc --workspace --no-deps
+        run: cargo doc --workspace --no-deps --locked
         env:
           RUSTDOCFLAGS: -D warnings
 
@@ -53,12 +69,13 @@ jobs:
     outputs:
       coverage_pct: ${{ steps.extract.outputs.coverage_pct }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
+          toolchain: 1.94.0
           components: llvm-tools-preview
-      - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: taiki-e/install-action@dfae9bf3d6f6c6f20ef4ebb3486c01a51341ff12 # v2.87.18
         with:
           tool: cargo-llvm-cov
       - name: Install system dependencies
@@ -67,12 +84,12 @@ jobs:
         id: extract
         run: |
           mkdir -p quality/coverage
-          cargo llvm-cov --workspace --lcov --output-path quality/coverage/lcov.info 2>&1 | tee coverage.log
+          cargo llvm-cov --workspace --locked --lcov --output-path quality/coverage/lcov.info 2>&1 | tee coverage.log
           COV_PCT=$(grep "^TOTAL" coverage.log | awk '{print $4}' | tr -d '%')
           echo "coverage_pct=${COV_PCT}" >> "$GITHUB_OUTPUT"
           echo "Coverage: ${COV_PCT}"
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report
           path: quality/coverage/
@@ -82,9 +99,11 @@ jobs:
     outputs:
       cyclo_over_10: ${{ steps.cyclo.outputs.cyclo_over_10 }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # Rust 1.94.0
+        with:
+          toolchain: 1.94.0
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Install arborist-cli
@@ -110,22 +129,24 @@ jobs:
   udeps:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@nightly
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: dtolnay/rust-toolchain@be39649afda95dbf70f87cce95f68b8d5797b296 # nightly
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Install cargo-udeps
         run: cargo install cargo-udeps --locked
       - name: Check for unused dependencies
-        run: cargo +nightly udeps --workspace --all-targets
+        run: cargo +nightly udeps --workspace --all-targets --locked
 
   shaders:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # Rust 1.94.0
+        with:
+          toolchain: 1.94.0
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Install naga-cli
         run: cargo install naga-cli --locked
       - name: Validate WGSL shaders
@@ -149,13 +170,15 @@ jobs:
   dead-code:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # Rust 1.94.0
+        with:
+          toolchain: 1.94.0
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Check for dead code
-        run: cargo build --workspace --all-targets
+        run: cargo build --workspace --all-targets --locked
         env:
           RUSTFLAGS: "-D dead_code"
 
@@ -164,8 +187,8 @@ jobs:
     outputs:
       clone_count: ${{ steps.jscpd.outputs.clone_count }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
       - name: Install jscpd
@@ -180,7 +203,7 @@ jobs:
           echo "Clones found: ${CLONE_COUNT}"
       - name: Upload duplicate report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: jscpd-report
           path: quality/duplicates/
@@ -190,14 +213,16 @@ jobs:
     runs-on: ubuntu-latest
     environment: default
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # Rust 1.94.0
+        with:
+          toolchain: 1.94.0
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
@@ -215,22 +240,15 @@ jobs:
           MICRO_TIMEOUT: ${{ vars.MICRO_TIMEOUT }}
         continue-on-error: true
 
-      - name: Commit tracking doc update
-        if: always() && steps.mutations.outcome != 'skipped'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Discard any dirty source files left by cargo-mutants --in-place
-          git checkout -- crates/ 2>/dev/null || true
-          git add quality/MICRO_MUTATIONS.md quality/.micro_mutation_state.json
-          if ! git diff --cached --quiet; then
-            git commit -m "docs: update micro-mutation tracking (${{ github.run_number }})"
-            # Pull before push in case another job (e.g. autofix) advanced master
-            git pull --rebase origin master || true
-            git push || echo "::warning::Failed to push micro-mutation report — will retry next run"
-          else
-            echo "No changes to tracking doc"
-          fi
+      - name: Upload micro-mutation state
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: micro-mutation-state
+          path: |
+            quality/.micro_mutation_state.json
+            quality/MICRO_MUTATIONS.md
+          if-no-files-found: warn
 
   soft-gate:
     name: "Soft Ratchet Gate (no regressions allowed)"
@@ -238,7 +256,7 @@ jobs:
     needs: [clippy, audit, doc, udeps, shaders, dead-code, duplicates, complexity, coverage]
     if: always() && !cancelled()
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Parse baseline
         id: baseline
@@ -257,37 +275,39 @@ jobs:
           cov=$(extract_val "line_coverage_pct")
           clones=$(extract_val "jscpd_clone_count")
           expect=$(extract_val "expect_in_prod_total")
-          echo "test_count=${test_count:-0}" >> "$GITHUB_OUTPUT"
-          echo "smell=${smell:-0}" >> "$GITHUB_OUTPUT"
-          echo "unsafe=${unsafe:-0}" >> "$GITHUB_OUTPUT"
-          echo "unwrap=${unwrap:-0}" >> "$GITHUB_OUTPUT"
-          echo "cyclo=${cyclo:-0}" >> "$GITHUB_OUTPUT"
-          echo "cov=${cov:-0}" >> "$GITHUB_OUTPUT"
-          echo "clones=${clones:-0}" >> "$GITHUB_OUTPUT"
-          echo "expect=${expect:-92}" >> "$GITHUB_OUTPUT"
+          {
+            echo "test_count=${test_count:-0}"
+            echo "smell=${smell:-0}"
+            echo "unsafe=${unsafe:-0}"
+            echo "unwrap=${unwrap:-0}"
+            echo "cyclo=${cyclo:-0}"
+            echo "cov=${cov:-0}"
+            echo "clones=${clones:-0}"
+            echo "expect=${expect:-92}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Count test functions
         id: tests
         run: |
-          count=$(grep -rn '#\[test\]\|#\[tokio::test\]' crates/ --include="*.rs" | wc -l)
+          count=$(grep -rnc '#\[test\]\|#\[tokio::test\]' crates/ --include="*.rs" | awk -F: '{total += $NF} END {print total + 0}')
           echo "count=$count" >> "$GITHUB_OUTPUT"
 
       - name: Count smell markers (prod code only)
         id: smells
         run: |
-          count=$(grep -rn 'TODO\|FIXME\|HACK' crates/ --include="*.rs" | grep -v 'tests/' | wc -l)
+          count=$(grep -rn 'TODO\|FIXME\|HACK' crates/ --include="*.rs" | grep -v 'tests/' | grep -c .)
           echo "count=$count" >> "$GITHUB_OUTPUT"
 
       - name: Count unsafe blocks (prod code only)
         id: unsafe_blocks
         run: |
-          count=$(grep -rn '\bunsafe\b' crates/ --include="*.rs" | grep -v 'tests/' | wc -l)
+          count=$(grep -rn '\bunsafe\b' crates/ --include="*.rs" | grep -v 'tests/' | grep -c .)
           echo "count=$count" >> "$GITHUB_OUTPUT"
 
       - name: Count unwrap() in production
         id: unwrap_count
         run: |
-          count=$(grep -rn '\.unwrap()' crates/ --include="*.rs" | grep -v 'tests/' | grep -v 'benches/' | grep -v 'particle_poc/' | wc -l)
+          count=$(grep -rn '\.unwrap()' crates/ --include="*.rs" | grep -v 'tests/' | grep -v 'benches/' | grep -v 'particle_poc/' | grep -c .)
           echo "count=$count" >> "$GITHUB_OUTPUT"
 
       - name: Check ratchets
@@ -295,8 +315,6 @@ jobs:
         run: |
           set -e
           FAILED=0
-          IMPROVED=0
-
           check_ratchet() {
             local name=$1 current=$2 baseline=$3 direction=$4
             if [ "$direction" = "higher" ]; then
@@ -304,8 +322,7 @@ jobs:
                 echo "::error title=Quality Regression::$name regressed: $current < $baseline (baseline)"
                 FAILED=1
               elif [ "$current" -gt "$baseline" ]; then
-                echo "::notice title=Quality Improved::$name improved: $current > $baseline (baseline). Auto-ratcheting."
-                IMPROVED=1
+                echo "::notice title=Quality Improved::$name improved: $current > $baseline (baseline). Update the baseline in a reviewed change if desired."
               else
                 echo "::notice title=$name (ok)::$name: $current (baseline: $baseline)"
               fi
@@ -314,8 +331,7 @@ jobs:
                 echo "::error title=Quality Regression::$name regressed: $current > $baseline (baseline)"
                 FAILED=1
               elif [ "$current" -lt "$baseline" ]; then
-                echo "::notice title=Quality Improved::$name improved: $current < $baseline (baseline). Auto-ratcheting."
-                IMPROVED=1
+                echo "::notice title=Quality Improved::$name improved: $current < $baseline (baseline). Update the baseline in a reviewed change if desired."
               else
                 echo "::notice title=$name (ok)::$name: $current (baseline: $baseline)"
               fi
@@ -340,8 +356,7 @@ jobs:
             echo "::error title=Quality Regression::line_coverage regressed: ${cov_current}% < ${cov_baseline}% (baseline)"
             FAILED=1
           elif [ "$cov_equal" -eq 0 ]; then
-            echo "::notice title=Quality Improved::line_coverage improved: ${cov_current}% > ${cov_baseline}% (baseline). Auto-ratcheting."
-            IMPROVED=1
+            echo "::notice title=Quality Improved::line_coverage improved: ${cov_current}% > ${cov_baseline}% (baseline). Update the baseline in a reviewed change if desired."
           else
             echo "::notice title=line_coverage (ok)::line_coverage: ${cov_current}% (baseline: ${cov_baseline}%)"
           fi
@@ -353,70 +368,5 @@ jobs:
             exit 1
           fi
 
-          echo "improved=$IMPROVED" >> "$GITHUB_OUTPUT"
           echo "All soft ratchets passed. Quality has not regressed."
 
-      - name: Auto-ratchet baseline
-        if: steps.ratchets.outputs.improved == '1'
-        run: |
-          test_count="${{ steps.tests.outputs.count }}"
-          smell="${{ steps.smells.outputs.count }}"
-          unsafe="${{ steps.unsafe_blocks.outputs.count }}"
-          unwrap="${{ steps.unwrap_count.outputs.count }}"
-          cyclo="${{ needs.complexity.outputs.cyclo_over_10 }}"
-          cov="${{ needs.coverage.outputs.coverage_pct }}"
-          clones="${{ needs.duplicates.outputs.clone_count }}"
-          today=$(date -I 2>/dev/null || date +%Y-%m-%d)
-
-          cat > docs/QUALITY_BASELINE.ron << RONEOF
-          {
-              "hard": {
-                  "clippy_warnings": 0,
-                  "audit_vulnerabilities": 0,
-                  "unused_dependencies": 0,
-                  "doc_warnings": 0,
-                  "dead_code_items": 0,
-                  "shader_errors": 0,
-              },
-              "soft": {
-                  "test_count_total": $test_count,
-                  "smell_markers_total": $smell,
-                  "unsafe_blocks_total": $unsafe,
-                  "unwrap_in_prod_total": $unwrap,
-                  "expect_in_prod_total": 92,
-                  "cyclomatic_over_10": $cyclo,
-                  "line_coverage_pct": $cov,
-                  "jscpd_clone_count": $clones,
-              },
-              "advisory_maxima": {
-                  "magic_literals_per_file": 320,
-                  "function_length_lines": 861,
-                  "nesting_depth": 12,
-                  "file_length_lines": 861,
-              },
-              "overrides": {},
-              "meta": {
-                  "last_updated": "$today",
-                  "schema_version": 2,
-                  "notes": [
-                      "unsafe_blocks_total=$unsafe: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
-                      "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
-                      "test_count_total=$test_count: all #[test] and #[tokio::test] across workspace (including tools/)",
-                      "smell_markers_total=$smell: no TODO/FIXME/HACK in production code",
-                      "cyclomatic_over_10=$cyclo: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
-                      "line_coverage_pct=$cov: workspace line coverage from cargo-llvm-cov",
-                      "jscpd_clone_count=$clones: duplicate code clones detected by jscpd (min-tokens=50)",
-                  ],
-              },
-          }
-          RONEOF
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/QUALITY_BASELINE.ron
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: auto-ratchet quality baseline ($today)"
-            git pull --rebase origin master || true
-            git push || echo "::warning::Failed to push baseline update — will retry next run"
-            echo "::notice::Baseline auto-ratcheted to current metrics."
-          fi

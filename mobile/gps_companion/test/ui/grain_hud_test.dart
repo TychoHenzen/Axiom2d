@@ -6,9 +6,7 @@ void main() {
   group('HUD integration', () {
     testWidgets('when_tube_widget_renders_then_found_in_tree', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: TubeHud(fillLevel: 0.5)),
-        ),
+        const MaterialApp(home: Scaffold(body: TubeHud(fillLevel: 0.5))),
       );
 
       expect(find.byType(TubeHud), findsOneWidget);
@@ -16,9 +14,7 @@ void main() {
 
     testWidgets('when_stack_widget_renders_then_found_in_tree', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: PackStackHud()),
-        ),
+        const MaterialApp(home: Scaffold(body: PackStackHud())),
       );
 
       expect(find.byType(PackStackHud), findsOneWidget);

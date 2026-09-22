@@ -31,12 +31,14 @@ Future<void> backgroundServiceEntry(ServiceInstance service) async {
       intervalDuration: const Duration(seconds: 1),
     ),
   ).listen((p) async {
-    log.add(GpsPoint(
-      lat: p.latitude,
-      lon: p.longitude,
-      speed: p.speed,
-      timestamp: DateTime.now().toUtc(),
-    ));
+    log.add(
+      GpsPoint(
+        lat: p.latitude,
+        lon: p.longitude,
+        speed: p.speed,
+        timestamp: DateTime.now().toUtc(),
+      ),
+    );
     // Persist every ~10 points.
     if (log.points.length % 10 == 0) {
       await store.save(log);

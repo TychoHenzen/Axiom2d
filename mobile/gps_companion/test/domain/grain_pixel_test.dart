@@ -82,23 +82,23 @@ void main() {
       // Matches desktop gem_sockets.rs aspect_color() via Element→Aspect table.
       const expected = <(GrainType, bool, double, double, double)>[
         // Warm (positive)
-        (GrainType.earth, true, 0.85, 0.55, 0.20),     // Solid
-        (GrainType.febris, true, 0.95, 0.25, 0.10),    // Heat
-        (GrainType.urban, true, 0.90, 0.80, 0.10),     // Order
-        (GrainType.lumines, true, 0.98, 0.95, 0.40),   // Light
-        (GrainType.water, true, 0.70, 0.85, 0.10),     // Change
-        (GrainType.inertiae, true, 0.90, 0.40, 0.05),  // Force
-        (GrainType.nature, true, 0.20, 0.80, 0.20),    // Growth
-        (GrainType.arcane, true, 0.60, 0.90, 0.30),    // Expansion
+        (GrainType.earth, true, 0.85, 0.55, 0.20), // Solid
+        (GrainType.febris, true, 0.95, 0.25, 0.10), // Heat
+        (GrainType.urban, true, 0.90, 0.80, 0.10), // Order
+        (GrainType.lumines, true, 0.98, 0.95, 0.40), // Light
+        (GrainType.water, true, 0.70, 0.85, 0.10), // Change
+        (GrainType.inertiae, true, 0.90, 0.40, 0.05), // Force
+        (GrainType.nature, true, 0.20, 0.80, 0.20), // Growth
+        (GrainType.arcane, true, 0.60, 0.90, 0.30), // Expansion
         // Cool (negative)
-        (GrainType.earth, false, 0.30, 0.50, 0.85),    // Fragile
-        (GrainType.febris, false, 0.10, 0.70, 0.95),   // Cold
-        (GrainType.urban, false, 0.55, 0.10, 0.80),    // Chaos
-        (GrainType.lumines, false, 0.15, 0.05, 0.40),  // Dark
-        (GrainType.water, false, 0.20, 0.60, 0.80),    // Stasis
+        (GrainType.earth, false, 0.30, 0.50, 0.85), // Fragile
+        (GrainType.febris, false, 0.10, 0.70, 0.95), // Cold
+        (GrainType.urban, false, 0.55, 0.10, 0.80), // Chaos
+        (GrainType.lumines, false, 0.15, 0.05, 0.40), // Dark
+        (GrainType.water, false, 0.20, 0.60, 0.80), // Stasis
         (GrainType.inertiae, false, 0.10, 0.75, 0.70), // Calm
-        (GrainType.nature, false, 0.35, 0.20, 0.60),   // Decay
-        (GrainType.arcane, false, 0.05, 0.20, 0.70),   // Contraction
+        (GrainType.nature, false, 0.35, 0.20, 0.60), // Decay
+        (GrainType.arcane, false, 0.05, 0.20, 0.70), // Contraction
       ];
 
       // Assert — 16 entries.
@@ -107,20 +107,31 @@ void main() {
       // Act & Assert — each maps to correct color.
       for (final (type, positive, r, g, b) in expected) {
         final color = aspectColorFor(type, positive);
-        expect(color.r, closeTo(r, 0.001),
-            reason: '${type.name} ${positive ? "+" : "-"} r');
-        expect(color.g, closeTo(g, 0.001),
-            reason: '${type.name} ${positive ? "+" : "-"} g');
-        expect(color.b, closeTo(b, 0.001),
-            reason: '${type.name} ${positive ? "+" : "-"} b');
+        expect(
+          color.r,
+          closeTo(r, 0.001),
+          reason: '${type.name} ${positive ? "+" : "-"} r',
+        );
+        expect(
+          color.g,
+          closeTo(g, 0.001),
+          reason: '${type.name} ${positive ? "+" : "-"} g',
+        );
+        expect(
+          color.b,
+          closeTo(b, 0.001),
+          reason: '${type.name} ${positive ? "+" : "-"} b',
+        );
         // Warm check: positive → r > b or g > b; negative → b > r.
         if (positive) {
           final isWarm = color.r > color.b || color.g > color.b;
-          expect(isWarm, isTrue,
-              reason: '${type.name}+ should be warm');
+          expect(isWarm, isTrue, reason: '${type.name}+ should be warm');
         } else {
-          expect(color.b, greaterThan(color.r),
-              reason: '${type.name}- should be cool (b > r)');
+          expect(
+            color.b,
+            greaterThan(color.r),
+            reason: '${type.name}- should be cool (b > r)',
+          );
         }
       }
     });
@@ -134,8 +145,12 @@ void main() {
       final seen = <String>{};
       for (final entry in colors) {
         final key = '${entry.color.r},${entry.color.g},${entry.color.b}';
-        expect(seen.contains(key), isFalse,
-            reason: 'duplicate color for ${entry.type.name} ${entry.positive ? '+' : '-'}');
+        expect(
+          seen.contains(key),
+          isFalse,
+          reason:
+              'duplicate color for ${entry.type.name} ${entry.positive ? '+' : '-'}',
+        );
         seen.add(key);
       }
     });

@@ -97,7 +97,11 @@ bool stepFalling(TubePixel pixel, TubePhysics phys, double dt) {
 ///
 /// Returns the y-coordinate of the sand surface at pixel.x, or null if
 /// no surface exists at that x.
-double? sandSurfaceAt(double x, List<TubePixel> settledPixels, double cellSize) {
+double? sandSurfaceAt(
+  double x,
+  List<TubePixel> settledPixels,
+  double cellSize,
+) {
   double? top;
   for (final p in settledPixels) {
     final dx = (p.x - x).abs();

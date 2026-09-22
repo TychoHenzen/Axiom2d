@@ -38,8 +38,8 @@ void main() {
 
       // Assert — should have settled somewhere (displaced or settled).
       // The pixel can't remain unsupported at (14, 29).
-      final wasUnsupported = !grid.isOccupied(14, 29) ||
-          result == SettleResult.displaced;
+      final wasUnsupported =
+          !grid.isOccupied(14, 29) || result == SettleResult.displaced;
       expect(wasUnsupported || result == SettleResult.settled, isTrue);
     });
 
@@ -48,11 +48,7 @@ void main() {
       final grid = SandGrid(params);
 
       // Act — settle at (10, 5).
-      trySettle(
-        cell: const GridCell(10, 5),
-        grid: grid,
-        params: params,
-      );
+      trySettle(cell: const GridCell(10, 5), grid: grid, params: params);
 
       // Assert — pixel falls to bottom row.
       final bottomRow = params.gridHeight - 1;

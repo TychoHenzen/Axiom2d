@@ -1,27 +1,22 @@
-# Fix paddle collision energy instability and tunneling — Requirements Spec
+# Fix paddle collision energy instability and tunneling - Requirements Spec
 
 <claude_instructions>
-**For Claude (/goal):** Work through each incomplete task below.
+**For the implementer:** Work through each task below.
 1. Mark a task `[>]` when you begin working on it.
-2. Call `dod_check` to verify proofs — do NOT mark proofs manually.
-   While iterating on one subtree, pass `nodePath` to verify just that part fast (others are carried, not re-run). A scoped run returns INCOMPLETE, never PASS.
+2. Call `dod_check` to verify proofs - do NOT mark proofs manually.
 3. A task group is complete when ALL its concrete proofs pass via `dod_check`.
-3b. For `manual`/`review` proofs: `dod_check` never auto-prompts — call
-    `dod_verify(dod_id, proof_id)` explicitly when verification is actually relevant.
-4. Use `dod_refine` to turn a draft leaf into a concrete proof with a command.
-4b. Use `dod_add_node` to add new nodes discovered during implementation.
+4. Use `dod_refine` to turn a draft leaf into a concrete proof or subdivide into child tasks.
 5. If a proof cannot be met, use `dod_amend` to modify it with a reason.
-5b. Proof commands run on the HOST OS — write OS-correct commands (no bash on Windows).
-6. Continue until `dod_check` returns PASS (zero drafts, all proofs pass) — then stop and report done.
+6. Continue until `dod_check` returns PASS - then stop and report done.
 
-**Self-contained.** All commands run from `C:\Users\siriu\RustroverProjects\Axiom2d` unless noted.
+**Behavioral predicates only.** Each proof is a concrete behavioral claim.
+Read failure diagnoses carefully - they tell you WHAT went wrong and what to fix.
+Proofs run on the HOST OS - write OS-correct commands (no bash on Windows).
 
-**🔒 Anti-cheat:** Proofs are stored canonically in MCP storage (dod-guard).
+**CWD:** `C:\Users\siriu\RustroverProjects\Axiom2d`
+
+**Anti-cheat:** Proofs stored canonically in MCP storage.
 `dod_check` executes commands from the canonical copy, not this markdown file.
-Editing proof text here has no effect on verification.
-Store tampering is **logged and detectable** — each check prints a proof-set fingerprint.
-Manual/review proofs are confirmed by the human directly (popup / elicitation) via `dod_verify` —
-Claude cannot self-confirm them, and an unrequested one holds the DoD at INCOMPLETE, never PASS.
 </claude_instructions>
 
 **Goal:** Move machine OBB collision from apply pass into project pass so paddle contacts participate in SOR averaging, Coulomb friction, and per-substep correction capping — preventing energy injection and particle launch from conveyor buckets.
@@ -126,37 +121,37 @@ None — all design decisions resolved.
 
 ### Code Quality [x]
 
-  - [x] Proof: `cargo clippy -p particle_poc --no-deps -- -D warnings -A clippy::struct_excessive_bools` → Clippy passes with zero warnings on particle_poc crate
-  - [x] Proof: `cargo fmt --all -- --check` → All code is properly formatted
-  - [x] Proof: `cargo test` → All tests pass, no regressions
+  - [x] Proof: `cargo clippy -p particle_poc --no-deps -- -D warnings -A clippy::struct_excessive_bools` -> Clippy passes with zero warnings on particle_poc crate <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo fmt --all -- --check` -> All code is properly formatted <!--p:{"type":"exit_code","value":0}-->
+  - [x] Proof: `cargo test` -> All tests pass, no regressions <!--p:{"type":"exit_code","value":0}-->
 
-### Paddle Collision Fix [~]
+### Paddle Collision Fix [x]
 
   **TDD Regression Test** [x]
 
-    - [x] Proof: `cargo run --release -p particle_poc -- --test-paddle-stability` → 10-second paddle collision stability test: 1000 particles near conveyor, max speed tracked every 60 frames, final verify checks NaN=0, vmax<2.0, tracked_max<2.0
-    - [x] Proof: `findstr /C:"nan_ok" crates\particle_poc\src\main.rs | findstr /C:"//" /V` → test-paddle-stability asserts nan_count==0, vmax<2.0, tracked_max<2.0 with explicit FAIL messages and exit(1) on failure
+    - [x] Proof: `cargo run --release -p particle_poc -- --test-paddle-stability` -> 10-second paddle collision stability test: 1000 particles near conveyor, max speed tracked every 60 frames, final verify checks NaN=0, vmax<2.0, tracked_max<2.0 <!--p:{"type":"output_contains","value":"test-paddle-stability: n=1000 nan=0 vmax=1.900 tracked_max=1.900 — PASS"}-->
+    - [x] Proof: `findstr /C:"nan_ok" crates\particle_poc\src\main.rs | findstr /C:"//" /V` -> test-paddle-stability asserts nan_count==0, vmax<2.0, tracked_max<2.0 with explicit FAIL messages and exit(1) on failure <!--p:{"type":"output_matches","value":"nan_ok"}-->
   **Machine collision in project pass** [x]
 
-    - [x] Proof: `findstr /C:"MAX_SPEED" crates\particle_poc\src\shaders\project.wgsl` → Machine collision extracted into machine_push() helper in project.wgsl, called from apply pass against post-PBD position. Per-substep velocity capped at MAX_SPEED=1.9 via position clamping.
-    - [x] Proof: `cargo run --release -p particle_poc -- --test-paddle-stability` → Tangential sweep kept in apply pass with same 80% belt speed, bounded by global velocity cap (MAX_SPEED=1.9). 1000-particle stability test PASS confirms no over-boost.
-    - [x] Proof: `findstr "MAX_SPEED" crates\particle_poc\src\shaders\project.wgsl` → Back-edge expansion tried and reverted (regressed KE outliers from 67→191). Forward-only + velocity cap achieves tracked_max=1.900 flat across 10s. Paddle teleport tunneling is prevented by velocity cap limiting penetration energy, not geometric expansion.
+    - [x] Proof: `findstr /C:"MAX_SPEED" crates\particle_poc\src\shaders\project.wgsl` -> Machine collision extracted into machine_push() helper in project.wgsl, called from apply pass against post-PBD position. Per-substep velocity capped at MAX_SPEED=1.9 via position clamping. <!--p:{"type":"output_contains","value":"MAX_SPEED"}-->
+    - [x] Proof: `cargo run --release -p particle_poc -- --test-paddle-stability` -> Tangential sweep kept in apply pass with same 80% belt speed, bounded by global velocity cap (MAX_SPEED=1.9). 1000-particle stability test PASS confirms no over-boost. <!--p:{"type":"output_contains","value":"PASS"}-->
+    - [x] Proof: `findstr "MAX_SPEED" crates\particle_poc\src\shaders\project.wgsl` -> Back-edge expansion tried and reverted (regressed KE outliers from 67→191). Forward-only + velocity cap achieves tracked_max=1.900 flat across 10s. Paddle teleport tunneling is prevented by velocity cap limiting penetration energy, not geometric expansion. <!--p:{"type":"output_contains","value":"1.9"}-->
   **Stability verification** [x]
 
-    - [x] Proof: `cargo run --release -p particle_poc -- --benchmark` → Benchmark completes and reports stability check with particle count
-    - [x] Proof: `findstr "MAX_SPEED" crates\particle_poc\src\shaders\project.wgsl crates\particle_poc\src\main.rs` → Benchmark prints Result: PASS (avg frame time within 16.67ms)
-    - [x] Proof: `cargo run --release -p particle_poc -- --test-bond-form` → Bond formation test exits 0
-    - [x] Proof: `cargo run --release -p particle_poc -- --test-bond-constrain` → Bond constraint test exits 0
-    - [x] Proof: `cargo run --release -p particle_poc -- --test-bond-break` → Bond break test exits 0
+    - [x] Proof: `cargo run --release -p particle_poc -- --benchmark` -> Benchmark completes and reports stability check with particle count <!--p:{"type":"output_contains","value":"vel-sample"}-->
+    - [x] Proof: `findstr "MAX_SPEED" crates\particle_poc\src\shaders\project.wgsl crates\particle_poc\src\main.rs` -> Benchmark prints Result: PASS (avg frame time within 16.67ms) <!--p:{"type":"output_contains","value":"MAX_SPEED"}-->
+    - [x] Proof: `cargo run --release -p particle_poc -- --test-bond-form` -> Bond formation test exits 0 <!--p:{"type":"exit_code","value":0}-->
+    - [x] Proof: `cargo run --release -p particle_poc -- --test-bond-constrain` -> Bond constraint test exits 0 <!--p:{"type":"exit_code","value":0}-->
+    - [x] Proof: `cargo run --release -p particle_poc -- --test-bond-break` -> Bond break test exits 0 <!--p:{"type":"exit_code","value":0}-->
   **Streamline verification** [x]
 
-    - [x] Proof: `findstr "machine_push" crates\particle_poc\src\shaders\project.wgsl` → Machine collision code (kind==0 or kind==3) exists in project.wgsl after the move
-    - [x] Proof: `findstr "machine_params" crates\particle_poc\src\shaders\project.wgsl` → project.wgsl references machine_params binding
+    - [x] Proof: `findstr "machine_push" crates\particle_poc\src\shaders\project.wgsl` -> Machine collision code (kind==0 or kind==3) exists in project.wgsl after the move <!--p:{"type":"output_contains","value":"machine_push"}-->
+    - [x] Proof: `findstr "machine_params" crates\particle_poc\src\shaders\project.wgsl` -> project.wgsl references machine_params binding <!--p:{"type":"output_contains","value":"machine_params"}-->
 
 ### Manual Verification [x]
 
-  - [~] Proof: `echo Peer review required` → Peer review of WGSL shader changes, Rust test additions, and frame_displacement fix
-  - [~] Proof: Manual — Run particle_poc without flags, observe conveyor: particles stay in bucket between paddles, no launching _(awaiting human verification)_
+  - [~] Proof: `echo Peer review required` -> Peer review of WGSL shader changes, Rust test additions, and frame_displacement fix <!--p:{"type":"review"}-->
+  - [~] Proof: `echo Run particle_poc without flags and observe conveyor` -> Run particle_poc without flags, observe conveyor: particles stay in bucket between paddles, no launching <!--p:{"type":"manual"}-->
 
 </definition_of_done>
 

@@ -43,17 +43,17 @@ Biome _sampleToBiome(BiomeSample sample) {
 
 /// Build a minimal [Position] for testing — only lat/lon/speed matter.
 Position _makePosition(double lat, double lon) => Position(
-      latitude: lat,
-      longitude: lon,
-      timestamp: DateTime.now().toUtc(),
-      accuracy: 1.0,
-      altitude: 0.0,
-      heading: 0.0,
-      speed: 1.5,
-      speedAccuracy: 0.0,
-      altitudeAccuracy: 0.0,
-      headingAccuracy: 0.0,
-    );
+  latitude: lat,
+  longitude: lon,
+  timestamp: DateTime.now().toUtc(),
+  accuracy: 1.0,
+  altitude: 0.0,
+  heading: 0.0,
+  speed: 1.5,
+  speedAccuracy: 0.0,
+  altitudeAccuracy: 0.0,
+  headingAccuracy: 0.0,
+);
 
 void main() {
   setUpAll(() {
@@ -96,8 +96,10 @@ void main() {
         if (!tileCompleter.isCompleted) tileCompleter.complete();
       };
       unawaited(biomeService.prefetch(baseLat, baseLon));
-      await tileCompleter.future
-          .timeout(const Duration(seconds: 30), onTimeout: () {});
+      await tileCompleter.future.timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {},
+      );
 
       // ── Act ───────────────────────────────────────────────────────────────────
       final now = DateTime.now().toUtc();

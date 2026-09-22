@@ -81,8 +81,11 @@ void main() {
 
       // Assert — alpha strictly increases with f.
       for (var i = 1; i < alphas.length; i++) {
-        expect(alphas[i], greaterThan(alphas[i - 1]),
-            reason: 'alpha must increase with f');
+        expect(
+          alphas[i],
+          greaterThan(alphas[i - 1]),
+          reason: 'alpha must increase with f',
+        );
       }
     });
 

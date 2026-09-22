@@ -191,7 +191,8 @@ class _MapScreenState extends State<MapScreen>
       changed = true;
     }
 
-    final anyActive = _tubePixels.any((p) => p.phase == PixelPhase.falling) ||
+    final anyActive =
+        _tubePixels.any((p) => p.phase == PixelPhase.falling) ||
         _pistonState.phase != PistonPhase.idle;
 
     if (changed || anyActive) setState(() {});
@@ -200,13 +201,15 @@ class _MapScreenState extends State<MapScreen>
   /// Spawn one colored pixel per harvested grain, dropping from the tube top.
   void _spawnTubePixels(List<Grain> grains) {
     for (final grain in grains) {
-      _tubePixels.add(TubePixel(
-        x: _tubePhysics.tubeWidth / 2 + _rng.nextDouble() * 6 - 3,
-        y: 2.0,
-        color: grainPixelColor(grain),
-        vx: _rng.nextDouble() * 40 - 20,
-        vy: 20.0,
-      ));
+      _tubePixels.add(
+        TubePixel(
+          x: _tubePhysics.tubeWidth / 2 + _rng.nextDouble() * 6 - 3,
+          y: 2.0,
+          color: grainPixelColor(grain),
+          vx: _rng.nextDouble() * 40 - 20,
+          vy: 20.0,
+        ),
+      );
     }
   }
 
@@ -269,11 +272,11 @@ class _MapScreenState extends State<MapScreen>
   }
 
   List<LatLng> _fogCellSquare(LatLng c) => [
-        LatLng(c.latitude - _fogCellHalf, c.longitude - _fogCellHalf),
-        LatLng(c.latitude - _fogCellHalf, c.longitude + _fogCellHalf),
-        LatLng(c.latitude + _fogCellHalf, c.longitude + _fogCellHalf),
-        LatLng(c.latitude + _fogCellHalf, c.longitude - _fogCellHalf),
-      ];
+    LatLng(c.latitude - _fogCellHalf, c.longitude - _fogCellHalf),
+    LatLng(c.latitude - _fogCellHalf, c.longitude + _fogCellHalf),
+    LatLng(c.latitude + _fogCellHalf, c.longitude + _fogCellHalf),
+    LatLng(c.latitude + _fogCellHalf, c.longitude - _fogCellHalf),
+  ];
 
   // ── GPS / vacuum ──────────────────────────────────────────────────────────
 
@@ -283,15 +286,14 @@ class _MapScreenState extends State<MapScreen>
     final currentWeek = weekNumber(DateTime.now().toUtc());
     log.unprocessed;
     if (log.unprocessed.isNotEmpty) {
-      final day =
-          DateTime.now().toUtc().difference(DateTime.utc(1970, 1, 1)).inDays;
+      final day = DateTime.now()
+          .toUtc()
+          .difference(DateTime.utc(1970, 1, 1))
+          .inDays;
       for (final p in log.unprocessed) {
-        widget.state.vacuum(
-          lat: p.lat,
-          lon: p.lon,
-          day: day,
-          week: currentWeek,
-        ).ignore();
+        widget.state
+            .vacuum(lat: p.lat, lon: p.lon, day: day, week: currentWeek)
+            .ignore();
         await widget.state.logPosition(
           lat: p.lat,
           lon: p.lon,
@@ -351,8 +353,9 @@ class _MapScreenState extends State<MapScreen>
     // on first visit before the background prefetch returns).
     _biomeService.prefetch(p.latitude, p.longitude);
     final biomeSample = _biomeService.sampleAt(p.latitude, p.longitude);
-    final biome =
-        biomeSample != null ? _biomeSampleToEnum(biomeSample) : Biome.noData;
+    final biome = biomeSample != null
+        ? _biomeSampleToEnum(biomeSample)
+        : Biome.noData;
 
     final currentFix = GpsPoint(
       lat: p.latitude,
@@ -377,13 +380,15 @@ class _MapScreenState extends State<MapScreen>
       for (final proj in projected) {
         final projDay = dayNumber(proj.timestamp);
         final projWeek = weekNumber(proj.timestamp);
-        widget.state.vacuum(
-          lat: proj.lat,
-          lon: proj.lon,
-          day: projDay,
-          week: projWeek,
-          biome: biome,
-        ).ignore();
+        widget.state
+            .vacuum(
+              lat: proj.lat,
+              lon: proj.lon,
+              day: projDay,
+              week: projWeek,
+              biome: biome,
+            )
+            .ignore();
         await widget.state.logPosition(
           lat: proj.lat,
           lon: proj.lon,
@@ -409,21 +414,23 @@ class _MapScreenState extends State<MapScreen>
 
     widget.state
         .vacuum(
-      lat: p.latitude,
-      lon: p.longitude,
-      day: day,
-      week: week,
-      biome: biome,
-    )
+          lat: p.latitude,
+          lon: p.longitude,
+          day: day,
+          week: week,
+          biome: biome,
+        )
         .then((res) {
-      if (!mounted) return;
-      if (res.newCells.isNotEmpty) {
-        _spawnTubePixels(res.grains);
-        _fogDirty = true;
-        setState(() {});
-      }
-      if (res.forged > 0) _toast('🎉 Forged ${res.forged} booster pack(s)!');
-    });
+          if (!mounted) return;
+          if (res.newCells.isNotEmpty) {
+            _spawnTubePixels(res.grains);
+            _fogDirty = true;
+            setState(() {});
+          }
+          if (res.forged > 0) {
+            _toast('🎉 Forged ${res.forged} booster pack(s)!');
+          }
+        });
   }
 
   void _toast(String msg) {
@@ -431,7 +438,8 @@ class _MapScreenState extends State<MapScreen>
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
-          SnackBar(content: Text(msg), duration: const Duration(seconds: 1)));
+        SnackBar(content: Text(msg), duration: const Duration(seconds: 1)),
+      );
   }
 
   @override
@@ -442,15 +450,16 @@ class _MapScreenState extends State<MapScreen>
         : LatLng(p.latitude, p.longitude);
     final theme = weeklyTheme(weekNumber(DateTime.now().toUtc()));
     // Map packProgress (0..100) to tube fill level (0..0.9).
-    final fillLevel =
-        (widget.state.packProgress / 100.0 * 0.9).clamp(0.0, 0.9);
+    final fillLevel = (widget.state.packProgress / 100.0 * 0.9).clamp(0.0, 0.9);
 
     // Derive tube height from screen. Update physics objects when it changes
     // (screen rotation, window resize). Mutation during build is intentional —
     // no setState needed; the ticker picks up the new values next frame.
     final mq = MediaQuery.of(context);
-    final screenTubeHeight = (mq.size.height - mq.padding.top - 100.0)
-        .clamp(100.0, double.infinity);
+    final screenTubeHeight = (mq.size.height - mq.padding.top - 100.0).clamp(
+      100.0,
+      double.infinity,
+    );
     if ((screenTubeHeight - _tubeHeight).abs() > 1.0) {
       _tubeHeight = screenTubeHeight;
       _tubePhysics = TubePhysics(tubeHeight: _tubeHeight);
@@ -554,13 +563,14 @@ class _MapScreenState extends State<MapScreen>
           child: PackStackHud(boosters: widget.state.boosters),
         ),
         SafeArea(
-            child: _Hud(
-          state: widget.state,
-          themeLabel: 'This week: ${theme.label}',
-          status: _status,
-          backgroundEnabled: _backgroundEnabled,
-          onToggleBackground: _toggleBackgroundTracking,
-        )),
+          child: _Hud(
+            state: widget.state,
+            themeLabel: 'This week: ${theme.label}',
+            status: _status,
+            backgroundEnabled: _backgroundEnabled,
+            onToggleBackground: _toggleBackgroundTracking,
+          ),
+        ),
         const Positioned(
           left: 6,
           bottom: 4,
@@ -580,8 +590,7 @@ class _MapScreenState extends State<MapScreen>
                     setState(() => _follow = true);
                     _recenter();
                   },
-            child:
-                Icon(_follow ? Icons.my_location : Icons.location_searching),
+            child: Icon(_follow ? Icons.my_location : Icons.location_searching),
           ),
         ),
       ],
@@ -663,14 +672,16 @@ class _Hud extends StatelessWidget {
   }
 
   Widget _chip(String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(text,
-            style: const TextStyle(color: Colors.white, fontSize: 13)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.6),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(
+      text,
+      style: const TextStyle(color: Colors.white, fontSize: 13),
+    ),
+  );
 }
 
 /// Animated grain tube — RIGHT side of the map screen.

@@ -41,7 +41,9 @@ double paintCellCenterLon(int ix) => (ix + 0.5) * kPaintCellDegrees;
 double paintCellAreaM2(double lat) {
   final latM = kPaintCellDegrees * _metersPerDegLat;
   final lonM =
-      kPaintCellDegrees * _metersPerDegLat * math.cos(lat * math.pi / 180.0).abs();
+      kPaintCellDegrees *
+      _metersPerDegLat *
+      math.cos(lat * math.pi / 180.0).abs();
   return latM * lonM;
 }
 
@@ -64,7 +66,8 @@ List<({int ix, int iy})> cellsWithinRadius(
 ) {
   final latSpanDeg = radiusM / _metersPerDegLat;
   final cosLat = math.cos(lat * math.pi / 180.0).abs();
-  final lonSpanDeg = radiusM / (_metersPerDegLat * (cosLat == 0 ? 1e-9 : cosLat));
+  final lonSpanDeg =
+      radiusM / (_metersPerDegLat * (cosLat == 0 ? 1e-9 : cosLat));
   final minIx = paintCellX(lon - lonSpanDeg);
   final maxIx = paintCellX(lon + lonSpanDeg);
   final minIy = paintCellY(lat - latSpanDeg);
@@ -72,7 +75,12 @@ List<({int ix, int iy})> cellsWithinRadius(
   final out = <({int ix, int iy})>[];
   for (var ix = minIx; ix <= maxIx; ix++) {
     for (var iy = minIy; iy <= maxIy; iy++) {
-      if (metersBetween(lat, lon, paintCellCenterLat(iy), paintCellCenterLon(ix)) <=
+      if (metersBetween(
+            lat,
+            lon,
+            paintCellCenterLat(iy),
+            paintCellCenterLon(ix),
+          ) <=
           radiusM) {
         out.add((ix: ix, iy: iy));
       }
@@ -170,7 +178,8 @@ class CoverageMap {
       final density = biome.densityPerKm2;
       final f = (density / kBaseDensity).clamp(0.5, 10.0);
 
-      final vol = cellExpectedYield(
+      final vol =
+          cellExpectedYield(
             cellY: iy,
             biome: biome,
             cellDegrees: kPaintCellDegrees,
@@ -199,11 +208,13 @@ class CoverageMap {
         for (var a = 0; a < kAxisCount; a++) {
           signature[a] -= consumed[a];
         }
-        grains.add(mintGrainFromSignature(
-          signature: consumed,
-          seed: _hash(_hash(day, week), _hash(id.hashCode, grainFromCell++)),
-          densityFactor: f,
-        ));
+        grains.add(
+          mintGrainFromSignature(
+            signature: consumed,
+            seed: _hash(_hash(day, week), _hash(id.hashCode, grainFromCell++)),
+            densityFactor: f,
+          ),
+        );
       }
     }
     return HarvestResult(grains: grains, newCells: fresh);

@@ -6,8 +6,11 @@ import 'package:gps_companion/data/transfer.dart';
 import 'package:gps_companion/domain/grain.dart';
 import 'package:gps_companion/domain/inventory.dart';
 
-Grain _grain(GrainType t) =>
-    Grain(axes: List<double>.filled(8, 0.01), type: t, rarity: GrainRarity.common);
+Grain _grain(GrainType t) => Grain(
+  axes: List<double>.filled(8, 0.01),
+  type: t,
+  rarity: GrainRarity.common,
+);
 
 void main() {
   group('InventoryStore encode/decode', () {
@@ -45,7 +48,10 @@ void main() {
     test('matches_desktop_contract', () {
       final payload = buildPayload(
         boosters: [
-          Booster(grains: [_grain(GrainType.earth)], forgedAt: DateTime.utc(2026)),
+          Booster(
+            grains: [_grain(GrainType.earth)],
+            forgedAt: DateTime.utc(2026),
+          ),
         ],
         deviceId: 'abc123',
         token: 'tok',
