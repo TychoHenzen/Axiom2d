@@ -463,7 +463,7 @@ public static class AxiomUiSmokeNative
     }
 
     $stage = 'seeded-state'
-    $initialState = Wait-UiState -Process $process -StateFile $stateFile -Stage $stage -TimeoutSeconds 30 -Predicate {
+    $null = Wait-UiState -Process $process -StateFile $stateFile -Stage $stage -TimeoutSeconds 30 -Predicate {
         param($state)
         $state['scenario'] -eq 'seeded-card-drag' -and
         $state['dragging'] -eq 'false' -and
@@ -564,7 +564,7 @@ public static class AxiomUiSmokeNative
     $stage = 'release-card'
     [AxiomUiSmokeNative]::LeftUp()
     $mouseDown = $false
-    $releasedState = Wait-UiState -Process $process -StateFile $stateFile -Stage $stage -TimeoutSeconds 10 -Predicate {
+    $null = Wait-UiState -Process $process -StateFile $stateFile -Stage $stage -TimeoutSeconds 10 -Predicate {
         param($state)
         $state['scenario'] -eq 'seeded-card-drag' -and
         $state['dragging'] -eq 'false' -and
