@@ -442,7 +442,7 @@ $overrides
         "notes": [
             "unsafe_blocks_total=$cur_unsafe: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
             "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
-            "test_count_total=$cur_test: all #[test] and #[tokio::test] across workspace (including tools/)",
+            "test_count_total=$cur_test: all #[test] and #[tokio::test] across engine workspace (crates/)",
             "smell_markers_total=$cur_smell: no TODO/FIXME/HACK in production code",
             "cyclomatic_over_10=$cur_cyclo: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
 ${line_coverage_note}

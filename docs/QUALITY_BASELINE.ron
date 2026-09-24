@@ -56,7 +56,7 @@
         "notes": [
             "unsafe_blocks_total=2: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
             "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
-            "test_count_total=1828: all #[test] and #[tokio::test] across workspace (including tools/)",
+            "test_count_total=1828: all #[test] and #[tokio::test] across engine workspace (crates/)",
             "smell_markers_total=0: no TODO/FIXME/HACK in production code",
             "cyclomatic_over_10=29: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
             "line_coverage_pct=79.12: Lines Cover 23,058/29,144 (79.117%) at 85d2f26becd701da2c498f418b7c6752a15e26df replaced Regions Cover 78.67% at 356c9ccbfb1342608488f87bdd20d8ed4a53c496; fresh column 4 was 28,082/36,480 (76.979%), so column 10 is the intended metric",
