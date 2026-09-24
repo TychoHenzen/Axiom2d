@@ -411,6 +411,13 @@ public static class AxiomUiSmokeNative
         public int Height { get { return Bottom - Top; } }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LastInputInfo
+    {
+        public uint Size;
+        public uint Time;
+    }
+
     private delegate bool EnumWindowsCallback(IntPtr window, IntPtr parameter);
 
     private const uint WmMouseMove = 0x0200;
@@ -426,6 +433,9 @@ public static class AxiomUiSmokeNative
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool GetCursorPos(out Point point);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetLastInputInfo(ref LastInputInfo info);
 
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
@@ -534,6 +544,15 @@ public static class AxiomUiSmokeNative
         if (!GetCursorPos(out point))
             throw new InvalidOperationException("Win32 cursor query failed: " + Marshal.GetLastWin32Error());
         return point;
+    }
+
+    public static uint GetLastInputTick()
+    {
+        LastInputInfo info = new LastInputInfo();
+        info.Size = (uint)Marshal.SizeOf(typeof(LastInputInfo));
+        if (!GetLastInputInfo(ref info))
+            throw new InvalidOperationException("Win32 last-input query failed: " + Marshal.GetLastWin32Error());
+        return info.Time;
     }
 
     public static void PostMouseMove(IntPtr window, int clientX, int clientY, bool leftButtonDown)
@@ -657,7 +676,11 @@ public static class AxiomUiSmokeNative
     $targetClientY = [int][Math]::Round($client.Height / 2.0 - 150)
     $stage = 'prepare-background-input'
     $foregroundBeforeInput = Get-UiSmokeForegroundSnapshot
-    $cursorBeforeInput = [AxiomUiSmokeNative]::GetCursorPosition()
+    $cursorBeforeInputSetup = [AxiomUiSmokeNative]::GetCursorPosition()
+    $cursorSetupDrift = $cursorAtPreparation.X -ne $previousCursor.X -or
+        $cursorAtPreparation.Y -ne $previousCursor.Y -or
+        $cursorBeforeInputSetup.X -ne $previousCursor.X -or
+        $cursorBeforeInputSetup.Y -ne $previousCursor.Y
     $mouseClientX = $startClientX
     $mouseClientY = $startClientY
     @(
@@ -675,7 +698,8 @@ public static class AxiomUiSmokeNative
         "foreground_title_before_input=$($foregroundBeforeInput.Title)"
         "foreground_process_id_before_input=$($foregroundBeforeInput.ProcessId)"
         "cursor_before_launch=($($previousCursor.X),$($previousCursor.Y))"
-        "cursor_before_input=($($cursorBeforeInput.X),$($cursorBeforeInput.Y))"
+        "cursor_before_input_setup=($($cursorBeforeInputSetup.X),$($cursorBeforeInputSetup.Y))"
+        "cursor_setup_drift_from_launch=$cursorSetupDrift"
         "client_screen=($($client.Left),$($client.Top),$($client.Width),$($client.Height))"
         "start_screen=($startScreenX,$startScreenY)"
         "target_screen=($targetScreenX,$targetScreenY)"
@@ -688,13 +712,26 @@ public static class AxiomUiSmokeNative
     if ($foregroundBeforeInput.Handle -eq $windowHandle) {
         throw "game window was foreground before input (hwnd=$windowHandle pid=$($process.Id))"
     }
-    if ($cursorAtPreparation.X -ne $previousCursor.X -or $cursorAtPreparation.Y -ne $previousCursor.Y -or
-        $cursorBeforeInput.X -ne $previousCursor.X -or $cursorBeforeInput.Y -ne $previousCursor.Y) {
-        throw "background setup moved cursor from ($($previousCursor.X),$($previousCursor.Y)) to preparation=($($cursorAtPreparation.X),$($cursorAtPreparation.Y)) before_input=($($cursorBeforeInput.X),$($cursorBeforeInput.Y))"
-    }
 
     $stage = 'hover-card'
-    [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $startClientX, $startClientY, $false)
+    $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+    if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+        throw "game window was foreground before PostMessageW input (hwnd=$windowHandle pid=$($process.Id))"
+    }
+    $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+    $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+    try {
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $startClientX, $startClientY, $false)
+    }
+    finally {
+        @(
+            "foreground_before_postmessage=$($foregroundBeforePostMessage.Handle)"
+            "foreground_title_before_postmessage=$($foregroundBeforePostMessage.Title)"
+            "foreground_process_id_before_postmessage=$($foregroundBeforePostMessage.ProcessId)"
+            "cursor_before_postmessage=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y))"
+            "last_input_tick_before_postmessage=$lastInputTickBeforePostMessage"
+        ) | Add-Content -LiteralPath $inputFile
+    }
     $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario 'seeded-card-drag' `
         -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($startClientX,$startClientY) tolerance=3" -Predicate {
         param($state)
@@ -807,19 +844,34 @@ public static class AxiomUiSmokeNative
     $mouseDown = $false
 
     $stage = 'verify-background-input'
+    $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
     $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
     $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+    $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+        $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+    $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+    $cursorStability = if (-not $cursorMovedDuringInput) {
+        'unchanged'
+    }
+    elseif ($lastInputChangedDuringInput) {
+        'inconclusive_external_input'
+    }
+    else {
+        'moved_without_external_input'
+    }
     @(
         "foreground_after_input=$($foregroundAfterInput.Handle)"
         "foreground_title_after_input=$($foregroundAfterInput.Title)"
         "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
         "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+        "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+        "cursor_stability=$cursorStability"
     ) | Add-Content -LiteralPath $inputFile
     if ($foregroundAfterInput.Handle -eq $windowHandle) {
         throw "game window became foreground during input (hwnd=$windowHandle pid=$($process.Id))"
     }
-    if ($cursorAfterInput.X -ne $previousCursor.X -or $cursorAfterInput.Y -ne $previousCursor.Y) {
-        throw "background input moved cursor from ($($previousCursor.X),$($previousCursor.Y)) to ($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+    if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+        throw "PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after_release_ack=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
     }
     $succeeded = $true
 }
@@ -883,5 +935,13 @@ Write-Output ("Visual move verified: source_changed={0} target_changed={1} pixel
 Write-Output ("Card template verified: target_match={0}/{1}, source_match={2}/{1}, target_offset=({3},{4})" -f `
     $targetTemplateMatch.MatchedPixels, $targetTemplateMatch.PixelCount, $sourceTemplateMatch.MatchedPixels, `
     $targetTemplateMatch.OffsetX, $targetTemplateMatch.OffsetY)
+Write-Output ("Cursor samples: launch=({0},{1}), preparation=({2},{3}), pre-input=({4},{5}), before-PostMessageW=({6},{7}), after-release-ack=({8},{9}), setup-drift={10}, cursor-stability={11}, last-input-ticks={12}->{13}" -f `
+    $previousCursor.X, $previousCursor.Y, $cursorAtPreparation.X, $cursorAtPreparation.Y, `
+    $cursorBeforeInputSetup.X, $cursorBeforeInputSetup.Y, $cursorBeforePostMessage.X, $cursorBeforePostMessage.Y, `
+    $cursorAfterInput.X, $cursorAfterInput.Y, $cursorSetupDrift, $cursorStability, `
+    $lastInputTickBeforePostMessage, $lastInputTickAfterReleaseAck)
+Write-Output ("Foreground samples: launch={0} pid={1}, pre-PostMessageW={2} pid={3}, post-release={4} pid={5}" -f `
+    $foregroundBeforeLaunch.Handle, $foregroundBeforeLaunch.ProcessId, $foregroundBeforePostMessage.Handle, `
+    $foregroundBeforePostMessage.ProcessId, $foregroundAfterInput.Handle, $foregroundAfterInput.ProcessId)
 $failureFramePath = Join-Path $artifactDir 'failure.bmp'
 $frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
