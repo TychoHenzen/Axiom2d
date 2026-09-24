@@ -8,13 +8,18 @@ $stdoutPath = Join-Path $artifactDir 'app.stdout.log'
 $stderrPath = Join-Path $artifactDir 'app.stderr.log'
 $baselineFramePath = Join-Path $artifactDir 'baseline.bmp'
 $framePath = Join-Path $artifactDir 'frame.bmp'
+$failureFramePath = Join-Path $artifactDir 'failure.bmp'
+$frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
 $process = $null
 $windowHandle = [IntPtr]::Zero
 $foregroundBeforeLaunch = $null
 $previousCursor = $null
 $previousDpiContext = [IntPtr]::Zero
 $mouseDown = $false
+$leftPressObserved = $false
 $succeeded = $false
+$cleanupFailure = $null
+$failureCaptureError = $null
 $stage = 'setup'
 
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
@@ -38,6 +43,9 @@ function Read-UiState {
             }
         }
         if ($state.Count -lt 8) { return $null }
+        if ($script:mouseDown -and $state['left_pressed'] -eq 'true') {
+            $script:leftPressObserved = $true
+        }
         return ,$state
     }
     catch {
@@ -896,25 +904,58 @@ finally {
                 -CapturePath $failureFramePath -Stage 'failure-frame-capture' -TimeoutSeconds 10
         }
         catch {
+            $failureCaptureError = $_.Exception.Message
+            [Console]::Error.WriteLine("UI smoke failure: scenario=seeded-card-drag stage=failure-frame-capture $failureCaptureError")
         }
     }
     if ($mouseDown) {
-        try { [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY) } catch { }
+        try {
+            $null = Read-UiState -Path $stateFile
+            [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+            if ($leftPressObserved) {
+                $cleanupReleaseState = Wait-UiState -Process $process -StateFile $stateFile `
+                    -Scenario 'seeded-card-drag' -Stage 'cleanup-release' -TimeoutSeconds 3 `
+                    -ExpectedState 'dragging=false, left_pressed=false' -Predicate {
+                        param($state)
+                        $state['dragging'] -eq 'false' -and $state['left_pressed'] -eq 'false'
+                    }
+                $cleanupReleaseState.GetEnumerator() | ForEach-Object {
+                    '{0}={1}' -f $_.Key, $_.Value
+                } | Set-Content -LiteralPath (Join-Path $artifactDir 'cleanup-release-state.txt')
+                $mouseDown = $false
+            }
+            else {
+                $cleanupFailure = 'button-up was posted, but left_pressed=true was never observed; release acknowledgment unavailable'
+                $cleanupFailure | Set-Content -LiteralPath (Join-Path $artifactDir 'cleanup-release.error.txt')
+            }
+        }
+        catch {
+            $cleanupFailure = "cleanup release was not acknowledged: $($_.Exception.Message)"
+            $cleanupFailure | Set-Content -LiteralPath (Join-Path $artifactDir 'cleanup-release.error.txt')
+        }
     }
     if ($null -ne $process) {
         try {
             $process.Refresh()
             if (-not $process.HasExited) {
                 Stop-Process -Id $process.Id -Force
-                $null = $process.WaitForExit(5000)
+                if (-not $process.WaitForExit(5000)) {
+                    $cleanupFailure = "game process $($process.Id) did not exit within 5 seconds"
+                }
             }
         }
         catch {
+            $cleanupFailure = "game process cleanup failed: $($_.Exception.Message)"
         }
     }
     if ($previousDpiContext -ne [IntPtr]::Zero) {
         try { [AxiomUiSmokeNative]::RestoreDpiContext($previousDpiContext) } catch { }
     }
+}
+
+if ($null -ne $cleanupFailure) {
+    $succeeded = $false
+    [Console]::Error.WriteLine("UI smoke failed: scenario=seeded-card-drag stage=cleanup $cleanupFailure")
 }
 
 if (-not $succeeded) {
@@ -943,5 +984,3 @@ Write-Output ("Cursor samples: launch=({0},{1}), preparation=({2},{3}), pre-inpu
 Write-Output ("Foreground samples: launch={0} pid={1}, pre-PostMessageW={2} pid={3}, post-release={4} pid={5}" -f `
     $foregroundBeforeLaunch.Handle, $foregroundBeforeLaunch.ProcessId, $foregroundBeforePostMessage.Handle, `
     $foregroundBeforePostMessage.ProcessId, $foregroundAfterInput.Handle, $foregroundAfterInput.ProcessId)
-$failureFramePath = Join-Path $artifactDir 'failure.bmp'
-$frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
