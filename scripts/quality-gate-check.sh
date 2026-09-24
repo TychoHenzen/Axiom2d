@@ -333,6 +333,17 @@ update_baseline() {
         cur_clones=$(ron_value "jscpd_clone_count")
     fi
 
+    local overrides
+    overrides=$(awk '
+        /^    "overrides": \{/ { in_overrides = 1 }
+        in_overrides && /^    "meta": \{/ { exit }
+        in_overrides { print }
+    ' "$BASELINE")
+    if [ -z "$overrides" ]; then
+        echo "Cannot update baseline: overrides block is missing." >&2
+        return 1
+    fi
+
     cat > "$BASELINE" << RONEOF
 // Quality Gate Baseline — ratchet thresholds for CI enforcement.
 // Auto-updated: $today
@@ -371,13 +382,7 @@ update_baseline() {
         "nesting_depth": 12,
         "file_length_lines": 861,
     },
-    "overrides": {
-        // "unsafe_blocks_total": {
-        //     "value": 3,
-        //     "reason": "GPU buffer mapping requires unsafe for zero-copy",
-        //     "pr": "#NNN",
-        // },
-    },
+$overrides
     "meta": {
         "last_updated": "$today",
         "schema_version": 2,
