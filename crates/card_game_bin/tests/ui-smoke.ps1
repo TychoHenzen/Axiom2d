@@ -1,7 +1,57 @@
+param(
+    [switch]$RunnerChild,
+    [string]$RunnerArtifactDirectory
+)
+
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
-$artifactDir = Join-Path $repoRoot (Join-Path 'target' ("ui-smoke-{0}" -f [guid]::NewGuid().ToString('N')))
+$artifactDir = if ($RunnerChild) {
+    $RunnerArtifactDirectory
+}
+else {
+    Join-Path $repoRoot (Join-Path 'target' ("ui-smoke-{0}" -f [guid]::NewGuid().ToString('N')))
+}
+
+if (-not $RunnerChild) {
+    New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
+    $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
+    $runnerStderrPath = Join-Path $artifactDir 'runner.stderr.log'
+    $runnerExitCodePath = Join-Path $artifactDir 'runner.exitcode.txt'
+    $utf8WithoutBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($runnerStdoutPath, '', $utf8WithoutBom)
+    [System.IO.File]::WriteAllText($runnerStderrPath, '', $utf8WithoutBom)
+    [System.IO.File]::WriteAllText($runnerExitCodePath, 'running', $utf8WithoutBom)
+
+    $runnerExitCode = 1
+    try {
+        $runnerProcess = Start-Process -FilePath (Get-Process -Id $PID).Path `
+            -ArgumentList @('-NoProfile', '-File', "`"$PSCommandPath`"", `
+                '-RunnerChild', '-RunnerArtifactDirectory', "`"$artifactDir`"") `
+            -WorkingDirectory $repoRoot `
+            -NoNewWindow `
+            -PassThru `
+            -Wait `
+            -RedirectStandardOutput $runnerStdoutPath `
+            -RedirectStandardError $runnerStderrPath
+        $runnerProcess.Refresh()
+        $runnerExitCode = $runnerProcess.ExitCode
+    }
+    catch {
+        $message = "runner launch failed: $($_.Exception.Message)$([Environment]::NewLine)"
+        [System.IO.File]::AppendAllText($runnerStderrPath, $message, $utf8WithoutBom)
+    }
+
+    [System.IO.File]::WriteAllText($runnerExitCodePath, "$runnerExitCode`r`n", $utf8WithoutBom)
+    [Console]::Out.Write([System.IO.File]::ReadAllText($runnerStdoutPath))
+    [Console]::Error.Write([System.IO.File]::ReadAllText($runnerStderrPath))
+    exit $runnerExitCode
+}
+
+if ([string]::IsNullOrWhiteSpace($artifactDir)) {
+    throw 'RunnerArtifactDirectory is required for an inner run'
+}
+
 $stateFile = Join-Path $artifactDir 'state.txt'
 $inputFile = Join-Path $artifactDir 'input.txt'
 $stdoutPath = Join-Path $artifactDir 'app.stdout.log'
