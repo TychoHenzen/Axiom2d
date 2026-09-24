@@ -1,3 +1,8 @@
+use std::{
+    io::Write,
+    path::{Path, PathBuf},
+};
+
 use engine_core::color::Color;
 
 use crate::rect::Rect;
@@ -30,7 +35,141 @@ enum BoundShapeSource {
 
 const MODEL_UNIFORM_SIZE: usize = std::mem::size_of::<[[f32; 4]; 4]>();
 
+struct PendingFrameCapture {
+    request_file: PathBuf,
+    output_file: PathBuf,
+    buffer: wgpu::Buffer,
+    bytes_per_row: u32,
+    width: u32,
+    height: u32,
+    format: wgpu::TextureFormat,
+}
+
 impl WgpuRenderer {
+    fn begin_frame_capture(
+        &self,
+        texture: &wgpu::Texture,
+        encoder: &mut wgpu::CommandEncoder,
+    ) -> Option<PendingFrameCapture> {
+        let request_file = self.frame_capture_request_file.as_deref()?;
+        if !request_file.exists() {
+            return None;
+        }
+
+        let processing_file = request_file.with_extension("processing");
+        if let Err(error) = std::fs::rename(request_file, &processing_file) {
+            if request_file.exists() {
+                report_frame_capture_result(
+                    request_file,
+                    Err(format!("could not claim capture request: {error}")),
+                );
+            }
+            return None;
+        }
+
+        let output_path = std::fs::read_to_string(&processing_file)
+            .map(|path| PathBuf::from(path.trim()))
+            .map_err(|error| format!("could not read capture output path: {error}"))
+            .and_then(|path| {
+                if path.as_os_str().is_empty() {
+                    Err("capture output path was empty".to_owned())
+                } else {
+                    Ok(path)
+                }
+            });
+        let remove_result = std::fs::remove_file(&processing_file);
+        if let Err(error) = remove_result {
+            report_frame_capture_result(
+                request_file,
+                Err(format!("could not consume capture request: {error}")),
+            );
+            return None;
+        }
+        let output_file = match output_path {
+            Ok(path) => path,
+            Err(error) => {
+                report_frame_capture_result(request_file, Err(error));
+                return None;
+            }
+        };
+
+        if !matches!(
+            self.surface_format,
+            wgpu::TextureFormat::Bgra8Unorm
+                | wgpu::TextureFormat::Bgra8UnormSrgb
+                | wgpu::TextureFormat::Rgba8Unorm
+                | wgpu::TextureFormat::Rgba8UnormSrgb
+        ) {
+            report_frame_capture_result(
+                request_file,
+                Err(format!(
+                    "unsupported surface format for BMP capture: {:?}",
+                    self.surface_format
+                )),
+            );
+            return None;
+        }
+
+        let row_bytes = match self.config.width.checked_mul(4) {
+            Some(bytes) => bytes,
+            None => {
+                report_frame_capture_result(
+                    request_file,
+                    Err("surface row size overflowed".to_owned()),
+                );
+                return None;
+            }
+        };
+        let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+        let Some(bytes_per_row) = row_bytes.div_ceil(alignment).checked_mul(alignment) else {
+            report_frame_capture_result(
+                request_file,
+                Err("aligned surface row size overflowed".to_owned()),
+            );
+            return None;
+        };
+        let Some(buffer_size) = u64::from(bytes_per_row).checked_mul(u64::from(self.config.height))
+        else {
+            report_frame_capture_result(
+                request_file,
+                Err("surface staging buffer size overflowed".to_owned()),
+            );
+            return None;
+        };
+        let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("ui-test-frame-capture"),
+            size: buffer_size,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        super::copy_texture_to_staging(
+            encoder,
+            texture,
+            &buffer,
+            self.config.width,
+            self.config.height,
+            bytes_per_row,
+        );
+
+        Some(PendingFrameCapture {
+            request_file: request_file.to_path_buf(),
+            output_file,
+            buffer,
+            bytes_per_row,
+            width: self.config.width,
+            height: self.config.height,
+            format: self.surface_format,
+        })
+    }
+
+    fn finish_frame_capture(&self, capture: PendingFrameCapture) {
+        let result = save_frame_capture(&self.device, &capture);
+        if let Err(error) = &result {
+            tracing::error!("UI test frame capture failed: {error}");
+        }
+        report_frame_capture_result(&capture.request_file, result);
+    }
+
     fn begin_scene_pass<'a>(
         encoder: &'a mut wgpu::CommandEncoder,
         msaa_view: &'a wgpu::TextureView,
@@ -426,6 +565,189 @@ fn write_bloom_param(queue: &wgpu::Queue, buffer: &wgpu::Buffer, uniform: &Bloom
     queue.write_buffer(buffer, 0, bytemuck::bytes_of(uniform));
 }
 
+fn save_frame_capture(device: &wgpu::Device, capture: &PendingFrameCapture) -> Result<(), String> {
+    let slice = capture.buffer.slice(..);
+    let (sender, receiver) = std::sync::mpsc::channel();
+    slice.map_async(wgpu::MapMode::Read, move |result| {
+        let _ = sender.send(result);
+    });
+    let _ = device.poll(wgpu::Maintain::Wait);
+    receiver
+        .recv()
+        .map_err(|error| format!("capture map callback failed: {error}"))?
+        .map_err(|error| format!("capture buffer map failed: {error:?}"))?;
+
+    let pixels = slice.get_mapped_range();
+    let result = write_frame_bmp(
+        &capture.output_file,
+        capture.width,
+        capture.height,
+        capture.bytes_per_row,
+        capture.format,
+        &pixels,
+    );
+    drop(pixels);
+    capture.buffer.unmap();
+    result
+}
+
+fn write_frame_bmp(
+    path: &Path,
+    width: u32,
+    height: u32,
+    bytes_per_row: u32,
+    format: wgpu::TextureFormat,
+    pixels: &[u8],
+) -> Result<(), String> {
+    let row_bytes = width
+        .checked_mul(4)
+        .ok_or_else(|| "BMP row size overflowed".to_owned())?;
+    let image_size = row_bytes
+        .checked_mul(height)
+        .ok_or_else(|| "BMP image size overflowed".to_owned())?;
+    let file_size = image_size
+        .checked_add(54)
+        .ok_or_else(|| "BMP file size overflowed".to_owned())?;
+    let height_usize =
+        usize::try_from(height).map_err(|_| "BMP height exceeds usize".to_owned())?;
+    let width = i32::try_from(width).map_err(|_| "BMP width exceeds i32".to_owned())?;
+    let height = i32::try_from(height).map_err(|_| "BMP height exceeds i32".to_owned())?;
+    let source_pitch =
+        usize::try_from(bytes_per_row).map_err(|_| "capture row pitch exceeds usize".to_owned())?;
+    let row_bytes =
+        usize::try_from(row_bytes).map_err(|_| "BMP row size exceeds usize".to_owned())?;
+    if source_pitch < row_bytes {
+        return Err("capture row pitch was smaller than the pixel row".to_owned());
+    }
+    let required_pixels = source_pitch
+        .checked_mul(height_usize)
+        .ok_or_else(|| "capture buffer size overflowed".to_owned())?;
+    if pixels.len() < required_pixels {
+        return Err("capture buffer was shorter than the surface dimensions".to_owned());
+    }
+    let bgra_format = matches!(
+        format,
+        wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Bgra8UnormSrgb
+    );
+    let rgba_format = matches!(
+        format,
+        wgpu::TextureFormat::Rgba8Unorm | wgpu::TextureFormat::Rgba8UnormSrgb
+    );
+    if !bgra_format && !rgba_format {
+        return Err(format!(
+            "unsupported surface format for BMP capture: {format:?}"
+        ));
+    }
+
+    let mut header = Vec::with_capacity(54);
+    header.extend_from_slice(b"BM");
+    header.extend_from_slice(&file_size.to_le_bytes());
+    header.extend_from_slice(&0u32.to_le_bytes());
+    header.extend_from_slice(&54u32.to_le_bytes());
+    header.extend_from_slice(&40u32.to_le_bytes());
+    header.extend_from_slice(&width.to_le_bytes());
+    header.extend_from_slice(&height.to_le_bytes());
+    header.extend_from_slice(&1u16.to_le_bytes());
+    header.extend_from_slice(&32u16.to_le_bytes());
+    header.extend_from_slice(&0u32.to_le_bytes());
+    header.extend_from_slice(&image_size.to_le_bytes());
+    header.extend_from_slice(&0i32.to_le_bytes());
+    header.extend_from_slice(&0i32.to_le_bytes());
+    header.extend_from_slice(&0u32.to_le_bytes());
+    header.extend_from_slice(&0u32.to_le_bytes());
+
+    let mut output = std::fs::File::create(path).map_err(|error| error.to_string())?;
+    output
+        .write_all(&header)
+        .map_err(|error| error.to_string())?;
+    let mut converted_row = vec![0; row_bytes];
+    for row_index in (0..height_usize).rev() {
+        let row_start = row_index * source_pitch;
+        let row = &pixels[row_start..row_start + row_bytes];
+        if bgra_format {
+            output.write_all(row).map_err(|error| error.to_string())?;
+        } else {
+            for (source_pixel, bmp_pixel) in
+                row.chunks_exact(4).zip(converted_row.chunks_exact_mut(4))
+            {
+                bmp_pixel.copy_from_slice(&[
+                    source_pixel[2],
+                    source_pixel[1],
+                    source_pixel[0],
+                    source_pixel[3],
+                ]);
+            }
+            output
+                .write_all(&converted_row)
+                .map_err(|error| error.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+fn report_frame_capture_result(request_file: &Path, result: Result<(), String>) {
+    let result_file = request_file.with_extension("result");
+    let temporary_result_file = request_file.with_extension("result.tmp");
+    let contents = match result {
+        Ok(()) => "ok\n".to_owned(),
+        Err(error) => format!("error={error}\n"),
+    };
+    if let Err(error) = std::fs::write(&temporary_result_file, contents)
+        .and_then(|()| std::fs::rename(&temporary_result_file, &result_file))
+    {
+        tracing::error!("failed to report UI test frame capture result: {error}");
+    }
+}
+
+#[cfg(test)]
+mod frame_capture_tests {
+    use super::write_frame_bmp;
+
+    #[test]
+    fn writes_padded_bgra_and_rgba_rows_to_bmp() -> Result<(), String> {
+        let rgba_path = std::env::temp_dir().join(format!(
+            "axiom2d-frame-capture-{}-rgba.bmp",
+            std::process::id()
+        ));
+        let bgra_path = rgba_path.with_file_name(format!(
+            "axiom2d-frame-capture-{}-bgra.bmp",
+            std::process::id()
+        ));
+        let mut rgba_pixels = vec![0xff; 512];
+        rgba_pixels[..4].copy_from_slice(&[1, 2, 3, 4]);
+        rgba_pixels[256..260].copy_from_slice(&[5, 6, 7, 8]);
+        let mut bgra_pixels = vec![0xff; 512];
+        bgra_pixels[..4].copy_from_slice(&[3, 2, 1, 4]);
+        bgra_pixels[256..260].copy_from_slice(&[7, 6, 5, 8]);
+
+        write_frame_bmp(
+            &rgba_path,
+            1,
+            2,
+            256,
+            wgpu::TextureFormat::Rgba8Unorm,
+            &rgba_pixels,
+        )?;
+        write_frame_bmp(
+            &bgra_path,
+            1,
+            2,
+            256,
+            wgpu::TextureFormat::Bgra8Unorm,
+            &bgra_pixels,
+        )?;
+
+        let rgba_bmp = std::fs::read(&rgba_path).map_err(|error| error.to_string())?;
+        let bgra_bmp = std::fs::read(&bgra_path).map_err(|error| error.to_string())?;
+        assert_eq!(rgba_bmp.len(), 62);
+        assert_eq!(&rgba_bmp[54..], &[7, 6, 5, 8, 3, 2, 1, 4]);
+        assert_eq!(bgra_bmp, rgba_bmp);
+        std::fs::remove_file(rgba_path).map_err(|error| error.to_string())?;
+        std::fs::remove_file(bgra_path).map_err(|error| error.to_string())?;
+        Ok(())
+    }
+}
+
 impl Renderer for WgpuRenderer {
     fn clear(&mut self, color: Color) {
         self.clear_color = color;
@@ -640,8 +962,12 @@ impl Renderer for WgpuRenderer {
         } else {
             self.draw_scene_to(&mut encoder, &view);
         }
+        let capture = self.begin_frame_capture(&frame.texture, &mut encoder);
         self.queue.submit(Some(encoder.finish()));
         frame.present();
+        if let Some(capture) = capture {
+            self.finish_frame_capture(capture);
+        }
     }
 
     fn resize(&mut self, width: u32, height: u32) {

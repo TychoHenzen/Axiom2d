@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use wgpu::util::DeviceExt;
 use winit::window::Window;
@@ -19,6 +19,7 @@ pub(super) struct GpuContext {
     pub(super) device: wgpu::Device,
     pub(super) queue: wgpu::Queue,
     pub(super) config: wgpu::SurfaceConfiguration,
+    pub(super) frame_capture_request_file: Option<PathBuf>,
 }
 
 pub(super) struct CameraResources {
@@ -75,6 +76,8 @@ fn request_adapter_and_device(
 }
 
 pub(super) fn init_gpu(window: Arc<Window>, config: &WindowConfig) -> GpuContext {
+    let frame_capture_request_file =
+        std::env::var_os("AXIOM_UI_TEST_FRAME_CAPTURE_REQUEST_FILE").map(PathBuf::from);
     let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
     // INVARIANT: Surface creation fails only on incompatible window handles.
     // The window was just created by winit, so this is unreachable.
@@ -82,13 +85,20 @@ pub(super) fn init_gpu(window: Arc<Window>, config: &WindowConfig) -> GpuContext
         .create_surface(window.clone())
         .expect("failed to create surface");
     let (adapter, device, queue) = request_adapter_and_device(&instance, &surface);
-    let surface_config = configure_surface(&surface, &adapter, config, &window);
+    let surface_config = configure_surface(
+        &surface,
+        &adapter,
+        config,
+        &window,
+        frame_capture_request_file.is_some(),
+    );
     surface.configure(&device, &surface_config);
     GpuContext {
         surface,
         device,
         queue,
         config: surface_config,
+        frame_capture_request_file,
     }
 }
 
@@ -97,9 +107,18 @@ fn configure_surface(
     adapter: &wgpu::Adapter,
     config: &WindowConfig,
     window: &Window,
+    frame_capture_requested: bool,
 ) -> wgpu::SurfaceConfiguration {
     let size = window.inner_size();
     let caps = surface.get_capabilities(adapter);
+    let mut usage = wgpu::TextureUsages::RENDER_ATTACHMENT;
+    if frame_capture_requested {
+        assert!(
+            caps.usages.contains(wgpu::TextureUsages::COPY_SRC),
+            "UI test frame capture requested but surface does not support COPY_SRC"
+        );
+        usage |= wgpu::TextureUsages::COPY_SRC;
+    }
     let format = caps
         .formats
         .iter()
@@ -122,7 +141,7 @@ fn configure_surface(
         wgpu::PresentMode::AutoNoVsync
     };
     wgpu::SurfaceConfiguration {
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        usage,
         format,
         width: size.width.max(1),
         height: size.height.max(1),

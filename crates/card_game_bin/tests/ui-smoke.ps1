@@ -6,10 +6,11 @@ $stateFile = Join-Path $artifactDir 'state.txt'
 $inputFile = Join-Path $artifactDir 'input.txt'
 $stdoutPath = Join-Path $artifactDir 'app.stdout.log'
 $stderrPath = Join-Path $artifactDir 'app.stderr.log'
+$baselineFramePath = Join-Path $artifactDir 'baseline.bmp'
 $framePath = Join-Path $artifactDir 'frame.bmp'
 $process = $null
 $windowHandle = [IntPtr]::Zero
-$previousForeground = $null
+$foregroundBeforeLaunch = $null
 $previousCursor = $null
 $previousDpiContext = [IntPtr]::Zero
 $mouseDown = $false
@@ -68,12 +69,25 @@ function Test-Position {
     }
 }
 
+function Format-UiStateDiagnostic {
+    param([hashtable]$State)
+
+    if ($null -eq $State) {
+        return 'none (no complete state snapshot)'
+    }
+    return ("scenario={0}, dragging={1}, zone={2}, rendered=({3},{4}), mouse=({5},{6}), left_pressed={7}" -f `
+        $State['scenario'], $State['dragging'], $State['zone'], $State['rendered_x'], `
+        $State['rendered_y'], $State['mouse_x'], $State['mouse_y'], $State['left_pressed'])
+}
+
 function Wait-UiState {
     param(
         [System.Diagnostics.Process]$Process,
         [string]$StateFile,
+        [string]$Scenario,
         [string]$Stage,
         [int]$TimeoutSeconds,
+        [string]$ExpectedState,
         [scriptblock]$Predicate
     )
 
@@ -82,28 +96,298 @@ function Wait-UiState {
     while ($watch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
         $Process.Refresh()
         if ($Process.HasExited) {
-            throw "stage=${Stage}: game process exited with code $($Process.ExitCode)"
+            $observedState = Read-UiState -Path $StateFile
+            if ($null -ne $observedState) { $lastState = $observedState }
+            $lastObserved = Format-UiStateDiagnostic -State $lastState
+            throw ("scenario={0} stage={1}: game process exited with code {2}; expected=[{3}]; last_observed=[{4}]" -f `
+                $Scenario, $Stage, $Process.ExitCode, $ExpectedState, $lastObserved)
         }
-        $lastState = Read-UiState -Path $StateFile
-        if ($null -ne $lastState -and (& $Predicate $lastState)) {
-            return $lastState
+        $observedState = Read-UiState -Path $StateFile
+        if ($null -ne $observedState) {
+            $lastState = $observedState
+            if (& $Predicate $observedState) {
+                return $observedState
+            }
         }
         Start-Sleep -Milliseconds 200
     }
 
-    if ($null -eq $lastState) {
-        throw "stage=${Stage}: no complete state snapshot within $TimeoutSeconds seconds"
+    $lastObserved = Format-UiStateDiagnostic -State $lastState
+    throw ("scenario={0} stage={1}: timed out after {2}s; expected=[{3}]; last_observed=[{4}]" -f `
+        $Scenario, $Stage, $TimeoutSeconds, $ExpectedState, $lastObserved)
+}
+
+function Request-GameFrameCapture {
+    param(
+        [System.Diagnostics.Process]$Process,
+        [string]$RequestFile,
+        [string]$CapturePath,
+        [string]$Stage,
+        [int]$TimeoutSeconds = 10
+    )
+
+    $resultFile = [System.IO.Path]::ChangeExtension($RequestFile, 'result')
+    foreach ($stalePath in @($RequestFile, $resultFile)) {
+        if (Test-Path -LiteralPath $stalePath) {
+            Remove-Item -LiteralPath $stalePath -Force
+        }
     }
-    throw ("stage={0}: timed out after {1}s; observed dragging={2}, zone={3}, rendered=({4},{5}), mouse=({6},{7}), left_pressed={8}" -f `
-        $Stage, $TimeoutSeconds, $lastState['dragging'], $lastState['zone'], `
-        $lastState['rendered_x'], $lastState['rendered_y'], $lastState['mouse_x'], `
-        $lastState['mouse_y'], $lastState['left_pressed'])
+    $temporaryRequestFile = "$RequestFile.$PID.tmp"
+    [System.IO.File]::WriteAllText(
+        $temporaryRequestFile,
+        $CapturePath,
+        [System.Text.UTF8Encoding]::new($false))
+    Move-Item -LiteralPath $temporaryRequestFile -Destination $RequestFile -Force
+
+    $watch = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($watch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        if (Test-Path -LiteralPath $resultFile) {
+            $result = [System.IO.File]::ReadAllText($resultFile).Trim()
+            if ($result.StartsWith('error=', [StringComparison]::OrdinalIgnoreCase)) {
+                throw "stage=${Stage}: frame capture failed: $($result.Substring(6))"
+            }
+            if ($result -ne 'ok') {
+                throw "stage=${Stage}: invalid frame capture response '$result'"
+            }
+            if (-not (Test-Path -LiteralPath $CapturePath) -or
+                (Get-Item -LiteralPath $CapturePath).Length -eq 0) {
+                throw "stage=${Stage}: frame capture response was ok but the BMP is missing or empty"
+            }
+            return
+        }
+
+        $Process.Refresh()
+        if ($Process.HasExited) {
+            throw "stage=${Stage}: game process exited before returning frame capture status (exit $($Process.ExitCode))"
+        }
+        Start-Sleep -Milliseconds 100
+    }
+    throw "stage=${Stage}: timed out after ${TimeoutSeconds}s waiting for game-frame capture"
+}
+
+function Read-UiSmokeBitmap {
+    param([string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -lt 54 -or [System.Text.Encoding]::ASCII.GetString($bytes, 0, 2) -ne 'BM') {
+        throw "invalid BMP header: $Path"
+    }
+    $pixelOffset = [int][BitConverter]::ToUInt32($bytes, 10)
+    $dibSize = [BitConverter]::ToInt32($bytes, 14)
+    $width = [BitConverter]::ToInt32($bytes, 18)
+    $signedHeight = [BitConverter]::ToInt32($bytes, 22)
+    $planes = [BitConverter]::ToInt16($bytes, 26)
+    $bitsPerPixel = [BitConverter]::ToInt16($bytes, 28)
+    $compression = [BitConverter]::ToInt32($bytes, 30)
+    if ($dibSize -lt 40 -or $width -le 0 -or $signedHeight -eq 0 -or
+        $planes -ne 1 -or $bitsPerPixel -ne 32 -or $compression -ne 0 -or $pixelOffset -lt 54) {
+        throw "unsupported BMP layout: $Path"
+    }
+
+    $height = [int][Math]::Abs([long]$signedHeight)
+    $rowStride = [long]$width * 4
+    $requiredLength = [long]$pixelOffset + $rowStride * $height
+    if ($requiredLength -gt $bytes.LongLength) {
+        throw "BMP pixel data is truncated: $Path"
+    }
+    return @{
+        Bytes = $bytes
+        Width = $width
+        Height = $height
+        RowStride = [int]$rowStride
+        PixelOffset = $pixelOffset
+        TopDown = $signedHeight -lt 0
+    }
+}
+
+function Get-UiSmokeChangedPixels {
+    param(
+        [hashtable]$Before,
+        [hashtable]$After,
+        [int]$CenterX,
+        [int]$CenterY,
+        [int]$HalfWidth = 55,
+        [int]$HalfHeight = 70,
+        [int]$RgbDeltaThreshold = 24
+    )
+
+    if ($Before.Width -ne $After.Width -or $Before.Height -ne $After.Height) {
+        throw 'frame dimensions differ'
+    }
+    $left = [Math]::Max(0, $CenterX - $HalfWidth)
+    $right = [Math]::Min($Before.Width - 1, $CenterX + $HalfWidth)
+    $top = [Math]::Max(0, $CenterY - $HalfHeight)
+    $bottom = [Math]::Min($Before.Height - 1, $CenterY + $HalfHeight)
+    $changedPixels = 0
+    for ($y = $top; $y -le $bottom; $y++) {
+        $beforeY = if ($Before.TopDown) { $y } else { $Before.Height - 1 - $y }
+        $afterY = if ($After.TopDown) { $y } else { $After.Height - 1 - $y }
+        $beforeRow = $Before.PixelOffset + $beforeY * $Before.RowStride
+        $afterRow = $After.PixelOffset + $afterY * $After.RowStride
+        for ($x = $left; $x -le $right; $x++) {
+            $beforePixel = $beforeRow + $x * 4
+            $afterPixel = $afterRow + $x * 4
+            $rgbDelta = [Math]::Abs([int]$Before.Bytes[$beforePixel] - [int]$After.Bytes[$afterPixel]) +
+                [Math]::Abs([int]$Before.Bytes[$beforePixel + 1] - [int]$After.Bytes[$afterPixel + 1]) +
+                [Math]::Abs([int]$Before.Bytes[$beforePixel + 2] - [int]$After.Bytes[$afterPixel + 2])
+            if ($rgbDelta -ge $RgbDeltaThreshold) {
+                $changedPixels++
+            }
+        }
+    }
+    return @{
+        Left = $left
+        Top = $top
+        Width = $right - $left + 1
+        Height = $bottom - $top + 1
+        ChangedPixels = $changedPixels
+    }
+}
+
+function Get-UiSmokeForegroundSnapshot {
+    $window = [AxiomUiSmokeNative]::GetForegroundWindow()
+    return [pscustomobject]@{
+        Handle = $window
+        Title = [AxiomUiSmokeNative]::GetWindowTitle($window)
+        ProcessId = [AxiomUiSmokeNative]::GetWindowProcessId($window)
+    }
+}
+
+function New-UiSmokeCardTemplate {
+    param(
+        [hashtable]$Frame,
+        [int]$CenterX,
+        [int]$CenterY,
+        [int]$Width = 20,
+        [int]$Height = 24
+    )
+
+    $left = $CenterX - [int][Math]::Floor($Width / 2.0)
+    $top = $CenterY - [int][Math]::Floor($Height / 2.0)
+    if ($left -lt 0 -or $top -lt 0 -or $left + $Width -gt $Frame.Width -or $top + $Height -gt $Frame.Height) {
+        throw 'baseline card template would exceed the captured frame'
+    }
+    $pixels = [byte[]]::new($Width * $Height * 3)
+    $colors = [System.Collections.Generic.HashSet[int]]::new()
+    for ($y = 0; $y -lt $Height; $y++) {
+        $frameY = if ($Frame.TopDown) { $top + $y } else { $Frame.Height - 1 - ($top + $y) }
+        $frameRow = $Frame.PixelOffset + $frameY * $Frame.RowStride
+        for ($x = 0; $x -lt $Width; $x++) {
+            $framePixel = $frameRow + ($left + $x) * 4
+            $templatePixel = ($y * $Width + $x) * 3
+            $red = $Frame.Bytes[$framePixel + 2]
+            $green = $Frame.Bytes[$framePixel + 1]
+            $blue = $Frame.Bytes[$framePixel]
+            $pixels[$templatePixel] = $red
+            $pixels[$templatePixel + 1] = $green
+            $pixels[$templatePixel + 2] = $blue
+            [void]$colors.Add((([int]$red -shl 16) -bor ([int]$green -shl 8) -bor [int]$blue))
+        }
+    }
+    if ($colors.Count -lt 16) {
+        throw "baseline card template is not distinctive enough ($($colors.Count) RGB colors)"
+    }
+    return @{
+        Pixels = $pixels
+        Width = $Width
+        Height = $Height
+        PixelCount = $Width * $Height
+        Left = $left
+        Top = $top
+        UniqueColors = $colors.Count
+    }
+}
+
+function Get-UiSmokeTemplateMatchCount {
+    param(
+        [hashtable]$Frame,
+        [hashtable]$Template,
+        [int]$Left,
+        [int]$Top,
+        [int]$RgbDeltaMaximum
+    )
+
+    $matches = 0
+    for ($y = 0; $y -lt $Template.Height; $y++) {
+        $frameY = if ($Frame.TopDown) { $Top + $y } else { $Frame.Height - 1 - ($Top + $y) }
+        $frameRow = $Frame.PixelOffset + $frameY * $Frame.RowStride
+        for ($x = 0; $x -lt $Template.Width; $x++) {
+            $framePixel = $frameRow + ($Left + $x) * 4
+            $templatePixel = ($y * $Template.Width + $x) * 3
+            $rgbDelta = [Math]::Abs([int]$Frame.Bytes[$framePixel + 2] - [int]$Template.Pixels[$templatePixel]) +
+                [Math]::Abs([int]$Frame.Bytes[$framePixel + 1] - [int]$Template.Pixels[$templatePixel + 1]) +
+                [Math]::Abs([int]$Frame.Bytes[$framePixel] - [int]$Template.Pixels[$templatePixel + 2])
+            if ($rgbDelta -le $RgbDeltaMaximum) {
+                $matches++
+            }
+        }
+    }
+    return $matches
+}
+
+function Find-UiSmokeCardTemplate {
+    param(
+        [hashtable]$Frame,
+        [hashtable]$Template,
+        [int]$ExpectedCenterX,
+        [int]$ExpectedCenterY,
+        [int]$SearchRadius = 28,
+        [int]$RgbDeltaMaximum = 48
+    )
+
+    $expectedLeft = $ExpectedCenterX - [int][Math]::Floor($Template.Width / 2.0)
+    $expectedTop = $ExpectedCenterY - [int][Math]::Floor($Template.Height / 2.0)
+    $bestMatches = -1
+    $bestOffsetX = 0
+    $bestOffsetY = 0
+    for ($offsetY = -$SearchRadius; $offsetY -le $SearchRadius; $offsetY += 2) {
+        for ($offsetX = -$SearchRadius; $offsetX -le $SearchRadius; $offsetX += 2) {
+            $left = $expectedLeft + $offsetX
+            $top = $expectedTop + $offsetY
+            if ($left -lt 0 -or $top -lt 0 -or
+                $left + $Template.Width -gt $Frame.Width -or $top + $Template.Height -gt $Frame.Height) {
+                continue
+            }
+            $matches = Get-UiSmokeTemplateMatchCount -Frame $Frame -Template $Template `
+                -Left $left -Top $top -RgbDeltaMaximum $RgbDeltaMaximum
+            if ($matches -gt $bestMatches) {
+                $bestMatches = $matches
+                $bestOffsetX = $offsetX
+                $bestOffsetY = $offsetY
+            }
+        }
+    }
+    if ($bestMatches -lt 0) {
+        throw 'card template search region did not overlap the captured frame'
+    }
+
+    $coarseOffsetX = $bestOffsetX
+    $coarseOffsetY = $bestOffsetY
+    for ($offsetY = [Math]::Max(-$SearchRadius, $coarseOffsetY - 1); $offsetY -le [Math]::Min($SearchRadius, $coarseOffsetY + 1); $offsetY++) {
+        for ($offsetX = [Math]::Max(-$SearchRadius, $coarseOffsetX - 1); $offsetX -le [Math]::Min($SearchRadius, $coarseOffsetX + 1); $offsetX++) {
+            $left = $expectedLeft + $offsetX
+            $top = $expectedTop + $offsetY
+            $matches = Get-UiSmokeTemplateMatchCount -Frame $Frame -Template $Template `
+                -Left $left -Top $top -RgbDeltaMaximum $RgbDeltaMaximum
+            if ($matches -gt $bestMatches) {
+                $bestMatches = $matches
+                $bestOffsetX = $offsetX
+                $bestOffsetY = $offsetY
+            }
+        }
+    }
+    return @{
+        MatchedPixels = $bestMatches
+        PixelCount = $Template.PixelCount
+        OffsetX = $bestOffsetX
+        OffsetY = $bestOffsetY
+        Ratio = [double]$bestMatches / $Template.PixelCount
+    }
 }
 
 try {
     Add-Type -TypeDefinition @'
 using System;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -127,55 +411,12 @@ public static class AxiomUiSmokeNative
         public int Height { get { return Bottom - Top; } }
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MouseInput
-    {
-        public int Dx;
-        public int Dy;
-        public uint MouseData;
-        public uint Flags;
-        public uint Time;
-        public UIntPtr ExtraInfo;
-    }
-
-    [StructLayout(LayoutKind.Explicit)]
-    private struct InputUnion
-    {
-        [FieldOffset(0)]
-        public MouseInput Mouse;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Input
-    {
-        public uint Type;
-        public InputUnion Union;
-    }
-
     private delegate bool EnumWindowsCallback(IntPtr window, IntPtr parameter);
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct BitmapInfoHeader
-    {
-        public uint Size;
-        public int Width;
-        public int Height;
-        public ushort Planes;
-        public ushort BitCount;
-        public uint Compression;
-        public uint SizeImage;
-        public int XPelsPerMeter;
-        public int YPelsPerMeter;
-        public uint ColorsUsed;
-        public uint ColorsImportant;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct BitmapInfo
-    {
-        public BitmapInfoHeader Header;
-        public uint Colors;
-    }
+    private const uint WmMouseMove = 0x0200;
+    private const uint WmLeftButtonDown = 0x0201;
+    private const uint WmLeftButtonUp = 0x0202;
+    private const uint MkLeftButton = 0x0001;
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool GetClientRect(IntPtr window, out Rect rect);
@@ -184,19 +425,14 @@ public static class AxiomUiSmokeNative
     private static extern bool ClientToScreen(IntPtr window, ref Point point);
 
     [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool SetCursorPos(int screenX, int screenY);
-
-    [DllImport("user32.dll", SetLastError = true)]
     private static extern bool GetCursorPos(out Point point);
 
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
 
-    [DllImport("user32.dll")]
-    public static extern bool SetForegroundWindow(IntPtr window);
-
-    [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr window, int command);
+    [DllImport("user32.dll", EntryPoint = "PostMessageW", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PostWindowMessage(IntPtr window, uint message, UIntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
@@ -228,36 +464,25 @@ public static class AxiomUiSmokeNative
     private static extern int GetWindowText(IntPtr window, StringBuilder text, int count);
 
     [DllImport("user32.dll", SetLastError = true)]
-    private static extern uint SendInput(uint count, Input[] inputs, int inputSize);
+    private static extern bool SetWindowPos(IntPtr window, IntPtr insertAfter,
+        int x, int y, int width, int height, uint flags);
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr GetDC(IntPtr window);
+    public static void PlaceBehindWithoutActivation(IntPtr window)
+    {
+        const uint SwpNoSize = 0x0001;
+        const uint SwpNoMove = 0x0002;
+        const uint SwpNoActivate = 0x0010;
+        if (!SetWindowPos(window, new IntPtr(1), 0, 0, 0, 0,
+            SwpNoSize | SwpNoMove | SwpNoActivate))
+            throw new InvalidOperationException("Win32 background Z-order change failed: " + Marshal.GetLastWin32Error());
+    }
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern int ReleaseDC(IntPtr window, IntPtr deviceContext);
-
-    [DllImport("gdi32.dll", SetLastError = true)]
-    private static extern IntPtr CreateCompatibleDC(IntPtr deviceContext);
-
-    [DllImport("gdi32.dll", SetLastError = true)]
-    private static extern IntPtr CreateCompatibleBitmap(IntPtr deviceContext, int width, int height);
-
-    [DllImport("gdi32.dll", SetLastError = true)]
-    private static extern IntPtr SelectObject(IntPtr deviceContext, IntPtr graphicsObject);
-
-    [DllImport("gdi32.dll", SetLastError = true)]
-    private static extern bool BitBlt(IntPtr destination, int x, int y, int width, int height,
-        IntPtr source, int sourceX, int sourceY, uint operation);
-
-    [DllImport("gdi32.dll", SetLastError = true)]
-    private static extern int GetDIBits(IntPtr deviceContext, IntPtr bitmap, uint startScan,
-        uint scanLines, byte[] bits, ref BitmapInfo info, uint usage);
-
-    [DllImport("gdi32.dll")]
-    private static extern bool DeleteObject(IntPtr graphicsObject);
-
-    [DllImport("gdi32.dll")]
-    private static extern bool DeleteDC(IntPtr deviceContext);
+    public static uint GetWindowProcessId(IntPtr window)
+    {
+        uint processId;
+        GetWindowThreadProcessId(window, out processId);
+        return processId;
+    }
 
     public static IntPtr FindGameWindow(int processId)
     {
@@ -296,6 +521,13 @@ public static class AxiomUiSmokeNative
         };
     }
 
+    public static string GetWindowTitle(IntPtr window)
+    {
+        StringBuilder title = new StringBuilder(256);
+        GetWindowText(window, title, title.Capacity);
+        return title.ToString();
+    }
+
     public static Point GetCursorPosition()
     {
         Point point;
@@ -304,107 +536,35 @@ public static class AxiomUiSmokeNative
         return point;
     }
 
-    public static void MoveCursor(int screenX, int screenY)
+    public static void PostMouseMove(IntPtr window, int clientX, int clientY, bool leftButtonDown)
     {
-        if (!SetCursorPos(screenX, screenY))
-            throw new InvalidOperationException("Win32 cursor move failed: " + Marshal.GetLastWin32Error());
+        PostMouseMessage(window, WmMouseMove,
+            leftButtonDown ? new UIntPtr(MkLeftButton) : UIntPtr.Zero, clientX, clientY);
     }
 
-    public static void LeftDown()
+    public static void PostLeftButtonDown(IntPtr window, int clientX, int clientY)
     {
-        SendMouseInput(0x0002);
+        PostMouseMessage(window, WmLeftButtonDown, new UIntPtr(MkLeftButton), clientX, clientY);
     }
 
-    public static void LeftUp()
+    public static void PostLeftButtonUp(IntPtr window, int clientX, int clientY)
     {
-        SendMouseInput(0x0004);
+        PostMouseMessage(window, WmLeftButtonUp, UIntPtr.Zero, clientX, clientY);
     }
 
-    private static void SendMouseInput(uint flags)
+    private static void PostMouseMessage(IntPtr window, uint message, UIntPtr buttonState,
+        int clientX, int clientY)
     {
-        Input input = new Input {
-            Type = 0,
-            Union = new InputUnion {
-                Mouse = new MouseInput { Flags = flags, ExtraInfo = UIntPtr.Zero }
-            }
-        };
-        if (SendInput(1, new[] { input }, Marshal.SizeOf(typeof(Input))) != 1)
-            throw new InvalidOperationException("Win32 mouse input failed: " + Marshal.GetLastWin32Error());
+        if (clientX < short.MinValue || clientX > short.MaxValue ||
+            clientY < short.MinValue || clientY > short.MaxValue)
+            throw new ArgumentOutOfRangeException("client position exceeds WM_MOUSE coordinate range");
+
+        uint packedPosition = unchecked((ushort)clientX) | ((uint)unchecked((ushort)clientY) << 16);
+        IntPtr position = new IntPtr(unchecked((int)packedPosition));
+        if (!PostWindowMessage(window, message, buttonState, position))
+            throw new InvalidOperationException("Win32 mouse message post failed: " + Marshal.GetLastWin32Error());
     }
 
-    public static void CaptureClient(IntPtr window, string path)
-    {
-        Rect rect = GetClientScreenRect(window);
-        if (rect.Width <= 0 || rect.Height <= 0)
-            throw new InvalidOperationException("Win32 client area has no pixels to capture");
-        IntPtr screen = GetDC(IntPtr.Zero);
-        IntPtr memory = IntPtr.Zero;
-        IntPtr bitmap = IntPtr.Zero;
-        IntPtr previous = IntPtr.Zero;
-        try
-        {
-            if (screen == IntPtr.Zero)
-                throw new InvalidOperationException("Win32 screen capture context failed: " + Marshal.GetLastWin32Error());
-            memory = CreateCompatibleDC(screen);
-            bitmap = CreateCompatibleBitmap(screen, rect.Width, rect.Height);
-            if (memory == IntPtr.Zero || bitmap == IntPtr.Zero)
-                throw new InvalidOperationException("Win32 capture bitmap allocation failed: " + Marshal.GetLastWin32Error());
-            previous = SelectObject(memory, bitmap);
-            if (previous == IntPtr.Zero || !BitBlt(memory, 0, 0, rect.Width, rect.Height,
-                screen, rect.Left, rect.Top, 0x00CC0020))
-                throw new InvalidOperationException("Win32 frame copy failed: " + Marshal.GetLastWin32Error());
-            SelectObject(memory, previous);
-            previous = IntPtr.Zero;
-
-            int byteCount = checked(rect.Width * rect.Height * 4);
-            byte[] pixels = new byte[byteCount];
-            BitmapInfo info = new BitmapInfo {
-                Header = new BitmapInfoHeader {
-                    Size = 40,
-                    Width = rect.Width,
-                    Height = -rect.Height,
-                    Planes = 1,
-                    BitCount = 32,
-                    SizeImage = (uint)byteCount
-                }
-            };
-            if (GetDIBits(screen, bitmap, 0, (uint)rect.Height, pixels, ref info, 0) != rect.Height)
-                throw new InvalidOperationException("Win32 frame read failed: " + Marshal.GetLastWin32Error());
-
-            using (FileStream stream = File.Create(path))
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                writer.Write((ushort)0x4D42);
-                writer.Write((uint)(54 + byteCount));
-                writer.Write((ushort)0);
-                writer.Write((ushort)0);
-                writer.Write((uint)54);
-                writer.Write((uint)40);
-                writer.Write(rect.Width);
-                writer.Write(-rect.Height);
-                writer.Write((ushort)1);
-                writer.Write((ushort)32);
-                writer.Write((uint)0);
-                writer.Write((uint)byteCount);
-                writer.Write(0);
-                writer.Write(0);
-                writer.Write((uint)0);
-                writer.Write((uint)0);
-                writer.Write(pixels);
-            }
-        }
-        finally
-        {
-            if (previous != IntPtr.Zero)
-                SelectObject(memory, previous);
-            if (bitmap != IntPtr.Zero)
-                DeleteObject(bitmap);
-            if (memory != IntPtr.Zero)
-                DeleteDC(memory);
-            if (screen != IntPtr.Zero)
-                ReleaseDC(IntPtr.Zero, screen);
-        }
-    }
 }
 '@
 
@@ -427,22 +587,25 @@ public static class AxiomUiSmokeNative
 
     $stage = 'launch'
     $previousDpiContext = [AxiomUiSmokeNative]::UsePerMonitorDpiContext()
-    $previousForeground = [AxiomUiSmokeNative]::GetForegroundWindow()
+    $foregroundBeforeLaunch = Get-UiSmokeForegroundSnapshot
     $previousCursor = [AxiomUiSmokeNative]::GetCursorPosition()
     $previousStateFile = $env:AXIOM_UI_TEST_STATE_FILE
+    $previousFrameCaptureRequestFile = $env:AXIOM_UI_TEST_FRAME_CAPTURE_REQUEST_FILE
     $previousBackend = $env:WGPU_BACKEND
     try {
         $env:AXIOM_UI_TEST_STATE_FILE = $stateFile
+        $env:AXIOM_UI_TEST_FRAME_CAPTURE_REQUEST_FILE = $frameCaptureRequestFile
         $env:WGPU_BACKEND = 'dx12'
         $process = Start-Process -FilePath $appPath `
             -WorkingDirectory $repoRoot `
-            -WindowStyle Normal `
+            -NoNewWindow `
             -PassThru `
             -RedirectStandardOutput $stdoutPath `
             -RedirectStandardError $stderrPath
     }
     finally {
         $env:AXIOM_UI_TEST_STATE_FILE = $previousStateFile
+        $env:AXIOM_UI_TEST_FRAME_CAPTURE_REQUEST_FILE = $previousFrameCaptureRequestFile
         $env:WGPU_BACKEND = $previousBackend
     }
 
@@ -461,32 +624,29 @@ public static class AxiomUiSmokeNative
     if ($windowHandle -eq [IntPtr]::Zero) {
         throw 'game window did not appear within 30 seconds'
     }
+    $stage = 'place-window-behind'
+    [AxiomUiSmokeNative]::PlaceBehindWithoutActivation($windowHandle)
 
     $stage = 'seeded-state'
-    $null = Wait-UiState -Process $process -StateFile $stateFile -Stage $stage -TimeoutSeconds 30 -Predicate {
+    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario 'seeded-card-drag' `
+        -Stage $stage -TimeoutSeconds 30 -ExpectedState 'dragging=false, zone=Table, rendered=(-160,130) tolerance=1' -Predicate {
         param($state)
         $state['scenario'] -eq 'seeded-card-drag' -and
         $state['dragging'] -eq 'false' -and
         $state['zone'] -eq 'Table' -and
         (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 1)
     }
-
-    $stage = 'focus-window'
-    [void][AxiomUiSmokeNative]::ShowWindow($windowHandle, 9)
-    $focusRequested = [AxiomUiSmokeNative]::SetForegroundWindow($windowHandle)
-    Start-Sleep -Milliseconds 250
-    $foregroundHandle = [AxiomUiSmokeNative]::GetForegroundWindow()
-    $focusWatch = [System.Diagnostics.Stopwatch]::StartNew()
-    while ($foregroundHandle -ne $windowHandle -and $focusWatch.Elapsed.TotalSeconds -lt 2) {
-        [void][AxiomUiSmokeNative]::SetForegroundWindow($windowHandle)
-        Start-Sleep -Milliseconds 100
-        $foregroundHandle = [AxiomUiSmokeNative]::GetForegroundWindow()
-    }
+    $foregroundAtPreparation = Get-UiSmokeForegroundSnapshot
+    $cursorAtPreparation = [AxiomUiSmokeNative]::GetCursorPosition()
 
     $client = [AxiomUiSmokeNative]::GetClientScreenRect($windowHandle)
     if ($client.Width -lt 640 -or $client.Height -lt 480) {
         throw "game client area is too small for the smoke scenario ($($client.Width)x$($client.Height))"
     }
+    $stage = 'capture-baseline-frame'
+    Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+        -CapturePath $baselineFramePath -Stage $stage -TimeoutSeconds 10
+
     $startScreenX = $client.Left + [int][Math]::Round($client.Width / 2.0 - 160)
     $startScreenY = $client.Top + [int][Math]::Round($client.Height / 2.0 + 130)
     $targetScreenX = $client.Left + [int][Math]::Round($client.Width / 2.0 - 300)
@@ -495,25 +655,48 @@ public static class AxiomUiSmokeNative
     $startClientY = [int][Math]::Round($client.Height / 2.0 + 130)
     $targetClientX = [int][Math]::Round($client.Width / 2.0 - 300)
     $targetClientY = [int][Math]::Round($client.Height / 2.0 - 150)
+    $stage = 'prepare-background-input'
+    $foregroundBeforeInput = Get-UiSmokeForegroundSnapshot
+    $cursorBeforeInput = [AxiomUiSmokeNative]::GetCursorPosition()
+    $mouseClientX = $startClientX
+    $mouseClientY = $startClientY
     @(
         "process_id=$($process.Id)"
         "window_handle=$windowHandle"
-        "focus_requested=$focusRequested"
-        "foreground_handle=$foregroundHandle"
+        "window_z_order=HWND_BOTTOM;SWP_NOACTIVATE|SWP_NOMOVE|SWP_NOSIZE"
+        "initial_foreground_handle=$($foregroundBeforeLaunch.Handle)"
+        "initial_foreground_title=$($foregroundBeforeLaunch.Title)"
+        "initial_foreground_process_id=$($foregroundBeforeLaunch.ProcessId)"
+        "foreground_at_preparation=$($foregroundAtPreparation.Handle)"
+        "foreground_title_at_preparation=$($foregroundAtPreparation.Title)"
+        "foreground_process_id_at_preparation=$($foregroundAtPreparation.ProcessId)"
+        "cursor_at_preparation=($($cursorAtPreparation.X),$($cursorAtPreparation.Y))"
+        "foreground_before_input=$($foregroundBeforeInput.Handle)"
+        "foreground_title_before_input=$($foregroundBeforeInput.Title)"
+        "foreground_process_id_before_input=$($foregroundBeforeInput.ProcessId)"
+        "cursor_before_launch=($($previousCursor.X),$($previousCursor.Y))"
+        "cursor_before_input=($($cursorBeforeInput.X),$($cursorBeforeInput.Y))"
         "client_screen=($($client.Left),$($client.Top),$($client.Width),$($client.Height))"
         "start_screen=($startScreenX,$startScreenY)"
         "target_screen=($targetScreenX,$targetScreenY)"
         "start_client=($startClientX,$startClientY)"
         "target_client=($targetClientX,$targetClientY)"
     ) | Set-Content -LiteralPath $inputFile
-
-    if ($foregroundHandle -ne $windowHandle) {
-        throw "could not focus game window (requested=$focusRequested foreground=$foregroundHandle)"
+    if ($foregroundAtPreparation.Handle -eq $windowHandle) {
+        throw "game window became foreground during preparation (hwnd=$windowHandle pid=$($process.Id))"
+    }
+    if ($foregroundBeforeInput.Handle -eq $windowHandle) {
+        throw "game window was foreground before input (hwnd=$windowHandle pid=$($process.Id))"
+    }
+    if ($cursorAtPreparation.X -ne $previousCursor.X -or $cursorAtPreparation.Y -ne $previousCursor.Y -or
+        $cursorBeforeInput.X -ne $previousCursor.X -or $cursorBeforeInput.Y -ne $previousCursor.Y) {
+        throw "background setup moved cursor from ($($previousCursor.X),$($previousCursor.Y)) to preparation=($($cursorAtPreparation.X),$($cursorAtPreparation.Y)) before_input=($($cursorBeforeInput.X),$($cursorBeforeInput.Y))"
     }
 
     $stage = 'hover-card'
-    [AxiomUiSmokeNative]::MoveCursor($startScreenX, $startScreenY)
-    $null = Wait-UiState -Process $process -StateFile $stateFile -Stage $stage -TimeoutSeconds 5 -Predicate {
+    [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $startClientX, $startClientY, $false)
+    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario 'seeded-card-drag' `
+        -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($startClientX,$startClientY) tolerance=3" -Predicate {
         param($state)
         $state['scenario'] -eq 'seeded-card-drag' -and
         $state['left_pressed'] -eq 'false' -and
@@ -522,12 +705,10 @@ public static class AxiomUiSmokeNative
     }
 
     $stage = 'press-card'
-    if ([AxiomUiSmokeNative]::GetForegroundWindow() -ne $windowHandle) {
-        throw 'game window lost foreground before mouse-down'
-    }
-    [AxiomUiSmokeNative]::LeftDown()
+    [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $mouseClientX, $mouseClientY)
     $mouseDown = $true
-    $null = Wait-UiState -Process $process -StateFile $stateFile -Stage $stage -TimeoutSeconds 5 -Predicate {
+    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario 'seeded-card-drag' `
+        -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, left_pressed=true, zone=Table, rendered=(-160,130) tolerance=25' -Predicate {
         param($state)
         $state['scenario'] -eq 'seeded-card-drag' -and
         $state['dragging'] -eq 'true' -and
@@ -538,12 +719,13 @@ public static class AxiomUiSmokeNative
 
     $stage = 'drag-card'
     for ($step = 1; $step -le 10; $step++) {
-        $screenX = [int][Math]::Round($startScreenX + ($targetScreenX - $startScreenX) * $step / 10.0)
-        $screenY = [int][Math]::Round($startScreenY + ($targetScreenY - $startScreenY) * $step / 10.0)
-        [AxiomUiSmokeNative]::MoveCursor($screenX, $screenY)
+        $mouseClientX = [int][Math]::Round($startClientX + ($targetClientX - $startClientX) * $step / 10.0)
+        $mouseClientY = [int][Math]::Round($startClientY + ($targetClientY - $startClientY) * $step / 10.0)
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
         Start-Sleep -Milliseconds 35
     }
-    $dragState = Wait-UiState -Process $process -StateFile $stateFile -Stage $stage -TimeoutSeconds 10 -Predicate {
+    $dragState = Wait-UiState -Process $process -StateFile $stateFile -Scenario 'seeded-card-drag' `
+        -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, left_pressed=true, zone=Table, rendered=(-300,-150) tolerance=25' -Predicate {
         param($state)
         $state['scenario'] -eq 'seeded-card-drag' -and
         $state['dragging'] -eq 'true' -and
@@ -556,19 +738,88 @@ public static class AxiomUiSmokeNative
     $dragState.GetEnumerator() | ForEach-Object {
         '{0}={1}' -f $_.Key, $_.Value
     } | Set-Content -LiteralPath (Join-Path $artifactDir 'drag-state.txt')
-    [AxiomUiSmokeNative]::CaptureClient($windowHandle, $framePath)
-    if (-not (Test-Path -LiteralPath $framePath) -or (Get-Item -LiteralPath $framePath).Length -eq 0) {
-        throw 'rendered frame capture was empty'
+    Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+        -CapturePath $framePath -Stage $stage -TimeoutSeconds 10
+
+    $stage = 'verify-rendered-card-move'
+    $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+    $draggedFrame = Read-UiSmokeBitmap -Path $framePath
+    if ($baselineFrame.Width -ne $client.Width -or $baselineFrame.Height -ne $client.Height) {
+        throw "frame size $($baselineFrame.Width)x$($baselineFrame.Height) does not match client area $($client.Width)x$($client.Height)"
+    }
+    $rgbDeltaThreshold = 24
+    $minimumChangedPixels = 500
+    $sourceChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $draggedFrame `
+        -CenterX $startClientX -CenterY $startClientY -RgbDeltaThreshold $rgbDeltaThreshold
+    $targetChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $draggedFrame `
+        -CenterX $targetClientX -CenterY $targetClientY -RgbDeltaThreshold $rgbDeltaThreshold
+    $cardTemplate = New-UiSmokeCardTemplate -Frame $baselineFrame -CenterX $startClientX -CenterY $startClientY
+    $templateRgbDeltaMaximum = 80
+    $templateSearchRadius = 28
+    $minimumTargetMatchPercent = 75
+    $maximumSourceMatchPercent = 20
+    $minimumTargetMatchPixels = [int][Math]::Ceiling($cardTemplate.PixelCount * $minimumTargetMatchPercent / 100.0)
+    $maximumSourceMatchPixels = [int][Math]::Floor($cardTemplate.PixelCount * $maximumSourceMatchPercent / 100.0)
+    $targetTemplateMatch = Find-UiSmokeCardTemplate -Frame $draggedFrame -Template $cardTemplate `
+        -ExpectedCenterX $targetClientX -ExpectedCenterY $targetClientY `
+        -SearchRadius $templateSearchRadius -RgbDeltaMaximum $templateRgbDeltaMaximum
+    $sourceTemplateMatch = Find-UiSmokeCardTemplate -Frame $draggedFrame -Template $cardTemplate `
+        -ExpectedCenterX $startClientX -ExpectedCenterY $startClientY `
+        -SearchRadius $templateSearchRadius -RgbDeltaMaximum $templateRgbDeltaMaximum
+    @(
+        "frame_size=$($baselineFrame.Width)x$($baselineFrame.Height)"
+        "rgb_delta_threshold=$rgbDeltaThreshold"
+        "minimum_changed_pixels_per_roi=$minimumChangedPixels"
+        "source_roi=$($sourceChanges.Left),$($sourceChanges.Top),$($sourceChanges.Width),$($sourceChanges.Height)"
+        "source_changed_pixels=$($sourceChanges.ChangedPixels)"
+        "target_roi=$($targetChanges.Left),$($targetChanges.Top),$($targetChanges.Width),$($targetChanges.Height)"
+        "target_changed_pixels=$($targetChanges.ChangedPixels)"
+        "template_size=$($cardTemplate.Width)x$($cardTemplate.Height)"
+        "template_unique_rgb_colors=$($cardTemplate.UniqueColors)"
+        "template_rgb_delta_maximum=$templateRgbDeltaMaximum"
+        "template_search_radius=$templateSearchRadius"
+        "target_template_match=$($targetTemplateMatch.MatchedPixels)/$($targetTemplateMatch.PixelCount)"
+        "target_template_minimum_match_percent=$minimumTargetMatchPercent"
+        "target_template_offset=$($targetTemplateMatch.OffsetX),$($targetTemplateMatch.OffsetY)"
+        "source_template_best_match=$($sourceTemplateMatch.MatchedPixels)/$($sourceTemplateMatch.PixelCount)"
+        "source_template_maximum_match_percent_exclusive=$maximumSourceMatchPercent"
+        "source_template_offset=$($sourceTemplateMatch.OffsetX),$($sourceTemplateMatch.OffsetY)"
+    ) | Set-Content -LiteralPath (Join-Path $artifactDir 'visual-diff.txt')
+    if ($sourceChanges.ChangedPixels -lt $minimumChangedPixels -or
+        $targetChanges.ChangedPixels -lt $minimumChangedPixels) {
+        throw "rendered card move changed too few pixels: source=$($sourceChanges.ChangedPixels), target=$($targetChanges.ChangedPixels), minimum=$minimumChangedPixels"
+    }
+    if ($targetTemplateMatch.MatchedPixels -lt $minimumTargetMatchPixels -or
+        $sourceTemplateMatch.MatchedPixels -ge $maximumSourceMatchPixels) {
+        throw "rendered card template verification failed: target=$($targetTemplateMatch.MatchedPixels)/$($targetTemplateMatch.PixelCount) required>=$minimumTargetMatchPixels, source=$($sourceTemplateMatch.MatchedPixels)/$($sourceTemplateMatch.PixelCount) required<$maximumSourceMatchPixels"
     }
 
     $stage = 'release-card'
-    [AxiomUiSmokeNative]::LeftUp()
-    $mouseDown = $false
-    $null = Wait-UiState -Process $process -StateFile $stateFile -Stage $stage -TimeoutSeconds 10 -Predicate {
+    [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario 'seeded-card-drag' `
+        -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, left_pressed=false, zone=Table' -Predicate {
         param($state)
         $state['scenario'] -eq 'seeded-card-drag' -and
         $state['dragging'] -eq 'false' -and
+        $state['left_pressed'] -eq 'false' -and
         $state['zone'] -eq 'Table'
+    }
+    $mouseDown = $false
+
+    $stage = 'verify-background-input'
+    $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+    $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+    @(
+        "foreground_after_input=$($foregroundAfterInput.Handle)"
+        "foreground_title_after_input=$($foregroundAfterInput.Title)"
+        "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+        "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+    ) | Add-Content -LiteralPath $inputFile
+    if ($foregroundAfterInput.Handle -eq $windowHandle) {
+        throw "game window became foreground during input (hwnd=$windowHandle pid=$($process.Id))"
+    }
+    if ($cursorAfterInput.X -ne $previousCursor.X -or $cursorAfterInput.Y -ne $previousCursor.Y) {
+        throw "background input moved cursor from ($($previousCursor.X),$($previousCursor.Y)) to ($($cursorAfterInput.X),$($cursorAfterInput.Y))"
     }
     $succeeded = $true
 }
@@ -589,17 +840,14 @@ catch {
 finally {
     if (-not $succeeded -and $windowHandle -ne [IntPtr]::Zero) {
         try {
-            [AxiomUiSmokeNative]::CaptureClient($windowHandle, (Join-Path $artifactDir 'failure.bmp'))
+            Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+                -CapturePath $failureFramePath -Stage 'failure-frame-capture' -TimeoutSeconds 10
         }
         catch {
         }
     }
     if ($mouseDown) {
-        try { [AxiomUiSmokeNative]::LeftUp() } catch { }
-    }
-    $restoreForeground = $false
-    if ($windowHandle -ne [IntPtr]::Zero) {
-        try { $restoreForeground = [AxiomUiSmokeNative]::GetForegroundWindow() -eq $windowHandle } catch { }
+        try { [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY) } catch { }
     }
     if ($null -ne $process) {
         try {
@@ -611,12 +859,6 @@ finally {
         }
         catch {
         }
-    }
-    if ($null -ne $previousCursor) {
-        try { [AxiomUiSmokeNative]::MoveCursor($previousCursor.X, $previousCursor.Y) } catch { }
-    }
-    if ($restoreForeground -and $null -ne $previousForeground -and $previousForeground -ne [IntPtr]::Zero) {
-        try { [void][AxiomUiSmokeNative]::SetForegroundWindow($previousForeground) } catch { }
     }
     if ($previousDpiContext -ne [IntPtr]::Zero) {
         try { [AxiomUiSmokeNative]::RestoreDpiContext($previousDpiContext) } catch { }
@@ -636,3 +878,10 @@ if (-not $succeeded) {
 
 Write-Output ("UI smoke passed: scenario=seeded-card-drag rendered=({0},{1}) frame={2}" -f `
     $dragState['rendered_x'], $dragState['rendered_y'], $framePath)
+Write-Output ("Visual move verified: source_changed={0} target_changed={1} pixels (minimum 500 at RGB delta 24); baseline={2}" -f `
+    $sourceChanges.ChangedPixels, $targetChanges.ChangedPixels, $baselineFramePath)
+Write-Output ("Card template verified: target_match={0}/{1}, source_match={2}/{1}, target_offset=({3},{4})" -f `
+    $targetTemplateMatch.MatchedPixels, $targetTemplateMatch.PixelCount, $sourceTemplateMatch.MatchedPixels, `
+    $targetTemplateMatch.OffsetX, $targetTemplateMatch.OffsetY)
+$failureFramePath = Join-Path $artifactDir 'failure.bmp'
+$frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
