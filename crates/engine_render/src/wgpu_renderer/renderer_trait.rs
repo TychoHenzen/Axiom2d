@@ -110,15 +110,12 @@ impl WgpuRenderer {
             return None;
         }
 
-        let row_bytes = match self.config.width.checked_mul(4) {
-            Some(bytes) => bytes,
-            None => {
-                report_frame_capture_result(
-                    request_file,
-                    Err("surface row size overflowed".to_owned()),
-                );
-                return None;
-            }
+        let Some(row_bytes) = self.config.width.checked_mul(4) else {
+            report_frame_capture_result(
+                request_file,
+                Err("surface row size overflowed".to_owned()),
+            );
+            return None;
         };
         let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
         let Some(bytes_per_row) = row_bytes.div_ceil(alignment).checked_mul(alignment) else {
@@ -699,55 +696,6 @@ fn report_frame_capture_result(request_file: &Path, result: Result<(), String>) 
     }
 }
 
-#[cfg(test)]
-mod frame_capture_tests {
-    use super::write_frame_bmp;
-
-    #[test]
-    fn writes_padded_bgra_and_rgba_rows_to_bmp() -> Result<(), String> {
-        let rgba_path = std::env::temp_dir().join(format!(
-            "axiom2d-frame-capture-{}-rgba.bmp",
-            std::process::id()
-        ));
-        let bgra_path = rgba_path.with_file_name(format!(
-            "axiom2d-frame-capture-{}-bgra.bmp",
-            std::process::id()
-        ));
-        let mut rgba_pixels = vec![0xff; 512];
-        rgba_pixels[..4].copy_from_slice(&[1, 2, 3, 4]);
-        rgba_pixels[256..260].copy_from_slice(&[5, 6, 7, 8]);
-        let mut bgra_pixels = vec![0xff; 512];
-        bgra_pixels[..4].copy_from_slice(&[3, 2, 1, 4]);
-        bgra_pixels[256..260].copy_from_slice(&[7, 6, 5, 8]);
-
-        write_frame_bmp(
-            &rgba_path,
-            1,
-            2,
-            256,
-            wgpu::TextureFormat::Rgba8Unorm,
-            &rgba_pixels,
-        )?;
-        write_frame_bmp(
-            &bgra_path,
-            1,
-            2,
-            256,
-            wgpu::TextureFormat::Bgra8Unorm,
-            &bgra_pixels,
-        )?;
-
-        let rgba_bmp = std::fs::read(&rgba_path).map_err(|error| error.to_string())?;
-        let bgra_bmp = std::fs::read(&bgra_path).map_err(|error| error.to_string())?;
-        assert_eq!(rgba_bmp.len(), 62);
-        assert_eq!(&rgba_bmp[54..], &[7, 6, 5, 8, 3, 2, 1, 4]);
-        assert_eq!(bgra_bmp, rgba_bmp);
-        std::fs::remove_file(rgba_path).map_err(|error| error.to_string())?;
-        std::fs::remove_file(bgra_path).map_err(|error| error.to_string())?;
-        Ok(())
-    }
-}
-
 impl Renderer for WgpuRenderer {
     fn clear(&mut self, color: Color) {
         self.clear_color = color;
@@ -1001,4 +949,53 @@ fn present_scene_post_process(
     renderer.draw_scene_to(encoder, target);
     renderer.execute_bloom(encoder, view);
     renderer.post_process_pending = false;
+}
+
+#[cfg(test)]
+mod frame_capture_tests {
+    use super::write_frame_bmp;
+
+    #[test]
+    fn writes_padded_bgra_and_rgba_rows_to_bmp() -> Result<(), String> {
+        let rgba_path = std::env::temp_dir().join(format!(
+            "axiom2d-frame-capture-{}-rgba.bmp",
+            std::process::id()
+        ));
+        let bgra_path = rgba_path.with_file_name(format!(
+            "axiom2d-frame-capture-{}-bgra.bmp",
+            std::process::id()
+        ));
+        let mut rgba_pixels = vec![0xff; 512];
+        rgba_pixels[..4].copy_from_slice(&[1, 2, 3, 4]);
+        rgba_pixels[256..260].copy_from_slice(&[5, 6, 7, 8]);
+        let mut bgra_pixels = vec![0xff; 512];
+        bgra_pixels[..4].copy_from_slice(&[3, 2, 1, 4]);
+        bgra_pixels[256..260].copy_from_slice(&[7, 6, 5, 8]);
+
+        write_frame_bmp(
+            &rgba_path,
+            1,
+            2,
+            256,
+            wgpu::TextureFormat::Rgba8Unorm,
+            &rgba_pixels,
+        )?;
+        write_frame_bmp(
+            &bgra_path,
+            1,
+            2,
+            256,
+            wgpu::TextureFormat::Bgra8Unorm,
+            &bgra_pixels,
+        )?;
+
+        let rgba_bmp = std::fs::read(&rgba_path).map_err(|error| error.to_string())?;
+        let bgra_bmp = std::fs::read(&bgra_path).map_err(|error| error.to_string())?;
+        assert_eq!(rgba_bmp.len(), 62);
+        assert_eq!(&rgba_bmp[54..], &[7, 6, 5, 8, 3, 2, 1, 4]);
+        assert_eq!(bgra_bmp, rgba_bmp);
+        std::fs::remove_file(rgba_path).map_err(|error| error.to_string())?;
+        std::fs::remove_file(bgra_path).map_err(|error| error.to_string())?;
+        Ok(())
+    }
 }
