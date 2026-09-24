@@ -120,7 +120,7 @@ Current baselines in `docs/QUALITY_BASELINE.ron`:
     // ... existing ...
     "cyclomatic_over_10": 29,       // functions with CC > 10
     "line_coverage_pct": 79.12,     // workspace line coverage %
-    "jscpd_clone_count": 1197,      // jscpd clone count
+    "jscpd_clone_count": 1434,      // jscpd clone count
 }
 ```
 
