@@ -84,8 +84,29 @@ jobs:
         id: extract
         run: |
           mkdir -p quality/coverage
-          cargo llvm-cov --workspace --locked --lcov --output-path quality/coverage/lcov.info 2>&1 | tee coverage.log
-          COV_PCT=$(grep "^TOTAL" coverage.log | awk '{print $10}' | tr -d '%')
+          cargo llvm-cov --workspace --locked --lcov --output-path quality/coverage/lcov.info
+          cargo llvm-cov --workspace --locked --summary-only --no-run 2>&1 | tee coverage.log
+          if ! COV_PCT=$(awk '
+            $1 == "TOTAL" {
+              coverage = $10
+              sub(/%$/, "", coverage)
+              print coverage
+              found = 1
+              exit
+            }
+            END {
+              if (!found) {
+                exit 1
+              }
+            }
+          ' coverage.log); then
+            echo "::error title=Coverage Summary Missing::cargo llvm-cov summary did not contain a TOTAL Lines Cover value" >&2
+            exit 1
+          fi
+          if [[ ! "$COV_PCT" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+            echo "::error title=Coverage Summary Invalid::coverage_pct is not numeric: ${COV_PCT}" >&2
+            exit 1
+          fi
           echo "coverage_pct=${COV_PCT}" >> "$GITHUB_OUTPUT"
           echo "Coverage: ${COV_PCT}"
       - name: Upload coverage artifact
@@ -257,6 +278,9 @@ jobs:
     if: always() && !cancelled()
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Test quality gate comparator
+        run: bash scripts/quality-gate-check-test.sh
 
       - name: Parse baseline
         id: baseline

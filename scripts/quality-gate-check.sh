@@ -492,6 +492,7 @@ install_hooks() {
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 MODE="${1:-full}"
 
 cd "$PROJECT_ROOT"
@@ -547,4 +548,5 @@ elif [ "$WARN" -gt 0 ]; then
     echo "  git add docs/QUALITY_BASELINE.ron && git commit -m 'chore: ratchet quality baseline down'"
 else
     echo -e "${GREEN}═══ GATE PASSED: All dimensions at baseline ═══${NC}"
+fi
 fi
