@@ -42,7 +42,8 @@
             "provenance": {
                 "scanner": "jscpd 5.3.2",
                 "settings": "npx jscpd crates/ --pattern \"**/*.rs\" --min-tokens 50 --min-lines 5 --mode strict",
-                "source_sha": "f8ee3b52474a6b8d38e1ffc9cef856dd34c016cf",
+                "source_sha": "553c053dd77334f4f2defe54433c361cd374ee7e",
+                "verification_sha": "f8ee3b52474a6b8d38e1ffc9cef856dd34c016cf",
                 "old_count": 1214,
                 "new_count": 1434,
                 "reason": "Rebaseline to the measured HEAD count; intentional Phase 4 duplication remains unchanged.",
