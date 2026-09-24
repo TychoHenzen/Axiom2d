@@ -26,7 +26,7 @@
         "unwrap_in_prod_total": 0,
         "expect_in_prod_total": 92,
         "cyclomatic_over_10": 29,
-        "line_coverage_pct": 78.67,
+        "line_coverage_pct": 79.12,
         "jscpd_clone_count": 1434,
     },
     "advisory_maxima": {
@@ -59,7 +59,7 @@
             "test_count_total=1821: all #[test] and #[tokio::test] in the engine workspace (crates/)",
             "smell_markers_total=0: no TODO/FIXME/HACK in production code",
             "cyclomatic_over_10=29: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
-            "line_coverage_pct=78.67: engine workspace line coverage from cargo-llvm-cov",
+            "line_coverage_pct=79.12: Lines Cover 23,058/29,144 (79.117%) at 85d2f26becd701da2c498f418b7c6752a15e26df replaced Regions Cover 78.67% at 356c9ccbfb1342608488f87bdd20d8ed4a53c496; fresh column 4 was 28,082/36,480 (76.979%), so column 10 is the intended metric",
             "jscpd_clone_count=1434: duplicate code clones detected by jscpd (min-tokens=50). Phase 4 SDF/capture + kill barrier parallelism intentional.",
         ],
     },
