@@ -43,7 +43,7 @@
                 "scanner": "jscpd 5.3.2",
                 "settings": "npx jscpd crates/ --pattern \"**/*.rs\" --min-tokens 50 --min-lines 5 --mode strict",
                 "source_sha": "553c053dd77334f4f2defe54433c361cd374ee7e",
-                "verification_sha": "f8ee3b52474a6b8d38e1ffc9cef856dd34c016cf",
+                "verification_sha": "fb58577fbf5760f0b08e4dc79448eaf1e40877c2",
                 "old_count": 1214,
                 "new_count": 1434,
                 "reason": "Rebaseline to the measured HEAD count; intentional Phase 4 duplication remains unchanged.",
@@ -51,7 +51,7 @@
         },
     },
     "meta": {
-        "last_updated": "2026-07-14",
+        "last_updated": "2026-09-24",
         "schema_version": 2,
         "notes": [
             "unsafe_blocks_total=2: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
