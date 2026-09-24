@@ -77,8 +77,17 @@ extract_line_coverage() {
 compare_floats() {
     awk -v current="$1" -v baseline="$2" '
         BEGIN {
-            current += 0
-            baseline += 0
+            precision = 0
+            decimal = index(baseline, ".")
+            if (decimal > 0) {
+                precision = length(baseline) - decimal
+            }
+            scale = 1
+            for (i = 0; i < precision; i++) {
+                scale *= 10
+            }
+            current = int((current * scale) + 0.5 + 1e-9)
+            baseline = int((baseline * scale) + 0.5 + 1e-9)
             if (current < baseline) {
                 print -1
             } else if (current > baseline) {
@@ -88,6 +97,10 @@ compare_floats() {
             }
         }
     '
+}
+
+round_coverage() {
+    awk '{ printf "%.2f\n", $1 + 0 + 1e-9 }'
 }
 
 # ─── Hard Gates ───────────────────────────────────────────────────────────────
@@ -358,6 +371,7 @@ update_baseline() {
     else
         cur_cov=$(ron_value "line_coverage_pct")
     fi
+    cur_cov=$(printf '%s\n' "$cur_cov" | round_coverage)
     if command -v npx &>/dev/null; then
         cur_clones=$(npx jscpd crates/ --pattern "**/*.rs" --min-tokens 50 --min-lines 5 --mode strict 2>&1 | grep -c "Clone found" 2>/dev/null || ron_value "jscpd_clone_count")
     else
@@ -373,6 +387,14 @@ update_baseline() {
     if [ -z "$overrides" ]; then
         echo "Cannot update baseline: overrides block is missing." >&2
         return 1
+    fi
+
+    local line_coverage_note
+    line_coverage_note=$(sed -n '/"line_coverage_pct=/p' "$BASELINE" | head -1)
+    if [ -n "$line_coverage_note" ]; then
+        line_coverage_note=$(printf '%s\n' "$line_coverage_note" | sed "s/line_coverage_pct=[^:]*:/line_coverage_pct=$cur_cov:/")
+    else
+        line_coverage_note="            \"line_coverage_pct=$cur_cov: workspace line coverage from cargo-llvm-cov\","
     fi
 
     cat > "$BASELINE" << RONEOF
@@ -423,7 +445,7 @@ $overrides
             "test_count_total=$cur_test: all #[test] and #[tokio::test] across workspace (including tools/)",
             "smell_markers_total=$cur_smell: no TODO/FIXME/HACK in production code",
             "cyclomatic_over_10=$cur_cyclo: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
-            "line_coverage_pct=$cur_cov: workspace line coverage from cargo-llvm-cov",
+${line_coverage_note}
             "jscpd_clone_count=$cur_clones: duplicate code clones detected by jscpd (min-tokens=50)",
         ],
     },
