@@ -77,7 +77,7 @@ pub struct ScreenDevice {
 
 #[derive(Component)]
 pub struct ScreenSignalShape {
-    display_index: usize,
+    pub display_index: usize,
 }
 
 /// Project all control points of a signal into panel space using the selected axis pair.
@@ -99,6 +99,17 @@ pub fn display_axes(space: &SignatureSpace, display_index: usize) -> (f32, f32) 
         space.control_points[0][x_element],
         space.control_points[0][y_element],
     )
+}
+
+pub fn build_screen_signal_shape(space: &SignatureSpace, display_index: usize) -> ShapeVariant {
+    let projected = project_signal_points(space, display_index);
+    let visual_radius = space.radius * PANEL_HALF;
+
+    if projected.len() == 1 {
+        clipped_signal_circle(projected[0], visual_radius)
+    } else {
+        build_signal_polyline(&projected, visual_radius)
+    }
 }
 
 fn panel_axes(display_index: usize) -> (Element, Element) {
@@ -131,14 +142,7 @@ pub fn screen_render_system(
             continue;
         };
 
-        let projected = project_signal_points(space, signal_shape.display_index);
-        let visual_radius = space.radius * PANEL_HALF;
-
-        if projected.len() == 1 {
-            shape.variant = clipped_signal_circle(projected[0], visual_radius);
-        } else {
-            shape.variant = build_signal_polyline(&projected, visual_radius);
-        }
+        shape.variant = build_screen_signal_shape(space, signal_shape.display_index);
         shape.color = SIGNAL_COLOR;
         visible.0 = true;
     }

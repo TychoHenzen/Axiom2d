@@ -56,6 +56,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 
 This mode connects the deterministic reader and screen sockets around the reader obstacle, verifies the wrap anchor and rendered ribbon geometry, and retains state/frame diagnostics under `target/ui-smoke-*`.
 
+Run the reader-to-screen signature spline scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -ScreenSpline
+```
+
+This mode inserts the seeded card, verifies its signature reaches the screen, compares all four rendered panel geometries within a 0.01 tolerance, and retains the signature, expected/observed geometry, and captured screen frame under `target/ui-smoke-*`.
+
 Run the stash round-trip scenario, storing the seeded card, switching pages, previewing the stash slot during a drag, and retrieving it:
 
 ```powershell

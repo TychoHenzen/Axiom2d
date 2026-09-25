@@ -7,6 +7,7 @@ param(
     [switch]$ReaderRoundTrip,
     [switch]$CombinerProcessing,
     [switch]$CableWrapping,
+    [switch]$ScreenSpline,
     [switch]$StashRoundTrip,
     [switch]$BoosterOpening,
     [switch]$IdentitySignature,
@@ -31,13 +32,14 @@ if (-not $RunnerChild) {
         $ReaderRoundTrip,
         $CombinerProcessing,
         $CableWrapping,
+        $ScreenSpline,
         $StashRoundTrip,
         $BoosterOpening,
         $IdentitySignature,
         $ArtFace
     )
     if (@($scenarioFlags | Where-Object { $_ }).Count -gt 1) {
-        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, CableWrapping, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
+        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, CableWrapping, ScreenSpline, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -75,6 +77,9 @@ if (-not $RunnerChild) {
         }
         if ($CableWrapping) {
             $runnerArguments += '-CableWrapping'
+        }
+        if ($ScreenSpline) {
+            $runnerArguments += '-ScreenSpline'
         }
         if ($StashRoundTrip) {
             $runnerArguments += '-StashRoundTrip'
@@ -131,6 +136,7 @@ $readerEjectedFramePath = Join-Path $artifactDir 'reader-ejected.bmp'
 $readerReturnedFramePath = Join-Path $artifactDir 'reader-returned.bmp'
 $combinerFramePath = Join-Path $artifactDir 'combiner.bmp'
 $cableWrappingFramePath = Join-Path $artifactDir 'cable-wrapping.bmp'
+$screenSplineFramePath = Join-Path $artifactDir 'screen-spline.bmp'
 $holderStatePath = if ($ZoneTransition) {
     Join-Path $artifactDir 'zone-holder-state.txt'
 }
@@ -172,6 +178,9 @@ elseif ($CombinerProcessing) {
 }
 elseif ($CableWrapping) {
     'seeded-card-cable-wrapping'
+}
+elseif ($ScreenSpline) {
+    'seeded-card-screen-spline'
 }
 elseif ($HandRoundTrip) {
     'seeded-card-hand-roundtrip'
@@ -2018,6 +2027,210 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
         }
         $succeeded = $true
     }
+    elseif ($ScreenSpline) {
+        $seededState = Read-UiState -Path $stateFile
+        $expectedScreenSignature = $seededState['identity_signature']
+        if ($null -eq $seededState -or [string]::IsNullOrWhiteSpace($expectedScreenSignature)) {
+            throw "screen spline scenario could not establish the seeded card signature: observed=$(Format-UiStateDiagnostic -State $seededState)"
+        }
+        $screenPositionTolerance = 25
+        $screenGeometryTolerance = 0.01
+        $rgbDeltaThreshold = 24
+        $minimumScreenChangedPixels = 100
+        @(
+            "screen_expected_signature=$expectedScreenSignature"
+            "screen_position=(300,150)"
+            "screen_geometry_tolerance=$screenGeometryTolerance"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_screen_changed_pixels=$minimumScreenChangedPixels"
+        ) | Add-Content -LiteralPath $inputFile
+
+        $stage = 'hover-screen-cable-source'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before screen spline input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $readerJackClientX, $readerJackClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($readerJackClientX,$readerJackClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $readerJackClientX -ExpectedY $readerJackClientY -Tolerance 3)
+        }
+
+        $stage = 'start-screen-cable-drag'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $readerJackClientX, $readerJackClientY)
+        $mouseClientX = $readerJackClientX
+        $mouseClientY = $readerJackClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'cable_dragging=true, cable_present=true' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['cable_present'] -eq 'true' -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true'
+        }
+
+        $stage = 'drag-screen-cable-around-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($readerJackClientX + ($screenJackClientX - $readerJackClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($readerJackClientY + ($screenJackClientY - $readerJackClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'cable_dragging=true, one wrap anchor' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            [int]::Parse($state['cable_anchor_count']) -eq 1
+        }
+
+        $stage = 'connect-screen-cable'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $screenJackClientX, $screenJackClientY)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'cable_connected=true, screen signature empty' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['cable_connected'] -eq 'true' -and
+            [string]::IsNullOrEmpty($state['screen_signature'])
+        }
+        $mouseDown = $false
+
+        $stage = 'hover-screen-card'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $startClientX, $startClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($startClientX,$startClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $startClientX -ExpectedY $startClientY -Tolerance 3)
+        }
+
+        $stage = 'press-screen-card'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $startClientX, $startClientY)
+        $mouseClientX = $startClientX
+        $mouseClientY = $startClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table'
+        }
+
+        $stage = 'drag-screen-card-to-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($startClientX + ($readerClientX - $startClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($startClientY + ($readerClientY - $startClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, reader position=($readerWorldX,$readerWorldY) tolerance=$screenPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            (Test-Position -State $state -ExpectedX $readerWorldX -ExpectedY $readerWorldY -Tolerance $screenPositionTolerance)
+        }
+
+        $stage = 'insert-screen-card-and-propagate'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $readerClientX, $readerClientY)
+        $screenState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'reader_loaded=true, screen signature propagated, exact geometry match' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['reader_loaded'] -eq 'true' -and
+            $state['reader_signature'] -eq $expectedScreenSignature -and
+            $state['reader_space_contains'] -eq 'true' -and
+            $state['reader_space_source_count'] -eq '1' -and
+            $state['cable_connected'] -eq 'true' -and
+            $state['screen_signature'] -eq $expectedScreenSignature -and
+            $state['screen_geometry_match'] -eq 'true' -and
+            [int]::Parse($state['screen_geometry_panel_count']) -eq 4
+        }
+        $mouseDown = $false
+        $screenState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'screen-spline-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $screenSplineFramePath -Stage 'capture-screen-spline-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $screenFrame = Read-UiSmokeBitmap -Path $screenSplineFramePath
+        $screenCenterX = [int][Math]::Round($client.Width / 2.0 + 300.0)
+        $screenCenterY = [int][Math]::Round($client.Height / 2.0 + 150.0)
+        $screenChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $screenFrame `
+            -CenterX $screenCenterX -CenterY $screenCenterY -HalfWidth 125 -HalfHeight 125 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $screenGeometrySummary = (0..3 | ForEach-Object {
+            $panel = $_
+            "panel=$panel expected=$($screenState["screen_expected_geometry_$panel"]) observed=$($screenState["screen_observed_geometry_$panel"])"
+        }) -join ' | '
+        @(
+            "frame_size=$($screenFrame.Width)x$($screenFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_screen_changed_pixels=$minimumScreenChangedPixels"
+            "screen_roi=($($screenChanges.Left),$($screenChanges.Top),$($screenChanges.Width),$($screenChanges.Height))"
+            "screen_changed_pixels=$($screenChanges.ChangedPixels)"
+            "signature=$($screenState['screen_signature'])"
+            "geometry_tolerance=$screenGeometryTolerance"
+            "geometry_max_error=$($screenState['screen_geometry_max_error'])"
+            $screenGeometrySummary
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'screen-spline-visual-diff.txt')
+        if ($screenChanges.ChangedPixels -lt $minimumScreenChangedPixels) {
+            throw "stage=capture-screen-spline-frame screen output changed too few pixels: signature=$expectedScreenSignature changed=$($screenChanges.ChangedPixels), minimum=$minimumScreenChangedPixels"
+        }
+        if ($screenState['screen_geometry_match'] -ne 'true') {
+            throw "stage=$stage screen geometry mismatch: signature=$expectedScreenSignature tolerance=$screenGeometryTolerance max_error=$($screenState['screen_geometry_max_error']) $screenGeometrySummary"
+        }
+
+        $stage = 'verify-screen-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during screen spline input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "screen spline PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
     elseif ($CombinerProcessing) {
         $seededState = Read-UiState -Path $stateFile
         $expectedPrimarySignature = $seededState['identity_signature']
@@ -3067,6 +3280,15 @@ elseif ($ReaderRoundTrip) {
         $insertedState['reader_signature'], $insertedState['reader_space_radius'], $insertedState['reader_feedback'],
         $returnedState['reader_feedback'], $ejectedReaderChanges.ChangedPixels, $returnedReaderChanges.ChangedPixels,
         $returnedTableChanges.ChangedPixels)
+}
+elseif ($ScreenSpline) {
+    Write-Output ("UI screen spline scenario passed: signature={0}, state={1}, frame={2}, visual_evidence={3}" -f `
+        $screenState['screen_signature'], (Join-Path $artifactDir 'screen-spline-state.txt'),
+        $screenSplineFramePath, (Join-Path $artifactDir 'screen-spline-visual-diff.txt'))
+    Write-Output ("Screen geometry verified: panels={0}, tolerance={1}, max_error={2}, changed_pixels={3} (minimum {4} at RGB delta {5})" -f `
+        $screenState['screen_geometry_panel_count'], $screenState['screen_geometry_tolerance'],
+        $screenState['screen_geometry_max_error'], $screenChanges.ChangedPixels,
+        $minimumScreenChangedPixels, $rgbDeltaThreshold)
 }
 elseif ($CableWrapping) {
     Write-Output ("UI cable wrapping scenario passed: source=({0},{1}), anchor=({2},{3}), dest=({4},{5}), state={6}, frame={7}, visual_evidence={8}" -f `

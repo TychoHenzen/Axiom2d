@@ -31,6 +31,8 @@ use card_game::card::reader::{
 };
 use card_game::card::screen_device::spawn_screen_device;
 #[cfg(feature = "ui-test")]
+use card_game::card::screen_device::{ScreenSignalShape, build_screen_signal_shape};
+#[cfg(feature = "ui-test")]
 use card_game::card::zone_config::ZoneConfig;
 use card_game::prelude::*;
 #[cfg(feature = "ui-test")]
@@ -63,6 +65,10 @@ static UI_TEST_BOOSTER_ENTITY: OnceLock<Entity> = OnceLock::new();
 static UI_TEST_BOOSTER_SIGNATURE: OnceLock<CardSignature> = OnceLock::new();
 #[cfg(feature = "ui-test")]
 static UI_TEST_SCENARIO: OnceLock<String> = OnceLock::new();
+#[cfg(feature = "ui-test")]
+static UI_TEST_SCREEN_ENTITY: OnceLock<Entity> = OnceLock::new();
+#[cfg(feature = "ui-test")]
+static UI_TEST_SCREEN_JACK_ENTITY: OnceLock<Entity> = OnceLock::new();
 
 #[cfg(feature = "ui-test")]
 #[derive(SystemParam)]
@@ -80,6 +86,16 @@ struct UiTestCableParams<'w, 's> {
         ),
     >,
     transforms: Query<'w, 's, &'static Transform2D>,
+    screen_shapes: Query<
+        'w,
+        's,
+        (
+            &'static ScreenSignalShape,
+            &'static ChildOf,
+            &'static Shape,
+            &'static Visible,
+        ),
+    >,
 }
 
 #[cfg(feature = "ui-test")]
@@ -117,6 +133,15 @@ fn rendered_max_deviation(points: &[Vec2], source: Vec2, dest: Vec2) -> f32 {
         .iter()
         .map(|point| span.perp_dot(*point - source).abs() / span_length)
         .fold(0.0, f32::max)
+}
+
+#[cfg(feature = "ui-test")]
+fn format_geometry(points: &[Vec2]) -> String {
+    points
+        .iter()
+        .map(|point| format!("{:.4},{:.4}", point.x, point.y))
+        .collect::<Vec<_>>()
+        .join(";")
 }
 
 fn hydrate_shape_repository_system(world: &mut World) {
@@ -220,7 +245,16 @@ fn spawn_scene(world: &mut World) {
 
     // Spawn a screen device — connect to the reader by dragging a cable interactively.
     let screen_pos = Vec2::new(300.0, 150.0);
-    let (_screen_entity, _screen_jack) = spawn_screen_device(world, screen_pos);
+    let (screen_entity, screen_jack) = spawn_screen_device(world, screen_pos);
+    #[cfg(feature = "ui-test")]
+    {
+        UI_TEST_SCREEN_ENTITY
+            .set(screen_entity)
+            .expect("UI test screen can only be configured once");
+        UI_TEST_SCREEN_JACK_ENTITY
+            .set(screen_jack)
+            .expect("UI test screen jack can only be configured once");
+    }
 
     // Spawn a combiner device — wire interactively.
     let combiner_pos = Vec2::new(300.0, -150.0);
@@ -441,6 +475,75 @@ fn record_ui_test_state(
     let reader_space_source_count = reader_space.map_or(0, |space| space.source_cards.len());
     let reader_space_radius = reader_space.map_or(0.0, |space| space.radius);
     let reader_feedback = if reader_loaded { "lit" } else { "dim" };
+    let screen_space = UI_TEST_SCREEN_JACK_ENTITY
+        .get()
+        .and_then(|screen_jack| reader_jacks.get(*screen_jack).ok())
+        .and_then(|jack| jack.data.as_ref());
+    let screen_signature = screen_space
+        .and_then(|space| space.control_points.first())
+        .map_or_else(String::new, |signature| {
+            signature
+                .axes()
+                .iter()
+                .map(|axis| format!("{axis:.6}"))
+                .collect::<Vec<_>>()
+                .join(",")
+        });
+    let screen_entity = UI_TEST_SCREEN_ENTITY.get().copied();
+    let mut screen_expected_geometry = vec![String::new(); 4];
+    let mut screen_observed_geometry = vec![String::new(); 4];
+    let mut screen_geometry_max_error = -1.0;
+    let mut screen_geometry_match = false;
+    if let (Some(space), Some(screen_entity)) = (screen_space, screen_entity) {
+        let mut expected_points = Vec::with_capacity(4);
+        let mut observed_points = Vec::with_capacity(4);
+        for display_index in 0..4 {
+            let expected = match build_screen_signal_shape(space, display_index) {
+                ShapeVariant::Polygon { points } => points,
+                _ => Vec::new(),
+            };
+            let observed = cable_params
+                .screen_shapes
+                .iter()
+                .find(|(signal, parent, _, visible)| {
+                    signal.display_index == display_index && parent.0 == screen_entity && visible.0
+                })
+                .and_then(|(_, _, shape, _)| match &shape.variant {
+                    ShapeVariant::Polygon { points } => Some(points.clone()),
+                    _ => None,
+                })
+                .unwrap_or_default();
+            screen_expected_geometry[display_index] = format_geometry(&expected);
+            screen_observed_geometry[display_index] = format_geometry(&observed);
+            expected_points.push(expected);
+            observed_points.push(observed);
+        }
+        if expected_points
+            .iter()
+            .zip(&observed_points)
+            .all(|(expected, observed)| expected.len() == observed.len())
+        {
+            screen_geometry_max_error = expected_points
+                .iter()
+                .zip(&observed_points)
+                .flat_map(|(expected, observed)| {
+                    expected
+                        .iter()
+                        .zip(observed)
+                        .map(|(expected, observed)| (*expected - *observed).length())
+                })
+                .fold(0.0, f32::max);
+            screen_geometry_match = screen_geometry_max_error <= 0.01;
+        }
+    }
+    let screen_expected_geometry_0 = &screen_expected_geometry[0];
+    let screen_expected_geometry_1 = &screen_expected_geometry[1];
+    let screen_expected_geometry_2 = &screen_expected_geometry[2];
+    let screen_expected_geometry_3 = &screen_expected_geometry[3];
+    let screen_observed_geometry_0 = &screen_observed_geometry[0];
+    let screen_observed_geometry_1 = &screen_observed_geometry[1];
+    let screen_observed_geometry_2 = &screen_observed_geometry[2];
+    let screen_observed_geometry_3 = &screen_observed_geometry[3];
     let combiner = UI_TEST_COMBINER_ENTITY
         .get()
         .and_then(|combiner_entity| combiners.get(*combiner_entity).ok());
@@ -650,7 +753,7 @@ fn record_ui_test_state(
         .get()
         .expect("UI test scenario must be configured before the app runs");
     let snapshot = format!(
-        "scenario={scenario}\ndragging={dragging}\nsecond_dragging={second_dragging}\nsecond_zone={second_zone}\nsecond_rendered_x={second_rendered_x:.1}\nsecond_rendered_y={second_rendered_y:.1}\nsecond_reader_loaded={second_reader_loaded}\nbooster_dragging={booster_dragging}\nzone={zone:?}\nhand_contains={hand_contains}\nhand_count={}\nstash_visible={}\nstash_page={}\nstash_storage_page={}\nstash_slot={stash_slot}\nstash_slot_present={stash_slot_present}\nstash_origin={stash_origin}\nstash_cursor_follow={stash_cursor_follow}\nstash_hovered={stash_hovered}\nreader_loaded={reader_loaded}\nreader_signature={reader_signature}\nreader_space_contains={reader_space_contains}\nreader_space_source_count={reader_space_source_count}\nreader_space_radius={reader_space_radius:.4}\nreader_feedback={reader_feedback}\ncombiner_input_a_connected={combiner_input_a_connected}\ncombiner_input_b_connected={combiner_input_b_connected}\ncombiner_input_a_source_count={combiner_input_a_source_count}\ncombiner_input_b_source_count={combiner_input_b_source_count}\ncombiner_output_source_count={combiner_output_source_count}\ncombiner_output_control_points={combiner_output_control_points}\ncombiner_output_radius={combiner_output_radius:.4}\ncombiner_output_contains_primary={combiner_output_contains_primary}\ncombiner_output_contains_secondary={combiner_output_contains_secondary}\nidentity_signature={identity_signature}\nsecond_identity_signature={second_identity_signature}\nidentity_seed={identity_seed}\nidentity_rarity={identity_rarity}\nidentity_tier={identity_tier}\nidentity_name={identity_name}\nart_signature={art_signature}\nart_element={art_element}\nart_aspect={art_aspect}\nart_shape_count={art_shape_count}\nbooster_pack_present={booster_pack_present}\nbooster_phase={booster_phase}\nbooster_card_count={booster_card_count}\nbooster_rendered_x={booster_rendered_x:.1}\nbooster_rendered_y={booster_rendered_y:.1}\nexpected_card_seed={expected_card_seed}\nopened_card_present={opened_card_present}\nopened_card_zone={opened_card_zone}\nopened_card_seed={opened_card_seed}\nopened_card_face_up={opened_card_face_up}\nopened_card_x={opened_card_x:.1}\nopened_card_y={opened_card_y:.1}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\nholder={holder}\nholder_occupied={holder_occupied}\nzone_has_physics={}\nzone_render_layer={:?}\nzone_has_item_form={}\n",
+        "scenario={scenario}\ndragging={dragging}\nsecond_dragging={second_dragging}\nsecond_zone={second_zone}\nsecond_rendered_x={second_rendered_x:.1}\nsecond_rendered_y={second_rendered_y:.1}\nsecond_reader_loaded={second_reader_loaded}\nbooster_dragging={booster_dragging}\nzone={zone:?}\nhand_contains={hand_contains}\nhand_count={}\nstash_visible={}\nstash_page={}\nstash_storage_page={}\nstash_slot={stash_slot}\nstash_slot_present={stash_slot_present}\nstash_origin={stash_origin}\nstash_cursor_follow={stash_cursor_follow}\nstash_hovered={stash_hovered}\nreader_loaded={reader_loaded}\nreader_signature={reader_signature}\nreader_space_contains={reader_space_contains}\nreader_space_source_count={reader_space_source_count}\nreader_space_radius={reader_space_radius:.4}\nreader_feedback={reader_feedback}\nscreen_signature={screen_signature}\nscreen_geometry_tolerance=0.01\nscreen_geometry_match={screen_geometry_match}\nscreen_geometry_max_error={screen_geometry_max_error:.6}\nscreen_geometry_panel_count=4\nscreen_expected_geometry_0={screen_expected_geometry_0}\nscreen_expected_geometry_1={screen_expected_geometry_1}\nscreen_expected_geometry_2={screen_expected_geometry_2}\nscreen_expected_geometry_3={screen_expected_geometry_3}\nscreen_observed_geometry_0={screen_observed_geometry_0}\nscreen_observed_geometry_1={screen_observed_geometry_1}\nscreen_observed_geometry_2={screen_observed_geometry_2}\nscreen_observed_geometry_3={screen_observed_geometry_3}\ncombiner_input_a_connected={combiner_input_a_connected}\ncombiner_input_b_connected={combiner_input_b_connected}\ncombiner_input_a_source_count={combiner_input_a_source_count}\ncombiner_input_b_source_count={combiner_input_b_source_count}\ncombiner_output_source_count={combiner_output_source_count}\ncombiner_output_control_points={combiner_output_control_points}\ncombiner_output_radius={combiner_output_radius:.4}\ncombiner_output_contains_primary={combiner_output_contains_primary}\ncombiner_output_contains_secondary={combiner_output_contains_secondary}\nidentity_signature={identity_signature}\nsecond_identity_signature={second_identity_signature}\nidentity_seed={identity_seed}\nidentity_rarity={identity_rarity}\nidentity_tier={identity_tier}\nidentity_name={identity_name}\nart_signature={art_signature}\nart_element={art_element}\nart_aspect={art_aspect}\nart_shape_count={art_shape_count}\nbooster_pack_present={booster_pack_present}\nbooster_phase={booster_phase}\nbooster_card_count={booster_card_count}\nbooster_rendered_x={booster_rendered_x:.1}\nbooster_rendered_y={booster_rendered_y:.1}\nexpected_card_seed={expected_card_seed}\nopened_card_present={opened_card_present}\nopened_card_zone={opened_card_zone}\nopened_card_seed={opened_card_seed}\nopened_card_face_up={opened_card_face_up}\nopened_card_x={opened_card_x:.1}\nopened_card_y={opened_card_y:.1}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\nholder={holder}\nholder_occupied={holder_occupied}\nzone_has_physics={}\nzone_render_layer={:?}\nzone_has_item_form={}\n",
         hand.len(),
         stash_visible.0,
         stash_grid.current_page(),
