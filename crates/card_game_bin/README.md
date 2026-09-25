@@ -39,3 +39,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 ```
 
 This mode retains sealed, opening, opened-card state, identity, and rendered-difference evidence under `target/ui-smoke-*`.
+
+Run the seeded identity/signature scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -IdentitySignature
+```
+
+This mode compares the deterministic card signature, seed, rarity, tier, and generated name, then retains `identity-state.txt`, `identity.bmp`, and `identity-visual.txt` under `target/ui-smoke-*`.

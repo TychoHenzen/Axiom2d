@@ -4,7 +4,8 @@ param(
     [switch]$Interaction,
     [switch]$HandRoundTrip,
     [switch]$StashRoundTrip,
-    [switch]$BoosterOpening
+    [switch]$BoosterOpening,
+    [switch]$IdentitySignature
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,10 +22,14 @@ if (-not $RunnerChild) {
     if (($Interaction -and $HandRoundTrip) -or
         ($Interaction -and $StashRoundTrip) -or
         ($Interaction -and $BoosterOpening) -or
+        ($Interaction -and $IdentitySignature) -or
         ($HandRoundTrip -and $StashRoundTrip) -or
         ($HandRoundTrip -and $BoosterOpening) -or
-        ($StashRoundTrip -and $BoosterOpening)) {
-        throw 'Interaction, HandRoundTrip, StashRoundTrip, and BoosterOpening are mutually exclusive'
+        ($HandRoundTrip -and $IdentitySignature) -or
+        ($StashRoundTrip -and $BoosterOpening) -or
+        ($StashRoundTrip -and $IdentitySignature) -or
+        ($BoosterOpening -and $IdentitySignature)) {
+        throw 'Interaction, HandRoundTrip, StashRoundTrip, BoosterOpening, and IdentitySignature are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -56,6 +61,9 @@ if (-not $RunnerChild) {
         }
         if ($BoosterOpening) {
             $runnerArguments += '-BoosterOpening'
+        }
+        if ($IdentitySignature) {
+            $runnerArguments += '-IdentitySignature'
         }
         $runnerProcess = Start-Process -FilePath (Get-Process -Id $PID).Path `
             -ArgumentList $runnerArguments `
@@ -99,6 +107,7 @@ $stashPageTwoFramePath = Join-Path $artifactDir 'stash-page-2.bmp'
 $stashRetrievedFramePath = Join-Path $artifactDir 'stash-retrieved.bmp'
 $boosterOpeningFramePath = Join-Path $artifactDir 'booster-opening.bmp'
 $boosterOpenedFramePath = Join-Path $artifactDir 'booster-opened.bmp'
+$identityFramePath = Join-Path $artifactDir 'identity.bmp'
 $failureFramePath = Join-Path $artifactDir 'failure.bmp'
 $frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
 $scenarioName = if ($Interaction) {
@@ -112,6 +121,9 @@ elseif ($StashRoundTrip) {
 }
 elseif ($BoosterOpening) {
     'seeded-booster-opening'
+}
+elseif ($IdentitySignature) {
+    'seeded-card-identity'
 }
 else {
     'seeded-card-drag'
@@ -811,13 +823,15 @@ public static class AxiomUiSmokeNative
     [AxiomUiSmokeNative]::PlaceBehindWithoutActivation($windowHandle)
 
     $stage = 'seeded-state'
+    $cardWorldX = if ($IdentitySignature) { -80.0 } else { -160.0 }
+    $cardWorldY = 130.0
     $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
-        -Stage $stage -TimeoutSeconds 30 -ExpectedState 'dragging=false, zone=Table, rendered=(-160,130) tolerance=1' -Predicate {
+        -Stage $stage -TimeoutSeconds 30 -ExpectedState "dragging=false, zone=Table, rendered=($cardWorldX,$cardWorldY) tolerance=1" -Predicate {
         param($state)
         $state['scenario'] -eq $scenarioName -and
         $state['dragging'] -eq 'false' -and
         $state['zone'] -eq 'Table' -and
-        (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 1)
+        (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 1)
     }
     $foregroundAtPreparation = Get-UiSmokeForegroundSnapshot
     $cursorAtPreparation = [AxiomUiSmokeNative]::GetCursorPosition()
@@ -830,12 +844,12 @@ public static class AxiomUiSmokeNative
     Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
         -CapturePath $baselineFramePath -Stage $stage -TimeoutSeconds 10
 
-    $startScreenX = $client.Left + [int][Math]::Round($client.Width / 2.0 - 160)
-    $startScreenY = $client.Top + [int][Math]::Round($client.Height / 2.0 + 130)
+    $startScreenX = $client.Left + [int][Math]::Round($client.Width / 2.0 + $cardWorldX)
+    $startScreenY = $client.Top + [int][Math]::Round($client.Height / 2.0 + $cardWorldY)
     $targetScreenX = $client.Left + [int][Math]::Round($client.Width / 2.0 - 300)
     $targetScreenY = $client.Top + [int][Math]::Round($client.Height / 2.0 - 150)
-    $startClientX = [int][Math]::Round($client.Width / 2.0 - 160)
-    $startClientY = [int][Math]::Round($client.Height / 2.0 + 130)
+    $startClientX = [int][Math]::Round($client.Width / 2.0 + $cardWorldX)
+    $startClientY = [int][Math]::Round($client.Height / 2.0 + $cardWorldY)
     $targetClientX = [int][Math]::Round($client.Width / 2.0 - 300)
     $targetClientY = [int][Math]::Round($client.Height / 2.0 - 150)
     $handClientX = [int][Math]::Round($client.Width / 2.0)
@@ -900,7 +914,60 @@ public static class AxiomUiSmokeNative
         throw "game window was foreground before input (hwnd=$windowHandle pid=$($process.Id))"
     }
 
-    if ($StashRoundTrip) {
+    if ($IdentitySignature) {
+        $expectedIdentitySignature = '-0.609306,0.758221,0.160116,0.099062,-0.170454,0.657969,0.647077,0.870853'
+        $expectedIdentitySeed = '13799725383080882384'
+        $expectedIdentityRarity = 'Uncommon'
+        $expectedIdentityTier = 'Dormant'
+        $expectedIdentityName = 'Cresting Fadevanish'
+        $stage = 'verify-identity-state'
+        $identityState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "identity_signature=$expectedIdentitySignature, identity_seed=$expectedIdentitySeed, identity_rarity=$expectedIdentityRarity, identity_tier=$expectedIdentityTier, identity_name=$expectedIdentityName, face_up=true, zone=Table, rendered=($cardWorldX,$cardWorldY)" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['face_up'] -eq 'true' -and
+            $state['identity_signature'] -eq $expectedIdentitySignature -and
+            $state['identity_seed'] -eq $expectedIdentitySeed -and
+            $state['identity_rarity'] -eq $expectedIdentityRarity -and
+            $state['identity_tier'] -eq $expectedIdentityTier -and
+            $state['identity_name'] -eq $expectedIdentityName -and
+            (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 1)
+        }
+        $identityState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'identity-state.txt')
+
+        $stage = 'capture-identity-frame'
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $identityFramePath -Stage $stage -TimeoutSeconds 10
+        $identityFrame = Read-UiSmokeBitmap -Path $identityFramePath
+        $identityTemplate = New-UiSmokeCardTemplate -Frame $identityFrame `
+            -CenterX $startClientX -CenterY $startClientY
+        $identityTemplateMatch = Find-UiSmokeCardTemplate -Frame $identityFrame -Template $identityTemplate `
+            -ExpectedCenterX $startClientX -ExpectedCenterY $startClientY `
+            -SearchRadius 8 -RgbDeltaMaximum 32
+        $minimumIdentityMatchPixels = [int][Math]::Ceiling($identityTemplate.PixelCount * 90 / 100.0)
+        @(
+            "frame_size=$($identityFrame.Width)x$($identityFrame.Height)"
+            "identity_template_size=$($identityTemplate.Width)x$($identityTemplate.Height)"
+            "identity_template_unique_rgb_colors=$($identityTemplate.UniqueColors)"
+            "identity_template_match=$($identityTemplateMatch.MatchedPixels)/$($identityTemplateMatch.PixelCount)"
+            "identity_template_minimum_match_percent=90"
+            "identity_template_offset=$($identityTemplateMatch.OffsetX),$($identityTemplateMatch.OffsetY)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'identity-visual.txt')
+        if ($identityTemplateMatch.MatchedPixels -lt $minimumIdentityMatchPixels) {
+            throw "identity frame did not retain the visible card: match=$($identityTemplateMatch.MatchedPixels)/$($identityTemplateMatch.PixelCount), required>=$minimumIdentityMatchPixels"
+        }
+
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $cursorStability = 'not_applicable_no_input'
+        $succeeded = $true
+    }
+    elseif ($StashRoundTrip) {
         $stage = 'open-stash'
         $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
         $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
@@ -923,7 +990,7 @@ public static class AxiomUiSmokeNative
             -CapturePath $stashOpenFramePath -Stage $stage -TimeoutSeconds 10
     }
 
-    if ($BoosterOpening) {
+    if (-not $IdentitySignature -and $BoosterOpening) {
         $stage = 'hover-booster-pack'
         $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
         $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
@@ -1297,7 +1364,7 @@ public static class AxiomUiSmokeNative
         }
         $succeeded = $true
     }
-    else {
+    elseif (-not $IdentitySignature) {
     $stage = 'hover-card'
     $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
     if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
@@ -2007,7 +2074,16 @@ if (-not $succeeded) {
     exit 1
 }
 
-if ($BoosterOpening) {
+if ($IdentitySignature) {
+    Write-Output ("UI identity scenario passed: position=({0},{1}), identity_state={2}, identity_frame={3}, visual_evidence={4}" -f `
+        $identityState['rendered_x'], $identityState['rendered_y'], `
+        (Join-Path $artifactDir 'identity-state.txt'), $identityFramePath, `
+        (Join-Path $artifactDir 'identity-visual.txt'))
+    Write-Output ("Identity observed: signature={0}, seed={1}, rarity={2}, tier={3}, name={4}" -f `
+        $identityState['identity_signature'], $identityState['identity_seed'], `
+        $identityState['identity_rarity'], $identityState['identity_tier'], $identityState['identity_name'])
+}
+elseif ($BoosterOpening) {
     Write-Output ("UI booster opening passed: sealed=({0},{1}), opened=({2},{3}), sealed_state={4}, opening_state={5}, opened_state={6}, opening_frame={7}, opened_frame={8}" -f `
         $boosterWorldX, $boosterWorldY, $openedState['opened_card_x'], $openedState['opened_card_y'], `
         (Join-Path $artifactDir 'booster-sealed-state.txt'), (Join-Path $artifactDir 'booster-opening-state.txt'), `
@@ -2033,7 +2109,7 @@ elseif ($HandRoundTrip) {
         $handState['hand_contains'], $handState['hand_count'], $handLayoutChanges.ChangedPixels, `
         $returnedHandChanges.ChangedPixels, $returnedTableChanges.ChangedPixels)
 }
-elseif (-not $Interaction) {
+elseif (-not $IdentitySignature -and -not $Interaction) {
     Write-Output ("UI smoke passed: scenario=$scenarioName rendered=({0},{1}) frame={2}" -f `
         $dragState['rendered_x'], $dragState['rendered_y'], $framePath)
     Write-Output ("Visual move verified: source_changed={0} target_changed={1} pixels (minimum 500 at RGB delta 24); baseline={2}" -f `
