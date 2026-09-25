@@ -103,6 +103,10 @@ round_coverage() {
     awk '{ printf "%.2f\n", $1 + 0 + 1e-9 }'
 }
 
+count_rustdoc_warnings() {
+    grep -c '"reason":"compiler-message".*"doc":true.*"level":"warning"' || true
+}
+
 # ─── Hard Gates ───────────────────────────────────────────────────────────────
 
 check_hard_gates() {
@@ -122,12 +126,13 @@ check_hard_gates() {
 
     # Doc warnings
     printf "  %-35s " "doc warnings:"
-    local doc_out doc_warnings
+    local doc_out doc_status doc_warnings
     set +e
-    doc_out=$(cargo doc --workspace --no-deps 2>&1)
-    doc_warnings=$(echo "$doc_out" | grep -c "warning:" || true)
+    doc_out=$(cargo doc --workspace --no-deps --message-format=json 2>&1)
+    doc_status=$?
+    doc_warnings=$(printf '%s\n' "$doc_out" | count_rustdoc_warnings)
     set -e
-    if [ "${doc_warnings:-0}" -eq 0 ]; then
+    if [ "$doc_status" -eq 0 ] && [ "${doc_warnings:-0}" -eq 0 ]; then
         echo -e "${GREEN}PASS${NC} (0)"
         PASS=$((PASS + 1))
     else
