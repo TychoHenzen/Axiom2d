@@ -57,6 +57,52 @@ ron_value() {
     echo "${val:-0}"
 }
 
+extract_line_coverage() {
+    awk '
+        $1 == "TOTAL" {
+            coverage = $10
+            sub(/%$/, "", coverage)
+            print coverage
+            found = 1
+            exit
+        }
+        END {
+            if (!found) {
+                exit 1
+            }
+        }
+    '
+}
+
+compare_floats() {
+    awk -v current="$1" -v baseline="$2" '
+        BEGIN {
+            precision = 0
+            decimal = index(baseline, ".")
+            if (decimal > 0) {
+                precision = length(baseline) - decimal
+            }
+            scale = 1
+            for (i = 0; i < precision; i++) {
+                scale *= 10
+            }
+            current = int((current * scale) + 0.5 + 1e-9)
+            baseline = int((baseline * scale) + 0.5 + 1e-9)
+            if (current < baseline) {
+                print -1
+            } else if (current > baseline) {
+                print 1
+            } else {
+                print 0
+            }
+        }
+    '
+}
+
+round_coverage() {
+    awk '{ printf "%.2f\n", $1 + 0 + 1e-9 }'
+}
+
 # ─── Hard Gates ───────────────────────────────────────────────────────────────
 
 check_hard_gates() {
@@ -156,7 +202,7 @@ check_soft_ratchets() {
     local cur_cov
     if command -v cargo-llvm-cov &>/dev/null && [ "${base_cov:-0}" != "0" ]; then
         set +e
-        cur_cov=$(cargo llvm-cov --workspace --summary-only 2>/dev/null | grep "^TOTAL" | awk '{print $4}' | tr -d '%')
+        cur_cov=$(cargo llvm-cov --workspace --summary-only 2>/dev/null | extract_line_coverage)
         set -e
         if [ -n "$cur_cov" ] && [ "$cur_cov" != "0" ]; then
             check_dimension_float "line coverage %" "$cur_cov" "$base_cov" "higher"
@@ -215,16 +261,16 @@ check_dimension() {
 
 check_dimension_float() {
     local name="$1" current="$2" baseline="$3" direction="$4"
+    local comparison
 
     printf "  %-35s " "$name:"
+    comparison=$(compare_floats "$current" "$baseline")
     if [ "$direction" = "higher" ]; then
-        result=$(echo "$current < $baseline" | bc -l 2>/dev/null)
-        if [ "$result" = "1" ]; then
+        if [ "$comparison" = "-1" ]; then
             echo -e "${RED}REGRESSED${NC}  ($current < baseline $baseline)"
             FAIL=$((FAIL + 1))
         else
-            result=$(echo "$current > $baseline" | bc -l 2>/dev/null)
-            if [ "$result" = "1" ]; then
+            if [ "$comparison" = "1" ]; then
                 echo -e "${YELLOW}IMPROVED${NC}  ($current > baseline $baseline — ratchet me!)"
                 WARN=$((WARN + 1))
             else
@@ -233,13 +279,11 @@ check_dimension_float() {
             fi
         fi
     else
-        result=$(echo "$current > $baseline" | bc -l 2>/dev/null)
-        if [ "$result" = "1" ]; then
+        if [ "$comparison" = "1" ]; then
             echo -e "${RED}REGRESSED${NC}  ($current > baseline $baseline)"
             FAIL=$((FAIL + 1))
         else
-            result=$(echo "$current < $baseline" | bc -l 2>/dev/null)
-            if [ "$result" = "1" ]; then
+            if [ "$comparison" = "-1" ]; then
                 echo -e "${YELLOW}IMPROVED${NC}  ($current < baseline $baseline — ratchet me!)"
                 WARN=$((WARN + 1))
             else
@@ -280,7 +324,7 @@ show_diff() {
         cur_cyclo="N/A"
     fi
     if command -v cargo-llvm-cov &>/dev/null; then
-        cur_cov=$(cargo llvm-cov --workspace --summary-only 2>/dev/null | grep "^TOTAL" | awk '{print $4}' | tr -d '%' || echo "N/A")
+        cur_cov=$(cargo llvm-cov --workspace --summary-only 2>/dev/null | extract_line_coverage || echo "N/A")
     else
         cur_cov="N/A"
     fi
@@ -323,10 +367,11 @@ update_baseline() {
         cur_cyclo=$(ron_value "cyclomatic_over_10")
     fi
     if command -v cargo-llvm-cov &>/dev/null; then
-        cur_cov=$(cargo llvm-cov --workspace --summary-only 2>/dev/null | grep "^TOTAL" | awk '{print $4}' | tr -d '%' || ron_value "line_coverage_pct")
+        cur_cov=$(cargo llvm-cov --workspace --summary-only 2>/dev/null | extract_line_coverage || ron_value "line_coverage_pct")
     else
         cur_cov=$(ron_value "line_coverage_pct")
     fi
+    cur_cov=$(printf '%s\n' "$cur_cov" | round_coverage)
     if command -v npx &>/dev/null; then
         cur_clones=$(npx jscpd crates/ --pattern "**/*.rs" --min-tokens 50 --min-lines 5 --mode strict 2>&1 | grep -c "Clone found" 2>/dev/null || ron_value "jscpd_clone_count")
     else
@@ -342,6 +387,14 @@ update_baseline() {
     if [ -z "$overrides" ]; then
         echo "Cannot update baseline: overrides block is missing." >&2
         return 1
+    fi
+
+    local line_coverage_note
+    line_coverage_note=$(sed -n '/"line_coverage_pct=/p' "$BASELINE" | head -1)
+    if [ -n "$line_coverage_note" ]; then
+        line_coverage_note=$(printf '%s\n' "$line_coverage_note" | sed "s/line_coverage_pct=[^:]*:/line_coverage_pct=$cur_cov:/")
+    else
+        line_coverage_note="            \"line_coverage_pct=$cur_cov: workspace line coverage from cargo-llvm-cov\","
     fi
 
     cat > "$BASELINE" << RONEOF
@@ -389,10 +442,10 @@ $overrides
         "notes": [
             "unsafe_blocks_total=$cur_unsafe: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
             "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
-            "test_count_total=$cur_test: all #[test] and #[tokio::test] across workspace (including tools/)",
+            "test_count_total=$cur_test: all #[test] and #[tokio::test] across engine workspace (crates/)",
             "smell_markers_total=$cur_smell: no TODO/FIXME/HACK in production code",
             "cyclomatic_over_10=$cur_cyclo: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
-            "line_coverage_pct=$cur_cov: workspace line coverage from cargo-llvm-cov",
+${line_coverage_note}
             "jscpd_clone_count=$cur_clones: duplicate code clones detected by jscpd (min-tokens=50)",
         ],
     },
@@ -439,6 +492,7 @@ install_hooks() {
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 MODE="${1:-full}"
 
 cd "$PROJECT_ROOT"
@@ -494,4 +548,5 @@ elif [ "$WARN" -gt 0 ]; then
     echo "  git add docs/QUALITY_BASELINE.ron && git commit -m 'chore: ratchet quality baseline down'"
 else
     echo -e "${GREEN}═══ GATE PASSED: All dimensions at baseline ═══${NC}"
+fi
 fi

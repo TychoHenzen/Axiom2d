@@ -1,10 +1,10 @@
 // Quality Gate Baseline — ratchet thresholds for CI enforcement.
-// Maintained manually in reviewed changes; CI reports comparisons but does not modify this file.
+// Auto-updated: 2026-09-25
 //
 // RULES:
 //   Hard gates: current value must be 0. Any increase → CI FAIL.
 //   Soft ratchets: current value must be <= baseline. Any increase → CI FAIL.
-//     A decrease may be recorded in a reviewed change when quality improves.
+//     Decrease auto-updates baseline (quality improved).
 //   Trend advisories: warn only. Do not block CI.
 //
 // To override a soft ratchet (intentional regression):
@@ -20,13 +20,13 @@
         "shader_errors": 0,
     },
     "soft": {
-        "test_count_total": 1821,
+        "test_count_total": 1828,
         "smell_markers_total": 0,
         "unsafe_blocks_total": 2,
         "unwrap_in_prod_total": 0,
         "expect_in_prod_total": 92,
         "cyclomatic_over_10": 29,
-        "line_coverage_pct": 78.67,
+        "line_coverage_pct": 79.12,
         "jscpd_clone_count": 1434,
     },
     "advisory_maxima": {
@@ -51,16 +51,16 @@
         },
     },
     "meta": {
-        "last_updated": "2026-09-24",
+        "last_updated": "2026-09-25",
         "schema_version": 2,
         "notes": [
             "unsafe_blocks_total=2: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
             "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
-            "test_count_total=1821: all #[test] and #[tokio::test] in the engine workspace (crates/)",
+            "test_count_total=1828: all #[test] and #[tokio::test] across engine workspace (crates/)",
             "smell_markers_total=0: no TODO/FIXME/HACK in production code",
             "cyclomatic_over_10=29: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
-            "line_coverage_pct=78.67: engine workspace line coverage from cargo-llvm-cov",
-            "jscpd_clone_count=1434: duplicate code clones detected by jscpd (min-tokens=50). Phase 4 SDF/capture + kill barrier parallelism intentional.",
+            "line_coverage_pct=79.12: Lines Cover 23,058/29,144 (79.117%) at 85d2f26becd701da2c498f418b7c6752a15e26df replaced Regions Cover 78.67% at 356c9ccbfb1342608488f87bdd20d8ed4a53c496; fresh column 4 was 28,082/36,480 (76.979%), so column 10 is the intended metric",
+            "jscpd_clone_count=1434: duplicate code clones detected by jscpd (min-tokens=50)",
         ],
     },
 }

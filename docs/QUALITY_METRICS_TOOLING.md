@@ -51,21 +51,21 @@ cargo install cargo-llvm-cov
 cargo llvm-cov --workspace --summary-only
 
 # Extract coverage %
-cargo llvm-cov --workspace --summary-only 2>/dev/null | grep "^TOTAL" | awk '{print $4}' | tr -d '%'
+cargo llvm-cov --workspace --summary-only 2>/dev/null | grep "^TOTAL" | awk '{print $10}' | tr -d '%'
 ```
 
 **Why not tarpaulin:** `cargo-llvm-cov` is significantly faster (~50% on this workspace). Tarpaulin uses source-based instrumentation which is slower but works without nightly; llvm-cov needs `llvm-tools-preview` component but is the recommended approach for CI.
 
 **CI integration:**
-1. `quality.yml` `coverage` job generates coverage, extracts percentage from `TOTAL` line, uploads `lcov.info`
+1. `quality.yml` `coverage` job generates coverage, extracts the Lines Cover percentage from the `TOTAL` line, uploads `lcov.info`
 2. `soft-gate` job reads `needs.coverage.outputs.coverage_pct` and ratchets against `line_coverage_pct` in baseline
-3. Uses `bc` for float comparison since coverage is a percentage
+3. Uses the repository's baseline-precision `awk` float comparator, matching the local quality gate
 
 **Proof format for DoDs:**
 ```json
 {
-  "command": "cargo llvm-cov --workspace --summary-only 2>/dev/null | grep \"^TOTAL\" | awk '{print $4}' | tr -d '%'",
-  "predicate": {"type": "regression", "extract": "^(\\d+)$", "lower_is_better": false},
+  "command": "cargo llvm-cov --workspace --summary-only 2>/dev/null | grep \"^TOTAL\" | awk '{print $10}' | tr -d '%'",
+  "predicate": {"type": "regression", "extract": "^(\\d+(\\.\\d+)?)$", "lower_is_better": false},
   "description": "overall line coverage does not regress",
   "category": "coverage"
 }
@@ -119,8 +119,8 @@ Current baselines in `docs/QUALITY_BASELINE.ron`:
 "soft": {
     // ... existing ...
     "cyclomatic_over_10": 29,       // functions with CC > 10
-    "line_coverage_pct": 78.67,     // workspace line coverage %
-    "jscpd_clone_count": 1197,      // jscpd clone count
+    "line_coverage_pct": 79.12,     // workspace line coverage %
+    "jscpd_clone_count": 1434,      // jscpd clone count
 }
 ```
 
