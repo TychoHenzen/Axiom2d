@@ -11,6 +11,7 @@ workspace = true
 
 [dependencies]
 axiom2d = { path = "../axiom2d" }
+bevy_ecs = { workspace = true }
 card_game = { path = "../card_game" }
 glam = { workspace = true }
 rand = { workspace = true }

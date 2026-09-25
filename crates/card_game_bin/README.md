@@ -48,6 +48,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 
 This mode inserts two seeded cards into separate readers, links both reader outputs to the combiner through native socket drags, and verifies the linked inputs, combined signature space, and rendered cable/device result with retained evidence under `target/ui-smoke-*`.
 
+Run the reader-to-screen cable wrapping scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -CableWrapping
+```
+
+This mode connects the deterministic reader and screen sockets around the reader obstacle, verifies the wrap anchor and rendered ribbon geometry, and retains state/frame diagnostics under `target/ui-smoke-*`.
+
 Run the stash round-trip scenario, storing the seeded card, switching pages, previewing the stash slot during a drag, and retrieving it:
 
 ```powershell

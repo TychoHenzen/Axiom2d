@@ -6,6 +6,7 @@ param(
     [switch]$ZoneTransition,
     [switch]$ReaderRoundTrip,
     [switch]$CombinerProcessing,
+    [switch]$CableWrapping,
     [switch]$StashRoundTrip,
     [switch]$BoosterOpening,
     [switch]$IdentitySignature,
@@ -29,13 +30,14 @@ if (-not $RunnerChild) {
         $ZoneTransition,
         $ReaderRoundTrip,
         $CombinerProcessing,
+        $CableWrapping,
         $StashRoundTrip,
         $BoosterOpening,
         $IdentitySignature,
         $ArtFace
     )
     if (@($scenarioFlags | Where-Object { $_ }).Count -gt 1) {
-        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
+        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, CableWrapping, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -70,6 +72,9 @@ if (-not $RunnerChild) {
         }
         if ($CombinerProcessing) {
             $runnerArguments += '-CombinerProcessing'
+        }
+        if ($CableWrapping) {
+            $runnerArguments += '-CableWrapping'
         }
         if ($StashRoundTrip) {
             $runnerArguments += '-StashRoundTrip'
@@ -125,6 +130,7 @@ $readerInsertedFramePath = Join-Path $artifactDir 'reader-inserted.bmp'
 $readerEjectedFramePath = Join-Path $artifactDir 'reader-ejected.bmp'
 $readerReturnedFramePath = Join-Path $artifactDir 'reader-returned.bmp'
 $combinerFramePath = Join-Path $artifactDir 'combiner.bmp'
+$cableWrappingFramePath = Join-Path $artifactDir 'cable-wrapping.bmp'
 $holderStatePath = if ($ZoneTransition) {
     Join-Path $artifactDir 'zone-holder-state.txt'
 }
@@ -163,6 +169,9 @@ elseif ($ReaderRoundTrip) {
 }
 elseif ($CombinerProcessing) {
     'seeded-card-combiner'
+}
+elseif ($CableWrapping) {
+    'seeded-card-cable-wrapping'
 }
 elseif ($HandRoundTrip) {
     'seeded-card-hand-roundtrip'
@@ -999,6 +1008,8 @@ $secondReaderWorldX = 100.0
 $secondReaderWorldY = -150.0
 $readerJackClientX = [int][Math]::Round($client.Width / 2.0 + 352.0)
 $readerJackClientY = [int][Math]::Round($client.Height / 2.0)
+$screenJackClientX = [int][Math]::Round($client.Width / 2.0 + 173.0)
+$screenJackClientY = [int][Math]::Round($client.Height / 2.0 + 150.0)
 $secondReaderJackClientX = [int][Math]::Round($client.Width / 2.0 + 152.0)
 $secondReaderJackClientY = [int][Math]::Round($client.Height / 2.0 - 150.0)
 $combinerInputAClientX = [int][Math]::Round($client.Width / 2.0 + 248.0)
@@ -1050,6 +1061,7 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
         "second_reader_client=($secondReaderClientX,$secondReaderClientY)"
         "second_reader_world=($secondReaderWorldX,$secondReaderWorldY)"
         "reader_jack_client=($readerJackClientX,$readerJackClientY)"
+        "screen_jack_client=($screenJackClientX,$screenJackClientY)"
         "second_reader_jack_client=($secondReaderJackClientX,$secondReaderJackClientY)"
         "combiner_input_a_client=($combinerInputAClientX,$combinerInputAClientY)"
         "combiner_input_b_client=($combinerInputBClientX,$combinerInputBClientY)"
@@ -1824,6 +1836,169 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
         }
         if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
             throw "reader round-trip PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($CableWrapping) {
+        $cablePositionTolerance = 2
+        $expectedCableSourceX = 352.0
+        $expectedCableSourceY = 0.0
+        $expectedCableAnchorX = 340.0
+        $expectedCableAnchorY = 55.0
+        $expectedCableDestX = 173.0
+        $expectedCableDestY = 150.0
+        $rgbDeltaThreshold = 24
+        $minimumCableChangedPixels = 100
+        @(
+            "cable_expected_source=($expectedCableSourceX,$expectedCableSourceY)"
+            "cable_expected_anchor=($expectedCableAnchorX,$expectedCableAnchorY)"
+            "cable_expected_dest=($expectedCableDestX,$expectedCableDestY)"
+            "cable_position_tolerance=$cablePositionTolerance"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_cable_changed_pixels=$minimumCableChangedPixels"
+        ) | Add-Content -LiteralPath $inputFile
+
+        $stage = 'hover-cable-source'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before cable input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $readerJackClientX, $readerJackClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($readerJackClientX,$readerJackClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $readerJackClientX -ExpectedY $readerJackClientY -Tolerance 3)
+        }
+
+        $stage = 'start-cable-drag'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $readerJackClientX, $readerJackClientY)
+        $mouseClientX = $readerJackClientX
+        $mouseClientY = $readerJackClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'cable_dragging=true, cable_present=true' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['cable_present'] -eq 'true' -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true'
+        }
+
+        $stage = 'drag-cable-around-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($readerJackClientX + ($screenJackClientX - $readerJackClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($readerJackClientY + ($screenJackClientY - $readerJackClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $dragCableState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'cable_dragging=true, one wrap anchor, rendered geometry retained' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            [int]::Parse($state['cable_anchor_count']) -eq 1 -and
+            (Test-Position -State $state -XKey 'cable_anchor_0_x' -YKey 'cable_anchor_0_y' `
+                -ExpectedX $expectedCableAnchorX -ExpectedY $expectedCableAnchorY -Tolerance $cablePositionTolerance)
+        }
+        $dragCableState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'cable-wrapping-drag-state.txt')
+
+        $stage = 'connect-cable-to-screen-jack'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $screenJackClientX, $screenJackClientY)
+        $cableState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'cable_connected=true, one wrap anchor, rendered geometry matches expected path' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['cable_connected'] -eq 'true' -and
+            [int]::Parse($state['cable_anchor_count']) -eq 1 -and
+            (Test-Position -State $state -XKey 'cable_source_x' -YKey 'cable_source_y' `
+                -ExpectedX $expectedCableSourceX -ExpectedY $expectedCableSourceY -Tolerance $cablePositionTolerance) -and
+            (Test-Position -State $state -XKey 'cable_anchor_0_x' -YKey 'cable_anchor_0_y' `
+                -ExpectedX $expectedCableAnchorX -ExpectedY $expectedCableAnchorY -Tolerance $cablePositionTolerance) -and
+            (Test-Position -State $state -XKey 'cable_dest_x' -YKey 'cable_dest_y' `
+                -ExpectedX $expectedCableDestX -ExpectedY $expectedCableDestY -Tolerance $cablePositionTolerance)
+        }
+        $mouseDown = $false
+        $cableState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'cable-wrapping-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $cableWrappingFramePath -Stage 'capture-cable-wrapping-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $cableFrame = Read-UiSmokeBitmap -Path $cableWrappingFramePath
+        if ($baselineFrame.Width -ne $cableFrame.Width -or $baselineFrame.Height -ne $cableFrame.Height) {
+            throw "cable frame size $($cableFrame.Width)x$($cableFrame.Height) does not match baseline $($baselineFrame.Width)x$($baselineFrame.Height)"
+        }
+        $cableChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $cableFrame `
+            -CenterX ([int][Math]::Round($client.Width / 2.0 + 295.0)) `
+            -CenterY ([int][Math]::Round($client.Height / 2.0 + 75.0)) `
+            -HalfWidth 140 -HalfHeight 90 -RgbDeltaThreshold $rgbDeltaThreshold
+        $cableRenderedVertexCount = [int]::Parse($cableState['cable_rendered_vertex_count'])
+        $cableRenderedMinX = [double]::Parse($cableState['cable_rendered_min_x'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedMaxX = [double]::Parse($cableState['cable_rendered_max_x'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedMinY = [double]::Parse($cableState['cable_rendered_min_y'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedMaxY = [double]::Parse($cableState['cable_rendered_max_y'], [Globalization.CultureInfo]::InvariantCulture)
+        @(
+            "frame_size=$($cableFrame.Width)x$($cableFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_cable_changed_pixels=$minimumCableChangedPixels"
+            "cable_roi=($($cableChanges.Left),$($cableChanges.Top),$($cableChanges.Width),$($cableChanges.Height))"
+            "cable_changed_pixels=$($cableChanges.ChangedPixels)"
+            "expected_waypoints=($expectedCableSourceX,$expectedCableSourceY)->($expectedCableAnchorX,$expectedCableAnchorY)->($expectedCableDestX,$expectedCableDestY)"
+            "observed_waypoints=($($cableState['cable_source_x']),$($cableState['cable_source_y']))->($($cableState['cable_anchor_0_x']),$($cableState['cable_anchor_0_y']))->($($cableState['cable_dest_x']),$($cableState['cable_dest_y']))"
+            "rendered_bounds=($cableRenderedMinX,$cableRenderedMinY)-($cableRenderedMaxX,$cableRenderedMaxY)"
+            "rendered_vertex_count=$cableRenderedVertexCount"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'cable-wrapping-visual-diff.txt')
+        if ($cableChanges.ChangedPixels -lt $minimumCableChangedPixels) {
+            throw "cable frame changed too few pixels: changed=$($cableChanges.ChangedPixels), minimum=$minimumCableChangedPixels"
+        }
+        if ($cableRenderedVertexCount -lt 10 -or
+            $cableRenderedMinX -gt $expectedCableAnchorX - $cablePositionTolerance -or
+            $cableRenderedMaxX -lt $expectedCableAnchorX + $cablePositionTolerance -or
+            $cableRenderedMinY -gt $expectedCableAnchorY - $cablePositionTolerance -or
+            $cableRenderedMaxY -lt $expectedCableAnchorY + $cablePositionTolerance) {
+            throw "cable rendered geometry did not retain the expected wrapped anchor: vertices=$cableRenderedVertexCount bounds=($cableRenderedMinX,$cableRenderedMinY)-($cableRenderedMaxX,$cableRenderedMaxY)"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during cable wrapping (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "cable wrapping PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
         }
         $succeeded = $true
     }
@@ -2876,6 +3051,18 @@ elseif ($ReaderRoundTrip) {
         $insertedState['reader_signature'], $insertedState['reader_space_radius'], $insertedState['reader_feedback'],
         $returnedState['reader_feedback'], $ejectedReaderChanges.ChangedPixels, $returnedReaderChanges.ChangedPixels,
         $returnedTableChanges.ChangedPixels)
+}
+elseif ($CableWrapping) {
+    Write-Output ("UI cable wrapping scenario passed: source=({0},{1}), anchor=({2},{3}), dest=({4},{5}), state={6}, frame={7}, visual_evidence={8}" -f `
+        $cableState['cable_source_x'], $cableState['cable_source_y'], `
+        $cableState['cable_anchor_0_x'], $cableState['cable_anchor_0_y'], `
+        $cableState['cable_dest_x'], $cableState['cable_dest_y'], `
+        (Join-Path $artifactDir 'cable-wrapping-state.txt'), $cableWrappingFramePath, `
+        (Join-Path $artifactDir 'cable-wrapping-visual-diff.txt'))
+    Write-Output ("Cable path verified: connected={0}, anchors={1}, rendered_vertices={2}, changed_pixels={3} (minimum {4} at RGB delta {5})" -f `
+        $cableState['cable_connected'], $cableState['cable_anchor_count'], `
+        $cableState['cable_rendered_vertex_count'], $cableChanges.ChangedPixels, `
+        $minimumCableChangedPixels, $rgbDeltaThreshold)
 }
 elseif ($CombinerProcessing) {
     Write-Output ("UI combiner scenario passed: primary_reader=({0},{1}), secondary_reader=({2},{3}), combiner_state={4}, combiner_frame={5}, visual_evidence={6}" -f `

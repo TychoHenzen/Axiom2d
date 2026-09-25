@@ -1,6 +1,8 @@
 mod card_data;
 
 #[cfg(feature = "ui-test")]
+use bevy_ecs::system::SystemParam;
+#[cfg(feature = "ui-test")]
 use card_game::booster::opening::BoosterOpenPhase;
 #[cfg(feature = "ui-test")]
 use std::path::PathBuf;
@@ -19,9 +21,9 @@ use card_game::card::component::{Card, CardLabel, CardZone};
 #[cfg(feature = "ui-test")]
 use card_game::card::interaction::drag_state::DragState;
 #[cfg(feature = "ui-test")]
-use card_game::card::jack_cable::{Cable, Jack};
+use card_game::card::jack_cable::{Cable, Jack, WireEndpoints, WrapWire};
 #[cfg(feature = "ui-test")]
-use card_game::card::jack_socket::JackSocket;
+use card_game::card::jack_socket::{JackSocket, PendingCable};
 #[cfg(feature = "ui-test")]
 use card_game::card::reader::{CardReader, SignatureSpace};
 use card_game::card::reader::{
@@ -61,6 +63,24 @@ static UI_TEST_BOOSTER_ENTITY: OnceLock<Entity> = OnceLock::new();
 static UI_TEST_BOOSTER_SIGNATURE: OnceLock<CardSignature> = OnceLock::new();
 #[cfg(feature = "ui-test")]
 static UI_TEST_SCENARIO: OnceLock<String> = OnceLock::new();
+
+#[cfg(feature = "ui-test")]
+#[derive(SystemParam)]
+struct UiTestCableParams<'w, 's> {
+    pending_cable: Res<'w, PendingCable>,
+    cables: Query<
+        'w,
+        's,
+        (
+            Entity,
+            Option<&'static Cable>,
+            &'static WireEndpoints,
+            &'static WrapWire,
+            &'static Shape,
+        ),
+    >,
+    transforms: Query<'w, 's, &'static Transform2D>,
+}
 
 fn hydrate_shape_repository_system(world: &mut World) {
     let mut repo = ShapeRepository::new();
@@ -287,6 +307,7 @@ fn record_ui_test_state(
     drag_state: Res<DragState>,
     hand: Res<Hand>,
     mouse: Res<MouseState>,
+    cable_params: UiTestCableParams,
     stash_grid: Res<StashGrid>,
     stash_hover: Res<StashHoverPreview>,
     stash_visible: Res<StashVisible>,
@@ -299,7 +320,6 @@ fn record_ui_test_state(
     reader_jacks: Query<&Jack<SignatureSpace>>,
     combiners: Query<&CombinerDevice>,
     sockets: Query<&JackSocket>,
-    cables: Query<&Cable>,
 ) {
     let Some(card_entity) = UI_TEST_CARD_ENTITY.get() else {
         return;
@@ -387,16 +407,22 @@ fn record_ui_test_state(
         .and_then(|combiner_entity| combiners.get(*combiner_entity).ok());
     let combiner_input_a_connected = combiner.is_some_and(|device| {
         sockets.get(device.input_a).is_ok_and(|socket| {
-            socket
-                .connected_cable
-                .is_some_and(|cable_entity| cables.get(cable_entity).is_ok())
+            socket.connected_cable.is_some_and(|cable_entity| {
+                cable_params
+                    .cables
+                    .get(cable_entity)
+                    .is_ok_and(|(_, cable, _, _, _)| cable.is_some())
+            })
         })
     });
     let combiner_input_b_connected = combiner.is_some_and(|device| {
         sockets.get(device.input_b).is_ok_and(|socket| {
-            socket
-                .connected_cable
-                .is_some_and(|cable_entity| cables.get(cable_entity).is_ok())
+            socket.connected_cable.is_some_and(|cable_entity| {
+                cable_params
+                    .cables
+                    .get(cable_entity)
+                    .is_ok_and(|(_, cable, _, _, _)| cable.is_some())
+            })
         })
     });
     let combiner_input_a_space = combiner
@@ -423,6 +449,52 @@ fn record_ui_test_state(
     let combiner_output_control_points =
         combiner_output_space.map_or(0, |space| space.control_points.len());
     let combiner_output_radius = combiner_output_space.map_or(0.0, |space| space.radius);
+    let mut cable_present = false;
+    let mut cable_connected = false;
+    let mut cable_anchor_count = 0;
+    let mut cable_anchor_0 = Vec2::ZERO;
+    let mut cable_source = Vec2::ZERO;
+    let mut cable_dest = Vec2::ZERO;
+    let mut cable_rendered_min = Vec2::ZERO;
+    let mut cable_rendered_max = Vec2::ZERO;
+    let mut cable_rendered_vertex_count = 0;
+    for (_cable_entity, cable, endpoints, wrap, shape) in &cable_params.cables {
+        cable_present = true;
+        cable_connected = cable.is_some_and(|cable| {
+            sockets.get(cable.source).is_ok() && sockets.get(cable.dest).is_ok()
+        });
+        cable_anchor_count = wrap.anchors.len();
+        cable_anchor_0 = wrap
+            .anchors
+            .first()
+            .map_or(Vec2::ZERO, |anchor| anchor.position);
+        cable_source = cable_params
+            .transforms
+            .get(endpoints.source)
+            .map_or(Vec2::ZERO, |transform| transform.position);
+        cable_dest = cable_params
+            .transforms
+            .get(endpoints.dest)
+            .map_or(Vec2::ZERO, |transform| transform.position);
+        if let ShapeVariant::Polygon { points } = &shape.variant {
+            cable_rendered_vertex_count = points.len();
+            if let Some(first) = points.first() {
+                cable_rendered_min = *first;
+                cable_rendered_max = *first;
+                for point in points.iter().skip(1) {
+                    cable_rendered_min = Vec2::new(
+                        cable_rendered_min.x.min(point.x),
+                        cable_rendered_min.y.min(point.y),
+                    );
+                    cable_rendered_max = Vec2::new(
+                        cable_rendered_max.x.max(point.x),
+                        cable_rendered_max.y.max(point.y),
+                    );
+                }
+            }
+        }
+        break;
+    }
     let identity_signature = card
         .signature
         .axes()
@@ -544,6 +616,21 @@ fn record_ui_test_state(
         zone_config.has_physics,
         zone_config.render_layer,
         zone_config.has_item_form
+    );
+    let snapshot = format!(
+        "{snapshot}pending_cable_dragging={}\ncable_present={cable_present}\ncable_connected={cable_connected}\ncable_anchor_count={cable_anchor_count}\ncable_anchor_0_x={:.1}\ncable_anchor_0_y={:.1}\ncable_source_x={:.1}\ncable_source_y={:.1}\ncable_dest_x={:.1}\ncable_dest_y={:.1}\ncable_rendered_min_x={:.1}\ncable_rendered_min_y={:.1}\ncable_rendered_max_x={:.1}\ncable_rendered_max_y={:.1}\ncable_rendered_vertex_count={}\n",
+        cable_params.pending_cable.free_end.is_some(),
+        cable_anchor_0.x,
+        cable_anchor_0.y,
+        cable_source.x,
+        cable_source.y,
+        cable_dest.x,
+        cable_dest.y,
+        cable_rendered_min.x,
+        cable_rendered_min.y,
+        cable_rendered_max.x,
+        cable_rendered_max.y,
+        cable_rendered_vertex_count,
     );
     let state_file = UI_TEST_STATE_FILE
         .get()
