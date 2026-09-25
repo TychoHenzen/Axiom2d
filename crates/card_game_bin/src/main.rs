@@ -29,6 +29,10 @@ const TABLE_COLOR: Color = Color {
 
 #[cfg(feature = "ui-test")]
 static UI_TEST_STATE_FILE: OnceLock<PathBuf> = OnceLock::new();
+#[cfg(feature = "ui-test")]
+static UI_TEST_CARD_ENTITY: OnceLock<Entity> = OnceLock::new();
+#[cfg(feature = "ui-test")]
+static UI_TEST_SCENARIO: OnceLock<String> = OnceLock::new();
 
 fn hydrate_shape_repository_system(world: &mut World) {
     let mut repo = ShapeRepository::new();
@@ -90,6 +94,10 @@ fn spawn_scene(world: &mut World) {
         );
         card_entities.push(entity);
     }
+    #[cfg(feature = "ui-test")]
+    UI_TEST_CARD_ENTITY
+        .set(card_entities[0])
+        .expect("UI test card can only be configured once");
 
     // Spawn a card reader altar with child visual entities.
     let reader_pos = Vec2::new(300.0, 0.0);
@@ -145,6 +153,12 @@ fn setup(app: &mut App) {
         UI_TEST_STATE_FILE
             .set(state_file)
             .expect("UI test state file can only be configured once");
+        UI_TEST_SCENARIO
+            .set(
+                std::env::var("AXIOM_UI_TEST_SCENARIO")
+                    .unwrap_or_else(|_| "seeded-card-drag".to_owned()),
+            )
+            .expect("UI test scenario can only be configured once");
         app.add_systems(Phase::PostRender, record_ui_test_state);
     }
 
@@ -171,8 +185,10 @@ fn record_ui_test_state(
     mouse: Res<MouseState>,
     cards: Query<(Entity, &Card, &CardZone, &Transform2D)>,
 ) {
-    let Some((entity, _, zone, transform)) = cards.iter().find(|(_, card, _, _)| !card.face_up)
-    else {
+    let Some(card_entity) = UI_TEST_CARD_ENTITY.get() else {
+        return;
+    };
+    let Ok((entity, card, zone, transform)) = cards.get(*card_entity) else {
         return;
     };
 
@@ -180,13 +196,19 @@ fn record_ui_test_state(
         .dragging
         .is_some_and(|drag| drag.entity == entity);
     let mouse_position = mouse.screen_pos();
+    let scenario = UI_TEST_SCENARIO
+        .get()
+        .expect("UI test scenario must be configured before the app runs");
     let snapshot = format!(
-        "scenario=seeded-card-drag\ndragging={dragging}\nzone={zone:?}\nrendered_x={:.1}\nrendered_y={:.1}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\n",
+        "scenario={scenario}\ndragging={dragging}\nzone={zone:?}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\n",
         transform.position.x,
         transform.position.y,
+        transform.rotation,
+        card.face_up,
         mouse_position.x,
         mouse_position.y,
-        mouse.pressed(MouseButton::Left)
+        mouse.pressed(MouseButton::Left),
+        mouse.pressed(MouseButton::Right)
     );
     let state_file = UI_TEST_STATE_FILE
         .get()
