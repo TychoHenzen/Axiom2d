@@ -1,6 +1,23 @@
 param(
     [switch]$RunnerChild,
-    [string]$RunnerArtifactDirectory
+    [string]$RunnerArtifactDirectory,
+    [string]$ArtifactDirectory,
+    [ValidateRange(1, 3600)]
+    [int]$RunnerTimeoutSeconds = 900,
+    [switch]$Interaction,
+    [switch]$HandRoundTrip,
+    [switch]$ZoneTransition,
+    [switch]$ReaderRoundTrip,
+    [switch]$CombinerProcessing,
+    [switch]$CableWrapping,
+    [switch]$ScreenSpline,
+    [switch]$StashRoundTrip,
+    [switch]$BoosterOpening,
+    [switch]$IdentitySignature,
+    [switch]$ArtFace,
+    [switch]$ShaderVariant,
+    [switch]$TerrainInteraction,
+    [switch]$PluginWiring
 )
 
 $ErrorActionPreference = 'Stop'
@@ -9,42 +26,351 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $artifactDir = if ($RunnerChild) {
     $RunnerArtifactDirectory
 }
+elseif (-not [string]::IsNullOrWhiteSpace($ArtifactDirectory)) {
+    [System.IO.Path]::GetFullPath($ArtifactDirectory)
+}
 else {
     Join-Path $repoRoot (Join-Path 'target' ("ui-smoke-{0}" -f [guid]::NewGuid().ToString('N')))
 }
+$runnerTerminalPath = Join-Path $artifactDir 'runner.terminal.txt'
+
+function Write-RunnerTerminal {
+    param(
+        [string]$Path,
+        [string]$Scenario,
+        [string]$Stage,
+        [int]$ExitCode,
+        [string]$Outcome,
+        [string]$Message = ''
+    )
+
+    $lines = @(
+        "scenario=$Scenario"
+        "stage=$Stage"
+        "exit_code=$ExitCode"
+        "outcome=$Outcome"
+        "timestamp=$([DateTime]::UtcNow.ToString('O'))"
+    )
+    if (-not [string]::IsNullOrWhiteSpace($Message)) {
+        $lines += "message=$Message"
+    }
+    $temporaryPath = "$Path.$PID.tmp"
+    [System.IO.File]::WriteAllText(
+        $temporaryPath,
+        ($lines -join [Environment]::NewLine) + [Environment]::NewLine,
+        [System.Text.UTF8Encoding]::new($false))
+    Move-Item -LiteralPath $temporaryPath -Destination $Path -Force
+}
+
+function Stop-RunnerProcessTree {
+    param([System.Diagnostics.Process]$Process)
+
+    if ($null -eq $Process) {
+        return
+    }
+    $Process.Refresh()
+    if ($Process.HasExited) {
+        return
+    }
+    & taskkill.exe /PID $Process.Id /T /F 2>&1 | Out-Null
+    if (-not $Process.WaitForExit(5000)) {
+        throw "runner process $($Process.Id) did not exit within 5 seconds after taskkill"
+    }
+}
+
+function Get-RunnerGameProcess {
+    param([string]$PidPath)
+
+    if (-not (Test-Path -LiteralPath $PidPath)) {
+        return $null
+    }
+    $metadata = [System.IO.File]::ReadAllText($PidPath).Trim() -split '\|'
+    if ($metadata.Count -ne 2) {
+        throw "runner game PID metadata is invalid: $PidPath"
+    }
+    [int]$processId = 0
+    [long]$startTimeTicks = 0
+    if (-not [int]::TryParse($metadata[0], [ref]$processId) -or
+        -not [long]::TryParse($metadata[1], [ref]$startTimeTicks)) {
+        throw "runner game PID metadata is invalid: $PidPath"
+    }
+    $game = Get-Process -Id $processId -ErrorAction SilentlyContinue
+    if ($null -eq $game) {
+        return $null
+    }
+    if ($game.ProcessName -ne 'card_game_bin') {
+        throw "runner game PID $processId is now $($game.ProcessName); refusing to stop it"
+    }
+    if ($game.StartTime.ToUniversalTime().Ticks -ne $startTimeTicks) {
+        throw "runner game PID $processId has been reused; refusing to stop it"
+    }
+    return $game
+}
+
+function Stop-RunnerGameProcess {
+    param([string]$PidPath)
+
+    $watch = [System.Diagnostics.Stopwatch]::StartNew()
+    do {
+        $game = Get-RunnerGameProcess -PidPath $PidPath
+        if ($null -eq $game) {
+            return
+        }
+        $game.Refresh()
+        if ($game.HasExited) {
+            return
+        }
+        Stop-RunnerProcessTree -Process $game
+        if ($watch.Elapsed.TotalSeconds -ge 5) {
+            break
+        }
+        Start-Sleep -Milliseconds 100
+    } while ($watch.Elapsed.TotalSeconds -lt 5)
+
+    $remainingGame = Get-RunnerGameProcess -PidPath $PidPath
+    if ($null -ne $remainingGame) {
+        throw "runner-owned card_game_bin process $($remainingGame.Id) remained after 5 seconds"
+    }
+}
+
+function Read-RunnerLog {
+    param([string]$Path)
+
+    $watch = [System.Diagnostics.Stopwatch]::StartNew()
+    $lastError = $null
+    while ($watch.Elapsed.TotalSeconds -lt 10) {
+        try {
+            return [System.IO.File]::ReadAllText($Path)
+        }
+        catch {
+            $lastError = $_.Exception.Message
+            Start-Sleep -Milliseconds 100
+        }
+    }
+    return "runner log unavailable after 10 seconds: $Path ($lastError)"
+}
+
+function Read-RunnerTerminalExitCode {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $null
+    }
+    $match = [regex]::Match([System.IO.File]::ReadAllText($Path), '(?m)^exit_code=(-?\d+)\r?$')
+    if (-not $match.Success) {
+        return $null
+    }
+    return [int]$match.Groups[1].Value
+}
 
 if (-not $RunnerChild) {
+    $scenarioFlags = @(
+        $Interaction,
+        $HandRoundTrip,
+        $ZoneTransition,
+        $ReaderRoundTrip,
+        $CombinerProcessing,
+        $CableWrapping,
+        $ScreenSpline,
+        $StashRoundTrip,
+        $BoosterOpening,
+        $IdentitySignature,
+        $ArtFace,
+        $ShaderVariant,
+        $TerrainInteraction,
+        $PluginWiring
+    )
+    if (@($scenarioFlags | Where-Object { $_ }).Count -gt 1) {
+        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, CableWrapping, ScreenSpline, StashRoundTrip, BoosterOpening, IdentitySignature, ArtFace, ShaderVariant, TerrainInteraction, and PluginWiring are mutually exclusive'
+    }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
     $runnerStderrPath = Join-Path $artifactDir 'runner.stderr.log'
     $runnerExitCodePath = Join-Path $artifactDir 'runner.exitcode.txt'
+    $runnerPidPath = Join-Path $artifactDir 'runner.pid.txt'
+    $runnerGamePidPath = Join-Path $artifactDir 'game.pid.txt'
+    $runnerTimeoutPath = Join-Path $artifactDir 'runner.timeout.txt'
+    $runnerSupervisionErrorPath = Join-Path $artifactDir 'runner.supervision.error.txt'
+    $runnerCleanupErrorPath = Join-Path $artifactDir 'runner.cleanup.error.txt'
     $utf8WithoutBom = [System.Text.UTF8Encoding]::new($false)
+    foreach ($stalePath in @($runnerTerminalPath, $runnerPidPath, $runnerGamePidPath, $runnerTimeoutPath, $runnerSupervisionErrorPath, $runnerCleanupErrorPath)) {
+        if (Test-Path -LiteralPath $stalePath) {
+            Remove-Item -LiteralPath $stalePath -Force
+        }
+    }
     [System.IO.File]::WriteAllText($runnerStdoutPath, '', $utf8WithoutBom)
     [System.IO.File]::WriteAllText($runnerStderrPath, '', $utf8WithoutBom)
     [System.IO.File]::WriteAllText($runnerExitCodePath, 'running', $utf8WithoutBom)
 
     $runnerExitCode = 1
+    $runnerProcess = $null
+    $runnerFailure = $null
     try {
+        $runnerArguments = @(
+            '-NoProfile',
+            '-File',
+            "`"$PSCommandPath`"",
+            '-RunnerChild',
+            '-RunnerArtifactDirectory',
+            "`"$artifactDir`""
+        )
+        if ($Interaction) {
+            $runnerArguments += '-Interaction'
+        }
+        if ($HandRoundTrip) {
+            $runnerArguments += '-HandRoundTrip'
+        }
+        if ($ZoneTransition) {
+            $runnerArguments += '-ZoneTransition'
+        }
+        if ($ReaderRoundTrip) {
+            $runnerArguments += '-ReaderRoundTrip'
+        }
+        if ($CombinerProcessing) {
+            $runnerArguments += '-CombinerProcessing'
+        }
+        if ($CableWrapping) {
+            $runnerArguments += '-CableWrapping'
+        }
+        if ($ScreenSpline) {
+            $runnerArguments += '-ScreenSpline'
+        }
+        if ($StashRoundTrip) {
+            $runnerArguments += '-StashRoundTrip'
+        }
+        if ($BoosterOpening) {
+            $runnerArguments += '-BoosterOpening'
+        }
+        if ($IdentitySignature) {
+            $runnerArguments += '-IdentitySignature'
+        }
+        if ($ArtFace) {
+            $runnerArguments += '-ArtFace'
+        }
+        if ($ShaderVariant) {
+            $runnerArguments += '-ShaderVariant'
+        }
+        if ($TerrainInteraction) {
+            $runnerArguments += '-TerrainInteraction'
+        }
+        if ($PluginWiring) {
+            $runnerArguments += '-PluginWiring'
+        }
         $runnerProcess = Start-Process -FilePath (Get-Process -Id $PID).Path `
-            -ArgumentList @('-NoProfile', '-File', "`"$PSCommandPath`"", `
-                '-RunnerChild', '-RunnerArtifactDirectory', "`"$artifactDir`"") `
+            -ArgumentList $runnerArguments `
             -WorkingDirectory $repoRoot `
             -NoNewWindow `
             -PassThru `
-            -Wait `
             -RedirectStandardOutput $runnerStdoutPath `
             -RedirectStandardError $runnerStderrPath
-        $runnerProcess.Refresh()
-        $runnerExitCode = $runnerProcess.ExitCode
+        [System.IO.File]::WriteAllText($runnerPidPath, "$($runnerProcess.Id)`r`n", $utf8WithoutBom)
+        $runnerWatch = [System.Diagnostics.Stopwatch]::StartNew()
+        $terminalObservedAt = $null
+        while ($true) {
+            $runnerProcess.Refresh()
+            $terminalExists = Test-Path -LiteralPath $runnerTerminalPath
+            if ($terminalExists -and $null -eq $terminalObservedAt) {
+                $terminalObservedAt = $runnerWatch.Elapsed
+            }
+            if ($runnerProcess.HasExited) {
+                $runnerProcess.WaitForExit(1000) | Out-Null
+                $runnerExitCode = [int]$runnerProcess.ExitCode
+                if (-not $terminalExists) {
+                    $markerWatch = [System.Diagnostics.Stopwatch]::StartNew()
+                    while (-not (Test-Path -LiteralPath $runnerTerminalPath) -and
+                        $markerWatch.Elapsed.TotalSeconds -lt 2) {
+                        Start-Sleep -Milliseconds 100
+                    }
+                    $terminalExists = Test-Path -LiteralPath $runnerTerminalPath
+                }
+                if (-not $terminalExists) {
+                    $runnerFailure = "runner exited with code $runnerExitCode without writing runner.terminal.txt"
+                }
+                break
+            }
+            if ($runnerWatch.Elapsed.TotalSeconds -ge $RunnerTimeoutSeconds) {
+                $runnerExitCode = 124
+                $runnerFailure = "runner timed out after ${RunnerTimeoutSeconds}s"
+                [System.IO.File]::WriteAllText($runnerTimeoutPath, "$runnerFailure`r`n", $utf8WithoutBom)
+                Stop-RunnerProcessTree -Process $runnerProcess
+                break
+            }
+            if ($null -ne $terminalObservedAt -and
+                ($runnerWatch.Elapsed - $terminalObservedAt).TotalSeconds -ge 10) {
+                $runnerExitCode = 124
+                $runnerFailure = 'runner wrote a terminal marker but did not exit within 10 seconds'
+                [System.IO.File]::WriteAllText($runnerTimeoutPath, "$runnerFailure`r`n", $utf8WithoutBom)
+                Stop-RunnerProcessTree -Process $runnerProcess
+                break
+            }
+            Start-Sleep -Milliseconds 200
+        }
     }
     catch {
-        $message = "runner launch failed: $($_.Exception.Message)$([Environment]::NewLine)"
-        [System.IO.File]::AppendAllText($runnerStderrPath, $message, $utf8WithoutBom)
+        $runnerFailure = "runner launch or supervision failed: $($_.Exception.Message)"
+        [System.IO.File]::WriteAllText($runnerSupervisionErrorPath, "$runnerFailure`r`n", $utf8WithoutBom)
+        if ($null -ne $runnerProcess) {
+            try { Stop-RunnerProcessTree -Process $runnerProcess } catch { }
+        }
+        try {
+            Write-RunnerTerminal -Path $runnerTerminalPath -Scenario 'runner' -Stage 'supervision' `
+                -ExitCode $runnerExitCode -Outcome 'wrapper-failure' -Message $runnerFailure
+        }
+        catch { }
+    }
+    finally {
+        try {
+            Stop-RunnerGameProcess -PidPath $runnerGamePidPath
+        }
+        catch {
+            $cleanupFailure = "runner game cleanup failed: $($_.Exception.Message)"
+            try {
+                [System.IO.File]::WriteAllText($runnerCleanupErrorPath, "$cleanupFailure`r`n", $utf8WithoutBom)
+            }
+            catch {
+                [Console]::Error.WriteLine("UI smoke cleanup evidence write failed: $($_.Exception.Message)")
+            }
+            if ($null -eq $runnerFailure) {
+                $runnerFailure = $cleanupFailure
+            }
+            else {
+                $runnerFailure = "$runnerFailure; $cleanupFailure"
+            }
+        }
     }
 
+    if ($null -ne $runnerFailure) {
+        if (-not (Test-Path -LiteralPath $runnerSupervisionErrorPath)) {
+            [System.IO.File]::WriteAllText($runnerSupervisionErrorPath, "$runnerFailure`r`n", $utf8WithoutBom)
+        }
+        if (-not (Test-Path -LiteralPath $runnerTimeoutPath)) {
+            [System.IO.File]::WriteAllText($runnerTimeoutPath, "$runnerFailure`r`n", $utf8WithoutBom)
+        }
+        if (-not (Test-Path -LiteralPath $runnerTerminalPath)) {
+            Write-RunnerTerminal -Path $runnerTerminalPath -Scenario 'runner' -Stage 'supervision' `
+                -ExitCode $runnerExitCode -Outcome 'wrapper-failure' -Message $runnerFailure
+        }
+        $runnerExitCode = if ($runnerExitCode -eq 0) { 1 } else { $runnerExitCode }
+    }
+    if ($null -eq $runnerExitCode) {
+        $terminalExitCode = Read-RunnerTerminalExitCode -Path $runnerTerminalPath
+        $runnerExitCode = if ($null -eq $terminalExitCode) { 1 } else { $terminalExitCode }
+    }
+    else {
+        $terminalExitCode = Read-RunnerTerminalExitCode -Path $runnerTerminalPath
+        if ($runnerExitCode -eq 0 -and $null -ne $terminalExitCode) {
+            $runnerExitCode = $terminalExitCode
+        }
+    }
+    [System.IO.File]::WriteAllText(
+        (Join-Path $artifactDir 'runner.supervision.txt'),
+        ("exit_code={0}`r`nhas_terminal_marker={1}`r`nfailure={2}`r`n" -f `
+            $runnerExitCode, (Test-Path -LiteralPath $runnerTerminalPath), $runnerFailure),
+        $utf8WithoutBom)
+    $runnerExitCode = [int]$runnerExitCode
     [System.IO.File]::WriteAllText($runnerExitCodePath, "$runnerExitCode`r`n", $utf8WithoutBom)
-    [Console]::Out.Write([System.IO.File]::ReadAllText($runnerStdoutPath))
-    [Console]::Error.Write([System.IO.File]::ReadAllText($runnerStderrPath))
+    [Console]::Out.Write((Read-RunnerLog -Path $runnerStdoutPath))
+    [Console]::Error.Write((Read-RunnerLog -Path $runnerStderrPath))
     exit $runnerExitCode
 }
 
@@ -53,24 +379,122 @@ if ([string]::IsNullOrWhiteSpace($artifactDir)) {
 }
 
 $stateFile = Join-Path $artifactDir 'state.txt'
+$gamePidPath = Join-Path $artifactDir 'game.pid.txt'
 $inputFile = Join-Path $artifactDir 'input.txt'
 $stdoutPath = Join-Path $artifactDir 'app.stdout.log'
 $stderrPath = Join-Path $artifactDir 'app.stderr.log'
 $baselineFramePath = Join-Path $artifactDir 'baseline.bmp'
 $framePath = Join-Path $artifactDir 'frame.bmp'
+$releasedFramePath = Join-Path $artifactDir 'released.bmp'
+$flippedFramePath = Join-Path $artifactDir 'flipped.bmp'
+$handFramePath = Join-Path $artifactDir 'hand.bmp'
+$returnedFramePath = Join-Path $artifactDir 'returned.bmp'
+$zoneHolderFramePath = Join-Path $artifactDir 'zone-holder.bmp'
+$zoneReturnedFramePath = Join-Path $artifactDir 'zone-returned.bmp'
+$readerInsertedFramePath = Join-Path $artifactDir 'reader-inserted.bmp'
+$readerEjectedFramePath = Join-Path $artifactDir 'reader-ejected.bmp'
+$readerReturnedFramePath = Join-Path $artifactDir 'reader-returned.bmp'
+$combinerFramePath = Join-Path $artifactDir 'combiner.bmp'
+$cableWrappingFramePath = Join-Path $artifactDir 'cable-wrapping.bmp'
+$screenSplineFramePath = Join-Path $artifactDir 'screen-spline.bmp'
+$holderStatePath = if ($ZoneTransition) {
+    Join-Path $artifactDir 'zone-holder-state.txt'
+}
+else {
+    Join-Path $artifactDir 'hand-state.txt'
+}
+$returnedStatePath = if ($ZoneTransition) {
+    Join-Path $artifactDir 'zone-returned-state.txt'
+}
+elseif ($ReaderRoundTrip) {
+    Join-Path $artifactDir 'reader-returned-state.txt'
+}
+else {
+    Join-Path $artifactDir 'returned-state.txt'
+}
+$holderFramePath = if ($ZoneTransition) { $zoneHolderFramePath } else { $handFramePath }
+$returnedHolderFramePath = if ($ZoneTransition) { $zoneReturnedFramePath } else { $returnedFramePath }
+$stashOpenFramePath = Join-Path $artifactDir 'stash-open.bmp'
+$stashStoredFramePath = Join-Path $artifactDir 'stash-stored.bmp'
+$stashPageTwoFramePath = Join-Path $artifactDir 'stash-page-2.bmp'
+$stashRetrievedFramePath = Join-Path $artifactDir 'stash-retrieved.bmp'
+$boosterOpeningFramePath = Join-Path $artifactDir 'booster-opening.bmp'
+$boosterOpenedFramePath = Join-Path $artifactDir 'booster-opened.bmp'
+$identityFramePath = Join-Path $artifactDir 'identity.bmp'
+$artFaceFramePath = Join-Path $artifactDir 'art-face.bmp'
+$shaderVariantFramePath = Join-Path $artifactDir 'shader-variant.bmp'
+$terrainInteractedFramePath = Join-Path $artifactDir 'terrain-interacted.bmp'
+$pluginWiringFramePath = Join-Path $artifactDir 'plugin-wiring.bmp'
 $failureFramePath = Join-Path $artifactDir 'failure.bmp'
 $frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
+$scenarioName = if ($Interaction) {
+    'seeded-card-interaction'
+}
+elseif ($ZoneTransition) {
+    'seeded-card-zone-transition'
+}
+elseif ($ReaderRoundTrip) {
+    'seeded-card-reader-roundtrip'
+}
+elseif ($CombinerProcessing) {
+    'seeded-card-combiner'
+}
+elseif ($CableWrapping) {
+    'seeded-card-cable-wrapping'
+}
+elseif ($ScreenSpline) {
+    'seeded-card-screen-spline'
+}
+elseif ($HandRoundTrip) {
+    'seeded-card-hand-roundtrip'
+}
+elseif ($StashRoundTrip) {
+    'seeded-card-stash-roundtrip'
+}
+elseif ($BoosterOpening) {
+    'seeded-booster-opening'
+}
+elseif ($IdentitySignature) {
+    'seeded-card-identity'
+}
+elseif ($ArtFace) {
+    'seeded-card-art-face'
+}
+elseif ($ShaderVariant) {
+    'seeded-card-shader-variant'
+}
+elseif ($TerrainInteraction) {
+    'seeded-card-terrain'
+}
+elseif ($PluginWiring) {
+    'seeded-card-plugin-wiring'
+}
+else {
+    'seeded-card-drag'
+}
 $process = $null
 $windowHandle = [IntPtr]::Zero
 $foregroundBeforeLaunch = $null
 $previousCursor = $null
 $previousDpiContext = [IntPtr]::Zero
 $mouseDown = $false
+$rightMouseDown = $false
 $leftPressObserved = $false
 $succeeded = $false
 $cleanupFailure = $null
 $failureCaptureError = $null
 $stage = 'setup'
+$identityNoInput = 'not_applicable_identity_no_input'
+$foregroundBeforePostMessage = [pscustomobject]@{
+    Handle = $identityNoInput
+    ProcessId = $identityNoInput
+}
+$cursorBeforePostMessage = [pscustomobject]@{
+    X = $identityNoInput
+    Y = $identityNoInput
+}
+$lastInputTickBeforePostMessage = $identityNoInput
+$lastInputTickAfterReleaseAck = $identityNoInput
 
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 
@@ -127,15 +551,48 @@ function Test-Position {
     }
 }
 
+function Test-ExpectedRotation {
+    param(
+        [hashtable]$State,
+        [string]$Key,
+        [double]$Expected,
+        [double]$Tolerance
+    )
+
+    try {
+        $actual = [double]::Parse($State[$Key], [Globalization.CultureInfo]::InvariantCulture)
+        return [Math]::Sign($actual) -eq [Math]::Sign($Expected) -and
+            [Math]::Abs($actual - $Expected) -le $Tolerance
+    }
+    catch {
+        return $false
+    }
+}
+
 function Format-UiStateDiagnostic {
     param([hashtable]$State)
 
     if ($null -eq $State) {
         return 'none (no complete state snapshot)'
     }
-    return ("scenario={0}, dragging={1}, zone={2}, rendered=({3},{4}), mouse=({5},{6}), left_pressed={7}" -f `
-        $State['scenario'], $State['dragging'], $State['zone'], $State['rendered_x'], `
-        $State['rendered_y'], $State['mouse_x'], $State['mouse_y'], $State['left_pressed'])
+    $diagnostic = ("scenario={0}, dragging={1}, booster_dragging={2}, zone={3}, hand_contains={4}, hand_count={5}, stash_visible={6}, stash_page={7}, stash_slot={8}, stash_present={9}, stash_origin={10}, stash_follow={11}, booster_present={12}, booster_phase={13}, booster_cards={14}, opened_card={15}, opened_zone={16}, opened_seed={17}, rendered=({18},{19}), rotation={20}, face_up={21}, mouse=({22},{23}), left_pressed={24}, right_pressed={25}, holder={26}, holder_occupied={27}, zone_config=({28},{29},{30})" -f `
+        $State['scenario'], $State['dragging'], $State['booster_dragging'], $State['zone'], $State['hand_contains'], `
+        $State['hand_count'], $State['stash_visible'], $State['stash_page'], $State['stash_slot'], `
+        $State['stash_slot_present'], $State['stash_origin'], $State['stash_cursor_follow'], `
+        $State['booster_pack_present'], $State['booster_phase'], $State['booster_card_count'], `
+        $State['opened_card_present'], $State['opened_card_zone'], $State['opened_card_seed'], `
+        $State['rendered_x'], $State['rendered_y'], $State['rotation'], $State['face_up'], `
+        $State['mouse_x'], $State['mouse_y'], $State['left_pressed'], $State['right_pressed'],
+        $State['holder'], $State['holder_occupied'], $State['zone_has_physics'],
+        $State['zone_render_layer'], $State['zone_has_item_form'])
+    if ($State['scenario'] -eq 'seeded-card-screen-spline') {
+        $panels = (0..3 | ForEach-Object {
+            $panel = $_
+            "panel=$panel expected=$($State["screen_expected_geometry_$panel"]) observed=$($State["screen_observed_geometry_$panel"])"
+        }) -join ' | '
+        return "$diagnostic, screen_signature=$($State['screen_signature']), screen_geometry_tolerance=$($State['screen_geometry_tolerance']), screen_geometry_match=$($State['screen_geometry_match']), screen_geometry_max_error=$($State['screen_geometry_max_error']), $panels"
+    }
+    return $diagnostic
 }
 
 function Wait-UiState {
@@ -443,6 +900,92 @@ function Find-UiSmokeCardTemplate {
     }
 }
 
+function Get-UiSmokeArtRegionEvidence {
+    param(
+        [hashtable]$Frame,
+        [int]$CenterX,
+        [int]$CenterY,
+        [int]$HalfWidth = 24,
+        [int]$HalfHeight = 17,
+        [int]$ExpectedRed = 180,
+        [int]$ExpectedGreen = 200,
+        [int]$ExpectedBlue = 230,
+        [int]$RgbDeltaThreshold = 24
+    )
+
+    $left = $CenterX - $HalfWidth
+    $right = $CenterX + $HalfWidth
+    $top = $CenterY - $HalfHeight
+    $bottom = $CenterY + $HalfHeight
+    if ($left -lt 0 -or $top -lt 0 -or $right -ge $Frame.Width -or $bottom -ge $Frame.Height) {
+        throw 'art region exceeds the captured frame'
+    }
+    $colors = [System.Collections.Generic.HashSet[int]]::new()
+    $nonBackgroundPixels = 0
+    for ($y = $top; $y -le $bottom; $y++) {
+        $frameY = if ($Frame.TopDown) { $y } else { $Frame.Height - 1 - $y }
+        $frameRow = $Frame.PixelOffset + $frameY * $Frame.RowStride
+        for ($x = $left; $x -le $right; $x++) {
+            $framePixel = $frameRow + $x * 4
+            $red = [int]$Frame.Bytes[$framePixel + 2]
+            $green = [int]$Frame.Bytes[$framePixel + 1]
+            $blue = [int]$Frame.Bytes[$framePixel]
+            [void]$colors.Add(($red -shl 16) -bor ($green -shl 8) -bor $blue)
+            $rgbDelta = [Math]::Abs($red - $ExpectedRed) +
+                [Math]::Abs($green - $ExpectedGreen) +
+                [Math]::Abs($blue - $ExpectedBlue)
+            if ($rgbDelta -ge $RgbDeltaThreshold) {
+                $nonBackgroundPixels++
+            }
+        }
+    }
+    return @{
+        Left = $left
+        Top = $top
+        Width = $right - $left + 1
+        Height = $bottom - $top + 1
+        PixelCount = ($right - $left + 1) * ($bottom - $top + 1)
+        UniqueColors = $colors.Count
+        NonBackgroundPixels = $nonBackgroundPixels
+    }
+}
+
+function Get-UiSmokeGoldenPixelEvidence {
+    param(
+        [hashtable]$Frame,
+        [int]$CenterX,
+        [int]$CenterY,
+        [hashtable[]]$GoldenPixels,
+        [int]$RgbDeltaMaximum = 18
+    )
+
+    $evidence = foreach ($golden in $GoldenPixels) {
+        $x = $CenterX + [int]$golden.OffsetX
+        $y = $CenterY + [int]$golden.OffsetY
+        if ($x -lt 0 -or $y -lt 0 -or $x -ge $Frame.Width -or $y -ge $Frame.Height) {
+            throw "golden pixel '$($golden.Name)' exceeds the captured frame"
+        }
+        $frameY = if ($Frame.TopDown) { $y } else { $Frame.Height - 1 - $y }
+        $framePixel = $Frame.PixelOffset + $frameY * $Frame.RowStride + $x * 4
+        $red = [int]$Frame.Bytes[$framePixel + 2]
+        $green = [int]$Frame.Bytes[$framePixel + 1]
+        $blue = [int]$Frame.Bytes[$framePixel]
+        $rgbDelta = [Math]::Abs($red - [int]$golden.ExpectedRed) +
+            [Math]::Abs($green - [int]$golden.ExpectedGreen) +
+            [Math]::Abs($blue - [int]$golden.ExpectedBlue)
+        [pscustomobject]@{
+            Name = $golden.Name
+            OffsetX = $golden.OffsetX
+            OffsetY = $golden.OffsetY
+            Expected = "{0},{1},{2}" -f $golden.ExpectedRed, $golden.ExpectedGreen, $golden.ExpectedBlue
+            Observed = "{0},{1},{2}" -f $red, $green, $blue
+            RgbDelta = $rgbDelta
+            Match = $rgbDelta -le $RgbDeltaMaximum
+        }
+    }
+    return @($evidence)
+}
+
 try {
     Add-Type -TypeDefinition @'
 using System;
@@ -481,7 +1024,12 @@ public static class AxiomUiSmokeNative
     private const uint WmMouseMove = 0x0200;
     private const uint WmLeftButtonDown = 0x0201;
     private const uint WmLeftButtonUp = 0x0202;
+    private const uint WmRightButtonDown = 0x0204;
+    private const uint WmRightButtonUp = 0x0205;
+    private const uint WmKeyDown = 0x0100;
+    private const uint WmKeyUp = 0x0101;
     private const uint MkLeftButton = 0x0001;
+    private const uint MkRightButton = 0x0002;
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool GetClientRect(IntPtr window, out Rect rect);
@@ -629,6 +1177,24 @@ public static class AxiomUiSmokeNative
         PostMouseMessage(window, WmLeftButtonUp, UIntPtr.Zero, clientX, clientY);
     }
 
+    public static void PostRightButtonDown(IntPtr window, int clientX, int clientY)
+    {
+        PostMouseMessage(window, WmRightButtonDown, new UIntPtr(MkRightButton), clientX, clientY);
+    }
+
+    public static void PostRightButtonUp(IntPtr window, int clientX, int clientY)
+    {
+        PostMouseMessage(window, WmRightButtonUp, UIntPtr.Zero, clientX, clientY);
+    }
+
+    public static void PostVirtualKey(IntPtr window, uint virtualKey, bool pressed)
+    {
+        uint message = pressed ? WmKeyDown : WmKeyUp;
+        int lParam = pressed ? 1 : unchecked((int)0xC0000001);
+        if (!PostWindowMessage(window, message, new UIntPtr(virtualKey), new IntPtr(lParam)))
+            throw new InvalidOperationException("Win32 key message post failed: " + Marshal.GetLastWin32Error());
+    }
+
     private static void PostMouseMessage(IntPtr window, uint message, UIntPtr buttonState,
         int clientX, int clientY)
     {
@@ -667,10 +1233,12 @@ public static class AxiomUiSmokeNative
     $foregroundBeforeLaunch = Get-UiSmokeForegroundSnapshot
     $previousCursor = [AxiomUiSmokeNative]::GetCursorPosition()
     $previousStateFile = $env:AXIOM_UI_TEST_STATE_FILE
+    $previousScenario = $env:AXIOM_UI_TEST_SCENARIO
     $previousFrameCaptureRequestFile = $env:AXIOM_UI_TEST_FRAME_CAPTURE_REQUEST_FILE
     $previousBackend = $env:WGPU_BACKEND
     try {
         $env:AXIOM_UI_TEST_STATE_FILE = $stateFile
+        $env:AXIOM_UI_TEST_SCENARIO = $scenarioName
         $env:AXIOM_UI_TEST_FRAME_CAPTURE_REQUEST_FILE = $frameCaptureRequestFile
         $env:WGPU_BACKEND = 'dx12'
         $process = Start-Process -FilePath $appPath `
@@ -679,9 +1247,14 @@ public static class AxiomUiSmokeNative
             -PassThru `
             -RedirectStandardOutput $stdoutPath `
             -RedirectStandardError $stderrPath
+        [System.IO.File]::WriteAllText(
+            $gamePidPath,
+            "$($process.Id)|$($process.StartTime.ToUniversalTime().Ticks)`r`n",
+            [System.Text.UTF8Encoding]::new($false))
     }
     finally {
         $env:AXIOM_UI_TEST_STATE_FILE = $previousStateFile
+        $env:AXIOM_UI_TEST_SCENARIO = $previousScenario
         $env:AXIOM_UI_TEST_FRAME_CAPTURE_REQUEST_FILE = $previousFrameCaptureRequestFile
         $env:WGPU_BACKEND = $previousBackend
     }
@@ -705,13 +1278,23 @@ public static class AxiomUiSmokeNative
     [AxiomUiSmokeNative]::PlaceBehindWithoutActivation($windowHandle)
 
     $stage = 'seeded-state'
-    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario 'seeded-card-drag' `
-        -Stage $stage -TimeoutSeconds 30 -ExpectedState 'dragging=false, zone=Table, rendered=(-160,130) tolerance=1' -Predicate {
+    $cardWorldX = if ($IdentitySignature -or $ArtFace) {
+        -80.0
+    }
+    elseif ($ShaderVariant) {
+        160.0
+    }
+    else {
+        -160.0
+    }
+    $cardWorldY = 130.0
+    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+        -Stage $stage -TimeoutSeconds 30 -ExpectedState "dragging=false, zone=Table, rendered=($cardWorldX,$cardWorldY) tolerance=1" -Predicate {
         param($state)
-        $state['scenario'] -eq 'seeded-card-drag' -and
+        $state['scenario'] -eq $scenarioName -and
         $state['dragging'] -eq 'false' -and
         $state['zone'] -eq 'Table' -and
-        (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 1)
+        (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 1)
     }
     $foregroundAtPreparation = Get-UiSmokeForegroundSnapshot
     $cursorAtPreparation = [AxiomUiSmokeNative]::GetCursorPosition()
@@ -720,18 +1303,58 @@ public static class AxiomUiSmokeNative
     if ($client.Width -lt 640 -or $client.Height -lt 480) {
         throw "game client area is too small for the smoke scenario ($($client.Width)x$($client.Height))"
     }
-    $stage = 'capture-baseline-frame'
-    Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
-        -CapturePath $baselineFramePath -Stage $stage -TimeoutSeconds 10
+    if (-not $ShaderVariant) {
+        $stage = 'capture-baseline-frame'
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $baselineFramePath -Stage $stage -TimeoutSeconds 10
+    }
 
-    $startScreenX = $client.Left + [int][Math]::Round($client.Width / 2.0 - 160)
-    $startScreenY = $client.Top + [int][Math]::Round($client.Height / 2.0 + 130)
+    $startScreenX = $client.Left + [int][Math]::Round($client.Width / 2.0 + $cardWorldX)
+    $startScreenY = $client.Top + [int][Math]::Round($client.Height / 2.0 + $cardWorldY)
     $targetScreenX = $client.Left + [int][Math]::Round($client.Width / 2.0 - 300)
     $targetScreenY = $client.Top + [int][Math]::Round($client.Height / 2.0 - 150)
-    $startClientX = [int][Math]::Round($client.Width / 2.0 - 160)
-    $startClientY = [int][Math]::Round($client.Height / 2.0 + 130)
+    $startClientX = [int][Math]::Round($client.Width / 2.0 + $cardWorldX)
+    $startClientY = [int][Math]::Round($client.Height / 2.0 + $cardWorldY)
     $targetClientX = [int][Math]::Round($client.Width / 2.0 - 300)
     $targetClientY = [int][Math]::Round($client.Height / 2.0 - 150)
+    $handClientX = [int][Math]::Round($client.Width / 2.0)
+    $handClientY = [int][Math]::Round($client.Height - 80.0)
+    $handWorldX = 0.0
+    $handWorldY = $handClientY - $client.Height / 2.0
+    $stashClientX = 45
+    $stashClientY = 58
+    $stashWorldX = $stashClientX - $client.Width / 2.0
+    $stashWorldY = $stashClientY - $client.Height / 2.0
+    $stashTabTopY = 20 + 10 * 79 - 4
+    $stashTabCenterY = [int][Math]::Round($stashTabTopY + 8)
+    $stashTabStartX = 20 + (10 * 54 - 4) / 2.0 - (5 * 34 - 4) / 2.0
+    $stashPageTwoTabX = [int][Math]::Round($stashTabStartX + 2 * 34 + 15)
+    $boosterClientX = [int][Math]::Round($client.Width / 2.0 - 300)
+$boosterClientY = [int][Math]::Round($client.Height / 2.0 - 150)
+$boosterWorldX = -300.0
+$boosterWorldY = -150.0
+$readerClientX = [int][Math]::Round($client.Width / 2.0 + 300)
+$readerClientY = [int][Math]::Round($client.Height / 2.0)
+$readerWorldX = 300.0
+$readerWorldY = 0.0
+$secondCardWorldX = -80.0
+$secondCardWorldY = 130.0
+$secondCardClientX = [int][Math]::Round($client.Width / 2.0 + $secondCardWorldX)
+$secondCardClientY = [int][Math]::Round($client.Height / 2.0 + $secondCardWorldY)
+$secondReaderClientX = [int][Math]::Round($client.Width / 2.0 + 100.0)
+$secondReaderClientY = [int][Math]::Round($client.Height / 2.0 - 150.0)
+$secondReaderWorldX = 100.0
+$secondReaderWorldY = -150.0
+$readerJackClientX = [int][Math]::Round($client.Width / 2.0 + 352.0)
+$readerJackClientY = [int][Math]::Round($client.Height / 2.0)
+$screenJackClientX = [int][Math]::Round($client.Width / 2.0 + 173.0)
+$screenJackClientY = [int][Math]::Round($client.Height / 2.0 + 150.0)
+$secondReaderJackClientX = [int][Math]::Round($client.Width / 2.0 + 152.0)
+$secondReaderJackClientY = [int][Math]::Round($client.Height / 2.0 - 150.0)
+$combinerInputAClientX = [int][Math]::Round($client.Width / 2.0 + 248.0)
+$combinerInputAClientY = [int][Math]::Round($client.Height / 2.0 - 140.0)
+$combinerInputBClientX = [int][Math]::Round($client.Width / 2.0 + 248.0)
+$combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
     $stage = 'prepare-background-input'
     $foregroundBeforeInput = Get-UiSmokeForegroundSnapshot
     $cursorBeforeInputSetup = [AxiomUiSmokeNative]::GetCursorPosition()
@@ -763,7 +1386,174 @@ public static class AxiomUiSmokeNative
         "target_screen=($targetScreenX,$targetScreenY)"
         "start_client=($startClientX,$startClientY)"
         "target_client=($targetClientX,$targetClientY)"
+        "hand_client=($handClientX,$handClientY)"
+        "hand_world=($handWorldX,$handWorldY)"
+        "stash_client=($stashClientX,$stashClientY)"
+        "stash_world=($stashWorldX,$stashWorldY)"
+        "stash_page_two_tab=($stashPageTwoTabX,$stashTabCenterY)"
+        "booster_client=($boosterClientX,$boosterClientY)"
+        "booster_world=($boosterWorldX,$boosterWorldY)"
+        "reader_client=($readerClientX,$readerClientY)"
+        "reader_world=($readerWorldX,$readerWorldY)"
+        "second_card_client=($secondCardClientX,$secondCardClientY)"
+        "second_card_world=($secondCardWorldX,$secondCardWorldY)"
+        "second_reader_client=($secondReaderClientX,$secondReaderClientY)"
+        "second_reader_world=($secondReaderWorldX,$secondReaderWorldY)"
+        "reader_jack_client=($readerJackClientX,$readerJackClientY)"
+        "screen_jack_client=($screenJackClientX,$screenJackClientY)"
+        "second_reader_jack_client=($secondReaderJackClientX,$secondReaderJackClientY)"
+        "combiner_input_a_client=($combinerInputAClientX,$combinerInputAClientY)"
+        "combiner_input_b_client=($combinerInputBClientX,$combinerInputBClientY)"
     ) | Set-Content -LiteralPath $inputFile
+    if ($ArtFace) {
+        $expectedArtSignature = '0.330000,-0.310000,-0.350000,0.630000,-0.950000,0.650000,-0.290000,0.740000'
+        $expectedArtElement = 'Solidum'
+        $expectedArtAspect = 'Solid'
+        $stage = 'verify-art-face-state'
+        $artFaceState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'art_signature=<expected>, art_shape_count>0, face_up=true, zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['face_up'] -eq 'true' -and
+            $state['art_signature'] -eq $expectedArtSignature -and
+            $state['art_element'] -eq $expectedArtElement -and
+            $state['art_aspect'] -eq $expectedArtAspect -and
+            [int]::Parse($state['art_shape_count']) -gt 0 -and
+            (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 1)
+        }
+        $artFaceState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'art-face-state.txt')
+
+        $stage = 'capture-art-face-frame'
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $artFaceFramePath -Stage $stage -TimeoutSeconds 10
+        $artFaceFrame = Read-UiSmokeBitmap -Path $artFaceFramePath
+        $artRegionCenterY = $startClientY - 7
+        $artEvidence = Get-UiSmokeArtRegionEvidence -Frame $artFaceFrame `
+            -CenterX $startClientX -CenterY $artRegionCenterY
+        @(
+            "frame_size=$($artFaceFrame.Width)x$($artFaceFrame.Height)"
+            "art_region=($($artEvidence.Left),$($artEvidence.Top),$($artEvidence.Width),$($artEvidence.Height))"
+            'expected_art_region_background_rgb=180,200,230'
+            'art_region_rgb_delta_threshold=24'
+            "art_region_unique_rgb_colors=$($artEvidence.UniqueColors)"
+            "art_region_non_background_pixels=$($artEvidence.NonBackgroundPixels)/$($artEvidence.PixelCount)"
+            'art_region_minimum_unique_rgb_colors=8'
+            'art_region_minimum_non_background_pixels=10'
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'art-face-visual.txt')
+        if ($artEvidence.UniqueColors -lt 8 -or $artEvidence.NonBackgroundPixels -lt 10) {
+            throw "rendered art region verification failed: unique_colors=$($artEvidence.UniqueColors) required>=8, non_background=$($artEvidence.NonBackgroundPixels)/$($artEvidence.PixelCount) required>=10"
+        }
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $cursorStability = 'not_applicable_no_input'
+        $succeeded = $true
+    }
+    elseif ($IdentitySignature) {
+        @(
+            'input_mode=identity_no_postmessagew'
+            "foreground_before_postmessagew=$identityNoInput"
+            "foreground_process_id_before_postmessagew=$identityNoInput"
+            "cursor_before_postmessagew=$identityNoInput"
+            "last_input_tick_before_postmessagew=$identityNoInput"
+        ) | Add-Content -LiteralPath $inputFile
+    }
+    elseif ($ShaderVariant) {
+        $expectedShaderVariant = 'Foil'
+        $expectedConditionEffect = 'Worn'
+        $stage = 'verify-shader-variant-state'
+        $shaderVariantState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'face_up=true, identity_rarity=Legendary, identity_tier=Dormant, shader_variant=Foil, condition_effect=Worn, attached variant overlay' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['face_up'] -eq 'true' -and
+            $state['identity_rarity'] -eq 'Legendary' -and
+            $state['identity_tier'] -eq 'Dormant' -and
+            $state['shader_variant'] -eq $expectedShaderVariant -and
+            $state['condition_effect'] -eq $expectedConditionEffect -and
+            $state['condition_overlay_tier'] -eq 'Dormant' -and
+            $state['variant_shader_source_matches'] -eq 'true' -and
+            [int]::Parse($state['variant_shader_source_length']) -gt 0 -and
+            $state['variant_overlay_present'] -eq 'true' -and
+            $state['variant_overlay_visible'] -eq 'true' -and
+            $state['variant_overlay_handle_matches'] -eq 'true' -and
+            [int]::Parse($state['variant_overlay_vertex_count']) -gt 4 -and
+            $state['condition_overlay_source_matches'] -eq 'true' -and
+            [int]::Parse($state['condition_overlay_source_length']) -gt 0 -and
+            $state['condition_overlay_present'] -eq 'true' -and
+            $state['condition_overlay_visible'] -eq 'true' -and
+            $state['condition_overlay_handle_matches'] -eq 'true' -and
+            $state['condition_overlay_front_only'] -eq 'false' -and
+            [int]::Parse($state['condition_overlay_vertex_count']) -ge 4 -and
+            (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 1)
+        }
+        $shaderVariantState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'shader-variant-state.txt')
+
+        $stage = 'capture-shader-variant-frame'
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $shaderVariantFramePath -Stage $stage -TimeoutSeconds 10
+        $shaderVariantFrame = Read-UiSmokeBitmap -Path $shaderVariantFramePath
+        $shaderVariantEvidence = Get-UiSmokeArtRegionEvidence -Frame $shaderVariantFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 55 -HalfHeight 70
+        $minimumShaderVariantUniqueColors = 100
+        $minimumShaderVariantNonBackgroundPixels = 500
+        $shaderVariantGoldenPixels = @(
+            @{ Name = 'foil-art'; OffsetX = 0; OffsetY = -5; ExpectedRed = 221; ExpectedGreen = 180; ExpectedBlue = 188 }
+            @{ Name = 'worn-scratch'; OffsetX = 0; OffsetY = 25; ExpectedRed = 222; ExpectedGreen = 222; ExpectedBlue = 205 }
+        )
+        $shaderVariantGoldenDeltaMaximum = 18
+        $shaderVariantGoldenEvidence = @(Get-UiSmokeGoldenPixelEvidence -Frame $shaderVariantFrame `
+            -CenterX $startClientX -CenterY $startClientY -GoldenPixels $shaderVariantGoldenPixels `
+            -RgbDeltaMaximum $shaderVariantGoldenDeltaMaximum)
+        $shaderVariantGoldenMatches = @($shaderVariantGoldenEvidence | Where-Object Match).Count
+        @(
+            "frame_size=$($shaderVariantFrame.Width)x$($shaderVariantFrame.Height)"
+            "shader_variant=$($shaderVariantState['shader_variant'])"
+            "condition_effect=$($shaderVariantState['condition_effect'])"
+            "condition_overlay_tier=$($shaderVariantState['condition_overlay_tier'])"
+            "variant_shader_source_length=$($shaderVariantState['variant_shader_source_length'])"
+            "variant_shader_source_matches=$($shaderVariantState['variant_shader_source_matches'])"
+            "variant_overlay_handle=$($shaderVariantState['variant_overlay_handle'])"
+            "condition_overlay_source_length=$($shaderVariantState['condition_overlay_source_length'])"
+            "condition_overlay_source_matches=$($shaderVariantState['condition_overlay_source_matches'])"
+            "condition_overlay_handle=$($shaderVariantState['condition_overlay_handle'])"
+            "condition_overlay_visible=$($shaderVariantState['condition_overlay_visible'])"
+            "condition_overlay_front_only=$($shaderVariantState['condition_overlay_front_only'])"
+            "variant_overlay_vertex_count=$($shaderVariantState['variant_overlay_vertex_count'])"
+            "condition_overlay_vertex_count=$($shaderVariantState['condition_overlay_vertex_count'])"
+            "overlay_count=$($shaderVariantState['overlay_count'])"
+            "golden_control_source=deterministic_foil_worn_pixels"
+            "golden_control_rgb_delta_maximum=$shaderVariantGoldenDeltaMaximum"
+            "golden_control_matches=$shaderVariantGoldenMatches/$($shaderVariantGoldenEvidence.Count)"
+            $shaderVariantGoldenEvidence | ForEach-Object {
+                "golden_control_$($_.Name)=offset($($_.OffsetX),$($_.OffsetY)),expected=$($_.Expected),observed=$($_.Observed),rgb_delta=$($_.RgbDelta),match=$($_.Match)"
+            }
+            "variant_region_unique_rgb_colors=$($shaderVariantEvidence.UniqueColors)"
+            "variant_region_non_background_pixels=$($shaderVariantEvidence.NonBackgroundPixels)/$($shaderVariantEvidence.PixelCount)"
+            "variant_region_minimum_unique_rgb_colors=$minimumShaderVariantUniqueColors"
+            "variant_region_minimum_non_background_pixels=$minimumShaderVariantNonBackgroundPixels"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'shader-variant-visual.txt')
+        if ($shaderVariantGoldenMatches -ne $shaderVariantGoldenEvidence.Count) {
+            throw "shader variant frame did not match the independent Foil/Worn golden pixels: matches=$shaderVariantGoldenMatches/$($shaderVariantGoldenEvidence.Count), maximum_rgb_delta=$shaderVariantGoldenDeltaMaximum"
+        }
+        if ($shaderVariantEvidence.UniqueColors -lt $minimumShaderVariantUniqueColors -or
+            $shaderVariantEvidence.NonBackgroundPixels -lt $minimumShaderVariantNonBackgroundPixels) {
+            throw "shader variant frame did not show a non-blank rendered region: unique_colors=$($shaderVariantEvidence.UniqueColors) required>=$minimumShaderVariantUniqueColors, non_background_pixels=$($shaderVariantEvidence.NonBackgroundPixels) required>=$minimumShaderVariantNonBackgroundPixels"
+        }
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $cursorStability = 'not_applicable_no_input'
+        $succeeded = $true
+    }
     if ($foregroundAtPreparation.Handle -eq $windowHandle) {
         throw "game window became foreground during preparation (hwnd=$windowHandle pid=$($process.Id))"
     }
@@ -771,6 +1561,1711 @@ public static class AxiomUiSmokeNative
         throw "game window was foreground before input (hwnd=$windowHandle pid=$($process.Id))"
     }
 
+    if ($IdentitySignature) {
+        $expectedIdentitySignature = '-0.609306,0.758221,0.160116,0.099062,-0.170454,0.657969,0.647077,0.870853'
+        $expectedIdentitySeed = '13799725383080882384'
+        $expectedIdentityRarity = 'Uncommon'
+        $expectedIdentityTier = 'Dormant'
+        $expectedIdentityName = 'Cresting Fadevanish'
+        $stage = 'verify-identity-state'
+        $identityState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "identity_signature=$expectedIdentitySignature, identity_seed=$expectedIdentitySeed, identity_rarity=$expectedIdentityRarity, identity_tier=$expectedIdentityTier, identity_name=$expectedIdentityName, face_up=true, zone=Table, rendered=($cardWorldX,$cardWorldY)" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['face_up'] -eq 'true' -and
+            $state['identity_signature'] -eq $expectedIdentitySignature -and
+            $state['identity_seed'] -eq $expectedIdentitySeed -and
+            $state['identity_rarity'] -eq $expectedIdentityRarity -and
+            $state['identity_tier'] -eq $expectedIdentityTier -and
+            $state['identity_name'] -eq $expectedIdentityName -and
+            (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 1)
+        }
+        $identityState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'identity-state.txt')
+
+        $stage = 'capture-identity-frame'
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $identityFramePath -Stage $stage -TimeoutSeconds 10
+        $identityFrame = Read-UiSmokeBitmap -Path $identityFramePath
+        $identityBaselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        if ($identityBaselineFrame.Width -ne $identityFrame.Width -or
+            $identityBaselineFrame.Height -ne $identityFrame.Height) {
+            throw "identity baseline frame size $($identityBaselineFrame.Width)x$($identityBaselineFrame.Height) does not match identity frame $($identityFrame.Width)x$($identityFrame.Height)"
+        }
+        $identityExpectedTemplate = New-UiSmokeCardTemplate -Frame $identityBaselineFrame `
+            -CenterX $startClientX -CenterY $startClientY
+        $identityTemplateMatch = Find-UiSmokeCardTemplate -Frame $identityFrame -Template $identityExpectedTemplate `
+            -ExpectedCenterX $startClientX -ExpectedCenterY $startClientY `
+            -SearchRadius 8 -RgbDeltaMaximum 32
+        $minimumIdentityMatchPixels = [int][Math]::Ceiling($identityExpectedTemplate.PixelCount * 90 / 100.0)
+        @(
+            "frame_size=$($identityFrame.Width)x$($identityFrame.Height)"
+            'identity_expected_template_source=baseline.bmp'
+            "identity_template_size=$($identityExpectedTemplate.Width)x$($identityExpectedTemplate.Height)"
+            "identity_template_unique_rgb_colors=$($identityExpectedTemplate.UniqueColors)"
+            "identity_template_match=$($identityTemplateMatch.MatchedPixels)/$($identityTemplateMatch.PixelCount)"
+            "identity_template_minimum_match_percent=90"
+            "identity_template_offset=$($identityTemplateMatch.OffsetX),$($identityTemplateMatch.OffsetY)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'identity-visual.txt')
+        if ($identityTemplateMatch.MatchedPixels -lt $minimumIdentityMatchPixels) {
+            throw "identity frame did not retain the visible card: match=$($identityTemplateMatch.MatchedPixels)/$($identityTemplateMatch.PixelCount), required>=$minimumIdentityMatchPixels"
+        }
+
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $cursorStability = 'not_applicable_no_input'
+        $succeeded = $true
+    }
+    elseif ($StashRoundTrip) {
+        $stage = 'open-stash'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before stash toggle (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostVirtualKey($windowHandle, 0x09, $true)
+        [AxiomUiSmokeNative]::PostVirtualKey($windowHandle, 0x09, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'stash_visible=true, stash_page=1, zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_visible'] -eq 'true' -and
+            $state['stash_page'] -eq '1' -and
+            $state['zone'] -eq 'Table'
+        }
+        $stage = 'capture-stash-open-frame'
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $stashOpenFramePath -Stage $stage -TimeoutSeconds 10
+    }
+
+    if (-not $IdentitySignature -and $BoosterOpening) {
+        $stage = 'hover-booster-pack'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before booster input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $boosterClientX, $boosterClientY, $false)
+        $sealedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'booster_phase=sealed, booster_pack_present=true, booster_card_count=1' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['booster_phase'] -eq 'sealed' -and
+            $state['booster_pack_present'] -eq 'true' -and
+            $state['booster_card_count'] -eq '1' -and
+            (Test-Position -State $state -XKey 'booster_rendered_x' -YKey 'booster_rendered_y' `
+                -ExpectedX $boosterWorldX -ExpectedY $boosterWorldY -Tolerance 2) -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $boosterClientX -ExpectedY $boosterClientY -Tolerance 3)
+        }
+        $sealedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'booster-sealed-state.txt')
+
+        $stage = 'first-booster-click'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $boosterClientX, $boosterClientY)
+        $mouseClientX = $boosterClientX
+        $mouseClientY = $boosterClientY
+        $mouseDown = $true
+        $firstClickState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'booster_dragging=true, booster_phase=sealed, booster_pack_present=true' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['booster_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['booster_phase'] -eq 'sealed' -and
+            $state['booster_pack_present'] -eq 'true'
+        }
+        $firstClickState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'booster-first-click-state.txt')
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $boosterClientX, $boosterClientY)
+        $mouseDown = $false
+        Start-Sleep -Milliseconds 50
+        $stage = 'open-booster-pack'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $boosterClientX, $boosterClientY)
+        $mouseDown = $true
+        $openingState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'booster opening phase, booster_pack_present=true, booster_card_count=1' -Predicate {
+            param($state)
+            $openingPhases = @('moving_to_center', 'ripping', 'lowering_pack', 'revealing_cards', 'completing')
+            $state['scenario'] -eq $scenarioName -and
+            $openingPhases -contains $state['booster_phase'] -and
+            $state['booster_pack_present'] -eq 'true' -and
+            $state['booster_card_count'] -eq '1' -and
+            $state['booster_dragging'] -eq 'false'
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $boosterClientX, $boosterClientY)
+        $mouseDown = $false
+        $openingState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'booster-opening-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $boosterOpeningFramePath -Stage 'capture-booster-opening-frame' -TimeoutSeconds 10
+
+        $stage = 'complete-booster-opening'
+        $openedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 15 -ExpectedState 'booster_phase=done, booster_pack_present=false, opened_card_present=true, opened_card_zone=Table, matching identity seed' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['booster_phase'] -eq 'done' -and
+            $state['booster_pack_present'] -eq 'false' -and
+            $state['booster_card_count'] -eq '1' -and
+            $state['opened_card_present'] -eq 'true' -and
+            $state['opened_card_zone'] -eq 'Table' -and
+            $state['opened_card_face_up'] -eq 'true' -and
+            $state['opened_card_seed'] -eq $state['expected_card_seed'] -and
+            (Test-Position -State $state -XKey 'opened_card_x' -YKey 'opened_card_y' `
+                -ExpectedX -300 -ExpectedY -230 -Tolerance 35)
+        }
+        $openedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'booster-opened-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $boosterOpenedFramePath -Stage 'capture-booster-opened-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $openingFrame = Read-UiSmokeBitmap -Path $boosterOpeningFramePath
+        $openedFrame = Read-UiSmokeBitmap -Path $boosterOpenedFramePath
+        $rgbDeltaThreshold = 24
+        $minimumBoosterChangedPixels = 250
+        $sealedOriginChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $openingFrame `
+            -CenterX $boosterClientX -CenterY $boosterClientY -HalfWidth 90 -HalfHeight 125 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $openingCenterChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $openingFrame `
+            -CenterX ([int][Math]::Round($client.Width / 2.0)) -CenterY ([int][Math]::Round($client.Height / 2.0)) `
+            -HalfWidth 150 -HalfHeight 160 -RgbDeltaThreshold $rgbDeltaThreshold
+        $openedCenterChanges = Get-UiSmokeChangedPixels -Before $openingFrame -After $openedFrame `
+            -CenterX ([int][Math]::Round($client.Width / 2.0)) -CenterY ([int][Math]::Round($client.Height / 2.0)) `
+            -HalfWidth 150 -HalfHeight 160 -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($openedFrame.Width)x$($openedFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumBoosterChangedPixels"
+            "sealed_origin_changed_pixels=$($sealedOriginChanges.ChangedPixels)"
+            "opening_center_changed_pixels=$($openingCenterChanges.ChangedPixels)"
+            "opened_center_changed_pixels=$($openedCenterChanges.ChangedPixels)"
+            "expected_card_seed=$($openedState['expected_card_seed'])"
+            "opened_card_seed=$($openedState['opened_card_seed'])"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'booster-visual-diff.txt')
+        if ($sealedOriginChanges.ChangedPixels -lt $minimumBoosterChangedPixels -or
+            $openingCenterChanges.ChangedPixels -lt $minimumBoosterChangedPixels -or
+            $openedCenterChanges.ChangedPixels -lt $minimumBoosterChangedPixels) {
+            throw "booster opening frame changed too few pixels: sealed_origin=$($sealedOriginChanges.ChangedPixels), opening_center=$($openingCenterChanges.ChangedPixels), opened_center=$($openedCenterChanges.ChangedPixels), minimum=$minimumBoosterChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during booster input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "booster opening PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($TerrainInteraction) {
+        $terrainWorldX = -300.0
+        $terrainWorldY = -270.0
+        $terrainClientX = [int][Math]::Round($client.Width / 2.0 + $terrainWorldX)
+        $terrainClientY = [int][Math]::Round($client.Height / 2.0 + $terrainWorldY)
+        @(
+            "terrain_client=($terrainClientX,$terrainClientY)"
+            "terrain_world=($terrainWorldX,$terrainWorldY)"
+            "terrain_expected_grid=4x3"
+            "terrain_expected_visual_tiles=20"
+            "terrain_expected_initial_cell_1_1=1"
+            "terrain_expected_interacted_cell_1_1=2"
+        ) | Add-Content -LiteralPath $inputFile
+
+        $stage = 'verify-terrain-initial-state'
+        $initialTerrainState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'terrain_active=true, grid=4x3, visual_tiles=20, rendered_tiles=20, cell_1_1=1, click_count=0' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['terrain_active'] -eq 'true' -and
+            $state['terrain_grid_width'] -eq '4' -and
+            $state['terrain_grid_height'] -eq '3' -and
+            $state['terrain_visual_tile_count'] -eq '20' -and
+            $state['terrain_rendered_tile_count'] -eq '20' -and
+            $state['terrain_cell_1_1'] -eq '1' -and
+            $state['terrain_visual_tile_7_corners'] -eq '0,2,1,0' -and
+            $state['terrain_click_count'] -eq '0' -and
+            $state['terrain_last_clicked_tile'] -eq '-1'
+        }
+        $initialTerrainState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'terrain-initial-state.txt')
+
+        $stage = 'hover-terrain'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before terrain input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $terrainClientX, $terrainClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "terrain mouse=($terrainClientX,$terrainClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $terrainClientX -ExpectedY $terrainClientY -Tolerance 3)
+        }
+
+        $stage = 'press-terrain'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $terrainClientX, $terrainClientY)
+        $mouseClientX = $terrainClientX
+        $mouseClientY = $terrainClientY
+        $mouseDown = $true
+        $terrainState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'terrain_click_count=1, clicked_tile=7, cell_1_1=2' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['terrain_active'] -eq 'true' -and
+            $state['terrain_click_count'] -eq '1' -and
+            $state['terrain_last_clicked_tile'] -eq '7' -and
+            $state['terrain_cell_1_1'] -eq '2' -and
+            $state['terrain_visual_tile_7_corners'] -eq '0,2,2,0'
+        }
+        $terrainState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'terrain-interacted-state.txt')
+
+        $stage = 'release-terrain'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $terrainClientX, $terrainClientY)
+        $releasedTerrainState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'terrain_click_count=1, left_pressed=false, cell_1_1=2' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['terrain_click_count'] -eq '1' -and
+            $state['terrain_cell_1_1'] -eq '2'
+        }
+        $mouseDown = $false
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $terrainInteractedFramePath -Stage 'capture-terrain-interacted-frame' -TimeoutSeconds 10
+
+        $stage = 'verify-terrain-frame'
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $terrainFrame = Read-UiSmokeBitmap -Path $terrainInteractedFramePath
+        if ($baselineFrame.Width -ne $terrainFrame.Width -or $baselineFrame.Height -ne $terrainFrame.Height) {
+            throw "terrain frame size $($terrainFrame.Width)x$($terrainFrame.Height) differs from baseline $($baselineFrame.Width)x$($baselineFrame.Height)"
+        }
+        $rgbDeltaThreshold = 24
+        $minimumTerrainChangedPixels = 500
+        $terrainChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $terrainFrame `
+            -CenterX $terrainClientX -CenterY $terrainClientY -HalfWidth 110 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($terrainFrame.Width)x$($terrainFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumTerrainChangedPixels"
+            "terrain_changed_pixels=$($terrainChanges.ChangedPixels)"
+            "terrain_roi=$($terrainChanges.Left),$($terrainChanges.Top),$($terrainChanges.Width),$($terrainChanges.Height)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'terrain-visual-diff.txt')
+        if ($terrainChanges.ChangedPixels -lt $minimumTerrainChangedPixels) {
+            throw "terrain interaction frame changed too few pixels: observed=$($terrainChanges.ChangedPixels), minimum=$minimumTerrainChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during terrain input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "terrain PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($Interaction) {
+        $interactionStartClientX = $startClientX + 15
+        $interactionStartClientY = $startClientY
+        $interactionTargetClientX = $targetClientX
+        $interactionTargetClientY = $targetClientY
+        $spinClientX = $interactionStartClientX + 15
+        $spinClientY = $interactionStartClientY - 60
+        # Repeated native runs observed spin -1.18..-1.10 radians and final rotation near -2.225.
+        $interactionRotationTolerance = 0.2
+        # The repeated target-position error stayed below 23.2 units; share the existing 35-unit margin.
+        $interactionPositionTolerance = 35
+        @(
+            "interaction_start_client=($interactionStartClientX,$interactionStartClientY)"
+            "interaction_target_client=($interactionTargetClientX,$interactionTargetClientY)"
+            "spin_client=($spinClientX,$spinClientY)"
+            "expected_spin_rotation=-1.0000"
+            "expected_final_rotation=-2.2250"
+            "rotation_tolerance=$interactionRotationTolerance"
+            "position_tolerance=$interactionPositionTolerance"
+        ) | Add-Content -LiteralPath $inputFile
+
+        $stage = 'hover-interaction-card'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before interaction input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove(
+            $windowHandle, $interactionStartClientX, $interactionStartClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($interactionStartClientX,$interactionStartClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['right_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $interactionStartClientX -ExpectedY $interactionStartClientY -Tolerance 3)
+        }
+
+        $stage = 'pick-card'
+        [AxiomUiSmokeNative]::PostLeftButtonDown(
+            $windowHandle, $interactionStartClientX, $interactionStartClientY)
+        $mouseClientX = $interactionStartClientX
+        $mouseClientY = $interactionStartClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, left_pressed=true, face_up=false' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['face_up'] -eq 'false' -and
+            $state['zone'] -eq 'Table'
+        }
+
+        $stage = 'spin-card'
+        [AxiomUiSmokeNative]::PostMouseMove(
+            $windowHandle, $spinClientX, $spinClientY, $true)
+        $spinState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, rotation=-1.0000 +/- 0.1000 radians, negative' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            (Test-ExpectedRotation -State $state -Key 'rotation' -Expected -1.0 -Tolerance $interactionRotationTolerance)
+        }
+        $spinState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'spin-state.txt')
+
+        $stage = 'glide-card'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round(
+                $spinClientX + ($interactionTargetClientX - $spinClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round(
+                $spinClientY + ($interactionTargetClientY - $spinClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $interactionState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, target position tolerance=35, rotation=-2.2250 +/- 0.1000 radians, negative' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            (Test-Position -State $state -ExpectedX -300 -ExpectedY -150 -Tolerance $interactionPositionTolerance) -and
+            (Test-ExpectedRotation -State $state -Key 'rotation' -Expected -2.225 -Tolerance $interactionRotationTolerance)
+        }
+        $interactionState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'interaction-state.txt')
+
+        $stage = 'capture-interaction-frame'
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $framePath -Stage $stage -TimeoutSeconds 10
+        $stage = 'verify-interaction-frame'
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $interactionFrame = Read-UiSmokeBitmap -Path $framePath
+        $rgbDeltaThreshold = 24
+        $minimumChangedPixels = 500
+        $sourceChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $interactionFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $targetChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $interactionFrame `
+            -CenterX $interactionTargetClientX -CenterY $interactionTargetClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($interactionFrame.Width)x$($interactionFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels_per_roi=$minimumChangedPixels"
+            "source_changed_pixels=$($sourceChanges.ChangedPixels)"
+            "target_changed_pixels=$($targetChanges.ChangedPixels)"
+            "rotation=$($interactionState['rotation'])"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'interaction-visual-diff.txt')
+        if ($sourceChanges.ChangedPixels -lt $minimumChangedPixels -or
+            $targetChanges.ChangedPixels -lt $minimumChangedPixels) {
+            throw "interaction frame changed too few pixels: source=$($sourceChanges.ChangedPixels), target=$($targetChanges.ChangedPixels), minimum=$minimumChangedPixels"
+        }
+
+        $stage = 'release-interaction-card'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+        $releasedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, left_pressed=false, zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            (Test-Position -State $state -ExpectedX -300 -ExpectedY -150 -Tolerance $interactionPositionTolerance)
+        }
+        $mouseDown = $false
+        Start-Sleep -Milliseconds 250
+        $releasedState = Read-UiState -Path $stateFile
+        if ($null -eq $releasedState -or
+            -not (Test-Position -State $releasedState -ExpectedX -300 -ExpectedY -150 -Tolerance $interactionPositionTolerance)) {
+            throw "released card left the expected target: observed=$(Format-UiStateDiagnostic -State $releasedState)"
+        }
+        $releasedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'released-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $releasedFramePath -Stage 'capture-released-frame' -TimeoutSeconds 10
+
+        $stage = 'flip-card'
+        [AxiomUiSmokeNative]::PostMouseMove(
+            $windowHandle, $interactionTargetClientX, $interactionTargetClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'hover-flip-card' -TimeoutSeconds 5 -ExpectedState 'right_pressed=false, target mouse position' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['right_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $interactionTargetClientX -ExpectedY $interactionTargetClientY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostRightButtonDown(
+            $windowHandle, $interactionTargetClientX, $interactionTargetClientY)
+        $rightMouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'press-flip-button' -TimeoutSeconds 5 -ExpectedState 'right_pressed=true' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['right_pressed'] -eq 'true'
+        }
+        [AxiomUiSmokeNative]::PostRightButtonUp(
+            $windowHandle, $interactionTargetClientX, $interactionTargetClientY)
+        $rightMouseDown = $false
+        $flippedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'complete-flip' -TimeoutSeconds 10 -ExpectedState 'face_up=true, right_pressed=false, target position tolerance=35, rotation=-2.2250 +/- 0.1000 radians, negative' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['right_pressed'] -eq 'false' -and
+            $state['face_up'] -eq 'true' -and
+            $state['dragging'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX -300 -ExpectedY -150 -Tolerance $interactionPositionTolerance) -and
+            (Test-ExpectedRotation -State $state -Key 'rotation' -Expected -2.225 -Tolerance $interactionRotationTolerance)
+        }
+        $flippedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'flipped-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $flippedFramePath -Stage 'capture-flipped-frame' -TimeoutSeconds 10
+
+        $releasedFrame = Read-UiSmokeBitmap -Path $releasedFramePath
+        $flippedFrame = Read-UiSmokeBitmap -Path $flippedFramePath
+        $flipChanges = Get-UiSmokeChangedPixels -Before $releasedFrame -After $flippedFrame `
+            -CenterX $interactionTargetClientX -CenterY $interactionTargetClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        "flip_changed_pixels=$($flipChanges.ChangedPixels)" | Set-Content -LiteralPath (Join-Path $artifactDir 'flip-visual-diff.txt')
+        if ($flipChanges.ChangedPixels -lt $minimumChangedPixels) {
+            throw "flip frame changed too few pixels: changed=$($flipChanges.ChangedPixels), minimum=$minimumChangedPixels"
+        }
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during interaction input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "interaction PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($PluginWiring) {
+        $seededState = Read-UiState -Path $stateFile
+        $expectedPluginSignature = if ($null -eq $seededState) { '' } else { $seededState['identity_signature'] }
+        if ([string]::IsNullOrWhiteSpace($expectedPluginSignature)) {
+            throw "plugin wiring scenario could not establish the seeded card signature: observed=$(Format-UiStateDiagnostic -State $seededState)"
+        }
+
+        $stage = 'verify-plugin-wiring-fixture'
+        $pluginStartupState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'full plugin fixture ready, seeded table card, empty hand/stash, sealed booster, rendered terrain' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['hand_count'] -eq '0' -and
+            $state['stash_visible'] -eq 'false' -and
+            $state['reader_present'] -eq 'true' -and
+            $state['screen_present'] -eq 'true' -and
+            $state['combiner_present'] -eq 'true' -and
+            $state['plugin_wiring_fixture_ready'] -eq 'true' -and
+            $state['booster_pack_present'] -eq 'true' -and
+            $state['booster_phase'] -eq 'sealed' -and
+            $state['terrain_active'] -eq 'true' -and
+            [int]::Parse($state['terrain_rendered_tile_count']) -gt 0 -and
+            $state['reader_loaded'] -eq 'false' -and
+            $state['cable_present'] -eq 'false' -and
+            [string]::IsNullOrEmpty($state['screen_signature'])
+        }
+        $pluginStartupState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'plugin-wiring-startup-state.txt')
+
+        $stage = 'connect-plugin-screen-cable'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before plugin wiring cable input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $readerJackClientX, $readerJackClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'hover-plugin-screen-cable-source' -TimeoutSeconds 5 -ExpectedState "mouse=($readerJackClientX,$readerJackClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $readerJackClientX -ExpectedY $readerJackClientY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $readerJackClientX, $readerJackClientY)
+        $mouseClientX = $readerJackClientX
+        $mouseClientY = $readerJackClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'start-plugin-screen-cable' -TimeoutSeconds 5 -ExpectedState 'pending cable drag, cable present' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['cable_present'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true'
+        }
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($readerJackClientX + ($screenJackClientX - $readerJackClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($readerJackClientY + ($screenJackClientY - $readerJackClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'drag-plugin-screen-cable-to-target' -TimeoutSeconds 10 -ExpectedState 'pending cable drag at screen jack' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['cable_present'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            (Test-Position -State $state -XKey 'cable_dest_x' -YKey 'cable_dest_y' `
+                -ExpectedX 173 -ExpectedY 150 -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $screenJackClientX, $screenJackClientY)
+        $pluginCableState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'complete-plugin-screen-cable' -TimeoutSeconds 10 -ExpectedState 'reader-to-screen cable connected' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['cable_present'] -eq 'true' -and
+            $state['cable_connected'] -eq 'true' -and
+            [string]::IsNullOrEmpty($state['screen_signature'])
+        }
+        $mouseDown = $false
+        $pluginCableState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'plugin-wiring-cable-state.txt')
+
+        $stage = 'insert-plugin-card'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before plugin wiring card input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $startClientX, $startClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'hover-plugin-card' -TimeoutSeconds 5 -ExpectedState "mouse=($startClientX,$startClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $startClientX -ExpectedY $startClientY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $startClientX, $startClientY)
+        $mouseClientX = $startClientX
+        $mouseClientY = $startClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'press-plugin-card' -TimeoutSeconds 5 -ExpectedState 'dragging=true, table card selected' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false'
+        }
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($startClientX + ($readerClientX - $startClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($startClientY + ($readerClientY - $startClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $readerPositionTolerance = 25
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'drag-plugin-card-to-reader' -TimeoutSeconds 10 -ExpectedState "dragging=true, reader position=($readerWorldX,$readerWorldY) tolerance=$readerPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX $readerWorldX -ExpectedY $readerWorldY -Tolerance $readerPositionTolerance)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $readerClientX, $readerClientY)
+        $pluginState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'card inserted into reader and signature rendered on screen' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -like 'Reader(*)' -and
+            $state['reader_loaded'] -eq 'true' -and
+            $state['reader_signature'] -eq $expectedPluginSignature -and
+            $state['reader_space_contains'] -eq 'true' -and
+            $state['cable_connected'] -eq 'true' -and
+            $state['screen_signature'] -eq $expectedPluginSignature -and
+            $state['reader_feedback'] -eq 'lit' -and
+            $state['plugin_wiring_fixture_ready'] -eq 'true'
+        }
+        $mouseDown = $false
+        $pluginState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'plugin-wiring-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $pluginWiringFramePath -Stage 'capture-plugin-wiring-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $pluginWiringFrame = Read-UiSmokeBitmap -Path $pluginWiringFramePath
+        if ($baselineFrame.Width -ne $pluginWiringFrame.Width -or $baselineFrame.Height -ne $pluginWiringFrame.Height) {
+            throw "plugin wiring frame size $($pluginWiringFrame.Width)x$($pluginWiringFrame.Height) does not match baseline $($baselineFrame.Width)x$($baselineFrame.Height)"
+        }
+        $rgbDeltaThreshold = 24
+        $minimumPluginChangedPixels = 100
+        $pluginWiringChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $pluginWiringFrame `
+            -CenterX ([int][Math]::Round($client.Width / 2.0 + 300.0)) `
+            -CenterY ([int][Math]::Round($client.Height / 2.0 + 150.0)) `
+            -HalfWidth 125 -HalfHeight 125 -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($pluginWiringFrame.Width)x$($pluginWiringFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_plugin_changed_pixels=$minimumPluginChangedPixels"
+            "screen_roi=($($pluginWiringChanges.Left),$($pluginWiringChanges.Top),$($pluginWiringChanges.Width),$($pluginWiringChanges.Height))"
+            "screen_changed_pixels=$($pluginWiringChanges.ChangedPixels)"
+            "screen_signature=$($pluginState['screen_signature'])"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'plugin-wiring-visual-diff.txt')
+        if ($pluginWiringChanges.ChangedPixels -lt $minimumPluginChangedPixels) {
+            throw "plugin wiring frame changed too few screen pixels: changed=$($pluginWiringChanges.ChangedPixels), minimum=$minimumPluginChangedPixels"
+        }
+
+        $stage = 'verify-plugin-wiring-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during plugin wiring (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "plugin wiring PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($ReaderRoundTrip) {
+        $seededState = Read-UiState -Path $stateFile
+        $expectedReaderSignature = $seededState['identity_signature']
+        if ($null -eq $seededState -or [string]::IsNullOrWhiteSpace($expectedReaderSignature)) {
+            throw "reader scenario could not establish the seeded card signature: observed=$(Format-UiStateDiagnostic -State $seededState)"
+        }
+        $readerPositionTolerance = 25
+        $rgbDeltaThreshold = 24
+        $minimumReaderChangedPixels = 250
+        @(
+            "reader_expected_signature=$expectedReaderSignature"
+            "reader_position_tolerance=$readerPositionTolerance"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_reader_changed_pixels=$minimumReaderChangedPixels"
+        ) | Add-Content -LiteralPath $inputFile
+
+        $stage = 'hover-reader-insert'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before reader input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $startClientX, $startClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($startClientX,$startClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $startClientX -ExpectedY $startClientY -Tolerance 3)
+        }
+
+        $stage = 'press-reader-card'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $startClientX, $startClientY)
+        $mouseClientX = $startClientX
+        $mouseClientY = $startClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, left_pressed=true, zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false'
+        }
+
+        $stage = 'drag-card-to-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($startClientX + ($readerClientX - $startClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($startClientY + ($readerClientY - $startClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $dragToReaderState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, zone=Table, rendered=($readerWorldX,$readerWorldY) tolerance=$readerPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX $readerWorldX -ExpectedY $readerWorldY -Tolerance $readerPositionTolerance)
+        }
+        $dragToReaderState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-drag-state.txt')
+
+        $stage = 'insert-card-into-reader'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $readerClientX, $readerClientY)
+        $insertedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, zone=Reader, reader_loaded=true, matching signature, signature space populated, feedback=lit' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -like 'Reader(*)' -and
+            $state['reader_loaded'] -eq 'true' -and
+            $state['reader_signature'] -eq $expectedReaderSignature -and
+            $state['reader_space_contains'] -eq 'true' -and
+            $state['reader_space_source_count'] -eq '1' -and
+            [double]::Parse($state['reader_space_radius'], [Globalization.CultureInfo]::InvariantCulture) -gt 0 -and
+            $state['reader_feedback'] -eq 'lit' -and
+            (Test-Position -State $state -ExpectedX $readerWorldX -ExpectedY $readerWorldY -Tolerance 1)
+        }
+        $mouseDown = $false
+        $insertedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-inserted-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $readerInsertedFramePath -Stage 'capture-reader-inserted-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $readerInsertedFrame = Read-UiSmokeBitmap -Path $readerInsertedFramePath
+        $readerInsertedChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $readerInsertedFrame `
+            -CenterX $readerClientX -CenterY $readerClientY -HalfWidth 65 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($readerInsertedFrame.Width)x$($readerInsertedFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumReaderChangedPixels"
+            "reader_changed_pixels=$($readerInsertedChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-inserted-visual-diff.txt')
+        if ($readerInsertedChanges.ChangedPixels -lt $minimumReaderChangedPixels) {
+            throw "reader insertion frame changed too few pixels: reader=$($readerInsertedChanges.ChangedPixels), minimum=$minimumReaderChangedPixels"
+        }
+
+        $stage = 'hover-inserted-reader-card'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $readerClientX, $readerClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "reader card mouse=($readerClientX,$readerClientY), reader_loaded=true" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['reader_loaded'] -eq 'true' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $readerClientX -ExpectedY $readerClientY -Tolerance 3)
+        }
+
+        $stage = 'eject-card-from-reader'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $readerClientX, $readerClientY)
+        $mouseClientX = $readerClientX
+        $mouseClientY = $readerClientY
+        $mouseDown = $true
+        $ejectedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, zone=Table, reader_loaded=false, signature space cleared, feedback=dim' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false' -and
+            [string]::IsNullOrEmpty($state['reader_signature']) -and
+            $state['reader_space_contains'] -eq 'false' -and
+            $state['reader_space_source_count'] -eq '0' -and
+            $state['reader_feedback'] -eq 'dim'
+        }
+        $ejectedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-ejected-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $readerEjectedFramePath -Stage 'capture-reader-ejected-frame' -TimeoutSeconds 10
+
+        $stage = 'drag-ejected-card-to-table'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($readerClientX + ($startClientX - $readerClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($readerClientY + ($startClientY - $readerClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $dragFromReaderState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, zone=Table, reader_loaded=false, rendered=($cardWorldX,$cardWorldY) tolerance=$readerPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance $readerPositionTolerance)
+        }
+        $dragFromReaderState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-return-drag-state.txt')
+
+        $stage = 'release-ejected-card-to-table'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+        $returnedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=false, zone=Table, reader_loaded=false, rendered=($cardWorldX,$cardWorldY) tolerance=35" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false' -and
+            [string]::IsNullOrEmpty($state['reader_signature']) -and
+            $state['reader_space_source_count'] -eq '0' -and
+            $state['reader_feedback'] -eq 'dim' -and
+            (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 35)
+        }
+        $mouseDown = $false
+        Start-Sleep -Milliseconds 250
+        $returnedState = Read-UiState -Path $stateFile
+        if ($null -eq $returnedState -or
+            $returnedState['zone'] -ne 'Table' -or
+            $returnedState['reader_loaded'] -ne 'false' -or
+            -not [string]::IsNullOrEmpty($returnedState['reader_signature']) -or
+            $returnedState['reader_space_source_count'] -ne '0' -or
+            -not (Test-Position -State $returnedState -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 35)) {
+            throw "ejected card left the expected table state: observed=$(Format-UiStateDiagnostic -State $returnedState)"
+        }
+        $returnedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath $returnedStatePath
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $readerReturnedFramePath -Stage 'capture-reader-returned-frame' -TimeoutSeconds 10
+
+        $readerEjectedFrame = Read-UiSmokeBitmap -Path $readerEjectedFramePath
+        $readerReturnedFrame = Read-UiSmokeBitmap -Path $readerReturnedFramePath
+        $ejectedReaderChanges = Get-UiSmokeChangedPixels -Before $readerInsertedFrame -After $readerEjectedFrame `
+            -CenterX $readerClientX -CenterY $readerClientY -HalfWidth 65 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $returnedReaderChanges = Get-UiSmokeChangedPixels -Before $readerInsertedFrame -After $readerReturnedFrame `
+            -CenterX $readerClientX -CenterY $readerClientY -HalfWidth 65 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $returnedTableChanges = Get-UiSmokeChangedPixels -Before $readerEjectedFrame -After $readerReturnedFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($readerReturnedFrame.Width)x$($readerReturnedFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumReaderChangedPixels"
+            "inserted_to_ejected_reader_changed_pixels=$($ejectedReaderChanges.ChangedPixels)"
+            "inserted_to_returned_reader_changed_pixels=$($returnedReaderChanges.ChangedPixels)"
+            "ejected_to_returned_table_changed_pixels=$($returnedTableChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-visual-diff.txt')
+        if ($ejectedReaderChanges.ChangedPixels -lt $minimumReaderChangedPixels -or
+            $returnedReaderChanges.ChangedPixels -lt $minimumReaderChangedPixels -or
+            $returnedTableChanges.ChangedPixels -lt $minimumReaderChangedPixels) {
+            throw "reader ejection frame changed too few pixels: inserted_to_ejected_reader=$($ejectedReaderChanges.ChangedPixels), inserted_to_returned_reader=$($returnedReaderChanges.ChangedPixels), ejected_to_returned_table=$($returnedTableChanges.ChangedPixels), minimum=$minimumReaderChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during reader round-trip (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "reader round-trip PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($CableWrapping) {
+        $cablePositionTolerance = 2
+        $expectedCableSourceX = 352.0
+        $expectedCableSourceY = 0.0
+        $expectedCableAnchorX = 340.0
+        $expectedCableAnchorY = 55.0
+        $expectedCableDestX = 173.0
+        $expectedCableDestY = 150.0
+        $rgbDeltaThreshold = 24
+        $minimumCableChangedPixels = 100
+        @(
+            "cable_expected_source=($expectedCableSourceX,$expectedCableSourceY)"
+            "cable_expected_anchor=($expectedCableAnchorX,$expectedCableAnchorY)"
+            "cable_expected_dest=($expectedCableDestX,$expectedCableDestY)"
+            "cable_position_tolerance=$cablePositionTolerance"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_cable_changed_pixels=$minimumCableChangedPixels"
+        ) | Add-Content -LiteralPath $inputFile
+
+        $stage = 'hover-cable-source'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before cable input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $readerJackClientX, $readerJackClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($readerJackClientX,$readerJackClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $readerJackClientX -ExpectedY $readerJackClientY -Tolerance 3)
+        }
+
+        $stage = 'start-cable-drag'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $readerJackClientX, $readerJackClientY)
+        $mouseClientX = $readerJackClientX
+        $mouseClientY = $readerJackClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'cable_dragging=true, cable_present=true' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['cable_present'] -eq 'true' -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true'
+        }
+
+        $stage = 'drag-cable-around-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($readerJackClientX + ($screenJackClientX - $readerJackClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($readerJackClientY + ($screenJackClientY - $readerJackClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $dragCableState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'cable_dragging=true, one wrap anchor, rendered geometry retained' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            [int]::Parse($state['cable_anchor_count']) -eq 1 -and
+            (Test-Position -State $state -XKey 'cable_anchor_0_x' -YKey 'cable_anchor_0_y' `
+                -ExpectedX $expectedCableAnchorX -ExpectedY $expectedCableAnchorY -Tolerance $cablePositionTolerance)
+        }
+        $dragCableState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'cable-wrapping-drag-state.txt')
+
+        $stage = 'connect-cable-to-screen-jack'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $screenJackClientX, $screenJackClientY)
+        $cableState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'cable_connected=true, one wrap anchor, rendered geometry matches expected path' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['cable_connected'] -eq 'true' -and
+            [int]::Parse($state['cable_anchor_count']) -eq 1 -and
+            (Test-Position -State $state -XKey 'cable_source_x' -YKey 'cable_source_y' `
+                -ExpectedX $expectedCableSourceX -ExpectedY $expectedCableSourceY -Tolerance $cablePositionTolerance) -and
+            (Test-Position -State $state -XKey 'cable_anchor_0_x' -YKey 'cable_anchor_0_y' `
+                -ExpectedX $expectedCableAnchorX -ExpectedY $expectedCableAnchorY -Tolerance $cablePositionTolerance) -and
+            (Test-Position -State $state -XKey 'cable_dest_x' -YKey 'cable_dest_y' `
+                -ExpectedX $expectedCableDestX -ExpectedY $expectedCableDestY -Tolerance $cablePositionTolerance)
+        }
+        $mouseDown = $false
+        $cableState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'cable-wrapping-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $cableWrappingFramePath -Stage 'capture-cable-wrapping-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $cableFrame = Read-UiSmokeBitmap -Path $cableWrappingFramePath
+        if ($baselineFrame.Width -ne $cableFrame.Width -or $baselineFrame.Height -ne $cableFrame.Height) {
+            throw "cable frame size $($cableFrame.Width)x$($cableFrame.Height) does not match baseline $($baselineFrame.Width)x$($baselineFrame.Height)"
+        }
+        $cableChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $cableFrame `
+            -CenterX ([int][Math]::Round($client.Width / 2.0 + 295.0)) `
+            -CenterY ([int][Math]::Round($client.Height / 2.0 + 75.0)) `
+            -HalfWidth 140 -HalfHeight 90 -RgbDeltaThreshold $rgbDeltaThreshold
+        $cableRenderedVertexCount = [int]::Parse($cableState['cable_rendered_vertex_count'])
+        $cableRenderedSourceX = [double]::Parse($cableState['cable_rendered_source_x'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedSourceY = [double]::Parse($cableState['cable_rendered_source_y'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedAnchorX = [double]::Parse($cableState['cable_rendered_anchor_x'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedAnchorY = [double]::Parse($cableState['cable_rendered_anchor_y'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedDestX = [double]::Parse($cableState['cable_rendered_dest_x'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedDestY = [double]::Parse($cableState['cable_rendered_dest_y'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedMaxDeviation = [double]::Parse($cableState['cable_rendered_max_deviation'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedMinX = [double]::Parse($cableState['cable_rendered_min_x'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedMaxX = [double]::Parse($cableState['cable_rendered_max_x'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedMinY = [double]::Parse($cableState['cable_rendered_min_y'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedMaxY = [double]::Parse($cableState['cable_rendered_max_y'], [Globalization.CultureInfo]::InvariantCulture)
+        @(
+            "frame_size=$($cableFrame.Width)x$($cableFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_cable_changed_pixels=$minimumCableChangedPixels"
+            "cable_roi=($($cableChanges.Left),$($cableChanges.Top),$($cableChanges.Width),$($cableChanges.Height))"
+            "cable_changed_pixels=$($cableChanges.ChangedPixels)"
+            "expected_waypoints=($expectedCableSourceX,$expectedCableSourceY)->($expectedCableAnchorX,$expectedCableAnchorY)->($expectedCableDestX,$expectedCableDestY)"
+            "observed_waypoints=($($cableState['cable_source_x']),$($cableState['cable_source_y']))->($($cableState['cable_anchor_0_x']),$($cableState['cable_anchor_0_y']))->($($cableState['cable_dest_x']),$($cableState['cable_dest_y']))"
+            "rendered_waypoints=($cableRenderedSourceX,$cableRenderedSourceY)->($cableRenderedAnchorX,$cableRenderedAnchorY)->($cableRenderedDestX,$cableRenderedDestY)"
+            "rendered_max_deviation=$cableRenderedMaxDeviation"
+            "rendered_bounds=($cableRenderedMinX,$cableRenderedMinY)-($cableRenderedMaxX,$cableRenderedMaxY)"
+            "rendered_vertex_count=$cableRenderedVertexCount"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'cable-wrapping-visual-diff.txt')
+        if ($cableChanges.ChangedPixels -lt $minimumCableChangedPixels) {
+            throw "cable frame changed too few pixels: changed=$($cableChanges.ChangedPixels), minimum=$minimumCableChangedPixels"
+        }
+        if ($cableRenderedVertexCount -lt 10 -or
+            -not (Test-Position -State $cableState -XKey 'cable_rendered_source_x' -YKey 'cable_rendered_source_y' `
+                -ExpectedX $expectedCableSourceX -ExpectedY $expectedCableSourceY -Tolerance $cablePositionTolerance) -or
+            -not (Test-Position -State $cableState -XKey 'cable_rendered_anchor_x' -YKey 'cable_rendered_anchor_y' `
+                -ExpectedX $expectedCableAnchorX -ExpectedY $expectedCableAnchorY -Tolerance $cablePositionTolerance) -or
+            -not (Test-Position -State $cableState -XKey 'cable_rendered_dest_x' -YKey 'cable_rendered_dest_y' `
+                -ExpectedX $expectedCableDestX -ExpectedY $expectedCableDestY -Tolerance $cablePositionTolerance) -or
+            $cableRenderedMaxDeviation -lt 20 -or
+            $cableRenderedMinX -gt $expectedCableAnchorX - $cablePositionTolerance -or
+            $cableRenderedMaxX -lt $expectedCableAnchorX + $cablePositionTolerance -or
+            $cableRenderedMinY -gt $expectedCableAnchorY - $cablePositionTolerance -or
+            $cableRenderedMaxY -lt $expectedCableAnchorY + $cablePositionTolerance) {
+            throw "cable rendered geometry did not retain the expected wrapped path: vertices=$cableRenderedVertexCount rendered_waypoints=($cableRenderedSourceX,$cableRenderedSourceY)->($cableRenderedAnchorX,$cableRenderedAnchorY)->($cableRenderedDestX,$cableRenderedDestY) max_deviation=$cableRenderedMaxDeviation bounds=($cableRenderedMinX,$cableRenderedMinY)-($cableRenderedMaxX,$cableRenderedMaxY)"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during cable wrapping (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "cable wrapping PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($ScreenSpline) {
+        $seededState = Read-UiState -Path $stateFile
+        $expectedScreenSignature = '0.309394,0.418151,0.459740,-0.068157,0.014729,0.398286,0.121934,-0.879658'
+        if ($null -eq $seededState -or $seededState['identity_signature'] -ne $expectedScreenSignature) {
+            throw "screen spline scenario could not establish the seeded fixture signature: expected=$expectedScreenSignature observed=$(Format-UiStateDiagnostic -State $seededState)"
+        }
+        $screenPositionTolerance = 25
+        $screenGeometryTolerance = 0.01
+        $rgbDeltaThreshold = 24
+        $minimumScreenChangedPixels = 100
+        @(
+            "screen_expected_signature=$expectedScreenSignature"
+            "screen_position=(300,150)"
+            "screen_geometry_tolerance=$screenGeometryTolerance"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_screen_changed_pixels=$minimumScreenChangedPixels"
+        ) | Add-Content -LiteralPath $inputFile
+
+        $stage = 'hover-screen-cable-source'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before screen spline input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $readerJackClientX, $readerJackClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($readerJackClientX,$readerJackClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $readerJackClientX -ExpectedY $readerJackClientY -Tolerance 3)
+        }
+
+        $stage = 'start-screen-cable-drag'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $readerJackClientX, $readerJackClientY)
+        $mouseClientX = $readerJackClientX
+        $mouseClientY = $readerJackClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'cable_dragging=true, cable_present=true' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['cable_present'] -eq 'true' -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true'
+        }
+
+        $stage = 'drag-screen-cable-around-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($readerJackClientX + ($screenJackClientX - $readerJackClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($readerJackClientY + ($screenJackClientY - $readerJackClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'cable_dragging=true, one wrap anchor' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            [int]::Parse($state['cable_anchor_count']) -eq 1
+        }
+
+        $stage = 'connect-screen-cable'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $screenJackClientX, $screenJackClientY)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'cable_connected=true, screen signature empty' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['cable_connected'] -eq 'true' -and
+            [string]::IsNullOrEmpty($state['screen_signature'])
+        }
+        $mouseDown = $false
+
+        $stage = 'hover-screen-card'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $startClientX, $startClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($startClientX,$startClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $startClientX -ExpectedY $startClientY -Tolerance 3)
+        }
+
+        $stage = 'press-screen-card'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $startClientX, $startClientY)
+        $mouseClientX = $startClientX
+        $mouseClientY = $startClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table'
+        }
+
+        $stage = 'drag-screen-card-to-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($startClientX + ($readerClientX - $startClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($startClientY + ($readerClientY - $startClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, reader position=($readerWorldX,$readerWorldY) tolerance=$screenPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            (Test-Position -State $state -ExpectedX $readerWorldX -ExpectedY $readerWorldY -Tolerance $screenPositionTolerance)
+        }
+
+        $stage = 'insert-screen-card-and-propagate'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $readerClientX, $readerClientY)
+        $screenState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "reader_loaded=true, screen signature=$expectedScreenSignature, four-panel geometry match within tolerance=$screenGeometryTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['reader_loaded'] -eq 'true' -and
+            $state['reader_signature'] -eq $expectedScreenSignature -and
+            $state['reader_space_contains'] -eq 'true' -and
+            $state['reader_space_source_count'] -eq '1' -and
+            $state['cable_connected'] -eq 'true' -and
+            $state['screen_signature'] -eq $expectedScreenSignature -and
+            $state['screen_geometry_match'] -eq 'true' -and
+            [int]::Parse($state['screen_geometry_panel_count']) -eq 4
+        }
+        $mouseDown = $false
+        $screenState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'screen-spline-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $screenSplineFramePath -Stage 'capture-screen-spline-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $screenFrame = Read-UiSmokeBitmap -Path $screenSplineFramePath
+        $screenCenterX = [int][Math]::Round($client.Width / 2.0 + 300.0)
+        $screenCenterY = [int][Math]::Round($client.Height / 2.0 + 150.0)
+        $screenChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $screenFrame `
+            -CenterX $screenCenterX -CenterY $screenCenterY -HalfWidth 125 -HalfHeight 125 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $screenGeometrySummary = (0..3 | ForEach-Object {
+            $panel = $_
+            "panel=$panel expected=$($screenState["screen_expected_geometry_$panel"]) observed=$($screenState["screen_observed_geometry_$panel"])"
+        }) -join ' | '
+        @(
+            "frame_size=$($screenFrame.Width)x$($screenFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_screen_changed_pixels=$minimumScreenChangedPixels"
+            "screen_roi=($($screenChanges.Left),$($screenChanges.Top),$($screenChanges.Width),$($screenChanges.Height))"
+            "screen_changed_pixels=$($screenChanges.ChangedPixels)"
+            "signature=$($screenState['screen_signature'])"
+            "geometry_tolerance=$screenGeometryTolerance"
+            "geometry_max_error=$($screenState['screen_geometry_max_error'])"
+            $screenGeometrySummary
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'screen-spline-visual-diff.txt')
+        if ($screenChanges.ChangedPixels -lt $minimumScreenChangedPixels) {
+            throw "stage=capture-screen-spline-frame screen output changed too few pixels: signature=$expectedScreenSignature changed=$($screenChanges.ChangedPixels), minimum=$minimumScreenChangedPixels"
+        }
+        if ($screenState['screen_geometry_match'] -ne 'true') {
+            throw "stage=$stage screen geometry mismatch: signature=$expectedScreenSignature tolerance=$screenGeometryTolerance max_error=$($screenState['screen_geometry_max_error']) $screenGeometrySummary"
+        }
+
+        $stage = 'verify-screen-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during screen spline input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "screen spline PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($CombinerProcessing) {
+        $seededState = Read-UiState -Path $stateFile
+        $expectedPrimarySignature = $seededState['identity_signature']
+        $expectedSecondarySignature = $seededState['second_identity_signature']
+        if ($null -eq $seededState -or
+            [string]::IsNullOrWhiteSpace($expectedPrimarySignature) -or
+            [string]::IsNullOrWhiteSpace($expectedSecondarySignature)) {
+            throw "combiner scenario could not establish both seeded card signatures: observed=$(Format-UiStateDiagnostic -State $seededState)"
+        }
+        $combinerPositionTolerance = 25
+        $rgbDeltaThreshold = 24
+        $minimumCombinerChangedPixels = 500
+        @(
+            "combiner_primary_signature=$expectedPrimarySignature"
+            "combiner_secondary_signature=$expectedSecondarySignature"
+            "combiner_position_tolerance=$combinerPositionTolerance"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_combiner_changed_pixels=$minimumCombinerChangedPixels"
+        ) | Add-Content -LiteralPath $inputFile
+
+        $stage = 'hover-first-combiner-card'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before combiner input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $startClientX, $startClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($startClientX,$startClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $startClientX -ExpectedY $startClientY -Tolerance 3)
+        }
+
+        $stage = 'press-first-combiner-card'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $startClientX, $startClientY)
+        $mouseClientX = $startClientX
+        $mouseClientY = $startClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, left_pressed=true, zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false'
+        }
+
+        $stage = 'drag-first-card-to-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($startClientX + ($readerClientX - $startClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($startClientY + ($readerClientY - $startClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, zone=Table, rendered=($readerWorldX,$readerWorldY) tolerance=$combinerPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            (Test-Position -State $state -ExpectedX $readerWorldX -ExpectedY $readerWorldY -Tolerance $combinerPositionTolerance)
+        }
+        $stage = 'insert-first-card-into-reader'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $readerClientX, $readerClientY)
+        $insertedPrimaryState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, zone=Reader, reader_loaded=true, signature space populated' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -like 'Reader(*)' -and
+            $state['reader_loaded'] -eq 'true' -and
+            $state['reader_signature'] -eq $expectedPrimarySignature -and
+            $state['reader_space_source_count'] -eq '1'
+        }
+        $mouseDown = $false
+
+        $stage = 'hover-second-combiner-card'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $secondCardClientX, $secondCardClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($secondCardClientX,$secondCardClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $secondCardClientX -ExpectedY $secondCardClientY -Tolerance 3)
+        }
+        $stage = 'press-second-combiner-card'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $secondCardClientX, $secondCardClientY)
+        $mouseClientX = $secondCardClientX
+        $mouseClientY = $secondCardClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'second_dragging=true, second_zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['second_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['second_zone'] -eq 'Table'
+        }
+        $stage = 'drag-second-card-to-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($secondCardClientX + ($secondReaderClientX - $secondCardClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($secondCardClientY + ($secondReaderClientY - $secondCardClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "second_dragging=true, second_zone=Table, second_rendered=($secondReaderWorldX,$secondReaderWorldY) tolerance=$combinerPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['second_dragging'] -eq 'true' -and
+            $state['second_zone'] -eq 'Table' -and
+            (Test-Position -State $state -XKey 'second_rendered_x' -YKey 'second_rendered_y' `
+                -ExpectedX $secondReaderWorldX -ExpectedY $secondReaderWorldY -Tolerance $combinerPositionTolerance)
+        }
+        $stage = 'insert-second-card-into-reader'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $secondReaderClientX, $secondReaderClientY)
+        $insertedSecondaryState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'second_dragging=false, second_zone=Reader, second_reader_loaded=true, second signature retained' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['second_dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['second_zone'] -like 'Reader(*)' -and
+            $state['second_reader_loaded'] -eq 'true' -and
+            $state['second_identity_signature'] -eq $expectedSecondarySignature
+        }
+        $mouseDown = $false
+
+        $stage = 'connect-first-reader-to-combiner'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $readerJackClientX, $readerJackClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "mouse=($readerJackClientX,$readerJackClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $readerJackClientX -ExpectedY $readerJackClientY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $readerJackClientX, $readerJackClientY)
+        $mouseClientX = $readerJackClientX
+        $mouseClientY = $readerJackClientY
+        $mouseDown = $true
+        $stage = 'drag-first-reader-cable'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($readerJackClientX + ($combinerInputAClientX - $readerJackClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($readerJackClientY + ($combinerInputAClientY - $readerJackClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $combinerInputAClientX, $combinerInputAClientY)
+        $firstCableState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'combiner input A connected, one source card propagated' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['combiner_input_a_connected'] -eq 'true' -and
+            $state['combiner_input_a_source_count'] -eq '1'
+        }
+        $mouseDown = $false
+
+        $stage = 'connect-second-reader-to-combiner'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $secondReaderJackClientX, $secondReaderJackClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "mouse=($secondReaderJackClientX,$secondReaderJackClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $secondReaderJackClientX -ExpectedY $secondReaderJackClientY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $secondReaderJackClientX, $secondReaderJackClientY)
+        $mouseClientX = $secondReaderJackClientX
+        $mouseClientY = $secondReaderJackClientY
+        $mouseDown = $true
+        $stage = 'drag-second-reader-cable'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($secondReaderJackClientX + ($combinerInputBClientX - $secondReaderJackClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($secondReaderJackClientY + ($combinerInputBClientY - $secondReaderJackClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $combinerInputBClientX, $combinerInputBClientY)
+        $combinedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'both combiner inputs linked, two source cards, two output control points' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['combiner_input_a_connected'] -eq 'true' -and
+            $state['combiner_input_b_connected'] -eq 'true' -and
+            $state['combiner_input_a_source_count'] -eq '1' -and
+            $state['combiner_input_b_source_count'] -eq '1' -and
+            $state['combiner_output_source_count'] -eq '2' -and
+            $state['combiner_output_control_points'] -eq '2' -and
+            [double]::Parse($state['combiner_output_radius'], [Globalization.CultureInfo]::InvariantCulture) -gt 0 -and
+            $state['combiner_output_contains_primary'] -eq 'true' -and
+            $state['combiner_output_contains_secondary'] -eq 'true'
+        }
+        $mouseDown = $false
+        $combinedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'combiner-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $combinerFramePath -Stage 'capture-combiner-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $combinerFrame = Read-UiSmokeBitmap -Path $combinerFramePath
+        $combinerChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $combinerFrame `
+            -CenterX ([int][Math]::Round($client.Width / 2.0 + 225.0)) `
+            -CenterY ([int][Math]::Round($client.Height / 2.0 - 75.0)) `
+            -HalfWidth 220 -HalfHeight 150 -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($combinerFrame.Width)x$($combinerFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumCombinerChangedPixels"
+            "combiner_roi=($($combinerChanges.Left),$($combinerChanges.Top),$($combinerChanges.Width),$($combinerChanges.Height))"
+            "combiner_changed_pixels=$($combinerChanges.ChangedPixels)"
+            "output_source_count=$($combinedState['combiner_output_source_count'])"
+            "output_control_points=$($combinedState['combiner_output_control_points'])"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'combiner-visual-diff.txt')
+        if ($combinerChanges.ChangedPixels -lt $minimumCombinerChangedPixels) {
+            throw "combiner frame changed too few pixels: changed=$($combinerChanges.ChangedPixels), minimum=$minimumCombinerChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during combiner processing (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "combiner PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif (-not $IdentitySignature -and -not $ArtFace -and -not $ShaderVariant) {
     $stage = 'hover-card'
     $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
     if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
@@ -790,10 +3285,10 @@ public static class AxiomUiSmokeNative
             "last_input_tick_before_postmessage=$lastInputTickBeforePostMessage"
         ) | Add-Content -LiteralPath $inputFile
     }
-    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario 'seeded-card-drag' `
+    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
         -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($startClientX,$startClientY) tolerance=3" -Predicate {
         param($state)
-        $state['scenario'] -eq 'seeded-card-drag' -and
+        $state['scenario'] -eq $scenarioName -and
         $state['left_pressed'] -eq 'false' -and
         (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
             -ExpectedX $startClientX -ExpectedY $startClientY -Tolerance 3)
@@ -802,31 +3297,67 @@ public static class AxiomUiSmokeNative
     $stage = 'press-card'
     [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $mouseClientX, $mouseClientY)
     $mouseDown = $true
-    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario 'seeded-card-drag' `
+    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
         -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, left_pressed=true, zone=Table, rendered=(-160,130) tolerance=25' -Predicate {
         param($state)
-        $state['scenario'] -eq 'seeded-card-drag' -and
+        $state['scenario'] -eq $scenarioName -and
         $state['dragging'] -eq 'true' -and
         $state['left_pressed'] -eq 'true' -and
         $state['zone'] -eq 'Table' -and
         (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 25)
     }
 
+    $dragTargetClientX = if ($StashRoundTrip) {
+        $stashClientX
+    }
+    elseif ($HandRoundTrip -or $ZoneTransition) {
+        $handClientX
+    }
+    else {
+        $targetClientX
+    }
+    $dragTargetClientY = if ($StashRoundTrip) {
+        $stashClientY
+    }
+    elseif ($HandRoundTrip -or $ZoneTransition) {
+        $handClientY
+    }
+    else {
+        $targetClientY
+    }
+    $dragTargetWorldX = if ($StashRoundTrip) {
+        $stashWorldX
+    }
+    elseif ($HandRoundTrip -or $ZoneTransition) {
+        $handWorldX
+    }
+    else {
+        -300.0
+    }
+    $dragTargetWorldY = if ($StashRoundTrip) {
+        $stashWorldY
+    }
+    elseif ($HandRoundTrip -or $ZoneTransition) {
+        $handWorldY
+    }
+    else {
+        -150.0
+    }
     $stage = 'drag-card'
     for ($step = 1; $step -le 10; $step++) {
-        $mouseClientX = [int][Math]::Round($startClientX + ($targetClientX - $startClientX) * $step / 10.0)
-        $mouseClientY = [int][Math]::Round($startClientY + ($targetClientY - $startClientY) * $step / 10.0)
+        $mouseClientX = [int][Math]::Round($startClientX + ($dragTargetClientX - $startClientX) * $step / 10.0)
+        $mouseClientY = [int][Math]::Round($startClientY + ($dragTargetClientY - $startClientY) * $step / 10.0)
         [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
         Start-Sleep -Milliseconds 35
     }
-    $dragState = Wait-UiState -Process $process -StateFile $stateFile -Scenario 'seeded-card-drag' `
-        -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, left_pressed=true, zone=Table, rendered=(-300,-150) tolerance=25' -Predicate {
+    $dragState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+        -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, left_pressed=true, zone=Table, rendered=($dragTargetWorldX,$dragTargetWorldY) tolerance=25" -Predicate {
         param($state)
-        $state['scenario'] -eq 'seeded-card-drag' -and
+        $state['scenario'] -eq $scenarioName -and
         $state['dragging'] -eq 'true' -and
         $state['left_pressed'] -eq 'true' -and
         $state['zone'] -eq 'Table' -and
-        (Test-Position -State $state -ExpectedX -300 -ExpectedY -150 -Tolerance 25)
+        (Test-Position -State $state -ExpectedX $dragTargetWorldX -ExpectedY $dragTargetWorldY -Tolerance 25)
     }
 
     $stage = 'capture-dragged-frame'
@@ -836,6 +3367,445 @@ public static class AxiomUiSmokeNative
     Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
         -CapturePath $framePath -Stage $stage -TimeoutSeconds 10
 
+    if ($StashRoundTrip) {
+        $stage = 'verify-stash-drag-preview'
+        $stashDragState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, zone=Table, stash_visible=true, stash_page=1, stash_cursor_follow=true, rendered=($stashWorldX,$stashWorldY) tolerance=5" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['stash_visible'] -eq 'true' -and
+            $state['stash_page'] -eq '1' -and
+            $state['stash_slot_present'] -eq 'false' -and
+            $state['stash_cursor_follow'] -eq 'true' -and
+            (Test-Position -State $state -ExpectedX $stashWorldX -ExpectedY $stashWorldY -Tolerance 5)
+        }
+        $stashDragState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-drag-state.txt')
+
+        $stashOpenFrame = Read-UiSmokeBitmap -Path $stashOpenFramePath
+        $stashDragFrame = Read-UiSmokeBitmap -Path $framePath
+        $rgbDeltaThreshold = 24
+        $minimumStashChangedPixels = 250
+        $stashSourceChanges = Get-UiSmokeChangedPixels -Before $stashOpenFrame -After $stashDragFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $stashPreviewChanges = Get-UiSmokeChangedPixels -Before $stashOpenFrame -After $stashDragFrame `
+            -CenterX $stashClientX -CenterY $stashClientY -HalfWidth 40 -HalfHeight 55 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($stashDragFrame.Width)x$($stashDragFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumStashChangedPixels"
+            "source_changed_pixels=$($stashSourceChanges.ChangedPixels)"
+            "stash_preview_changed_pixels=$($stashPreviewChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-drag-visual-diff.txt')
+        if ($stashSourceChanges.ChangedPixels -lt $minimumStashChangedPixels -or
+            $stashPreviewChanges.ChangedPixels -lt $minimumStashChangedPixels) {
+            throw "stash drag preview changed too few pixels: source=$($stashSourceChanges.ChangedPixels), preview=$($stashPreviewChanges.ChangedPixels), minimum=$minimumStashChangedPixels"
+        }
+
+        $stage = 'release-card-to-stash'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+        $stashState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=false, zone=Stash { page: 0, col: 0, row: 0 }, stash_slot=0:0:0, stash_slot_present=true, rendered=($stashWorldX,$stashWorldY) tolerance=5" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -eq 'Stash { page: 0, col: 0, row: 0 }' -and
+            $state['stash_slot'] -eq '0:0:0' -and
+            $state['stash_slot_present'] -eq 'true' -and
+            $state['stash_cursor_follow'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX $stashWorldX -ExpectedY $stashWorldY -Tolerance 5)
+        }
+        $mouseDown = $false
+        $stashState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $stashStoredFramePath -Stage 'capture-stash-stored-frame' -TimeoutSeconds 10
+
+        $stashStoredFrame = Read-UiSmokeBitmap -Path $stashStoredFramePath
+        $storedPreviewChanges = Get-UiSmokeChangedPixels -Before $stashOpenFrame -After $stashStoredFrame `
+            -CenterX $stashClientX -CenterY $stashClientY -HalfWidth 40 -HalfHeight 55 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        "stash_stored_changed_pixels=$($storedPreviewChanges.ChangedPixels)" | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-stored-visual-diff.txt')
+        if ($storedPreviewChanges.ChangedPixels -lt $minimumStashChangedPixels) {
+            throw "stored stash frame changed too few pixels: changed=$($storedPreviewChanges.ChangedPixels), minimum=$minimumStashChangedPixels"
+        }
+
+        $stage = 'switch-to-stash-page-two'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $stashPageTwoTabX, $stashTabCenterY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'hover-stash-page-two' -TimeoutSeconds 5 -ExpectedState "stash tab mouse=($stashPageTwoTabX,$stashTabCenterY)" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $stashPageTwoTabX -ExpectedY $stashTabCenterY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $stashPageTwoTabX, $stashTabCenterY)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'stash_page=2, stash_slot_present=false' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_page'] -eq '2' -and
+            $state['stash_slot_present'] -eq 'false'
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $stashPageTwoTabX, $stashTabCenterY)
+        $pageTwoState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'release-stash-page-two-tab' -TimeoutSeconds 5 -ExpectedState 'stash_page=2, left_pressed=false' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_page'] -eq '2' -and
+            $state['left_pressed'] -eq 'false'
+        }
+        $pageTwoState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-page-two-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $stashPageTwoFramePath -Stage 'capture-stash-page-two-frame' -TimeoutSeconds 10
+
+        $stage = 'return-to-stash-page-one'
+        $stashPageOneTabX = [int][Math]::Round($stashTabStartX + 34 + 15)
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $stashPageOneTabX, $stashTabCenterY, $false)
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $stashPageOneTabX, $stashTabCenterY)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'stash_page=1, stash_slot_present=true' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_page'] -eq '1' -and
+            $state['stash_slot_present'] -eq 'true'
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $stashPageOneTabX, $stashTabCenterY)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'release-stash-page-one-tab' -TimeoutSeconds 5 -ExpectedState 'stash_page=1, left_pressed=false' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_page'] -eq '1' -and
+            $state['left_pressed'] -eq 'false'
+        }
+
+        $stage = 'pick-stashed-card'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $stashClientX, $stashClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'hover-stashed-card' -TimeoutSeconds 5 -ExpectedState "stash card mouse=($stashClientX,$stashClientY)" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_slot_present'] -eq 'true' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $stashClientX -ExpectedY $stashClientY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $stashClientX, $stashClientY)
+        $mouseClientX = $stashClientX
+        $mouseClientY = $stashClientY
+        $mouseDown = $true
+        $retrieveDragState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, zone=Table, stash_origin=0:0:0, stash_slot_present=false' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['stash_origin'] -eq '0:0:0' -and
+            $state['stash_slot_present'] -eq 'false' -and
+            $state['stash_cursor_follow'] -eq 'true'
+        }
+        $retrieveDragState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-retrieve-drag-state.txt')
+
+        $stage = 'drag-stashed-card-to-table'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($stashClientX + ($startClientX - $stashClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($stashClientY + ($startClientY - $stashClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, stash_origin=0:0:0, rendered=(-160,130) tolerance=25" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['stash_origin'] -eq '0:0:0' -and
+            (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 25)
+        }
+
+        $stage = 'release-stashed-card-to-table'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+        $retrievedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, zone=Table, stash_slot_present=false, rendered=(-160,130) tolerance=35' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['stash_slot_present'] -eq 'false' -and
+            $state['stash_origin'] -eq 'none' -and
+            (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 35)
+        }
+        $mouseDown = $false
+        $retrievedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-retrieved-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $stashRetrievedFramePath -Stage 'capture-stash-retrieved-frame' -TimeoutSeconds 10
+
+        $stashRetrievedFrame = Read-UiSmokeBitmap -Path $stashRetrievedFramePath
+        $retrievedStashChanges = Get-UiSmokeChangedPixels -Before $stashStoredFrame -After $stashRetrievedFrame `
+            -CenterX $stashClientX -CenterY $stashClientY -HalfWidth 40 -HalfHeight 55 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $retrievedTableChanges = Get-UiSmokeChangedPixels -Before $stashStoredFrame -After $stashRetrievedFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($stashRetrievedFrame.Width)x$($stashRetrievedFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumStashChangedPixels"
+            "stash_changed_pixels=$($retrievedStashChanges.ChangedPixels)"
+            "table_changed_pixels=$($retrievedTableChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-retrieved-visual-diff.txt')
+        if ($retrievedStashChanges.ChangedPixels -lt $minimumStashChangedPixels -or
+            $retrievedTableChanges.ChangedPixels -lt $minimumStashChangedPixels) {
+            throw "retrieved stash frame changed too few pixels: stash=$($retrievedStashChanges.ChangedPixels), table=$($retrievedTableChanges.ChangedPixels), minimum=$minimumStashChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during stash round-trip (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "stash round-trip PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($HandRoundTrip -or $ZoneTransition) {
+        $stage = 'release-card-to-hand'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+        $handState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=false, holder=Hand(0), holder_occupied=true, zone=Hand(0), hand_count=1, zone_config=(physics=false, layer=UI, item_form=false), layout=($handWorldX,$handWorldY) tolerance=25" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -eq 'Hand(0)' -and
+            $state['hand_contains'] -eq 'true' -and
+            $state['hand_count'] -eq '1' -and
+            $state['holder'] -eq 'Hand(0)' -and
+            $state['holder_occupied'] -eq 'true' -and
+            $state['zone_has_physics'] -eq 'false' -and
+            $state['zone_render_layer'] -eq 'UI' -and
+            $state['zone_has_item_form'] -eq 'false' -and
+            $state['face_up'] -eq 'true' -and
+            (Test-Position -State $state -ExpectedX $handWorldX -ExpectedY $handWorldY -Tolerance 25)
+        }
+        $mouseDown = $false
+        $handState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath $holderStatePath
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $holderFramePath -Stage 'capture-hand-frame' -TimeoutSeconds 10
+
+        $stage = 'verify-hand-frame'
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $handFrame = Read-UiSmokeBitmap -Path $holderFramePath
+        $rgbDeltaThreshold = 24
+        $minimumHandChangedPixels = 500
+        $handSourceChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $handFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $handLayoutChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $handFrame `
+            -CenterX $handClientX -CenterY $handClientY -HalfWidth 100 -HalfHeight 145 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($handFrame.Width)x$($handFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumHandChangedPixels"
+            "source_changed_pixels=$($handSourceChanges.ChangedPixels)"
+            "hand_layout_changed_pixels=$($handLayoutChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir $(if ($ZoneTransition) { 'zone-holder-visual-diff.txt' } else { 'hand-visual-diff.txt' }))
+        if ($handSourceChanges.ChangedPixels -lt $minimumHandChangedPixels -or
+            $handLayoutChanges.ChangedPixels -lt $minimumHandChangedPixels) {
+            throw "hand frame changed too few pixels: source=$($handSourceChanges.ChangedPixels), hand=$($handLayoutChanges.ChangedPixels), minimum=$minimumHandChangedPixels"
+        }
+
+        $stage = 'hover-hand-card'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $handClientX, $handClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "hand card mouse=($handClientX,$handClientY), holder=Hand(0), holder_occupied=true" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['hand_contains'] -eq 'true' -and
+            $state['hand_count'] -eq '1' -and
+            $state['holder'] -eq 'Hand(0)' -and
+            $state['holder_occupied'] -eq 'true' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $handClientX -ExpectedY $handClientY -Tolerance 3)
+        }
+
+        $stage = 'press-hand-card'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $handClientX, $handClientY)
+        $mouseClientX = $handClientX
+        $mouseClientY = $handClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, zone=Hand(0), holder=Hand(0), holder_occupied=false, hand_count=0' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Hand(0)' -and
+            $state['hand_contains'] -eq 'false' -and
+            $state['hand_count'] -eq '0' -and
+            $state['holder'] -eq 'Hand(0)' -and
+            $state['holder_occupied'] -eq 'false' -and
+            $state['zone_has_physics'] -eq 'false' -and
+            $state['zone_render_layer'] -eq 'UI' -and
+            $state['zone_has_item_form'] -eq 'false'
+        }
+
+        $stage = 'drag-hand-card-to-table'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($handClientX + ($startClientX - $handClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($handClientY + ($startClientY - $handClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $returnDragState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, zone=Hand(0), holder=Hand(0), holder_occupied=false, rendered=(-160,130) tolerance=25' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Hand(0)' -and
+            $state['hand_contains'] -eq 'false' -and
+            $state['holder'] -eq 'Hand(0)' -and
+            $state['holder_occupied'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 25)
+        }
+        $returnDragState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'return-drag-state.txt')
+
+        $stage = 'release-card-to-table'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+        $returnedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, holder=none, holder_occupied=false, zone=Table, hand_count=0, zone_config=(physics=true, layer=World, item_form=false), rendered=(-160,130) tolerance=35' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['hand_contains'] -eq 'false' -and
+            $state['hand_count'] -eq '0' -and
+            $state['holder'] -eq 'none' -and
+            $state['holder_occupied'] -eq 'false' -and
+            $state['zone_has_physics'] -eq 'true' -and
+            $state['zone_render_layer'] -eq 'World' -and
+            $state['zone_has_item_form'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 35)
+        }
+        $mouseDown = $false
+        Start-Sleep -Milliseconds 250
+        $returnedState = Read-UiState -Path $stateFile
+        if ($null -eq $returnedState -or
+            $returnedState['zone'] -ne 'Table' -or
+            $returnedState['hand_contains'] -ne 'false' -or
+            $returnedState['holder'] -ne 'none' -or
+            $returnedState['holder_occupied'] -ne 'false' -or
+            $returnedState['zone_has_physics'] -ne 'true' -or
+            $returnedState['zone_render_layer'] -ne 'World' -or
+            $returnedState['zone_has_item_form'] -ne 'false' -or
+            -not (Test-Position -State $returnedState -ExpectedX -160 -ExpectedY 130 -Tolerance 35)) {
+            throw "returned card left the expected table state: observed=$(Format-UiStateDiagnostic -State $returnedState)"
+        }
+        $returnedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath $returnedStatePath
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $returnedHolderFramePath -Stage 'capture-returned-frame' -TimeoutSeconds 10
+
+        $stage = 'verify-returned-frame'
+        $returnedFrame = Read-UiSmokeBitmap -Path $returnedHolderFramePath
+        $returnedHandChanges = Get-UiSmokeChangedPixels -Before $handFrame -After $returnedFrame `
+            -CenterX $handClientX -CenterY $handClientY -HalfWidth 100 -HalfHeight 145 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $returnedTableChanges = Get-UiSmokeChangedPixels -Before $handFrame -After $returnedFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($returnedFrame.Width)x$($returnedFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumHandChangedPixels"
+            "hand_changed_pixels=$($returnedHandChanges.ChangedPixels)"
+            "table_changed_pixels=$($returnedTableChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir $(if ($ZoneTransition) { 'zone-returned-visual-diff.txt' } else { 'returned-visual-diff.txt' }))
+        if ($returnedHandChanges.ChangedPixels -lt $minimumHandChangedPixels -or
+            $returnedTableChanges.ChangedPixels -lt $minimumHandChangedPixels) {
+            throw "returned frame changed too few pixels: hand=$($returnedHandChanges.ChangedPixels), table=$($returnedTableChanges.ChangedPixels), minimum=$minimumHandChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            $inputDescription = if ($ZoneTransition) { 'zone transition' } else { 'hand round-trip' }
+            throw "game window became foreground during $inputDescription (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "hand round-trip PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    else {
     $stage = 'verify-rendered-card-move'
     $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
     $draggedFrame = Read-UiSmokeBitmap -Path $framePath
@@ -891,10 +3861,10 @@ public static class AxiomUiSmokeNative
 
     $stage = 'release-card'
     [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
-    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario 'seeded-card-drag' `
+    $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
         -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, left_pressed=false, zone=Table' -Predicate {
         param($state)
-        $state['scenario'] -eq 'seeded-card-drag' -and
+        $state['scenario'] -eq $scenarioName -and
         $state['dragging'] -eq 'false' -and
         $state['left_pressed'] -eq 'false' -and
         $state['zone'] -eq 'Table'
@@ -932,9 +3902,11 @@ public static class AxiomUiSmokeNative
         throw "PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after_release_ack=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
     }
     $succeeded = $true
+    }
+}
 }
 catch {
-    [Console]::Error.WriteLine("UI smoke failed: scenario=seeded-card-drag stage=${stage} $($_.Exception.Message)")
+    [Console]::Error.WriteLine("UI smoke failed: scenario=$scenarioName stage=${stage} $($_.Exception.Message)")
     if (Test-Path -LiteralPath $stateFile) {
         $failureState = Read-UiState -Path $stateFile
         if ($null -ne $failureState) {
@@ -955,7 +3927,16 @@ finally {
         }
         catch {
             $failureCaptureError = $_.Exception.Message
-            [Console]::Error.WriteLine("UI smoke failure: scenario=seeded-card-drag stage=failure-frame-capture $failureCaptureError")
+            [Console]::Error.WriteLine("UI smoke failure: scenario=$scenarioName stage=failure-frame-capture $failureCaptureError")
+        }
+    }
+    if ($rightMouseDown -and $windowHandle -ne [IntPtr]::Zero) {
+        try {
+            [AxiomUiSmokeNative]::PostRightButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+            $rightMouseDown = $false
+        }
+        catch {
+            $cleanupFailure = "cleanup right-button release failed: $($_.Exception.Message)"
         }
     }
     if ($mouseDown) {
@@ -964,7 +3945,7 @@ finally {
             [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
             if ($leftPressObserved) {
                 $cleanupReleaseState = Wait-UiState -Process $process -StateFile $stateFile `
-                    -Scenario 'seeded-card-drag' -Stage 'cleanup-release' -TimeoutSeconds 3 `
+                    -Scenario $scenarioName -Stage 'cleanup-release' -TimeoutSeconds 3 `
                     -ExpectedState 'dragging=false, left_pressed=false' -Predicate {
                         param($state)
                         $state['dragging'] -eq 'false' -and $state['left_pressed'] -eq 'false'
@@ -988,10 +3969,7 @@ finally {
         try {
             $process.Refresh()
             if (-not $process.HasExited) {
-                Stop-Process -Id $process.Id -Force
-                if (-not $process.WaitForExit(5000)) {
-                    $cleanupFailure = "game process $($process.Id) did not exit within 5 seconds"
-                }
+                Stop-RunnerProcessTree -Process $process
             }
         }
         catch {
@@ -1005,7 +3983,7 @@ finally {
 
 if ($null -ne $cleanupFailure) {
     $succeeded = $false
-    [Console]::Error.WriteLine("UI smoke failed: scenario=seeded-card-drag stage=cleanup $cleanupFailure")
+    [Console]::Error.WriteLine("UI smoke failed: scenario=$scenarioName stage=cleanup $cleanupFailure")
 }
 
 if (-not $succeeded) {
@@ -1016,21 +3994,179 @@ if (-not $succeeded) {
         }
     }
     [Console]::Error.WriteLine("Evidence retained at $artifactDir")
+    Write-RunnerTerminal -Path $runnerTerminalPath -Scenario $scenarioName -Stage $stage `
+        -ExitCode 1 -Outcome 'failed' -Message 'scenario failed; evidence retained'
     exit 1
 }
 
-Write-Output ("UI smoke passed: scenario=seeded-card-drag rendered=({0},{1}) frame={2}" -f `
-    $dragState['rendered_x'], $dragState['rendered_y'], $framePath)
-Write-Output ("Visual move verified: source_changed={0} target_changed={1} pixels (minimum 500 at RGB delta 24); baseline={2}" -f `
-    $sourceChanges.ChangedPixels, $targetChanges.ChangedPixels, $baselineFramePath)
-Write-Output ("Card template verified: target_match={0}/{1}, source_match={2}/{1}, target_offset=({3},{4})" -f `
-    $targetTemplateMatch.MatchedPixels, $targetTemplateMatch.PixelCount, $sourceTemplateMatch.MatchedPixels, `
-    $targetTemplateMatch.OffsetX, $targetTemplateMatch.OffsetY)
-Write-Output ("Cursor samples: launch=({0},{1}), preparation=({2},{3}), pre-input=({4},{5}), before-PostMessageW=({6},{7}), after-release-ack=({8},{9}), setup-drift={10}, cursor-stability={11}, last-input-ticks={12}->{13}" -f `
-    $previousCursor.X, $previousCursor.Y, $cursorAtPreparation.X, $cursorAtPreparation.Y, `
-    $cursorBeforeInputSetup.X, $cursorBeforeInputSetup.Y, $cursorBeforePostMessage.X, $cursorBeforePostMessage.Y, `
-    $cursorAfterInput.X, $cursorAfterInput.Y, $cursorSetupDrift, $cursorStability, `
-    $lastInputTickBeforePostMessage, $lastInputTickAfterReleaseAck)
-Write-Output ("Foreground samples: launch={0} pid={1}, pre-PostMessageW={2} pid={3}, post-release={4} pid={5}" -f `
-    $foregroundBeforeLaunch.Handle, $foregroundBeforeLaunch.ProcessId, $foregroundBeforePostMessage.Handle, `
-    $foregroundBeforePostMessage.ProcessId, $foregroundAfterInput.Handle, $foregroundAfterInput.ProcessId)
+if ($ShaderVariant) {
+    Write-Output ("UI shader variant scenario passed: position=({0},{1}), variant_state={2}, variant_frame={3}, visual_evidence={4}" -f `
+        $shaderVariantState['rendered_x'], $shaderVariantState['rendered_y'], `
+        (Join-Path $artifactDir 'shader-variant-state.txt'), $shaderVariantFramePath, `
+        (Join-Path $artifactDir 'shader-variant-visual.txt'))
+    Write-Output ("Shader variant observed: rarity={0}, tier={1}, variant={2}, condition={3}, variant_handle={4}, condition_handle={5}, condition_visible={6}, golden_pixels={7}/{8}, region_colors={9}, region_non_background={10}/{11}" -f `
+        $shaderVariantState['identity_rarity'], $shaderVariantState['identity_tier'], `
+        $shaderVariantState['shader_variant'], $shaderVariantState['condition_effect'], `
+        $shaderVariantState['variant_overlay_handle'], $shaderVariantState['condition_overlay_handle'], `
+        $shaderVariantState['condition_overlay_visible'], $shaderVariantGoldenMatches, $shaderVariantGoldenEvidence.Count, `
+        $shaderVariantEvidence.UniqueColors, $shaderVariantEvidence.NonBackgroundPixels, $shaderVariantEvidence.PixelCount)
+}
+elseif ($ArtFace) {
+    Write-Output ("UI art-face scenario passed: position=({0},{1}), art_state={2}, art_frame={3}, visual_evidence={4}" -f `
+        $artFaceState['rendered_x'], $artFaceState['rendered_y'], `
+        (Join-Path $artifactDir 'art-face-state.txt'), $artFaceFramePath, `
+        (Join-Path $artifactDir 'art-face-visual.txt'))
+    Write-Output ("Art observed: signature={0}, element={1}, aspect={2}, shapes={3}, unique_colors={4}, non_background_pixels={5}/{6}" -f `
+        $artFaceState['art_signature'], $artFaceState['art_element'], $artFaceState['art_aspect'], `
+        $artFaceState['art_shape_count'], $artEvidence.UniqueColors, $artEvidence.NonBackgroundPixels, $artEvidence.PixelCount)
+}
+elseif ($IdentitySignature) {
+    Write-Output ("UI identity scenario passed: position=({0},{1}), identity_state={2}, identity_frame={3}, visual_evidence={4}" -f `
+        $identityState['rendered_x'], $identityState['rendered_y'], `
+        (Join-Path $artifactDir 'identity-state.txt'), $identityFramePath, `
+        (Join-Path $artifactDir 'identity-visual.txt'))
+    Write-Output ("Identity observed: signature={0}, seed={1}, rarity={2}, tier={3}, name={4}" -f `
+        $identityState['identity_signature'], $identityState['identity_seed'], `
+        $identityState['identity_rarity'], $identityState['identity_tier'], $identityState['identity_name'])
+}
+elseif ($BoosterOpening) {
+    Write-Output ("UI booster opening passed: sealed=({0},{1}), opened=({2},{3}), sealed_state={4}, opening_state={5}, opened_state={6}, opening_frame={7}, opened_frame={8}" -f `
+        $boosterWorldX, $boosterWorldY, $openedState['opened_card_x'], $openedState['opened_card_y'], `
+        (Join-Path $artifactDir 'booster-sealed-state.txt'), (Join-Path $artifactDir 'booster-opening-state.txt'), `
+        (Join-Path $artifactDir 'booster-opened-state.txt'), $boosterOpeningFramePath, $boosterOpenedFramePath)
+    Write-Output ("Booster flow verified: expected_seed={0}, opened_seed={1}, sealed_origin_changed={2}, opening_center_changed={3}, opened_center_changed={4} pixels (minimum 250 at RGB delta 24)" -f `
+        $openedState['expected_card_seed'], $openedState['opened_card_seed'], $sealedOriginChanges.ChangedPixels, `
+        $openingCenterChanges.ChangedPixels, $openedCenterChanges.ChangedPixels)
+}
+elseif ($StashRoundTrip) {
+    Write-Output ("UI stash round-trip passed: stored=({0},{1}) retrieved=({2},{3}), stash_state={4}, page_two_state={5}, retrieved_state={6}, stored_frame={7}, retrieved_frame={8}" -f `
+        $stashState['rendered_x'], $stashState['rendered_y'], $retrievedState['rendered_x'], $retrievedState['rendered_y'], `
+        (Join-Path $artifactDir 'stash-state.txt'), (Join-Path $artifactDir 'stash-page-two-state.txt'), `
+        (Join-Path $artifactDir 'stash-retrieved-state.txt'), $stashStoredFramePath, $stashRetrievedFramePath)
+    Write-Output ("Stash workflow verified: preview_changed={0}, stored_changed={1}, page_two={2}, retrieved_stash_changed={3}, retrieved_table_changed={4} pixels (minimum 250 at RGB delta 24)" -f `
+        $stashPreviewChanges.ChangedPixels, $storedPreviewChanges.ChangedPixels, $pageTwoState['stash_page'], `
+        $retrievedStashChanges.ChangedPixels, $retrievedTableChanges.ChangedPixels)
+}
+elseif ($ZoneTransition) {
+    Write-Output ("UI zone transition passed: holder=({0},{1}) returned=({2},{3}), holder_state={4}, returned_state={5}, holder_frame={6}, returned_frame={7}" -f `
+        $handState['rendered_x'], $handState['rendered_y'], $returnedState['rendered_x'], $returnedState['rendered_y'], `
+        $holderStatePath, $returnedStatePath, $holderFramePath, $returnedHolderFramePath)
+    Write-Output ("Zone contract verified: holder={0}, occupied={1}, holder_config=({2},{3},{4}), returned_zone={5}, returned_config=({6},{7},{8}), holder_changed={9}, returned_table_changed={10} pixels" -f `
+        $handState['holder'], $handState['holder_occupied'], $handState['zone_has_physics'],
+        $handState['zone_render_layer'], $handState['zone_has_item_form'], $returnedState['zone'],
+        $returnedState['zone_has_physics'], $returnedState['zone_render_layer'], $returnedState['zone_has_item_form'],
+        $handLayoutChanges.ChangedPixels, $returnedTableChanges.ChangedPixels)
+}
+elseif ($ReaderRoundTrip) {
+    Write-Output ("UI reader round-trip passed: inserted=({0},{1}), returned=({2},{3}), inserted_state={4}, ejected_state={5}, returned_state={6}, inserted_frame={7}, ejected_frame={8}, returned_frame={9}" -f `
+        $insertedState['rendered_x'], $insertedState['rendered_y'], $returnedState['rendered_x'], $returnedState['rendered_y'],
+        (Join-Path $artifactDir 'reader-inserted-state.txt'), (Join-Path $artifactDir 'reader-ejected-state.txt'),
+        $returnedStatePath, $readerInsertedFramePath, $readerEjectedFramePath, $readerReturnedFramePath)
+    Write-Output ("Reader contract verified: signature={0}, radius={1}, inserted_feedback={2}, ejected_feedback={3}, inserted_to_ejected_reader_changed={4}, inserted_to_returned_reader_changed={5}, ejected_to_returned_table_changed={6} pixels" -f `
+        $insertedState['reader_signature'], $insertedState['reader_space_radius'], $insertedState['reader_feedback'],
+        $returnedState['reader_feedback'], $ejectedReaderChanges.ChangedPixels, $returnedReaderChanges.ChangedPixels,
+        $returnedTableChanges.ChangedPixels)
+}
+elseif ($ScreenSpline) {
+    Write-Output ("UI screen spline scenario passed: signature={0}, state={1}, frame={2}, visual_evidence={3}" -f `
+        $screenState['screen_signature'], (Join-Path $artifactDir 'screen-spline-state.txt'),
+        $screenSplineFramePath, (Join-Path $artifactDir 'screen-spline-visual-diff.txt'))
+    Write-Output ("Screen geometry verified: panels={0}, tolerance={1}, max_error={2}, changed_pixels={3} (minimum {4} at RGB delta {5})" -f `
+        $screenState['screen_geometry_panel_count'], $screenState['screen_geometry_tolerance'],
+        $screenState['screen_geometry_max_error'], $screenChanges.ChangedPixels,
+        $minimumScreenChangedPixels, $rgbDeltaThreshold)
+}
+elseif ($PluginWiring) {
+    Write-Output ("UI plugin wiring scenario passed: state={0}, frame={1}, startup_state={2}, cable_state={3}" -f `
+        (Join-Path $artifactDir 'plugin-wiring-state.txt'), $pluginWiringFramePath,
+        (Join-Path $artifactDir 'plugin-wiring-startup-state.txt'),
+        (Join-Path $artifactDir 'plugin-wiring-cable-state.txt'))
+    Write-Output ("Plugin wiring verified: fixture_ready={0}, cable_connected={1}, reader_loaded={2}, screen_signature={3}, changed_pixels={4} (minimum {5} at RGB delta {6})" -f `
+        $pluginState['plugin_wiring_fixture_ready'], $pluginState['cable_connected'],
+        $pluginState['reader_loaded'], $pluginState['screen_signature'],
+        $pluginWiringChanges.ChangedPixels, $minimumPluginChangedPixels, $rgbDeltaThreshold)
+}
+elseif ($CableWrapping) {
+    Write-Output ("UI cable wrapping scenario passed: source=({0},{1}), anchor=({2},{3}), dest=({4},{5}), state={6}, frame={7}, visual_evidence={8}" -f `
+        $cableState['cable_source_x'], $cableState['cable_source_y'], `
+        $cableState['cable_anchor_0_x'], $cableState['cable_anchor_0_y'], `
+        $cableState['cable_dest_x'], $cableState['cable_dest_y'], `
+        (Join-Path $artifactDir 'cable-wrapping-state.txt'), $cableWrappingFramePath, `
+        (Join-Path $artifactDir 'cable-wrapping-visual-diff.txt'))
+    Write-Output ("Cable path verified: connected={0}, anchors={1}, rendered_vertices={2}, changed_pixels={3} (minimum {4} at RGB delta {5})" -f `
+        $cableState['cable_connected'], $cableState['cable_anchor_count'], `
+        $cableState['cable_rendered_vertex_count'], $cableChanges.ChangedPixels, `
+        $minimumCableChangedPixels, $rgbDeltaThreshold)
+}
+elseif ($CombinerProcessing) {
+    Write-Output ("UI combiner scenario passed: primary_reader=({0},{1}), secondary_reader=({2},{3}), combiner_state={4}, combiner_frame={5}, visual_evidence={6}" -f `
+        $insertedPrimaryState['rendered_x'], $insertedPrimaryState['rendered_y'],
+        $insertedSecondaryState['second_rendered_x'], $insertedSecondaryState['second_rendered_y'],
+        (Join-Path $artifactDir 'combiner-state.txt'), $combinerFramePath,
+        (Join-Path $artifactDir 'combiner-visual-diff.txt'))
+    Write-Output ("Combiner contract verified: input_a={0}, input_b={1}, sources=({2},{3}), output_sources={4}, output_points={5}, contains=({6},{7}), changed_pixels={8} (minimum 500 at RGB delta 24)" -f `
+        $combinedState['combiner_input_a_connected'], $combinedState['combiner_input_b_connected'],
+        $combinedState['combiner_input_a_source_count'], $combinedState['combiner_input_b_source_count'],
+        $combinedState['combiner_output_source_count'], $combinedState['combiner_output_control_points'],
+        $combinedState['combiner_output_contains_primary'], $combinedState['combiner_output_contains_secondary'],
+        $combinerChanges.ChangedPixels)
+}
+elseif ($HandRoundTrip) {
+    Write-Output ("UI hand round-trip passed: hand=({0},{1}) returned=({2},{3}), hand_state={4}, returned_state={5}, hand_frame={6}, returned_frame={7}" -f `
+        $handState['rendered_x'], $handState['rendered_y'], $returnedState['rendered_x'], $returnedState['rendered_y'], `
+        $holderStatePath, $returnedStatePath, $holderFramePath, $returnedHolderFramePath)
+    Write-Output ("Hand layout verified: hand_contains={0}, hand_count={1}, hand_changed={2}, returned_hand_changed={3}, returned_table_changed={4} pixels (minimum 500 at RGB delta 24)" -f `
+        $handState['hand_contains'], $handState['hand_count'], $handLayoutChanges.ChangedPixels, `
+        $returnedHandChanges.ChangedPixels, $returnedTableChanges.ChangedPixels)
+}
+elseif ($TerrainInteraction) {
+    Write-Output ("UI terrain interaction passed: tile={0}, cell_1_1={1}, state={2}, frame={3}, visual_evidence={4}" -f `
+        $terrainState['terrain_last_clicked_tile'], $terrainState['terrain_cell_1_1'], `
+        (Join-Path $artifactDir 'terrain-interacted-state.txt'), $terrainInteractedFramePath, `
+        (Join-Path $artifactDir 'terrain-visual-diff.txt'))
+    Write-Output ("Terrain grid verified: dimensions={0}x{1}, visual_tiles={2}, rendered_tiles={3}, changed_pixels={4} (minimum {5} at RGB delta {6})" -f `
+        $terrainState['terrain_grid_width'], $terrainState['terrain_grid_height'], `
+        $terrainState['terrain_visual_tile_count'], $terrainState['terrain_rendered_tile_count'], `
+        $terrainChanges.ChangedPixels, $minimumTerrainChangedPixels, $rgbDeltaThreshold)
+}
+elseif (-not $IdentitySignature -and -not $Interaction -and -not $ShaderVariant -and -not $TerrainInteraction -and -not $PluginWiring) {
+    Write-Output ("UI smoke passed: scenario=$scenarioName rendered=({0},{1}) frame={2}" -f `
+        $dragState['rendered_x'], $dragState['rendered_y'], $framePath)
+    Write-Output ("Visual move verified: source_changed={0} target_changed={1} pixels (minimum 500 at RGB delta 24); baseline={2}" -f `
+        $sourceChanges.ChangedPixels, $targetChanges.ChangedPixels, $baselineFramePath)
+    Write-Output ("Card template verified: target_match={0}/{1}, source_match={2}/{1}, target_offset=({3},{4})" -f `
+        $targetTemplateMatch.MatchedPixels, $targetTemplateMatch.PixelCount, $sourceTemplateMatch.MatchedPixels, `
+        $targetTemplateMatch.OffsetX, $targetTemplateMatch.OffsetY)
+}
+else {
+    Write-Output ("UI interaction passed: final=({0},{1}), rotation={2}, face_up={3}, frame={4}, released_frame={5}, flipped_frame={6}" -f `
+        $flippedState['rendered_x'], $flippedState['rendered_y'], $flippedState['rotation'], `
+        $flippedState['face_up'], $framePath, $releasedFramePath, $flippedFramePath)
+    Write-Output ("Interaction verified: spin_rotation={0}, moved_pixels=source:{1} target:{2}, flip_changed={3} (minimum 500 at RGB delta 24)" -f `
+        $spinState['rotation'], $sourceChanges.ChangedPixels, $targetChanges.ChangedPixels, $flipChanges.ChangedPixels)
+}
+if ($IdentitySignature -or $ArtFace -or $ShaderVariant) {
+    $diagnosticMode = if ($ArtFace) {
+        'art-face-no-postmessagew'
+    }
+    elseif ($ShaderVariant) {
+        'shader-variant-no-postmessagew'
+    }
+    else {
+        'identity-no-postmessagew'
+    }
+    Write-Output ("Input diagnostics: mode=$diagnosticMode, before-PostMessageW=$identityNoInput, before-PostMessageW-pid=$identityNoInput, cursor-before-PostMessageW=$identityNoInput, last-input-tick-before-PostMessageW=$identityNoInput, cursor-stability=$cursorStability")
+}
+else {
+    Write-Output ("Cursor samples: launch=({0},{1}), preparation=({2},{3}), pre-input=({4},{5}), before-PostMessageW=({6},{7}), after-release-ack=({8},{9}), setup-drift={10}, cursor-stability={11}, last-input-ticks={12}->{13}" -f `
+        $previousCursor.X, $previousCursor.Y, $cursorAtPreparation.X, $cursorAtPreparation.Y, `
+        $cursorBeforeInputSetup.X, $cursorBeforeInputSetup.Y, $cursorBeforePostMessage.X, $cursorBeforePostMessage.Y, `
+        $cursorAfterInput.X, $cursorAfterInput.Y, $cursorSetupDrift, $cursorStability, `
+        $lastInputTickBeforePostMessage, $lastInputTickAfterReleaseAck)
+    Write-Output ("Foreground samples: launch={0} pid={1}, pre-PostMessageW={2} pid={3}, post-release={4} pid={5}" -f `
+        $foregroundBeforeLaunch.Handle, $foregroundBeforeLaunch.ProcessId, $foregroundBeforePostMessage.Handle, `
+        $foregroundBeforePostMessage.ProcessId, $foregroundAfterInput.Handle, $foregroundAfterInput.ProcessId)
+}
+Write-RunnerTerminal -Path $runnerTerminalPath -Scenario $scenarioName -Stage 'complete' `
+    -ExitCode 0 -Outcome 'passed' -Message 'scenario completed and cleanup acknowledged'
+exit 0

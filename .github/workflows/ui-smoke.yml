@@ -1,0 +1,94 @@
+name: Windows UI smoke
+
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  UI_SMOKE_TIMEOUT_SECONDS: 900
+
+jobs:
+  ui-smoke:
+    name: Native card-game scenarios
+    runs-on: [self-hosted, windows, x64, ui-desktop]
+    timeout-minutes: 255
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 1
+
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # Rust 1.94.0
+        with:
+          toolchain: 1.94.0
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Verify interactive Windows desktop
+        shell: powershell
+        run: |
+          $sessionId = (Get-Process -Id $PID).SessionId
+          if ($sessionId -eq 0) {
+            throw "The ui-desktop runner is in Session 0; native Winit/WGPU UI smoke requires an interactive desktop session."
+          }
+          Write-Output "Using interactive Windows session $sessionId ($env:SESSIONNAME)."
+
+      - name: Run every native UI scenario
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $scriptPath = Join-Path $env:GITHUB_WORKSPACE 'crates\card_game_bin\tests\ui-smoke.ps1'
+          $artifactRoot = Join-Path $env:GITHUB_WORKSPACE ("target\ui-smoke-ci-{0}-{1}" -f $env:GITHUB_RUN_ID, $env:GITHUB_RUN_ATTEMPT)
+          $scenarios = @(
+            [pscustomobject]@{ Name = 'default'; Flag = @() }
+            [pscustomobject]@{ Name = 'interaction'; Flag = @('-Interaction') }
+            [pscustomobject]@{ Name = 'hand-roundtrip'; Flag = @('-HandRoundTrip') }
+            [pscustomobject]@{ Name = 'zone-transition'; Flag = @('-ZoneTransition') }
+            [pscustomobject]@{ Name = 'reader-roundtrip'; Flag = @('-ReaderRoundTrip') }
+            [pscustomobject]@{ Name = 'combiner-processing'; Flag = @('-CombinerProcessing') }
+            [pscustomobject]@{ Name = 'cable-wrapping'; Flag = @('-CableWrapping') }
+            [pscustomobject]@{ Name = 'screen-spline'; Flag = @('-ScreenSpline') }
+            [pscustomobject]@{ Name = 'stash-roundtrip'; Flag = @('-StashRoundTrip') }
+            [pscustomobject]@{ Name = 'booster-opening'; Flag = @('-BoosterOpening') }
+            [pscustomobject]@{ Name = 'identity-signature'; Flag = @('-IdentitySignature') }
+            [pscustomobject]@{ Name = 'art-face'; Flag = @('-ArtFace') }
+            [pscustomobject]@{ Name = 'shader-variant'; Flag = @('-ShaderVariant') }
+            [pscustomobject]@{ Name = 'terrain-interaction'; Flag = @('-TerrainInteraction') }
+            [pscustomobject]@{ Name = 'plugin-wiring'; Flag = @('-PluginWiring') }
+          )
+          New-Item -ItemType Directory -Path $artifactRoot -Force | Out-Null
+          foreach ($scenario in $scenarios) {
+            $artifactDirectory = Join-Path $artifactRoot $scenario.Name
+            $arguments = @(
+              '-NoProfile'
+              '-ExecutionPolicy'
+              'Bypass'
+              '-File'
+              $scriptPath
+              '-ArtifactDirectory'
+              $artifactDirectory
+              '-RunnerTimeoutSeconds'
+              $env:UI_SMOKE_TIMEOUT_SECONDS
+            ) + @($scenario.Flag)
+            Write-Output "Running $($scenario.Name); artifacts=$artifactDirectory"
+            & powershell.exe @arguments
+            if ($LASTEXITCODE -ne 0) {
+              throw "UI smoke scenario '$($scenario.Name)' failed with exit code $LASTEXITCODE; evidence=$artifactDirectory"
+            }
+          }
+
+      - name: Upload UI smoke evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: windows-ui-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          path: target/ui-smoke-ci-${{ github.run_id }}-${{ github.run_attempt }}/
+          if-no-files-found: warn

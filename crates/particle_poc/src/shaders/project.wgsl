@@ -247,7 +247,7 @@ fn project(@builtin(global_invocation_id) id: vec3<u32>) {
         // penetration) already prevents phasing; compliance stays low so
         // paddles nudge particles along the belt rather than dispersing them.
         if is_paddle {
-            let paddle_c = 0.125 / f32(params.sub_steps);
+            let paddle_c = select(0.125, 1.0, overlap > r) / f32(params.sub_steps);
             machine_corr += overlap * n * paddle_c;
 
             let surf_disp = vec2(c, s) * mach.angular_velocity * params.dt;

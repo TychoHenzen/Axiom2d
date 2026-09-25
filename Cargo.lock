@@ -527,7 +527,9 @@ name = "card_game_bin"
 version = "0.1.0"
 dependencies = [
  "axiom2d",
+ "bevy_ecs",
  "card_game",
+ "engine_render",
  "glam 0.30.10",
  "rand",
  "rand_chacha",

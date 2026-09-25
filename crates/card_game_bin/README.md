@@ -7,3 +7,121 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 ```
 
 The script builds the test-only observer, launches the real game, sends HWND-targeted native Windows `PostMessageW` pointer messages to its Winit window with `SWP_NOACTIVATE`, and checks the seeded face-down card's drag state and rendered position. It requires an interactive Windows desktop but stays background-only: it never activates the game or moves the desktop cursor. Successful runs capture the client frame and state under `target/ui-smoke-*`; failures retain logs and available state/frame evidence. Normal builds do not enable the observer.
+
+## Supported CI runner
+
+`.github/workflows/ui-smoke.yml` runs the wrapper on an administrator-provisioned self-hosted Windows runner labeled `self-hosted`, `windows`, `x64`, and `ui-desktop`. The runner must provide an interactive desktop session (not Session 0), the Rust 1.94.0 MSVC toolchain, and a DX12-capable GPU. Hosted Ubuntu runners and Xvfb are not substitutes for this Winit boundary.
+
+The wrapper supervises each scenario for 900 seconds by default (`-RunnerTimeoutSeconds`), writes `runner.pid.txt`, `runner.exitcode.txt`, `runner.terminal.txt`, and retains stdout/stderr, state, and frame evidence in the supplied `-ArtifactDirectory`. A timeout exits 124, writes `runner.timeout.txt`, kills the runner process tree and any game process created during the run, and uploads the same directory through the workflow's always-run artifact step.
+
+Run the full card interaction scenario, including off-center spin/glide, release, and right-click flip:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -Interaction
+```
+
+This mode retains `spin-state.txt`, `interaction-state.txt`, `released-state.txt`, `flipped-state.txt`, and the corresponding frame/visual-diff artifacts.
+
+Run the hand round-trip scenario, moving the seeded card into the hand and back to the table:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -HandRoundTrip
+```
+
+This mode retains hand and returned state/frame evidence and verifies the hand membership, layout, and table return.
+
+Run the holder/zone transition scenario, which adds explicit `CardZone` and `ZoneConfig` assertions to the same native path:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -ZoneTransition
+```
+
+This mode retains holder/table state and frame evidence, including hand occupancy, per-zone physics/render-layer/item-form configuration, and the stable table return.
+
+Run the reader insertion and ejection scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -ReaderRoundTrip
+```
+
+This mode verifies reader occupancy, signature-space propagation, lit/dim reader feedback, ejection, and the returned table card with retained state/frame evidence under `target/ui-smoke-*`.
+
+Run the two-reader combiner processing scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -CombinerProcessing
+```
+
+This mode inserts two seeded cards into separate readers, links both reader outputs to the combiner through native socket drags, and verifies the linked inputs, combined signature space, and rendered cable/device result with retained evidence under `target/ui-smoke-*`.
+
+Run the reader-to-screen cable wrapping scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -CableWrapping
+```
+
+This mode connects the deterministic reader and screen sockets around the reader obstacle, verifies the wrap anchor and rendered ribbon geometry, and retains state/frame diagnostics under `target/ui-smoke-*`.
+
+Run the reader-to-screen signature spline scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -ScreenSpline
+```
+
+This mode inserts the seeded card, verifies its signature reaches the screen, compares all four rendered panel geometries within a 0.01 tolerance, and retains the signature, expected/observed geometry, and captured screen frame under `target/ui-smoke-*`.
+
+Run the stash round-trip scenario, storing the seeded card, switching pages, previewing the stash slot during a drag, and retrieving it:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -StashRoundTrip
+```
+
+This mode retains stash, page, retrieval, and rendered-difference evidence under `target/ui-smoke-*`.
+
+Run the seeded booster opening scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -BoosterOpening
+```
+
+This mode retains sealed, opening, opened-card state, identity, and rendered-difference evidence under `target/ui-smoke-*`.
+
+Run the seeded identity/signature scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -IdentitySignature
+```
+
+This mode compares the deterministic card signature, seed, rarity, tier, and generated name, then retains `identity-state.txt`, `identity.bmp`, and `identity-visual.txt` under `target/ui-smoke-*`. Signature axes are normalized to six decimal places before comparison; seed, rarity, tier, and name remain exact. The visual assertion compares `identity.bmp` with a template captured independently from `baseline.bmp`, not with a template derived from the identity frame itself.
+
+Run the seeded card-art hydration and face-rendering scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -ArtFace
+```
+
+This mode verifies the deterministic selected art entry and hydrated shape count, then retains `art-face-state.txt`, `art-face.bmp`, and `art-face-visual.txt` with the focused card-art region evidence under `target/ui-smoke-*`.
+
+Run the seeded card shader-variant scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -ShaderVariant
+```
+
+This mode selects the deterministic Legendary/Dormant fixture, verifies the attached Foil and Worn overlays plus their registered shader sources, then retains `shader-variant-state.txt`, `shader-variant.bmp`, and `shader-variant-visual.txt` with independent Foil/Worn golden-pixel and non-blank frame evidence under `target/ui-smoke-*`.
+
+Run the deterministic card-game terrain fixture and click its center tile:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -TerrainInteraction
+```
+
+This mode verifies the generated `DualGrid` tile data, updates the tapped cell through the native background input path, and retains terrain state/frame evidence under `target/ui-smoke-*`.
+
+Run the compact cross-feature plugin-wiring scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -PluginWiring
+```
+
+This mode starts the full test fixture, connects the reader to the screen, inserts the seeded card, and checks the propagated signature plus changed screen frame while retaining startup, cable, state, and frame evidence under `target/ui-smoke-*`.

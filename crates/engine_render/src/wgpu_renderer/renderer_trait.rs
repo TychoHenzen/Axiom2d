@@ -1212,3 +1212,114 @@ mod frame_capture_tests {
         Ok(())
     }
 }
+
+#[cfg(all(test, target_os = "windows"))]
+mod gpu_runtime_tests {
+    use std::sync::Arc;
+
+    use engine_core::color::Color;
+    use engine_core::prelude::WindowConfig;
+    use engine_core::types::{Pixels, TextureId};
+    use winit::event_loop::EventLoop;
+    use winit::platform::windows::EventLoopBuilderExtWindows;
+    use winit::window::Window;
+
+    use super::super::WgpuRenderer;
+    use super::super::shaders::SHAPE_SHADER_SRC;
+    use crate::atlas::AtlasBuilder;
+    use crate::material::BlendMode;
+    use crate::rect::Rect;
+    use crate::renderer::{GpuMeshHandle, IDENTITY_MODEL, Renderer};
+    use crate::shader::ShaderHandle;
+    use crate::shape::ColorVertex;
+
+    #[allow(deprecated)]
+    #[test]
+    fn exercises_native_renderer_paths() {
+        let event_loop = EventLoop::builder()
+            .with_any_thread(true)
+            .build()
+            .expect("renderer test event loop");
+        let window = Arc::new(
+            event_loop
+                .create_window(
+                    Window::default_attributes()
+                        .with_inner_size(winit::dpi::PhysicalSize::new(64, 64)),
+                )
+                .expect("renderer test window"),
+        );
+        let config = WindowConfig {
+            width: 64,
+            height: 64,
+            ..Default::default()
+        };
+        let mut renderer = WgpuRenderer::new(window, &config);
+
+        assert_eq!(renderer.viewport_size(), (64, 64));
+        renderer.clear(Color::BLACK);
+        renderer.draw_rect(Rect {
+            x: Pixels(-8.0),
+            y: Pixels(-8.0),
+            width: Pixels(16.0),
+            height: Pixels(16.0),
+            color: Color::RED,
+        });
+        renderer.draw_sprite(
+            Rect {
+                color: Color::WHITE,
+                ..Default::default()
+            },
+            [0.0, 0.0, 1.0, 1.0],
+        );
+        renderer.draw_shape(
+            &[[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]],
+            &[0, 1, 2],
+            Color::GREEN,
+            IDENTITY_MODEL,
+        );
+        let mesh = [
+            ColorVertex {
+                position: [0.0, 0.0],
+                color: [1.0, 1.0, 1.0, 1.0],
+                uv: [0.0, 0.0],
+            },
+            ColorVertex {
+                position: [1.0, 0.0],
+                color: [1.0, 1.0, 1.0, 1.0],
+                uv: [1.0, 0.0],
+            },
+            ColorVertex {
+                position: [0.0, 1.0],
+                color: [1.0, 1.0, 1.0, 1.0],
+                uv: [0.0, 1.0],
+            },
+        ];
+        renderer.draw_colored_mesh(&mesh, &[0, 1, 2], IDENTITY_MODEL);
+        let handle = renderer.upload_persistent_colored_mesh(&mesh, &[0, 1, 2]);
+        renderer.draw_persistent_colored_mesh(handle, IDENTITY_MODEL);
+        renderer.draw_persistent_colored_mesh(GpuMeshHandle(u32::MAX), IDENTITY_MODEL);
+        renderer.free_persistent_colored_mesh(handle);
+        renderer.free_persistent_colored_mesh(GpuMeshHandle(u32::MAX));
+        renderer.draw_text("A", 0.0, 0.0, 12.0, Color::WHITE);
+        renderer.set_blend_mode(BlendMode::Additive);
+        renderer.set_shader(ShaderHandle(7));
+        renderer.set_material_uniforms(&[1, 2, 3]);
+        renderer.bind_material_texture(TextureId(0), 0);
+        renderer
+            .compile_shader(ShaderHandle(7), SHAPE_SHADER_SRC)
+            .expect("shape shader should compile");
+        renderer
+            .compile_shader(ShaderHandle(7), SHAPE_SHADER_SRC)
+            .expect("cached shape shader should compile");
+        let mut atlas = AtlasBuilder::new(2, 2);
+        atlas
+            .add_image(1, 1, &[255, 255, 255, 255])
+            .expect("atlas image");
+        renderer.upload_atlas(&atlas.build()).expect("atlas upload");
+        renderer.set_view_projection(IDENTITY_MODEL);
+        renderer.apply_post_process();
+        renderer.present();
+        renderer.resize(32, 32);
+        renderer.present();
+    }
+}

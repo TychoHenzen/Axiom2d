@@ -2381,3 +2381,80 @@ impl State {
         }
     }
 }
+
+#[cfg(all(test, target_os = "windows"))]
+mod native_runtime_tests {
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+
+    use winit::event_loop::EventLoop;
+    use winit::platform::windows::EventLoopBuilderExtWindows;
+    use winit::window::Window;
+
+    use super::State;
+    use crate::{BRUSH_RADIUS, FIXED_DT, Mode, SDF_RES};
+
+    #[allow(deprecated)]
+    #[test]
+    fn exercises_native_particle_state_paths() {
+        let event_loop = EventLoop::builder()
+            .with_any_thread(true)
+            .build()
+            .expect("particle test event loop");
+        let window = Arc::new(
+            event_loop
+                .create_window(
+                    Window::default_attributes()
+                        .with_inner_size(winit::dpi::PhysicalSize::new(64, 64)),
+                )
+                .expect("particle test window"),
+        );
+        let mut state = State::new(
+            window, false, false, false, false, false, false, false, false, 64, 1,
+        );
+
+        state.resize(winit::dpi::PhysicalSize::new(32, 32));
+        state.scroll(1.0);
+        state.toggle_mode();
+        state.mouse_move(16.0, 16.0);
+        state.mouse_button(true, false);
+        state.mouse_move(24.0, 24.0);
+        state.mouse_button(false, false);
+        state.scroll(-1.0);
+        state.toggle_mode();
+        state.mouse_move(16.0, 16.0);
+        state.mouse_button(true, false);
+        state.mouse_move(20.0, 20.0);
+        state.mouse_button(false, false);
+        state.mouse_button(true, true);
+        state.mouse_button(false, true);
+
+        state.spawn_all();
+        state.paint_sdf_world([0.0, 0.0], BRUSH_RADIUS, false);
+        state.paint_sdf_world([0.0, 0.0], BRUSH_RADIUS, true);
+        state.upload_sdf_gpu();
+        state.update_machines();
+        assert!(state.verify_stability());
+        state.spawn_particles(&[[0.0, 0.0]], &[0]);
+        state.simulate();
+        state.update_machines();
+        let _ = state.read_outliers(0);
+        let _ = state.read_phasing(0);
+        let _ = state.read_bonds();
+        let _ = state.read_test_positions(1);
+
+        state.mode = Mode::Draw;
+        state.mouse_world = [0.0, 0.0];
+        state.physics_accumulator = FIXED_DT;
+        state.render();
+
+        state.sdf_grid[(SDF_RES as usize / 2) * SDF_RES as usize] = -1.0;
+        state.sdf_dirty = true;
+        state.last_frame = Some(
+            Instant::now()
+                .checked_sub(Duration::from_millis(20))
+                .expect("current instant supports a 20ms subtraction"),
+        );
+        state.render();
+    }
+}
