@@ -142,15 +142,18 @@ function Test-Position {
     }
 }
 
-function Test-AbsoluteValueGreater {
+function Test-ExpectedRotation {
     param(
         [hashtable]$State,
         [string]$Key,
-        [double]$Minimum
+        [double]$Expected,
+        [double]$Tolerance
     )
 
     try {
-        return [Math]::Abs([double]::Parse($State[$Key], [Globalization.CultureInfo]::InvariantCulture)) -gt $Minimum
+        $actual = [double]::Parse($State[$Key], [Globalization.CultureInfo]::InvariantCulture)
+        return [Math]::Sign($actual) -eq [Math]::Sign($Expected) -and
+            [Math]::Abs($actual - $Expected) -le $Tolerance
     }
     catch {
         return $false
@@ -825,12 +828,18 @@ public static class AxiomUiSmokeNative
         $interactionTargetClientY = $targetClientY
         $spinClientX = $interactionStartClientX + 15
         $spinClientY = $interactionStartClientY - 60
+        # Repeated runs observed spin -1.0366..-0.9728 and final -2.2265..-2.2258 radians.
+        $interactionRotationTolerance = 0.1
+        # The repeated target-position error stayed below 23.2 units; share the existing 35-unit margin.
+        $interactionPositionTolerance = 35
         @(
             "interaction_start_client=($interactionStartClientX,$interactionStartClientY)"
             "interaction_target_client=($interactionTargetClientX,$interactionTargetClientY)"
             "spin_client=($spinClientX,$spinClientY)"
-            "rotation_minimum=0.1"
-            "position_tolerance=35"
+            "expected_spin_rotation=-1.0000"
+            "expected_final_rotation=-2.2250"
+            "rotation_tolerance=$interactionRotationTolerance"
+            "position_tolerance=$interactionPositionTolerance"
         ) | Add-Content -LiteralPath $inputFile
 
         $stage = 'hover-interaction-card'
@@ -872,12 +881,12 @@ public static class AxiomUiSmokeNative
         [AxiomUiSmokeNative]::PostMouseMove(
             $windowHandle, $spinClientX, $spinClientY, $true)
         $spinState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
-            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, rotation magnitude > 0.1' -Predicate {
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, rotation=-1.0000 +/- 0.1000 radians, negative' -Predicate {
             param($state)
             $state['scenario'] -eq $scenarioName -and
             $state['dragging'] -eq 'true' -and
             $state['left_pressed'] -eq 'true' -and
-            (Test-AbsoluteValueGreater -State $state -Key 'rotation' -Minimum 0.1)
+            (Test-ExpectedRotation -State $state -Key 'rotation' -Expected -1.0 -Tolerance $interactionRotationTolerance)
         }
         $spinState.GetEnumerator() | ForEach-Object {
             '{0}={1}' -f $_.Key, $_.Value
@@ -893,14 +902,14 @@ public static class AxiomUiSmokeNative
             Start-Sleep -Milliseconds 35
         }
         $interactionState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
-            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, target position, rotation magnitude > 0.1' -Predicate {
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, target position tolerance=35, rotation=-2.2250 +/- 0.1000 radians, negative' -Predicate {
             param($state)
             $state['scenario'] -eq $scenarioName -and
             $state['dragging'] -eq 'true' -and
             $state['left_pressed'] -eq 'true' -and
             $state['zone'] -eq 'Table' -and
-            (Test-Position -State $state -ExpectedX -300 -ExpectedY -150 -Tolerance 35) -and
-            (Test-AbsoluteValueGreater -State $state -Key 'rotation' -Minimum 0.1)
+            (Test-Position -State $state -ExpectedX -300 -ExpectedY -150 -Tolerance $interactionPositionTolerance) -and
+            (Test-ExpectedRotation -State $state -Key 'rotation' -Expected -2.225 -Tolerance $interactionRotationTolerance)
         }
         $interactionState.GetEnumerator() | ForEach-Object {
             '{0}={1}' -f $_.Key, $_.Value
@@ -942,13 +951,13 @@ public static class AxiomUiSmokeNative
             $state['dragging'] -eq 'false' -and
             $state['left_pressed'] -eq 'false' -and
             $state['zone'] -eq 'Table' -and
-            (Test-Position -State $state -ExpectedX -300 -ExpectedY -150 -Tolerance 50)
+            (Test-Position -State $state -ExpectedX -300 -ExpectedY -150 -Tolerance $interactionPositionTolerance)
         }
         $mouseDown = $false
         Start-Sleep -Milliseconds 250
         $releasedState = Read-UiState -Path $stateFile
         if ($null -eq $releasedState -or
-            -not (Test-Position -State $releasedState -ExpectedX -300 -ExpectedY -150 -Tolerance 65)) {
+            -not (Test-Position -State $releasedState -ExpectedX -300 -ExpectedY -150 -Tolerance $interactionPositionTolerance)) {
             throw "released card left the expected target: observed=$(Format-UiStateDiagnostic -State $releasedState)"
         }
         $releasedState.GetEnumerator() | ForEach-Object {
@@ -981,14 +990,14 @@ public static class AxiomUiSmokeNative
             $windowHandle, $interactionTargetClientX, $interactionTargetClientY)
         $rightMouseDown = $false
         $flippedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
-            -Stage 'complete-flip' -TimeoutSeconds 10 -ExpectedState 'face_up=true, right_pressed=false, target position' -Predicate {
+            -Stage 'complete-flip' -TimeoutSeconds 10 -ExpectedState 'face_up=true, right_pressed=false, target position tolerance=35, rotation=-2.2250 +/- 0.1000 radians, negative' -Predicate {
             param($state)
             $state['scenario'] -eq $scenarioName -and
             $state['right_pressed'] -eq 'false' -and
             $state['face_up'] -eq 'true' -and
             $state['dragging'] -eq 'false' -and
-            (Test-Position -State $state -ExpectedX -300 -ExpectedY -150 -Tolerance 65) -and
-            (Test-AbsoluteValueGreater -State $state -Key 'rotation' -Minimum 0.1)
+            (Test-Position -State $state -ExpectedX -300 -ExpectedY -150 -Tolerance $interactionPositionTolerance) -and
+            (Test-ExpectedRotation -State $state -Key 'rotation' -Expected -2.225 -Tolerance $interactionRotationTolerance)
         }
         $flippedState.GetEnumerator() | ForEach-Object {
             '{0}={1}' -f $_.Key, $_.Value
