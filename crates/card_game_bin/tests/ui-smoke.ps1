@@ -5,6 +5,7 @@ param(
     [switch]$HandRoundTrip,
     [switch]$ZoneTransition,
     [switch]$ReaderRoundTrip,
+    [switch]$CombinerProcessing,
     [switch]$StashRoundTrip,
     [switch]$BoosterOpening,
     [switch]$IdentitySignature,
@@ -27,13 +28,14 @@ if (-not $RunnerChild) {
         $HandRoundTrip,
         $ZoneTransition,
         $ReaderRoundTrip,
+        $CombinerProcessing,
         $StashRoundTrip,
         $BoosterOpening,
         $IdentitySignature,
         $ArtFace
     )
     if (@($scenarioFlags | Where-Object { $_ }).Count -gt 1) {
-        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
+        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -65,6 +67,9 @@ if (-not $RunnerChild) {
         }
         if ($ReaderRoundTrip) {
             $runnerArguments += '-ReaderRoundTrip'
+        }
+        if ($CombinerProcessing) {
+            $runnerArguments += '-CombinerProcessing'
         }
         if ($StashRoundTrip) {
             $runnerArguments += '-StashRoundTrip'
@@ -119,6 +124,7 @@ $zoneReturnedFramePath = Join-Path $artifactDir 'zone-returned.bmp'
 $readerInsertedFramePath = Join-Path $artifactDir 'reader-inserted.bmp'
 $readerEjectedFramePath = Join-Path $artifactDir 'reader-ejected.bmp'
 $readerReturnedFramePath = Join-Path $artifactDir 'reader-returned.bmp'
+$combinerFramePath = Join-Path $artifactDir 'combiner.bmp'
 $holderStatePath = if ($ZoneTransition) {
     Join-Path $artifactDir 'zone-holder-state.txt'
 }
@@ -154,6 +160,9 @@ elseif ($ZoneTransition) {
 }
 elseif ($ReaderRoundTrip) {
     'seeded-card-reader-roundtrip'
+}
+elseif ($CombinerProcessing) {
+    'seeded-card-combiner'
 }
 elseif ($HandRoundTrip) {
     'seeded-card-hand-roundtrip'
@@ -980,6 +989,22 @@ $readerClientX = [int][Math]::Round($client.Width / 2.0 + 300)
 $readerClientY = [int][Math]::Round($client.Height / 2.0)
 $readerWorldX = 300.0
 $readerWorldY = 0.0
+$secondCardWorldX = -80.0
+$secondCardWorldY = 130.0
+$secondCardClientX = [int][Math]::Round($client.Width / 2.0 + $secondCardWorldX)
+$secondCardClientY = [int][Math]::Round($client.Height / 2.0 + $secondCardWorldY)
+$secondReaderClientX = [int][Math]::Round($client.Width / 2.0 + 100.0)
+$secondReaderClientY = [int][Math]::Round($client.Height / 2.0 - 150.0)
+$secondReaderWorldX = 100.0
+$secondReaderWorldY = -150.0
+$readerJackClientX = [int][Math]::Round($client.Width / 2.0 + 352.0)
+$readerJackClientY = [int][Math]::Round($client.Height / 2.0)
+$secondReaderJackClientX = [int][Math]::Round($client.Width / 2.0 + 152.0)
+$secondReaderJackClientY = [int][Math]::Round($client.Height / 2.0 - 150.0)
+$combinerInputAClientX = [int][Math]::Round($client.Width / 2.0 + 248.0)
+$combinerInputAClientY = [int][Math]::Round($client.Height / 2.0 - 140.0)
+$combinerInputBClientX = [int][Math]::Round($client.Width / 2.0 + 248.0)
+$combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
     $stage = 'prepare-background-input'
     $foregroundBeforeInput = Get-UiSmokeForegroundSnapshot
     $cursorBeforeInputSetup = [AxiomUiSmokeNative]::GetCursorPosition()
@@ -1020,6 +1045,14 @@ $readerWorldY = 0.0
         "booster_world=($boosterWorldX,$boosterWorldY)"
         "reader_client=($readerClientX,$readerClientY)"
         "reader_world=($readerWorldX,$readerWorldY)"
+        "second_card_client=($secondCardClientX,$secondCardClientY)"
+        "second_card_world=($secondCardWorldX,$secondCardWorldY)"
+        "second_reader_client=($secondReaderClientX,$secondReaderClientY)"
+        "second_reader_world=($secondReaderWorldX,$secondReaderWorldY)"
+        "reader_jack_client=($readerJackClientX,$readerJackClientY)"
+        "second_reader_jack_client=($secondReaderJackClientX,$secondReaderJackClientY)"
+        "combiner_input_a_client=($combinerInputAClientX,$combinerInputAClientY)"
+        "combiner_input_b_client=($combinerInputBClientX,$combinerInputBClientY)"
     ) | Set-Content -LiteralPath $inputFile
     if ($ArtFace) {
         $expectedArtSignature = '0.330000,-0.310000,-0.350000,0.630000,-0.950000,0.650000,-0.290000,0.740000'
@@ -1791,6 +1824,265 @@ $readerWorldY = 0.0
         }
         if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
             throw "reader round-trip PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($CombinerProcessing) {
+        $seededState = Read-UiState -Path $stateFile
+        $expectedPrimarySignature = $seededState['identity_signature']
+        $expectedSecondarySignature = $seededState['second_identity_signature']
+        if ($null -eq $seededState -or
+            [string]::IsNullOrWhiteSpace($expectedPrimarySignature) -or
+            [string]::IsNullOrWhiteSpace($expectedSecondarySignature)) {
+            throw "combiner scenario could not establish both seeded card signatures: observed=$(Format-UiStateDiagnostic -State $seededState)"
+        }
+        $combinerPositionTolerance = 25
+        $rgbDeltaThreshold = 24
+        $minimumCombinerChangedPixels = 500
+        @(
+            "combiner_primary_signature=$expectedPrimarySignature"
+            "combiner_secondary_signature=$expectedSecondarySignature"
+            "combiner_position_tolerance=$combinerPositionTolerance"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_combiner_changed_pixels=$minimumCombinerChangedPixels"
+        ) | Add-Content -LiteralPath $inputFile
+
+        $stage = 'hover-first-combiner-card'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before combiner input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $startClientX, $startClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($startClientX,$startClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $startClientX -ExpectedY $startClientY -Tolerance 3)
+        }
+
+        $stage = 'press-first-combiner-card'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $startClientX, $startClientY)
+        $mouseClientX = $startClientX
+        $mouseClientY = $startClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, left_pressed=true, zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false'
+        }
+
+        $stage = 'drag-first-card-to-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($startClientX + ($readerClientX - $startClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($startClientY + ($readerClientY - $startClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, zone=Table, rendered=($readerWorldX,$readerWorldY) tolerance=$combinerPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            (Test-Position -State $state -ExpectedX $readerWorldX -ExpectedY $readerWorldY -Tolerance $combinerPositionTolerance)
+        }
+        $stage = 'insert-first-card-into-reader'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $readerClientX, $readerClientY)
+        $insertedPrimaryState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, zone=Reader, reader_loaded=true, signature space populated' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -like 'Reader(*)' -and
+            $state['reader_loaded'] -eq 'true' -and
+            $state['reader_signature'] -eq $expectedPrimarySignature -and
+            $state['reader_space_source_count'] -eq '1'
+        }
+        $mouseDown = $false
+
+        $stage = 'hover-second-combiner-card'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $secondCardClientX, $secondCardClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($secondCardClientX,$secondCardClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $secondCardClientX -ExpectedY $secondCardClientY -Tolerance 3)
+        }
+        $stage = 'press-second-combiner-card'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $secondCardClientX, $secondCardClientY)
+        $mouseClientX = $secondCardClientX
+        $mouseClientY = $secondCardClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'second_dragging=true, second_zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['second_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['second_zone'] -eq 'Table'
+        }
+        $stage = 'drag-second-card-to-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($secondCardClientX + ($secondReaderClientX - $secondCardClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($secondCardClientY + ($secondReaderClientY - $secondCardClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "second_dragging=true, second_zone=Table, second_rendered=($secondReaderWorldX,$secondReaderWorldY) tolerance=$combinerPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['second_dragging'] -eq 'true' -and
+            $state['second_zone'] -eq 'Table' -and
+            (Test-Position -State $state -XKey 'second_rendered_x' -YKey 'second_rendered_y' `
+                -ExpectedX $secondReaderWorldX -ExpectedY $secondReaderWorldY -Tolerance $combinerPositionTolerance)
+        }
+        $stage = 'insert-second-card-into-reader'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $secondReaderClientX, $secondReaderClientY)
+        $insertedSecondaryState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'second_dragging=false, second_zone=Reader, second_reader_loaded=true, second signature retained' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['second_dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['second_zone'] -like 'Reader(*)' -and
+            $state['second_reader_loaded'] -eq 'true' -and
+            $state['second_identity_signature'] -eq $expectedSecondarySignature
+        }
+        $mouseDown = $false
+
+        $stage = 'connect-first-reader-to-combiner'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $readerJackClientX, $readerJackClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "mouse=($readerJackClientX,$readerJackClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $readerJackClientX -ExpectedY $readerJackClientY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $readerJackClientX, $readerJackClientY)
+        $mouseClientX = $readerJackClientX
+        $mouseClientY = $readerJackClientY
+        $mouseDown = $true
+        $stage = 'drag-first-reader-cable'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($readerJackClientX + ($combinerInputAClientX - $readerJackClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($readerJackClientY + ($combinerInputAClientY - $readerJackClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $combinerInputAClientX, $combinerInputAClientY)
+        $firstCableState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'combiner input A connected, one source card propagated' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['combiner_input_a_connected'] -eq 'true' -and
+            $state['combiner_input_a_source_count'] -eq '1'
+        }
+        $mouseDown = $false
+
+        $stage = 'connect-second-reader-to-combiner'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $secondReaderJackClientX, $secondReaderJackClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "mouse=($secondReaderJackClientX,$secondReaderJackClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $secondReaderJackClientX -ExpectedY $secondReaderJackClientY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $secondReaderJackClientX, $secondReaderJackClientY)
+        $mouseClientX = $secondReaderJackClientX
+        $mouseClientY = $secondReaderJackClientY
+        $mouseDown = $true
+        $stage = 'drag-second-reader-cable'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($secondReaderJackClientX + ($combinerInputBClientX - $secondReaderJackClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($secondReaderJackClientY + ($combinerInputBClientY - $secondReaderJackClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $combinerInputBClientX, $combinerInputBClientY)
+        $combinedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'both combiner inputs linked, two source cards, two output control points' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['combiner_input_a_connected'] -eq 'true' -and
+            $state['combiner_input_b_connected'] -eq 'true' -and
+            $state['combiner_input_a_source_count'] -eq '1' -and
+            $state['combiner_input_b_source_count'] -eq '1' -and
+            $state['combiner_output_source_count'] -eq '2' -and
+            $state['combiner_output_control_points'] -eq '2' -and
+            [double]::Parse($state['combiner_output_radius'], [Globalization.CultureInfo]::InvariantCulture) -gt 0 -and
+            $state['combiner_output_contains_primary'] -eq 'true' -and
+            $state['combiner_output_contains_secondary'] -eq 'true'
+        }
+        $mouseDown = $false
+        $combinedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'combiner-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $combinerFramePath -Stage 'capture-combiner-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $combinerFrame = Read-UiSmokeBitmap -Path $combinerFramePath
+        $combinerChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $combinerFrame `
+            -CenterX ([int][Math]::Round($client.Width / 2.0 + 225.0)) `
+            -CenterY ([int][Math]::Round($client.Height / 2.0 - 75.0)) `
+            -HalfWidth 220 -HalfHeight 150 -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($combinerFrame.Width)x$($combinerFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumCombinerChangedPixels"
+            "combiner_roi=($($combinerChanges.Left),$($combinerChanges.Top),$($combinerChanges.Width),$($combinerChanges.Height))"
+            "combiner_changed_pixels=$($combinerChanges.ChangedPixels)"
+            "output_source_count=$($combinedState['combiner_output_source_count'])"
+            "output_control_points=$($combinedState['combiner_output_control_points'])"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'combiner-visual-diff.txt')
+        if ($combinerChanges.ChangedPixels -lt $minimumCombinerChangedPixels) {
+            throw "combiner frame changed too few pixels: changed=$($combinerChanges.ChangedPixels), minimum=$minimumCombinerChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during combiner processing (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "combiner PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
         }
         $succeeded = $true
     }
@@ -2584,6 +2876,19 @@ elseif ($ReaderRoundTrip) {
         $insertedState['reader_signature'], $insertedState['reader_space_radius'], $insertedState['reader_feedback'],
         $returnedState['reader_feedback'], $ejectedReaderChanges.ChangedPixels, $returnedReaderChanges.ChangedPixels,
         $returnedTableChanges.ChangedPixels)
+}
+elseif ($CombinerProcessing) {
+    Write-Output ("UI combiner scenario passed: primary_reader=({0},{1}), secondary_reader=({2},{3}), combiner_state={4}, combiner_frame={5}, visual_evidence={6}" -f `
+        $insertedPrimaryState['rendered_x'], $insertedPrimaryState['rendered_y'],
+        $insertedSecondaryState['second_rendered_x'], $insertedSecondaryState['second_rendered_y'],
+        (Join-Path $artifactDir 'combiner-state.txt'), $combinerFramePath,
+        (Join-Path $artifactDir 'combiner-visual-diff.txt'))
+    Write-Output ("Combiner contract verified: input_a={0}, input_b={1}, sources=({2},{3}), output_sources={4}, output_points={5}, contains=({6},{7}), changed_pixels={8} (minimum 500 at RGB delta 24)" -f `
+        $combinedState['combiner_input_a_connected'], $combinedState['combiner_input_b_connected'],
+        $combinedState['combiner_input_a_source_count'], $combinedState['combiner_input_b_source_count'],
+        $combinedState['combiner_output_source_count'], $combinedState['combiner_output_control_points'],
+        $combinedState['combiner_output_contains_primary'], $combinedState['combiner_output_contains_secondary'],
+        $combinerChanges.ChangedPixels)
 }
 elseif ($HandRoundTrip) {
     Write-Output ("UI hand round-trip passed: hand=({0},{1}) returned=({2},{3}), hand_state={4}, returned_state={5}, hand_frame={6}, returned_frame={7}" -f `

@@ -40,6 +40,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 
 This mode verifies reader occupancy, signature-space propagation, lit/dim reader feedback, ejection, and the returned table card with retained state/frame evidence under `target/ui-smoke-*`.
 
+Run the two-reader combiner processing scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -CombinerProcessing
+```
+
+This mode inserts two seeded cards into separate readers, links both reader outputs to the combiner through native socket drags, and verifies the linked inputs, combined signature space, and rendered cable/device result with retained evidence under `target/ui-smoke-*`.
+
 Run the stash round-trip scenario, storing the seeded card, switching pages, previewing the stash slot during a drag, and retrieving it:
 
 ```powershell
