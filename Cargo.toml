@@ -27,7 +27,7 @@ rand = "0.9"
 rand_chacha = "0.9"
 image-compare = "0.4"
 insta = { version = "1", features = ["ron"] }
-ron = "0.9"
+ron = "0.12"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tracing = "0.1"
