@@ -13,7 +13,8 @@ param(
     [switch]$IdentitySignature,
     [switch]$ArtFace,
     [switch]$ShaderVariant,
-    [switch]$TerrainInteraction
+    [switch]$TerrainInteraction,
+    [switch]$PluginWiring
 )
 
 $ErrorActionPreference = 'Stop'
@@ -40,10 +41,11 @@ if (-not $RunnerChild) {
         $IdentitySignature,
         $ArtFace,
         $ShaderVariant,
-        $TerrainInteraction
+        $TerrainInteraction,
+        $PluginWiring
     )
     if (@($scenarioFlags | Where-Object { $_ }).Count -gt 1) {
-        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, CableWrapping, ScreenSpline, StashRoundTrip, BoosterOpening, IdentitySignature, ArtFace, ShaderVariant, and TerrainInteraction are mutually exclusive'
+        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, CableWrapping, ScreenSpline, StashRoundTrip, BoosterOpening, IdentitySignature, ArtFace, ShaderVariant, TerrainInteraction, and PluginWiring are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -102,6 +104,9 @@ if (-not $RunnerChild) {
         }
         if ($TerrainInteraction) {
             $runnerArguments += '-TerrainInteraction'
+        }
+        if ($PluginWiring) {
+            $runnerArguments += '-PluginWiring'
         }
         $runnerProcess = Start-Process -FilePath (Get-Process -Id $PID).Path `
             -ArgumentList $runnerArguments `
@@ -174,6 +179,7 @@ $identityFramePath = Join-Path $artifactDir 'identity.bmp'
 $artFaceFramePath = Join-Path $artifactDir 'art-face.bmp'
 $shaderVariantFramePath = Join-Path $artifactDir 'shader-variant.bmp'
 $terrainInteractedFramePath = Join-Path $artifactDir 'terrain-interacted.bmp'
+$pluginWiringFramePath = Join-Path $artifactDir 'plugin-wiring.bmp'
 $failureFramePath = Join-Path $artifactDir 'failure.bmp'
 $frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
 $scenarioName = if ($Interaction) {
@@ -214,6 +220,9 @@ elseif ($ShaderVariant) {
 }
 elseif ($TerrainInteraction) {
     'seeded-card-terrain'
+}
+elseif ($PluginWiring) {
+    'seeded-card-plugin-wiring'
 }
 else {
     'seeded-card-drag'
@@ -1893,6 +1902,222 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
         }
         if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
             throw "interaction PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($PluginWiring) {
+        $seededState = Read-UiState -Path $stateFile
+        $expectedPluginSignature = if ($null -eq $seededState) { '' } else { $seededState['identity_signature'] }
+        if ([string]::IsNullOrWhiteSpace($expectedPluginSignature)) {
+            throw "plugin wiring scenario could not establish the seeded card signature: observed=$(Format-UiStateDiagnostic -State $seededState)"
+        }
+
+        $stage = 'verify-plugin-wiring-fixture'
+        $pluginStartupState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'full plugin fixture ready, seeded table card, empty hand/stash, sealed booster, rendered terrain' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['hand_count'] -eq '0' -and
+            $state['stash_visible'] -eq 'false' -and
+            $state['reader_present'] -eq 'true' -and
+            $state['screen_present'] -eq 'true' -and
+            $state['combiner_present'] -eq 'true' -and
+            $state['plugin_wiring_fixture_ready'] -eq 'true' -and
+            $state['booster_pack_present'] -eq 'true' -and
+            $state['booster_phase'] -eq 'sealed' -and
+            $state['terrain_active'] -eq 'true' -and
+            [int]::Parse($state['terrain_rendered_tile_count']) -gt 0 -and
+            $state['reader_loaded'] -eq 'false' -and
+            $state['cable_present'] -eq 'false' -and
+            [string]::IsNullOrEmpty($state['screen_signature'])
+        }
+        $pluginStartupState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'plugin-wiring-startup-state.txt')
+
+        $stage = 'connect-plugin-screen-cable'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before plugin wiring cable input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $readerJackClientX, $readerJackClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'hover-plugin-screen-cable-source' -TimeoutSeconds 5 -ExpectedState "mouse=($readerJackClientX,$readerJackClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $readerJackClientX -ExpectedY $readerJackClientY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $readerJackClientX, $readerJackClientY)
+        $mouseClientX = $readerJackClientX
+        $mouseClientY = $readerJackClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'start-plugin-screen-cable' -TimeoutSeconds 5 -ExpectedState 'pending cable drag, cable present' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['cable_present'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true'
+        }
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($readerJackClientX + ($screenJackClientX - $readerJackClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($readerJackClientY + ($screenJackClientY - $readerJackClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'drag-plugin-screen-cable-to-target' -TimeoutSeconds 10 -ExpectedState 'pending cable drag at screen jack' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'true' -and
+            $state['cable_present'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            (Test-Position -State $state -XKey 'cable_dest_x' -YKey 'cable_dest_y' `
+                -ExpectedX 173 -ExpectedY 150 -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $screenJackClientX, $screenJackClientY)
+        $pluginCableState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'complete-plugin-screen-cable' -TimeoutSeconds 10 -ExpectedState 'reader-to-screen cable connected' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['pending_cable_dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['cable_present'] -eq 'true' -and
+            $state['cable_connected'] -eq 'true' -and
+            [string]::IsNullOrEmpty($state['screen_signature'])
+        }
+        $mouseDown = $false
+        $pluginCableState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'plugin-wiring-cable-state.txt')
+
+        $stage = 'insert-plugin-card'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before plugin wiring card input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $startClientX, $startClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'hover-plugin-card' -TimeoutSeconds 5 -ExpectedState "mouse=($startClientX,$startClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $startClientX -ExpectedY $startClientY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $startClientX, $startClientY)
+        $mouseClientX = $startClientX
+        $mouseClientY = $startClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'press-plugin-card' -TimeoutSeconds 5 -ExpectedState 'dragging=true, table card selected' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false'
+        }
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($startClientX + ($readerClientX - $startClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($startClientY + ($readerClientY - $startClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $readerPositionTolerance = 25
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'drag-plugin-card-to-reader' -TimeoutSeconds 10 -ExpectedState "dragging=true, reader position=($readerWorldX,$readerWorldY) tolerance=$readerPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX $readerWorldX -ExpectedY $readerWorldY -Tolerance $readerPositionTolerance)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $readerClientX, $readerClientY)
+        $pluginState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'card inserted into reader and signature rendered on screen' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -like 'Reader(*)' -and
+            $state['reader_loaded'] -eq 'true' -and
+            $state['reader_signature'] -eq $expectedPluginSignature -and
+            $state['reader_space_contains'] -eq 'true' -and
+            $state['cable_connected'] -eq 'true' -and
+            $state['screen_signature'] -eq $expectedPluginSignature -and
+            $state['reader_feedback'] -eq 'lit' -and
+            $state['plugin_wiring_fixture_ready'] -eq 'true'
+        }
+        $mouseDown = $false
+        $pluginState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'plugin-wiring-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $pluginWiringFramePath -Stage 'capture-plugin-wiring-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $pluginWiringFrame = Read-UiSmokeBitmap -Path $pluginWiringFramePath
+        if ($baselineFrame.Width -ne $pluginWiringFrame.Width -or $baselineFrame.Height -ne $pluginWiringFrame.Height) {
+            throw "plugin wiring frame size $($pluginWiringFrame.Width)x$($pluginWiringFrame.Height) does not match baseline $($baselineFrame.Width)x$($baselineFrame.Height)"
+        }
+        $rgbDeltaThreshold = 24
+        $minimumPluginChangedPixels = 100
+        $pluginWiringChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $pluginWiringFrame `
+            -CenterX ([int][Math]::Round($client.Width / 2.0 + 300.0)) `
+            -CenterY ([int][Math]::Round($client.Height / 2.0 + 150.0)) `
+            -HalfWidth 125 -HalfHeight 125 -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($pluginWiringFrame.Width)x$($pluginWiringFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_plugin_changed_pixels=$minimumPluginChangedPixels"
+            "screen_roi=($($pluginWiringChanges.Left),$($pluginWiringChanges.Top),$($pluginWiringChanges.Width),$($pluginWiringChanges.Height))"
+            "screen_changed_pixels=$($pluginWiringChanges.ChangedPixels)"
+            "screen_signature=$($pluginState['screen_signature'])"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'plugin-wiring-visual-diff.txt')
+        if ($pluginWiringChanges.ChangedPixels -lt $minimumPluginChangedPixels) {
+            throw "plugin wiring frame changed too few screen pixels: changed=$($pluginWiringChanges.ChangedPixels), minimum=$minimumPluginChangedPixels"
+        }
+
+        $stage = 'verify-plugin-wiring-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during plugin wiring (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "plugin wiring PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
         }
         $succeeded = $true
     }
@@ -3603,6 +3828,16 @@ elseif ($ScreenSpline) {
         $screenState['screen_geometry_max_error'], $screenChanges.ChangedPixels,
         $minimumScreenChangedPixels, $rgbDeltaThreshold)
 }
+elseif ($PluginWiring) {
+    Write-Output ("UI plugin wiring scenario passed: state={0}, frame={1}, startup_state={2}, cable_state={3}" -f `
+        (Join-Path $artifactDir 'plugin-wiring-state.txt'), $pluginWiringFramePath,
+        (Join-Path $artifactDir 'plugin-wiring-startup-state.txt'),
+        (Join-Path $artifactDir 'plugin-wiring-cable-state.txt'))
+    Write-Output ("Plugin wiring verified: fixture_ready={0}, cable_connected={1}, reader_loaded={2}, screen_signature={3}, changed_pixels={4} (minimum {5} at RGB delta {6})" -f `
+        $pluginState['plugin_wiring_fixture_ready'], $pluginState['cable_connected'],
+        $pluginState['reader_loaded'], $pluginState['screen_signature'],
+        $pluginWiringChanges.ChangedPixels, $minimumPluginChangedPixels, $rgbDeltaThreshold)
+}
 elseif ($CableWrapping) {
     Write-Output ("UI cable wrapping scenario passed: source=({0},{1}), anchor=({2},{3}), dest=({4},{5}), state={6}, frame={7}, visual_evidence={8}" -f `
         $cableState['cable_source_x'], $cableState['cable_source_y'], `
@@ -3646,7 +3881,7 @@ elseif ($TerrainInteraction) {
         $terrainState['terrain_visual_tile_count'], $terrainState['terrain_rendered_tile_count'], `
         $terrainChanges.ChangedPixels, $minimumTerrainChangedPixels, $rgbDeltaThreshold)
 }
-elseif (-not $IdentitySignature -and -not $Interaction -and -not $ShaderVariant -and -not $TerrainInteraction) {
+elseif (-not $IdentitySignature -and -not $Interaction -and -not $ShaderVariant -and -not $TerrainInteraction -and -not $PluginWiring) {
     Write-Output ("UI smoke passed: scenario=$scenarioName rendered=({0},{1}) frame={2}" -f `
         $dragState['rendered_x'], $dragState['rendered_y'], $framePath)
     Write-Output ("Visual move verified: source_changed={0} target_changed={1} pixels (minimum 500 at RGB delta 24); baseline={2}" -f `

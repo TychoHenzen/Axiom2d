@@ -111,3 +111,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 ```
 
 This mode verifies the generated `DualGrid` tile data, updates the tapped cell through the native background input path, and retains terrain state/frame evidence under `target/ui-smoke-*`.
+
+Run the compact cross-feature plugin-wiring scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -PluginWiring
+```
+
+This mode starts the full test fixture, connects the reader to the screen, inserts the seeded card, and checks the propagated signature plus changed screen frame while retaining startup, cable, state, and frame evidence under `target/ui-smoke-*`.

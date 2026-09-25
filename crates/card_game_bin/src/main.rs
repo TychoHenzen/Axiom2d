@@ -63,6 +63,8 @@ const TABLE_COLOR: Color = Color {
 #[cfg(feature = "ui-test")]
 const UI_TEST_TERRAIN_SCENARIO: &str = "seeded-card-terrain";
 #[cfg(feature = "ui-test")]
+const UI_TEST_PLUGIN_WIRING_SCENARIO: &str = "seeded-card-plugin-wiring";
+#[cfg(feature = "ui-test")]
 const UI_TEST_TERRAIN_TILE_SIZE: f32 = 40.0;
 #[cfg(feature = "ui-test")]
 const UI_TEST_TERRAIN_CENTER: Vec2 = Vec2::new(-300.0, -250.0);
@@ -290,10 +292,9 @@ fn terrain_test_grid() -> DualGrid {
 
 #[cfg(feature = "ui-test")]
 fn spawn_terrain_test_fixture(world: &mut World) {
-    if UI_TEST_SCENARIO
-        .get()
-        .is_none_or(|scenario| scenario != UI_TEST_TERRAIN_SCENARIO)
-    {
+    if UI_TEST_SCENARIO.get().is_none_or(|scenario| {
+        scenario != UI_TEST_TERRAIN_SCENARIO && scenario != UI_TEST_PLUGIN_WIRING_SCENARIO
+    }) {
         return;
     }
 
@@ -457,10 +458,9 @@ fn spawn_scene(world: &mut World) {
         UI_TEST_CARD_ENTITY
             .set(card_entities[ui_test_card_index])
             .expect("UI test card can only be configured once");
-        if UI_TEST_SCENARIO
-            .get()
-            .is_some_and(|scenario| scenario == "seeded-card-combiner")
-        {
+        if UI_TEST_SCENARIO.get().is_some_and(|scenario| {
+            scenario == "seeded-card-combiner" || scenario == UI_TEST_PLUGIN_WIRING_SCENARIO
+        }) {
             UI_TEST_SECOND_CARD_ENTITY
                 .set(card_entities[1])
                 .expect("UI test second card can only be configured once");
@@ -468,10 +468,9 @@ fn spawn_scene(world: &mut World) {
     }
 
     #[cfg(feature = "ui-test")]
-    if UI_TEST_SCENARIO
-        .get()
-        .is_some_and(|scenario| scenario == "seeded-booster-opening")
-    {
+    if UI_TEST_SCENARIO.get().is_some_and(|scenario| {
+        scenario == "seeded-booster-opening" || scenario == UI_TEST_PLUGIN_WIRING_SCENARIO
+    }) {
         let booster_signature =
             CardSignature::new([0.125, -0.25, 0.375, -0.5, 0.625, -0.75, 0.875, -1.0]);
         let booster_entity =
@@ -507,10 +506,9 @@ fn spawn_scene(world: &mut World) {
         spawn_combiner_device(world, combiner_pos);
 
     #[cfg(feature = "ui-test")]
-    let second_reader = if UI_TEST_SCENARIO
-        .get()
-        .is_some_and(|scenario| scenario == "seeded-card-combiner")
-    {
+    let second_reader = if UI_TEST_SCENARIO.get().is_some_and(|scenario| {
+        scenario == "seeded-card-combiner" || scenario == UI_TEST_PLUGIN_WIRING_SCENARIO
+    }) {
         UI_TEST_COMBINER_ENTITY
             .set(combiner_entity)
             .expect("UI test combiner can only be configured once");
@@ -714,6 +712,7 @@ fn record_ui_test_state(
     let holder_occupied = matches!(zone, CardZone::Hand(_)) && hand_contains;
     let zone_config = ZoneConfig::for_zone(zone);
     let reader = readers.iter().find(|reader| reader.loaded == Some(entity));
+    let reader_present = readers.iter().count() >= 1;
     let reader_space = reader
         .and_then(|reader| reader_jacks.get(reader.jack_entity).ok())
         .and_then(|jack| jack.data.as_ref());
@@ -747,6 +746,7 @@ fn record_ui_test_state(
                 .join(",")
         });
     let screen_entity = UI_TEST_SCREEN_ENTITY.get().copied();
+    let screen_present = screen_entity.is_some();
     let mut screen_expected_geometry = vec![String::new(); 4];
     let mut screen_observed_geometry = vec![String::new(); 4];
     let mut screen_geometry_max_error = -1.0;
@@ -811,6 +811,7 @@ fn record_ui_test_state(
     let combiner = UI_TEST_COMBINER_ENTITY
         .get()
         .and_then(|combiner_entity| combiners.get(*combiner_entity).ok());
+    let combiner_present = combiner.is_some();
     let combiner_input_a_connected = combiner.is_some_and(|device| {
         sockets.get(device.input_a).is_ok_and(|socket| {
             socket.connected_cable.is_some_and(|cable_entity| {
@@ -967,6 +968,14 @@ fn record_ui_test_state(
         .map_or((0.0, 0.0), |(_, _, transform)| {
             (transform.position.x, transform.position.y)
         });
+    let plugin_wiring_fixture_ready = UI_TEST_SCENARIO
+        .get()
+        .is_some_and(|scenario| scenario == UI_TEST_PLUGIN_WIRING_SCENARIO)
+        && reader_present
+        && screen_present
+        && combiner_present
+        && booster_pack_present
+        && rendering.terrain.is_some();
     let expected_signature = UI_TEST_BOOSTER_SIGNATURE.get().copied();
     let opened_card = expected_signature.and_then(|signature| {
         cards.iter().find(|(candidate, candidate_card, _, _, _)| {
@@ -1139,6 +1148,9 @@ fn record_ui_test_state(
         zone_config.has_physics,
         zone_config.render_layer,
         zone_config.has_item_form
+    );
+    let snapshot = format!(
+        "{snapshot}reader_present={reader_present}\nscreen_present={screen_present}\ncombiner_present={combiner_present}\nplugin_wiring_fixture_ready={plugin_wiring_fixture_ready}\n"
     );
     let snapshot = format!(
         "{snapshot}shader_variant={shader_variant:?}\ncondition_effect={condition_effect:?}\nvariant_shader_source_length={variant_shader_source_length}\nvariant_shader_source_matches={variant_shader_source_matches}\nvariant_overlay_present={variant_overlay_present}\nvariant_overlay_visible={variant_overlay_visible}\nvariant_overlay_handle={variant_overlay_handle}\nvariant_overlay_handle_matches={variant_overlay_handle_matches}\nvariant_overlay_vertex_count={variant_overlay_vertex_count}\ncondition_overlay_tier={condition_overlay_tier}\ncondition_overlay_source_length={condition_overlay_source_length}\ncondition_overlay_source_matches={condition_overlay_source_matches}\ncondition_overlay_present={condition_overlay_present}\ncondition_overlay_visible={condition_overlay_visible}\ncondition_overlay_handle={condition_overlay_handle}\ncondition_overlay_handle_matches={condition_overlay_handle_matches}\ncondition_overlay_front_only={condition_overlay_front_only}\ncondition_overlay_vertex_count={condition_overlay_vertex_count}\noverlay_count={overlay_count}\n"
