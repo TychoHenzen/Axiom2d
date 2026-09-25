@@ -78,26 +78,58 @@ function Stop-RunnerProcessTree {
     }
 }
 
-function Stop-NewRunnerGames {
-    param([int[]]$ExistingProcessIds)
+function Get-RunnerGameProcess {
+    param([string]$PidPath)
+
+    if (-not (Test-Path -LiteralPath $PidPath)) {
+        return $null
+    }
+    $metadata = [System.IO.File]::ReadAllText($PidPath).Trim() -split '\|'
+    if ($metadata.Count -ne 2) {
+        throw "runner game PID metadata is invalid: $PidPath"
+    }
+    [int]$processId = 0
+    [long]$startTimeTicks = 0
+    if (-not [int]::TryParse($metadata[0], [ref]$processId) -or
+        -not [long]::TryParse($metadata[1], [ref]$startTimeTicks)) {
+        throw "runner game PID metadata is invalid: $PidPath"
+    }
+    $game = Get-Process -Id $processId -ErrorAction SilentlyContinue
+    if ($null -eq $game) {
+        return $null
+    }
+    if ($game.ProcessName -ne 'card_game_bin') {
+        throw "runner game PID $processId is now $($game.ProcessName); refusing to stop it"
+    }
+    if ($game.StartTime.ToUniversalTime().Ticks -ne $startTimeTicks) {
+        throw "runner game PID $processId has been reused; refusing to stop it"
+    }
+    return $game
+}
+
+function Stop-RunnerGameProcess {
+    param([string]$PidPath)
 
     $watch = [System.Diagnostics.Stopwatch]::StartNew()
     do {
-        $newGames = @(Get-Process -Name card_game_bin -ErrorAction SilentlyContinue |
-            Where-Object { $ExistingProcessIds -notcontains $_.Id })
-        foreach ($game in $newGames) {
-            Stop-Process -Id $game.Id -Force -ErrorAction SilentlyContinue
-        }
-        if ($newGames.Count -eq 0) {
+        $game = Get-RunnerGameProcess -PidPath $PidPath
+        if ($null -eq $game) {
             return
+        }
+        $game.Refresh()
+        if ($game.HasExited) {
+            return
+        }
+        Stop-RunnerProcessTree -Process $game
+        if ($watch.Elapsed.TotalSeconds -ge 5) {
+            break
         }
         Start-Sleep -Milliseconds 100
     } while ($watch.Elapsed.TotalSeconds -lt 5)
 
-    $remainingGames = @(Get-Process -Name card_game_bin -ErrorAction SilentlyContinue |
-        Where-Object { $ExistingProcessIds -notcontains $_.Id })
-    if ($remainingGames.Count -gt 0) {
-        throw "new card_game_bin process(es) remained after 5 seconds: $($remainingGames.Id -join ', ')"
+    $remainingGame = Get-RunnerGameProcess -PidPath $PidPath
+    if ($null -ne $remainingGame) {
+        throw "runner-owned card_game_bin process $($remainingGame.Id) remained after 5 seconds"
     }
 }
 
@@ -156,11 +188,12 @@ if (-not $RunnerChild) {
     $runnerStderrPath = Join-Path $artifactDir 'runner.stderr.log'
     $runnerExitCodePath = Join-Path $artifactDir 'runner.exitcode.txt'
     $runnerPidPath = Join-Path $artifactDir 'runner.pid.txt'
+    $runnerGamePidPath = Join-Path $artifactDir 'game.pid.txt'
     $runnerTimeoutPath = Join-Path $artifactDir 'runner.timeout.txt'
     $runnerSupervisionErrorPath = Join-Path $artifactDir 'runner.supervision.error.txt'
     $runnerCleanupErrorPath = Join-Path $artifactDir 'runner.cleanup.error.txt'
     $utf8WithoutBom = [System.Text.UTF8Encoding]::new($false)
-    foreach ($stalePath in @($runnerTerminalPath, $runnerPidPath, $runnerTimeoutPath, $runnerSupervisionErrorPath, $runnerCleanupErrorPath)) {
+    foreach ($stalePath in @($runnerTerminalPath, $runnerPidPath, $runnerGamePidPath, $runnerTimeoutPath, $runnerSupervisionErrorPath, $runnerCleanupErrorPath)) {
         if (Test-Path -LiteralPath $stalePath) {
             Remove-Item -LiteralPath $stalePath -Force
         }
@@ -172,10 +205,6 @@ if (-not $RunnerChild) {
     $runnerExitCode = 1
     $runnerProcess = $null
     $runnerFailure = $null
-    $existingGameProcessIds = @(
-        Get-Process -Name card_game_bin -ErrorAction SilentlyContinue |
-            Select-Object -ExpandProperty Id
-    )
     try {
         $runnerArguments = @(
             '-NoProfile',
@@ -291,7 +320,7 @@ if (-not $RunnerChild) {
     }
     finally {
         try {
-            Stop-NewRunnerGames -ExistingProcessIds $existingGameProcessIds
+            Stop-RunnerGameProcess -PidPath $runnerGamePidPath
         }
         catch {
             $cleanupFailure = "runner game cleanup failed: $($_.Exception.Message)"
@@ -350,6 +379,7 @@ if ([string]::IsNullOrWhiteSpace($artifactDir)) {
 }
 
 $stateFile = Join-Path $artifactDir 'state.txt'
+$gamePidPath = Join-Path $artifactDir 'game.pid.txt'
 $inputFile = Join-Path $artifactDir 'input.txt'
 $stdoutPath = Join-Path $artifactDir 'app.stdout.log'
 $stderrPath = Join-Path $artifactDir 'app.stderr.log'
@@ -1217,6 +1247,10 @@ public static class AxiomUiSmokeNative
             -PassThru `
             -RedirectStandardOutput $stdoutPath `
             -RedirectStandardError $stderrPath
+        [System.IO.File]::WriteAllText(
+            $gamePidPath,
+            "$($process.Id)|$($process.StartTime.ToUniversalTime().Ticks)`r`n",
+            [System.Text.UTF8Encoding]::new($false))
     }
     finally {
         $env:AXIOM_UI_TEST_STATE_FILE = $previousStateFile

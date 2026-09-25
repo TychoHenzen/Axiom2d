@@ -77,7 +77,17 @@ pub struct ScreenDevice {
 
 #[derive(Component)]
 pub struct ScreenSignalShape {
-    pub display_index: usize,
+    display_index: usize,
+}
+
+impl ScreenSignalShape {
+    fn new(display_index: usize) -> Option<Self> {
+        (display_index < DISPLAY_COUNT).then_some(Self { display_index })
+    }
+
+    pub fn display_index(&self) -> Option<usize> {
+        (self.display_index < DISPLAY_COUNT).then_some(self.display_index)
+    }
 }
 
 /// Project all control points of a signal into panel space using the selected axis pair.
@@ -142,7 +152,11 @@ pub fn screen_render_system(
             continue;
         };
 
-        shape.variant = build_screen_signal_shape(space, signal_shape.display_index);
+        let Some(display_index) = signal_shape.display_index() else {
+            visible.0 = false;
+            continue;
+        };
+        shape.variant = build_screen_signal_shape(space, display_index);
         shape.color = SIGNAL_COLOR;
         visible.0 = true;
     }
@@ -248,7 +262,7 @@ fn spawn_screen_panels(world: &mut World, device_entity: Entity) {
         world.spawn_child(
             device_entity,
             (
-                ScreenSignalShape { display_index },
+                ScreenSignalShape::new(display_index).expect("screen display index is in range"),
                 Transform2D {
                     position: offset,
                     ..Default::default()
@@ -426,5 +440,13 @@ mod tests {
             assert!(point.x.abs() <= PANEL_HALF + 0.001);
             assert!(point.y.abs() <= PANEL_HALF + 0.001);
         }
+    }
+
+    #[test]
+    fn screen_signal_display_index_is_validated_and_read_only() {
+        let signal = ScreenSignalShape::new(DISPLAY_COUNT - 1).expect("last display is valid");
+
+        assert_eq!(signal.display_index(), Some(DISPLAY_COUNT - 1));
+        assert!(ScreenSignalShape::new(DISPLAY_COUNT).is_none());
     }
 }
