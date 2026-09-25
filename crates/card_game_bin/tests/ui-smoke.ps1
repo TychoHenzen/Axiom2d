@@ -3969,10 +3969,7 @@ finally {
         try {
             $process.Refresh()
             if (-not $process.HasExited) {
-                Stop-Process -Id $process.Id -Force
-                if (-not $process.WaitForExit(5000)) {
-                    $cleanupFailure = "game process $($process.Id) did not exit within 5 seconds"
-                }
+                Stop-RunnerProcessTree -Process $process
             }
         }
         catch {
