@@ -3,7 +3,8 @@ param(
     [string]$RunnerArtifactDirectory,
     [switch]$Interaction,
     [switch]$HandRoundTrip,
-    [switch]$StashRoundTrip
+    [switch]$StashRoundTrip,
+    [switch]$BoosterOpening
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,8 +20,11 @@ else {
 if (-not $RunnerChild) {
     if (($Interaction -and $HandRoundTrip) -or
         ($Interaction -and $StashRoundTrip) -or
-        ($HandRoundTrip -and $StashRoundTrip)) {
-        throw 'Interaction, HandRoundTrip, and StashRoundTrip are mutually exclusive'
+        ($Interaction -and $BoosterOpening) -or
+        ($HandRoundTrip -and $StashRoundTrip) -or
+        ($HandRoundTrip -and $BoosterOpening) -or
+        ($StashRoundTrip -and $BoosterOpening)) {
+        throw 'Interaction, HandRoundTrip, StashRoundTrip, and BoosterOpening are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -49,6 +53,9 @@ if (-not $RunnerChild) {
         }
         if ($StashRoundTrip) {
             $runnerArguments += '-StashRoundTrip'
+        }
+        if ($BoosterOpening) {
+            $runnerArguments += '-BoosterOpening'
         }
         $runnerProcess = Start-Process -FilePath (Get-Process -Id $PID).Path `
             -ArgumentList $runnerArguments `
@@ -90,6 +97,8 @@ $stashOpenFramePath = Join-Path $artifactDir 'stash-open.bmp'
 $stashStoredFramePath = Join-Path $artifactDir 'stash-stored.bmp'
 $stashPageTwoFramePath = Join-Path $artifactDir 'stash-page-2.bmp'
 $stashRetrievedFramePath = Join-Path $artifactDir 'stash-retrieved.bmp'
+$boosterOpeningFramePath = Join-Path $artifactDir 'booster-opening.bmp'
+$boosterOpenedFramePath = Join-Path $artifactDir 'booster-opened.bmp'
 $failureFramePath = Join-Path $artifactDir 'failure.bmp'
 $frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
 $scenarioName = if ($Interaction) {
@@ -100,6 +109,9 @@ elseif ($HandRoundTrip) {
 }
 elseif ($StashRoundTrip) {
     'seeded-card-stash-roundtrip'
+}
+elseif ($BoosterOpening) {
+    'seeded-booster-opening'
 }
 else {
     'seeded-card-drag'
@@ -196,10 +208,12 @@ function Format-UiStateDiagnostic {
     if ($null -eq $State) {
         return 'none (no complete state snapshot)'
     }
-    return ("scenario={0}, dragging={1}, zone={2}, hand_contains={3}, hand_count={4}, stash_visible={5}, stash_page={6}, stash_slot={7}, stash_present={8}, stash_origin={9}, stash_follow={10}, rendered=({11},{12}), rotation={13}, face_up={14}, mouse=({15},{16}), left_pressed={17}, right_pressed={18}" -f `
-        $State['scenario'], $State['dragging'], $State['zone'], $State['hand_contains'], `
+    return ("scenario={0}, dragging={1}, booster_dragging={2}, zone={3}, hand_contains={4}, hand_count={5}, stash_visible={6}, stash_page={7}, stash_slot={8}, stash_present={9}, stash_origin={10}, stash_follow={11}, booster_present={12}, booster_phase={13}, booster_cards={14}, opened_card={15}, opened_zone={16}, opened_seed={17}, rendered=({18},{19}), rotation={20}, face_up={21}, mouse=({22},{23}), left_pressed={24}, right_pressed={25}" -f `
+        $State['scenario'], $State['dragging'], $State['booster_dragging'], $State['zone'], $State['hand_contains'], `
         $State['hand_count'], $State['stash_visible'], $State['stash_page'], $State['stash_slot'], `
         $State['stash_slot_present'], $State['stash_origin'], $State['stash_cursor_follow'], `
+        $State['booster_pack_present'], $State['booster_phase'], $State['booster_card_count'], `
+        $State['opened_card_present'], $State['opened_card_zone'], $State['opened_card_seed'], `
         $State['rendered_x'], $State['rendered_y'], $State['rotation'], $State['face_up'], `
         $State['mouse_x'], $State['mouse_y'], $State['left_pressed'], $State['right_pressed'])
 }
@@ -836,6 +850,10 @@ public static class AxiomUiSmokeNative
     $stashTabCenterY = [int][Math]::Round($stashTabTopY + 8)
     $stashTabStartX = 20 + (10 * 54 - 4) / 2.0 - (5 * 34 - 4) / 2.0
     $stashPageTwoTabX = [int][Math]::Round($stashTabStartX + 2 * 34 + 15)
+    $boosterClientX = [int][Math]::Round($client.Width / 2.0 - 300)
+    $boosterClientY = [int][Math]::Round($client.Height / 2.0 - 150)
+    $boosterWorldX = -300.0
+    $boosterWorldY = -150.0
     $stage = 'prepare-background-input'
     $foregroundBeforeInput = Get-UiSmokeForegroundSnapshot
     $cursorBeforeInputSetup = [AxiomUiSmokeNative]::GetCursorPosition()
@@ -872,6 +890,8 @@ public static class AxiomUiSmokeNative
         "stash_client=($stashClientX,$stashClientY)"
         "stash_world=($stashWorldX,$stashWorldY)"
         "stash_page_two_tab=($stashPageTwoTabX,$stashTabCenterY)"
+        "booster_client=($boosterClientX,$boosterClientY)"
+        "booster_world=($boosterWorldX,$boosterWorldY)"
     ) | Set-Content -LiteralPath $inputFile
     if ($foregroundAtPreparation.Handle -eq $windowHandle) {
         throw "game window became foreground during preparation (hwnd=$windowHandle pid=$($process.Id))"
@@ -903,7 +923,156 @@ public static class AxiomUiSmokeNative
             -CapturePath $stashOpenFramePath -Stage $stage -TimeoutSeconds 10
     }
 
-    if ($Interaction) {
+    if ($BoosterOpening) {
+        $stage = 'hover-booster-pack'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before booster input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $boosterClientX, $boosterClientY, $false)
+        $sealedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'booster_phase=sealed, booster_pack_present=true, booster_card_count=1' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['booster_phase'] -eq 'sealed' -and
+            $state['booster_pack_present'] -eq 'true' -and
+            $state['booster_card_count'] -eq '1' -and
+            (Test-Position -State $state -XKey 'booster_rendered_x' -YKey 'booster_rendered_y' `
+                -ExpectedX $boosterWorldX -ExpectedY $boosterWorldY -Tolerance 2) -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $boosterClientX -ExpectedY $boosterClientY -Tolerance 3)
+        }
+        $sealedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'booster-sealed-state.txt')
+
+        $stage = 'first-booster-click'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $boosterClientX, $boosterClientY)
+        $mouseClientX = $boosterClientX
+        $mouseClientY = $boosterClientY
+        $mouseDown = $true
+        $firstClickState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'booster_dragging=true, booster_phase=sealed, booster_pack_present=true' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['booster_dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['booster_phase'] -eq 'sealed' -and
+            $state['booster_pack_present'] -eq 'true'
+        }
+        $firstClickState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'booster-first-click-state.txt')
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $boosterClientX, $boosterClientY)
+        $mouseDown = $false
+        Start-Sleep -Milliseconds 50
+        $stage = 'open-booster-pack'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $boosterClientX, $boosterClientY)
+        $mouseDown = $true
+        $openingState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'booster opening phase, booster_pack_present=true, booster_card_count=1' -Predicate {
+            param($state)
+            $openingPhases = @('moving_to_center', 'ripping', 'lowering_pack', 'revealing_cards', 'completing')
+            $state['scenario'] -eq $scenarioName -and
+            $openingPhases -contains $state['booster_phase'] -and
+            $state['booster_pack_present'] -eq 'true' -and
+            $state['booster_card_count'] -eq '1' -and
+            $state['booster_dragging'] -eq 'false'
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $boosterClientX, $boosterClientY)
+        $mouseDown = $false
+        $openingState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'booster-opening-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $boosterOpeningFramePath -Stage 'capture-booster-opening-frame' -TimeoutSeconds 10
+
+        $stage = 'complete-booster-opening'
+        $openedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 15 -ExpectedState 'booster_phase=done, booster_pack_present=false, opened_card_present=true, opened_card_zone=Table, matching identity seed' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['booster_phase'] -eq 'done' -and
+            $state['booster_pack_present'] -eq 'false' -and
+            $state['booster_card_count'] -eq '1' -and
+            $state['opened_card_present'] -eq 'true' -and
+            $state['opened_card_zone'] -eq 'Table' -and
+            $state['opened_card_face_up'] -eq 'true' -and
+            $state['opened_card_seed'] -eq $state['expected_card_seed'] -and
+            (Test-Position -State $state -XKey 'opened_card_x' -YKey 'opened_card_y' `
+                -ExpectedX -300 -ExpectedY -230 -Tolerance 35)
+        }
+        $openedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'booster-opened-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $boosterOpenedFramePath -Stage 'capture-booster-opened-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $openingFrame = Read-UiSmokeBitmap -Path $boosterOpeningFramePath
+        $openedFrame = Read-UiSmokeBitmap -Path $boosterOpenedFramePath
+        $rgbDeltaThreshold = 24
+        $minimumBoosterChangedPixels = 250
+        $sealedOriginChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $openingFrame `
+            -CenterX $boosterClientX -CenterY $boosterClientY -HalfWidth 90 -HalfHeight 125 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $openingCenterChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $openingFrame `
+            -CenterX ([int][Math]::Round($client.Width / 2.0)) -CenterY ([int][Math]::Round($client.Height / 2.0)) `
+            -HalfWidth 150 -HalfHeight 160 -RgbDeltaThreshold $rgbDeltaThreshold
+        $openedCenterChanges = Get-UiSmokeChangedPixels -Before $openingFrame -After $openedFrame `
+            -CenterX ([int][Math]::Round($client.Width / 2.0)) -CenterY ([int][Math]::Round($client.Height / 2.0)) `
+            -HalfWidth 150 -HalfHeight 160 -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($openedFrame.Width)x$($openedFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumBoosterChangedPixels"
+            "sealed_origin_changed_pixels=$($sealedOriginChanges.ChangedPixels)"
+            "opening_center_changed_pixels=$($openingCenterChanges.ChangedPixels)"
+            "opened_center_changed_pixels=$($openedCenterChanges.ChangedPixels)"
+            "expected_card_seed=$($openedState['expected_card_seed'])"
+            "opened_card_seed=$($openedState['opened_card_seed'])"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'booster-visual-diff.txt')
+        if ($sealedOriginChanges.ChangedPixels -lt $minimumBoosterChangedPixels -or
+            $openingCenterChanges.ChangedPixels -lt $minimumBoosterChangedPixels -or
+            $openedCenterChanges.ChangedPixels -lt $minimumBoosterChangedPixels) {
+            throw "booster opening frame changed too few pixels: sealed_origin=$($sealedOriginChanges.ChangedPixels), opening_center=$($openingCenterChanges.ChangedPixels), opened_center=$($openedCenterChanges.ChangedPixels), minimum=$minimumBoosterChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during booster input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "booster opening PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($Interaction) {
         $interactionStartClientX = $startClientX + 15
         $interactionStartClientY = $startClientY
         $interactionTargetClientX = $targetClientX
@@ -1838,7 +2007,16 @@ if (-not $succeeded) {
     exit 1
 }
 
-if ($StashRoundTrip) {
+if ($BoosterOpening) {
+    Write-Output ("UI booster opening passed: sealed=({0},{1}), opened=({2},{3}), sealed_state={4}, opening_state={5}, opened_state={6}, opening_frame={7}, opened_frame={8}" -f `
+        $boosterWorldX, $boosterWorldY, $openedState['opened_card_x'], $openedState['opened_card_y'], `
+        (Join-Path $artifactDir 'booster-sealed-state.txt'), (Join-Path $artifactDir 'booster-opening-state.txt'), `
+        (Join-Path $artifactDir 'booster-opened-state.txt'), $boosterOpeningFramePath, $boosterOpenedFramePath)
+    Write-Output ("Booster flow verified: expected_seed={0}, opened_seed={1}, sealed_origin_changed={2}, opening_center_changed={3}, opened_center_changed={4} pixels (minimum 250 at RGB delta 24)" -f `
+        $openedState['expected_card_seed'], $openedState['opened_card_seed'], $sealedOriginChanges.ChangedPixels, `
+        $openingCenterChanges.ChangedPixels, $openedCenterChanges.ChangedPixels)
+}
+elseif ($StashRoundTrip) {
     Write-Output ("UI stash round-trip passed: stored=({0},{1}) retrieved=({2},{3}), stash_state={4}, page_two_state={5}, retrieved_state={6}, stored_frame={7}, retrieved_frame={8}" -f `
         $stashState['rendered_x'], $stashState['rendered_y'], $retrievedState['rendered_x'], $retrievedState['rendered_y'], `
         (Join-Path $artifactDir 'stash-state.txt'), (Join-Path $artifactDir 'stash-page-two-state.txt'), `

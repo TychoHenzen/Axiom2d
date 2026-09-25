@@ -31,3 +31,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 ```
 
 This mode retains stash, page, retrieval, and rendered-difference evidence under `target/ui-smoke-*`.
+
+Run the seeded booster opening scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -BoosterOpening
+```
+
+This mode retains sealed, opening, opened-card state, identity, and rendered-difference evidence under `target/ui-smoke-*`.
