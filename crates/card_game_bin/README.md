@@ -24,6 +24,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 
 This mode retains hand and returned state/frame evidence and verifies the hand membership, layout, and table return.
 
+Run the holder/zone transition scenario, which adds explicit `CardZone` and `ZoneConfig` assertions to the same native path:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -ZoneTransition
+```
+
+This mode retains holder/table state and frame evidence, including hand occupancy, per-zone physics/render-layer/item-form configuration, and the stable table return.
+
 Run the stash round-trip scenario, storing the seeded card, switching pages, previewing the stash slot during a drag, and retrieving it:
 
 ```powershell

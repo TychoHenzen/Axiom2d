@@ -3,6 +3,7 @@ param(
     [string]$RunnerArtifactDirectory,
     [switch]$Interaction,
     [switch]$HandRoundTrip,
+    [switch]$ZoneTransition,
     [switch]$StashRoundTrip,
     [switch]$BoosterOpening,
     [switch]$IdentitySignature,
@@ -20,22 +21,17 @@ else {
 }
 
 if (-not $RunnerChild) {
-    if (($Interaction -and $HandRoundTrip) -or
-        ($Interaction -and $StashRoundTrip) -or
-        ($Interaction -and $BoosterOpening) -or
-        ($Interaction -and $IdentitySignature) -or
-        ($Interaction -and $ArtFace) -or
-        ($HandRoundTrip -and $StashRoundTrip) -or
-        ($HandRoundTrip -and $BoosterOpening) -or
-        ($HandRoundTrip -and $IdentitySignature) -or
-        ($HandRoundTrip -and $ArtFace) -or
-        ($StashRoundTrip -and $BoosterOpening) -or
-        ($StashRoundTrip -and $IdentitySignature) -or
-        ($StashRoundTrip -and $ArtFace) -or
-        ($BoosterOpening -and $IdentitySignature) -or
-        ($BoosterOpening -and $ArtFace) -or
-        ($IdentitySignature -and $ArtFace)) {
-        throw 'Interaction, HandRoundTrip, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
+    $scenarioFlags = @(
+        $Interaction,
+        $HandRoundTrip,
+        $ZoneTransition,
+        $StashRoundTrip,
+        $BoosterOpening,
+        $IdentitySignature,
+        $ArtFace
+    )
+    if (@($scenarioFlags | Where-Object { $_ }).Count -gt 1) {
+        throw 'Interaction, HandRoundTrip, ZoneTransition, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -61,6 +57,9 @@ if (-not $RunnerChild) {
         }
         if ($HandRoundTrip) {
             $runnerArguments += '-HandRoundTrip'
+        }
+        if ($ZoneTransition) {
+            $runnerArguments += '-ZoneTransition'
         }
         if ($StashRoundTrip) {
             $runnerArguments += '-StashRoundTrip'
@@ -110,6 +109,22 @@ $releasedFramePath = Join-Path $artifactDir 'released.bmp'
 $flippedFramePath = Join-Path $artifactDir 'flipped.bmp'
 $handFramePath = Join-Path $artifactDir 'hand.bmp'
 $returnedFramePath = Join-Path $artifactDir 'returned.bmp'
+$zoneHolderFramePath = Join-Path $artifactDir 'zone-holder.bmp'
+$zoneReturnedFramePath = Join-Path $artifactDir 'zone-returned.bmp'
+$holderStatePath = if ($ZoneTransition) {
+    Join-Path $artifactDir 'zone-holder-state.txt'
+}
+else {
+    Join-Path $artifactDir 'hand-state.txt'
+}
+$returnedStatePath = if ($ZoneTransition) {
+    Join-Path $artifactDir 'zone-returned-state.txt'
+}
+else {
+    Join-Path $artifactDir 'returned-state.txt'
+}
+$holderFramePath = if ($ZoneTransition) { $zoneHolderFramePath } else { $handFramePath }
+$returnedHolderFramePath = if ($ZoneTransition) { $zoneReturnedFramePath } else { $returnedFramePath }
 $stashOpenFramePath = Join-Path $artifactDir 'stash-open.bmp'
 $stashStoredFramePath = Join-Path $artifactDir 'stash-stored.bmp'
 $stashPageTwoFramePath = Join-Path $artifactDir 'stash-page-2.bmp'
@@ -122,6 +137,9 @@ $failureFramePath = Join-Path $artifactDir 'failure.bmp'
 $frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
 $scenarioName = if ($Interaction) {
     'seeded-card-interaction'
+}
+elseif ($ZoneTransition) {
+    'seeded-card-zone-transition'
 }
 elseif ($HandRoundTrip) {
     'seeded-card-hand-roundtrip'
@@ -244,14 +262,16 @@ function Format-UiStateDiagnostic {
     if ($null -eq $State) {
         return 'none (no complete state snapshot)'
     }
-    return ("scenario={0}, dragging={1}, booster_dragging={2}, zone={3}, hand_contains={4}, hand_count={5}, stash_visible={6}, stash_page={7}, stash_slot={8}, stash_present={9}, stash_origin={10}, stash_follow={11}, booster_present={12}, booster_phase={13}, booster_cards={14}, opened_card={15}, opened_zone={16}, opened_seed={17}, rendered=({18},{19}), rotation={20}, face_up={21}, mouse=({22},{23}), left_pressed={24}, right_pressed={25}" -f `
+    return ("scenario={0}, dragging={1}, booster_dragging={2}, zone={3}, hand_contains={4}, hand_count={5}, stash_visible={6}, stash_page={7}, stash_slot={8}, stash_present={9}, stash_origin={10}, stash_follow={11}, booster_present={12}, booster_phase={13}, booster_cards={14}, opened_card={15}, opened_zone={16}, opened_seed={17}, rendered=({18},{19}), rotation={20}, face_up={21}, mouse=({22},{23}), left_pressed={24}, right_pressed={25}, holder={26}, holder_occupied={27}, zone_config=({28},{29},{30})" -f `
         $State['scenario'], $State['dragging'], $State['booster_dragging'], $State['zone'], $State['hand_contains'], `
         $State['hand_count'], $State['stash_visible'], $State['stash_page'], $State['stash_slot'], `
         $State['stash_slot_present'], $State['stash_origin'], $State['stash_cursor_follow'], `
         $State['booster_pack_present'], $State['booster_phase'], $State['booster_card_count'], `
         $State['opened_card_present'], $State['opened_card_zone'], $State['opened_card_seed'], `
         $State['rendered_x'], $State['rendered_y'], $State['rotation'], $State['face_up'], `
-        $State['mouse_x'], $State['mouse_y'], $State['left_pressed'], $State['right_pressed'])
+        $State['mouse_x'], $State['mouse_y'], $State['left_pressed'], $State['right_pressed'],
+        $State['holder'], $State['holder_occupied'], $State['zone_has_physics'],
+        $State['zone_render_layer'], $State['zone_has_item_form'])
 }
 
 function Wait-UiState {
@@ -1546,7 +1566,7 @@ public static class AxiomUiSmokeNative
     $dragTargetClientX = if ($StashRoundTrip) {
         $stashClientX
     }
-    elseif ($HandRoundTrip) {
+    elseif ($HandRoundTrip -or $ZoneTransition) {
         $handClientX
     }
     else {
@@ -1555,7 +1575,7 @@ public static class AxiomUiSmokeNative
     $dragTargetClientY = if ($StashRoundTrip) {
         $stashClientY
     }
-    elseif ($HandRoundTrip) {
+    elseif ($HandRoundTrip -or $ZoneTransition) {
         $handClientY
     }
     else {
@@ -1564,7 +1584,7 @@ public static class AxiomUiSmokeNative
     $dragTargetWorldX = if ($StashRoundTrip) {
         $stashWorldX
     }
-    elseif ($HandRoundTrip) {
+    elseif ($HandRoundTrip -or $ZoneTransition) {
         $handWorldX
     }
     else {
@@ -1573,7 +1593,7 @@ public static class AxiomUiSmokeNative
     $dragTargetWorldY = if ($StashRoundTrip) {
         $stashWorldY
     }
-    elseif ($HandRoundTrip) {
+    elseif ($HandRoundTrip -or $ZoneTransition) {
         $handWorldY
     }
     else {
@@ -1842,11 +1862,11 @@ public static class AxiomUiSmokeNative
         }
         $succeeded = $true
     }
-    elseif ($HandRoundTrip) {
+    elseif ($HandRoundTrip -or $ZoneTransition) {
         $stage = 'release-card-to-hand'
         [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
         $handState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
-            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=false, zone=Hand(0), hand_contains=true, hand_count=1, face_up=true, layout=($handWorldX,$handWorldY) tolerance=25" -Predicate {
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=false, holder=Hand(0), holder_occupied=true, zone=Hand(0), hand_count=1, zone_config=(physics=false, layer=UI, item_form=false), layout=($handWorldX,$handWorldY) tolerance=25" -Predicate {
             param($state)
             $state['scenario'] -eq $scenarioName -and
             $state['dragging'] -eq 'false' -and
@@ -1854,19 +1874,24 @@ public static class AxiomUiSmokeNative
             $state['zone'] -eq 'Hand(0)' -and
             $state['hand_contains'] -eq 'true' -and
             $state['hand_count'] -eq '1' -and
+            $state['holder'] -eq 'Hand(0)' -and
+            $state['holder_occupied'] -eq 'true' -and
+            $state['zone_has_physics'] -eq 'false' -and
+            $state['zone_render_layer'] -eq 'UI' -and
+            $state['zone_has_item_form'] -eq 'false' -and
             $state['face_up'] -eq 'true' -and
             (Test-Position -State $state -ExpectedX $handWorldX -ExpectedY $handWorldY -Tolerance 25)
         }
         $mouseDown = $false
         $handState.GetEnumerator() | ForEach-Object {
             '{0}={1}' -f $_.Key, $_.Value
-        } | Set-Content -LiteralPath (Join-Path $artifactDir 'hand-state.txt')
+        } | Set-Content -LiteralPath $holderStatePath
         Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
-            -CapturePath $handFramePath -Stage 'capture-hand-frame' -TimeoutSeconds 10
+            -CapturePath $holderFramePath -Stage 'capture-hand-frame' -TimeoutSeconds 10
 
         $stage = 'verify-hand-frame'
         $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
-        $handFrame = Read-UiSmokeBitmap -Path $handFramePath
+        $handFrame = Read-UiSmokeBitmap -Path $holderFramePath
         $rgbDeltaThreshold = 24
         $minimumHandChangedPixels = 500
         $handSourceChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $handFrame `
@@ -1881,7 +1906,7 @@ public static class AxiomUiSmokeNative
             "minimum_changed_pixels=$minimumHandChangedPixels"
             "source_changed_pixels=$($handSourceChanges.ChangedPixels)"
             "hand_layout_changed_pixels=$($handLayoutChanges.ChangedPixels)"
-        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'hand-visual-diff.txt')
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir $(if ($ZoneTransition) { 'zone-holder-visual-diff.txt' } else { 'hand-visual-diff.txt' }))
         if ($handSourceChanges.ChangedPixels -lt $minimumHandChangedPixels -or
             $handLayoutChanges.ChangedPixels -lt $minimumHandChangedPixels) {
             throw "hand frame changed too few pixels: source=$($handSourceChanges.ChangedPixels), hand=$($handLayoutChanges.ChangedPixels), minimum=$minimumHandChangedPixels"
@@ -1890,11 +1915,13 @@ public static class AxiomUiSmokeNative
         $stage = 'hover-hand-card'
         [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $handClientX, $handClientY, $false)
         $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
-            -Stage $stage -TimeoutSeconds 5 -ExpectedState "hand card mouse=($handClientX,$handClientY), hand_contains=true" -Predicate {
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "hand card mouse=($handClientX,$handClientY), holder=Hand(0), holder_occupied=true" -Predicate {
             param($state)
             $state['scenario'] -eq $scenarioName -and
             $state['hand_contains'] -eq 'true' -and
             $state['hand_count'] -eq '1' -and
+            $state['holder'] -eq 'Hand(0)' -and
+            $state['holder_occupied'] -eq 'true' -and
             (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
                 -ExpectedX $handClientX -ExpectedY $handClientY -Tolerance 3)
         }
@@ -1905,14 +1932,19 @@ public static class AxiomUiSmokeNative
         $mouseClientY = $handClientY
         $mouseDown = $true
         $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
-            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, zone=Hand(0), hand_contains=false, hand_count=0' -Predicate {
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, zone=Hand(0), holder=Hand(0), holder_occupied=false, hand_count=0' -Predicate {
             param($state)
             $state['scenario'] -eq $scenarioName -and
             $state['dragging'] -eq 'true' -and
             $state['left_pressed'] -eq 'true' -and
             $state['zone'] -eq 'Hand(0)' -and
             $state['hand_contains'] -eq 'false' -and
-            $state['hand_count'] -eq '0'
+            $state['hand_count'] -eq '0' -and
+            $state['holder'] -eq 'Hand(0)' -and
+            $state['holder_occupied'] -eq 'false' -and
+            $state['zone_has_physics'] -eq 'false' -and
+            $state['zone_render_layer'] -eq 'UI' -and
+            $state['zone_has_item_form'] -eq 'false'
         }
 
         $stage = 'drag-hand-card-to-table'
@@ -1923,13 +1955,15 @@ public static class AxiomUiSmokeNative
             Start-Sleep -Milliseconds 35
         }
         $returnDragState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
-            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, zone=Hand(0), hand_contains=false, rendered=(-160,130) tolerance=25' -Predicate {
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, zone=Hand(0), holder=Hand(0), holder_occupied=false, rendered=(-160,130) tolerance=25' -Predicate {
             param($state)
             $state['scenario'] -eq $scenarioName -and
             $state['dragging'] -eq 'true' -and
             $state['left_pressed'] -eq 'true' -and
             $state['zone'] -eq 'Hand(0)' -and
             $state['hand_contains'] -eq 'false' -and
+            $state['holder'] -eq 'Hand(0)' -and
+            $state['holder_occupied'] -eq 'false' -and
             (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 25)
         }
         $returnDragState.GetEnumerator() | ForEach-Object {
@@ -1939,7 +1973,7 @@ public static class AxiomUiSmokeNative
         $stage = 'release-card-to-table'
         [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
         $returnedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
-            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, zone=Table, hand_contains=false, hand_count=0, rendered=(-160,130) tolerance=35' -Predicate {
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, holder=none, holder_occupied=false, zone=Table, hand_count=0, zone_config=(physics=true, layer=World, item_form=false), rendered=(-160,130) tolerance=35' -Predicate {
             param($state)
             $state['scenario'] -eq $scenarioName -and
             $state['dragging'] -eq 'false' -and
@@ -1947,6 +1981,11 @@ public static class AxiomUiSmokeNative
             $state['zone'] -eq 'Table' -and
             $state['hand_contains'] -eq 'false' -and
             $state['hand_count'] -eq '0' -and
+            $state['holder'] -eq 'none' -and
+            $state['holder_occupied'] -eq 'false' -and
+            $state['zone_has_physics'] -eq 'true' -and
+            $state['zone_render_layer'] -eq 'World' -and
+            $state['zone_has_item_form'] -eq 'false' -and
             (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 35)
         }
         $mouseDown = $false
@@ -1955,17 +1994,22 @@ public static class AxiomUiSmokeNative
         if ($null -eq $returnedState -or
             $returnedState['zone'] -ne 'Table' -or
             $returnedState['hand_contains'] -ne 'false' -or
+            $returnedState['holder'] -ne 'none' -or
+            $returnedState['holder_occupied'] -ne 'false' -or
+            $returnedState['zone_has_physics'] -ne 'true' -or
+            $returnedState['zone_render_layer'] -ne 'World' -or
+            $returnedState['zone_has_item_form'] -ne 'false' -or
             -not (Test-Position -State $returnedState -ExpectedX -160 -ExpectedY 130 -Tolerance 35)) {
             throw "returned card left the expected table state: observed=$(Format-UiStateDiagnostic -State $returnedState)"
         }
         $returnedState.GetEnumerator() | ForEach-Object {
             '{0}={1}' -f $_.Key, $_.Value
-        } | Set-Content -LiteralPath (Join-Path $artifactDir 'returned-state.txt')
+        } | Set-Content -LiteralPath $returnedStatePath
         Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
-            -CapturePath $returnedFramePath -Stage 'capture-returned-frame' -TimeoutSeconds 10
+            -CapturePath $returnedHolderFramePath -Stage 'capture-returned-frame' -TimeoutSeconds 10
 
         $stage = 'verify-returned-frame'
-        $returnedFrame = Read-UiSmokeBitmap -Path $returnedFramePath
+        $returnedFrame = Read-UiSmokeBitmap -Path $returnedHolderFramePath
         $returnedHandChanges = Get-UiSmokeChangedPixels -Before $handFrame -After $returnedFrame `
             -CenterX $handClientX -CenterY $handClientY -HalfWidth 100 -HalfHeight 145 `
             -RgbDeltaThreshold $rgbDeltaThreshold
@@ -1978,7 +2022,7 @@ public static class AxiomUiSmokeNative
             "minimum_changed_pixels=$minimumHandChangedPixels"
             "hand_changed_pixels=$($returnedHandChanges.ChangedPixels)"
             "table_changed_pixels=$($returnedTableChanges.ChangedPixels)"
-        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'returned-visual-diff.txt')
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir $(if ($ZoneTransition) { 'zone-returned-visual-diff.txt' } else { 'returned-visual-diff.txt' }))
         if ($returnedHandChanges.ChangedPixels -lt $minimumHandChangedPixels -or
             $returnedTableChanges.ChangedPixels -lt $minimumHandChangedPixels) {
             throw "returned frame changed too few pixels: hand=$($returnedHandChanges.ChangedPixels), table=$($returnedTableChanges.ChangedPixels), minimum=$minimumHandChangedPixels"
@@ -2009,7 +2053,8 @@ public static class AxiomUiSmokeNative
             "cursor_stability=$cursorStability"
         ) | Add-Content -LiteralPath $inputFile
         if ($foregroundAfterInput.Handle -eq $windowHandle) {
-            throw "game window became foreground during hand round-trip (hwnd=$windowHandle pid=$($process.Id))"
+            $inputDescription = if ($ZoneTransition) { 'zone transition' } else { 'hand round-trip' }
+            throw "game window became foreground during $inputDescription (hwnd=$windowHandle pid=$($process.Id))"
         }
         if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
             throw "hand round-trip PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
@@ -2247,10 +2292,20 @@ elseif ($StashRoundTrip) {
         $stashPreviewChanges.ChangedPixels, $storedPreviewChanges.ChangedPixels, $pageTwoState['stash_page'], `
         $retrievedStashChanges.ChangedPixels, $retrievedTableChanges.ChangedPixels)
 }
+elseif ($ZoneTransition) {
+    Write-Output ("UI zone transition passed: holder=({0},{1}) returned=({2},{3}), holder_state={4}, returned_state={5}, holder_frame={6}, returned_frame={7}" -f `
+        $handState['rendered_x'], $handState['rendered_y'], $returnedState['rendered_x'], $returnedState['rendered_y'], `
+        $holderStatePath, $returnedStatePath, $holderFramePath, $returnedHolderFramePath)
+    Write-Output ("Zone contract verified: holder={0}, occupied={1}, holder_config=({2},{3},{4}), returned_zone={5}, returned_config=({6},{7},{8}), holder_changed={9}, returned_table_changed={10} pixels" -f `
+        $handState['holder'], $handState['holder_occupied'], $handState['zone_has_physics'],
+        $handState['zone_render_layer'], $handState['zone_has_item_form'], $returnedState['zone'],
+        $returnedState['zone_has_physics'], $returnedState['zone_render_layer'], $returnedState['zone_has_item_form'],
+        $handLayoutChanges.ChangedPixels, $returnedTableChanges.ChangedPixels)
+}
 elseif ($HandRoundTrip) {
     Write-Output ("UI hand round-trip passed: hand=({0},{1}) returned=({2},{3}), hand_state={4}, returned_state={5}, hand_frame={6}, returned_frame={7}" -f `
         $handState['rendered_x'], $handState['rendered_y'], $returnedState['rendered_x'], $returnedState['rendered_y'], `
-        (Join-Path $artifactDir 'hand-state.txt'), (Join-Path $artifactDir 'returned-state.txt'), $handFramePath, $returnedFramePath)
+        $holderStatePath, $returnedStatePath, $holderFramePath, $returnedHolderFramePath)
     Write-Output ("Hand layout verified: hand_contains={0}, hand_count={1}, hand_changed={2}, returned_hand_changed={3}, returned_table_changed={4} pixels (minimum 500 at RGB delta 24)" -f `
         $handState['hand_contains'], $handState['hand_count'], $handLayoutChanges.ChangedPixels, `
         $returnedHandChanges.ChangedPixels, $returnedTableChanges.ChangedPixels)

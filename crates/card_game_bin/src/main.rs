@@ -20,6 +20,8 @@ use card_game::card::reader::{
     READER_COLLISION_FILTER, READER_COLLISION_GROUP, READER_HALF_EXTENTS, spawn_reader,
 };
 use card_game::card::screen_device::spawn_screen_device;
+#[cfg(feature = "ui-test")]
+use card_game::card::zone_config::ZoneConfig;
 use card_game::prelude::*;
 #[cfg(feature = "ui-test")]
 use card_game::stash::grid::StashGrid;
@@ -110,13 +112,9 @@ fn spawn_scene(world: &mut World) {
     }
     #[cfg(feature = "ui-test")]
     {
-        let ui_test_card_index = UI_TEST_SCENARIO
-            .get()
-            .is_some_and(|scenario| {
-                scenario == "seeded-card-identity" || scenario == "seeded-card-art-face"
-            })
-            .then_some(1)
-            .unwrap_or(0);
+        let ui_test_card_index = usize::from(UI_TEST_SCENARIO.get().is_some_and(|scenario| {
+            scenario == "seeded-card-identity" || scenario == "seeded-card-art-face"
+        }));
         UI_TEST_CARD_ENTITY
             .set(card_entities[ui_test_card_index])
             .expect("UI test card can only be configured once");
@@ -274,6 +272,12 @@ fn record_ui_test_state(
         .is_some_and(|page| stash_grid.get(page, 0, 0).is_some());
     let stash_hovered = stash_hover.hovered_entity == Some(entity);
     let hand_contains = hand.cards().contains(card_entity);
+    let holder = match zone {
+        CardZone::Hand(index) => format!("Hand({index})"),
+        _ => "none".to_owned(),
+    };
+    let holder_occupied = matches!(zone, CardZone::Hand(_)) && hand_contains;
+    let zone_config = ZoneConfig::for_zone(zone);
     let identity_signature = card
         .signature
         .axes()
@@ -286,7 +290,7 @@ fn record_ui_test_state(
     let identity_tier = format!("{:?}", card.signature.card_tier());
     let identity_name = card_labels
         .get(entity)
-        .map_or("".to_owned(), |label| label.name.clone());
+        .map_or(String::new(), |label| label.name.clone());
     let selected_art = select_art_for_signature(&card.signature, &art_repository);
     let art_signature = selected_art.map_or_else(String::new, |entry| {
         entry
@@ -356,7 +360,7 @@ fn record_ui_test_state(
     });
     let booster_card_count = booster_opening.as_ref().map_or_else(
         || {
-            booster_pack.map_or(if opened_card_present { 1 } else { 0 }, |(_, pack, _)| {
+            booster_pack.map_or(usize::from(opened_card_present), |(_, pack, _)| {
                 pack.cards.len()
             })
         },
@@ -368,7 +372,7 @@ fn record_ui_test_state(
         .get()
         .expect("UI test scenario must be configured before the app runs");
     let snapshot = format!(
-        "scenario={scenario}\ndragging={dragging}\nbooster_dragging={booster_dragging}\nzone={zone:?}\nhand_contains={hand_contains}\nhand_count={}\nstash_visible={}\nstash_page={}\nstash_storage_page={}\nstash_slot={stash_slot}\nstash_slot_present={stash_slot_present}\nstash_origin={stash_origin}\nstash_cursor_follow={stash_cursor_follow}\nstash_hovered={stash_hovered}\nidentity_signature={identity_signature}\nidentity_seed={identity_seed}\nidentity_rarity={identity_rarity}\nidentity_tier={identity_tier}\nidentity_name={identity_name}\nart_signature={art_signature}\nart_element={art_element}\nart_aspect={art_aspect}\nart_shape_count={art_shape_count}\nbooster_pack_present={booster_pack_present}\nbooster_phase={booster_phase}\nbooster_card_count={booster_card_count}\nbooster_rendered_x={booster_rendered_x:.1}\nbooster_rendered_y={booster_rendered_y:.1}\nexpected_card_seed={expected_card_seed}\nopened_card_present={opened_card_present}\nopened_card_zone={opened_card_zone}\nopened_card_seed={opened_card_seed}\nopened_card_face_up={opened_card_face_up}\nopened_card_x={opened_card_x:.1}\nopened_card_y={opened_card_y:.1}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\n",
+        "scenario={scenario}\ndragging={dragging}\nbooster_dragging={booster_dragging}\nzone={zone:?}\nhand_contains={hand_contains}\nhand_count={}\nstash_visible={}\nstash_page={}\nstash_storage_page={}\nstash_slot={stash_slot}\nstash_slot_present={stash_slot_present}\nstash_origin={stash_origin}\nstash_cursor_follow={stash_cursor_follow}\nstash_hovered={stash_hovered}\nidentity_signature={identity_signature}\nidentity_seed={identity_seed}\nidentity_rarity={identity_rarity}\nidentity_tier={identity_tier}\nidentity_name={identity_name}\nart_signature={art_signature}\nart_element={art_element}\nart_aspect={art_aspect}\nart_shape_count={art_shape_count}\nbooster_pack_present={booster_pack_present}\nbooster_phase={booster_phase}\nbooster_card_count={booster_card_count}\nbooster_rendered_x={booster_rendered_x:.1}\nbooster_rendered_y={booster_rendered_y:.1}\nexpected_card_seed={expected_card_seed}\nopened_card_present={opened_card_present}\nopened_card_zone={opened_card_zone}\nopened_card_seed={opened_card_seed}\nopened_card_face_up={opened_card_face_up}\nopened_card_x={opened_card_x:.1}\nopened_card_y={opened_card_y:.1}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\nholder={holder}\nholder_occupied={holder_occupied}\nzone_has_physics={}\nzone_render_layer={:?}\nzone_has_item_form={}\n",
         hand.len(),
         stash_visible.0,
         stash_grid.current_page(),
@@ -380,7 +384,10 @@ fn record_ui_test_state(
         mouse_position.x,
         mouse_position.y,
         mouse.pressed(MouseButton::Left),
-        mouse.pressed(MouseButton::Right)
+        mouse.pressed(MouseButton::Right),
+        zone_config.has_physics,
+        zone_config.render_layer,
+        zone_config.has_item_form
     );
     let state_file = UI_TEST_STATE_FILE
         .get()
