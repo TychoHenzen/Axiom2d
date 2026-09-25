@@ -84,8 +84,29 @@ jobs:
         id: extract
         run: |
           mkdir -p quality/coverage
-          cargo llvm-cov --workspace --locked --lcov --output-path quality/coverage/lcov.info 2>&1 | tee coverage.log
-          COV_PCT=$(grep "^TOTAL" coverage.log | awk '{print $4}' | tr -d '%')
+          cargo llvm-cov --workspace --locked --lcov --output-path quality/coverage/lcov.info
+          cargo llvm-cov --workspace --locked --summary-only --no-run 2>&1 | tee coverage.log
+          if ! COV_PCT=$(awk '
+            $1 == "TOTAL" {
+              coverage = $10
+              sub(/%$/, "", coverage)
+              print coverage
+              found = 1
+              exit
+            }
+            END {
+              if (!found) {
+                exit 1
+              }
+            }
+          ' coverage.log); then
+            echo "::error title=Coverage Summary Missing::cargo llvm-cov summary did not contain a TOTAL Lines Cover value" >&2
+            exit 1
+          fi
+          if [[ ! "$COV_PCT" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+            echo "::error title=Coverage Summary Invalid::coverage_pct is not numeric: ${COV_PCT}" >&2
+            exit 1
+          fi
           echo "coverage_pct=${COV_PCT}" >> "$GITHUB_OUTPUT"
           echo "Coverage: ${COV_PCT}"
       - name: Upload coverage artifact
@@ -258,6 +279,9 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
+      - name: Test quality gate comparator
+        run: bash scripts/quality-gate-check-test.sh
+
       - name: Parse baseline
         id: baseline
         run: |
@@ -347,15 +371,38 @@ jobs:
           check_ratchet "cyclomatic_over_10" "${{ needs.complexity.outputs.cyclo_over_10 }}"  "${{ steps.baseline.outputs.cyclo }}"     "lower"
           check_ratchet "jscpd_clone_count"  "${{ needs.duplicates.outputs.clone_count }}"     "${{ steps.baseline.outputs.clones }}"    "lower"
 
-          # Coverage is float — use bc for comparison
+          # Coverage is float — compare at baseline precision, matching the local gate.
           cov_current="${{ needs.coverage.outputs.coverage_pct }}"
           cov_baseline="${{ steps.baseline.outputs.cov }}"
-          cov_compare=$(echo "$cov_current < $cov_baseline" | bc -l)
-          cov_equal=$(echo "$cov_current == $cov_baseline" | bc -l)
-          if [ "$cov_compare" -eq 1 ]; then
+          compare_floats() {
+            awk -v current="$1" -v baseline="$2" '
+              BEGIN {
+                precision = 0
+                decimal = index(baseline, ".")
+                if (decimal > 0) {
+                  precision = length(baseline) - decimal
+                }
+                scale = 1
+                for (i = 0; i < precision; i++) {
+                  scale *= 10
+                }
+                current = int((current * scale) + 0.5 + 1e-9)
+                baseline = int((baseline * scale) + 0.5 + 1e-9)
+                if (current < baseline) {
+                  print -1
+                } else if (current > baseline) {
+                  print 1
+                } else {
+                  print 0
+                }
+              }
+            '
+          }
+          cov_compare=$(compare_floats "$cov_current" "$cov_baseline")
+          if [ "$cov_compare" -lt 0 ]; then
             echo "::error title=Quality Regression::line_coverage regressed: ${cov_current}% < ${cov_baseline}% (baseline)"
             FAILED=1
-          elif [ "$cov_equal" -eq 0 ]; then
+          elif [ "$cov_compare" -gt 0 ]; then
             echo "::notice title=Quality Improved::line_coverage improved: ${cov_current}% > ${cov_baseline}% (baseline). Update the baseline in a reviewed change if desired."
           else
             echo "::notice title=line_coverage (ok)::line_coverage: ${cov_current}% (baseline: ${cov_baseline}%)"

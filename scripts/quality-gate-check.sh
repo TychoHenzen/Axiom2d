@@ -77,8 +77,17 @@ extract_line_coverage() {
 compare_floats() {
     awk -v current="$1" -v baseline="$2" '
         BEGIN {
-            current += 0
-            baseline += 0
+            precision = 0
+            decimal = index(baseline, ".")
+            if (decimal > 0) {
+                precision = length(baseline) - decimal
+            }
+            scale = 1
+            for (i = 0; i < precision; i++) {
+                scale *= 10
+            }
+            current = int((current * scale) + 0.5 + 1e-9)
+            baseline = int((baseline * scale) + 0.5 + 1e-9)
             if (current < baseline) {
                 print -1
             } else if (current > baseline) {
@@ -88,6 +97,14 @@ compare_floats() {
             }
         }
     '
+}
+
+round_coverage() {
+    awk '{ printf "%.2f\n", $1 + 0 + 1e-9 }'
+}
+
+count_rustdoc_warnings() {
+    grep -c '"reason":"compiler-message".*"doc":true.*"level":"warning"' || true
 }
 
 # ─── Hard Gates ───────────────────────────────────────────────────────────────
@@ -109,12 +126,13 @@ check_hard_gates() {
 
     # Doc warnings
     printf "  %-35s " "doc warnings:"
-    local doc_out doc_warnings
+    local doc_out doc_status doc_warnings
     set +e
-    doc_out=$(cargo doc --workspace --no-deps 2>&1)
-    doc_warnings=$(echo "$doc_out" | grep -c "warning:" || true)
+    doc_out=$(cargo doc --workspace --no-deps --message-format=json 2>&1)
+    doc_status=$?
+    doc_warnings=$(printf '%s\n' "$doc_out" | count_rustdoc_warnings)
     set -e
-    if [ "${doc_warnings:-0}" -eq 0 ]; then
+    if [ "$doc_status" -eq 0 ] && [ "${doc_warnings:-0}" -eq 0 ]; then
         echo -e "${GREEN}PASS${NC} (0)"
         PASS=$((PASS + 1))
     else
@@ -358,10 +376,30 @@ update_baseline() {
     else
         cur_cov=$(ron_value "line_coverage_pct")
     fi
+    cur_cov=$(printf '%s\n' "$cur_cov" | round_coverage)
     if command -v npx &>/dev/null; then
         cur_clones=$(npx jscpd crates/ --pattern "**/*.rs" --min-tokens 50 --min-lines 5 --mode strict 2>&1 | grep -c "Clone found" 2>/dev/null || ron_value "jscpd_clone_count")
     else
         cur_clones=$(ron_value "jscpd_clone_count")
+    fi
+
+    local overrides
+    overrides=$(awk '
+        /^    "overrides": \{/ { in_overrides = 1 }
+        in_overrides && /^    "meta": \{/ { exit }
+        in_overrides { print }
+    ' "$BASELINE")
+    if [ -z "$overrides" ]; then
+        echo "Cannot update baseline: overrides block is missing." >&2
+        return 1
+    fi
+
+    local line_coverage_note
+    line_coverage_note=$(sed -n '/"line_coverage_pct=/p' "$BASELINE" | head -1)
+    if [ -n "$line_coverage_note" ]; then
+        line_coverage_note=$(printf '%s\n' "$line_coverage_note" | sed "s/line_coverage_pct=[^:]*:/line_coverage_pct=$cur_cov:/")
+    else
+        line_coverage_note="            \"line_coverage_pct=$cur_cov: workspace line coverage from cargo-llvm-cov\","
     fi
 
     cat > "$BASELINE" << RONEOF
@@ -402,23 +440,17 @@ update_baseline() {
         "nesting_depth": 12,
         "file_length_lines": 861,
     },
-    "overrides": {
-        // "unsafe_blocks_total": {
-        //     "value": 3,
-        //     "reason": "GPU buffer mapping requires unsafe for zero-copy",
-        //     "pr": "#NNN",
-        // },
-    },
+$overrides
     "meta": {
         "last_updated": "$today",
         "schema_version": 2,
         "notes": [
             "unsafe_blocks_total=$cur_unsafe: Send+Sync impls for cpal StreamHandle (FFI handle wrapper, soundness verified)",
             "expect_in_prod_total=92: counted across all crates, excludes tests/benches/particle_poc",
-            "test_count_total=$cur_test: all #[test] and #[tokio::test] across workspace (including tools/)",
+            "test_count_total=$cur_test: all #[test] and #[tokio::test] across engine workspace (crates/)",
             "smell_markers_total=$cur_smell: no TODO/FIXME/HACK in production code",
             "cyclomatic_over_10=$cur_cyclo: functions with McCabe cyclomatic complexity >10 (arborist-cli)",
-            "line_coverage_pct=$cur_cov: workspace line coverage from cargo-llvm-cov",
+${line_coverage_note}
             "jscpd_clone_count=$cur_clones: duplicate code clones detected by jscpd (min-tokens=50)",
         ],
     },
@@ -465,6 +497,7 @@ install_hooks() {
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 MODE="${1:-full}"
 
 cd "$PROJECT_ROOT"
@@ -520,4 +553,5 @@ elif [ "$WARN" -gt 0 ]; then
     echo "  git add docs/QUALITY_BASELINE.ron && git commit -m 'chore: ratchet quality baseline down'"
 else
     echo -e "${GREEN}═══ GATE PASSED: All dimensions at baseline ═══${NC}"
+fi
 fi
