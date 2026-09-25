@@ -30,6 +30,10 @@ use card_game::card::reader::{
     READER_COLLISION_FILTER, READER_COLLISION_GROUP, READER_HALF_EXTENTS, spawn_reader,
 };
 #[cfg(feature = "ui-test")]
+use card_game::card::rendering::art_shader::{
+    ConditionEffect, FOIL_WGSL, ShaderVariant, VariantShaders,
+};
+#[cfg(feature = "ui-test")]
 use card_game::card::screen_device::ScreenSignalShape;
 use card_game::card::screen_device::spawn_screen_device;
 #[cfg(feature = "ui-test")]
@@ -41,6 +45,8 @@ use card_game::stash::grid::StashGrid;
 use card_game::stash::hover::StashHoverPreview;
 #[cfg(feature = "ui-test")]
 use card_game::stash::toggle::StashVisible;
+#[cfg(feature = "ui-test")]
+use engine_render::shape::MeshOverlays;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 
@@ -96,6 +102,24 @@ struct UiTestCableParams<'w, 's> {
             &'static Visible,
         ),
     >,
+}
+
+#[cfg(feature = "ui-test")]
+#[derive(SystemParam)]
+struct UiTestRenderingParams<'w, 's> {
+    cards: Query<
+        'w,
+        's,
+        (
+            Entity,
+            &'static Card,
+            &'static CardZone,
+            &'static Transform2D,
+            Option<&'static MeshOverlays>,
+        ),
+    >,
+    variant_shaders: Res<'w, VariantShaders>,
+    shader_registry: Res<'w, ShaderRegistry>,
 }
 
 #[cfg(feature = "ui-test")]
@@ -243,9 +267,16 @@ fn spawn_scene(world: &mut World) {
     }
     #[cfg(feature = "ui-test")]
     {
-        let ui_test_card_index = usize::from(UI_TEST_SCENARIO.get().is_some_and(|scenario| {
-            scenario == "seeded-card-identity" || scenario == "seeded-card-art-face"
-        }));
+        let ui_test_card_index = if UI_TEST_SCENARIO
+            .get()
+            .is_some_and(|scenario| scenario == "seeded-card-shader-variant")
+        {
+            4
+        } else {
+            usize::from(UI_TEST_SCENARIO.get().is_some_and(|scenario| {
+                scenario == "seeded-card-identity" || scenario == "seeded-card-art-face"
+            }))
+        };
         UI_TEST_CARD_ENTITY
             .set(card_entities[ui_test_card_index])
             .expect("UI test card can only be configured once");
@@ -423,18 +454,21 @@ fn record_ui_test_state(
     stash_visible: Res<StashVisible>,
     art_repository: Res<ShapeRepository>,
     booster_opening: Option<Res<BoosterOpening>>,
-    cards: Query<(Entity, &Card, &CardZone, &Transform2D)>,
     card_labels: Query<&CardLabel>,
     booster_packs: Query<(Entity, &BoosterPack, &Transform2D)>,
     readers: Query<&CardReader>,
     reader_jacks: Query<&Jack<SignatureSpace>>,
     combiners: Query<&CombinerDevice>,
     sockets: Query<&JackSocket>,
+    rendering: UiTestRenderingParams,
 ) {
     let Some(card_entity) = UI_TEST_CARD_ENTITY.get() else {
         return;
     };
-    let Ok((entity, card, zone, transform)) = cards.get(*card_entity) else {
+    let cards = &rendering.cards;
+    let variant_shaders = &rendering.variant_shaders;
+    let shader_registry = &rendering.shader_registry;
+    let Ok((entity, card, zone, transform, overlays)) = cards.get(*card_entity) else {
         return;
     };
 
@@ -443,23 +477,24 @@ fn record_ui_test_state(
         .and_then(|second_entity| cards.get(*second_entity).ok());
     let second_dragging = second_card
         .as_ref()
-        .is_some_and(|(second_entity, _, _, _)| {
+        .is_some_and(|(second_entity, _, _, _, _)| {
             drag_state
                 .dragging
                 .as_ref()
                 .is_some_and(|drag| drag.entity == *second_entity)
         });
-    let second_zone = second_card
-        .as_ref()
-        .map_or_else(|| "none".to_owned(), |(_, _, zone, _)| format!("{zone:?}"));
+    let second_zone = second_card.as_ref().map_or_else(
+        || "none".to_owned(),
+        |(_, _, zone, _, _)| format!("{zone:?}"),
+    );
     let (second_rendered_x, second_rendered_y) = second_card
         .as_ref()
-        .map_or((0.0, 0.0), |(_, _, _, transform)| {
+        .map_or((0.0, 0.0), |(_, _, _, transform, _)| {
             (transform.position.x, transform.position.y)
         });
     let second_reader_loaded = second_card
         .as_ref()
-        .is_some_and(|(second_entity, _, _, _)| {
+        .is_some_and(|(second_entity, _, _, _, _)| {
             readers
                 .iter()
                 .any(|reader| reader.loaded == Some(*second_entity))
@@ -623,9 +658,11 @@ fn record_ui_test_state(
     let combiner_output_contains_primary =
         combiner_output_space.is_some_and(|space| space.contains(&card.signature));
     let combiner_output_contains_secondary =
-        second_card.as_ref().is_some_and(|(_, second_card, _, _)| {
-            combiner_output_space.is_some_and(|space| space.contains(&second_card.signature))
-        });
+        second_card
+            .as_ref()
+            .is_some_and(|(_, second_card, _, _, _)| {
+                combiner_output_space.is_some_and(|space| space.contains(&second_card.signature))
+            });
     let combiner_input_a_source_count =
         combiner_input_a_space.map_or(0, |space| space.source_cards.len());
     let combiner_input_b_source_count =
@@ -702,7 +739,7 @@ fn record_ui_test_state(
     let second_identity_signature =
         second_card
             .as_ref()
-            .map_or_else(String::new, |(_, card, _, _)| {
+            .map_or_else(String::new, |(_, card, _, _, _)| {
                 card.signature
                     .axes()
                     .iter()
@@ -747,23 +784,26 @@ fn record_ui_test_state(
         });
     let expected_signature = UI_TEST_BOOSTER_SIGNATURE.get().copied();
     let opened_card = expected_signature.and_then(|signature| {
-        cards.iter().find(|(candidate, candidate_card, _, _)| {
+        cards.iter().find(|(candidate, candidate_card, _, _, _)| {
             *candidate != entity && candidate_card.signature == signature
         })
     });
     let opened_card_present = opened_card.is_some();
-    let opened_card_zone = opened_card
+    let opened_card_zone = opened_card.as_ref().map_or_else(
+        || "none".to_owned(),
+        |(_, _, zone, _, _)| format!("{zone:?}"),
+    );
+    let opened_card_seed = opened_card
         .as_ref()
-        .map_or_else(|| "none".to_owned(), |(_, _, zone, _)| format!("{zone:?}"));
-    let opened_card_seed = opened_card.as_ref().map_or(0, |(_, candidate_card, _, _)| {
-        compute_seed(&candidate_card.signature)
-    });
+        .map_or(0, |(_, candidate_card, _, _, _)| {
+            compute_seed(&candidate_card.signature)
+        });
     let opened_card_face_up = opened_card
         .as_ref()
-        .is_some_and(|(_, candidate_card, _, _)| candidate_card.face_up);
+        .is_some_and(|(_, candidate_card, _, _, _)| candidate_card.face_up);
     let (opened_card_x, opened_card_y) = opened_card
         .as_ref()
-        .map_or((0.0, 0.0), |(_, _, _, transform)| {
+        .map_or((0.0, 0.0), |(_, _, _, transform, _)| {
             (transform.position.x, transform.position.y)
         });
     let opening_phase = booster_opening
@@ -792,6 +832,36 @@ fn record_ui_test_state(
         |opening| opening.cards.len(),
     );
     let expected_card_seed = expected_signature.map_or(0, |signature| compute_seed(&signature));
+    let shader_variant = ShaderVariant::from_rarity(card.signature.rarity());
+    let condition_effect = ConditionEffect::from_tier(card.signature.card_tier());
+    let expected_variant_shader = match shader_variant {
+        ShaderVariant::None => None,
+        ShaderVariant::Embossed => Some(variant_shaders.embossed),
+        ShaderVariant::Glow => Some(variant_shaders.glow),
+        ShaderVariant::Glossy => Some(variant_shaders.glossy),
+        ShaderVariant::Foil => Some(variant_shaders.foil),
+    };
+    let variant_overlay = expected_variant_shader.and_then(|expected| {
+        overlays.and_then(|mesh_overlays| {
+            mesh_overlays
+                .0
+                .iter()
+                .find(|entry| entry.material.shader == expected)
+        })
+    });
+    let variant_shader_source_length = expected_variant_shader
+        .and_then(|shader| shader_registry.lookup(shader))
+        .map_or(0, str::len);
+    let variant_shader_source_matches = expected_variant_shader
+        .is_some_and(|shader| shader_registry.lookup(shader) == Some(FOIL_WGSL));
+    let variant_overlay_present = variant_overlay.is_some();
+    let variant_overlay_visible = variant_overlay.is_some_and(|entry| entry.visible);
+    let variant_overlay_handle = variant_overlay.map_or(0, |entry| entry.material.shader.0);
+    let variant_overlay_handle_matches = expected_variant_shader.is_none()
+        || variant_overlay
+            .is_some_and(|entry| Some(entry.material.shader) == expected_variant_shader);
+    let variant_overlay_vertex_count = variant_overlay.map_or(0, |entry| entry.mesh.vertices.len());
+    let overlay_count = overlays.map_or(0, |mesh_overlays| mesh_overlays.0.len());
     let mouse_position = mouse.screen_pos();
     let scenario = UI_TEST_SCENARIO
         .get()
@@ -813,6 +883,9 @@ fn record_ui_test_state(
         zone_config.has_physics,
         zone_config.render_layer,
         zone_config.has_item_form
+    );
+    let snapshot = format!(
+        "{snapshot}shader_variant={shader_variant:?}\ncondition_effect={condition_effect:?}\nvariant_shader_source_length={variant_shader_source_length}\nvariant_shader_source_matches={variant_shader_source_matches}\nvariant_overlay_present={variant_overlay_present}\nvariant_overlay_visible={variant_overlay_visible}\nvariant_overlay_handle={variant_overlay_handle}\nvariant_overlay_handle_matches={variant_overlay_handle_matches}\nvariant_overlay_vertex_count={variant_overlay_vertex_count}\noverlay_count={overlay_count}\n"
     );
     let snapshot = format!(
         "{snapshot}pending_cable_dragging={}\ncable_present={cable_present}\ncable_connected={cable_connected}\ncable_anchor_count={cable_anchor_count}\ncable_anchor_0_x={:.1}\ncable_anchor_0_y={:.1}\ncable_source_x={:.1}\ncable_source_y={:.1}\ncable_dest_x={:.1}\ncable_dest_y={:.1}\ncable_rendered_source_x={:.1}\ncable_rendered_source_y={:.1}\ncable_rendered_anchor_x={:.1}\ncable_rendered_anchor_y={:.1}\ncable_rendered_dest_x={:.1}\ncable_rendered_dest_y={:.1}\ncable_rendered_max_deviation={:.1}\ncable_rendered_min_x={:.1}\ncable_rendered_min_y={:.1}\ncable_rendered_max_x={:.1}\ncable_rendered_max_y={:.1}\ncable_rendered_vertex_count={}\n",

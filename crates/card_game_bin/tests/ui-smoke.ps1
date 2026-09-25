@@ -11,7 +11,8 @@ param(
     [switch]$StashRoundTrip,
     [switch]$BoosterOpening,
     [switch]$IdentitySignature,
-    [switch]$ArtFace
+    [switch]$ArtFace,
+    [switch]$ShaderVariant
 )
 
 $ErrorActionPreference = 'Stop'
@@ -36,10 +37,11 @@ if (-not $RunnerChild) {
         $StashRoundTrip,
         $BoosterOpening,
         $IdentitySignature,
-        $ArtFace
+        $ArtFace,
+        $ShaderVariant
     )
     if (@($scenarioFlags | Where-Object { $_ }).Count -gt 1) {
-        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, CableWrapping, ScreenSpline, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
+        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, CableWrapping, ScreenSpline, StashRoundTrip, BoosterOpening, IdentitySignature, ArtFace, and ShaderVariant are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -92,6 +94,9 @@ if (-not $RunnerChild) {
         }
         if ($ArtFace) {
             $runnerArguments += '-ArtFace'
+        }
+        if ($ShaderVariant) {
+            $runnerArguments += '-ShaderVariant'
         }
         $runnerProcess = Start-Process -FilePath (Get-Process -Id $PID).Path `
             -ArgumentList $runnerArguments `
@@ -162,6 +167,7 @@ $boosterOpeningFramePath = Join-Path $artifactDir 'booster-opening.bmp'
 $boosterOpenedFramePath = Join-Path $artifactDir 'booster-opened.bmp'
 $identityFramePath = Join-Path $artifactDir 'identity.bmp'
 $artFaceFramePath = Join-Path $artifactDir 'art-face.bmp'
+$shaderVariantFramePath = Join-Path $artifactDir 'shader-variant.bmp'
 $failureFramePath = Join-Path $artifactDir 'failure.bmp'
 $frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
 $scenarioName = if ($Interaction) {
@@ -196,6 +202,9 @@ elseif ($IdentitySignature) {
 }
 elseif ($ArtFace) {
     'seeded-card-art-face'
+}
+elseif ($ShaderVariant) {
+    'seeded-card-shader-variant'
 }
 else {
     'seeded-card-drag'
@@ -966,7 +975,15 @@ public static class AxiomUiSmokeNative
     [AxiomUiSmokeNative]::PlaceBehindWithoutActivation($windowHandle)
 
     $stage = 'seeded-state'
-    $cardWorldX = if ($IdentitySignature -or $ArtFace) { -80.0 } else { -160.0 }
+    $cardWorldX = if ($IdentitySignature -or $ArtFace) {
+        -80.0
+    }
+    elseif ($ShaderVariant) {
+        160.0
+    }
+    else {
+        -160.0
+    }
     $cardWorldY = 130.0
     $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
         -Stage $stage -TimeoutSeconds 30 -ExpectedState "dragging=false, zone=Table, rendered=($cardWorldX,$cardWorldY) tolerance=1" -Predicate {
@@ -1139,6 +1156,82 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
             "cursor_before_postmessagew=$identityNoInput"
             "last_input_tick_before_postmessagew=$identityNoInput"
         ) | Add-Content -LiteralPath $inputFile
+    }
+    elseif ($ShaderVariant) {
+        $expectedShaderVariant = 'Foil'
+        $expectedConditionEffect = 'Worn'
+        $stage = 'verify-shader-variant-state'
+        $shaderVariantState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'face_up=true, identity_rarity=Legendary, identity_tier=Dormant, shader_variant=Foil, condition_effect=Worn, attached variant overlay' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['face_up'] -eq 'true' -and
+            $state['identity_rarity'] -eq 'Legendary' -and
+            $state['identity_tier'] -eq 'Dormant' -and
+            $state['shader_variant'] -eq $expectedShaderVariant -and
+            $state['condition_effect'] -eq $expectedConditionEffect -and
+            $state['variant_shader_source_matches'] -eq 'true' -and
+            [int]::Parse($state['variant_shader_source_length']) -gt 0 -and
+            $state['variant_overlay_present'] -eq 'true' -and
+            $state['variant_overlay_visible'] -eq 'true' -and
+            $state['variant_overlay_handle_matches'] -eq 'true' -and
+            [int]::Parse($state['variant_overlay_vertex_count']) -gt 4 -and
+            (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 1)
+        }
+        $shaderVariantState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'shader-variant-state.txt')
+
+        $stage = 'capture-shader-variant-frame'
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $shaderVariantFramePath -Stage $stage -TimeoutSeconds 10
+        $shaderVariantFrame = Read-UiSmokeBitmap -Path $shaderVariantFramePath
+        $shaderVariantBaselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        if ($shaderVariantBaselineFrame.Width -ne $shaderVariantFrame.Width -or
+            $shaderVariantBaselineFrame.Height -ne $shaderVariantFrame.Height) {
+            throw "shader variant baseline frame size $($shaderVariantBaselineFrame.Width)x$($shaderVariantBaselineFrame.Height) does not match variant frame $($shaderVariantFrame.Width)x$($shaderVariantFrame.Height)"
+        }
+        $shaderVariantTemplate = New-UiSmokeCardTemplate -Frame $shaderVariantBaselineFrame `
+            -CenterX $startClientX -CenterY $startClientY
+        $shaderVariantTemplateMatch = Find-UiSmokeCardTemplate -Frame $shaderVariantFrame `
+            -Template $shaderVariantTemplate -ExpectedCenterX $startClientX -ExpectedCenterY $startClientY `
+            -SearchRadius 8 -RgbDeltaMaximum 32
+        $minimumShaderVariantMatchPixels = [int][Math]::Ceiling($shaderVariantTemplate.PixelCount * 90 / 100.0)
+        $shaderVariantEvidence = Get-UiSmokeArtRegionEvidence -Frame $shaderVariantFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 55 -HalfHeight 70
+        $minimumShaderVariantUniqueColors = 100
+        $minimumShaderVariantNonBackgroundPixels = 500
+        @(
+            "frame_size=$($shaderVariantFrame.Width)x$($shaderVariantFrame.Height)"
+            "shader_variant=$($shaderVariantState['shader_variant'])"
+            "condition_effect=$($shaderVariantState['condition_effect'])"
+            "variant_shader_source_length=$($shaderVariantState['variant_shader_source_length'])"
+            "variant_shader_source_matches=$($shaderVariantState['variant_shader_source_matches'])"
+            "variant_overlay_handle=$($shaderVariantState['variant_overlay_handle'])"
+            "variant_overlay_vertex_count=$($shaderVariantState['variant_overlay_vertex_count'])"
+            "overlay_count=$($shaderVariantState['overlay_count'])"
+            "card_template_match=$($shaderVariantTemplateMatch.MatchedPixels)/$($shaderVariantTemplateMatch.PixelCount)"
+            "card_template_minimum_match=$minimumShaderVariantMatchPixels"
+            "card_template_offset=$($shaderVariantTemplateMatch.OffsetX),$($shaderVariantTemplateMatch.OffsetY)"
+            "variant_region_unique_rgb_colors=$($shaderVariantEvidence.UniqueColors)"
+            "variant_region_non_background_pixels=$($shaderVariantEvidence.NonBackgroundPixels)/$($shaderVariantEvidence.PixelCount)"
+            "variant_region_minimum_unique_rgb_colors=$minimumShaderVariantUniqueColors"
+            "variant_region_minimum_non_background_pixels=$minimumShaderVariantNonBackgroundPixels"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'shader-variant-visual.txt')
+        if ($shaderVariantTemplateMatch.MatchedPixels -lt $minimumShaderVariantMatchPixels) {
+            throw "shader variant frame did not retain the selected card: match=$($shaderVariantTemplateMatch.MatchedPixels)/$($shaderVariantTemplateMatch.PixelCount), required>=$minimumShaderVariantMatchPixels"
+        }
+        if ($shaderVariantEvidence.UniqueColors -lt $minimumShaderVariantUniqueColors -or
+            $shaderVariantEvidence.NonBackgroundPixels -lt $minimumShaderVariantNonBackgroundPixels) {
+            throw "shader variant frame did not show a non-blank rendered region: unique_colors=$($shaderVariantEvidence.UniqueColors) required>=$minimumShaderVariantUniqueColors, non_background_pixels=$($shaderVariantEvidence.NonBackgroundPixels) required>=$minimumShaderVariantNonBackgroundPixels"
+        }
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $cursorStability = 'not_applicable_no_input'
+        $succeeded = $true
     }
     if ($foregroundAtPreparation.Handle -eq $windowHandle) {
         throw "game window became foreground during preparation (hwnd=$windowHandle pid=$($process.Id))"
@@ -2498,7 +2591,7 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
         }
         $succeeded = $true
     }
-    elseif (-not $IdentitySignature -and -not $ArtFace) {
+    elseif (-not $IdentitySignature -and -not $ArtFace -and -not $ShaderVariant) {
     $stage = 'hover-card'
     $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
     if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
@@ -3233,7 +3326,18 @@ if (-not $succeeded) {
     exit 1
 }
 
-if ($ArtFace) {
+if ($ShaderVariant) {
+    Write-Output ("UI shader variant scenario passed: position=({0},{1}), variant_state={2}, variant_frame={3}, visual_evidence={4}" -f `
+        $shaderVariantState['rendered_x'], $shaderVariantState['rendered_y'], `
+        (Join-Path $artifactDir 'shader-variant-state.txt'), $shaderVariantFramePath, `
+        (Join-Path $artifactDir 'shader-variant-visual.txt'))
+    Write-Output ("Shader variant observed: rarity={0}, tier={1}, variant={2}, condition={3}, overlay_handle={4}, vertices={5}, region_colors={6}, region_non_background={7}/{8}" -f `
+        $shaderVariantState['identity_rarity'], $shaderVariantState['identity_tier'], `
+        $shaderVariantState['shader_variant'], $shaderVariantState['condition_effect'], `
+        $shaderVariantState['variant_overlay_handle'], $shaderVariantState['variant_overlay_vertex_count'], `
+        $shaderVariantEvidence.UniqueColors, $shaderVariantEvidence.NonBackgroundPixels, $shaderVariantEvidence.PixelCount)
+}
+elseif ($ArtFace) {
     Write-Output ("UI art-face scenario passed: position=({0},{1}), art_state={2}, art_frame={3}, visual_evidence={4}" -f `
         $artFaceState['rendered_x'], $artFaceState['rendered_y'], `
         (Join-Path $artifactDir 'art-face-state.txt'), $artFaceFramePath, `
@@ -3331,7 +3435,7 @@ elseif ($HandRoundTrip) {
         $handState['hand_contains'], $handState['hand_count'], $handLayoutChanges.ChangedPixels, `
         $returnedHandChanges.ChangedPixels, $returnedTableChanges.ChangedPixels)
 }
-elseif (-not $IdentitySignature -and -not $Interaction) {
+elseif (-not $IdentitySignature -and -not $Interaction -and -not $ShaderVariant) {
     Write-Output ("UI smoke passed: scenario=$scenarioName rendered=({0},{1}) frame={2}" -f `
         $dragState['rendered_x'], $dragState['rendered_y'], $framePath)
     Write-Output ("Visual move verified: source_changed={0} target_changed={1} pixels (minimum 500 at RGB delta 24); baseline={2}" -f `
@@ -3347,8 +3451,16 @@ else {
     Write-Output ("Interaction verified: spin_rotation={0}, moved_pixels=source:{1} target:{2}, flip_changed={3} (minimum 500 at RGB delta 24)" -f `
         $spinState['rotation'], $sourceChanges.ChangedPixels, $targetChanges.ChangedPixels, $flipChanges.ChangedPixels)
 }
-if ($IdentitySignature -or $ArtFace) {
-    $diagnosticMode = if ($ArtFace) { 'art-face-no-postmessagew' } else { 'identity-no-postmessagew' }
+if ($IdentitySignature -or $ArtFace -or $ShaderVariant) {
+    $diagnosticMode = if ($ArtFace) {
+        'art-face-no-postmessagew'
+    }
+    elseif ($ShaderVariant) {
+        'shader-variant-no-postmessagew'
+    }
+    else {
+        'identity-no-postmessagew'
+    }
     Write-Output ("Input diagnostics: mode=$diagnosticMode, before-PostMessageW=$identityNoInput, before-PostMessageW-pid=$identityNoInput, cursor-before-PostMessageW=$identityNoInput, last-input-tick-before-PostMessageW=$identityNoInput, cursor-stability=$cursorStability")
 }
 else {

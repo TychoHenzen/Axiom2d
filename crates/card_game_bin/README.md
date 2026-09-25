@@ -95,3 +95,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 ```
 
 This mode verifies the deterministic selected art entry and hydrated shape count, then retains `art-face-state.txt`, `art-face.bmp`, and `art-face-visual.txt` with the focused card-art region evidence under `target/ui-smoke-*`.
+
+Run the seeded card shader-variant scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -ShaderVariant
+```
+
+This mode selects the deterministic Legendary/Dormant fixture, verifies the attached Foil variant overlay and registered shader source, then retains `shader-variant-state.txt`, `shader-variant.bmp`, and `shader-variant-visual.txt` with card-template and non-blank frame evidence under `target/ui-smoke-*`.
