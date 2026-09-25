@@ -1,8 +1,17 @@
 mod card_data;
 
+#[cfg(feature = "ui-test")]
+use std::path::PathBuf;
+#[cfg(feature = "ui-test")]
+use std::sync::OnceLock;
+
 use axiom2d::prelude::*;
 use card_game::card::art::ShapeRepository;
 use card_game::card::combiner_device::spawn_combiner_device;
+#[cfg(feature = "ui-test")]
+use card_game::card::component::{Card, CardZone};
+#[cfg(feature = "ui-test")]
+use card_game::card::interaction::drag_state::DragState;
 use card_game::card::reader::{
     READER_COLLISION_FILTER, READER_COLLISION_GROUP, READER_HALF_EXTENTS, spawn_reader,
 };
@@ -17,6 +26,9 @@ const TABLE_COLOR: Color = Color {
     b: 0.2,
     a: 1.0,
 };
+
+#[cfg(feature = "ui-test")]
+static UI_TEST_STATE_FILE: OnceLock<PathBuf> = OnceLock::new();
 
 fn hydrate_shape_repository_system(world: &mut World) {
     let mut repo = ShapeRepository::new();
@@ -124,6 +136,18 @@ fn setup(app: &mut App) {
     app.add_plugin(DefaultPlugins);
     app.add_plugin(CardGamePlugin);
 
+    #[cfg(feature = "ui-test")]
+    {
+        let state_file = std::env::var_os("AXIOM_UI_TEST_STATE_FILE").map_or_else(
+            || panic!("AXIOM_UI_TEST_STATE_FILE must be set with ui-test"),
+            PathBuf::from,
+        );
+        UI_TEST_STATE_FILE
+            .set(state_file)
+            .expect("UI test state file can only be configured once");
+        app.add_systems(Phase::PostRender, record_ui_test_state);
+    }
+
     app.set_window_config(WindowConfig {
         title: "Card Game",
         width: 1024,
@@ -139,6 +163,35 @@ fn setup(app: &mut App) {
         let hooks = &mut *app.world_mut().resource_mut::<PreloadHooks>();
         hooks.add_systems((hydrate_shape_repository_system, warm_up_physics_system).chain());
     }
+}
+
+#[cfg(feature = "ui-test")]
+fn record_ui_test_state(
+    drag_state: Res<DragState>,
+    mouse: Res<MouseState>,
+    cards: Query<(Entity, &Card, &CardZone, &Transform2D)>,
+) {
+    let Some((entity, _, zone, transform)) = cards.iter().find(|(_, card, _, _)| !card.face_up)
+    else {
+        return;
+    };
+
+    let dragging = drag_state
+        .dragging
+        .is_some_and(|drag| drag.entity == entity);
+    let mouse_position = mouse.screen_pos();
+    let snapshot = format!(
+        "scenario=seeded-card-drag\ndragging={dragging}\nzone={zone:?}\nrendered_x={:.1}\nrendered_y={:.1}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\n",
+        transform.position.x,
+        transform.position.y,
+        mouse_position.x,
+        mouse_position.y,
+        mouse.pressed(MouseButton::Left)
+    );
+    let state_file = UI_TEST_STATE_FILE
+        .get()
+        .expect("UI test state file must be configured before the app runs");
+    std::fs::write(state_file, &snapshot).expect("failed to write UI test state snapshot");
 }
 
 fn main() {

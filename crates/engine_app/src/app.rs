@@ -294,7 +294,8 @@ impl ApplicationHandler for App {
                 f64::from(self.window_config.height),
             ))
             .with_resizable(self.window_config.resizable)
-            .with_visible(false);
+            .with_visible(false)
+            .with_active(std::env::var_os("AXIOM_UI_TEST_STATE_FILE").is_none());
         // INVARIANT: create_window() only fails if the OS cannot allocate a
         // window (out of resources, no display). No recovery is possible.
         let window = Arc::new(

@@ -3,6 +3,9 @@ name = "card_game_bin"
 edition.workspace = true
 version.workspace = true
 
+[features]
+ui-test = []
+
 [lints]
 workspace = true
 

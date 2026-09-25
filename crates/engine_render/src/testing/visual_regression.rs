@@ -14,7 +14,7 @@ use crate::shader::ShaderHandle;
 use crate::wgpu_renderer::{
     Instance, QUAD_INDICES, QUAD_VERTICES, QuadVertex, SHADER_SRC, SHAPE_SHADER_SRC, ShapeBatch,
     ShapeVertex, TextureData, blend_mode_to_blend_state, compute_batch_ranges,
-    create_texture_bind_group, rect_to_instance,
+    copy_texture_to_staging, create_texture_bind_group, rect_to_instance,
 };
 
 const HEADLESS_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
@@ -480,35 +480,6 @@ impl HeadlessRenderer {
         pixels
     }
 
-    fn copy_texture_to_staging(
-        &self,
-        encoder: &mut wgpu::CommandEncoder,
-        staging: &wgpu::Buffer,
-        padded_row: u32,
-    ) {
-        encoder.copy_texture_to_buffer(
-            wgpu::TexelCopyTextureInfo {
-                texture: &self.output_texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            wgpu::TexelCopyBufferInfo {
-                buffer: staging,
-                layout: wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(padded_row),
-                    rows_per_image: Some(self.height),
-                },
-            },
-            wgpu::Extent3d {
-                width: self.width,
-                height: self.height,
-                depth_or_array_layers: 1,
-            },
-        );
-    }
-
     fn read_back_pixels(&self, mut encoder: wgpu::CommandEncoder) -> Vec<u8> {
         let padded_row = padded_row_bytes(self.width, 4);
         let buffer_size = wgpu::BufferAddress::from(padded_row * self.height);
@@ -519,7 +490,14 @@ impl HeadlessRenderer {
             mapped_at_creation: false,
         });
 
-        self.copy_texture_to_staging(&mut encoder, &staging, padded_row);
+        copy_texture_to_staging(
+            &mut encoder,
+            &self.output_texture,
+            &staging,
+            self.width,
+            self.height,
+            padded_row,
+        );
         self.queue.submit(Some(encoder.finish()));
 
         let slice = staging.slice(..);
