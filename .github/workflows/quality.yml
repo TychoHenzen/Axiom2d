@@ -84,8 +84,15 @@ jobs:
         id: extract
         run: |
           mkdir -p quality/coverage
-          cargo llvm-cov --workspace --locked --lcov --output-path quality/coverage/lcov.info
-          cargo llvm-cov --workspace --locked --summary-only --no-run 2>&1 | tee coverage.log
+          set +e
+          cargo llvm-cov --workspace --locked -- --test-threads=1 2>&1 | tee coverage.log
+          coverage_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$coverage_status" -ne 0 ]; then
+            echo "::error title=Coverage Tests Failed::cargo llvm-cov exited with status ${coverage_status}" >&2
+            exit "$coverage_status"
+          fi
+          cargo llvm-cov report --workspace --locked --lcov --output-path quality/coverage/lcov.info
           if ! COV_PCT=$(awk '
             $1 == "TOTAL" {
               coverage = $10
