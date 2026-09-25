@@ -1536,7 +1536,7 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
     }
     elseif ($TerrainInteraction) {
         $terrainWorldX = -300.0
-        $terrainWorldY = -250.0
+        $terrainWorldY = -270.0
         $terrainClientX = [int][Math]::Round($client.Width / 2.0 + $terrainWorldX)
         $terrainClientY = [int][Math]::Round($client.Height / 2.0 + $terrainWorldY)
         @(

@@ -290,9 +290,9 @@ fn terrain_test_grid() -> DualGrid {
 
 #[cfg(feature = "ui-test")]
 fn spawn_terrain_test_fixture(world: &mut World) {
-    if !UI_TEST_SCENARIO
+    if UI_TEST_SCENARIO
         .get()
-        .is_some_and(|scenario| scenario == UI_TEST_TERRAIN_SCENARIO)
+        .is_none_or(|scenario| scenario != UI_TEST_TERRAIN_SCENARIO)
     {
         return;
     }
