@@ -24,6 +24,7 @@ if (-not $RunnerChild) {
         ($Interaction -and $StashRoundTrip) -or
         ($Interaction -and $BoosterOpening) -or
         ($Interaction -and $IdentitySignature) -or
+        ($Interaction -and $ArtFace) -or
         ($HandRoundTrip -and $StashRoundTrip) -or
         ($HandRoundTrip -and $BoosterOpening) -or
         ($HandRoundTrip -and $IdentitySignature) -or
