@@ -13,7 +13,7 @@ bytemuck = { version = "1.21", features = ["derive"] }
 glam = { version = "0.30", features = ["serde"] }
 pollster = "0.4"
 thiserror = "2.0"
-guillotiere = "0.6"
+guillotiere = "0.7"
 image = { version = "0.25", default-features = false, features = ["png"] }
 wgpu = { version = "24", default-features = false, features = ["dx12", "wgsl"] }
 winit = "0.30"
