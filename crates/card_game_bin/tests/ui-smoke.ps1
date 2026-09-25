@@ -93,6 +93,12 @@ function Stop-NewRunnerGames {
         }
         Start-Sleep -Milliseconds 100
     } while ($watch.Elapsed.TotalSeconds -lt 5)
+
+    $remainingGames = @(Get-Process -Name card_game_bin -ErrorAction SilentlyContinue |
+        Where-Object { $ExistingProcessIds -notcontains $_.Id })
+    if ($remainingGames.Count -gt 0) {
+        throw "new card_game_bin process(es) remained after 5 seconds: $($remainingGames.Id -join ', ')"
+    }
 }
 
 function Read-RunnerLog {
@@ -152,8 +158,9 @@ if (-not $RunnerChild) {
     $runnerPidPath = Join-Path $artifactDir 'runner.pid.txt'
     $runnerTimeoutPath = Join-Path $artifactDir 'runner.timeout.txt'
     $runnerSupervisionErrorPath = Join-Path $artifactDir 'runner.supervision.error.txt'
+    $runnerCleanupErrorPath = Join-Path $artifactDir 'runner.cleanup.error.txt'
     $utf8WithoutBom = [System.Text.UTF8Encoding]::new($false)
-    foreach ($stalePath in @($runnerTerminalPath, $runnerPidPath, $runnerTimeoutPath, $runnerSupervisionErrorPath)) {
+    foreach ($stalePath in @($runnerTerminalPath, $runnerPidPath, $runnerTimeoutPath, $runnerSupervisionErrorPath, $runnerCleanupErrorPath)) {
         if (Test-Path -LiteralPath $stalePath) {
             Remove-Item -LiteralPath $stalePath -Force
         }
@@ -257,7 +264,6 @@ if (-not $RunnerChild) {
                 $runnerFailure = "runner timed out after ${RunnerTimeoutSeconds}s"
                 [System.IO.File]::WriteAllText($runnerTimeoutPath, "$runnerFailure`r`n", $utf8WithoutBom)
                 Stop-RunnerProcessTree -Process $runnerProcess
-                Stop-NewRunnerGames -ExistingProcessIds $existingGameProcessIds
                 break
             }
             if ($null -ne $terminalObservedAt -and
@@ -266,7 +272,6 @@ if (-not $RunnerChild) {
                 $runnerFailure = 'runner wrote a terminal marker but did not exit within 10 seconds'
                 [System.IO.File]::WriteAllText($runnerTimeoutPath, "$runnerFailure`r`n", $utf8WithoutBom)
                 Stop-RunnerProcessTree -Process $runnerProcess
-                Stop-NewRunnerGames -ExistingProcessIds $existingGameProcessIds
                 break
             }
             Start-Sleep -Milliseconds 200
@@ -278,12 +283,31 @@ if (-not $RunnerChild) {
         if ($null -ne $runnerProcess) {
             try { Stop-RunnerProcessTree -Process $runnerProcess } catch { }
         }
-        Stop-NewRunnerGames -ExistingProcessIds $existingGameProcessIds
         try {
             Write-RunnerTerminal -Path $runnerTerminalPath -Scenario 'runner' -Stage 'supervision' `
                 -ExitCode $runnerExitCode -Outcome 'wrapper-failure' -Message $runnerFailure
         }
         catch { }
+    }
+    finally {
+        try {
+            Stop-NewRunnerGames -ExistingProcessIds $existingGameProcessIds
+        }
+        catch {
+            $cleanupFailure = "runner game cleanup failed: $($_.Exception.Message)"
+            try {
+                [System.IO.File]::WriteAllText($runnerCleanupErrorPath, "$cleanupFailure`r`n", $utf8WithoutBom)
+            }
+            catch {
+                [Console]::Error.WriteLine("UI smoke cleanup evidence write failed: $($_.Exception.Message)")
+            }
+            if ($null -eq $runnerFailure) {
+                $runnerFailure = $cleanupFailure
+            }
+            else {
+                $runnerFailure = "$runnerFailure; $cleanupFailure"
+            }
+        }
     }
 
     if ($null -ne $runnerFailure) {
@@ -302,6 +326,12 @@ if (-not $RunnerChild) {
     if ($null -eq $runnerExitCode) {
         $terminalExitCode = Read-RunnerTerminalExitCode -Path $runnerTerminalPath
         $runnerExitCode = if ($null -eq $terminalExitCode) { 1 } else { $terminalExitCode }
+    }
+    else {
+        $terminalExitCode = Read-RunnerTerminalExitCode -Path $runnerTerminalPath
+        if ($runnerExitCode -eq 0 -and $null -ne $terminalExitCode) {
+            $runnerExitCode = $terminalExitCode
+        }
     }
     [System.IO.File]::WriteAllText(
         (Join-Path $artifactDir 'runner.supervision.txt'),
