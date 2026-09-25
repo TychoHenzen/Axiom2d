@@ -32,6 +32,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 
 This mode retains holder/table state and frame evidence, including hand occupancy, per-zone physics/render-layer/item-form configuration, and the stable table return.
 
+Run the reader insertion and ejection scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -ReaderRoundTrip
+```
+
+This mode verifies reader occupancy, signature-space propagation, lit/dim reader feedback, ejection, and the returned table card with retained state/frame evidence under `target/ui-smoke-*`.
+
 Run the stash round-trip scenario, storing the seeded card, switching pages, previewing the stash slot during a drag, and retrieving it:
 
 ```powershell

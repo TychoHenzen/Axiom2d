@@ -16,6 +16,10 @@ use card_game::card::combiner_device::spawn_combiner_device;
 use card_game::card::component::{Card, CardLabel, CardZone};
 #[cfg(feature = "ui-test")]
 use card_game::card::interaction::drag_state::DragState;
+#[cfg(feature = "ui-test")]
+use card_game::card::jack_cable::Jack;
+#[cfg(feature = "ui-test")]
+use card_game::card::reader::{CardReader, SignatureSpace};
 use card_game::card::reader::{
     READER_COLLISION_FILTER, READER_COLLISION_GROUP, READER_HALF_EXTENTS, spawn_reader,
 };
@@ -242,6 +246,8 @@ fn record_ui_test_state(
     cards: Query<(Entity, &Card, &CardZone, &Transform2D)>,
     card_labels: Query<&CardLabel>,
     booster_packs: Query<(Entity, &BoosterPack, &Transform2D)>,
+    readers: Query<&CardReader>,
+    reader_jacks: Query<&Jack<SignatureSpace>>,
 ) {
     let Some(card_entity) = UI_TEST_CARD_ENTITY.get() else {
         return;
@@ -278,6 +284,25 @@ fn record_ui_test_state(
     };
     let holder_occupied = matches!(zone, CardZone::Hand(_)) && hand_contains;
     let zone_config = ZoneConfig::for_zone(zone);
+    let reader = readers.iter().find(|reader| reader.loaded == Some(entity));
+    let reader_space = reader
+        .and_then(|reader| reader_jacks.get(reader.jack_entity).ok())
+        .and_then(|jack| jack.data.as_ref());
+    let reader_loaded = reader.is_some();
+    let reader_signature = reader_space
+        .and_then(|space| space.control_points.first())
+        .map_or_else(String::new, |signature| {
+            signature
+                .axes()
+                .iter()
+                .map(|axis| format!("{axis:.6}"))
+                .collect::<Vec<_>>()
+                .join(",")
+        });
+    let reader_space_contains = reader_space.is_some_and(|space| space.contains(&card.signature));
+    let reader_space_source_count = reader_space.map_or(0, |space| space.source_cards.len());
+    let reader_space_radius = reader_space.map_or(0.0, |space| space.radius);
+    let reader_feedback = if reader_loaded { "lit" } else { "dim" };
     let identity_signature = card
         .signature
         .axes()
@@ -372,7 +397,7 @@ fn record_ui_test_state(
         .get()
         .expect("UI test scenario must be configured before the app runs");
     let snapshot = format!(
-        "scenario={scenario}\ndragging={dragging}\nbooster_dragging={booster_dragging}\nzone={zone:?}\nhand_contains={hand_contains}\nhand_count={}\nstash_visible={}\nstash_page={}\nstash_storage_page={}\nstash_slot={stash_slot}\nstash_slot_present={stash_slot_present}\nstash_origin={stash_origin}\nstash_cursor_follow={stash_cursor_follow}\nstash_hovered={stash_hovered}\nidentity_signature={identity_signature}\nidentity_seed={identity_seed}\nidentity_rarity={identity_rarity}\nidentity_tier={identity_tier}\nidentity_name={identity_name}\nart_signature={art_signature}\nart_element={art_element}\nart_aspect={art_aspect}\nart_shape_count={art_shape_count}\nbooster_pack_present={booster_pack_present}\nbooster_phase={booster_phase}\nbooster_card_count={booster_card_count}\nbooster_rendered_x={booster_rendered_x:.1}\nbooster_rendered_y={booster_rendered_y:.1}\nexpected_card_seed={expected_card_seed}\nopened_card_present={opened_card_present}\nopened_card_zone={opened_card_zone}\nopened_card_seed={opened_card_seed}\nopened_card_face_up={opened_card_face_up}\nopened_card_x={opened_card_x:.1}\nopened_card_y={opened_card_y:.1}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\nholder={holder}\nholder_occupied={holder_occupied}\nzone_has_physics={}\nzone_render_layer={:?}\nzone_has_item_form={}\n",
+        "scenario={scenario}\ndragging={dragging}\nbooster_dragging={booster_dragging}\nzone={zone:?}\nhand_contains={hand_contains}\nhand_count={}\nstash_visible={}\nstash_page={}\nstash_storage_page={}\nstash_slot={stash_slot}\nstash_slot_present={stash_slot_present}\nstash_origin={stash_origin}\nstash_cursor_follow={stash_cursor_follow}\nstash_hovered={stash_hovered}\nreader_loaded={reader_loaded}\nreader_signature={reader_signature}\nreader_space_contains={reader_space_contains}\nreader_space_source_count={reader_space_source_count}\nreader_space_radius={reader_space_radius:.4}\nreader_feedback={reader_feedback}\nidentity_signature={identity_signature}\nidentity_seed={identity_seed}\nidentity_rarity={identity_rarity}\nidentity_tier={identity_tier}\nidentity_name={identity_name}\nart_signature={art_signature}\nart_element={art_element}\nart_aspect={art_aspect}\nart_shape_count={art_shape_count}\nbooster_pack_present={booster_pack_present}\nbooster_phase={booster_phase}\nbooster_card_count={booster_card_count}\nbooster_rendered_x={booster_rendered_x:.1}\nbooster_rendered_y={booster_rendered_y:.1}\nexpected_card_seed={expected_card_seed}\nopened_card_present={opened_card_present}\nopened_card_zone={opened_card_zone}\nopened_card_seed={opened_card_seed}\nopened_card_face_up={opened_card_face_up}\nopened_card_x={opened_card_x:.1}\nopened_card_y={opened_card_y:.1}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\nholder={holder}\nholder_occupied={holder_occupied}\nzone_has_physics={}\nzone_render_layer={:?}\nzone_has_item_form={}\n",
         hand.len(),
         stash_visible.0,
         stash_grid.current_page(),

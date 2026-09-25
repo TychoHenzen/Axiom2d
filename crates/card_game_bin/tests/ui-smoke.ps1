@@ -4,6 +4,7 @@ param(
     [switch]$Interaction,
     [switch]$HandRoundTrip,
     [switch]$ZoneTransition,
+    [switch]$ReaderRoundTrip,
     [switch]$StashRoundTrip,
     [switch]$BoosterOpening,
     [switch]$IdentitySignature,
@@ -25,13 +26,14 @@ if (-not $RunnerChild) {
         $Interaction,
         $HandRoundTrip,
         $ZoneTransition,
+        $ReaderRoundTrip,
         $StashRoundTrip,
         $BoosterOpening,
         $IdentitySignature,
         $ArtFace
     )
     if (@($scenarioFlags | Where-Object { $_ }).Count -gt 1) {
-        throw 'Interaction, HandRoundTrip, ZoneTransition, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
+        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -60,6 +62,9 @@ if (-not $RunnerChild) {
         }
         if ($ZoneTransition) {
             $runnerArguments += '-ZoneTransition'
+        }
+        if ($ReaderRoundTrip) {
+            $runnerArguments += '-ReaderRoundTrip'
         }
         if ($StashRoundTrip) {
             $runnerArguments += '-StashRoundTrip'
@@ -111,6 +116,9 @@ $handFramePath = Join-Path $artifactDir 'hand.bmp'
 $returnedFramePath = Join-Path $artifactDir 'returned.bmp'
 $zoneHolderFramePath = Join-Path $artifactDir 'zone-holder.bmp'
 $zoneReturnedFramePath = Join-Path $artifactDir 'zone-returned.bmp'
+$readerInsertedFramePath = Join-Path $artifactDir 'reader-inserted.bmp'
+$readerEjectedFramePath = Join-Path $artifactDir 'reader-ejected.bmp'
+$readerReturnedFramePath = Join-Path $artifactDir 'reader-returned.bmp'
 $holderStatePath = if ($ZoneTransition) {
     Join-Path $artifactDir 'zone-holder-state.txt'
 }
@@ -119,6 +127,9 @@ else {
 }
 $returnedStatePath = if ($ZoneTransition) {
     Join-Path $artifactDir 'zone-returned-state.txt'
+}
+elseif ($ReaderRoundTrip) {
+    Join-Path $artifactDir 'reader-returned-state.txt'
 }
 else {
     Join-Path $artifactDir 'returned-state.txt'
@@ -140,6 +151,9 @@ $scenarioName = if ($Interaction) {
 }
 elseif ($ZoneTransition) {
     'seeded-card-zone-transition'
+}
+elseif ($ReaderRoundTrip) {
+    'seeded-card-reader-roundtrip'
 }
 elseif ($HandRoundTrip) {
     'seeded-card-hand-roundtrip'
@@ -959,9 +973,13 @@ public static class AxiomUiSmokeNative
     $stashTabStartX = 20 + (10 * 54 - 4) / 2.0 - (5 * 34 - 4) / 2.0
     $stashPageTwoTabX = [int][Math]::Round($stashTabStartX + 2 * 34 + 15)
     $boosterClientX = [int][Math]::Round($client.Width / 2.0 - 300)
-    $boosterClientY = [int][Math]::Round($client.Height / 2.0 - 150)
-    $boosterWorldX = -300.0
-    $boosterWorldY = -150.0
+$boosterClientY = [int][Math]::Round($client.Height / 2.0 - 150)
+$boosterWorldX = -300.0
+$boosterWorldY = -150.0
+$readerClientX = [int][Math]::Round($client.Width / 2.0 + 300)
+$readerClientY = [int][Math]::Round($client.Height / 2.0)
+$readerWorldX = 300.0
+$readerWorldY = 0.0
     $stage = 'prepare-background-input'
     $foregroundBeforeInput = Get-UiSmokeForegroundSnapshot
     $cursorBeforeInputSetup = [AxiomUiSmokeNative]::GetCursorPosition()
@@ -1000,6 +1018,8 @@ public static class AxiomUiSmokeNative
         "stash_page_two_tab=($stashPageTwoTabX,$stashTabCenterY)"
         "booster_client=($boosterClientX,$boosterClientY)"
         "booster_world=($boosterWorldX,$boosterWorldY)"
+        "reader_client=($readerClientX,$readerClientY)"
+        "reader_world=($readerWorldX,$readerWorldY)"
     ) | Set-Content -LiteralPath $inputFile
     if ($ArtFace) {
         $expectedArtSignature = '0.330000,-0.310000,-0.350000,0.630000,-0.950000,0.650000,-0.290000,0.740000'
@@ -1518,6 +1538,259 @@ public static class AxiomUiSmokeNative
         }
         if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
             throw "interaction PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($ReaderRoundTrip) {
+        $seededState = Read-UiState -Path $stateFile
+        $expectedReaderSignature = $seededState['identity_signature']
+        if ($null -eq $seededState -or [string]::IsNullOrWhiteSpace($expectedReaderSignature)) {
+            throw "reader scenario could not establish the seeded card signature: observed=$(Format-UiStateDiagnostic -State $seededState)"
+        }
+        $readerPositionTolerance = 25
+        $rgbDeltaThreshold = 24
+        $minimumReaderChangedPixels = 250
+        @(
+            "reader_expected_signature=$expectedReaderSignature"
+            "reader_position_tolerance=$readerPositionTolerance"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_reader_changed_pixels=$minimumReaderChangedPixels"
+        ) | Add-Content -LiteralPath $inputFile
+
+        $stage = 'hover-reader-insert'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before reader input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $startClientX, $startClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "left_pressed=false, mouse=($startClientX,$startClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $startClientX -ExpectedY $startClientY -Tolerance 3)
+        }
+
+        $stage = 'press-reader-card'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $startClientX, $startClientY)
+        $mouseClientX = $startClientX
+        $mouseClientY = $startClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, left_pressed=true, zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false'
+        }
+
+        $stage = 'drag-card-to-reader'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($startClientX + ($readerClientX - $startClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($startClientY + ($readerClientY - $startClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $dragToReaderState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, zone=Table, rendered=($readerWorldX,$readerWorldY) tolerance=$readerPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX $readerWorldX -ExpectedY $readerWorldY -Tolerance $readerPositionTolerance)
+        }
+        $dragToReaderState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-drag-state.txt')
+
+        $stage = 'insert-card-into-reader'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $readerClientX, $readerClientY)
+        $insertedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, zone=Reader, reader_loaded=true, matching signature, signature space populated, feedback=lit' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -like 'Reader(*)' -and
+            $state['reader_loaded'] -eq 'true' -and
+            $state['reader_signature'] -eq $expectedReaderSignature -and
+            $state['reader_space_contains'] -eq 'true' -and
+            $state['reader_space_source_count'] -eq '1' -and
+            [double]::Parse($state['reader_space_radius'], [Globalization.CultureInfo]::InvariantCulture) -gt 0 -and
+            $state['reader_feedback'] -eq 'lit' -and
+            (Test-Position -State $state -ExpectedX $readerWorldX -ExpectedY $readerWorldY -Tolerance 1)
+        }
+        $mouseDown = $false
+        $insertedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-inserted-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $readerInsertedFramePath -Stage 'capture-reader-inserted-frame' -TimeoutSeconds 10
+
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $readerInsertedFrame = Read-UiSmokeBitmap -Path $readerInsertedFramePath
+        $readerInsertedChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $readerInsertedFrame `
+            -CenterX $readerClientX -CenterY $readerClientY -HalfWidth 65 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($readerInsertedFrame.Width)x$($readerInsertedFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumReaderChangedPixels"
+            "reader_changed_pixels=$($readerInsertedChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-inserted-visual-diff.txt')
+        if ($readerInsertedChanges.ChangedPixels -lt $minimumReaderChangedPixels) {
+            throw "reader insertion frame changed too few pixels: reader=$($readerInsertedChanges.ChangedPixels), minimum=$minimumReaderChangedPixels"
+        }
+
+        $stage = 'hover-inserted-reader-card'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $readerClientX, $readerClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "reader card mouse=($readerClientX,$readerClientY), reader_loaded=true" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['reader_loaded'] -eq 'true' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $readerClientX -ExpectedY $readerClientY -Tolerance 3)
+        }
+
+        $stage = 'eject-card-from-reader'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $readerClientX, $readerClientY)
+        $mouseClientX = $readerClientX
+        $mouseClientY = $readerClientY
+        $mouseDown = $true
+        $ejectedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, zone=Table, reader_loaded=false, signature space cleared, feedback=dim' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false' -and
+            [string]::IsNullOrEmpty($state['reader_signature']) -and
+            $state['reader_space_contains'] -eq 'false' -and
+            $state['reader_space_source_count'] -eq '0' -and
+            $state['reader_feedback'] -eq 'dim'
+        }
+        $ejectedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-ejected-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $readerEjectedFramePath -Stage 'capture-reader-ejected-frame' -TimeoutSeconds 10
+
+        $stage = 'drag-ejected-card-to-table'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($readerClientX + ($startClientX - $readerClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($readerClientY + ($startClientY - $readerClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $dragFromReaderState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, zone=Table, reader_loaded=false, rendered=($cardWorldX,$cardWorldY) tolerance=$readerPositionTolerance" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance $readerPositionTolerance)
+        }
+        $dragFromReaderState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-return-drag-state.txt')
+
+        $stage = 'release-ejected-card-to-table'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+        $returnedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=false, zone=Table, reader_loaded=false, rendered=($cardWorldX,$cardWorldY) tolerance=35" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['reader_loaded'] -eq 'false' -and
+            [string]::IsNullOrEmpty($state['reader_signature']) -and
+            $state['reader_space_source_count'] -eq '0' -and
+            $state['reader_feedback'] -eq 'dim' -and
+            (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 35)
+        }
+        $mouseDown = $false
+        Start-Sleep -Milliseconds 250
+        $returnedState = Read-UiState -Path $stateFile
+        if ($null -eq $returnedState -or
+            $returnedState['zone'] -ne 'Table' -or
+            $returnedState['reader_loaded'] -ne 'false' -or
+            -not [string]::IsNullOrEmpty($returnedState['reader_signature']) -or
+            $returnedState['reader_space_source_count'] -ne '0' -or
+            -not (Test-Position -State $returnedState -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 35)) {
+            throw "ejected card left the expected table state: observed=$(Format-UiStateDiagnostic -State $returnedState)"
+        }
+        $returnedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath $returnedStatePath
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $readerReturnedFramePath -Stage 'capture-reader-returned-frame' -TimeoutSeconds 10
+
+        $readerEjectedFrame = Read-UiSmokeBitmap -Path $readerEjectedFramePath
+        $readerReturnedFrame = Read-UiSmokeBitmap -Path $readerReturnedFramePath
+        $ejectedReaderChanges = Get-UiSmokeChangedPixels -Before $readerInsertedFrame -After $readerEjectedFrame `
+            -CenterX $readerClientX -CenterY $readerClientY -HalfWidth 65 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $returnedReaderChanges = Get-UiSmokeChangedPixels -Before $readerInsertedFrame -After $readerReturnedFrame `
+            -CenterX $readerClientX -CenterY $readerClientY -HalfWidth 65 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $returnedTableChanges = Get-UiSmokeChangedPixels -Before $readerEjectedFrame -After $readerReturnedFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($readerReturnedFrame.Width)x$($readerReturnedFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumReaderChangedPixels"
+            "inserted_to_ejected_reader_changed_pixels=$($ejectedReaderChanges.ChangedPixels)"
+            "inserted_to_returned_reader_changed_pixels=$($returnedReaderChanges.ChangedPixels)"
+            "ejected_to_returned_table_changed_pixels=$($returnedTableChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'reader-visual-diff.txt')
+        if ($ejectedReaderChanges.ChangedPixels -lt $minimumReaderChangedPixels -or
+            $returnedReaderChanges.ChangedPixels -lt $minimumReaderChangedPixels -or
+            $returnedTableChanges.ChangedPixels -lt $minimumReaderChangedPixels) {
+            throw "reader ejection frame changed too few pixels: inserted_to_ejected_reader=$($ejectedReaderChanges.ChangedPixels), inserted_to_returned_reader=$($returnedReaderChanges.ChangedPixels), ejected_to_returned_table=$($returnedTableChanges.ChangedPixels), minimum=$minimumReaderChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during reader round-trip (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "reader round-trip PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
         }
         $succeeded = $true
     }
@@ -2301,6 +2574,16 @@ elseif ($ZoneTransition) {
         $handState['zone_render_layer'], $handState['zone_has_item_form'], $returnedState['zone'],
         $returnedState['zone_has_physics'], $returnedState['zone_render_layer'], $returnedState['zone_has_item_form'],
         $handLayoutChanges.ChangedPixels, $returnedTableChanges.ChangedPixels)
+}
+elseif ($ReaderRoundTrip) {
+    Write-Output ("UI reader round-trip passed: inserted=({0},{1}), returned=({2},{3}), inserted_state={4}, ejected_state={5}, returned_state={6}, inserted_frame={7}, ejected_frame={8}, returned_frame={9}" -f `
+        $insertedState['rendered_x'], $insertedState['rendered_y'], $returnedState['rendered_x'], $returnedState['rendered_y'],
+        (Join-Path $artifactDir 'reader-inserted-state.txt'), (Join-Path $artifactDir 'reader-ejected-state.txt'),
+        $returnedStatePath, $readerInsertedFramePath, $readerEjectedFramePath, $readerReturnedFramePath)
+    Write-Output ("Reader contract verified: signature={0}, radius={1}, inserted_feedback={2}, ejected_feedback={3}, inserted_to_ejected_reader_changed={4}, inserted_to_returned_reader_changed={5}, ejected_to_returned_table_changed={6} pixels" -f `
+        $insertedState['reader_signature'], $insertedState['reader_space_radius'], $insertedState['reader_feedback'],
+        $returnedState['reader_feedback'], $ejectedReaderChanges.ChangedPixels, $returnedReaderChanges.ChangedPixels,
+        $returnedTableChanges.ChangedPixels)
 }
 elseif ($HandRoundTrip) {
     Write-Output ("UI hand round-trip passed: hand=({0},{1}) returned=({2},{3}), hand_state={4}, returned_state={5}, hand_frame={6}, returned_frame={7}" -f `
