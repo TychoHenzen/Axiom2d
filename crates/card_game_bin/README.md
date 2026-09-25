@@ -15,3 +15,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 ```
 
 This mode retains `spin-state.txt`, `interaction-state.txt`, `released-state.txt`, `flipped-state.txt`, and the corresponding frame/visual-diff artifacts.
+
+Run the hand round-trip scenario, moving the seeded card into the hand and back to the table:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -HandRoundTrip
+```
+
+This mode retains hand and returned state/frame evidence and verifies the hand membership, layout, and table return.

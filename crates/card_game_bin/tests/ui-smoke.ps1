@@ -1,7 +1,8 @@
 param(
     [switch]$RunnerChild,
     [string]$RunnerArtifactDirectory,
-    [switch]$Interaction
+    [switch]$Interaction,
+    [switch]$HandRoundTrip
 )
 
 $ErrorActionPreference = 'Stop'
@@ -15,6 +16,9 @@ else {
 }
 
 if (-not $RunnerChild) {
+    if ($Interaction -and $HandRoundTrip) {
+        throw 'Interaction and HandRoundTrip cannot be combined'
+    }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
     $runnerStderrPath = Join-Path $artifactDir 'runner.stderr.log'
@@ -36,6 +40,9 @@ if (-not $RunnerChild) {
         )
         if ($Interaction) {
             $runnerArguments += '-Interaction'
+        }
+        if ($HandRoundTrip) {
+            $runnerArguments += '-HandRoundTrip'
         }
         $runnerProcess = Start-Process -FilePath (Get-Process -Id $PID).Path `
             -ArgumentList $runnerArguments `
@@ -71,9 +78,19 @@ $baselineFramePath = Join-Path $artifactDir 'baseline.bmp'
 $framePath = Join-Path $artifactDir 'frame.bmp'
 $releasedFramePath = Join-Path $artifactDir 'released.bmp'
 $flippedFramePath = Join-Path $artifactDir 'flipped.bmp'
+$handFramePath = Join-Path $artifactDir 'hand.bmp'
+$returnedFramePath = Join-Path $artifactDir 'returned.bmp'
 $failureFramePath = Join-Path $artifactDir 'failure.bmp'
 $frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
-$scenarioName = if ($Interaction) { 'seeded-card-interaction' } else { 'seeded-card-drag' }
+$scenarioName = if ($Interaction) {
+    'seeded-card-interaction'
+}
+elseif ($HandRoundTrip) {
+    'seeded-card-hand-roundtrip'
+}
+else {
+    'seeded-card-drag'
+}
 $process = $null
 $windowHandle = [IntPtr]::Zero
 $foregroundBeforeLaunch = $null
@@ -166,10 +183,11 @@ function Format-UiStateDiagnostic {
     if ($null -eq $State) {
         return 'none (no complete state snapshot)'
     }
-    return ("scenario={0}, dragging={1}, zone={2}, rendered=({3},{4}), rotation={5}, face_up={6}, mouse=({7},{8}), left_pressed={9}, right_pressed={10}" -f `
-        $State['scenario'], $State['dragging'], $State['zone'], $State['rendered_x'], `
-        $State['rendered_y'], $State['rotation'], $State['face_up'], $State['mouse_x'], `
-        $State['mouse_y'], $State['left_pressed'], $State['right_pressed'])
+    return ("scenario={0}, dragging={1}, zone={2}, hand_contains={3}, hand_count={4}, rendered=({5},{6}), rotation={7}, face_up={8}, mouse=({9},{10}), left_pressed={11}, right_pressed={12}" -f `
+        $State['scenario'], $State['dragging'], $State['zone'], $State['hand_contains'], `
+        $State['hand_count'], $State['rendered_x'], $State['rendered_y'], $State['rotation'], `
+        $State['face_up'], $State['mouse_x'], $State['mouse_y'], $State['left_pressed'], `
+        $State['right_pressed'])
 }
 
 function Wait-UiState {
@@ -782,6 +800,10 @@ public static class AxiomUiSmokeNative
     $startClientY = [int][Math]::Round($client.Height / 2.0 + 130)
     $targetClientX = [int][Math]::Round($client.Width / 2.0 - 300)
     $targetClientY = [int][Math]::Round($client.Height / 2.0 - 150)
+    $handClientX = [int][Math]::Round($client.Width / 2.0)
+    $handClientY = [int][Math]::Round($client.Height - 80.0)
+    $handWorldX = 0.0
+    $handWorldY = $handClientY - $client.Height / 2.0
     $stage = 'prepare-background-input'
     $foregroundBeforeInput = Get-UiSmokeForegroundSnapshot
     $cursorBeforeInputSetup = [AxiomUiSmokeNative]::GetCursorPosition()
@@ -813,6 +835,8 @@ public static class AxiomUiSmokeNative
         "target_screen=($targetScreenX,$targetScreenY)"
         "start_client=($startClientX,$startClientY)"
         "target_client=($targetClientX,$targetClientY)"
+        "hand_client=($handClientX,$handClientY)"
+        "hand_world=($handWorldX,$handWorldY)"
     ) | Set-Content -LiteralPath $inputFile
     if ($foregroundAtPreparation.Handle -eq $windowHandle) {
         throw "game window became foreground during preparation (hwnd=$windowHandle pid=$($process.Id))"
@@ -1088,21 +1112,25 @@ public static class AxiomUiSmokeNative
         (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 25)
     }
 
+    $dragTargetClientX = if ($HandRoundTrip) { $handClientX } else { $targetClientX }
+    $dragTargetClientY = if ($HandRoundTrip) { $handClientY } else { $targetClientY }
+    $dragTargetWorldX = if ($HandRoundTrip) { $handWorldX } else { -300.0 }
+    $dragTargetWorldY = if ($HandRoundTrip) { $handWorldY } else { -150.0 }
     $stage = 'drag-card'
     for ($step = 1; $step -le 10; $step++) {
-        $mouseClientX = [int][Math]::Round($startClientX + ($targetClientX - $startClientX) * $step / 10.0)
-        $mouseClientY = [int][Math]::Round($startClientY + ($targetClientY - $startClientY) * $step / 10.0)
+        $mouseClientX = [int][Math]::Round($startClientX + ($dragTargetClientX - $startClientX) * $step / 10.0)
+        $mouseClientY = [int][Math]::Round($startClientY + ($dragTargetClientY - $startClientY) * $step / 10.0)
         [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
         Start-Sleep -Milliseconds 35
     }
     $dragState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
-        -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, left_pressed=true, zone=Table, rendered=(-300,-150) tolerance=25' -Predicate {
+        -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, left_pressed=true, zone=Table, rendered=($dragTargetWorldX,$dragTargetWorldY) tolerance=25" -Predicate {
         param($state)
         $state['scenario'] -eq $scenarioName -and
         $state['dragging'] -eq 'true' -and
         $state['left_pressed'] -eq 'true' -and
         $state['zone'] -eq 'Table' -and
-        (Test-Position -State $state -ExpectedX -300 -ExpectedY -150 -Tolerance 25)
+        (Test-Position -State $state -ExpectedX $dragTargetWorldX -ExpectedY $dragTargetWorldY -Tolerance 25)
     }
 
     $stage = 'capture-dragged-frame'
@@ -1112,6 +1140,181 @@ public static class AxiomUiSmokeNative
     Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
         -CapturePath $framePath -Stage $stage -TimeoutSeconds 10
 
+    if ($HandRoundTrip) {
+        $stage = 'release-card-to-hand'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+        $handState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=false, zone=Hand(0), hand_contains=true, hand_count=1, face_up=true, layout=($handWorldX,$handWorldY) tolerance=25" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -eq 'Hand(0)' -and
+            $state['hand_contains'] -eq 'true' -and
+            $state['hand_count'] -eq '1' -and
+            $state['face_up'] -eq 'true' -and
+            (Test-Position -State $state -ExpectedX $handWorldX -ExpectedY $handWorldY -Tolerance 25)
+        }
+        $mouseDown = $false
+        $handState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'hand-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $handFramePath -Stage 'capture-hand-frame' -TimeoutSeconds 10
+
+        $stage = 'verify-hand-frame'
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $handFrame = Read-UiSmokeBitmap -Path $handFramePath
+        $rgbDeltaThreshold = 24
+        $minimumHandChangedPixels = 500
+        $handSourceChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $handFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $handLayoutChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $handFrame `
+            -CenterX $handClientX -CenterY $handClientY -HalfWidth 100 -HalfHeight 145 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($handFrame.Width)x$($handFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumHandChangedPixels"
+            "source_changed_pixels=$($handSourceChanges.ChangedPixels)"
+            "hand_layout_changed_pixels=$($handLayoutChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'hand-visual-diff.txt')
+        if ($handSourceChanges.ChangedPixels -lt $minimumHandChangedPixels -or
+            $handLayoutChanges.ChangedPixels -lt $minimumHandChangedPixels) {
+            throw "hand frame changed too few pixels: source=$($handSourceChanges.ChangedPixels), hand=$($handLayoutChanges.ChangedPixels), minimum=$minimumHandChangedPixels"
+        }
+
+        $stage = 'hover-hand-card'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $handClientX, $handClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "hand card mouse=($handClientX,$handClientY), hand_contains=true" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['hand_contains'] -eq 'true' -and
+            $state['hand_count'] -eq '1' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $handClientX -ExpectedY $handClientY -Tolerance 3)
+        }
+
+        $stage = 'press-hand-card'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $handClientX, $handClientY)
+        $mouseClientX = $handClientX
+        $mouseClientY = $handClientY
+        $mouseDown = $true
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'dragging=true, zone=Hand(0), hand_contains=false, hand_count=0' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Hand(0)' -and
+            $state['hand_contains'] -eq 'false' -and
+            $state['hand_count'] -eq '0'
+        }
+
+        $stage = 'drag-hand-card-to-table'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($handClientX + ($startClientX - $handClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($handClientY + ($startClientY - $handClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $returnDragState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, zone=Hand(0), hand_contains=false, rendered=(-160,130) tolerance=25' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Hand(0)' -and
+            $state['hand_contains'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 25)
+        }
+        $returnDragState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'return-drag-state.txt')
+
+        $stage = 'release-card-to-table'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+        $returnedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, zone=Table, hand_contains=false, hand_count=0, rendered=(-160,130) tolerance=35' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['hand_contains'] -eq 'false' -and
+            $state['hand_count'] -eq '0' -and
+            (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 35)
+        }
+        $mouseDown = $false
+        Start-Sleep -Milliseconds 250
+        $returnedState = Read-UiState -Path $stateFile
+        if ($null -eq $returnedState -or
+            $returnedState['zone'] -ne 'Table' -or
+            $returnedState['hand_contains'] -ne 'false' -or
+            -not (Test-Position -State $returnedState -ExpectedX -160 -ExpectedY 130 -Tolerance 35)) {
+            throw "returned card left the expected table state: observed=$(Format-UiStateDiagnostic -State $returnedState)"
+        }
+        $returnedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'returned-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $returnedFramePath -Stage 'capture-returned-frame' -TimeoutSeconds 10
+
+        $stage = 'verify-returned-frame'
+        $returnedFrame = Read-UiSmokeBitmap -Path $returnedFramePath
+        $returnedHandChanges = Get-UiSmokeChangedPixels -Before $handFrame -After $returnedFrame `
+            -CenterX $handClientX -CenterY $handClientY -HalfWidth 100 -HalfHeight 145 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $returnedTableChanges = Get-UiSmokeChangedPixels -Before $handFrame -After $returnedFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($returnedFrame.Width)x$($returnedFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumHandChangedPixels"
+            "hand_changed_pixels=$($returnedHandChanges.ChangedPixels)"
+            "table_changed_pixels=$($returnedTableChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'returned-visual-diff.txt')
+        if ($returnedHandChanges.ChangedPixels -lt $minimumHandChangedPixels -or
+            $returnedTableChanges.ChangedPixels -lt $minimumHandChangedPixels) {
+            throw "returned frame changed too few pixels: hand=$($returnedHandChanges.ChangedPixels), table=$($returnedTableChanges.ChangedPixels), minimum=$minimumHandChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during hand round-trip (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "hand round-trip PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    else {
     $stage = 'verify-rendered-card-move'
     $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
     $draggedFrame = Read-UiSmokeBitmap -Path $framePath
@@ -1210,6 +1413,7 @@ public static class AxiomUiSmokeNative
     $succeeded = $true
     }
 }
+}
 catch {
     [Console]::Error.WriteLine("UI smoke failed: scenario=$scenarioName stage=${stage} $($_.Exception.Message)")
     if (Test-Path -LiteralPath $stateFile) {
@@ -1305,7 +1509,15 @@ if (-not $succeeded) {
     exit 1
 }
 
-if (-not $Interaction) {
+if ($HandRoundTrip) {
+    Write-Output ("UI hand round-trip passed: hand=({0},{1}) returned=({2},{3}), hand_state={4}, returned_state={5}, hand_frame={6}, returned_frame={7}" -f `
+        $handState['rendered_x'], $handState['rendered_y'], $returnedState['rendered_x'], $returnedState['rendered_y'], `
+        (Join-Path $artifactDir 'hand-state.txt'), (Join-Path $artifactDir 'returned-state.txt'), $handFramePath, $returnedFramePath)
+    Write-Output ("Hand layout verified: hand_contains={0}, hand_count={1}, hand_changed={2}, returned_hand_changed={3}, returned_table_changed={4} pixels (minimum 500 at RGB delta 24)" -f `
+        $handState['hand_contains'], $handState['hand_count'], $handLayoutChanges.ChangedPixels, `
+        $returnedHandChanges.ChangedPixels, $returnedTableChanges.ChangedPixels)
+}
+elseif (-not $Interaction) {
     Write-Output ("UI smoke passed: scenario=$scenarioName rendered=({0},{1}) frame={2}" -f `
         $dragState['rendered_x'], $dragState['rendered_y'], $framePath)
     Write-Output ("Visual move verified: source_changed={0} target_changed={1} pixels (minimum 500 at RGB delta 24); baseline={2}" -f `

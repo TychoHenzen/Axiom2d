@@ -182,6 +182,7 @@ fn setup(app: &mut App) {
 #[cfg(feature = "ui-test")]
 fn record_ui_test_state(
     drag_state: Res<DragState>,
+    hand: Res<Hand>,
     mouse: Res<MouseState>,
     cards: Query<(Entity, &Card, &CardZone, &Transform2D)>,
 ) {
@@ -195,12 +196,14 @@ fn record_ui_test_state(
     let dragging = drag_state
         .dragging
         .is_some_and(|drag| drag.entity == entity);
+    let hand_contains = hand.cards().contains(card_entity);
     let mouse_position = mouse.screen_pos();
     let scenario = UI_TEST_SCENARIO
         .get()
         .expect("UI test scenario must be configured before the app runs");
     let snapshot = format!(
-        "scenario={scenario}\ndragging={dragging}\nzone={zone:?}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\n",
+        "scenario={scenario}\ndragging={dragging}\nzone={zone:?}\nhand_contains={hand_contains}\nhand_count={}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\n",
+        hand.len(),
         transform.position.x,
         transform.position.y,
         transform.rotation,
