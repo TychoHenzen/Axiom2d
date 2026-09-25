@@ -1944,6 +1944,13 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
             -CenterY ([int][Math]::Round($client.Height / 2.0 + 75.0)) `
             -HalfWidth 140 -HalfHeight 90 -RgbDeltaThreshold $rgbDeltaThreshold
         $cableRenderedVertexCount = [int]::Parse($cableState['cable_rendered_vertex_count'])
+        $cableRenderedSourceX = [double]::Parse($cableState['cable_rendered_source_x'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedSourceY = [double]::Parse($cableState['cable_rendered_source_y'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedAnchorX = [double]::Parse($cableState['cable_rendered_anchor_x'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedAnchorY = [double]::Parse($cableState['cable_rendered_anchor_y'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedDestX = [double]::Parse($cableState['cable_rendered_dest_x'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedDestY = [double]::Parse($cableState['cable_rendered_dest_y'], [Globalization.CultureInfo]::InvariantCulture)
+        $cableRenderedMaxDeviation = [double]::Parse($cableState['cable_rendered_max_deviation'], [Globalization.CultureInfo]::InvariantCulture)
         $cableRenderedMinX = [double]::Parse($cableState['cable_rendered_min_x'], [Globalization.CultureInfo]::InvariantCulture)
         $cableRenderedMaxX = [double]::Parse($cableState['cable_rendered_max_x'], [Globalization.CultureInfo]::InvariantCulture)
         $cableRenderedMinY = [double]::Parse($cableState['cable_rendered_min_y'], [Globalization.CultureInfo]::InvariantCulture)
@@ -1956,6 +1963,8 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
             "cable_changed_pixels=$($cableChanges.ChangedPixels)"
             "expected_waypoints=($expectedCableSourceX,$expectedCableSourceY)->($expectedCableAnchorX,$expectedCableAnchorY)->($expectedCableDestX,$expectedCableDestY)"
             "observed_waypoints=($($cableState['cable_source_x']),$($cableState['cable_source_y']))->($($cableState['cable_anchor_0_x']),$($cableState['cable_anchor_0_y']))->($($cableState['cable_dest_x']),$($cableState['cable_dest_y']))"
+            "rendered_waypoints=($cableRenderedSourceX,$cableRenderedSourceY)->($cableRenderedAnchorX,$cableRenderedAnchorY)->($cableRenderedDestX,$cableRenderedDestY)"
+            "rendered_max_deviation=$cableRenderedMaxDeviation"
             "rendered_bounds=($cableRenderedMinX,$cableRenderedMinY)-($cableRenderedMaxX,$cableRenderedMaxY)"
             "rendered_vertex_count=$cableRenderedVertexCount"
         ) | Set-Content -LiteralPath (Join-Path $artifactDir 'cable-wrapping-visual-diff.txt')
@@ -1963,11 +1972,18 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
             throw "cable frame changed too few pixels: changed=$($cableChanges.ChangedPixels), minimum=$minimumCableChangedPixels"
         }
         if ($cableRenderedVertexCount -lt 10 -or
+            -not (Test-Position -State $cableState -XKey 'cable_rendered_source_x' -YKey 'cable_rendered_source_y' `
+                -ExpectedX $expectedCableSourceX -ExpectedY $expectedCableSourceY -Tolerance $cablePositionTolerance) -or
+            -not (Test-Position -State $cableState -XKey 'cable_rendered_anchor_x' -YKey 'cable_rendered_anchor_y' `
+                -ExpectedX $expectedCableAnchorX -ExpectedY $expectedCableAnchorY -Tolerance $cablePositionTolerance) -or
+            -not (Test-Position -State $cableState -XKey 'cable_rendered_dest_x' -YKey 'cable_rendered_dest_y' `
+                -ExpectedX $expectedCableDestX -ExpectedY $expectedCableDestY -Tolerance $cablePositionTolerance) -or
+            $cableRenderedMaxDeviation -lt 20 -or
             $cableRenderedMinX -gt $expectedCableAnchorX - $cablePositionTolerance -or
             $cableRenderedMaxX -lt $expectedCableAnchorX + $cablePositionTolerance -or
             $cableRenderedMinY -gt $expectedCableAnchorY - $cablePositionTolerance -or
             $cableRenderedMaxY -lt $expectedCableAnchorY + $cablePositionTolerance) {
-            throw "cable rendered geometry did not retain the expected wrapped anchor: vertices=$cableRenderedVertexCount bounds=($cableRenderedMinX,$cableRenderedMinY)-($cableRenderedMaxX,$cableRenderedMaxY)"
+            throw "cable rendered geometry did not retain the expected wrapped path: vertices=$cableRenderedVertexCount rendered_waypoints=($cableRenderedSourceX,$cableRenderedSourceY)->($cableRenderedAnchorX,$cableRenderedAnchorY)->($cableRenderedDestX,$cableRenderedDestY) max_deviation=$cableRenderedMaxDeviation bounds=($cableRenderedMinX,$cableRenderedMinY)-($cableRenderedMaxX,$cableRenderedMaxY)"
         }
 
         $stage = 'verify-background-input'

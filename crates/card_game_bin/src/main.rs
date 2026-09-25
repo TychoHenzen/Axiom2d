@@ -82,6 +82,43 @@ struct UiTestCableParams<'w, 's> {
     transforms: Query<'w, 's, &'static Transform2D>,
 }
 
+#[cfg(feature = "ui-test")]
+fn rendered_centerline(points: &[Vec2]) -> Vec<Vec2> {
+    if points.len() < 4 || !points.len().is_multiple_of(2) {
+        return Vec::new();
+    }
+
+    let half = points.len() / 2;
+    (0..half)
+        .map(|index| (points[index] + points[points.len() - 1 - index]) * 0.5)
+        .collect()
+}
+
+#[cfg(feature = "ui-test")]
+fn nearest_rendered_point(points: &[Vec2], target: Vec2) -> Vec2 {
+    points
+        .iter()
+        .copied()
+        .min_by(|a, b| {
+            ((*a - target).length_squared()).total_cmp(&((*b - target).length_squared()))
+        })
+        .unwrap_or(Vec2::ZERO)
+}
+
+#[cfg(feature = "ui-test")]
+fn rendered_max_deviation(points: &[Vec2], source: Vec2, dest: Vec2) -> f32 {
+    let span = dest - source;
+    let span_length = span.length();
+    if span_length <= f32::EPSILON {
+        return 0.0;
+    }
+
+    points
+        .iter()
+        .map(|point| span.perp_dot(*point - source).abs() / span_length)
+        .fold(0.0, f32::max)
+}
+
 fn hydrate_shape_repository_system(world: &mut World) {
     let mut repo = ShapeRepository::new();
     repo.hydrate_all();
@@ -187,7 +224,7 @@ fn spawn_scene(world: &mut World) {
 
     // Spawn a combiner device — wire interactively.
     let combiner_pos = Vec2::new(300.0, -150.0);
-    let (_combiner_entity, _comb_in_a, _comb_in_b, _comb_out) =
+    let (combiner_entity, _comb_in_a, _comb_in_b, _comb_out) =
         spawn_combiner_device(world, combiner_pos);
 
     #[cfg(feature = "ui-test")]
@@ -196,7 +233,7 @@ fn spawn_scene(world: &mut World) {
         .is_some_and(|scenario| scenario == "seeded-card-combiner")
     {
         UI_TEST_COMBINER_ENTITY
-            .set(_combiner_entity)
+            .set(combiner_entity)
             .expect("UI test combiner can only be configured once");
         Some((
             spawn_reader(world, Vec2::new(100.0, -150.0)),
@@ -205,6 +242,8 @@ fn spawn_scene(world: &mut World) {
     } else {
         None
     };
+    #[cfg(not(feature = "ui-test"))]
+    let _ = combiner_entity;
 
     let mut bus = world.resource_mut::<EventBus<PhysicsCommand>>();
     bus.push(PhysicsCommand::AddBody {
@@ -458,7 +497,11 @@ fn record_ui_test_state(
     let mut cable_rendered_min = Vec2::ZERO;
     let mut cable_rendered_max = Vec2::ZERO;
     let mut cable_rendered_vertex_count = 0;
-    for (_cable_entity, cable, endpoints, wrap, shape) in &cable_params.cables {
+    let mut cable_rendered_source = Vec2::ZERO;
+    let mut cable_rendered_anchor = Vec2::ZERO;
+    let mut cable_rendered_dest = Vec2::ZERO;
+    let mut cable_rendered_max_deviation = 0.0;
+    if let Some((_, cable, endpoints, wrap, shape)) = cable_params.cables.iter().next() {
         cable_present = true;
         cable_connected = cable.is_some_and(|cable| {
             sockets.get(cable.source).is_ok() && sockets.get(cable.dest).is_ok()
@@ -492,8 +535,15 @@ fn record_ui_test_state(
                     );
                 }
             }
+            let centerline = rendered_centerline(points);
+            cable_rendered_source = centerline.first().copied().unwrap_or(Vec2::ZERO);
+            cable_rendered_dest = centerline.last().copied().unwrap_or(Vec2::ZERO);
+            cable_rendered_anchor = wrap.anchors.first().map_or(Vec2::ZERO, |anchor| {
+                nearest_rendered_point(&centerline, anchor.position)
+            });
+            cable_rendered_max_deviation =
+                rendered_max_deviation(&centerline, cable_rendered_source, cable_rendered_dest);
         }
-        break;
     }
     let identity_signature = card
         .signature
@@ -618,7 +668,7 @@ fn record_ui_test_state(
         zone_config.has_item_form
     );
     let snapshot = format!(
-        "{snapshot}pending_cable_dragging={}\ncable_present={cable_present}\ncable_connected={cable_connected}\ncable_anchor_count={cable_anchor_count}\ncable_anchor_0_x={:.1}\ncable_anchor_0_y={:.1}\ncable_source_x={:.1}\ncable_source_y={:.1}\ncable_dest_x={:.1}\ncable_dest_y={:.1}\ncable_rendered_min_x={:.1}\ncable_rendered_min_y={:.1}\ncable_rendered_max_x={:.1}\ncable_rendered_max_y={:.1}\ncable_rendered_vertex_count={}\n",
+        "{snapshot}pending_cable_dragging={}\ncable_present={cable_present}\ncable_connected={cable_connected}\ncable_anchor_count={cable_anchor_count}\ncable_anchor_0_x={:.1}\ncable_anchor_0_y={:.1}\ncable_source_x={:.1}\ncable_source_y={:.1}\ncable_dest_x={:.1}\ncable_dest_y={:.1}\ncable_rendered_source_x={:.1}\ncable_rendered_source_y={:.1}\ncable_rendered_anchor_x={:.1}\ncable_rendered_anchor_y={:.1}\ncable_rendered_dest_x={:.1}\ncable_rendered_dest_y={:.1}\ncable_rendered_max_deviation={:.1}\ncable_rendered_min_x={:.1}\ncable_rendered_min_y={:.1}\ncable_rendered_max_x={:.1}\ncable_rendered_max_y={:.1}\ncable_rendered_vertex_count={}\n",
         cable_params.pending_cable.free_end.is_some(),
         cable_anchor_0.x,
         cable_anchor_0.y,
@@ -626,6 +676,13 @@ fn record_ui_test_state(
         cable_source.y,
         cable_dest.x,
         cable_dest.y,
+        cable_rendered_source.x,
+        cable_rendered_source.y,
+        cable_rendered_anchor.x,
+        cable_rendered_anchor.y,
+        cable_rendered_dest.x,
+        cable_rendered_dest.y,
+        cable_rendered_max_deviation,
         cable_rendered_min.x,
         cable_rendered_min.y,
         cable_rendered_max.x,
