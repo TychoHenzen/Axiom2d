@@ -31,7 +31,8 @@ use card_game::card::reader::{
 };
 #[cfg(feature = "ui-test")]
 use card_game::card::rendering::art_shader::{
-    ConditionEffect, FOIL_WGSL, ShaderVariant, VariantShaders,
+    ConditionEffect, DORMANT_WGSL, FOIL_WGSL, INTENSE_WGSL, ShaderVariant, TierShaders,
+    VariantShaders,
 };
 #[cfg(feature = "ui-test")]
 use card_game::card::screen_device::ScreenSignalShape;
@@ -119,6 +120,7 @@ struct UiTestRenderingParams<'w, 's> {
         ),
     >,
     variant_shaders: Res<'w, VariantShaders>,
+    tier_shaders: Res<'w, TierShaders>,
     shader_registry: Res<'w, ShaderRegistry>,
 }
 
@@ -222,6 +224,17 @@ fn warm_up_physics_system(world: &mut World) {
         physics.step(Seconds(WARM_UP_DT));
     }
     world.insert_resource(physics);
+}
+
+#[cfg(feature = "ui-test")]
+fn stabilize_shader_variant_pointer(mut mouse: ResMut<MouseState>) {
+    if UI_TEST_SCENARIO
+        .get()
+        .is_some_and(|scenario| scenario == "seeded-card-shader-variant")
+    {
+        mouse.set_screen_pos(Vec2::ZERO);
+        mouse.set_world_pos(Vec2::ZERO);
+    }
 }
 
 fn spawn_scene(world: &mut World) {
@@ -411,6 +424,12 @@ fn setup(app: &mut App) {
                     .unwrap_or_else(|_| "seeded-card-drag".to_owned()),
             )
             .expect("UI test scenario can only be configured once");
+        app.add_systems(
+            Phase::LateUpdate,
+            stabilize_shader_variant_pointer
+                .after(mouse_world_pos_system)
+                .before(shader_pointer_system),
+        );
         app.add_systems(Phase::PostRender, record_ui_test_state);
     }
 
@@ -467,6 +486,7 @@ fn record_ui_test_state(
     };
     let cards = &rendering.cards;
     let variant_shaders = &rendering.variant_shaders;
+    let tier_shaders = &rendering.tier_shaders;
     let shader_registry = &rendering.shader_registry;
     let Ok((entity, card, zone, transform, overlays)) = cards.get(*card_entity) else {
         return;
@@ -841,13 +861,33 @@ fn record_ui_test_state(
         ShaderVariant::Glossy => Some(variant_shaders.glossy),
         ShaderVariant::Foil => Some(variant_shaders.foil),
     };
-    let variant_overlay = expected_variant_shader.and_then(|expected| {
-        overlays.and_then(|mesh_overlays| {
-            mesh_overlays
-                .0
-                .iter()
-                .find(|entry| entry.material.shader == expected)
-        })
+    let expected_condition_shader = match condition_effect {
+        ConditionEffect::None => None,
+        ConditionEffect::Worn => Some(tier_shaders.dormant),
+        ConditionEffect::Shiny => Some(tier_shaders.intense),
+    };
+    let expected_condition_source = match condition_effect {
+        ConditionEffect::None => None,
+        ConditionEffect::Worn => Some(DORMANT_WGSL),
+        ConditionEffect::Shiny => Some(INTENSE_WGSL),
+    };
+    let (variant_overlay, condition_overlay) = overlays.map_or((None, None), |mesh_overlays| {
+        let mut variant_overlay = None;
+        let mut condition_overlay = None;
+        for entry in &mesh_overlays.0 {
+            if variant_overlay.is_none()
+                && expected_variant_shader.is_some_and(|expected| entry.material.shader == expected)
+            {
+                variant_overlay = Some(entry);
+            }
+            if condition_overlay.is_none()
+                && expected_condition_shader
+                    .is_some_and(|expected| entry.material.shader == expected)
+            {
+                condition_overlay = Some(entry);
+            }
+        }
+        (variant_overlay, condition_overlay)
     });
     let variant_shader_source_length = expected_variant_shader
         .and_then(|shader| shader_registry.lookup(shader))
@@ -861,6 +901,26 @@ fn record_ui_test_state(
         || variant_overlay
             .is_some_and(|entry| Some(entry.material.shader) == expected_variant_shader);
     let variant_overlay_vertex_count = variant_overlay.map_or(0, |entry| entry.mesh.vertices.len());
+    let condition_overlay_tier = match condition_effect {
+        ConditionEffect::None => "None",
+        ConditionEffect::Worn => "Dormant",
+        ConditionEffect::Shiny => "Intense",
+    };
+    let condition_overlay_source_length = expected_condition_shader
+        .and_then(|shader| shader_registry.lookup(shader))
+        .map_or(0, str::len);
+    let condition_overlay_source_matches = expected_condition_shader
+        .zip(expected_condition_source)
+        .is_some_and(|(shader, source)| shader_registry.lookup(shader) == Some(source));
+    let condition_overlay_present = condition_overlay.is_some();
+    let condition_overlay_visible = condition_overlay.is_some_and(|entry| entry.visible);
+    let condition_overlay_handle = condition_overlay.map_or(0, |entry| entry.material.shader.0);
+    let condition_overlay_handle_matches = expected_condition_shader.is_none()
+        || condition_overlay
+            .is_some_and(|entry| Some(entry.material.shader) == expected_condition_shader);
+    let condition_overlay_front_only = condition_overlay.is_some_and(|entry| entry.front_only);
+    let condition_overlay_vertex_count =
+        condition_overlay.map_or(0, |entry| entry.mesh.vertices.len());
     let overlay_count = overlays.map_or(0, |mesh_overlays| mesh_overlays.0.len());
     let mouse_position = mouse.screen_pos();
     let scenario = UI_TEST_SCENARIO
@@ -885,7 +945,7 @@ fn record_ui_test_state(
         zone_config.has_item_form
     );
     let snapshot = format!(
-        "{snapshot}shader_variant={shader_variant:?}\ncondition_effect={condition_effect:?}\nvariant_shader_source_length={variant_shader_source_length}\nvariant_shader_source_matches={variant_shader_source_matches}\nvariant_overlay_present={variant_overlay_present}\nvariant_overlay_visible={variant_overlay_visible}\nvariant_overlay_handle={variant_overlay_handle}\nvariant_overlay_handle_matches={variant_overlay_handle_matches}\nvariant_overlay_vertex_count={variant_overlay_vertex_count}\noverlay_count={overlay_count}\n"
+        "{snapshot}shader_variant={shader_variant:?}\ncondition_effect={condition_effect:?}\nvariant_shader_source_length={variant_shader_source_length}\nvariant_shader_source_matches={variant_shader_source_matches}\nvariant_overlay_present={variant_overlay_present}\nvariant_overlay_visible={variant_overlay_visible}\nvariant_overlay_handle={variant_overlay_handle}\nvariant_overlay_handle_matches={variant_overlay_handle_matches}\nvariant_overlay_vertex_count={variant_overlay_vertex_count}\ncondition_overlay_tier={condition_overlay_tier}\ncondition_overlay_source_length={condition_overlay_source_length}\ncondition_overlay_source_matches={condition_overlay_source_matches}\ncondition_overlay_present={condition_overlay_present}\ncondition_overlay_visible={condition_overlay_visible}\ncondition_overlay_handle={condition_overlay_handle}\ncondition_overlay_handle_matches={condition_overlay_handle_matches}\ncondition_overlay_front_only={condition_overlay_front_only}\ncondition_overlay_vertex_count={condition_overlay_vertex_count}\noverlay_count={overlay_count}\n"
     );
     let snapshot = format!(
         "{snapshot}pending_cable_dragging={}\ncable_present={cable_present}\ncable_connected={cable_connected}\ncable_anchor_count={cable_anchor_count}\ncable_anchor_0_x={:.1}\ncable_anchor_0_y={:.1}\ncable_source_x={:.1}\ncable_source_y={:.1}\ncable_dest_x={:.1}\ncable_dest_y={:.1}\ncable_rendered_source_x={:.1}\ncable_rendered_source_y={:.1}\ncable_rendered_anchor_x={:.1}\ncable_rendered_anchor_y={:.1}\ncable_rendered_dest_x={:.1}\ncable_rendered_dest_y={:.1}\ncable_rendered_max_deviation={:.1}\ncable_rendered_min_x={:.1}\ncable_rendered_min_y={:.1}\ncable_rendered_max_x={:.1}\ncable_rendered_max_y={:.1}\ncable_rendered_vertex_count={}\n",

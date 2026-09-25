@@ -102,4 +102,4 @@ Run the seeded card shader-variant scenario through the real card-game window:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -ShaderVariant
 ```
 
-This mode selects the deterministic Legendary/Dormant fixture, verifies the attached Foil variant overlay and registered shader source, then retains `shader-variant-state.txt`, `shader-variant.bmp`, and `shader-variant-visual.txt` with card-template and non-blank frame evidence under `target/ui-smoke-*`.
+This mode selects the deterministic Legendary/Dormant fixture, verifies the attached Foil and Worn overlays plus their registered shader sources, then retains `shader-variant-state.txt`, `shader-variant.bmp`, and `shader-variant-visual.txt` with independent Foil/Worn golden-pixel and non-blank frame evidence under `target/ui-smoke-*`.

@@ -687,6 +687,42 @@ function Get-UiSmokeArtRegionEvidence {
     }
 }
 
+function Get-UiSmokeGoldenPixelEvidence {
+    param(
+        [hashtable]$Frame,
+        [int]$CenterX,
+        [int]$CenterY,
+        [hashtable[]]$GoldenPixels,
+        [int]$RgbDeltaMaximum = 18
+    )
+
+    $evidence = foreach ($golden in $GoldenPixels) {
+        $x = $CenterX + [int]$golden.OffsetX
+        $y = $CenterY + [int]$golden.OffsetY
+        if ($x -lt 0 -or $y -lt 0 -or $x -ge $Frame.Width -or $y -ge $Frame.Height) {
+            throw "golden pixel '$($golden.Name)' exceeds the captured frame"
+        }
+        $frameY = if ($Frame.TopDown) { $y } else { $Frame.Height - 1 - $y }
+        $framePixel = $Frame.PixelOffset + $frameY * $Frame.RowStride + $x * 4
+        $red = [int]$Frame.Bytes[$framePixel + 2]
+        $green = [int]$Frame.Bytes[$framePixel + 1]
+        $blue = [int]$Frame.Bytes[$framePixel]
+        $rgbDelta = [Math]::Abs($red - [int]$golden.ExpectedRed) +
+            [Math]::Abs($green - [int]$golden.ExpectedGreen) +
+            [Math]::Abs($blue - [int]$golden.ExpectedBlue)
+        [pscustomobject]@{
+            Name = $golden.Name
+            OffsetX = $golden.OffsetX
+            OffsetY = $golden.OffsetY
+            Expected = "{0},{1},{2}" -f $golden.ExpectedRed, $golden.ExpectedGreen, $golden.ExpectedBlue
+            Observed = "{0},{1},{2}" -f $red, $green, $blue
+            RgbDelta = $rgbDelta
+            Match = $rgbDelta -le $RgbDeltaMaximum
+        }
+    }
+    return @($evidence)
+}
+
 try {
     Add-Type -TypeDefinition @'
 using System;
@@ -1000,9 +1036,11 @@ public static class AxiomUiSmokeNative
     if ($client.Width -lt 640 -or $client.Height -lt 480) {
         throw "game client area is too small for the smoke scenario ($($client.Width)x$($client.Height))"
     }
-    $stage = 'capture-baseline-frame'
-    Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
-        -CapturePath $baselineFramePath -Stage $stage -TimeoutSeconds 10
+    if (-not $ShaderVariant) {
+        $stage = 'capture-baseline-frame'
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $baselineFramePath -Stage $stage -TimeoutSeconds 10
+    }
 
     $startScreenX = $client.Left + [int][Math]::Round($client.Width / 2.0 + $cardWorldX)
     $startScreenY = $client.Top + [int][Math]::Round($client.Height / 2.0 + $cardWorldY)
@@ -1172,12 +1210,20 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
             $state['identity_tier'] -eq 'Dormant' -and
             $state['shader_variant'] -eq $expectedShaderVariant -and
             $state['condition_effect'] -eq $expectedConditionEffect -and
+            $state['condition_overlay_tier'] -eq 'Dormant' -and
             $state['variant_shader_source_matches'] -eq 'true' -and
             [int]::Parse($state['variant_shader_source_length']) -gt 0 -and
             $state['variant_overlay_present'] -eq 'true' -and
             $state['variant_overlay_visible'] -eq 'true' -and
             $state['variant_overlay_handle_matches'] -eq 'true' -and
             [int]::Parse($state['variant_overlay_vertex_count']) -gt 4 -and
+            $state['condition_overlay_source_matches'] -eq 'true' -and
+            [int]::Parse($state['condition_overlay_source_length']) -gt 0 -and
+            $state['condition_overlay_present'] -eq 'true' -and
+            $state['condition_overlay_visible'] -eq 'true' -and
+            $state['condition_overlay_handle_matches'] -eq 'true' -and
+            $state['condition_overlay_front_only'] -eq 'false' -and
+            [int]::Parse($state['condition_overlay_vertex_count']) -ge 4 -and
             (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 1)
         }
         $shaderVariantState.GetEnumerator() | ForEach-Object {
@@ -1188,40 +1234,48 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
         Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
             -CapturePath $shaderVariantFramePath -Stage $stage -TimeoutSeconds 10
         $shaderVariantFrame = Read-UiSmokeBitmap -Path $shaderVariantFramePath
-        $shaderVariantBaselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
-        if ($shaderVariantBaselineFrame.Width -ne $shaderVariantFrame.Width -or
-            $shaderVariantBaselineFrame.Height -ne $shaderVariantFrame.Height) {
-            throw "shader variant baseline frame size $($shaderVariantBaselineFrame.Width)x$($shaderVariantBaselineFrame.Height) does not match variant frame $($shaderVariantFrame.Width)x$($shaderVariantFrame.Height)"
-        }
-        $shaderVariantTemplate = New-UiSmokeCardTemplate -Frame $shaderVariantBaselineFrame `
-            -CenterX $startClientX -CenterY $startClientY
-        $shaderVariantTemplateMatch = Find-UiSmokeCardTemplate -Frame $shaderVariantFrame `
-            -Template $shaderVariantTemplate -ExpectedCenterX $startClientX -ExpectedCenterY $startClientY `
-            -SearchRadius 8 -RgbDeltaMaximum 32
-        $minimumShaderVariantMatchPixels = [int][Math]::Ceiling($shaderVariantTemplate.PixelCount * 90 / 100.0)
         $shaderVariantEvidence = Get-UiSmokeArtRegionEvidence -Frame $shaderVariantFrame `
             -CenterX $startClientX -CenterY $startClientY -HalfWidth 55 -HalfHeight 70
         $minimumShaderVariantUniqueColors = 100
         $minimumShaderVariantNonBackgroundPixels = 500
+        $shaderVariantGoldenPixels = @(
+            @{ Name = 'foil-art'; OffsetX = 0; OffsetY = -5; ExpectedRed = 221; ExpectedGreen = 180; ExpectedBlue = 188 }
+            @{ Name = 'worn-scratch'; OffsetX = 0; OffsetY = 25; ExpectedRed = 222; ExpectedGreen = 222; ExpectedBlue = 205 }
+        )
+        $shaderVariantGoldenDeltaMaximum = 18
+        $shaderVariantGoldenEvidence = @(Get-UiSmokeGoldenPixelEvidence -Frame $shaderVariantFrame `
+            -CenterX $startClientX -CenterY $startClientY -GoldenPixels $shaderVariantGoldenPixels `
+            -RgbDeltaMaximum $shaderVariantGoldenDeltaMaximum)
+        $shaderVariantGoldenMatches = @($shaderVariantGoldenEvidence | Where-Object Match).Count
         @(
             "frame_size=$($shaderVariantFrame.Width)x$($shaderVariantFrame.Height)"
             "shader_variant=$($shaderVariantState['shader_variant'])"
             "condition_effect=$($shaderVariantState['condition_effect'])"
+            "condition_overlay_tier=$($shaderVariantState['condition_overlay_tier'])"
             "variant_shader_source_length=$($shaderVariantState['variant_shader_source_length'])"
             "variant_shader_source_matches=$($shaderVariantState['variant_shader_source_matches'])"
             "variant_overlay_handle=$($shaderVariantState['variant_overlay_handle'])"
+            "condition_overlay_source_length=$($shaderVariantState['condition_overlay_source_length'])"
+            "condition_overlay_source_matches=$($shaderVariantState['condition_overlay_source_matches'])"
+            "condition_overlay_handle=$($shaderVariantState['condition_overlay_handle'])"
+            "condition_overlay_visible=$($shaderVariantState['condition_overlay_visible'])"
+            "condition_overlay_front_only=$($shaderVariantState['condition_overlay_front_only'])"
             "variant_overlay_vertex_count=$($shaderVariantState['variant_overlay_vertex_count'])"
+            "condition_overlay_vertex_count=$($shaderVariantState['condition_overlay_vertex_count'])"
             "overlay_count=$($shaderVariantState['overlay_count'])"
-            "card_template_match=$($shaderVariantTemplateMatch.MatchedPixels)/$($shaderVariantTemplateMatch.PixelCount)"
-            "card_template_minimum_match=$minimumShaderVariantMatchPixels"
-            "card_template_offset=$($shaderVariantTemplateMatch.OffsetX),$($shaderVariantTemplateMatch.OffsetY)"
+            "golden_control_source=deterministic_foil_worn_pixels"
+            "golden_control_rgb_delta_maximum=$shaderVariantGoldenDeltaMaximum"
+            "golden_control_matches=$shaderVariantGoldenMatches/$($shaderVariantGoldenEvidence.Count)"
+            $shaderVariantGoldenEvidence | ForEach-Object {
+                "golden_control_$($_.Name)=offset($($_.OffsetX),$($_.OffsetY)),expected=$($_.Expected),observed=$($_.Observed),rgb_delta=$($_.RgbDelta),match=$($_.Match)"
+            }
             "variant_region_unique_rgb_colors=$($shaderVariantEvidence.UniqueColors)"
             "variant_region_non_background_pixels=$($shaderVariantEvidence.NonBackgroundPixels)/$($shaderVariantEvidence.PixelCount)"
             "variant_region_minimum_unique_rgb_colors=$minimumShaderVariantUniqueColors"
             "variant_region_minimum_non_background_pixels=$minimumShaderVariantNonBackgroundPixels"
         ) | Set-Content -LiteralPath (Join-Path $artifactDir 'shader-variant-visual.txt')
-        if ($shaderVariantTemplateMatch.MatchedPixels -lt $minimumShaderVariantMatchPixels) {
-            throw "shader variant frame did not retain the selected card: match=$($shaderVariantTemplateMatch.MatchedPixels)/$($shaderVariantTemplateMatch.PixelCount), required>=$minimumShaderVariantMatchPixels"
+        if ($shaderVariantGoldenMatches -ne $shaderVariantGoldenEvidence.Count) {
+            throw "shader variant frame did not match the independent Foil/Worn golden pixels: matches=$shaderVariantGoldenMatches/$($shaderVariantGoldenEvidence.Count), maximum_rgb_delta=$shaderVariantGoldenDeltaMaximum"
         }
         if ($shaderVariantEvidence.UniqueColors -lt $minimumShaderVariantUniqueColors -or
             $shaderVariantEvidence.NonBackgroundPixels -lt $minimumShaderVariantNonBackgroundPixels) {
@@ -3331,10 +3385,11 @@ if ($ShaderVariant) {
         $shaderVariantState['rendered_x'], $shaderVariantState['rendered_y'], `
         (Join-Path $artifactDir 'shader-variant-state.txt'), $shaderVariantFramePath, `
         (Join-Path $artifactDir 'shader-variant-visual.txt'))
-    Write-Output ("Shader variant observed: rarity={0}, tier={1}, variant={2}, condition={3}, overlay_handle={4}, vertices={5}, region_colors={6}, region_non_background={7}/{8}" -f `
+    Write-Output ("Shader variant observed: rarity={0}, tier={1}, variant={2}, condition={3}, variant_handle={4}, condition_handle={5}, condition_visible={6}, golden_pixels={7}/{8}, region_colors={9}, region_non_background={10}/{11}" -f `
         $shaderVariantState['identity_rarity'], $shaderVariantState['identity_tier'], `
         $shaderVariantState['shader_variant'], $shaderVariantState['condition_effect'], `
-        $shaderVariantState['variant_overlay_handle'], $shaderVariantState['variant_overlay_vertex_count'], `
+        $shaderVariantState['variant_overlay_handle'], $shaderVariantState['condition_overlay_handle'], `
+        $shaderVariantState['condition_overlay_visible'], $shaderVariantGoldenMatches, $shaderVariantGoldenEvidence.Count, `
         $shaderVariantEvidence.UniqueColors, $shaderVariantEvidence.NonBackgroundPixels, $shaderVariantEvidence.PixelCount)
 }
 elseif ($ArtFace) {
