@@ -46,4 +46,4 @@ Run the seeded identity/signature scenario through the real card-game window:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -IdentitySignature
 ```
 
-This mode compares the deterministic card signature, seed, rarity, tier, and generated name, then retains `identity-state.txt`, `identity.bmp`, and `identity-visual.txt` under `target/ui-smoke-*`.
+This mode compares the deterministic card signature, seed, rarity, tier, and generated name, then retains `identity-state.txt`, `identity.bmp`, and `identity-visual.txt` under `target/ui-smoke-*`. Signature axes are normalized to six decimal places before comparison; seed, rarity, tier, and name remain exact. The visual assertion compares `identity.bmp` with a template captured independently from `baseline.bmp`, not with a template derived from the identity frame itself.

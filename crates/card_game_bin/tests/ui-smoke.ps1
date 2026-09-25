@@ -140,6 +140,17 @@ $succeeded = $false
 $cleanupFailure = $null
 $failureCaptureError = $null
 $stage = 'setup'
+$identityNoInput = 'not_applicable_identity_no_input'
+$foregroundBeforePostMessage = [pscustomobject]@{
+    Handle = $identityNoInput
+    ProcessId = $identityNoInput
+}
+$cursorBeforePostMessage = [pscustomobject]@{
+    X = $identityNoInput
+    Y = $identityNoInput
+}
+$lastInputTickBeforePostMessage = $identityNoInput
+$lastInputTickAfterReleaseAck = $identityNoInput
 
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 
@@ -907,6 +918,15 @@ public static class AxiomUiSmokeNative
         "booster_client=($boosterClientX,$boosterClientY)"
         "booster_world=($boosterWorldX,$boosterWorldY)"
     ) | Set-Content -LiteralPath $inputFile
+    if ($IdentitySignature) {
+        @(
+            'input_mode=identity_no_postmessagew'
+            "foreground_before_postmessagew=$identityNoInput"
+            "foreground_process_id_before_postmessagew=$identityNoInput"
+            "cursor_before_postmessagew=$identityNoInput"
+            "last_input_tick_before_postmessagew=$identityNoInput"
+        ) | Add-Content -LiteralPath $inputFile
+    }
     if ($foregroundAtPreparation.Handle -eq $windowHandle) {
         throw "game window became foreground during preparation (hwnd=$windowHandle pid=$($process.Id))"
     }
@@ -943,16 +963,22 @@ public static class AxiomUiSmokeNative
         Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
             -CapturePath $identityFramePath -Stage $stage -TimeoutSeconds 10
         $identityFrame = Read-UiSmokeBitmap -Path $identityFramePath
-        $identityTemplate = New-UiSmokeCardTemplate -Frame $identityFrame `
+        $identityBaselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        if ($identityBaselineFrame.Width -ne $identityFrame.Width -or
+            $identityBaselineFrame.Height -ne $identityFrame.Height) {
+            throw "identity baseline frame size $($identityBaselineFrame.Width)x$($identityBaselineFrame.Height) does not match identity frame $($identityFrame.Width)x$($identityFrame.Height)"
+        }
+        $identityExpectedTemplate = New-UiSmokeCardTemplate -Frame $identityBaselineFrame `
             -CenterX $startClientX -CenterY $startClientY
-        $identityTemplateMatch = Find-UiSmokeCardTemplate -Frame $identityFrame -Template $identityTemplate `
+        $identityTemplateMatch = Find-UiSmokeCardTemplate -Frame $identityFrame -Template $identityExpectedTemplate `
             -ExpectedCenterX $startClientX -ExpectedCenterY $startClientY `
             -SearchRadius 8 -RgbDeltaMaximum 32
-        $minimumIdentityMatchPixels = [int][Math]::Ceiling($identityTemplate.PixelCount * 90 / 100.0)
+        $minimumIdentityMatchPixels = [int][Math]::Ceiling($identityExpectedTemplate.PixelCount * 90 / 100.0)
         @(
             "frame_size=$($identityFrame.Width)x$($identityFrame.Height)"
-            "identity_template_size=$($identityTemplate.Width)x$($identityTemplate.Height)"
-            "identity_template_unique_rgb_colors=$($identityTemplate.UniqueColors)"
+            'identity_expected_template_source=baseline.bmp'
+            "identity_template_size=$($identityExpectedTemplate.Width)x$($identityExpectedTemplate.Height)"
+            "identity_template_unique_rgb_colors=$($identityExpectedTemplate.UniqueColors)"
             "identity_template_match=$($identityTemplateMatch.MatchedPixels)/$($identityTemplateMatch.PixelCount)"
             "identity_template_minimum_match_percent=90"
             "identity_template_offset=$($identityTemplateMatch.OffsetX),$($identityTemplateMatch.OffsetY)"
@@ -2125,11 +2151,16 @@ else {
     Write-Output ("Interaction verified: spin_rotation={0}, moved_pixels=source:{1} target:{2}, flip_changed={3} (minimum 500 at RGB delta 24)" -f `
         $spinState['rotation'], $sourceChanges.ChangedPixels, $targetChanges.ChangedPixels, $flipChanges.ChangedPixels)
 }
-Write-Output ("Cursor samples: launch=({0},{1}), preparation=({2},{3}), pre-input=({4},{5}), before-PostMessageW=({6},{7}), after-release-ack=({8},{9}), setup-drift={10}, cursor-stability={11}, last-input-ticks={12}->{13}" -f `
-    $previousCursor.X, $previousCursor.Y, $cursorAtPreparation.X, $cursorAtPreparation.Y, `
-    $cursorBeforeInputSetup.X, $cursorBeforeInputSetup.Y, $cursorBeforePostMessage.X, $cursorBeforePostMessage.Y, `
-    $cursorAfterInput.X, $cursorAfterInput.Y, $cursorSetupDrift, $cursorStability, `
-    $lastInputTickBeforePostMessage, $lastInputTickAfterReleaseAck)
-Write-Output ("Foreground samples: launch={0} pid={1}, pre-PostMessageW={2} pid={3}, post-release={4} pid={5}" -f `
-    $foregroundBeforeLaunch.Handle, $foregroundBeforeLaunch.ProcessId, $foregroundBeforePostMessage.Handle, `
-    $foregroundBeforePostMessage.ProcessId, $foregroundAfterInput.Handle, $foregroundAfterInput.ProcessId)
+if ($IdentitySignature) {
+    Write-Output ("Input diagnostics: mode=identity-no-postmessagew, before-PostMessageW=$identityNoInput, before-PostMessageW-pid=$identityNoInput, cursor-before-PostMessageW=$identityNoInput, last-input-tick-before-PostMessageW=$identityNoInput, cursor-stability=$cursorStability")
+}
+else {
+    Write-Output ("Cursor samples: launch=({0},{1}), preparation=({2},{3}), pre-input=({4},{5}), before-PostMessageW=({6},{7}), after-release-ack=({8},{9}), setup-drift={10}, cursor-stability={11}, last-input-ticks={12}->{13}" -f `
+        $previousCursor.X, $previousCursor.Y, $cursorAtPreparation.X, $cursorAtPreparation.Y, `
+        $cursorBeforeInputSetup.X, $cursorBeforeInputSetup.Y, $cursorBeforePostMessage.X, $cursorBeforePostMessage.Y, `
+        $cursorAfterInput.X, $cursorAfterInput.Y, $cursorSetupDrift, $cursorStability, `
+        $lastInputTickBeforePostMessage, $lastInputTickAfterReleaseAck)
+    Write-Output ("Foreground samples: launch={0} pid={1}, pre-PostMessageW={2} pid={3}, post-release={4} pid={5}" -f `
+        $foregroundBeforeLaunch.Handle, $foregroundBeforeLaunch.ProcessId, $foregroundBeforePostMessage.Handle, `
+        $foregroundBeforePostMessage.ProcessId, $foregroundAfterInput.Handle, $foregroundAfterInput.ProcessId)
+}
