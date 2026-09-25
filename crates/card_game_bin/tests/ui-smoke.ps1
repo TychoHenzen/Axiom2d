@@ -2,7 +2,8 @@ param(
     [switch]$RunnerChild,
     [string]$RunnerArtifactDirectory,
     [switch]$Interaction,
-    [switch]$HandRoundTrip
+    [switch]$HandRoundTrip,
+    [switch]$StashRoundTrip
 )
 
 $ErrorActionPreference = 'Stop'
@@ -16,8 +17,10 @@ else {
 }
 
 if (-not $RunnerChild) {
-    if ($Interaction -and $HandRoundTrip) {
-        throw 'Interaction and HandRoundTrip cannot be combined'
+    if (($Interaction -and $HandRoundTrip) -or
+        ($Interaction -and $StashRoundTrip) -or
+        ($HandRoundTrip -and $StashRoundTrip)) {
+        throw 'Interaction, HandRoundTrip, and StashRoundTrip are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -43,6 +46,9 @@ if (-not $RunnerChild) {
         }
         if ($HandRoundTrip) {
             $runnerArguments += '-HandRoundTrip'
+        }
+        if ($StashRoundTrip) {
+            $runnerArguments += '-StashRoundTrip'
         }
         $runnerProcess = Start-Process -FilePath (Get-Process -Id $PID).Path `
             -ArgumentList $runnerArguments `
@@ -80,6 +86,10 @@ $releasedFramePath = Join-Path $artifactDir 'released.bmp'
 $flippedFramePath = Join-Path $artifactDir 'flipped.bmp'
 $handFramePath = Join-Path $artifactDir 'hand.bmp'
 $returnedFramePath = Join-Path $artifactDir 'returned.bmp'
+$stashOpenFramePath = Join-Path $artifactDir 'stash-open.bmp'
+$stashStoredFramePath = Join-Path $artifactDir 'stash-stored.bmp'
+$stashPageTwoFramePath = Join-Path $artifactDir 'stash-page-2.bmp'
+$stashRetrievedFramePath = Join-Path $artifactDir 'stash-retrieved.bmp'
 $failureFramePath = Join-Path $artifactDir 'failure.bmp'
 $frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
 $scenarioName = if ($Interaction) {
@@ -87,6 +97,9 @@ $scenarioName = if ($Interaction) {
 }
 elseif ($HandRoundTrip) {
     'seeded-card-hand-roundtrip'
+}
+elseif ($StashRoundTrip) {
+    'seeded-card-stash-roundtrip'
 }
 else {
     'seeded-card-drag'
@@ -183,11 +196,12 @@ function Format-UiStateDiagnostic {
     if ($null -eq $State) {
         return 'none (no complete state snapshot)'
     }
-    return ("scenario={0}, dragging={1}, zone={2}, hand_contains={3}, hand_count={4}, rendered=({5},{6}), rotation={7}, face_up={8}, mouse=({9},{10}), left_pressed={11}, right_pressed={12}" -f `
+    return ("scenario={0}, dragging={1}, zone={2}, hand_contains={3}, hand_count={4}, stash_visible={5}, stash_page={6}, stash_slot={7}, stash_present={8}, stash_origin={9}, stash_follow={10}, rendered=({11},{12}), rotation={13}, face_up={14}, mouse=({15},{16}), left_pressed={17}, right_pressed={18}" -f `
         $State['scenario'], $State['dragging'], $State['zone'], $State['hand_contains'], `
-        $State['hand_count'], $State['rendered_x'], $State['rendered_y'], $State['rotation'], `
-        $State['face_up'], $State['mouse_x'], $State['mouse_y'], $State['left_pressed'], `
-        $State['right_pressed'])
+        $State['hand_count'], $State['stash_visible'], $State['stash_page'], $State['stash_slot'], `
+        $State['stash_slot_present'], $State['stash_origin'], $State['stash_cursor_follow'], `
+        $State['rendered_x'], $State['rendered_y'], $State['rotation'], $State['face_up'], `
+        $State['mouse_x'], $State['mouse_y'], $State['left_pressed'], $State['right_pressed'])
 }
 
 function Wait-UiState {
@@ -535,6 +549,8 @@ public static class AxiomUiSmokeNative
     private const uint WmLeftButtonUp = 0x0202;
     private const uint WmRightButtonDown = 0x0204;
     private const uint WmRightButtonUp = 0x0205;
+    private const uint WmKeyDown = 0x0100;
+    private const uint WmKeyUp = 0x0101;
     private const uint MkLeftButton = 0x0001;
     private const uint MkRightButton = 0x0002;
 
@@ -694,6 +710,14 @@ public static class AxiomUiSmokeNative
         PostMouseMessage(window, WmRightButtonUp, UIntPtr.Zero, clientX, clientY);
     }
 
+    public static void PostVirtualKey(IntPtr window, uint virtualKey, bool pressed)
+    {
+        uint message = pressed ? WmKeyDown : WmKeyUp;
+        int lParam = pressed ? 1 : unchecked((int)0xC0000001);
+        if (!PostWindowMessage(window, message, new UIntPtr(virtualKey), new IntPtr(lParam)))
+            throw new InvalidOperationException("Win32 key message post failed: " + Marshal.GetLastWin32Error());
+    }
+
     private static void PostMouseMessage(IntPtr window, uint message, UIntPtr buttonState,
         int clientX, int clientY)
     {
@@ -804,6 +828,14 @@ public static class AxiomUiSmokeNative
     $handClientY = [int][Math]::Round($client.Height - 80.0)
     $handWorldX = 0.0
     $handWorldY = $handClientY - $client.Height / 2.0
+    $stashClientX = 45
+    $stashClientY = 58
+    $stashWorldX = $stashClientX - $client.Width / 2.0
+    $stashWorldY = $stashClientY - $client.Height / 2.0
+    $stashTabTopY = 20 + 10 * 79 - 4
+    $stashTabCenterY = [int][Math]::Round($stashTabTopY + 8)
+    $stashTabStartX = 20 + (10 * 54 - 4) / 2.0 - (5 * 34 - 4) / 2.0
+    $stashPageTwoTabX = [int][Math]::Round($stashTabStartX + 2 * 34 + 15)
     $stage = 'prepare-background-input'
     $foregroundBeforeInput = Get-UiSmokeForegroundSnapshot
     $cursorBeforeInputSetup = [AxiomUiSmokeNative]::GetCursorPosition()
@@ -837,12 +869,38 @@ public static class AxiomUiSmokeNative
         "target_client=($targetClientX,$targetClientY)"
         "hand_client=($handClientX,$handClientY)"
         "hand_world=($handWorldX,$handWorldY)"
+        "stash_client=($stashClientX,$stashClientY)"
+        "stash_world=($stashWorldX,$stashWorldY)"
+        "stash_page_two_tab=($stashPageTwoTabX,$stashTabCenterY)"
     ) | Set-Content -LiteralPath $inputFile
     if ($foregroundAtPreparation.Handle -eq $windowHandle) {
         throw "game window became foreground during preparation (hwnd=$windowHandle pid=$($process.Id))"
     }
     if ($foregroundBeforeInput.Handle -eq $windowHandle) {
         throw "game window was foreground before input (hwnd=$windowHandle pid=$($process.Id))"
+    }
+
+    if ($StashRoundTrip) {
+        $stage = 'open-stash'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before stash toggle (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostVirtualKey($windowHandle, 0x09, $true)
+        [AxiomUiSmokeNative]::PostVirtualKey($windowHandle, 0x09, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'stash_visible=true, stash_page=1, zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_visible'] -eq 'true' -and
+            $state['stash_page'] -eq '1' -and
+            $state['zone'] -eq 'Table'
+        }
+        $stage = 'capture-stash-open-frame'
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $stashOpenFramePath -Stage $stage -TimeoutSeconds 10
     }
 
     if ($Interaction) {
@@ -1112,10 +1170,42 @@ public static class AxiomUiSmokeNative
         (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 25)
     }
 
-    $dragTargetClientX = if ($HandRoundTrip) { $handClientX } else { $targetClientX }
-    $dragTargetClientY = if ($HandRoundTrip) { $handClientY } else { $targetClientY }
-    $dragTargetWorldX = if ($HandRoundTrip) { $handWorldX } else { -300.0 }
-    $dragTargetWorldY = if ($HandRoundTrip) { $handWorldY } else { -150.0 }
+    $dragTargetClientX = if ($StashRoundTrip) {
+        $stashClientX
+    }
+    elseif ($HandRoundTrip) {
+        $handClientX
+    }
+    else {
+        $targetClientX
+    }
+    $dragTargetClientY = if ($StashRoundTrip) {
+        $stashClientY
+    }
+    elseif ($HandRoundTrip) {
+        $handClientY
+    }
+    else {
+        $targetClientY
+    }
+    $dragTargetWorldX = if ($StashRoundTrip) {
+        $stashWorldX
+    }
+    elseif ($HandRoundTrip) {
+        $handWorldX
+    }
+    else {
+        -300.0
+    }
+    $dragTargetWorldY = if ($StashRoundTrip) {
+        $stashWorldY
+    }
+    elseif ($HandRoundTrip) {
+        $handWorldY
+    }
+    else {
+        -150.0
+    }
     $stage = 'drag-card'
     for ($step = 1; $step -le 10; $step++) {
         $mouseClientX = [int][Math]::Round($startClientX + ($dragTargetClientX - $startClientX) * $step / 10.0)
@@ -1140,7 +1230,246 @@ public static class AxiomUiSmokeNative
     Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
         -CapturePath $framePath -Stage $stage -TimeoutSeconds 10
 
-    if ($HandRoundTrip) {
+    if ($StashRoundTrip) {
+        $stage = 'verify-stash-drag-preview'
+        $stashDragState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, zone=Table, stash_visible=true, stash_page=1, stash_cursor_follow=true, rendered=($stashWorldX,$stashWorldY) tolerance=5" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['stash_visible'] -eq 'true' -and
+            $state['stash_page'] -eq '1' -and
+            $state['stash_slot_present'] -eq 'false' -and
+            $state['stash_cursor_follow'] -eq 'true' -and
+            (Test-Position -State $state -ExpectedX $stashWorldX -ExpectedY $stashWorldY -Tolerance 5)
+        }
+        $stashDragState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-drag-state.txt')
+
+        $stashOpenFrame = Read-UiSmokeBitmap -Path $stashOpenFramePath
+        $stashDragFrame = Read-UiSmokeBitmap -Path $framePath
+        $rgbDeltaThreshold = 24
+        $minimumStashChangedPixels = 250
+        $stashSourceChanges = Get-UiSmokeChangedPixels -Before $stashOpenFrame -After $stashDragFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $stashPreviewChanges = Get-UiSmokeChangedPixels -Before $stashOpenFrame -After $stashDragFrame `
+            -CenterX $stashClientX -CenterY $stashClientY -HalfWidth 40 -HalfHeight 55 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($stashDragFrame.Width)x$($stashDragFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumStashChangedPixels"
+            "source_changed_pixels=$($stashSourceChanges.ChangedPixels)"
+            "stash_preview_changed_pixels=$($stashPreviewChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-drag-visual-diff.txt')
+        if ($stashSourceChanges.ChangedPixels -lt $minimumStashChangedPixels -or
+            $stashPreviewChanges.ChangedPixels -lt $minimumStashChangedPixels) {
+            throw "stash drag preview changed too few pixels: source=$($stashSourceChanges.ChangedPixels), preview=$($stashPreviewChanges.ChangedPixels), minimum=$minimumStashChangedPixels"
+        }
+
+        $stage = 'release-card-to-stash'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+        $stashState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=false, zone=Stash { page: 0, col: 0, row: 0 }, stash_slot=0:0:0, stash_slot_present=true, rendered=($stashWorldX,$stashWorldY) tolerance=5" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -eq 'Stash { page: 0, col: 0, row: 0 }' -and
+            $state['stash_slot'] -eq '0:0:0' -and
+            $state['stash_slot_present'] -eq 'true' -and
+            $state['stash_cursor_follow'] -eq 'false' -and
+            (Test-Position -State $state -ExpectedX $stashWorldX -ExpectedY $stashWorldY -Tolerance 5)
+        }
+        $mouseDown = $false
+        $stashState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $stashStoredFramePath -Stage 'capture-stash-stored-frame' -TimeoutSeconds 10
+
+        $stashStoredFrame = Read-UiSmokeBitmap -Path $stashStoredFramePath
+        $storedPreviewChanges = Get-UiSmokeChangedPixels -Before $stashOpenFrame -After $stashStoredFrame `
+            -CenterX $stashClientX -CenterY $stashClientY -HalfWidth 40 -HalfHeight 55 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        "stash_stored_changed_pixels=$($storedPreviewChanges.ChangedPixels)" | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-stored-visual-diff.txt')
+        if ($storedPreviewChanges.ChangedPixels -lt $minimumStashChangedPixels) {
+            throw "stored stash frame changed too few pixels: changed=$($storedPreviewChanges.ChangedPixels), minimum=$minimumStashChangedPixels"
+        }
+
+        $stage = 'switch-to-stash-page-two'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $stashPageTwoTabX, $stashTabCenterY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'hover-stash-page-two' -TimeoutSeconds 5 -ExpectedState "stash tab mouse=($stashPageTwoTabX,$stashTabCenterY)" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $stashPageTwoTabX -ExpectedY $stashTabCenterY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $stashPageTwoTabX, $stashTabCenterY)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'stash_page=2, stash_slot_present=false' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_page'] -eq '2' -and
+            $state['stash_slot_present'] -eq 'false'
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $stashPageTwoTabX, $stashTabCenterY)
+        $pageTwoState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'release-stash-page-two-tab' -TimeoutSeconds 5 -ExpectedState 'stash_page=2, left_pressed=false' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_page'] -eq '2' -and
+            $state['left_pressed'] -eq 'false'
+        }
+        $pageTwoState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-page-two-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $stashPageTwoFramePath -Stage 'capture-stash-page-two-frame' -TimeoutSeconds 10
+
+        $stage = 'return-to-stash-page-one'
+        $stashPageOneTabX = [int][Math]::Round($stashTabStartX + 34 + 15)
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $stashPageOneTabX, $stashTabCenterY, $false)
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $stashPageOneTabX, $stashTabCenterY)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState 'stash_page=1, stash_slot_present=true' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_page'] -eq '1' -and
+            $state['stash_slot_present'] -eq 'true'
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $stashPageOneTabX, $stashTabCenterY)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'release-stash-page-one-tab' -TimeoutSeconds 5 -ExpectedState 'stash_page=1, left_pressed=false' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_page'] -eq '1' -and
+            $state['left_pressed'] -eq 'false'
+        }
+
+        $stage = 'pick-stashed-card'
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $stashClientX, $stashClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage 'hover-stashed-card' -TimeoutSeconds 5 -ExpectedState "stash card mouse=($stashClientX,$stashClientY)" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['stash_slot_present'] -eq 'true' -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $stashClientX -ExpectedY $stashClientY -Tolerance 3)
+        }
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $stashClientX, $stashClientY)
+        $mouseClientX = $stashClientX
+        $mouseClientY = $stashClientY
+        $mouseDown = $true
+        $retrieveDragState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=true, zone=Table, stash_origin=0:0:0, stash_slot_present=false' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['zone'] -eq 'Table' -and
+            $state['stash_origin'] -eq '0:0:0' -and
+            $state['stash_slot_present'] -eq 'false' -and
+            $state['stash_cursor_follow'] -eq 'true'
+        }
+        $retrieveDragState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-retrieve-drag-state.txt')
+
+        $stage = 'drag-stashed-card-to-table'
+        for ($step = 1; $step -le 10; $step++) {
+            $mouseClientX = [int][Math]::Round($stashClientX + ($startClientX - $stashClientX) * $step / 10.0)
+            $mouseClientY = [int][Math]::Round($stashClientY + ($startClientY - $stashClientY) * $step / 10.0)
+            [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $mouseClientX, $mouseClientY, $true)
+            Start-Sleep -Milliseconds 35
+        }
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "dragging=true, stash_origin=0:0:0, rendered=(-160,130) tolerance=25" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'true' -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['stash_origin'] -eq '0:0:0' -and
+            (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 25)
+        }
+
+        $stage = 'release-stashed-card-to-table'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
+        $retrievedState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'dragging=false, zone=Table, stash_slot_present=false, rendered=(-160,130) tolerance=35' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['stash_slot_present'] -eq 'false' -and
+            $state['stash_origin'] -eq 'none' -and
+            (Test-Position -State $state -ExpectedX -160 -ExpectedY 130 -Tolerance 35)
+        }
+        $mouseDown = $false
+        $retrievedState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-retrieved-state.txt')
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $stashRetrievedFramePath -Stage 'capture-stash-retrieved-frame' -TimeoutSeconds 10
+
+        $stashRetrievedFrame = Read-UiSmokeBitmap -Path $stashRetrievedFramePath
+        $retrievedStashChanges = Get-UiSmokeChangedPixels -Before $stashStoredFrame -After $stashRetrievedFrame `
+            -CenterX $stashClientX -CenterY $stashClientY -HalfWidth 40 -HalfHeight 55 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        $retrievedTableChanges = Get-UiSmokeChangedPixels -Before $stashStoredFrame -After $stashRetrievedFrame `
+            -CenterX $startClientX -CenterY $startClientY -HalfWidth 80 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($stashRetrievedFrame.Width)x$($stashRetrievedFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumStashChangedPixels"
+            "stash_changed_pixels=$($retrievedStashChanges.ChangedPixels)"
+            "table_changed_pixels=$($retrievedTableChanges.ChangedPixels)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'stash-retrieved-visual-diff.txt')
+        if ($retrievedStashChanges.ChangedPixels -lt $minimumStashChangedPixels -or
+            $retrievedTableChanges.ChangedPixels -lt $minimumStashChangedPixels) {
+            throw "retrieved stash frame changed too few pixels: stash=$($retrievedStashChanges.ChangedPixels), table=$($retrievedTableChanges.ChangedPixels), minimum=$minimumStashChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during stash round-trip (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "stash round-trip PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($HandRoundTrip) {
         $stage = 'release-card-to-hand'
         [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $mouseClientX, $mouseClientY)
         $handState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
@@ -1509,7 +1838,16 @@ if (-not $succeeded) {
     exit 1
 }
 
-if ($HandRoundTrip) {
+if ($StashRoundTrip) {
+    Write-Output ("UI stash round-trip passed: stored=({0},{1}) retrieved=({2},{3}), stash_state={4}, page_two_state={5}, retrieved_state={6}, stored_frame={7}, retrieved_frame={8}" -f `
+        $stashState['rendered_x'], $stashState['rendered_y'], $retrievedState['rendered_x'], $retrievedState['rendered_y'], `
+        (Join-Path $artifactDir 'stash-state.txt'), (Join-Path $artifactDir 'stash-page-two-state.txt'), `
+        (Join-Path $artifactDir 'stash-retrieved-state.txt'), $stashStoredFramePath, $stashRetrievedFramePath)
+    Write-Output ("Stash workflow verified: preview_changed={0}, stored_changed={1}, page_two={2}, retrieved_stash_changed={3}, retrieved_table_changed={4} pixels (minimum 250 at RGB delta 24)" -f `
+        $stashPreviewChanges.ChangedPixels, $storedPreviewChanges.ChangedPixels, $pageTwoState['stash_page'], `
+        $retrievedStashChanges.ChangedPixels, $retrievedTableChanges.ChangedPixels)
+}
+elseif ($HandRoundTrip) {
     Write-Output ("UI hand round-trip passed: hand=({0},{1}) returned=({2},{3}), hand_state={4}, returned_state={5}, hand_frame={6}, returned_frame={7}" -f `
         $handState['rendered_x'], $handState['rendered_y'], $returnedState['rendered_x'], $returnedState['rendered_y'], `
         (Join-Path $artifactDir 'hand-state.txt'), (Join-Path $artifactDir 'returned-state.txt'), $handFramePath, $returnedFramePath)

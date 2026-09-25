@@ -17,6 +17,12 @@ use card_game::card::reader::{
 };
 use card_game::card::screen_device::spawn_screen_device;
 use card_game::prelude::*;
+#[cfg(feature = "ui-test")]
+use card_game::stash::grid::StashGrid;
+#[cfg(feature = "ui-test")]
+use card_game::stash::hover::StashHoverPreview;
+#[cfg(feature = "ui-test")]
+use card_game::stash::toggle::StashVisible;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 
@@ -162,12 +168,24 @@ fn setup(app: &mut App) {
         app.add_systems(Phase::PostRender, record_ui_test_state);
     }
 
-    app.set_window_config(WindowConfig {
+    let window_config = WindowConfig {
         title: "Card Game",
         width: 1024,
         height: 768,
         ..Default::default()
-    });
+    };
+    #[cfg(feature = "ui-test")]
+    let window_config = {
+        let mut window_config = window_config;
+        if UI_TEST_SCENARIO
+            .get()
+            .is_some_and(|scenario| scenario == "seeded-card-stash-roundtrip")
+        {
+            window_config.height = 900;
+        }
+        window_config
+    };
+    app.set_window_config(window_config);
 
     app.world_mut()
         .resource_mut::<PostSplashSetup>()
@@ -184,6 +202,9 @@ fn record_ui_test_state(
     drag_state: Res<DragState>,
     hand: Res<Hand>,
     mouse: Res<MouseState>,
+    stash_grid: Res<StashGrid>,
+    stash_hover: Res<StashHoverPreview>,
+    stash_visible: Res<StashVisible>,
     cards: Query<(Entity, &Card, &CardZone, &Transform2D)>,
 ) {
     let Some(card_entity) = UI_TEST_CARD_ENTITY.get() else {
@@ -196,14 +217,35 @@ fn record_ui_test_state(
     let dragging = drag_state
         .dragging
         .is_some_and(|drag| drag.entity == entity);
+    let stash_cursor_follow = drag_state
+        .dragging
+        .is_some_and(|drag| drag.entity == entity && drag.stash_cursor_follow);
+    let stash_origin = drag_state
+        .dragging
+        .and_then(|drag| match drag.origin_zone {
+            CardZone::Stash { page, col, row } => Some(format!("{page}:{col}:{row}")),
+            _ => None,
+        })
+        .unwrap_or_else(|| "none".to_owned());
+    let stash_slot = match zone {
+        CardZone::Stash { page, col, row } => format!("{page}:{col}:{row}"),
+        _ => "none".to_owned(),
+    };
+    let stash_slot_present = stash_grid
+        .current_storage_page()
+        .is_some_and(|page| stash_grid.get(page, 0, 0).is_some());
+    let stash_hovered = stash_hover.hovered_entity == Some(entity);
     let hand_contains = hand.cards().contains(card_entity);
     let mouse_position = mouse.screen_pos();
     let scenario = UI_TEST_SCENARIO
         .get()
         .expect("UI test scenario must be configured before the app runs");
     let snapshot = format!(
-        "scenario={scenario}\ndragging={dragging}\nzone={zone:?}\nhand_contains={hand_contains}\nhand_count={}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\n",
+        "scenario={scenario}\ndragging={dragging}\nzone={zone:?}\nhand_contains={hand_contains}\nhand_count={}\nstash_visible={}\nstash_page={}\nstash_storage_page={}\nstash_slot={stash_slot}\nstash_slot_present={stash_slot_present}\nstash_origin={stash_origin}\nstash_cursor_follow={stash_cursor_follow}\nstash_hovered={stash_hovered}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\n",
         hand.len(),
+        stash_visible.0,
+        stash_grid.current_page(),
+        stash_grid.current_storage_page().map_or(-1, i32::from),
         transform.position.x,
         transform.position.y,
         transform.rotation,

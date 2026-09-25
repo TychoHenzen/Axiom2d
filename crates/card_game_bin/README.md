@@ -23,3 +23,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 ```
 
 This mode retains hand and returned state/frame evidence and verifies the hand membership, layout, and table return.
+
+Run the stash round-trip scenario, storing the seeded card, switching pages, previewing the stash slot during a drag, and retrieving it:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -StashRoundTrip
+```
+
+This mode retains stash, page, retrieval, and rendered-difference evidence under `target/ui-smoke-*`.
