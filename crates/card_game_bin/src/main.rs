@@ -31,8 +31,7 @@ use card_game::card::reader::{
 };
 #[cfg(feature = "ui-test")]
 use card_game::card::rendering::art_shader::{
-    ConditionEffect, DORMANT_WGSL, FOIL_WGSL, INTENSE_WGSL, ShaderVariant, TierShaders,
-    VariantShaders,
+    ConditionEffect, DORMANT_WGSL, FOIL_WGSL, INTENSE_WGSL, TierShaders, VariantShaders,
 };
 #[cfg(feature = "ui-test")]
 use card_game::card::screen_device::ScreenSignalShape;
@@ -630,7 +629,21 @@ fn setup(app: &mut App) {
 
 #[cfg(feature = "ui-test")]
 mod ui_test_state {
-    use super::*;
+    use card_game::card::rendering::art_shader::ShaderVariant;
+
+    use super::{
+        BoosterOpenPhase, BoosterOpening, BoosterPack, Card, CardLabel, CardReader, CardSignature,
+        CardZone, CombinerDevice, ConditionEffect, DORMANT_WGSL, DragState, Entity, FOIL_WGSL,
+        Hand, INTENSE_WGSL, Jack, JackSocket, MeshOverlays, MouseButton, MouseState, PathBuf,
+        Query, Res, SCREEN_SPLINE_GOLDEN_SIGNATURE, ShapeRepository, ShapeVariant, SignatureSpace,
+        StashGrid, StashHoverPreview, StashVisible, Transform2D, UI_TEST_BOOSTER_ENTITY,
+        UI_TEST_BOOSTER_SIGNATURE, UI_TEST_CARD_ENTITY, UI_TEST_COMBINER_ENTITY,
+        UI_TEST_PLUGIN_WIRING_SCENARIO, UI_TEST_SCENARIO, UI_TEST_SCREEN_ENTITY,
+        UI_TEST_SCREEN_JACK_ENTITY, UI_TEST_SECOND_CARD_ENTITY, UI_TEST_STATE_FILE,
+        UiTestCableParams, UiTestRenderingParams, Vec2, ZoneConfig, compute_seed, format_geometry,
+        format_terrain_corners, nearest_rendered_point, rendered_centerline,
+        rendered_max_deviation, screen_spline_golden_points, select_art_for_signature,
+    };
 
     struct SecondaryCardState {
         entity: Entity,
@@ -640,6 +653,7 @@ mod ui_test_state {
         reader_loaded: bool,
     }
 
+    #[allow(clippy::struct_excessive_bools)]
     struct CardState {
         entity: Entity,
         signature: CardSignature,
@@ -683,6 +697,7 @@ mod ui_test_state {
         observed_geometry: [String; 4],
     }
 
+    #[allow(clippy::struct_excessive_bools)]
     struct CombinerState {
         present: bool,
         input_a_connected: bool,
@@ -726,6 +741,7 @@ mod ui_test_state {
         art_shape_count: usize,
     }
 
+    #[allow(clippy::struct_excessive_bools)]
     struct BoosterState {
         dragging: bool,
         pack_present: bool,
@@ -740,6 +756,7 @@ mod ui_test_state {
         opened_position: Vec2,
     }
 
+    #[allow(clippy::struct_excessive_bools)]
     struct ShaderState {
         variant: String,
         condition: String,
@@ -775,6 +792,7 @@ mod ui_test_state {
         last_clicked_tile: i32,
     }
 
+    #[allow(clippy::struct_excessive_bools)]
     struct Snapshot {
         scenario: String,
         card: CardState,
@@ -1525,7 +1543,7 @@ mod ui_test_state {
         let booster = collect_booster_state(
             &card,
             &drag_state,
-            booster_opening.as_ref().map(|opening| &**opening),
+            booster_opening.as_deref(),
             &booster_packs,
             &rendering.cards,
         );
