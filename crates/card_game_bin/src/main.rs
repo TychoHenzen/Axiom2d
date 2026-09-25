@@ -139,8 +139,10 @@ fn setup(app: &mut App) {
     #[cfg(feature = "ui-test")]
     {
         let state_file = std::env::var_os("AXIOM_UI_TEST_STATE_FILE")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| panic!("AXIOM_UI_TEST_STATE_FILE must be set with ui-test"));
+            .map_or_else(
+                || panic!("AXIOM_UI_TEST_STATE_FILE must be set with ui-test"),
+                PathBuf::from,
+            );
         UI_TEST_STATE_FILE
             .set(state_file)
             .expect("UI test state file can only be configured once");
