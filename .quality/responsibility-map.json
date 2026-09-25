@@ -1,0 +1,30 @@
+{
+  "targetScope": [
+    "crates/axiom2d/src/splash/types.rs"
+  ],
+  "responsibilities": [
+    {
+      "name": "register deferred splash hook systems",
+      "currentOwners": [
+        "PreloadHooks and PostSplashSetup own Schedule directly in splash/types.rs"
+      ],
+      "consumers": [
+        "crates/axiom2d/src/splash/animation.rs",
+        "crates/axiom2d/tests/suite/splash_animation.rs"
+      ],
+      "dependencies": [
+        "bevy_ecs::schedule::Schedule",
+        "bevy_ecs::schedule::IntoScheduleConfigs"
+      ]
+    }
+  ],
+  "desired": {
+    "ownership": [
+      {
+        "responsibility": "add_systems",
+        "owner": "PreloadHooks"
+      }
+    ],
+    "boundaries": []
+  }
+}
