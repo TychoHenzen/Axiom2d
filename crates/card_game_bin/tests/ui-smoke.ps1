@@ -12,7 +12,8 @@ param(
     [switch]$BoosterOpening,
     [switch]$IdentitySignature,
     [switch]$ArtFace,
-    [switch]$ShaderVariant
+    [switch]$ShaderVariant,
+    [switch]$TerrainInteraction
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,10 +39,11 @@ if (-not $RunnerChild) {
         $BoosterOpening,
         $IdentitySignature,
         $ArtFace,
-        $ShaderVariant
+        $ShaderVariant,
+        $TerrainInteraction
     )
     if (@($scenarioFlags | Where-Object { $_ }).Count -gt 1) {
-        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, CableWrapping, ScreenSpline, StashRoundTrip, BoosterOpening, IdentitySignature, ArtFace, and ShaderVariant are mutually exclusive'
+        throw 'Interaction, HandRoundTrip, ZoneTransition, ReaderRoundTrip, CombinerProcessing, CableWrapping, ScreenSpline, StashRoundTrip, BoosterOpening, IdentitySignature, ArtFace, ShaderVariant, and TerrainInteraction are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -97,6 +99,9 @@ if (-not $RunnerChild) {
         }
         if ($ShaderVariant) {
             $runnerArguments += '-ShaderVariant'
+        }
+        if ($TerrainInteraction) {
+            $runnerArguments += '-TerrainInteraction'
         }
         $runnerProcess = Start-Process -FilePath (Get-Process -Id $PID).Path `
             -ArgumentList $runnerArguments `
@@ -168,6 +173,7 @@ $boosterOpenedFramePath = Join-Path $artifactDir 'booster-opened.bmp'
 $identityFramePath = Join-Path $artifactDir 'identity.bmp'
 $artFaceFramePath = Join-Path $artifactDir 'art-face.bmp'
 $shaderVariantFramePath = Join-Path $artifactDir 'shader-variant.bmp'
+$terrainInteractedFramePath = Join-Path $artifactDir 'terrain-interacted.bmp'
 $failureFramePath = Join-Path $artifactDir 'failure.bmp'
 $frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
 $scenarioName = if ($Interaction) {
@@ -205,6 +211,9 @@ elseif ($ArtFace) {
 }
 elseif ($ShaderVariant) {
     'seeded-card-shader-variant'
+}
+elseif ($TerrainInteraction) {
+    'seeded-card-terrain'
 }
 else {
     'seeded-card-drag'
@@ -1522,6 +1531,143 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
         }
         if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
             throw "booster opening PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
+        }
+        $succeeded = $true
+    }
+    elseif ($TerrainInteraction) {
+        $terrainWorldX = -300.0
+        $terrainWorldY = -250.0
+        $terrainClientX = [int][Math]::Round($client.Width / 2.0 + $terrainWorldX)
+        $terrainClientY = [int][Math]::Round($client.Height / 2.0 + $terrainWorldY)
+        @(
+            "terrain_client=($terrainClientX,$terrainClientY)"
+            "terrain_world=($terrainWorldX,$terrainWorldY)"
+            "terrain_expected_grid=4x3"
+            "terrain_expected_visual_tiles=20"
+            "terrain_expected_initial_cell_1_1=1"
+            "terrain_expected_interacted_cell_1_1=2"
+        ) | Add-Content -LiteralPath $inputFile
+
+        $stage = 'verify-terrain-initial-state'
+        $initialTerrainState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'terrain_active=true, grid=4x3, visual_tiles=20, rendered_tiles=20, cell_1_1=1, click_count=0' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['terrain_active'] -eq 'true' -and
+            $state['terrain_grid_width'] -eq '4' -and
+            $state['terrain_grid_height'] -eq '3' -and
+            $state['terrain_visual_tile_count'] -eq '20' -and
+            $state['terrain_rendered_tile_count'] -eq '20' -and
+            $state['terrain_cell_1_1'] -eq '1' -and
+            $state['terrain_visual_tile_7_corners'] -eq '0,2,1,0' -and
+            $state['terrain_click_count'] -eq '0' -and
+            $state['terrain_last_clicked_tile'] -eq '-1'
+        }
+        $initialTerrainState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'terrain-initial-state.txt')
+
+        $stage = 'hover-terrain'
+        $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
+        $cursorBeforePostMessage = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickBeforePostMessage = [AxiomUiSmokeNative]::GetLastInputTick()
+        if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
+            throw "game window was foreground before terrain input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        [AxiomUiSmokeNative]::PostMouseMove($windowHandle, $terrainClientX, $terrainClientY, $false)
+        $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 5 -ExpectedState "terrain mouse=($terrainClientX,$terrainClientY) tolerance=3" -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            (Test-Position -State $state -XKey 'mouse_x' -YKey 'mouse_y' `
+                -ExpectedX $terrainClientX -ExpectedY $terrainClientY -Tolerance 3)
+        }
+
+        $stage = 'press-terrain'
+        [AxiomUiSmokeNative]::PostLeftButtonDown($windowHandle, $terrainClientX, $terrainClientY)
+        $mouseClientX = $terrainClientX
+        $mouseClientY = $terrainClientY
+        $mouseDown = $true
+        $terrainState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'terrain_click_count=1, clicked_tile=7, cell_1_1=2' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'true' -and
+            $state['terrain_active'] -eq 'true' -and
+            $state['terrain_click_count'] -eq '1' -and
+            $state['terrain_last_clicked_tile'] -eq '7' -and
+            $state['terrain_cell_1_1'] -eq '2' -and
+            $state['terrain_visual_tile_7_corners'] -eq '0,2,2,0'
+        }
+        $terrainState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'terrain-interacted-state.txt')
+
+        $stage = 'release-terrain'
+        [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $terrainClientX, $terrainClientY)
+        $releasedTerrainState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'terrain_click_count=1, left_pressed=false, cell_1_1=2' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['left_pressed'] -eq 'false' -and
+            $state['terrain_click_count'] -eq '1' -and
+            $state['terrain_cell_1_1'] -eq '2'
+        }
+        $mouseDown = $false
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $terrainInteractedFramePath -Stage 'capture-terrain-interacted-frame' -TimeoutSeconds 10
+
+        $stage = 'verify-terrain-frame'
+        $baselineFrame = Read-UiSmokeBitmap -Path $baselineFramePath
+        $terrainFrame = Read-UiSmokeBitmap -Path $terrainInteractedFramePath
+        if ($baselineFrame.Width -ne $terrainFrame.Width -or $baselineFrame.Height -ne $terrainFrame.Height) {
+            throw "terrain frame size $($terrainFrame.Width)x$($terrainFrame.Height) differs from baseline $($baselineFrame.Width)x$($baselineFrame.Height)"
+        }
+        $rgbDeltaThreshold = 24
+        $minimumTerrainChangedPixels = 500
+        $terrainChanges = Get-UiSmokeChangedPixels -Before $baselineFrame -After $terrainFrame `
+            -CenterX $terrainClientX -CenterY $terrainClientY -HalfWidth 110 -HalfHeight 85 `
+            -RgbDeltaThreshold $rgbDeltaThreshold
+        @(
+            "frame_size=$($terrainFrame.Width)x$($terrainFrame.Height)"
+            "rgb_delta_threshold=$rgbDeltaThreshold"
+            "minimum_changed_pixels=$minimumTerrainChangedPixels"
+            "terrain_changed_pixels=$($terrainChanges.ChangedPixels)"
+            "terrain_roi=$($terrainChanges.Left),$($terrainChanges.Top),$($terrainChanges.Width),$($terrainChanges.Height)"
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'terrain-visual-diff.txt')
+        if ($terrainChanges.ChangedPixels -lt $minimumTerrainChangedPixels) {
+            throw "terrain interaction frame changed too few pixels: observed=$($terrainChanges.ChangedPixels), minimum=$minimumTerrainChangedPixels"
+        }
+
+        $stage = 'verify-background-input'
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $cursorMovedDuringInput = $cursorAfterInput.X -ne $cursorBeforePostMessage.X -or
+            $cursorAfterInput.Y -ne $cursorBeforePostMessage.Y
+        $lastInputChangedDuringInput = $lastInputTickAfterReleaseAck -ne $lastInputTickBeforePostMessage
+        $cursorStability = if (-not $cursorMovedDuringInput) {
+            'unchanged'
+        }
+        elseif ($lastInputChangedDuringInput) {
+            'inconclusive_external_input'
+        }
+        else {
+            'moved_without_external_input'
+        }
+        @(
+            "foreground_after_input=$($foregroundAfterInput.Handle)"
+            "foreground_title_after_input=$($foregroundAfterInput.Title)"
+            "foreground_process_id_after_input=$($foregroundAfterInput.ProcessId)"
+            "cursor_after_input=($($cursorAfterInput.X),$($cursorAfterInput.Y))"
+            "last_input_tick_after_release_ack=$lastInputTickAfterReleaseAck"
+            "cursor_stability=$cursorStability"
+        ) | Add-Content -LiteralPath $inputFile
+        if ($foregroundAfterInput.Handle -eq $windowHandle) {
+            throw "game window became foreground during terrain input (hwnd=$windowHandle pid=$($process.Id))"
+        }
+        if ($cursorMovedDuringInput -and -not $lastInputChangedDuringInput) {
+            throw "terrain PostMessageW input interval cursor drift without external input: before=($($cursorBeforePostMessage.X),$($cursorBeforePostMessage.Y)) after=($($cursorAfterInput.X),$($cursorAfterInput.Y)) last_input_tick_before=$lastInputTickBeforePostMessage last_input_tick_after=$lastInputTickAfterReleaseAck"
         }
         $succeeded = $true
     }
@@ -3490,7 +3636,17 @@ elseif ($HandRoundTrip) {
         $handState['hand_contains'], $handState['hand_count'], $handLayoutChanges.ChangedPixels, `
         $returnedHandChanges.ChangedPixels, $returnedTableChanges.ChangedPixels)
 }
-elseif (-not $IdentitySignature -and -not $Interaction -and -not $ShaderVariant) {
+elseif ($TerrainInteraction) {
+    Write-Output ("UI terrain interaction passed: tile={0}, cell_1_1={1}, state={2}, frame={3}, visual_evidence={4}" -f `
+        $terrainState['terrain_last_clicked_tile'], $terrainState['terrain_cell_1_1'], `
+        (Join-Path $artifactDir 'terrain-interacted-state.txt'), $terrainInteractedFramePath, `
+        (Join-Path $artifactDir 'terrain-visual-diff.txt'))
+    Write-Output ("Terrain grid verified: dimensions={0}x{1}, visual_tiles={2}, rendered_tiles={3}, changed_pixels={4} (minimum {5} at RGB delta {6})" -f `
+        $terrainState['terrain_grid_width'], $terrainState['terrain_grid_height'], `
+        $terrainState['terrain_visual_tile_count'], $terrainState['terrain_rendered_tile_count'], `
+        $terrainChanges.ChangedPixels, $minimumTerrainChangedPixels, $rgbDeltaThreshold)
+}
+elseif (-not $IdentitySignature -and -not $Interaction -and -not $ShaderVariant -and -not $TerrainInteraction) {
     Write-Output ("UI smoke passed: scenario=$scenarioName rendered=({0},{1}) frame={2}" -f `
         $dragState['rendered_x'], $dragState['rendered_y'], $framePath)
     Write-Output ("Visual move verified: source_changed={0} target_changed={1} pixels (minimum 500 at RGB delta 24); baseline={2}" -f `

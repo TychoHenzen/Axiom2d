@@ -103,3 +103,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 ```
 
 This mode selects the deterministic Legendary/Dormant fixture, verifies the attached Foil and Worn overlays plus their registered shader sources, then retains `shader-variant-state.txt`, `shader-variant.bmp`, and `shader-variant-visual.txt` with independent Foil/Worn golden-pixel and non-blank frame evidence under `target/ui-smoke-*`.
+
+Run the deterministic card-game terrain fixture and click its center tile:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -TerrainInteraction
+```
+
+This mode verifies the generated `DualGrid` tile data, updates the tapped cell through the native background input path, and retains terrain state/frame evidence under `target/ui-smoke-*`.

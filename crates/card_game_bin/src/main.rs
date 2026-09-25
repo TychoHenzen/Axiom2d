@@ -47,6 +47,8 @@ use card_game::stash::hover::StashHoverPreview;
 #[cfg(feature = "ui-test")]
 use card_game::stash::toggle::StashVisible;
 #[cfg(feature = "ui-test")]
+use card_game::terrain::{DualGrid, TerrainId, TerrainMaterial, default_materials};
+#[cfg(feature = "ui-test")]
 use engine_render::shape::MeshOverlays;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
@@ -57,6 +59,13 @@ const TABLE_COLOR: Color = Color {
     b: 0.2,
     a: 1.0,
 };
+
+#[cfg(feature = "ui-test")]
+const UI_TEST_TERRAIN_SCENARIO: &str = "seeded-card-terrain";
+#[cfg(feature = "ui-test")]
+const UI_TEST_TERRAIN_TILE_SIZE: f32 = 40.0;
+#[cfg(feature = "ui-test")]
+const UI_TEST_TERRAIN_CENTER: Vec2 = Vec2::new(-300.0, -250.0);
 
 #[cfg(feature = "ui-test")]
 static UI_TEST_STATE_FILE: OnceLock<PathBuf> = OnceLock::new();
@@ -76,6 +85,21 @@ static UI_TEST_SCENARIO: OnceLock<String> = OnceLock::new();
 static UI_TEST_SCREEN_ENTITY: OnceLock<Entity> = OnceLock::new();
 #[cfg(feature = "ui-test")]
 static UI_TEST_SCREEN_JACK_ENTITY: OnceLock<Entity> = OnceLock::new();
+
+#[cfg(feature = "ui-test")]
+#[derive(Component)]
+struct UiTestTerrainTile {
+    index: usize,
+}
+
+#[cfg(feature = "ui-test")]
+#[derive(Resource)]
+struct UiTestTerrain {
+    grid: DualGrid,
+    materials: Vec<TerrainMaterial>,
+    click_count: u32,
+    last_clicked_tile: Option<usize>,
+}
 
 #[cfg(feature = "ui-test")]
 #[derive(SystemParam)]
@@ -122,6 +146,8 @@ struct UiTestRenderingParams<'w, 's> {
     variant_shaders: Res<'w, VariantShaders>,
     tier_shaders: Res<'w, TierShaders>,
     shader_registry: Res<'w, ShaderRegistry>,
+    terrain: Option<Res<'w, UiTestTerrain>>,
+    tiles: Query<'w, 's, (&'static UiTestTerrainTile, &'static Shape)>,
 }
 
 #[cfg(feature = "ui-test")]
@@ -237,6 +263,141 @@ fn stabilize_shader_variant_pointer(mut mouse: ResMut<MouseState>) {
     }
 }
 
+#[cfg(feature = "ui-test")]
+fn terrain_test_color(corners: [TerrainId; 4], materials: &[TerrainMaterial]) -> Color {
+    let mut color = [0.0; 3];
+    for id in corners {
+        let material = materials
+            .iter()
+            .find(|material| material.id == id)
+            .expect("terrain fixture uses a known material");
+        for (channel, value) in material.color_a.iter().enumerate() {
+            color[channel] += (*value + material.color_b[channel]) * 0.5;
+        }
+    }
+    let scale = 0.25;
+    Color::new(color[0] * scale, color[1] * scale, color[2] * scale, 1.0)
+}
+
+#[cfg(feature = "ui-test")]
+fn terrain_test_grid() -> DualGrid {
+    let mut grid = DualGrid::new(4, 3, TerrainId(0));
+    grid.set(1, 1, TerrainId(1));
+    grid.set(2, 1, TerrainId(2));
+    grid.set(1, 2, TerrainId(3));
+    grid
+}
+
+#[cfg(feature = "ui-test")]
+fn spawn_terrain_test_fixture(world: &mut World) {
+    if !UI_TEST_SCENARIO
+        .get()
+        .is_some_and(|scenario| scenario == UI_TEST_TERRAIN_SCENARIO)
+    {
+        return;
+    }
+
+    let grid = terrain_test_grid();
+    let materials = default_materials();
+    let visual_tiles = grid.visual_tiles();
+    let visual_center = Vec2::new(
+        (grid.width() as f32 - 1.0) * 0.5,
+        (grid.height() as f32 - 1.0) * 0.5,
+    );
+    let half_tile = UI_TEST_TERRAIN_TILE_SIZE * 0.5 - 1.0;
+
+    for (index, tile) in visual_tiles.iter().enumerate() {
+        let position = UI_TEST_TERRAIN_CENTER
+            + Vec2::new(
+                (tile.x - visual_center.x) * UI_TEST_TERRAIN_TILE_SIZE,
+                (tile.y - visual_center.y) * UI_TEST_TERRAIN_TILE_SIZE,
+            );
+        world.spawn((
+            UiTestTerrainTile { index },
+            Transform2D {
+                position,
+                ..Default::default()
+            },
+            Shape {
+                variant: ShapeVariant::Polygon {
+                    points: vec![
+                        Vec2::new(-half_tile, -half_tile),
+                        Vec2::new(half_tile, -half_tile),
+                        Vec2::new(half_tile, half_tile),
+                        Vec2::new(-half_tile, half_tile),
+                    ],
+                },
+                color: terrain_test_color(tile.corners, &materials),
+            },
+            Stroke {
+                color: Color::new(0.08, 0.08, 0.08, 1.0),
+                width: 1.0,
+            },
+            RenderLayer::World,
+            LocalSortOrder(-100),
+        ));
+    }
+
+    world.insert_resource(UiTestTerrain {
+        grid,
+        materials,
+        click_count: 0,
+        last_clicked_tile: None,
+    });
+}
+
+#[cfg(feature = "ui-test")]
+fn terrain_test_interaction_system(
+    mouse: Res<MouseState>,
+    terrain: Option<ResMut<UiTestTerrain>>,
+    mut tiles: Query<(&UiTestTerrainTile, &Transform2D, &mut Shape)>,
+) {
+    let Some(mut terrain) = terrain else {
+        return;
+    };
+    if !mouse.just_pressed(MouseButton::Left) {
+        return;
+    }
+
+    let clicked_tile = tiles.iter().find_map(|(tile, transform, _)| {
+        let local = mouse.world_pos() - transform.position;
+        (local.x.abs() <= UI_TEST_TERRAIN_TILE_SIZE * 0.5
+            && local.y.abs() <= UI_TEST_TERRAIN_TILE_SIZE * 0.5)
+            .then_some(tile.index)
+    });
+    let Some(clicked_tile) = clicked_tile else {
+        return;
+    };
+
+    let visual_width = terrain.grid.width() + 1;
+    let visual_x = clicked_tile % visual_width;
+    let visual_y = clicked_tile / visual_width;
+    let cell_x = visual_x.saturating_sub(1).min(terrain.grid.width() - 1);
+    let cell_y = visual_y.min(terrain.grid.height() - 1);
+    let next_id = if terrain.grid.get(cell_x, cell_y) == Some(TerrainId(1)) {
+        TerrainId(2)
+    } else {
+        TerrainId(1)
+    };
+    terrain.grid.set(cell_x, cell_y, next_id);
+    terrain.click_count += 1;
+    terrain.last_clicked_tile = Some(clicked_tile);
+
+    let visual_tiles = terrain.grid.visual_tiles();
+    for (tile, _, mut shape) in &mut tiles {
+        shape.color = terrain_test_color(visual_tiles[tile.index].corners, &terrain.materials);
+    }
+}
+
+#[cfg(feature = "ui-test")]
+fn format_terrain_corners(corners: [TerrainId; 4]) -> String {
+    corners
+        .iter()
+        .map(|id| id.0.to_string())
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
 fn spawn_scene(world: &mut World) {
     world.spawn((
         Transform2D {
@@ -257,6 +418,9 @@ fn spawn_scene(world: &mut World) {
         RenderLayer::Background,
         SortOrder::default(),
     ));
+
+    #[cfg(feature = "ui-test")]
+    spawn_terrain_test_fixture(world);
 
     world.spawn(Camera2D {
         position: Vec2::ZERO,
@@ -430,6 +594,7 @@ fn setup(app: &mut App) {
                 .after(mouse_world_pos_system)
                 .before(shader_pointer_system),
         );
+        app.add_systems(Phase::Update, terrain_test_interaction_system);
         app.add_systems(Phase::PostRender, record_ui_test_state);
     }
 
@@ -922,6 +1087,37 @@ fn record_ui_test_state(
     let condition_overlay_vertex_count =
         condition_overlay.map_or(0, |entry| entry.mesh.vertices.len());
     let overlay_count = overlays.map_or(0, |mesh_overlays| mesh_overlays.0.len());
+    let terrain_visual_tiles = rendering
+        .terrain
+        .as_ref()
+        .map_or_else(Vec::new, |terrain| terrain.grid.visual_tiles());
+    let terrain_visual_tile_7 = terrain_visual_tiles.get(7);
+    let terrain_cell_1_1 = rendering
+        .terrain
+        .as_ref()
+        .and_then(|terrain| terrain.grid.get(1, 1))
+        .map_or(-1, |id| i32::from(id.0));
+    let terrain_last_clicked_tile = rendering
+        .terrain
+        .as_ref()
+        .and_then(|terrain| terrain.last_clicked_tile)
+        .map_or(-1, |index| index as i32);
+    let terrain_click_count = rendering
+        .terrain
+        .as_ref()
+        .map_or(0, |terrain| terrain.click_count);
+    let terrain_grid_width = rendering
+        .terrain
+        .as_ref()
+        .map_or(0, |terrain| terrain.grid.width());
+    let terrain_grid_height = rendering
+        .terrain
+        .as_ref()
+        .map_or(0, |terrain| terrain.grid.height());
+    let terrain_visual_tile_7_corners =
+        terrain_visual_tile_7.map_or_else(String::new, |tile| format_terrain_corners(tile.corners));
+    let terrain_visual_tile_7_seed = terrain_visual_tile_7.map_or(0, |tile| tile.seed);
+    let terrain_rendered_tile_count = rendering.tiles.iter().count();
     let mouse_position = mouse.screen_pos();
     let scenario = UI_TEST_SCENARIO
         .get()
@@ -968,6 +1164,11 @@ fn record_ui_test_state(
         cable_rendered_max.x,
         cable_rendered_max.y,
         cable_rendered_vertex_count,
+    );
+    let snapshot = format!(
+        "{snapshot}terrain_active={}\nterrain_grid_width={terrain_grid_width}\nterrain_grid_height={terrain_grid_height}\nterrain_visual_tile_count={}\nterrain_rendered_tile_count={terrain_rendered_tile_count}\nterrain_cell_1_1={terrain_cell_1_1}\nterrain_visual_tile_7_corners={terrain_visual_tile_7_corners}\nterrain_visual_tile_7_seed={terrain_visual_tile_7_seed}\nterrain_click_count={terrain_click_count}\nterrain_last_clicked_tile={terrain_last_clicked_tile}\n",
+        rendering.terrain.is_some(),
+        terrain_visual_tiles.len(),
     );
     let state_file = UI_TEST_STATE_FILE
         .get()
