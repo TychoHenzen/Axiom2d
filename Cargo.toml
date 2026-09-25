@@ -24,7 +24,7 @@ fundsp = { version = "0.23", default-features = false, features = ["std"] }
 rapier2d = "0.32"
 proptest = { version = "1", default-features = false, features = ["std"] }
 rand = "0.9"
-rand_chacha = "0.9"
+rand_chacha = "0.10"
 image-compare = "0.4"
 insta = { version = "1", features = ["ron"] }
 ron = "0.9"
