@@ -8,6 +8,12 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 
 The script builds the test-only observer, launches the real game, sends HWND-targeted native Windows `PostMessageW` pointer messages to its Winit window with `SWP_NOACTIVATE`, and checks the seeded face-down card's drag state and rendered position. It requires an interactive Windows desktop but stays background-only: it never activates the game or moves the desktop cursor. Successful runs capture the client frame and state under `target/ui-smoke-*`; failures retain logs and available state/frame evidence. Normal builds do not enable the observer.
 
+## Supported CI runner
+
+`.github/workflows/ui-smoke.yml` runs the wrapper on an administrator-provisioned self-hosted Windows runner labeled `self-hosted`, `windows`, `x64`, and `ui-desktop`. The runner must provide an interactive desktop session (not Session 0), the Rust 1.94.0 MSVC toolchain, and a DX12-capable GPU. Hosted Ubuntu runners and Xvfb are not substitutes for this Winit boundary.
+
+The wrapper supervises each scenario for 900 seconds by default (`-RunnerTimeoutSeconds`), writes `runner.pid.txt`, `runner.exitcode.txt`, `runner.terminal.txt`, and retains stdout/stderr, state, and frame evidence in the supplied `-ArtifactDirectory`. A timeout exits 124, writes `runner.timeout.txt`, kills the runner process tree and any game process created during the run, and uploads the same directory through the workflow's always-run artifact step.
+
 Run the full card interaction scenario, including off-center spin/glide, release, and right-click flip:
 
 ```powershell
