@@ -303,7 +303,7 @@ function Format-UiStateDiagnostic {
     if ($null -eq $State) {
         return 'none (no complete state snapshot)'
     }
-    return ("scenario={0}, dragging={1}, booster_dragging={2}, zone={3}, hand_contains={4}, hand_count={5}, stash_visible={6}, stash_page={7}, stash_slot={8}, stash_present={9}, stash_origin={10}, stash_follow={11}, booster_present={12}, booster_phase={13}, booster_cards={14}, opened_card={15}, opened_zone={16}, opened_seed={17}, rendered=({18},{19}), rotation={20}, face_up={21}, mouse=({22},{23}), left_pressed={24}, right_pressed={25}, holder={26}, holder_occupied={27}, zone_config=({28},{29},{30})" -f `
+    $diagnostic = ("scenario={0}, dragging={1}, booster_dragging={2}, zone={3}, hand_contains={4}, hand_count={5}, stash_visible={6}, stash_page={7}, stash_slot={8}, stash_present={9}, stash_origin={10}, stash_follow={11}, booster_present={12}, booster_phase={13}, booster_cards={14}, opened_card={15}, opened_zone={16}, opened_seed={17}, rendered=({18},{19}), rotation={20}, face_up={21}, mouse=({22},{23}), left_pressed={24}, right_pressed={25}, holder={26}, holder_occupied={27}, zone_config=({28},{29},{30})" -f `
         $State['scenario'], $State['dragging'], $State['booster_dragging'], $State['zone'], $State['hand_contains'], `
         $State['hand_count'], $State['stash_visible'], $State['stash_page'], $State['stash_slot'], `
         $State['stash_slot_present'], $State['stash_origin'], $State['stash_cursor_follow'], `
@@ -313,6 +313,14 @@ function Format-UiStateDiagnostic {
         $State['mouse_x'], $State['mouse_y'], $State['left_pressed'], $State['right_pressed'],
         $State['holder'], $State['holder_occupied'], $State['zone_has_physics'],
         $State['zone_render_layer'], $State['zone_has_item_form'])
+    if ($State['scenario'] -eq 'seeded-card-screen-spline') {
+        $panels = (0..3 | ForEach-Object {
+            $panel = $_
+            "panel=$panel expected=$($State["screen_expected_geometry_$panel"]) observed=$($State["screen_observed_geometry_$panel"])"
+        }) -join ' | '
+        return "$diagnostic, screen_signature=$($State['screen_signature']), screen_geometry_tolerance=$($State['screen_geometry_tolerance']), screen_geometry_match=$($State['screen_geometry_match']), screen_geometry_max_error=$($State['screen_geometry_max_error']), $panels"
+    }
+    return $diagnostic
 }
 
 function Wait-UiState {
@@ -2029,9 +2037,9 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
     }
     elseif ($ScreenSpline) {
         $seededState = Read-UiState -Path $stateFile
-        $expectedScreenSignature = $seededState['identity_signature']
-        if ($null -eq $seededState -or [string]::IsNullOrWhiteSpace($expectedScreenSignature)) {
-            throw "screen spline scenario could not establish the seeded card signature: observed=$(Format-UiStateDiagnostic -State $seededState)"
+        $expectedScreenSignature = '0.309394,0.418151,0.459740,-0.068157,0.014729,0.398286,0.121934,-0.879658'
+        if ($null -eq $seededState -or $seededState['identity_signature'] -ne $expectedScreenSignature) {
+            throw "screen spline scenario could not establish the seeded fixture signature: expected=$expectedScreenSignature observed=$(Format-UiStateDiagnostic -State $seededState)"
         }
         $screenPositionTolerance = 25
         $screenGeometryTolerance = 0.01
@@ -2149,7 +2157,7 @@ $combinerInputBClientY = [int][Math]::Round($client.Height / 2.0 - 160.0)
         $stage = 'insert-screen-card-and-propagate'
         [AxiomUiSmokeNative]::PostLeftButtonUp($windowHandle, $readerClientX, $readerClientY)
         $screenState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
-            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'reader_loaded=true, screen signature propagated, exact geometry match' -Predicate {
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState "reader_loaded=true, screen signature=$expectedScreenSignature, four-panel geometry match within tolerance=$screenGeometryTolerance" -Predicate {
             param($state)
             $state['scenario'] -eq $scenarioName -and
             $state['dragging'] -eq 'false' -and

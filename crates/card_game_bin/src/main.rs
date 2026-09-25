@@ -29,9 +29,9 @@ use card_game::card::reader::{CardReader, SignatureSpace};
 use card_game::card::reader::{
     READER_COLLISION_FILTER, READER_COLLISION_GROUP, READER_HALF_EXTENTS, spawn_reader,
 };
-use card_game::card::screen_device::spawn_screen_device;
 #[cfg(feature = "ui-test")]
-use card_game::card::screen_device::{ScreenSignalShape, build_screen_signal_shape};
+use card_game::card::screen_device::ScreenSignalShape;
+use card_game::card::screen_device::spawn_screen_device;
 #[cfg(feature = "ui-test")]
 use card_game::card::zone_config::ZoneConfig;
 use card_game::prelude::*;
@@ -142,6 +142,43 @@ fn format_geometry(points: &[Vec2]) -> String {
         .map(|point| format!("{:.4},{:.4}", point.x, point.y))
         .collect::<Vec<_>>()
         .join(";")
+}
+
+#[cfg(feature = "ui-test")]
+const SCREEN_SPLINE_GOLDEN_SIGNATURE: &str =
+    "0.309394,0.418151,0.459740,-0.068157,0.014729,0.398286,0.121934,-0.879658";
+
+#[cfg(feature = "ui-test")]
+const SCREEN_SPLINE_GOLDEN_GEOMETRY: [&str; 4] = [
+    "24.6385,20.9075;24.4623,22.6963;23.9406,24.4163;23.0933,26.0014;21.9530,27.3908;20.5636,28.5311;18.9784,29.3784;17.2584,29.9001;15.4697,30.0763;13.6810,29.9001;11.9610,29.3784;10.3758,28.5311;8.9864,27.3908;7.8461,26.0014;6.9989,24.4163;6.4771,22.6963;6.3009,20.9075;6.4771,19.1188;6.9989,17.3988;7.8461,15.8136;8.9864,14.4242;10.3758,13.2840;11.9610,12.4367;13.6810,11.9149;15.4697,11.7388;17.2584,11.9149;18.9784,12.4367;20.5636,13.2840;21.9530,14.4242;23.0933,15.8136;23.9406,17.3988;24.4623,19.1188",
+    "32.1558,-3.4078;31.9796,-1.6191;31.4578,0.1009;30.6105,1.6861;29.4703,3.0755;28.0809,4.2157;26.4957,5.0630;24.7757,5.5848;22.9870,5.7609;21.1982,5.5848;19.4782,5.0630;17.8931,4.2157;16.5037,3.0755;15.3634,1.6861;14.5161,0.1009;13.9944,-1.6191;13.8182,-3.4078;13.9944,-5.1966;14.5161,-6.9166;15.3634,-8.5017;16.5037,-9.8911;17.8931,-11.0314;19.4782,-11.8787;21.1982,-12.4004;22.9870,-12.5766;24.7757,-12.4004;26.4957,-11.8787;28.0809,-11.0314;29.4703,-9.8911;30.6105,-8.5017;31.4578,-6.9166;31.9796,-5.1966",
+    "9.9052,19.9143;9.7291,21.7031;9.2073,23.4231;8.3600,25.0082;7.2198,26.3976;5.8304,27.5379;4.2452,28.3852;2.5252,28.9069;0.7365,29.0831;-1.0523,28.9069;-2.7723,28.3852;-4.3574,27.5379;-5.7468,26.3976;-6.8871,25.0082;-7.7344,23.4231;-8.2561,21.7031;-8.4323,19.9143;-8.2561,18.1256;-7.7344,16.4056;-6.8871,14.8204;-5.7468,13.4310;-4.3574,12.2908;-2.7723,11.4435;-1.0523,10.9217;0.7365,10.7455;2.5252,10.9217;4.2452,11.4435;5.8304,12.2908;7.2198,13.4310;8.3600,14.8204;9.2073,16.4056;9.7291,18.1256",
+    "15.2655,-43.9829;15.0893,-42.1941;14.5675,-40.4741;13.7203,-38.8890;12.5800,-37.4996;11.1906,-36.3593;9.6054,-35.5120;7.8854,-34.9903;6.0967,-34.8141;4.3080,-34.9903;2.5880,-35.5120;1.0028,-36.3593;-0.3866,-37.4996;-1.5269,-38.8890;-2.3742,-40.4741;-2.8959,-42.1941;-3.0721,-43.9829;-2.8959,-45.7716;-2.3742,-47.4916;-1.5269,-49.0768;-0.7692,-50.0000;12.9626,-50.0000;13.7203,-49.0768;14.5675,-47.4916;15.0893,-45.7716",
+];
+
+#[cfg(feature = "ui-test")]
+static SCREEN_SPLINE_GOLDEN_POINTS: OnceLock<[Vec<Vec2>; 4]> = OnceLock::new();
+
+#[cfg(feature = "ui-test")]
+fn screen_spline_golden_points() -> &'static [Vec<Vec2>; 4] {
+    SCREEN_SPLINE_GOLDEN_POINTS.get_or_init(|| {
+        SCREEN_SPLINE_GOLDEN_GEOMETRY.map(|panel| {
+            panel
+                .split(';')
+                .map(|point| {
+                    let (x, y) = point
+                        .split_once(',')
+                        .expect("screen spline golden point must contain x,y");
+                    Vec2::new(
+                        x.parse::<f32>()
+                            .expect("screen spline golden x must be a float"),
+                        y.parse::<f32>()
+                            .expect("screen spline golden y must be a float"),
+                    )
+                })
+                .collect()
+        })
+    })
 }
 
 fn hydrate_shape_repository_system(world: &mut World) {
@@ -494,46 +531,53 @@ fn record_ui_test_state(
     let mut screen_observed_geometry = vec![String::new(); 4];
     let mut screen_geometry_max_error = -1.0;
     let mut screen_geometry_match = false;
-    if let (Some(space), Some(screen_entity)) = (screen_space, screen_entity) {
-        let mut expected_points = Vec::with_capacity(4);
-        let mut observed_points = Vec::with_capacity(4);
-        for display_index in 0..4 {
-            let expected = match build_screen_signal_shape(space, display_index) {
-                ShapeVariant::Polygon { points } => points,
-                _ => Vec::new(),
-            };
-            let observed = cable_params
-                .screen_shapes
-                .iter()
-                .find(|(signal, parent, _, visible)| {
-                    signal.display_index == display_index && parent.0 == screen_entity && visible.0
-                })
-                .and_then(|(_, _, shape, _)| match &shape.variant {
-                    ShapeVariant::Polygon { points } => Some(points.clone()),
-                    _ => None,
-                })
-                .unwrap_or_default();
-            screen_expected_geometry[display_index] = format_geometry(&expected);
-            screen_observed_geometry[display_index] = format_geometry(&observed);
-            expected_points.push(expected);
-            observed_points.push(observed);
+    let screen_spline_scenario = UI_TEST_SCENARIO
+        .get()
+        .is_some_and(|scenario| scenario == "seeded-card-screen-spline");
+    if screen_spline_scenario {
+        let expected_geometry = screen_spline_golden_points();
+        for (display_index, expected) in expected_geometry.iter().enumerate() {
+            screen_expected_geometry[display_index] = format_geometry(expected);
         }
-        if expected_points
-            .iter()
-            .zip(&observed_points)
-            .all(|(expected, observed)| expected.len() == observed.len())
-        {
-            screen_geometry_max_error = expected_points
+        if let (Some(_space), Some(screen_entity)) = (screen_space, screen_entity) {
+            let mut observed_points = Vec::with_capacity(4);
+            for (display_index, observed_geometry) in
+                screen_observed_geometry.iter_mut().enumerate()
+            {
+                let observed = cable_params
+                    .screen_shapes
+                    .iter()
+                    .find(|(signal, parent, _, visible)| {
+                        signal.display_index == display_index
+                            && parent.0 == screen_entity
+                            && visible.0
+                    })
+                    .and_then(|(_, _, shape, _)| match &shape.variant {
+                        ShapeVariant::Polygon { points } => Some(points.clone()),
+                        _ => None,
+                    })
+                    .unwrap_or_default();
+                *observed_geometry = format_geometry(&observed);
+                observed_points.push(observed);
+            }
+            if expected_geometry
                 .iter()
                 .zip(&observed_points)
-                .flat_map(|(expected, observed)| {
-                    expected
-                        .iter()
-                        .zip(observed)
-                        .map(|(expected, observed)| (*expected - *observed).length())
-                })
-                .fold(0.0, f32::max);
-            screen_geometry_match = screen_geometry_max_error <= 0.01;
+                .all(|(expected, observed)| expected.len() == observed.len())
+            {
+                screen_geometry_max_error = expected_geometry
+                    .iter()
+                    .zip(&observed_points)
+                    .flat_map(|(expected, observed)| {
+                        expected
+                            .iter()
+                            .zip(observed)
+                            .map(|(expected, observed)| (*expected - *observed).length())
+                    })
+                    .fold(0.0, f32::max);
+                screen_geometry_match = screen_signature == SCREEN_SPLINE_GOLDEN_SIGNATURE
+                    && screen_geometry_max_error <= 0.01;
+            }
         }
     }
     let screen_expected_geometry_0 = &screen_expected_geometry[0];
