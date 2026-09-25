@@ -52,86 +52,18 @@ impl WgpuRenderer {
         encoder: &mut wgpu::CommandEncoder,
     ) -> Option<PendingFrameCapture> {
         let request_file = self.frame_capture_request_file.as_deref()?;
-        if !request_file.exists() {
-            return None;
-        }
+        let output_file = take_frame_capture_request(request_file)?;
 
-        let processing_file = request_file.with_extension("processing");
-        if let Err(error) = std::fs::rename(request_file, &processing_file) {
-            if request_file.exists() {
-                report_frame_capture_result(
-                    request_file,
-                    Err(format!("could not claim capture request: {error}")),
-                );
-            }
-            return None;
-        }
-
-        let output_path = std::fs::read_to_string(&processing_file)
-            .map(|path| PathBuf::from(path.trim()))
-            .map_err(|error| format!("could not read capture output path: {error}"))
-            .and_then(|path| {
-                if path.as_os_str().is_empty() {
-                    Err("capture output path was empty".to_owned())
-                } else {
-                    Ok(path)
-                }
-            });
-        let remove_result = std::fs::remove_file(&processing_file);
-        if let Err(error) = remove_result {
-            report_frame_capture_result(
-                request_file,
-                Err(format!("could not consume capture request: {error}")),
-            );
-            return None;
-        }
-        let output_file = match output_path {
-            Ok(path) => path,
+        let (bytes_per_row, buffer_size) = match frame_capture_layout(
+            self.surface_format,
+            self.config.width,
+            self.config.height,
+        ) {
+            Ok(layout) => layout,
             Err(error) => {
                 report_frame_capture_result(request_file, Err(error));
                 return None;
             }
-        };
-
-        if !matches!(
-            self.surface_format,
-            wgpu::TextureFormat::Bgra8Unorm
-                | wgpu::TextureFormat::Bgra8UnormSrgb
-                | wgpu::TextureFormat::Rgba8Unorm
-                | wgpu::TextureFormat::Rgba8UnormSrgb
-        ) {
-            report_frame_capture_result(
-                request_file,
-                Err(format!(
-                    "unsupported surface format for BMP capture: {:?}",
-                    self.surface_format
-                )),
-            );
-            return None;
-        }
-
-        let Some(row_bytes) = self.config.width.checked_mul(4) else {
-            report_frame_capture_result(
-                request_file,
-                Err("surface row size overflowed".to_owned()),
-            );
-            return None;
-        };
-        let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
-        let Some(bytes_per_row) = row_bytes.div_ceil(alignment).checked_mul(alignment) else {
-            report_frame_capture_result(
-                request_file,
-                Err("aligned surface row size overflowed".to_owned()),
-            );
-            return None;
-        };
-        let Some(buffer_size) = u64::from(bytes_per_row).checked_mul(u64::from(self.config.height))
-        else {
-            report_frame_capture_result(
-                request_file,
-                Err("surface staging buffer size overflowed".to_owned()),
-            );
-            return None;
         };
         let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("ui-test-frame-capture"),
@@ -588,6 +520,79 @@ fn save_frame_capture(device: &wgpu::Device, capture: &PendingFrameCapture) -> R
     result
 }
 
+fn take_frame_capture_request(request_file: &Path) -> Option<PathBuf> {
+    if !request_file.exists() {
+        return None;
+    }
+
+    let processing_file = request_file.with_extension("processing");
+    if let Err(error) = std::fs::rename(request_file, &processing_file) {
+        if request_file.exists() {
+            report_frame_capture_result(
+                request_file,
+                Err(format!("could not claim capture request: {error}")),
+            );
+        }
+        return None;
+    }
+
+    let output_path = std::fs::read_to_string(&processing_file)
+        .map(|path| PathBuf::from(path.trim()))
+        .map_err(|error| format!("could not read capture output path: {error}"))
+        .and_then(|path| {
+            if path.as_os_str().is_empty() {
+                Err("capture output path was empty".to_owned())
+            } else {
+                Ok(path)
+            }
+        });
+    let remove_result = std::fs::remove_file(&processing_file);
+    if let Err(error) = remove_result {
+        report_frame_capture_result(
+            request_file,
+            Err(format!("could not consume capture request: {error}")),
+        );
+        return None;
+    }
+    match output_path {
+        Ok(path) => Some(path),
+        Err(error) => {
+            report_frame_capture_result(request_file, Err(error));
+            None
+        }
+    }
+}
+
+fn frame_capture_layout(
+    format: wgpu::TextureFormat,
+    width: u32,
+    height: u32,
+) -> Result<(u32, u64), String> {
+    if !matches!(
+        format,
+        wgpu::TextureFormat::Bgra8Unorm
+            | wgpu::TextureFormat::Bgra8UnormSrgb
+            | wgpu::TextureFormat::Rgba8Unorm
+            | wgpu::TextureFormat::Rgba8UnormSrgb
+    ) {
+        return Err(format!(
+            "unsupported surface format for BMP capture: {format:?}"
+        ));
+    }
+    let row_bytes = width
+        .checked_mul(4)
+        .ok_or_else(|| "surface row size overflowed".to_owned())?;
+    let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+    let bytes_per_row = row_bytes
+        .div_ceil(alignment)
+        .checked_mul(alignment)
+        .ok_or_else(|| "aligned surface row size overflowed".to_owned())?;
+    let buffer_size = u64::from(bytes_per_row)
+        .checked_mul(u64::from(height))
+        .ok_or_else(|| "surface staging buffer size overflowed".to_owned())?;
+    Ok((bytes_per_row, buffer_size))
+}
+
 fn write_frame_bmp(
     path: &Path,
     width: u32,
@@ -953,7 +958,214 @@ fn present_scene_post_process(
 
 #[cfg(test)]
 mod frame_capture_tests {
-    use super::write_frame_bmp;
+    use std::path::{Path, PathBuf};
+
+    use super::{
+        PendingFrameCapture, frame_capture_layout, report_frame_capture_result, save_frame_capture,
+        take_frame_capture_request, write_frame_bmp,
+    };
+
+    fn temp_path(name: &str) -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "axiom2d-frame-capture-{}-{name}",
+            std::process::id()
+        ))
+    }
+
+    fn result_contents(request_file: &Path) -> String {
+        std::fs::read_to_string(request_file.with_extension("result"))
+            .expect("capture result should be readable")
+    }
+
+    #[test]
+    fn consumes_capture_request_and_returns_output_path() {
+        let request_file = temp_path("valid.request");
+        let output_file = temp_path("valid.bmp");
+        std::fs::write(&request_file, format!(" {} \n", output_file.display()))
+            .expect("capture request should be writable");
+
+        assert_eq!(take_frame_capture_request(&request_file), Some(output_file));
+        assert!(!request_file.exists());
+        assert!(!request_file.with_extension("processing").exists());
+        assert!(!request_file.with_extension("result").exists());
+    }
+
+    #[test]
+    fn reports_missing_output_path_errors() {
+        let empty_request = temp_path("empty.request");
+        std::fs::write(&empty_request, " \n").expect("empty capture request should be writable");
+        assert_eq!(take_frame_capture_request(&empty_request), None);
+        assert_eq!(
+            result_contents(&empty_request),
+            "error=capture output path was empty\n"
+        );
+        std::fs::remove_file(empty_request.with_extension("result"))
+            .expect("empty capture result should be removable");
+
+        let invalid_request = temp_path("invalid.request");
+        std::fs::write(&invalid_request, [0xff])
+            .expect("invalid capture request should be writable");
+        assert_eq!(take_frame_capture_request(&invalid_request), None);
+        assert!(
+            result_contents(&invalid_request)
+                .starts_with("error=could not read capture output path:")
+        );
+        std::fs::remove_file(invalid_request.with_extension("result"))
+            .expect("invalid capture result should be removable");
+    }
+
+    #[test]
+    fn reports_request_claim_and_consume_errors() {
+        let claim_request = temp_path("claim.request");
+        let claim_processing = claim_request.with_extension("processing");
+        std::fs::write(&claim_request, "output.bmp").expect("claim request should be writable");
+        std::fs::create_dir(&claim_processing).expect("claim processing path should be creatable");
+        assert_eq!(take_frame_capture_request(&claim_request), None);
+        assert!(
+            result_contents(&claim_request).starts_with("error=could not claim capture request:")
+        );
+        std::fs::remove_file(&claim_request).expect("claim request should be removable");
+        std::fs::remove_dir(claim_processing).expect("claim processing path should be removable");
+        std::fs::remove_file(claim_request.with_extension("result"))
+            .expect("claim result should be removable");
+
+        let consume_request = temp_path("consume.request");
+        std::fs::create_dir(&consume_request).expect("consume request path should be creatable");
+        assert_eq!(take_frame_capture_request(&consume_request), None);
+        assert!(
+            result_contents(&consume_request)
+                .starts_with("error=could not consume capture request:")
+        );
+        std::fs::remove_dir(consume_request.with_extension("processing"))
+            .expect("consume processing path should be removable");
+        std::fs::remove_file(consume_request.with_extension("result"))
+            .expect("consume result should be removable");
+    }
+
+    #[test]
+    fn reports_success_and_ignores_missing_requests() {
+        let missing_request = temp_path("missing.request");
+        assert_eq!(take_frame_capture_request(&missing_request), None);
+
+        let request_file = temp_path("result.request");
+        report_frame_capture_result(&request_file, Ok(()));
+        assert_eq!(result_contents(&request_file), "ok\n");
+        std::fs::remove_file(request_file.with_extension("result"))
+            .expect("capture result should be removable");
+    }
+
+    #[test]
+    fn validates_capture_layout_without_a_device() {
+        assert_eq!(
+            frame_capture_layout(wgpu::TextureFormat::Rgba8Unorm, 100, 2),
+            Ok((512, 1024))
+        );
+        assert!(
+            frame_capture_layout(wgpu::TextureFormat::R8Unorm, 1, 1)
+                .unwrap_err()
+                .starts_with("unsupported surface format for BMP capture:")
+        );
+        assert_eq!(
+            frame_capture_layout(wgpu::TextureFormat::Rgba8Unorm, u32::MAX, 1),
+            Err("surface row size overflowed".to_owned())
+        );
+        assert_eq!(
+            frame_capture_layout(wgpu::TextureFormat::Rgba8Unorm, u32::MAX / 4, 1),
+            Err("aligned surface row size overflowed".to_owned())
+        );
+    }
+
+    #[test]
+    fn reports_bmp_validation_and_file_errors() {
+        let path = temp_path("errors.bmp");
+        let error = |width, height, bytes_per_row, format, pixels: &[u8]| {
+            write_frame_bmp(&path, width, height, bytes_per_row, format, pixels).unwrap_err()
+        };
+        assert_eq!(
+            error(u32::MAX, 1, u32::MAX, wgpu::TextureFormat::Rgba8Unorm, &[]),
+            "BMP row size overflowed"
+        );
+        assert_eq!(
+            error(
+                u32::MAX / 4,
+                2,
+                u32::MAX,
+                wgpu::TextureFormat::Rgba8Unorm,
+                &[]
+            ),
+            "BMP image size overflowed"
+        );
+        assert_eq!(
+            error(
+                u32::MAX / 4,
+                1,
+                u32::MAX,
+                wgpu::TextureFormat::Rgba8Unorm,
+                &[]
+            ),
+            "BMP file size overflowed"
+        );
+        assert_eq!(
+            error(1, 1, 3, wgpu::TextureFormat::Rgba8Unorm, &[]),
+            "capture row pitch was smaller than the pixel row"
+        );
+        assert_eq!(
+            error(1, 1, 4, wgpu::TextureFormat::Rgba8Unorm, &[]),
+            "capture buffer was shorter than the surface dimensions"
+        );
+        assert!(
+            error(1, 1, 4, wgpu::TextureFormat::R8Unorm, &[0; 4])
+                .starts_with("unsupported surface format for BMP capture:")
+        );
+
+        std::fs::create_dir(&path).expect("capture output directory should be creatable");
+        assert!(!write_frame_bmp(&path, 1, 1, 4, wgpu::TextureFormat::Rgba8Unorm, &[0; 4]).is_ok());
+        std::fs::remove_dir(path).expect("capture output directory should be removable");
+    }
+
+    #[test]
+    fn saves_mapped_frame_to_bmp_without_renderer() {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let Some(adapter) =
+            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+                force_fallback_adapter: true,
+                ..Default::default()
+            }))
+        else {
+            return;
+        };
+        let Ok((device, queue)) =
+            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default(), None))
+        else {
+            return;
+        };
+
+        let output_file = temp_path("mapped.bmp");
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: 256,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut pixels = vec![0xff; 256];
+        pixels[..4].copy_from_slice(&[1, 2, 3, 4]);
+        queue.write_buffer(&buffer, 0, &pixels);
+        queue.submit([]);
+        let _ = device.poll(wgpu::Maintain::Wait);
+        let capture = PendingFrameCapture {
+            request_file: temp_path("mapped.request"),
+            output_file: output_file.clone(),
+            buffer,
+            bytes_per_row: 256,
+            width: 1,
+            height: 1,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+        };
+        assert_eq!(save_frame_capture(&device, &capture), Ok(()));
+        let bmp = std::fs::read(&output_file).expect("captured BMP should be readable");
+        assert_eq!(&bmp[54..], &[3, 2, 1, 4]);
+        std::fs::remove_file(output_file).expect("captured BMP should be removable");
+    }
 
     #[test]
     fn writes_padded_bgra_and_rgba_rows_to_bmp() -> Result<(), String> {
