@@ -1062,7 +1062,7 @@ mod frame_capture_tests {
         );
         assert!(
             frame_capture_layout(wgpu::TextureFormat::R8Unorm, 1, 1)
-                .unwrap_err()
+                .expect_err("unsupported surface formats should be rejected")
                 .starts_with("unsupported surface format for BMP capture:")
         );
         assert_eq!(
@@ -1079,7 +1079,8 @@ mod frame_capture_tests {
     fn reports_bmp_validation_and_file_errors() {
         let path = temp_path("errors.bmp");
         let error = |width, height, bytes_per_row, format, pixels: &[u8]| {
-            write_frame_bmp(&path, width, height, bytes_per_row, format, pixels).unwrap_err()
+            write_frame_bmp(&path, width, height, bytes_per_row, format, pixels)
+                .expect_err("invalid BMP input should return an error")
         };
         assert_eq!(
             error(u32::MAX, 1, u32::MAX, wgpu::TextureFormat::Rgba8Unorm, &[]),
@@ -1119,7 +1120,7 @@ mod frame_capture_tests {
         );
 
         std::fs::create_dir(&path).expect("capture output directory should be creatable");
-        assert!(!write_frame_bmp(&path, 1, 1, 4, wgpu::TextureFormat::Rgba8Unorm, &[0; 4]).is_ok());
+        assert!(write_frame_bmp(&path, 1, 1, 4, wgpu::TextureFormat::Rgba8Unorm, &[0; 4]).is_err());
         std::fs::remove_dir(path).expect("capture output directory should be removable");
     }
 
