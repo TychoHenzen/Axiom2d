@@ -5,7 +5,8 @@ param(
     [switch]$HandRoundTrip,
     [switch]$StashRoundTrip,
     [switch]$BoosterOpening,
-    [switch]$IdentitySignature
+    [switch]$IdentitySignature,
+    [switch]$ArtFace
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,10 +27,14 @@ if (-not $RunnerChild) {
         ($HandRoundTrip -and $StashRoundTrip) -or
         ($HandRoundTrip -and $BoosterOpening) -or
         ($HandRoundTrip -and $IdentitySignature) -or
+        ($HandRoundTrip -and $ArtFace) -or
         ($StashRoundTrip -and $BoosterOpening) -or
         ($StashRoundTrip -and $IdentitySignature) -or
-        ($BoosterOpening -and $IdentitySignature)) {
-        throw 'Interaction, HandRoundTrip, StashRoundTrip, BoosterOpening, and IdentitySignature are mutually exclusive'
+        ($StashRoundTrip -and $ArtFace) -or
+        ($BoosterOpening -and $IdentitySignature) -or
+        ($BoosterOpening -and $ArtFace) -or
+        ($IdentitySignature -and $ArtFace)) {
+        throw 'Interaction, HandRoundTrip, StashRoundTrip, BoosterOpening, IdentitySignature, and ArtFace are mutually exclusive'
     }
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     $runnerStdoutPath = Join-Path $artifactDir 'runner.stdout.log'
@@ -64,6 +69,9 @@ if (-not $RunnerChild) {
         }
         if ($IdentitySignature) {
             $runnerArguments += '-IdentitySignature'
+        }
+        if ($ArtFace) {
+            $runnerArguments += '-ArtFace'
         }
         $runnerProcess = Start-Process -FilePath (Get-Process -Id $PID).Path `
             -ArgumentList $runnerArguments `
@@ -108,6 +116,7 @@ $stashRetrievedFramePath = Join-Path $artifactDir 'stash-retrieved.bmp'
 $boosterOpeningFramePath = Join-Path $artifactDir 'booster-opening.bmp'
 $boosterOpenedFramePath = Join-Path $artifactDir 'booster-opened.bmp'
 $identityFramePath = Join-Path $artifactDir 'identity.bmp'
+$artFaceFramePath = Join-Path $artifactDir 'art-face.bmp'
 $failureFramePath = Join-Path $artifactDir 'failure.bmp'
 $frameCaptureRequestFile = Join-Path $artifactDir 'frame-capture.request'
 $scenarioName = if ($Interaction) {
@@ -124,6 +133,9 @@ elseif ($BoosterOpening) {
 }
 elseif ($IdentitySignature) {
     'seeded-card-identity'
+}
+elseif ($ArtFace) {
+    'seeded-card-art-face'
 }
 else {
     'seeded-card-drag'
@@ -546,6 +558,56 @@ function Find-UiSmokeCardTemplate {
     }
 }
 
+function Get-UiSmokeArtRegionEvidence {
+    param(
+        [hashtable]$Frame,
+        [int]$CenterX,
+        [int]$CenterY,
+        [int]$HalfWidth = 24,
+        [int]$HalfHeight = 17,
+        [int]$ExpectedRed = 180,
+        [int]$ExpectedGreen = 200,
+        [int]$ExpectedBlue = 230,
+        [int]$RgbDeltaThreshold = 24
+    )
+
+    $left = $CenterX - $HalfWidth
+    $right = $CenterX + $HalfWidth
+    $top = $CenterY - $HalfHeight
+    $bottom = $CenterY + $HalfHeight
+    if ($left -lt 0 -or $top -lt 0 -or $right -ge $Frame.Width -or $bottom -ge $Frame.Height) {
+        throw 'art region exceeds the captured frame'
+    }
+    $colors = [System.Collections.Generic.HashSet[int]]::new()
+    $nonBackgroundPixels = 0
+    for ($y = $top; $y -le $bottom; $y++) {
+        $frameY = if ($Frame.TopDown) { $y } else { $Frame.Height - 1 - $y }
+        $frameRow = $Frame.PixelOffset + $frameY * $Frame.RowStride
+        for ($x = $left; $x -le $right; $x++) {
+            $framePixel = $frameRow + $x * 4
+            $red = [int]$Frame.Bytes[$framePixel + 2]
+            $green = [int]$Frame.Bytes[$framePixel + 1]
+            $blue = [int]$Frame.Bytes[$framePixel]
+            [void]$colors.Add(($red -shl 16) -bor ($green -shl 8) -bor $blue)
+            $rgbDelta = [Math]::Abs($red - $ExpectedRed) +
+                [Math]::Abs($green - $ExpectedGreen) +
+                [Math]::Abs($blue - $ExpectedBlue)
+            if ($rgbDelta -ge $RgbDeltaThreshold) {
+                $nonBackgroundPixels++
+            }
+        }
+    }
+    return @{
+        Left = $left
+        Top = $top
+        Width = $right - $left + 1
+        Height = $bottom - $top + 1
+        PixelCount = ($right - $left + 1) * ($bottom - $top + 1)
+        UniqueColors = $colors.Count
+        NonBackgroundPixels = $nonBackgroundPixels
+    }
+}
+
 try {
     Add-Type -TypeDefinition @'
 using System;
@@ -834,7 +896,7 @@ public static class AxiomUiSmokeNative
     [AxiomUiSmokeNative]::PlaceBehindWithoutActivation($windowHandle)
 
     $stage = 'seeded-state'
-    $cardWorldX = if ($IdentitySignature) { -80.0 } else { -160.0 }
+    $cardWorldX = if ($IdentitySignature -or $ArtFace) { -80.0 } else { -160.0 }
     $cardWorldY = 130.0
     $null = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
         -Stage $stage -TimeoutSeconds 30 -ExpectedState "dragging=false, zone=Table, rendered=($cardWorldX,$cardWorldY) tolerance=1" -Predicate {
@@ -918,7 +980,55 @@ public static class AxiomUiSmokeNative
         "booster_client=($boosterClientX,$boosterClientY)"
         "booster_world=($boosterWorldX,$boosterWorldY)"
     ) | Set-Content -LiteralPath $inputFile
-    if ($IdentitySignature) {
+    if ($ArtFace) {
+        $expectedArtSignature = '0.330000,-0.310000,-0.350000,0.630000,-0.950000,0.650000,-0.290000,0.740000'
+        $expectedArtElement = 'Solidum'
+        $expectedArtAspect = 'Solid'
+        $stage = 'verify-art-face-state'
+        $artFaceState = Wait-UiState -Process $process -StateFile $stateFile -Scenario $scenarioName `
+            -Stage $stage -TimeoutSeconds 10 -ExpectedState 'art_signature=<expected>, art_shape_count>0, face_up=true, zone=Table' -Predicate {
+            param($state)
+            $state['scenario'] -eq $scenarioName -and
+            $state['dragging'] -eq 'false' -and
+            $state['zone'] -eq 'Table' -and
+            $state['face_up'] -eq 'true' -and
+            $state['art_signature'] -eq $expectedArtSignature -and
+            $state['art_element'] -eq $expectedArtElement -and
+            $state['art_aspect'] -eq $expectedArtAspect -and
+            [int]::Parse($state['art_shape_count']) -gt 0 -and
+            (Test-Position -State $state -ExpectedX $cardWorldX -ExpectedY $cardWorldY -Tolerance 1)
+        }
+        $artFaceState.GetEnumerator() | ForEach-Object {
+            '{0}={1}' -f $_.Key, $_.Value
+        } | Set-Content -LiteralPath (Join-Path $artifactDir 'art-face-state.txt')
+
+        $stage = 'capture-art-face-frame'
+        Request-GameFrameCapture -Process $process -RequestFile $frameCaptureRequestFile `
+            -CapturePath $artFaceFramePath -Stage $stage -TimeoutSeconds 10
+        $artFaceFrame = Read-UiSmokeBitmap -Path $artFaceFramePath
+        $artRegionCenterY = $startClientY - 7
+        $artEvidence = Get-UiSmokeArtRegionEvidence -Frame $artFaceFrame `
+            -CenterX $startClientX -CenterY $artRegionCenterY
+        @(
+            "frame_size=$($artFaceFrame.Width)x$($artFaceFrame.Height)"
+            "art_region=($($artEvidence.Left),$($artEvidence.Top),$($artEvidence.Width),$($artEvidence.Height))"
+            'expected_art_region_background_rgb=180,200,230'
+            'art_region_rgb_delta_threshold=24'
+            "art_region_unique_rgb_colors=$($artEvidence.UniqueColors)"
+            "art_region_non_background_pixels=$($artEvidence.NonBackgroundPixels)/$($artEvidence.PixelCount)"
+            'art_region_minimum_unique_rgb_colors=8'
+            'art_region_minimum_non_background_pixels=10'
+        ) | Set-Content -LiteralPath (Join-Path $artifactDir 'art-face-visual.txt')
+        if ($artEvidence.UniqueColors -lt 8 -or $artEvidence.NonBackgroundPixels -lt 10) {
+            throw "rendered art region verification failed: unique_colors=$($artEvidence.UniqueColors) required>=8, non_background=$($artEvidence.NonBackgroundPixels)/$($artEvidence.PixelCount) required>=10"
+        }
+        $foregroundAfterInput = Get-UiSmokeForegroundSnapshot
+        $cursorAfterInput = [AxiomUiSmokeNative]::GetCursorPosition()
+        $lastInputTickAfterReleaseAck = [AxiomUiSmokeNative]::GetLastInputTick()
+        $cursorStability = 'not_applicable_no_input'
+        $succeeded = $true
+    }
+    elseif ($IdentitySignature) {
         @(
             'input_mode=identity_no_postmessagew'
             "foreground_before_postmessagew=$identityNoInput"
@@ -1390,7 +1500,7 @@ public static class AxiomUiSmokeNative
         }
         $succeeded = $true
     }
-    elseif (-not $IdentitySignature) {
+    elseif (-not $IdentitySignature -and -not $ArtFace) {
     $stage = 'hover-card'
     $foregroundBeforePostMessage = Get-UiSmokeForegroundSnapshot
     if ($foregroundBeforePostMessage.Handle -eq $windowHandle) {
@@ -2100,7 +2210,16 @@ if (-not $succeeded) {
     exit 1
 }
 
-if ($IdentitySignature) {
+if ($ArtFace) {
+    Write-Output ("UI art-face scenario passed: position=({0},{1}), art_state={2}, art_frame={3}, visual_evidence={4}" -f `
+        $artFaceState['rendered_x'], $artFaceState['rendered_y'], `
+        (Join-Path $artifactDir 'art-face-state.txt'), $artFaceFramePath, `
+        (Join-Path $artifactDir 'art-face-visual.txt'))
+    Write-Output ("Art observed: signature={0}, element={1}, aspect={2}, shapes={3}, unique_colors={4}, non_background_pixels={5}/{6}" -f `
+        $artFaceState['art_signature'], $artFaceState['art_element'], $artFaceState['art_aspect'], `
+        $artFaceState['art_shape_count'], $artEvidence.UniqueColors, $artEvidence.NonBackgroundPixels, $artEvidence.PixelCount)
+}
+elseif ($IdentitySignature) {
     Write-Output ("UI identity scenario passed: position=({0},{1}), identity_state={2}, identity_frame={3}, visual_evidence={4}" -f `
         $identityState['rendered_x'], $identityState['rendered_y'], `
         (Join-Path $artifactDir 'identity-state.txt'), $identityFramePath, `
@@ -2151,8 +2270,9 @@ else {
     Write-Output ("Interaction verified: spin_rotation={0}, moved_pixels=source:{1} target:{2}, flip_changed={3} (minimum 500 at RGB delta 24)" -f `
         $spinState['rotation'], $sourceChanges.ChangedPixels, $targetChanges.ChangedPixels, $flipChanges.ChangedPixels)
 }
-if ($IdentitySignature) {
-    Write-Output ("Input diagnostics: mode=identity-no-postmessagew, before-PostMessageW=$identityNoInput, before-PostMessageW-pid=$identityNoInput, cursor-before-PostMessageW=$identityNoInput, last-input-tick-before-PostMessageW=$identityNoInput, cursor-stability=$cursorStability")
+if ($IdentitySignature -or $ArtFace) {
+    $diagnosticMode = if ($ArtFace) { 'art-face-no-postmessagew' } else { 'identity-no-postmessagew' }
+    Write-Output ("Input diagnostics: mode=$diagnosticMode, before-PostMessageW=$identityNoInput, before-PostMessageW-pid=$identityNoInput, cursor-before-PostMessageW=$identityNoInput, last-input-tick-before-PostMessageW=$identityNoInput, cursor-stability=$cursorStability")
 }
 else {
     Write-Output ("Cursor samples: launch=({0},{1}), preparation=({2},{3}), pre-input=({4},{5}), before-PostMessageW=({6},{7}), after-release-ack=({8},{9}), setup-drift={10}, cursor-stability={11}, last-input-ticks={12}->{13}" -f `

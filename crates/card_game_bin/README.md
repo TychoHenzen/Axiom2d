@@ -47,3 +47,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\t
 ```
 
 This mode compares the deterministic card signature, seed, rarity, tier, and generated name, then retains `identity-state.txt`, `identity.bmp`, and `identity-visual.txt` under `target/ui-smoke-*`. Signature axes are normalized to six decimal places before comparison; seed, rarity, tier, and name remain exact. The visual assertion compares `identity.bmp` with a template captured independently from `baseline.bmp`, not with a template derived from the identity frame itself.
+
+Run the seeded card-art hydration and face-rendering scenario through the real card-game window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1 -ArtFace
+```
+
+This mode verifies the deterministic selected art entry and hydrated shape count, then retains `art-face-state.txt`, `art-face.bmp`, and `art-face-visual.txt` with the focused card-art region evidence under `target/ui-smoke-*`.

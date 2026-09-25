@@ -9,6 +9,8 @@ use std::sync::OnceLock;
 
 use axiom2d::prelude::*;
 use card_game::card::art::ShapeRepository;
+#[cfg(feature = "ui-test")]
+use card_game::card::art_selection::select_art_for_signature;
 use card_game::card::combiner_device::spawn_combiner_device;
 #[cfg(feature = "ui-test")]
 use card_game::card::component::{Card, CardLabel, CardZone};
@@ -110,7 +112,9 @@ fn spawn_scene(world: &mut World) {
     {
         let ui_test_card_index = UI_TEST_SCENARIO
             .get()
-            .is_some_and(|scenario| scenario == "seeded-card-identity")
+            .is_some_and(|scenario| {
+                scenario == "seeded-card-identity" || scenario == "seeded-card-art-face"
+            })
             .then_some(1)
             .unwrap_or(0);
         UI_TEST_CARD_ENTITY
@@ -235,6 +239,7 @@ fn record_ui_test_state(
     stash_grid: Res<StashGrid>,
     stash_hover: Res<StashHoverPreview>,
     stash_visible: Res<StashVisible>,
+    art_repository: Res<ShapeRepository>,
     booster_opening: Option<Res<BoosterOpening>>,
     cards: Query<(Entity, &Card, &CardZone, &Transform2D)>,
     card_labels: Query<&CardLabel>,
@@ -282,6 +287,20 @@ fn record_ui_test_state(
     let identity_name = card_labels
         .get(entity)
         .map_or("".to_owned(), |label| label.name.clone());
+    let selected_art = select_art_for_signature(&card.signature, &art_repository);
+    let art_signature = selected_art.map_or_else(String::new, |entry| {
+        entry
+            .signature()
+            .axes()
+            .iter()
+            .map(|axis| format!("{axis:.6}"))
+            .collect::<Vec<_>>()
+            .join(",")
+    });
+    let art_element =
+        selected_art.map_or_else(String::new, |entry| format!("{:?}", entry.element()));
+    let art_aspect = selected_art.map_or_else(String::new, |entry| format!("{:?}", entry.aspect()));
+    let art_shape_count = selected_art.map_or(0, |entry| entry.shapes().len());
     let booster_pack = UI_TEST_BOOSTER_ENTITY.get().and_then(|expected| {
         booster_packs
             .iter()
@@ -349,7 +368,7 @@ fn record_ui_test_state(
         .get()
         .expect("UI test scenario must be configured before the app runs");
     let snapshot = format!(
-        "scenario={scenario}\ndragging={dragging}\nbooster_dragging={booster_dragging}\nzone={zone:?}\nhand_contains={hand_contains}\nhand_count={}\nstash_visible={}\nstash_page={}\nstash_storage_page={}\nstash_slot={stash_slot}\nstash_slot_present={stash_slot_present}\nstash_origin={stash_origin}\nstash_cursor_follow={stash_cursor_follow}\nstash_hovered={stash_hovered}\nidentity_signature={identity_signature}\nidentity_seed={identity_seed}\nidentity_rarity={identity_rarity}\nidentity_tier={identity_tier}\nidentity_name={identity_name}\nbooster_pack_present={booster_pack_present}\nbooster_phase={booster_phase}\nbooster_card_count={booster_card_count}\nbooster_rendered_x={booster_rendered_x:.1}\nbooster_rendered_y={booster_rendered_y:.1}\nexpected_card_seed={expected_card_seed}\nopened_card_present={opened_card_present}\nopened_card_zone={opened_card_zone}\nopened_card_seed={opened_card_seed}\nopened_card_face_up={opened_card_face_up}\nopened_card_x={opened_card_x:.1}\nopened_card_y={opened_card_y:.1}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\n",
+        "scenario={scenario}\ndragging={dragging}\nbooster_dragging={booster_dragging}\nzone={zone:?}\nhand_contains={hand_contains}\nhand_count={}\nstash_visible={}\nstash_page={}\nstash_storage_page={}\nstash_slot={stash_slot}\nstash_slot_present={stash_slot_present}\nstash_origin={stash_origin}\nstash_cursor_follow={stash_cursor_follow}\nstash_hovered={stash_hovered}\nidentity_signature={identity_signature}\nidentity_seed={identity_seed}\nidentity_rarity={identity_rarity}\nidentity_tier={identity_tier}\nidentity_name={identity_name}\nart_signature={art_signature}\nart_element={art_element}\nart_aspect={art_aspect}\nart_shape_count={art_shape_count}\nbooster_pack_present={booster_pack_present}\nbooster_phase={booster_phase}\nbooster_card_count={booster_card_count}\nbooster_rendered_x={booster_rendered_x:.1}\nbooster_rendered_y={booster_rendered_y:.1}\nexpected_card_seed={expected_card_seed}\nopened_card_present={opened_card_present}\nopened_card_zone={opened_card_zone}\nopened_card_seed={opened_card_seed}\nopened_card_face_up={opened_card_face_up}\nopened_card_x={opened_card_x:.1}\nopened_card_y={opened_card_y:.1}\nrendered_x={:.1}\nrendered_y={:.1}\nrotation={:.4}\nface_up={}\nmouse_x={:.1}\nmouse_y={:.1}\nleft_pressed={}\nright_pressed={}\n",
         hand.len(),
         stash_visible.0,
         stash_grid.current_page(),
