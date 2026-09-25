@@ -489,7 +489,10 @@ fn spawn_scene(world: &mut World) {
 
     // Spawn a screen device — connect to the reader by dragging a cable interactively.
     let screen_pos = Vec2::new(300.0, 150.0);
+    #[cfg(feature = "ui-test")]
     let (screen_entity, screen_jack) = spawn_screen_device(world, screen_pos);
+    #[cfg(not(feature = "ui-test"))]
+    let (_screen_entity, _screen_jack) = spawn_screen_device(world, screen_pos);
     #[cfg(feature = "ui-test")]
     {
         UI_TEST_SCREEN_ENTITY
