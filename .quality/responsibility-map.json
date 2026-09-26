@@ -1,152 +1,115 @@
 {
   "targetScope": [
-    "crates/engine_ui"
+    "crates/particle_poc"
   ],
   "responsibilities": [
     {
-      "name": "model serializable UI nodes, widgets, interaction state, and theme data",
+      "name": "compute signed distance fields and upload-ready SDF data",
       "currentOwners": [
-        "crates/engine_ui/src/widget/node.rs::UiNode stores size, anchor, margin, and optional background",
-        "crates/engine_ui/src/widget/button.rs::Button stores disabled state",
-        "crates/engine_ui/src/widget/panel.rs::Panel stores border configuration",
-        "crates/engine_ui/src/widget/progress_bar.rs::ProgressBar stores value and maximum",
-        "crates/engine_ui/src/widget/text.rs::Text stores text content and font settings",
-        "crates/engine_ui/src/interaction.rs::Interaction and FocusState store transient UI state",
-        "crates/engine_ui/src/theme.rs::UiTheme stores shared widget colors and font size",
-        "crates/engine_ui/src/ui_event.rs::UiEvent defines the public interaction event contract"
+        "crates/particle_poc/src/sdf.rs::compute_distance_field",
+        "crates/particle_poc/src/sdf.rs::sdf_for_upload"
       ],
       "consumers": [
-        "crates/axiom2d/src/prelude.rs",
-        "crates/terrain_viewer/src/main.rs",
-        "crates/engine_ui/tests",
-        "crates/card_game/tests"
+        "crates/particle_poc/src/lib.rs",
+        "crates/particle_poc/tests/suite/sdf_wall_tests.rs"
       ],
       "dependencies": [
-        "bevy_ecs components and resources",
-        "engine_core color and pixel types",
-        "engine_scene GlobalTransform2D and EffectiveVisibility",
-        "serde serialization for persisted UI data"
-      ]
-    },
-    {
-      "name": "compute anchored and flex layout positions from scene hierarchy",
-      "currentOwners": [
-        "crates/engine_ui/src/layout/anchor.rs::Anchor and anchor_offset define nine anchor placements",
-        "crates/engine_ui/src/layout/flex.rs::FlexLayout and compute_flex_offsets define row and column spacing",
-        "crates/engine_ui/src/layout/margin.rs::Margin stores per-edge spacing",
-        "crates/engine_ui/src/layout/system.rs::ui_layout_system writes child Transform2D positions"
-      ],
-      "consumers": [
-        "crates/engine_ui/tests/suite/layout_anchor.rs",
-        "crates/engine_ui/tests/suite/layout_flex.rs",
-        "crates/engine_ui/tests/suite/layout_system.rs",
-        "crates/engine_ui/tests/suite/widget_node.rs",
-        "crates/engine_ui/src/interaction.rs",
-        "crates/engine_ui/src/render.rs"
-      ],
-      "dependencies": [
-        "engine_scene Children and GlobalTransform2D hierarchy state",
-        "engine_core Transform2D",
         "glam Vec2 arithmetic",
-        "bevy_ecs query and deferred hierarchy semantics"
+        "particle_poc SDF wall and upload parameters"
       ]
     },
     {
-      "name": "translate mouse state into UI hit testing, focus, and events",
+      "name": "own particle simulation state, physics, reactions, and machine definitions",
       "currentOwners": [
-        "crates/engine_ui/src/interaction.rs::ui_interaction_system drives per-entity hover, press, click, and focus transitions",
-        "crates/engine_ui/src/interaction.rs::hit_test and compute_interaction derive pointer state",
-        "crates/engine_ui/src/interaction.rs::update_focus emits focus transition events"
+        "crates/particle_poc/src/state.rs::State",
+        "crates/particle_poc/src/state.rs::MachineCpuState",
+        "crates/particle_poc/src/state.rs::RapierState",
+        "crates/particle_poc/src/state.rs::ReactionMatrix",
+        "crates/particle_poc/src/state.rs::MachineDef"
       ],
       "consumers": [
-        "crates/engine_ui/tests/suite/interaction.rs",
-        "crates/engine_ui/tests/suite/widget_button.rs",
-        "crates/engine_ui/src/prelude.rs"
+        "crates/particle_poc/src/lib.rs",
+        "crates/particle_poc/tests/suite/bond_tests.rs",
+        "crates/particle_poc/tests/suite/reaction_tests.rs",
+        "crates/particle_poc/tests/suite/kill_barrier_tests.rs"
       ],
       "dependencies": [
-        "engine_input MouseState and MouseButton",
-        "engine_scene EffectiveVisibility and GlobalTransform2D",
-        "UiNode anchor geometry",
-        "EventBus<UiEvent> and FocusState resource"
+        "bevy ECS resources and systems",
+        "rapier2d physics state",
+        "glam vector arithmetic"
       ]
     },
     {
-      "name": "queue, sort, cull, and render heterogeneous draw commands in one pass",
+      "name": "render particles and capture GPU output for behavior checks",
       "currentOwners": [
-        "crates/engine_ui/src/draw_command.rs::DrawCommand and DrawQueue define the immediate-mode render contract",
-        "crates/engine_ui/src/unified_render.rs::collect_*_draws converts shapes, text, meshes, and sprites into sorted commands",
-        "crates/engine_ui/src/unified_render.rs::draw_commands applies material state and emits the sorted renderer calls",
-        "crates/engine_ui/src/unified_render.rs::unified_render_system drains the queue after the render phase"
+        "crates/particle_poc/src/capture.rs::HeadlessCapture",
+        "crates/particle_poc/src/lib.rs::GpuMachine",
+        "crates/particle_poc/src/lib.rs::GpuMachineRender"
       ],
       "consumers": [
-        "crates/axiom2d/src/default_plugins.rs",
-        "crates/card_game/src/card/rendering",
-        "crates/card_game/src/stash",
-        "crates/card_game/tests",
-        "crates/demo/tests",
-        "crates/engine_ui/tests/suite/unified_render.rs"
+        "crates/particle_poc/src/lib.rs",
+        "crates/particle_poc/tests/suite/screen_capture.rs",
+        "crates/particle_poc/tests/suite/sdf_wall_tests.rs"
       ],
       "dependencies": [
-        "engine_render renderer, materials, camera culling, fonts, shapes, and sprites",
-        "engine_scene RenderLayer, SortOrder, visibility, and transforms",
-        "DrawQueue insertion order as the deterministic tie breaker",
-        "GlyphCache and renderer material state caching"
+        "bevy render resources",
+        "wgpu storage and readback buffers",
+        "particle simulation state"
       ]
     },
     {
-      "name": "render UI node backgrounds, text, and widget-specific primitives",
+      "name": "orchestrate the particle app modes, plugins, and runtime entrypoint",
       "currentOwners": [
-        "crates/engine_ui/src/render.rs::ui_render_system draws node backgrounds",
-        "crates/engine_ui/src/text_render.rs::text_render_system measures, wraps, and draws Text",
-        "crates/engine_ui/src/widget/button.rs::button_render_system selects themed button colors",
-        "crates/engine_ui/src/widget/panel.rs::panel_render_system draws panel borders",
-        "crates/engine_ui/src/widget/progress_bar.rs::progress_bar_render_system draws clamped fills"
+        "crates/particle_poc/src/lib.rs::App",
+        "crates/particle_poc/src/lib.rs::Mode",
+        "crates/particle_poc/src/main.rs"
       ],
       "consumers": [
-        "crates/terrain_viewer/src/main.rs",
-        "crates/engine_ui/tests/suite/render.rs",
-        "crates/engine_ui/tests/suite/text_render.rs",
-        "crates/engine_ui/tests/suite/widget_button.rs",
-        "crates/engine_ui/tests/suite/widget_panel.rs",
-        "crates/engine_ui/tests/suite/widget_progress_bar.rs"
+        "crates/particle_poc/src/main.rs",
+        "crates/particle_poc/tests/main.rs"
       ],
       "dependencies": [
-        "engine_render RendererRes and font/rect helpers",
-        "engine_scene visibility and global transforms",
-        "UiNode anchor and size geometry",
-        "UiTheme and widget component state"
-      ]
-    },
-    {
-      "name": "expose the stable engine UI module and scheduling boundary",
-      "currentOwners": [
-        "crates/engine_ui/src/lib.rs::module declarations and is_hidden helper",
-        "crates/engine_ui/src/prelude.rs::supported public re-exports",
-        "crates/engine_ui/src/plugin.rs::UIPlugin marker configuration"
-      ],
-      "consumers": [
-        "crates/axiom2d/src/default_plugins.rs",
-        "crates/axiom2d/src/prelude.rs",
-        "crates/card_game/src/prelude.rs",
-        "downstream crates importing engine_ui::prelude"
-      ],
-      "dependencies": [
-        "crate-local module visibility and public API paths",
-        "axiom2d facade scheduling for PostRender unified rendering",
-        "engine crate dependency direction avoiding a UI-to-app cycle"
+        "particle simulation state",
+        "render particles and capture GPU output for behavior checks",
+        "compute signed distance fields and upload-ready SDF data"
       ]
     }
   ],
-  "findings": {
-    "scope": "The default scan covers 35 files with 55 errors and 244 warnings across 25 work units. Production contains 21 files with 12 errors and 86 warnings; tests contain 14 files with 43 errors and 158 warnings. The units and report artifacts are restricted to crates/engine_ui.",
-    "architecture": "The scoped report found zero placement, similarity, dependency, cycle, configurable-data, transitive-navigation, or extraction-error findings. Its 31 public-surface signals are fields on serialized ECS data and render-command records; cross-scope caller inspection found those records and systems consumed by axiom2d, card_game, demo, terrain_viewer, and engine_ui tests.",
-    "decision": "no-safe-change",
-    "reason": "The 5-type draw_command.rs file is one queue/command contract, and the 474-line unified_render.rs file is one sorted pass whose collectors and draw path share DrawCommand variants, sort keys, culling, material state, and glyph-cache lifetimes. Splitting either would add private plumbing and compatibility paths without a demonstrated responsibility seam. The 2-type interaction.rs file is one input/focus contract; widget and layout responsibilities are already separated by file. The 601-line interaction test and other long test files contain explicit behavior fixtures, while duplicate blocks are repeated ECS setup rather than duplicated production ownership. Remaining findings are cosmetic or signature heuristics. No DELETE, DEDUPE, SPLIT, SIMPLIFY, SIGNATURES, or COSMETIC source change is justified by this evidence.",
-    "behaviorEvidence": "The focused baseline `cargo test -p engine_ui --locked` passed 94 integration tests with zero failures. No running-app UI smoke was used because this slice changes no rendering or input source; the existing module tests exercise headless layout, interaction, widget, text, and unified-render behavior.",
-    "replayBlocker": "Source-changing committed replay remains blocked solely by dod-guard#621: the bundled quality-guard gate requires the absent `.github/quality/quality-baseline.json` instead of this repository's `docs/QUALITY_BASELINE.ron`. No baseline or documentation file was created or edited."
-  },
   "desired": {
-    "ownership": [],
-    "boundaries": []
+    "ownership": [
+      {
+        "responsibility": "compute signed distance fields and upload-ready SDF data",
+        "owner": "crates/particle_poc/src/sdf.rs"
+      },
+      {
+        "responsibility": "own particle simulation state, physics, reactions, and machine definitions",
+        "owner": "crates/particle_poc/src/state.rs"
+      },
+      {
+        "responsibility": "render particles and capture GPU output for behavior checks",
+        "owner": "crates/particle_poc/src/capture.rs"
+      },
+      {
+        "responsibility": "orchestrate the particle app modes, plugins, and runtime entrypoint",
+        "owner": "crates/particle_poc/src/lib.rs"
+      }
+    ],
+    "boundaries": [
+      {
+        "from": "orchestrate the particle app modes, plugins, and runtime entrypoint",
+        "to": "compute signed distance fields and upload-ready SDF data",
+        "allowed": true
+      },
+      {
+        "from": "orchestrate the particle app modes, plugins, and runtime entrypoint",
+        "to": "own particle simulation state, physics, reactions, and machine definitions",
+        "allowed": true
+      },
+      {
+        "from": "own particle simulation state, physics, reactions, and machine definitions",
+        "to": "render particles and capture GPU output for behavior checks",
+        "allowed": true
+      }
+    ]
   }
 }
