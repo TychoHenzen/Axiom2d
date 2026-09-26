@@ -1,59 +1,63 @@
 {
   "targetScope": [
-    "crates/card_game"
+    "crates/card_game_bin"
   ],
   "responsibilities": [
     {
-      "name": "cache and query generated card art",
+      "name": "construct the deterministic starter deck",
       "currentOwners": [
-        "ShapeRepository owns ArtEntry storage, hydration, and signature lookup in crates/card_game/src/card/art/repository.rs"
+        "card_data.rs owns starter-card definitions, layout, and seeded signature selection"
       ],
       "consumers": [
-        "crates/card_game/src/card/art_selection.rs",
-        "tools/img-to-shape/src/codegen.rs"
+        "crates/card_game_bin/src/main.rs"
       ],
       "dependencies": [
-        "ArtEntry",
+        "StarterCard",
+        "CardDefinition",
         "CardSignature",
-        "Element",
-        "Aspect"
+        "ChaCha8Rng"
       ]
     },
     {
-      "name": "resolve card interaction hit shapes",
+      "name": "bootstrap the normal card-game scene",
       "currentOwners": [
-        "click_resolve.rs owns collider-to-hit-shape conversion and click intent resolution"
+        "main.rs owns application setup, scene spawning, and runtime plugin wiring"
       ],
       "consumers": [
-        "crates/card_game/src/card/interaction/click_resolve.rs",
-        "crates/card_game/tests/suite/card_interaction_click_resolve.rs"
+        "card_game_bin entry point"
       ],
       "dependencies": [
-        "Collider",
-        "ClickHitShape",
-        "InteractionIntent"
+        "App",
+        "DefaultPlugins",
+        "CardGamePlugin",
+        "PostSplashSetup"
       ]
     },
     {
-      "name": "provide shared card-game system state",
+      "name": "observe UI-test state",
       "currentOwners": [
-        "CardGameState owns the grouped ECS resources used by release targeting"
+        "ui_test_state/mod.rs owns test-only snapshot collection and serialization"
       ],
       "consumers": [
-        "crates/card_game/src/card/interaction/release/target.rs",
-        "crates/card_game/tests/suite/card_interaction_release_target.rs"
+        "main.rs record_ui_test_state system",
+        "crates/card_game_bin/tests/ui-smoke.ps1"
       ],
       "dependencies": [
-        "DragState",
-        "Hand",
-        "EventBus<PhysicsCommand>",
-        "StashVisible",
-        "StashGrid"
+        "ui-test feature",
+        "UiTestCableParams",
+        "UiTestRenderingParams",
+        "AXIOM_UI_TEST_STATE_FILE"
       ]
     }
   ],
   "desired": {
     "ownership": [],
-    "boundaries": []
+    "boundaries": [
+      {
+        "from": "Snapshot",
+        "to": "UiTestTerrain",
+        "allowed": false
+      }
+    ]
   }
 }
