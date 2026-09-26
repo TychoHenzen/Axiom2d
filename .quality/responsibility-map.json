@@ -1,44 +1,60 @@
 {
-  "targetScope": ["crates/engine_app"],
+  "targetScope": [
+    "crates/engine_assets"
+  ],
   "responsibilities": [
     {
-      "name": "own application lifecycle and frame scheduling",
-      "currentOwners": ["crates/engine_app/src/app.rs::App owns world resources, schedules, hooks, redraw timing, and window lifecycle"],
-      "consumers": ["crates/axiom2d/src/default_plugins.rs", "crates/card_game_bin/src/main.rs", "crates/demo/src/lib.rs", "crates/terrain_viewer/src/main.rs", "crates/engine_app/tests/suite/app.rs"],
-      "dependencies": ["winit::ApplicationHandler", "World", "Phase", "Schedule", "DeltaTime", "FixedTimestep", "FrameProfiler"]
+      "name": "provide type-safe asset handles",
+      "currentOwners": [
+        "crates/engine_assets/src/handle.rs::Handle owns typed identity and standard value semantics"
+      ],
+      "consumers": [
+        "crates/engine_assets/src/asset_server.rs",
+        "crates/engine_assets/src/prelude.rs",
+        "crates/engine_assets/tests/asset_server.rs",
+        "crates/axiom2d/src/prelude.rs"
+      ],
+      "dependencies": [
+        "std::marker::PhantomData",
+        "u32 asset IDs",
+        "Clone, Copy, Eq, Ord, Hash, Debug"
+      ]
     },
     {
-      "name": "translate native window input into engine events",
-      "currentOwners": ["crates/engine_app/src/app.rs::ApplicationHandler and App input handlers own keyboard, mouse, resize, and close-event translation"],
-      "consumers": ["crates/engine_input", "crates/card_game_bin/src/main.rs", "crates/terrain_viewer/src/main.rs", "crates/engine_app/tests/suite/app.rs"],
-      "dependencies": ["WindowEvent", "EventBus<KeyInputEvent>", "EventBus<MouseInputEvent>", "WindowSize", "WindowConfig"]
+      "name": "store, load, query, and reference-count assets",
+      "currentOwners": [
+        "crates/engine_assets/src/asset_server.rs::AssetServer owns HashMap storage, ID allocation, RON loading, and lifetime operations"
+      ],
+      "consumers": [
+        "crates/axiom2d/src/prelude.rs",
+        "crates/engine_assets/tests/asset_server.rs"
+      ],
+      "dependencies": [
+        "AssetEntry<T>",
+        "Handle<T>",
+        "std::collections::HashMap",
+        "serde::de::DeserializeOwned",
+        "ron"
+      ]
     },
     {
-      "name": "derive mouse world coordinates",
-      "currentOwners": ["crates/engine_app/src/mouse_world_pos_system.rs::mouse_world_pos_system owns screen-to-world conversion"],
-      "consumers": ["crates/axiom2d/src/default_plugins.rs", "crates/card_game_bin/src/main.rs", "crates/engine_app/tests/suite/mouse_world_pos_system.rs"],
-      "dependencies": ["MouseState", "Camera2D", "WindowSize", "screen_to_world"]
-    },
-    {
-      "name": "provide viewport and profiling resources",
-      "currentOwners": ["crates/engine_app/src/window_size.rs::WindowSize and crates/engine_app/src/profiler_plugin.rs::FrameProfilerPlugin own resource setup"],
-      "consumers": ["crates/engine_app/src/app.rs", "crates/engine_render", "crates/engine_app/tests/suite/app.rs"],
-      "dependencies": ["Pixels", "FrameProfiler", "PathBuf"]
+      "name": "translate asset loading failures",
+      "currentOwners": [
+        "crates/engine_assets/src/asset_server.rs::AssetError owns I/O and RON parse error classification"
+      ],
+      "consumers": [
+        "crates/engine_assets/src/prelude.rs",
+        "crates/engine_assets/tests/asset_server.rs"
+      ],
+      "dependencies": [
+        "std::io::Error",
+        "ron::error::SpannedError",
+        "thiserror"
+      ]
     }
   ],
   "desired": {
-    "ownership": [
-      {
-        "responsibility": "execute one frame's phase policy",
-        "owner": "crates/engine_app/src/phase.rs::run_phase"
-      }
-    ],
-    "boundaries": [
-      {
-        "from": "App::handle_redraw",
-        "to": "phase::run_phase",
-        "allowed": true
-      }
-    ]
+    "ownership": [],
+    "boundaries": []
   }
 }
