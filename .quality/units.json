@@ -1,1568 +1,2149 @@
 {
   "profile": "default",
-  "fileCount": 10,
+  "fileCount": 11,
   "files": [
     {
-      "path": "crates/demo/src/lib.rs",
+      "path": "crates/engine_app/src/app.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/demo/src/main.rs",
+      "path": "crates/engine_app/src/lib.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/demo/src/scene.rs",
+      "path": "crates/engine_app/src/mouse_world_pos_system.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/demo/src/systems.rs",
+      "path": "crates/engine_app/src/phase.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/demo/src/types.rs",
+      "path": "crates/engine_app/src/prelude.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/demo/tests/main.rs",
+      "path": "crates/engine_app/src/profiler_plugin.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_app/src/window_size.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_app/tests/main.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/demo/tests/suite/core_main.rs",
+      "path": "crates/engine_app/tests/suite/app.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/demo/tests/suite/mod.rs",
+      "path": "crates/engine_app/tests/suite/mod.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/demo/tests/suite/scene.rs",
-      "language": "rs",
-      "classification": "test"
-    },
-    {
-      "path": "crates/demo/tests/suite/systems.rs",
+      "path": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
       "language": "rs",
       "classification": "test"
     }
   ],
   "summary": {
-    "total": 86,
-    "errors": 37,
-    "warnings": 49,
+    "total": 124,
+    "errors": 7,
+    "warnings": 117,
     "byRule": {
-      "duplicate-block": 33,
       "types-per-file": 2,
-      "file-length": 4,
-      "function-length": 11,
-      "complexity": 1,
-      "param-count": 2,
-      "output-parameter": 9,
-      "line-length": 17,
-      "wildcard-import": 7
+      "file-length": 3,
+      "complexity": 2,
+      "function-length": 5,
+      "comment-bloat": 1,
+      "duplicate-block": 12,
+      "nesting-depth": 1,
+      "param-count": 1,
+      "else-branch": 1,
+      "stateless-method": 4,
+      "output-parameter": 11,
+      "flag-parameter": 1,
+      "line-length": 79,
+      "wildcard-import": 1
     },
     "byFile": {
-      "crates/demo/tests/suite/core_main.rs": 11,
-      "crates/demo/tests/suite/scene.rs": 36,
-      "crates/demo/src/scene.rs": 12,
-      "crates/demo/src/types.rs": 2,
-      "crates/demo/tests/suite/systems.rs": 14,
-      "crates/demo/src/systems.rs": 6,
-      "crates/demo/src/lib.rs": 5
+      "crates/engine_app/src/app.rs": 26,
+      "crates/engine_app/tests/suite/app.rs": 83,
+      "crates/engine_app/src/profiler_plugin.rs": 2,
+      "crates/engine_app/tests/suite/mouse_world_pos_system.rs": 5,
+      "crates/engine_app/src/phase.rs": 8
     }
   },
   "comparison": null,
   "violations": [
     {
-      "file": "crates/demo/tests/suite/core_main.rs",
-      "line": 37,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/core_main.rs:37, crates/demo/tests/suite/core_main.rs:73, crates/demo/tests/suite/core_main.rs:106",
-      "metric": 3
-    },
-    {
-      "file": "crates/demo/tests/suite/core_main.rs",
-      "line": 73,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/core_main.rs:37, crates/demo/tests/suite/core_main.rs:73, crates/demo/tests/suite/core_main.rs:106",
-      "metric": 3
-    },
-    {
-      "file": "crates/demo/tests/suite/core_main.rs",
-      "line": 106,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/core_main.rs:37, crates/demo/tests/suite/core_main.rs:73, crates/demo/tests/suite/core_main.rs:106",
-      "metric": 3
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 177,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:177, crates/demo/tests/suite/scene.rs:219, crates/demo/tests/suite/scene.rs:345, crates/demo/tests/suite/scene.rs:384",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 185,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:185, crates/demo/tests/suite/scene.rs:227, crates/demo/tests/suite/scene.rs:353, crates/demo/tests/suite/scene.rs:392",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 186,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:186, crates/demo/tests/suite/scene.rs:228, crates/demo/tests/suite/scene.rs:354, crates/demo/tests/suite/scene.rs:393",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 187,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:187, crates/demo/tests/suite/scene.rs:229, crates/demo/tests/suite/scene.rs:355, crates/demo/tests/suite/scene.rs:394",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 188,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:188, crates/demo/tests/suite/scene.rs:230, crates/demo/tests/suite/scene.rs:356, crates/demo/tests/suite/scene.rs:395",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 189,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:189, crates/demo/tests/suite/scene.rs:231, crates/demo/tests/suite/scene.rs:357, crates/demo/tests/suite/scene.rs:396",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 190,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:190, crates/demo/tests/suite/scene.rs:232, crates/demo/tests/suite/scene.rs:358, crates/demo/tests/suite/scene.rs:397",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 219,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:177, crates/demo/tests/suite/scene.rs:219, crates/demo/tests/suite/scene.rs:345, crates/demo/tests/suite/scene.rs:384",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 227,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:185, crates/demo/tests/suite/scene.rs:227, crates/demo/tests/suite/scene.rs:353, crates/demo/tests/suite/scene.rs:392",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 228,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:186, crates/demo/tests/suite/scene.rs:228, crates/demo/tests/suite/scene.rs:354, crates/demo/tests/suite/scene.rs:393",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 229,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:187, crates/demo/tests/suite/scene.rs:229, crates/demo/tests/suite/scene.rs:355, crates/demo/tests/suite/scene.rs:394",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 230,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:188, crates/demo/tests/suite/scene.rs:230, crates/demo/tests/suite/scene.rs:356, crates/demo/tests/suite/scene.rs:395",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 231,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:189, crates/demo/tests/suite/scene.rs:231, crates/demo/tests/suite/scene.rs:357, crates/demo/tests/suite/scene.rs:396",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 232,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:190, crates/demo/tests/suite/scene.rs:232, crates/demo/tests/suite/scene.rs:358, crates/demo/tests/suite/scene.rs:397",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 345,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:177, crates/demo/tests/suite/scene.rs:219, crates/demo/tests/suite/scene.rs:345, crates/demo/tests/suite/scene.rs:384",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 353,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:185, crates/demo/tests/suite/scene.rs:227, crates/demo/tests/suite/scene.rs:353, crates/demo/tests/suite/scene.rs:392",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 354,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:186, crates/demo/tests/suite/scene.rs:228, crates/demo/tests/suite/scene.rs:354, crates/demo/tests/suite/scene.rs:393",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 355,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:187, crates/demo/tests/suite/scene.rs:229, crates/demo/tests/suite/scene.rs:355, crates/demo/tests/suite/scene.rs:394",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 356,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:188, crates/demo/tests/suite/scene.rs:230, crates/demo/tests/suite/scene.rs:356, crates/demo/tests/suite/scene.rs:395",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 357,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:189, crates/demo/tests/suite/scene.rs:231, crates/demo/tests/suite/scene.rs:357, crates/demo/tests/suite/scene.rs:396",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 358,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:190, crates/demo/tests/suite/scene.rs:232, crates/demo/tests/suite/scene.rs:358, crates/demo/tests/suite/scene.rs:397",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 384,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:177, crates/demo/tests/suite/scene.rs:219, crates/demo/tests/suite/scene.rs:345, crates/demo/tests/suite/scene.rs:384",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 392,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:185, crates/demo/tests/suite/scene.rs:227, crates/demo/tests/suite/scene.rs:353, crates/demo/tests/suite/scene.rs:392",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 393,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:186, crates/demo/tests/suite/scene.rs:228, crates/demo/tests/suite/scene.rs:354, crates/demo/tests/suite/scene.rs:393",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 394,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:187, crates/demo/tests/suite/scene.rs:229, crates/demo/tests/suite/scene.rs:355, crates/demo/tests/suite/scene.rs:394",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 395,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:188, crates/demo/tests/suite/scene.rs:230, crates/demo/tests/suite/scene.rs:356, crates/demo/tests/suite/scene.rs:395",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 396,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:189, crates/demo/tests/suite/scene.rs:231, crates/demo/tests/suite/scene.rs:357, crates/demo/tests/suite/scene.rs:396",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 397,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:190, crates/demo/tests/suite/scene.rs:232, crates/demo/tests/suite/scene.rs:358, crates/demo/tests/suite/scene.rs:397",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/src/scene.rs",
-      "line": 19,
+      "file": "crates/engine_app/src/app.rs",
+      "line": 38,
       "rule": "types-per-file",
       "severity": "error",
-      "message": "2 types in one file: PlanetDef, MoonDef",
+      "message": "2 types in one file: Plugin, App",
       "metric": 2
     },
     {
-      "file": "crates/demo/src/types.rs",
-      "line": 7,
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 26,
       "rule": "types-per-file",
       "severity": "error",
-      "message": "6 types in one file: FrameCount, Sun, Earth, Moon, SynodicFrame, OrbitalSpeed",
+      "message": "4 types in one file: Counter, NoOpPlugin, AnotherNoOpPlugin, CountingPlugin",
+      "metric": 4
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 1,
+      "rule": "file-length",
+      "severity": "error",
+      "message": "file is 365 lines",
+      "metric": 365
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 1,
+      "rule": "file-length",
+      "severity": "error",
+      "message": "file is 883 lines",
+      "metric": 883
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 319,
+      "rule": "complexity",
+      "severity": "error",
+      "message": "window_event() cyclomatic complexity 11",
+      "metric": 11
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 161,
+      "rule": "function-length",
+      "severity": "error",
+      "message": "when_systems_in_all_phases_then_run_in_canonical_order() is 113 lines",
+      "metric": 113
+    },
+    {
+      "file": "crates/engine_app/src/profiler_plugin.rs",
+      "line": 7,
+      "rule": "comment-bloat",
+      "severity": "error",
+      "message": "6-line comment over 1 line(s) of code - keep the why, cut the rest",
       "metric": 6
     },
     {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 1,
-      "rule": "file-length",
-      "severity": "error",
-      "message": "file is 531 lines",
-      "metric": 531
-    },
-    {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 1,
-      "rule": "file-length",
-      "severity": "error",
-      "message": "file is 412 lines",
-      "metric": 412
-    },
-    {
-      "file": "crates/demo/src/scene.rs",
-      "line": 26,
-      "rule": "function-length",
-      "severity": "error",
-      "message": "planets() is 81 lines",
-      "metric": 81
-    },
-    {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 312,
-      "rule": "function-length",
-      "severity": "error",
-      "message": "when_synodic_frame_and_orbits_run_then_earth_and_moon_stay_centered() is 100 lines",
-      "metric": 100
-    },
-    {
-      "file": "crates/demo/tests/suite/core_main.rs",
-      "line": 36,
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 471,
       "rule": "duplicate-block",
       "severity": "warn",
-      "message": "6-line block duplicated at crates/demo/tests/suite/core_main.rs:36, crates/demo/tests/suite/core_main.rs:72",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:471, crates/engine_app/tests/suite/app.rs:507",
       "metric": 2
     },
     {
-      "file": "crates/demo/tests/suite/core_main.rs",
-      "line": 72,
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 472,
       "rule": "duplicate-block",
       "severity": "warn",
-      "message": "6-line block duplicated at crates/demo/tests/suite/core_main.rs:36, crates/demo/tests/suite/core_main.rs:72",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:472, crates/engine_app/tests/suite/app.rs:508",
       "metric": 2
     },
     {
-      "file": "crates/demo/src/scene.rs",
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 473,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:473, crates/engine_app/tests/suite/app.rs:509",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 507,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:471, crates/engine_app/tests/suite/app.rs:507",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 508,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:472, crates/engine_app/tests/suite/app.rs:508",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 509,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:473, crates/engine_app/tests/suite/app.rs:509",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 593,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:593, crates/engine_app/tests/suite/app.rs:652",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 594,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:594, crates/engine_app/tests/suite/app.rs:653",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 652,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:593, crates/engine_app/tests/suite/app.rs:652",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 653,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:594, crates/engine_app/tests/suite/app.rs:653",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 805,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:805, crates/engine_app/tests/suite/app.rs:825",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 825,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:805, crates/engine_app/tests/suite/app.rs:825",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
       "line": 1,
       "rule": "file-length",
       "severity": "warn",
-      "message": "file is 290 lines",
-      "metric": 290
+      "message": "file is 116 lines",
+      "metric": 116
     },
     {
-      "file": "crates/demo/tests/suite/core_main.rs",
-      "line": 1,
-      "rule": "file-length",
-      "severity": "warn",
-      "message": "file is 133 lines",
-      "metric": 133
-    },
-    {
-      "file": "crates/demo/src/systems.rs",
-      "line": 11,
+      "file": "crates/engine_app/src/phase.rs",
+      "line": 6,
       "rule": "complexity",
       "severity": "warn",
-      "message": "camera_pan_system() cyclomatic complexity 6",
-      "metric": 6
+      "message": "run_phase() cyclomatic complexity 7",
+      "metric": 7
     },
     {
-      "file": "crates/demo/src/lib.rs",
-      "line": 11,
+      "file": "crates/engine_app/src/app.rs",
+      "line": 213,
       "rule": "function-length",
       "severity": "warn",
-      "message": "setup() is 39 lines",
-      "metric": 39
+      "message": "handle_redraw() is 41 lines",
+      "metric": 41
     },
     {
-      "file": "crates/demo/src/scene.rs",
-      "line": 205,
+      "file": "crates/engine_app/src/app.rs",
+      "line": 274,
       "rule": "function-length",
       "severity": "warn",
-      "message": "spawn_planet() is 46 lines",
-      "metric": 46
-    },
-    {
-      "file": "crates/demo/tests/suite/core_main.rs",
-      "line": 29,
-      "rule": "function-length",
-      "severity": "warn",
-      "message": "when_unified_render_system_runs_then_draw_sprite_called_for_player() is 32 lines",
-      "metric": 32
-    },
-    {
-      "file": "crates/demo/tests/suite/core_main.rs",
-      "line": 63,
-      "rule": "function-length",
-      "severity": "warn",
-      "message": "when_render_phase_runs_then_clear_before_camera_before_draw() is 33 lines",
-      "metric": 33
-    },
-    {
-      "file": "crates/demo/tests/suite/core_main.rs",
-      "line": 98,
-      "rule": "function-length",
-      "severity": "warn",
-      "message": "when_post_update_systems_run_then_player_entity_gains_global_transform() is 35 lines",
-      "metric": 35
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 175,
-      "rule": "function-length",
-      "severity": "warn",
-      "message": "when_setup_called_then_each_pivot_has_one_body_child() is 40 lines",
-      "metric": 40
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 217,
-      "rule": "function-length",
-      "severity": "warn",
-      "message": "when_setup_called_then_all_planets_on_world_render_layer() is 31 lines",
-      "metric": 31
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 343,
-      "rule": "function-length",
-      "severity": "warn",
-      "message": "when_orbiting_bodies_queried_then_each_has_shape() is 37 lines",
-      "metric": 37
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 382,
-      "rule": "function-length",
-      "severity": "warn",
-      "message": "when_orbiting_body_shapes_queried_then_distinct_colors() is 44 lines",
+      "message": "resumed() is 44 lines",
       "metric": 44
     },
     {
-      "file": "crates/demo/src/systems.rs",
-      "line": 11,
-      "rule": "param-count",
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 457,
+      "rule": "function-length",
       "severity": "warn",
-      "message": "camera_pan_system() takes 4 parameters",
+      "message": "when_app_receives_keyboard_press_then_event_pushed_to_bus() is 33 lines",
+      "metric": 33
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 493,
+      "rule": "function-length",
+      "severity": "warn",
+      "message": "when_app_receives_keyboard_release_then_release_event_pushed_to_bus() is 33 lines",
+      "metric": 33
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 319,
+      "rule": "nesting-depth",
+      "severity": "warn",
+      "message": "window_event() nests 4 levels deep",
       "metric": 4
     },
     {
-      "file": "crates/demo/src/systems.rs",
-      "line": 38,
-      "rule": "param-count",
-      "severity": "warn",
-      "message": "camera_zoom_system() takes 4 parameters",
-      "metric": 4
-    },
-    {
-      "file": "crates/demo/src/lib.rs",
-      "line": 11,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "setup() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/demo/src/scene.rs",
-      "line": 189,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "spawn_synodic_frame() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/demo/src/scene.rs",
-      "line": 193,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "spawn_sun() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/demo/src/scene.rs",
-      "line": 205,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "spawn_planet() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/demo/src/scene.rs",
-      "line": 252,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "spawn_planets() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/demo/src/scene.rs",
-      "line": 258,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "spawn_nebula() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/demo/src/scene.rs",
-      "line": 281,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "spawn_camera() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 37,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "run_camera_pan() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 43,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "run_camera_zoom() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/demo/src/lib.rs",
-      "line": 7,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 91 chars",
-      "metric": 91
-    },
-    {
-      "file": "crates/demo/src/lib.rs",
-      "line": 47,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 82 chars",
-      "metric": 82
-    },
-    {
-      "file": "crates/demo/src/scene.rs",
-      "line": 4,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 85 chars",
-      "metric": 85
-    },
-    {
-      "file": "crates/demo/src/systems.rs",
-      "line": 4,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 97 chars",
-      "metric": 97
-    },
-    {
-      "file": "crates/demo/src/systems.rs",
-      "line": 57,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 94 chars",
-      "metric": 94
-    },
-    {
-      "file": "crates/demo/tests/suite/core_main.rs",
-      "line": 83,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 95 chars",
-      "metric": 95
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 459,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 93 chars",
-      "metric": 93
-    },
-    {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 523,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 99 chars",
-      "metric": 99
-    },
-    {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 5,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 96 chars",
-      "metric": 96
-    },
-    {
-      "file": "crates/demo/tests/suite/systems.rs",
+      "file": "crates/engine_app/src/phase.rs",
       "line": 6,
+      "rule": "param-count",
+      "severity": "warn",
+      "message": "run_phase() takes 5 parameters",
+      "metric": 5
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 357,
+      "rule": "else-branch",
+      "severity": "warn",
+      "message": "format_window_title() has 1 else branch(es) — prefer guard clauses",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 112,
+      "rule": "stateless-method",
+      "severity": "warn",
+      "message": "schedule_count() never touches instance state — make it a free function",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 268,
+      "rule": "stateless-method",
+      "severity": "warn",
+      "message": "default() never touches instance state — make it a free function",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 28,
+      "rule": "stateless-method",
+      "severity": "warn",
+      "message": "build() never touches instance state — make it a free function",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 33,
+      "rule": "stateless-method",
+      "severity": "warn",
+      "message": "build() never touches instance state — make it a free function",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/src/phase.rs",
+      "line": 6,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "run_phase() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/src/phase.rs",
+      "line": 6,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "run_phase() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/src/phase.rs",
+      "line": 6,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "run_phase() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/src/phase.rs",
+      "line": 28,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "run_schedule() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/src/phase.rs",
+      "line": 28,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "run_schedule() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/src/profiler_plugin.rs",
+      "line": 30,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "build() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 28,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "build() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 33,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "build() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 75,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "build() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 363,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "build() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
+      "line": 23,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "run_system() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 145,
+      "rule": "flag-parameter",
+      "severity": "warn",
+      "message": "handle_key_event() takes a boolean flag; split the behavior or name the policy",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 31,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 87 chars",
+      "metric": 87
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 35,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 86 chars",
       "metric": 86
     },
     {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 8,
+      "file": "crates/engine_app/src/app.rs",
+      "line": 127,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 85 chars",
       "metric": 85
     },
     {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 336,
+      "file": "crates/engine_app/src/app.rs",
+      "line": 133,
       "rule": "line-length",
       "severity": "warn",
-      "message": "line is 90 chars",
-      "metric": 90
+      "message": "line is 94 chars",
+      "metric": 94
     },
     {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 337,
+      "file": "crates/engine_app/src/app.rs",
+      "line": 139,
       "rule": "line-length",
       "severity": "warn",
-      "message": "line is 83 chars",
-      "metric": 83
+      "message": "line is 89 chars",
+      "metric": 89
     },
     {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 338,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 81 chars",
-      "metric": 81
-    },
-    {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 371,
+      "file": "crates/engine_app/src/app.rs",
+      "line": 156,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 91 chars",
       "metric": 91
     },
     {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 372,
+      "file": "crates/engine_app/src/app.rs",
+      "line": 167,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 91 chars",
+      "metric": 91
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 180,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 91 chars",
+      "metric": 91
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 190,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 91 chars",
+      "metric": 91
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "line": 244,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 84 chars",
       "metric": 84
     },
     {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 373,
+      "file": "crates/engine_app/src/app.rs",
+      "line": 283,
       "rule": "line-length",
       "severity": "warn",
-      "message": "line is 82 chars",
-      "metric": 82
+      "message": "line is 81 chars",
+      "metric": 81
     },
     {
-      "file": "crates/demo/src/lib.rs",
-      "line": 4,
-      "rule": "wildcard-import",
+      "file": "crates/engine_app/src/app.rs",
+      "line": 319,
+      "rule": "line-length",
       "severity": "warn",
-      "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-      "metric": 1,
-      "suggestion": "Import explicit names from axiom2d::prelude."
+      "message": "line is 97 chars",
+      "metric": 97
     },
     {
-      "file": "crates/demo/src/scene.rs",
-      "line": 1,
-      "rule": "wildcard-import",
+      "file": "crates/engine_app/src/app.rs",
+      "line": 322,
+      "rule": "line-length",
       "severity": "warn",
-      "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-      "metric": 1,
-      "suggestion": "Import explicit names from axiom2d::prelude."
+      "message": "line is 86 chars",
+      "metric": 86
     },
     {
-      "file": "crates/demo/src/systems.rs",
-      "line": 1,
-      "rule": "wildcard-import",
+      "file": "crates/engine_app/src/app.rs",
+      "line": 329,
+      "rule": "line-length",
       "severity": "warn",
-      "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-      "metric": 1,
-      "suggestion": "Import explicit names from axiom2d::prelude."
+      "message": "line is 85 chars",
+      "metric": 85
     },
     {
-      "file": "crates/demo/src/types.rs",
-      "line": 1,
-      "rule": "wildcard-import",
+      "file": "crates/engine_app/src/app.rs",
+      "line": 332,
+      "rule": "line-length",
       "severity": "warn",
-      "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-      "metric": 1,
-      "suggestion": "Import explicit names from axiom2d::prelude."
+      "message": "line is 96 chars",
+      "metric": 96
     },
     {
-      "file": "crates/demo/tests/suite/core_main.rs",
-      "line": 4,
-      "rule": "wildcard-import",
+      "file": "crates/engine_app/src/app.rs",
+      "line": 339,
+      "rule": "line-length",
       "severity": "warn",
-      "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-      "metric": 1,
-      "suggestion": "Import explicit names from axiom2d::prelude."
+      "message": "line is 93 chars",
+      "metric": 93
     },
     {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "line": 1,
-      "rule": "wildcard-import",
+      "file": "crates/engine_app/src/phase.rs",
+      "line": 28,
+      "rule": "line-length",
       "severity": "warn",
-      "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-      "metric": 1,
-      "suggestion": "Import explicit names from axiom2d::prelude."
+      "message": "line is 91 chars",
+      "metric": 91
     },
     {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "line": 2,
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 36,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 103 chars",
+      "metric": 103
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 53,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 105 chars",
+      "metric": 105
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 80,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 102 chars",
+      "metric": 102
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 100,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 98 chars",
+      "metric": 98
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 111,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 87 chars",
+      "metric": 87
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 127,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 94 chars",
+      "metric": 94
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 142,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 91 chars",
+      "metric": 91
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 158,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 95 chars",
+      "metric": 95
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 275,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 103 chars",
+      "metric": 103
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 287,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 100 chars",
+      "metric": 100
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 288,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 81 chars",
+      "metric": 81
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 302,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 101 chars",
+      "metric": 101
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 304,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 81 chars",
+      "metric": 81
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 317,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 87 chars",
+      "metric": 87
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 333,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 106 chars",
+      "metric": 106
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 345,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 87 chars",
+      "metric": 87
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 358,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 115 chars",
+      "metric": 115
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 380,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 105 chars",
+      "metric": 105
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 390,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 87 chars",
+      "metric": 87
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 406,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 97 chars",
+      "metric": 97
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 432,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 100 chars",
+      "metric": 100
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 455,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 115 chars",
+      "metric": 115
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 461,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 85 chars",
+      "metric": 85
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 491,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 107 chars",
+      "metric": 107
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 497,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 85 chars",
+      "metric": 85
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 527,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 106 chars",
+      "metric": 106
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 535,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 85 chars",
+      "metric": 85
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 561,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 85 chars",
+      "metric": 85
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 579,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 101 chars",
+      "metric": 101
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 595,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 97 chars",
+      "metric": 97
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 606,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 108 chars",
+      "metric": 108
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 625,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 97 chars",
+      "metric": 97
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 638,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 88 chars",
+      "metric": 88
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 654,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 97 chars",
+      "metric": 97
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 665,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 95 chars",
+      "metric": 95
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 666,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 96 chars",
+      "metric": 96
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 667,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 96 chars",
+      "metric": 96
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 670,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 83 chars",
+      "metric": 83
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 694,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 108 chars",
+      "metric": 108
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 714,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 81 chars",
+      "metric": 81
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 727,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 99 chars",
+      "metric": 99
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 728,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 96 chars",
+      "metric": 96
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 744,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 98 chars",
+      "metric": 98
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 745,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 98 chars",
+      "metric": 98
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 762,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 106 chars",
+      "metric": 106
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 765,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 85 chars",
+      "metric": 85
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 781,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 102 chars",
+      "metric": 102
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 782,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 92 chars",
+      "metric": 92
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 800,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 99 chars",
+      "metric": 99
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 801,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 94 chars",
+      "metric": 94
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 819,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 98 chars",
+      "metric": 98
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 820,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 86 chars",
+      "metric": 86
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 823,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 85 chars",
+      "metric": 85
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 834,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 86 chars",
+      "metric": 86
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 842,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 90 chars",
+      "metric": 90
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 843,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 93 chars",
+      "metric": 93
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 844,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 93 chars",
+      "metric": 93
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 846,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 83 chars",
+      "metric": 83
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 874,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 93 chars",
+      "metric": 93
+    },
+    {
+      "file": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
+      "line": 34,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 89 chars",
+      "metric": 89
+    },
+    {
+      "file": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
+      "line": 69,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 89 chars",
+      "metric": 89
+    },
+    {
+      "file": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
+      "line": 94,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 86 chars",
+      "metric": 86
+    },
+    {
+      "file": "crates/engine_app/tests/suite/app.rs",
+      "line": 8,
       "rule": "wildcard-import",
       "severity": "warn",
-      "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
+      "message": "engine_app::prelude wildcard import obscures its imported API; import explicit names instead",
       "metric": 1,
-      "suggestion": "Import explicit names from axiom2d::prelude."
+      "suggestion": "Import explicit names from engine_app::prelude."
     }
   ],
   "units": [
     {
-      "file": "crates/demo/tests/suite/scene.rs",
-      "errors": 29,
-      "warnings": 7,
-      "rules": {
-        "duplicate-block": 28,
-        "file-length": 1,
-        "function-length": 4,
-        "line-length": 2,
-        "wildcard-import": 1
-      },
-      "items": [
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 177,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:177, crates/demo/tests/suite/scene.rs:219, crates/demo/tests/suite/scene.rs:345, crates/demo/tests/suite/scene.rs:384",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 185,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:185, crates/demo/tests/suite/scene.rs:227, crates/demo/tests/suite/scene.rs:353, crates/demo/tests/suite/scene.rs:392",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 186,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:186, crates/demo/tests/suite/scene.rs:228, crates/demo/tests/suite/scene.rs:354, crates/demo/tests/suite/scene.rs:393",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 187,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:187, crates/demo/tests/suite/scene.rs:229, crates/demo/tests/suite/scene.rs:355, crates/demo/tests/suite/scene.rs:394",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 188,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:188, crates/demo/tests/suite/scene.rs:230, crates/demo/tests/suite/scene.rs:356, crates/demo/tests/suite/scene.rs:395",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 189,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:189, crates/demo/tests/suite/scene.rs:231, crates/demo/tests/suite/scene.rs:357, crates/demo/tests/suite/scene.rs:396",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 190,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:190, crates/demo/tests/suite/scene.rs:232, crates/demo/tests/suite/scene.rs:358, crates/demo/tests/suite/scene.rs:397",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 219,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:177, crates/demo/tests/suite/scene.rs:219, crates/demo/tests/suite/scene.rs:345, crates/demo/tests/suite/scene.rs:384",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 227,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:185, crates/demo/tests/suite/scene.rs:227, crates/demo/tests/suite/scene.rs:353, crates/demo/tests/suite/scene.rs:392",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 228,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:186, crates/demo/tests/suite/scene.rs:228, crates/demo/tests/suite/scene.rs:354, crates/demo/tests/suite/scene.rs:393",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 229,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:187, crates/demo/tests/suite/scene.rs:229, crates/demo/tests/suite/scene.rs:355, crates/demo/tests/suite/scene.rs:394",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 230,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:188, crates/demo/tests/suite/scene.rs:230, crates/demo/tests/suite/scene.rs:356, crates/demo/tests/suite/scene.rs:395",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 231,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:189, crates/demo/tests/suite/scene.rs:231, crates/demo/tests/suite/scene.rs:357, crates/demo/tests/suite/scene.rs:396",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 232,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:190, crates/demo/tests/suite/scene.rs:232, crates/demo/tests/suite/scene.rs:358, crates/demo/tests/suite/scene.rs:397",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 345,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:177, crates/demo/tests/suite/scene.rs:219, crates/demo/tests/suite/scene.rs:345, crates/demo/tests/suite/scene.rs:384",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 353,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:185, crates/demo/tests/suite/scene.rs:227, crates/demo/tests/suite/scene.rs:353, crates/demo/tests/suite/scene.rs:392",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 354,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:186, crates/demo/tests/suite/scene.rs:228, crates/demo/tests/suite/scene.rs:354, crates/demo/tests/suite/scene.rs:393",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 355,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:187, crates/demo/tests/suite/scene.rs:229, crates/demo/tests/suite/scene.rs:355, crates/demo/tests/suite/scene.rs:394",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 356,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:188, crates/demo/tests/suite/scene.rs:230, crates/demo/tests/suite/scene.rs:356, crates/demo/tests/suite/scene.rs:395",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 357,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:189, crates/demo/tests/suite/scene.rs:231, crates/demo/tests/suite/scene.rs:357, crates/demo/tests/suite/scene.rs:396",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 358,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:190, crates/demo/tests/suite/scene.rs:232, crates/demo/tests/suite/scene.rs:358, crates/demo/tests/suite/scene.rs:397",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 384,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:177, crates/demo/tests/suite/scene.rs:219, crates/demo/tests/suite/scene.rs:345, crates/demo/tests/suite/scene.rs:384",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 392,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:185, crates/demo/tests/suite/scene.rs:227, crates/demo/tests/suite/scene.rs:353, crates/demo/tests/suite/scene.rs:392",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 393,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:186, crates/demo/tests/suite/scene.rs:228, crates/demo/tests/suite/scene.rs:354, crates/demo/tests/suite/scene.rs:393",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 394,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:187, crates/demo/tests/suite/scene.rs:229, crates/demo/tests/suite/scene.rs:355, crates/demo/tests/suite/scene.rs:394",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 395,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:188, crates/demo/tests/suite/scene.rs:230, crates/demo/tests/suite/scene.rs:356, crates/demo/tests/suite/scene.rs:395",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 396,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:189, crates/demo/tests/suite/scene.rs:231, crates/demo/tests/suite/scene.rs:357, crates/demo/tests/suite/scene.rs:396",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 397,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/scene.rs:190, crates/demo/tests/suite/scene.rs:232, crates/demo/tests/suite/scene.rs:358, crates/demo/tests/suite/scene.rs:397",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "error",
-          "message": "file is 531 lines",
-          "metric": 531
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 175,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "when_setup_called_then_each_pivot_has_one_body_child() is 40 lines",
-          "metric": 40
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 217,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "when_setup_called_then_all_planets_on_world_render_layer() is 31 lines",
-          "metric": 31
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 343,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "when_orbiting_bodies_queried_then_each_has_shape() is 37 lines",
-          "metric": 37
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 382,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "when_orbiting_body_shapes_queried_then_distinct_colors() is 44 lines",
-          "metric": 44
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 459,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 93 chars",
-          "metric": 93
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 523,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 99 chars",
-          "metric": 99
-        },
-        {
-          "file": "crates/demo/tests/suite/scene.rs",
-          "line": 1,
-          "rule": "wildcard-import",
-          "severity": "warn",
-          "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-          "metric": 1,
-          "suggestion": "Import explicit names from axiom2d::prelude."
-        }
-      ]
-    },
-    {
-      "file": "crates/demo/tests/suite/core_main.rs",
+      "file": "crates/engine_app/tests/suite/app.rs",
       "errors": 3,
-      "warnings": 8,
+      "warnings": 80,
       "rules": {
-        "duplicate-block": 5,
+        "types-per-file": 1,
         "file-length": 1,
         "function-length": 3,
-        "line-length": 1,
+        "duplicate-block": 12,
+        "stateless-method": 2,
+        "output-parameter": 4,
+        "line-length": 59,
         "wildcard-import": 1
       },
       "items": [
         {
-          "file": "crates/demo/tests/suite/core_main.rs",
-          "line": 37,
-          "rule": "duplicate-block",
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 26,
+          "rule": "types-per-file",
           "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/core_main.rs:37, crates/demo/tests/suite/core_main.rs:73, crates/demo/tests/suite/core_main.rs:106",
-          "metric": 3
+          "message": "4 types in one file: Counter, NoOpPlugin, AnotherNoOpPlugin, CountingPlugin",
+          "metric": 4
         },
         {
-          "file": "crates/demo/tests/suite/core_main.rs",
-          "line": 73,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/core_main.rs:37, crates/demo/tests/suite/core_main.rs:73, crates/demo/tests/suite/core_main.rs:106",
-          "metric": 3
-        },
-        {
-          "file": "crates/demo/tests/suite/core_main.rs",
-          "line": 106,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/demo/tests/suite/core_main.rs:37, crates/demo/tests/suite/core_main.rs:73, crates/demo/tests/suite/core_main.rs:106",
-          "metric": 3
-        },
-        {
-          "file": "crates/demo/tests/suite/core_main.rs",
-          "line": 36,
-          "rule": "duplicate-block",
-          "severity": "warn",
-          "message": "6-line block duplicated at crates/demo/tests/suite/core_main.rs:36, crates/demo/tests/suite/core_main.rs:72",
-          "metric": 2
-        },
-        {
-          "file": "crates/demo/tests/suite/core_main.rs",
-          "line": 72,
-          "rule": "duplicate-block",
-          "severity": "warn",
-          "message": "6-line block duplicated at crates/demo/tests/suite/core_main.rs:36, crates/demo/tests/suite/core_main.rs:72",
-          "metric": 2
-        },
-        {
-          "file": "crates/demo/tests/suite/core_main.rs",
+          "file": "crates/engine_app/tests/suite/app.rs",
           "line": 1,
           "rule": "file-length",
-          "severity": "warn",
-          "message": "file is 133 lines",
-          "metric": 133
+          "severity": "error",
+          "message": "file is 883 lines",
+          "metric": 883
         },
         {
-          "file": "crates/demo/tests/suite/core_main.rs",
-          "line": 29,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 161,
           "rule": "function-length",
-          "severity": "warn",
-          "message": "when_unified_render_system_runs_then_draw_sprite_called_for_player() is 32 lines",
-          "metric": 32
+          "severity": "error",
+          "message": "when_systems_in_all_phases_then_run_in_canonical_order() is 113 lines",
+          "metric": 113
         },
         {
-          "file": "crates/demo/tests/suite/core_main.rs",
-          "line": 63,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 471,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:471, crates/engine_app/tests/suite/app.rs:507",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 472,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:472, crates/engine_app/tests/suite/app.rs:508",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 473,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:473, crates/engine_app/tests/suite/app.rs:509",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 507,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:471, crates/engine_app/tests/suite/app.rs:507",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 508,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:472, crates/engine_app/tests/suite/app.rs:508",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 509,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:473, crates/engine_app/tests/suite/app.rs:509",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 593,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:593, crates/engine_app/tests/suite/app.rs:652",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 594,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:594, crates/engine_app/tests/suite/app.rs:653",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 652,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:593, crates/engine_app/tests/suite/app.rs:652",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 653,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:594, crates/engine_app/tests/suite/app.rs:653",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 805,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:805, crates/engine_app/tests/suite/app.rs:825",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 825,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_app/tests/suite/app.rs:805, crates/engine_app/tests/suite/app.rs:825",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 457,
           "rule": "function-length",
           "severity": "warn",
-          "message": "when_render_phase_runs_then_clear_before_camera_before_draw() is 33 lines",
+          "message": "when_app_receives_keyboard_press_then_event_pushed_to_bus() is 33 lines",
           "metric": 33
         },
         {
-          "file": "crates/demo/tests/suite/core_main.rs",
-          "line": 98,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 493,
           "rule": "function-length",
           "severity": "warn",
-          "message": "when_post_update_systems_run_then_player_entity_gains_global_transform() is 35 lines",
-          "metric": 35
+          "message": "when_app_receives_keyboard_release_then_release_event_pushed_to_bus() is 33 lines",
+          "metric": 33
         },
         {
-          "file": "crates/demo/tests/suite/core_main.rs",
-          "line": 83,
-          "rule": "line-length",
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 28,
+          "rule": "stateless-method",
           "severity": "warn",
-          "message": "line is 95 chars",
-          "metric": 95
-        },
-        {
-          "file": "crates/demo/tests/suite/core_main.rs",
-          "line": 4,
-          "rule": "wildcard-import",
-          "severity": "warn",
-          "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-          "metric": 1,
-          "suggestion": "Import explicit names from axiom2d::prelude."
-        }
-      ]
-    },
-    {
-      "file": "crates/demo/tests/suite/systems.rs",
-      "errors": 2,
-      "warnings": 12,
-      "rules": {
-        "file-length": 1,
-        "function-length": 1,
-        "output-parameter": 2,
-        "line-length": 9,
-        "wildcard-import": 1
-      },
-      "items": [
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "error",
-          "message": "file is 412 lines",
-          "metric": 412
-        },
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 312,
-          "rule": "function-length",
-          "severity": "error",
-          "message": "when_synodic_frame_and_orbits_run_then_earth_and_moon_stay_centered() is 100 lines",
-          "metric": 100
-        },
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 37,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "run_camera_pan() exposes an output parameter; return a value instead",
+          "message": "build() never touches instance state — make it a free function",
           "metric": 1
         },
         {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 43,
-          "rule": "output-parameter",
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 33,
+          "rule": "stateless-method",
           "severity": "warn",
-          "message": "run_camera_zoom() exposes an output parameter; return a value instead",
+          "message": "build() never touches instance state — make it a free function",
           "metric": 1
         },
         {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 5,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 96 chars",
-          "metric": 96
-        },
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 6,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 86 chars",
-          "metric": 86
-        },
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 8,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 85 chars",
-          "metric": 85
-        },
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 336,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 90 chars",
-          "metric": 90
-        },
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 337,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 83 chars",
-          "metric": 83
-        },
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 338,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 81 chars",
-          "metric": 81
-        },
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 371,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 91 chars",
-          "metric": 91
-        },
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 372,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 84 chars",
-          "metric": 84
-        },
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 373,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
-        },
-        {
-          "file": "crates/demo/tests/suite/systems.rs",
-          "line": 2,
-          "rule": "wildcard-import",
-          "severity": "warn",
-          "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-          "metric": 1,
-          "suggestion": "Import explicit names from axiom2d::prelude."
-        }
-      ]
-    },
-    {
-      "file": "crates/demo/src/scene.rs",
-      "errors": 2,
-      "warnings": 10,
-      "rules": {
-        "types-per-file": 1,
-        "function-length": 2,
-        "file-length": 1,
-        "output-parameter": 6,
-        "line-length": 1,
-        "wildcard-import": 1
-      },
-      "items": [
-        {
-          "file": "crates/demo/src/scene.rs",
-          "line": 19,
-          "rule": "types-per-file",
-          "severity": "error",
-          "message": "2 types in one file: PlanetDef, MoonDef",
-          "metric": 2
-        },
-        {
-          "file": "crates/demo/src/scene.rs",
-          "line": 26,
-          "rule": "function-length",
-          "severity": "error",
-          "message": "planets() is 81 lines",
-          "metric": 81
-        },
-        {
-          "file": "crates/demo/src/scene.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "warn",
-          "message": "file is 290 lines",
-          "metric": 290
-        },
-        {
-          "file": "crates/demo/src/scene.rs",
-          "line": 205,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "spawn_planet() is 46 lines",
-          "metric": 46
-        },
-        {
-          "file": "crates/demo/src/scene.rs",
-          "line": 189,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 28,
           "rule": "output-parameter",
           "severity": "warn",
-          "message": "spawn_synodic_frame() exposes an output parameter; return a value instead",
+          "message": "build() exposes an output parameter; return a value instead",
           "metric": 1
         },
         {
-          "file": "crates/demo/src/scene.rs",
-          "line": 193,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 33,
           "rule": "output-parameter",
           "severity": "warn",
-          "message": "spawn_sun() exposes an output parameter; return a value instead",
+          "message": "build() exposes an output parameter; return a value instead",
           "metric": 1
         },
         {
-          "file": "crates/demo/src/scene.rs",
-          "line": 205,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 75,
           "rule": "output-parameter",
           "severity": "warn",
-          "message": "spawn_planet() exposes an output parameter; return a value instead",
+          "message": "build() exposes an output parameter; return a value instead",
           "metric": 1
         },
         {
-          "file": "crates/demo/src/scene.rs",
-          "line": 252,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 363,
           "rule": "output-parameter",
           "severity": "warn",
-          "message": "spawn_planets() exposes an output parameter; return a value instead",
+          "message": "build() exposes an output parameter; return a value instead",
           "metric": 1
         },
         {
-          "file": "crates/demo/src/scene.rs",
-          "line": 258,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "spawn_nebula() exposes an output parameter; return a value instead",
-          "metric": 1
-        },
-        {
-          "file": "crates/demo/src/scene.rs",
-          "line": 281,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "spawn_camera() exposes an output parameter; return a value instead",
-          "metric": 1
-        },
-        {
-          "file": "crates/demo/src/scene.rs",
-          "line": 4,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 36,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 85 chars",
-          "metric": 85
+          "message": "line is 103 chars",
+          "metric": 103
         },
         {
-          "file": "crates/demo/src/scene.rs",
-          "line": 1,
-          "rule": "wildcard-import",
-          "severity": "warn",
-          "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-          "metric": 1,
-          "suggestion": "Import explicit names from axiom2d::prelude."
-        }
-      ]
-    },
-    {
-      "file": "crates/demo/src/types.rs",
-      "errors": 1,
-      "warnings": 1,
-      "rules": {
-        "types-per-file": 1,
-        "wildcard-import": 1
-      },
-      "items": [
-        {
-          "file": "crates/demo/src/types.rs",
-          "line": 7,
-          "rule": "types-per-file",
-          "severity": "error",
-          "message": "6 types in one file: FrameCount, Sun, Earth, Moon, SynodicFrame, OrbitalSpeed",
-          "metric": 6
-        },
-        {
-          "file": "crates/demo/src/types.rs",
-          "line": 1,
-          "rule": "wildcard-import",
-          "severity": "warn",
-          "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-          "metric": 1,
-          "suggestion": "Import explicit names from axiom2d::prelude."
-        }
-      ]
-    },
-    {
-      "file": "crates/demo/src/systems.rs",
-      "errors": 0,
-      "warnings": 6,
-      "rules": {
-        "complexity": 1,
-        "param-count": 2,
-        "line-length": 2,
-        "wildcard-import": 1
-      },
-      "items": [
-        {
-          "file": "crates/demo/src/systems.rs",
-          "line": 11,
-          "rule": "complexity",
-          "severity": "warn",
-          "message": "camera_pan_system() cyclomatic complexity 6",
-          "metric": 6
-        },
-        {
-          "file": "crates/demo/src/systems.rs",
-          "line": 11,
-          "rule": "param-count",
-          "severity": "warn",
-          "message": "camera_pan_system() takes 4 parameters",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/src/systems.rs",
-          "line": 38,
-          "rule": "param-count",
-          "severity": "warn",
-          "message": "camera_zoom_system() takes 4 parameters",
-          "metric": 4
-        },
-        {
-          "file": "crates/demo/src/systems.rs",
-          "line": 4,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 53,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 97 chars",
-          "metric": 97
+          "message": "line is 105 chars",
+          "metric": 105
         },
         {
-          "file": "crates/demo/src/systems.rs",
-          "line": 57,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 80,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 102 chars",
+          "metric": 102
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 100,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 98 chars",
+          "metric": 98
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 111,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 127,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 94 chars",
           "metric": 94
         },
         {
-          "file": "crates/demo/src/systems.rs",
-          "line": 1,
-          "rule": "wildcard-import",
-          "severity": "warn",
-          "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
-          "metric": 1,
-          "suggestion": "Import explicit names from axiom2d::prelude."
-        }
-      ]
-    },
-    {
-      "file": "crates/demo/src/lib.rs",
-      "errors": 0,
-      "warnings": 5,
-      "rules": {
-        "function-length": 1,
-        "output-parameter": 1,
-        "line-length": 2,
-        "wildcard-import": 1
-      },
-      "items": [
-        {
-          "file": "crates/demo/src/lib.rs",
-          "line": 11,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "setup() is 39 lines",
-          "metric": 39
-        },
-        {
-          "file": "crates/demo/src/lib.rs",
-          "line": 11,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "setup() exposes an output parameter; return a value instead",
-          "metric": 1
-        },
-        {
-          "file": "crates/demo/src/lib.rs",
-          "line": 7,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 142,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 91 chars",
           "metric": 91
         },
         {
-          "file": "crates/demo/src/lib.rs",
-          "line": 47,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 158,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
+          "message": "line is 95 chars",
+          "metric": 95
         },
         {
-          "file": "crates/demo/src/lib.rs",
-          "line": 4,
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 275,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 103 chars",
+          "metric": 103
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 287,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 100 chars",
+          "metric": 100
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 288,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 302,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 101 chars",
+          "metric": 101
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 304,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 317,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 333,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 106 chars",
+          "metric": 106
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 345,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 358,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 115 chars",
+          "metric": 115
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 380,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 105 chars",
+          "metric": 105
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 390,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 406,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 97 chars",
+          "metric": 97
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 432,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 100 chars",
+          "metric": 100
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 455,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 115 chars",
+          "metric": 115
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 461,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 491,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 107 chars",
+          "metric": 107
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 497,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 527,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 106 chars",
+          "metric": 106
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 535,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 561,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 579,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 101 chars",
+          "metric": 101
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 595,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 97 chars",
+          "metric": 97
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 606,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 108 chars",
+          "metric": 108
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 625,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 97 chars",
+          "metric": 97
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 638,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 88 chars",
+          "metric": 88
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 654,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 97 chars",
+          "metric": 97
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 665,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 95 chars",
+          "metric": 95
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 666,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 96 chars",
+          "metric": 96
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 667,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 96 chars",
+          "metric": 96
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 670,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 694,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 108 chars",
+          "metric": 108
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 714,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 727,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 99 chars",
+          "metric": 99
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 728,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 96 chars",
+          "metric": 96
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 744,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 98 chars",
+          "metric": 98
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 745,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 98 chars",
+          "metric": 98
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 762,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 106 chars",
+          "metric": 106
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 765,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 781,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 102 chars",
+          "metric": 102
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 782,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 92 chars",
+          "metric": 92
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 800,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 99 chars",
+          "metric": 99
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 801,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 94 chars",
+          "metric": 94
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 819,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 98 chars",
+          "metric": 98
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 820,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 823,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 834,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 842,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 90 chars",
+          "metric": 90
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 843,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 844,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 846,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 874,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        },
+        {
+          "file": "crates/engine_app/tests/suite/app.rs",
+          "line": 8,
           "rule": "wildcard-import",
           "severity": "warn",
-          "message": "axiom2d::prelude wildcard import obscures its imported API; import explicit names instead",
+          "message": "engine_app::prelude wildcard import obscures its imported API; import explicit names instead",
           "metric": 1,
-          "suggestion": "Import explicit names from axiom2d::prelude."
+          "suggestion": "Import explicit names from engine_app::prelude."
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_app/src/app.rs",
+      "errors": 3,
+      "warnings": 23,
+      "rules": {
+        "types-per-file": 1,
+        "file-length": 1,
+        "complexity": 1,
+        "function-length": 2,
+        "nesting-depth": 1,
+        "else-branch": 1,
+        "stateless-method": 2,
+        "flag-parameter": 1,
+        "line-length": 16
+      },
+      "items": [
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 38,
+          "rule": "types-per-file",
+          "severity": "error",
+          "message": "2 types in one file: Plugin, App",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "error",
+          "message": "file is 365 lines",
+          "metric": 365
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 319,
+          "rule": "complexity",
+          "severity": "error",
+          "message": "window_event() cyclomatic complexity 11",
+          "metric": 11
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 213,
+          "rule": "function-length",
+          "severity": "warn",
+          "message": "handle_redraw() is 41 lines",
+          "metric": 41
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 274,
+          "rule": "function-length",
+          "severity": "warn",
+          "message": "resumed() is 44 lines",
+          "metric": 44
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 319,
+          "rule": "nesting-depth",
+          "severity": "warn",
+          "message": "window_event() nests 4 levels deep",
+          "metric": 4
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 357,
+          "rule": "else-branch",
+          "severity": "warn",
+          "message": "format_window_title() has 1 else branch(es) — prefer guard clauses",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 112,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "schedule_count() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 268,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "default() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 145,
+          "rule": "flag-parameter",
+          "severity": "warn",
+          "message": "handle_key_event() takes a boolean flag; split the behavior or name the policy",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 31,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 35,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 127,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 133,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 94 chars",
+          "metric": 94
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 139,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 89 chars",
+          "metric": 89
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 156,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 91 chars",
+          "metric": 91
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 167,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 91 chars",
+          "metric": 91
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 180,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 91 chars",
+          "metric": 91
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 190,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 91 chars",
+          "metric": 91
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 244,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 283,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 319,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 97 chars",
+          "metric": 97
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 322,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 329,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 332,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 96 chars",
+          "metric": 96
+        },
+        {
+          "file": "crates/engine_app/src/app.rs",
+          "line": 339,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_app/src/profiler_plugin.rs",
+      "errors": 1,
+      "warnings": 1,
+      "rules": {
+        "comment-bloat": 1,
+        "output-parameter": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_app/src/profiler_plugin.rs",
+          "line": 7,
+          "rule": "comment-bloat",
+          "severity": "error",
+          "message": "6-line comment over 1 line(s) of code - keep the why, cut the rest",
+          "metric": 6
+        },
+        {
+          "file": "crates/engine_app/src/profiler_plugin.rs",
+          "line": 30,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "build() exposes an output parameter; return a value instead",
+          "metric": 1
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_app/src/phase.rs",
+      "errors": 0,
+      "warnings": 8,
+      "rules": {
+        "complexity": 1,
+        "param-count": 1,
+        "output-parameter": 5,
+        "line-length": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_app/src/phase.rs",
+          "line": 6,
+          "rule": "complexity",
+          "severity": "warn",
+          "message": "run_phase() cyclomatic complexity 7",
+          "metric": 7
+        },
+        {
+          "file": "crates/engine_app/src/phase.rs",
+          "line": 6,
+          "rule": "param-count",
+          "severity": "warn",
+          "message": "run_phase() takes 5 parameters",
+          "metric": 5
+        },
+        {
+          "file": "crates/engine_app/src/phase.rs",
+          "line": 6,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "run_phase() exposes an output parameter; return a value instead",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_app/src/phase.rs",
+          "line": 6,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "run_phase() exposes an output parameter; return a value instead",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_app/src/phase.rs",
+          "line": 6,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "run_phase() exposes an output parameter; return a value instead",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_app/src/phase.rs",
+          "line": 28,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "run_schedule() exposes an output parameter; return a value instead",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_app/src/phase.rs",
+          "line": 28,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "run_schedule() exposes an output parameter; return a value instead",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_app/src/phase.rs",
+          "line": 28,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 91 chars",
+          "metric": 91
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
+      "errors": 0,
+      "warnings": 5,
+      "rules": {
+        "file-length": 1,
+        "output-parameter": 1,
+        "line-length": 3
+      },
+      "items": [
+        {
+          "file": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 116 lines",
+          "metric": 116
+        },
+        {
+          "file": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
+          "line": 23,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "run_system() exposes an output parameter; return a value instead",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
+          "line": 34,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 89 chars",
+          "metric": 89
+        },
+        {
+          "file": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
+          "line": 69,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 89 chars",
+          "metric": 89
+        },
+        {
+          "file": "crates/engine_app/tests/suite/mouse_world_pos_system.rs",
+          "line": 94,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
         }
       ]
     }

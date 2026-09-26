@@ -210,15 +210,6 @@ impl App {
         self.resize_hooks = hooks;
     }
 
-    fn run_schedule(&mut self, phase: Phase) {
-        let start = Instant::now();
-        self.schedules[phase.index()].run(&mut self.world);
-        let elapsed_us = start.elapsed().as_micros() as u64;
-        if let Some(mut profiler) = self.world.get_resource_mut::<FrameProfiler>() {
-            profiler.record_phase(phase.name(), elapsed_us);
-        }
-    }
-
     pub fn handle_redraw(&mut self) {
         let frame_start = Instant::now();
 
@@ -236,19 +227,13 @@ impl App {
             .unwrap_or(0);
 
         for phase in Phase::ALL {
-            match phase {
-                Phase::Startup if self.startup_executed => {}
-                Phase::Startup => {
-                    self.run_schedule(phase);
-                    self.startup_executed = true;
-                }
-                Phase::FixedUpdate => {
-                    for _ in 0..fixed_steps {
-                        self.run_schedule(phase);
-                    }
-                }
-                _ => self.run_schedule(phase),
-            }
+            crate::phase::run_phase(
+                &mut self.schedules,
+                &mut self.world,
+                &mut self.startup_executed,
+                phase,
+                fixed_steps,
+            );
         }
         // Fire post-render hooks (e.g. RenderPlugin calls present()).
         let mut hooks = std::mem::take(&mut self.post_render_hooks);

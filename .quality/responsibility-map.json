@@ -1,38 +1,44 @@
 {
-  "targetScope": ["crates/demo"],
+  "targetScope": ["crates/engine_app"],
   "responsibilities": [
     {
-      "name": "bootstrap the demo application",
-      "currentOwners": ["crates/demo/src/lib.rs owns app resources, scene setup, and system scheduling"],
-      "consumers": ["crates/demo/src/main.rs", "crates/demo/tests/suite/scene.rs"],
-      "dependencies": ["App", "DefaultPlugins", "FrameCount", "ActionMap", "scene spawn functions", "demo systems"]
+      "name": "own application lifecycle and frame scheduling",
+      "currentOwners": ["crates/engine_app/src/app.rs::App owns world resources, schedules, hooks, redraw timing, and window lifecycle"],
+      "consumers": ["crates/axiom2d/src/default_plugins.rs", "crates/card_game_bin/src/main.rs", "crates/demo/src/lib.rs", "crates/terrain_viewer/src/main.rs", "crates/engine_app/tests/suite/app.rs"],
+      "dependencies": ["winit::ApplicationHandler", "World", "Phase", "Schedule", "DeltaTime", "FixedTimestep", "FrameProfiler"]
     },
     {
-      "name": "construct the synodic scene",
-      "currentOwners": ["crates/demo/src/scene.rs owns celestial definitions, hierarchy, nebula shapes, and camera spawning"],
-      "consumers": ["crates/demo/src/lib.rs::setup", "crates/demo/tests/suite/scene.rs"],
-      "dependencies": ["PlanetDef", "MoonDef", "SynodicFrame", "Earth", "Moon", "Sun", "Shape", "Transform2D"]
+      "name": "translate native window input into engine events",
+      "currentOwners": ["crates/engine_app/src/app.rs::ApplicationHandler and App input handlers own keyboard, mouse, resize, and close-event translation"],
+      "consumers": ["crates/engine_input", "crates/card_game_bin/src/main.rs", "crates/terrain_viewer/src/main.rs", "crates/engine_app/tests/suite/app.rs"],
+      "dependencies": ["WindowEvent", "EventBus<KeyInputEvent>", "EventBus<MouseInputEvent>", "WindowSize", "WindowConfig"]
     },
     {
-      "name": "define demo state and actions",
-      "currentOwners": ["crates/demo/src/types.rs owns ECS markers, simulation constants, and action names"],
-      "consumers": ["crates/demo/src/scene.rs", "crates/demo/src/systems.rs", "crates/demo/tests/suite/scene.rs", "crates/demo/tests/suite/systems.rs"],
-      "dependencies": ["FrameCount", "OrbitalSpeed", "InputState", "ActionMap", "Camera2D"]
+      "name": "derive mouse world coordinates",
+      "currentOwners": ["crates/engine_app/src/mouse_world_pos_system.rs::mouse_world_pos_system owns screen-to-world conversion"],
+      "consumers": ["crates/axiom2d/src/default_plugins.rs", "crates/card_game_bin/src/main.rs", "crates/engine_app/tests/suite/mouse_world_pos_system.rs"],
+      "dependencies": ["MouseState", "Camera2D", "WindowSize", "screen_to_world"]
     },
     {
-      "name": "update camera and orbital motion",
-      "currentOwners": ["crates/demo/src/systems.rs owns frame counting, camera pan/zoom, orbit, and synodic camera systems"],
-      "consumers": ["crates/demo/src/lib.rs::setup", "crates/demo/tests/suite/systems.rs"],
-      "dependencies": ["DeltaTime", "Camera2D", "CameraRotation", "Transform2D", "GlobalTransform2D"]
+      "name": "provide viewport and profiling resources",
+      "currentOwners": ["crates/engine_app/src/window_size.rs::WindowSize and crates/engine_app/src/profiler_plugin.rs::FrameProfilerPlugin own resource setup"],
+      "consumers": ["crates/engine_app/src/app.rs", "crates/engine_render", "crates/engine_app/tests/suite/app.rs"],
+      "dependencies": ["Pixels", "FrameProfiler", "PathBuf"]
     }
   ],
   "desired": {
     "ownership": [
       {
-        "responsibility": "remove unused position exports",
-        "owner": "crates/demo/src/types.rs"
+        "responsibility": "execute one frame's phase policy",
+        "owner": "crates/engine_app/src/phase.rs::run_phase"
       }
     ],
-    "boundaries": []
+    "boundaries": [
+      {
+        "from": "App::handle_redraw",
+        "to": "phase::run_phase",
+        "allowed": true
+      }
+    ]
   }
 }
