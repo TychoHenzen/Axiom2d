@@ -1,164 +1,64 @@
 {
   "targetScope": [
-    "crates/engine_core"
+    "crates/engine_ecs"
   ],
   "responsibilities": [
     {
-      "name": "provide shared scalar, texture, and color value types",
+      "name": "re-export the shared ECS surface",
       "currentOwners": [
-        "crates/engine_core/src/types.rs::Pixels, Seconds, and TextureId own serialized value wrappers",
-        "crates/engine_core/src/color.rs::Color constructors and named constants own renderer-facing color values",
-        "crates/engine_core/src/prelude.rs::public re-exports define the supported convenience surface"
+        "crates/engine_ecs/src/prelude.rs::bevy_ecs type and schedule re-exports define the supported convenience surface",
+        "crates/engine_ecs/src/lib.rs::module declarations expose prelude and schedule"
       ],
       "consumers": [
         "crates/engine_app",
-        "crates/engine_render",
-        "crates/engine_ui",
-        "crates/engine_scene",
-        "crates/card_game",
-        "crates/demo",
         "crates/axiom2d",
-        "tools/img-to-shape",
-        "tools/tiled-to-shapes",
-        "tools/img-to-shape-gui"
-      ],
-      "dependencies": [
-        "serde",
-        "glam",
-        "engine_core::prelude"
-      ]
-    },
-    {
-      "name": "transport typed ECS events",
-      "currentOwners": [
-        "crates/engine_core/src/event_bus.rs::Event and EventBus<T> own event storage, draining, and mutable iteration",
-        "crates/engine_core/tests/suite/event_bus.rs::behavior tests cover ordering, isolation, draining, and IntoIterator"
-      ],
-      "consumers": [
-        "crates/engine_app/src/app.rs",
-        "crates/engine_input",
-        "crates/engine_audio",
-        "crates/engine_physics",
         "crates/card_game",
-        "crates/axiom2d"
-      ],
-      "dependencies": [
-        "bevy_ecs::Resource",
-        "Event implementors in engine_input, engine_audio, and engine_physics"
-      ]
-    },
-    {
-      "name": "provide clocks, delta time, and fixed-step accumulation",
-      "currentOwners": [
-        "crates/engine_core/src/time.rs::Time, FakeClock, FixedDeltaClock, SystemClock, ClockRes, DeltaTime, and FixedTimestep own frame-time state",
-        "crates/engine_core/tests/suite/time.rs::behavior tests cover clock reset, fixed-step boundaries, caps, and ECS updates"
-      ],
-      "consumers": [
-        "crates/engine_app/src/app.rs",
-        "crates/axiom2d/src/default_plugins.rs",
-        "crates/card_game",
-        "crates/demo",
-        "crates/engine_physics",
-        "crates/engine_core integration tests"
-      ],
-      "dependencies": [
-        "std::time::Instant",
-        "bevy_ecs::Resource and ResMut",
-        "engine_core::types::Seconds"
-      ]
-    },
-    {
-      "name": "represent 2D transforms and affine conversion",
-      "currentOwners": [
-        "crates/engine_core/src/transform.rs::Transform2D owns position, rotation, scale, and Affine2 conversion",
-        "crates/engine_core/tests/suite/transform.rs::behavior tests cover defaults, composition, serialization, and signed scale"
-      ],
-      "consumers": [
-        "crates/engine_scene",
-        "crates/engine_render",
-        "crates/engine_ui",
-        "crates/card_game",
-        "crates/demo",
-        "crates/terrain",
-        "crates/terrain_viewer",
-        "crates/card_game_bin"
-      ],
-      "dependencies": [
-        "bevy_ecs::Component",
-        "glam::Affine2 and Vec2",
-        "serde"
-      ]
-    },
-    {
-      "name": "compute spring motion and ECS scale animation",
-      "currentOwners": [
-        "crates/engine_core/src/spring.rs::spring_step owns one integration step and its tuple contract",
-        "crates/engine_core/src/scale_spring.rs::ScaleSpring and scale_spring_system own bounded substeps and convergence removal",
-        "crates/engine_core/tests/suite/{spring,scale_spring}.rs::behavior tests cover convergence, locking, caps, and boundaries"
-      ],
-      "consumers": [
-        "crates/card_game/src/hand/layout.rs",
-        "crates/card_game/src/card/interaction",
-        "crates/card_game/src/booster",
-        "crates/card_game/src/stash",
-        "crates/engine_ui",
-        "crates/engine_core benches"
-      ],
-      "dependencies": [
-        "bevy_ecs::Component, Query, Commands, and DeltaTime",
-        "Transform2D",
-        "FrameProfiler"
-      ]
-    },
-    {
-      "name": "record frame and system profiling data",
-      "currentOwners": [
-        "crates/engine_core/src/profiler.rs::FrameProfiler, ProfileScope, and private Record own timing buffers and CSV flushes",
-        "crates/engine_core/tests/suite/profiler.rs::behavior tests cover buffering, spans, flush intervals, append mode, and write failures"
-      ],
-      "consumers": [
-        "crates/engine_app/src/app.rs",
-        "crates/engine_app/src/profiler_plugin.rs",
-        "crates/engine_scene",
-        "crates/engine_physics",
-        "crates/engine_ui",
-        "crates/card_game"
-      ],
-      "dependencies": [
-        "bevy_ecs::Resource",
-        "std::time::Instant",
-        "std::fs and std::io"
-      ]
-    },
-    {
-      "name": "provide shared window configuration",
-      "currentOwners": [
-        "crates/engine_core/src/window.rs::WindowConfig owns title, dimensions, vsync, and resize defaults",
-        "crates/engine_app/src/app.rs::App stores and exposes WindowConfig without redefining it"
-      ],
-      "consumers": [
-        "crates/engine_render",
-        "crates/card_game_bin",
         "crates/demo",
         "crates/terrain_viewer",
-        "crates/engine_app tests"
+        "crates/engine_ecs/tests/schedule.rs"
       ],
       "dependencies": [
-        "engine_app window lifecycle",
-        "engine_render window initialization"
+        "bevy_ecs::prelude",
+        "bevy_ecs::schedule::IntoScheduleConfigs",
+        "bevy_ecs::system::ScheduleSystem"
       ]
     },
     {
-      "name": "expose the engine error boundary",
+      "name": "define canonical engine schedule phases",
       "currentOwners": [
-        "crates/engine_core/src/error.rs::EngineError defines NotFound and InvalidInput variants",
-        "crates/engine_core/src/prelude.rs::EngineError is re-exported as part of the public surface"
+        "crates/engine_ecs/src/schedule.rs::Phase owns the 18 ScheduleLabel variants, declaration indices, and names",
+        "crates/engine_ecs/src/schedule.rs::PHASE_COUNT owns the fixed schedule-array size",
+        "crates/engine_ecs/tests/schedule.rs::phase contract tests pin count, order, and names"
       ],
       "consumers": [
-        "downstream crates can consume engine_core::prelude::EngineError"
+        "crates/engine_app/src/app.rs",
+        "crates/engine_app/src/phase.rs",
+        "crates/axiom2d",
+        "crates/card_game",
+        "crates/demo",
+        "crates/terrain_viewer"
       ],
       "dependencies": [
-        "thiserror"
+        "bevy_ecs::schedule::ScheduleLabel",
+        "Phase::ALL declaration order",
+        "PHASE_COUNT array sizing"
+      ]
+    },
+    {
+      "name": "pin phase ordering and naming behavior",
+      "currentOwners": [
+        "crates/engine_ecs/tests/schedule.rs::when_index_then_matches_declaration_order verifies index stability",
+        "crates/engine_ecs/tests/schedule.rs::when_phase_count_then_equals_eighteen verifies fixed capacity",
+        "crates/engine_ecs/tests/schedule.rs::when_all_phases_mapped_to_names_then_frozen_sequence verifies public names"
+      ],
+      "consumers": [
+        "crates/engine_app schedule execution",
+        "downstream crates registering systems by Phase"
+      ],
+      "dependencies": [
+        "Phase::ALL",
+        "Phase::index",
+        "Phase::name"
       ]
     }
   ],
