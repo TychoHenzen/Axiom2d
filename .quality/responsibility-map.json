@@ -1,139 +1,70 @@
 {
   "targetScope": [
-    "crates/terrain"
+    "crates/terrain_viewer"
   ],
   "responsibilities": [
     {
-      "name": "own terrain dual-grid cells, visual tiles, and corner masks",
+      "name": "configure the terrain viewer application and behavior tests",
       "currentOwners": [
-        "crates/terrain/src/dual_grid.rs::DualGrid",
-        "crates/terrain/src/dual_grid.rs::VisualTile",
-        "crates/terrain/src/dual_grid.rs::corner_bitmask"
-      ],
-      "consumers": [
-        "crates/card_game/src/terrain/mod.rs",
-        "crates/card_game_bin/src/main.rs",
-        "crates/terrain_viewer/src/main.rs",
-        "crates/terrain/tests/suite/dual_grid.rs"
-      ],
-      "dependencies": [
-        "terrain material identifiers"
-      ]
-    },
-    {
-      "name": "own terrain materials and GPU-compatible parameters",
-      "currentOwners": [
-        "crates/terrain/src/material.rs::TerrainId",
-        "crates/terrain/src/material.rs::TerrainKind",
-        "crates/terrain/src/material.rs::TerrainMaterial",
-        "crates/terrain/src/material.rs::MaterialParams",
-        "crates/terrain/src/material.rs::default_materials"
-      ],
-      "consumers": [
-        "crates/card_game/src/terrain/mod.rs",
-        "crates/card_game_bin/src/main.rs",
-        "crates/terrain_viewer/src/main.rs",
-        "crates/terrain/tests/suite/material.rs"
-      ],
-      "dependencies": [
-        "bytemuck GPU layout"
-      ]
-    },
-    {
-      "name": "own tile patterns, shape metadata, transformations, and tinting",
-      "currentOwners": [
-        "crates/terrain/src/tile_def.rs::TilePattern",
-        "crates/terrain/src/tile_def.rs::AnnotatedShape",
-        "crates/terrain/src/tile_def.rs::TerrainTileDefinition",
-        "crates/terrain/src/tile_def.rs::TerrainTileSet",
-        "crates/terrain/src/tile_def.rs::bitmask_to_variant",
-        "crates/terrain/src/tile_def.rs::transform_path",
-        "crates/terrain/src/tile_def.rs::compute_tint"
-      ],
-      "consumers": [
-        "crates/terrain/src/tile_def/example.rs",
-        "crates/terrain/src/prelude.rs",
-        "crates/terrain/tests/suite/tile_def.rs"
-      ],
-      "dependencies": [
-        "engine_render PathCommand",
-        "glam Vec2 arithmetic",
-        "terrain material identifiers"
-      ]
-    },
-    {
-      "name": "own terrain vertex-grid geometry and quad coordinate lookup",
-      "currentOwners": [
-        "crates/terrain/src/tile_def.rs::QuadGrid"
-      ],
-      "consumers": [
-        "crates/terrain/src/prelude.rs",
-        "crates/terrain/tests/suite/tile_def.rs"
-      ],
-      "dependencies": [
-        "glam Vec2 arithmetic",
-        "terrain material identifiers"
-      ]
-    },
-    {
-      "name": "solve constrained terrain grids with propagation and backtracking",
-      "currentOwners": [
-        "crates/terrain/src/wfc.rs::ConstraintTable",
-        "crates/terrain/src/wfc.rs::Grid",
-        "crates/terrain/src/wfc.rs::collapse"
-      ],
-      "consumers": [
-        "crates/terrain_viewer/src/main.rs",
-        "crates/terrain/tests/suite/wfc.rs"
-      ],
-      "dependencies": [
-        "rand ChaCha8Rng",
-        "terrain material identifiers"
-      ]
-    },
-    {
-      "name": "register the terrain shader and expose ECS resources",
-      "currentOwners": [
-        "crates/terrain/src/shader.rs::register_terrain_shader",
-        "crates/terrain/src/lib.rs::TerrainMaterials",
-        "crates/terrain/src/lib.rs::TerrainShader"
-      ],
-      "consumers": [
         "crates/terrain_viewer/src/main.rs"
       ],
+      "consumers": [
+        "terrain_viewer binary"
+      ],
       "dependencies": [
-        "engine_render shader registry",
-        "bevy ECS resources"
+        "axiom2d application lifecycle",
+        "engine ECS phases"
+      ]
+    },
+    {
+      "name": "own terrain viewer state resources",
+      "currentOwners": [
+        "crates/terrain_viewer/src/state.rs"
+      ],
+      "consumers": [
+        "terrain_viewer rendering and systems"
+      ],
+      "dependencies": [
+        "bevy ECS resources",
+        "glam Vec2"
+      ]
+    },
+    {
+      "name": "own terrain viewer scene rendering and WFC generation",
+      "currentOwners": [
+        "crates/terrain_viewer/src/render.rs"
+      ],
+      "consumers": [
+        "terrain_viewer application setup",
+        "terrain_viewer mode systems"
+      ],
+      "dependencies": [
+        "terrain dual-grid and WFC APIs",
+        "engine render meshes and materials"
+      ]
+    },
+    {
+      "name": "own terrain viewer input, mode switching, HUD, and camera systems",
+      "currentOwners": [
+        "crates/terrain_viewer/src/systems.rs"
+      ],
+      "consumers": [
+        "terrain_viewer application setup",
+        "terrain_viewer behavior tests"
+      ],
+      "dependencies": [
+        "engine input state",
+        "terrain viewer state and rendering helpers"
       ]
     }
   ],
   "desired": {
     "ownership": [
       {
-        "responsibility": "own terrain vertex-grid geometry and quad coordinate lookup",
-        "owner": "crates/terrain/src/quad_grid.rs"
-      },
-      {
-        "responsibility": "own tile patterns, shape metadata, transformations, and tinting",
-        "owner": "crates/terrain/src/tile_def.rs"
+        "responsibility": "own terrain viewer scene rendering and WFC generation",
+        "owner": "crates/terrain_viewer/src/render.rs"
       }
     ],
-    "boundaries": [
-      {
-        "from": "own tile patterns, shape metadata, transformations, and tinting",
-        "to": "own terrain vertex-grid geometry and quad coordinate lookup",
-        "allowed": false
-      },
-      {
-        "from": "own terrain dual-grid cells, visual tiles, and corner masks",
-        "to": "own terrain materials and GPU-compatible parameters",
-        "allowed": true
-      },
-      {
-        "from": "solve constrained terrain grids with propagation and backtracking",
-        "to": "own terrain materials and GPU-compatible parameters",
-        "allowed": true
-      }
-    ]
+    "boundaries": []
   }
 }
