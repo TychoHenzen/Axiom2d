@@ -1,63 +1,38 @@
 {
-  "targetScope": [
-    "crates/card_game_bin"
-  ],
+  "targetScope": ["crates/demo"],
   "responsibilities": [
     {
-      "name": "construct the deterministic starter deck",
-      "currentOwners": [
-        "card_data.rs owns starter-card definitions, layout, and seeded signature selection"
-      ],
-      "consumers": [
-        "crates/card_game_bin/src/main.rs"
-      ],
-      "dependencies": [
-        "StarterCard",
-        "CardDefinition",
-        "CardSignature",
-        "ChaCha8Rng"
-      ]
+      "name": "bootstrap the demo application",
+      "currentOwners": ["crates/demo/src/lib.rs owns app resources, scene setup, and system scheduling"],
+      "consumers": ["crates/demo/src/main.rs", "crates/demo/tests/suite/scene.rs"],
+      "dependencies": ["App", "DefaultPlugins", "FrameCount", "ActionMap", "scene spawn functions", "demo systems"]
     },
     {
-      "name": "bootstrap the normal card-game scene",
-      "currentOwners": [
-        "main.rs owns application setup, scene spawning, and runtime plugin wiring"
-      ],
-      "consumers": [
-        "card_game_bin entry point"
-      ],
-      "dependencies": [
-        "App",
-        "DefaultPlugins",
-        "CardGamePlugin",
-        "PostSplashSetup"
-      ]
+      "name": "construct the synodic scene",
+      "currentOwners": ["crates/demo/src/scene.rs owns celestial definitions, hierarchy, nebula shapes, and camera spawning"],
+      "consumers": ["crates/demo/src/lib.rs::setup", "crates/demo/tests/suite/scene.rs"],
+      "dependencies": ["PlanetDef", "MoonDef", "SynodicFrame", "Earth", "Moon", "Sun", "Shape", "Transform2D"]
     },
     {
-      "name": "observe UI-test state",
-      "currentOwners": [
-        "ui_test_state/mod.rs owns test-only snapshot collection and serialization"
-      ],
-      "consumers": [
-        "main.rs record_ui_test_state system",
-        "crates/card_game_bin/tests/ui-smoke.ps1"
-      ],
-      "dependencies": [
-        "ui-test feature",
-        "UiTestCableParams",
-        "UiTestRenderingParams",
-        "AXIOM_UI_TEST_STATE_FILE"
-      ]
+      "name": "define demo state and actions",
+      "currentOwners": ["crates/demo/src/types.rs owns ECS markers, simulation constants, and action names"],
+      "consumers": ["crates/demo/src/scene.rs", "crates/demo/src/systems.rs", "crates/demo/tests/suite/scene.rs", "crates/demo/tests/suite/systems.rs"],
+      "dependencies": ["FrameCount", "OrbitalSpeed", "InputState", "ActionMap", "Camera2D"]
+    },
+    {
+      "name": "update camera and orbital motion",
+      "currentOwners": ["crates/demo/src/systems.rs owns frame counting, camera pan/zoom, orbit, and synodic camera systems"],
+      "consumers": ["crates/demo/src/lib.rs::setup", "crates/demo/tests/suite/systems.rs"],
+      "dependencies": ["DeltaTime", "Camera2D", "CameraRotation", "Transform2D", "GlobalTransform2D"]
     }
   ],
   "desired": {
-    "ownership": [],
-    "boundaries": [
+    "ownership": [
       {
-        "from": "Snapshot",
-        "to": "UiTestTerrain",
-        "allowed": false
+        "responsibility": "remove unused position exports",
+        "owner": "crates/demo/src/types.rs"
       }
-    ]
+    ],
+    "boundaries": []
   }
 }
