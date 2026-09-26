@@ -1,133 +1,124 @@
 {
   "targetScope": [
-    "crates/engine_render"
+    "crates/engine_scene"
   ],
   "responsibilities": [
     {
-      "name": "define the public renderer contract and ECS resource boundary",
+      "name": "maintain deterministic parent-child hierarchy state",
       "currentOwners": [
-        "crates/engine_render/src/renderer.rs::Renderer defines the supported draw, upload, shader, frame, and resize operations",
-        "crates/engine_render/src/renderer.rs::RendererRes owns the boxed renderer used by ECS systems",
-        "crates/engine_render/src/renderer.rs::NullRenderer supplies the inert test/default implementation",
-        "crates/engine_render/src/lib.rs::create_renderer selects the WGPU implementation"
+        "crates/engine_scene/src/hierarchy.rs::ChildOf records one parent entity",
+        "crates/engine_scene/src/hierarchy.rs::Children caches sorted child entities",
+        "crates/engine_scene/src/hierarchy.rs::hierarchy_maintenance_system rebuilds and removes stale caches"
       ],
       "consumers": [
-        "crates/engine_app/src/app.rs",
         "crates/axiom2d/src/default_plugins.rs",
-        "crates/axiom2d/src/splash/render.rs",
+        "crates/card_game/src/card/screen_device.rs",
+        "crates/card_game/src/stash/store.rs",
+        "crates/demo/src/scene.rs",
+        "crates/engine_audio/src/spatial.rs",
+        "crates/engine_ui/src/layout/system.rs",
+        "crates/engine_scene/tests"
+      ],
+      "dependencies": [
+        "bevy_ecs components, queries, removed-component tracking, local state, and commands",
+        "Entity ordering for deterministic Children vectors"
+      ]
+    },
+    {
+      "name": "propagate local transforms through the scene hierarchy",
+      "currentOwners": [
+        "crates/engine_scene/src/transform_propagation.rs::GlobalTransform2D stores world-space Affine2 values",
+        "crates/engine_scene/src/transform_propagation.rs::transform_propagation_system handles dirty roots and descendants",
+        "crates/engine_scene/src/transform_propagation.rs::propagate_to_children recursively composes descendant transforms"
+      ],
+      "consumers": [
+        "crates/axiom2d/src/default_plugins.rs",
+        "crates/card_game/src",
+        "crates/demo/src",
+        "crates/engine_audio/src/spatial.rs",
         "crates/engine_ui/src",
+        "crates/terrain_viewer/src/main.rs",
+        "crates/engine_scene/tests"
+      ],
+      "dependencies": [
+        "engine_core::prelude::Transform2D",
+        "glam::Affine2",
+        "ChildOf and Children hierarchy components",
+        "bevy_ecs change detection and deferred commands"
+      ]
+    },
+    {
+      "name": "derive effective visibility from local visibility and ancestors",
+      "currentOwners": [
+        "crates/engine_scene/src/visibility.rs::Visible is the serialized local visibility input",
+        "crates/engine_scene/src/visibility.rs::EffectiveVisibility stores derived visibility",
+        "crates/engine_scene/src/visibility.rs::visibility_system and propagate_visibility update dirty descendants"
+      ],
+      "consumers": [
+        "crates/axiom2d/src/default_plugins.rs",
         "crates/card_game/src",
         "crates/demo/tests",
-        "crates/engine_render/tests"
-      ],
-      "dependencies": [
-        "bevy_ecs::Resource and ResMut",
-        "engine_core::color::Color and engine_core::types",
-        "engine_render public prelude re-exports",
-        "winit::window::Window"
-      ]
-    },
-    {
-      "name": "prepare CPU-side render assets, geometry, and coordinate transforms",
-      "currentOwners": [
-        "crates/engine_render/src/atlas.rs::AtlasBuilder and upload_atlas_system manage image packing and GPU upload requests",
-        "crates/engine_render/src/font.rs::GlyphCache and text layout own embedded-font geometry",
-        "crates/engine_render/src/material.rs::Material2d and BlendMode define material inputs",
-        "crates/engine_render/src/camera.rs and rect.rs own viewport transforms and primitive rectangles",
-        "crates/engine_render/src/shape and culling modules own paths, tessellation, and visibility geometry"
-      ],
-      "consumers": [
-        "crates/engine_render/src/renderer.rs",
-        "crates/engine_render/src/wgpu_renderer",
-        "crates/engine_render/src/clear.rs",
-        "crates/engine_render/src/bloom.rs",
-        "crates/card_game/src",
         "crates/engine_ui/src",
-        "crates/engine_render/tests and benches"
+        "crates/engine_scene/tests"
       ],
       "dependencies": [
-        "glam",
-        "lyon",
-        "guillotiere",
-        "image",
-        "ttf-parser",
-        "engine_core::types"
+        "Visible local component and EffectiveVisibility derived component",
+        "ChildOf and Children hierarchy components",
+        "bevy_ecs change detection and deferred commands",
+        "serde for Visible serialization"
       ]
     },
     {
-      "name": "initialize WGPU resources and assemble pipelines",
+      "name": "provide stable render-layer and depth ordering",
       "currentOwners": [
-        "crates/engine_render/src/wgpu_renderer/gpu_init.rs::init_gpu and build_renderer_parts own adapter, device, surface, bind-group, and pipeline construction",
-        "crates/engine_render/src/wgpu_renderer/types.rs owns GPU-facing vertex, instance, batch, texture, and material data",
-        "crates/engine_render/src/wgpu_renderer/shaders.rs owns embedded quad and shape shader sources",
-        "crates/engine_render/src/wgpu_renderer/bloom.rs owns bloom resource layouts, textures, uniforms, and pipelines"
+        "crates/engine_scene/src/render_order.rs::RenderLayer defines coarse render bands",
+        "crates/engine_scene/src/render_order.rs::SortOrder stores assigned traversal order",
+        "crates/engine_scene/src/sort_propagation.rs::LocalSortOrder and hierarchy_sort_system order roots and descendants"
       ],
       "consumers": [
-        "crates/engine_render/src/wgpu_renderer/renderer.rs::WgpuRenderer::new",
-        "crates/engine_render/src/wgpu_renderer/renderer_trait.rs",
-        "crates/engine_render/src/lib.rs::create_renderer",
-        "crates/engine_render/src/wgpu_renderer/renderer_trait.rs::gpu_runtime_tests"
+        "crates/axiom2d/src/splash/render.rs",
+        "crates/card_game/src",
+        "crates/card_game_bin/src/main.rs",
+        "crates/demo/src/scene.rs",
+        "crates/engine_render/src",
+        "crates/engine_ui/src/unified_render.rs",
+        "crates/terrain_viewer/src/main.rs",
+        "crates/engine_scene/tests"
       ],
       "dependencies": [
-        "wgpu::Instance, Adapter, Device, Queue, Surface",
-        "winit::window::Window",
-        "bytemuck",
-        "embedded WGSL shader constants",
-        "engine_core::prelude::WindowConfig"
+        "bevy_ecs components and queries",
+        "engine_core::profiler::FrameProfiler",
+        "ChildOf and Children hierarchy components",
+        "serde for RenderLayer, SortOrder, and LocalSortOrder"
       ]
     },
     {
-      "name": "record frame state and implement the WGPU Renderer contract",
+      "name": "offer public scene convenience exports and child spawning",
       "currentOwners": [
-        "crates/engine_render/src/wgpu_renderer/renderer.rs::WgpuRenderer stores upload buffers, persistent meshes, pending material bindings, and frame state",
-        "crates/engine_render/src/wgpu_renderer/renderer_trait.rs::Renderer implementation translates public calls into WGPU passes and draw batches",
-        "crates/engine_render/src/wgpu_renderer/renderer_trait.rs::frame capture helpers own readback and BMP reporting"
+        "crates/engine_scene/src/spawn_child.rs::SpawnChildExt adds ChildOf while spawning a bundle",
+        "crates/engine_scene/src/prelude.rs re-exports the supported scene components and systems",
+        "crates/engine_scene/src/lib.rs defines the module boundary"
       ],
       "consumers": [
-        "crates/engine_render/src/lib.rs::create_renderer",
-        "crates/engine_render/src/renderer.rs::RendererRes",
-        "crates/axiom2d/src/default_plugins.rs",
-        "crates/engine_render/src/wgpu_renderer/renderer_trait.rs::gpu_runtime_tests",
-        "crates/engine_render/tests/suite/wgpu_renderer_renderer.rs"
+        "crates/card_game/src",
+        "crates/demo/src/scene.rs",
+        "crates/engine_scene/tests",
+        "downstream crates importing engine_scene::prelude"
       ],
       "dependencies": [
-        "Renderer trait method ordering",
-        "gpu_init::RendererParts",
-        "wgpu command encoders and render passes",
-        "types::{Instance, ShapeBatch, TextureData}",
-        "bloom and frame-capture resources"
-      ]
-    },
-    {
-      "name": "provide test doubles and headless visual-regression support",
-      "currentOwners": [
-        "crates/engine_render/src/testing/mod.rs::SpyRenderer and capture helpers implement the public Renderer contract for ECS tests",
-        "crates/engine_render/src/testing/visual_regression.rs::HeadlessRenderer owns fallback-adapter rendering and readback",
-        "crates/engine_render/src/testing/visual_regression.rs::save_golden, load_golden, and ssim_compare own image evidence utilities"
-      ],
-      "consumers": [
-        "crates/engine_render/tests",
-        "crates/engine_app/tests",
-        "crates/axiom2d/tests",
-        "crates/card_game/tests",
-        "crates/engine_ui/tests",
-        "crates/particle_poc/src/capture.rs"
-      ],
-      "dependencies": [
-        "Renderer trait and render data types",
-        "wgpu fallback adapter and COPY_SRC readback",
-        "image crate",
-        "temp-file and golden-image paths",
-        "feature gating through cfg(test) and feature=testing"
+        "bevy_ecs::World and Bundle",
+        "crate-local module paths",
+        "public API compatibility across engine_app, card_game, demo, engine_audio, engine_render, and engine_ui"
       ]
     }
   ],
   "findings": {
-    "scope": "The default scan covers 56 files with 94 errors and 827 warnings across 48 work units; production contains 32 files with 51 errors and 450 warnings, while tests contain 24 files with 43 errors and 377 warnings. The report and units scan are restricted to crates/engine_render.",
-    "architecture": "The architecture appendix reports three flat accumulations: 28 types under crates/engine_render/src, 13 under crates/engine_render/src/shape, and 30 under crates/engine_render/src/wgpu_renderer. It reports 70 public-surface findings, one transitive-navigation finding in renderer_trait.rs, zero dependency cycles, zero similarity clusters, zero configurable-data findings, and zero architecture extraction errors.",
+    "scope": "The default scan covers 16 files with 11 errors and 119 warnings across 13 work units. Production contains 8 files with 5 errors and 44 warnings; tests contain 8 files with 6 errors and 75 warnings. The scoped report and units scan are restricted to crates/engine_scene.",
+    "architecture": "The scoped report found zero placement, similarity, dependency, cycle, encapsulation, configurable-data, or transitive-navigation findings, with zero architecture extraction errors. Cross-scope caller inspection found the public components and systems consumed by axiom2d, card_game, card_game_bin, demo, engine_audio, engine_render, engine_ui, and terrain_viewer.",
     "decision": "no-safe-change",
-    "reason": "The public Renderer and RendererRes contract is consumed across engine_app, axiom2d, card_game, engine_ui, demo, and tests; moving or splitting those definitions would widen the API boundary. The WGPU initialization, frame-state, bloom, shader, and renderer-trait owners share tightly coupled resource and pass lifetimes, so extraction would be speculative rather than a behavior-preserving seam. The CPU asset and geometry modules are independently named but feed the same public prelude and WGPU batches. The test harness deliberately mirrors the Renderer contract and the fallback headless renderer has direct adapter evidence, so deduplicating it would erase distinct test responsibilities. Scanner counts therefore do not justify DELETE, DEDUPE, SPLIT, SIMPLIFY, SIGNATURES, or COSMETIC source changes in this child. Source-changing committed replay remains blocked solely by dod-guard#621 because the bundled gate requires the absent .github/quality/quality-baseline.json instead of this repository's docs/QUALITY_BASELINE.ron.",
-    "behaviorEvidence": "WGPU_BACKEND=vulkan cargo test -p engine_render --test main --locked -- --test-threads=1 --nocapture passed 232 tests, including nine headless visual-regression test functions. A temporary uncommitted adapter probe called HeadlessRenderer::new(1, 1) and passed, proving the forced fallback adapter and render construction execute on this host. No native UI smoke or hosted runner was used."
+    "reason": "The three types-per-file errors are cohesive pairs: ChildOf and Children define one hierarchy contract, RenderLayer and SortOrder define one render-order contract, and Visible and EffectiveVisibility define one visibility contract. Splitting them would widen module paths and require compatibility re-exports without reducing responsibility. The recursive transform and visibility helpers take ECS queries, change trackers, and deferred commands that must share one traversal; wrapping those parameters in ad hoc context structs would add indirection without a clearer ownership seam. The duplicate blocks and long test files are behavior fixtures, not duplicated production ownership, and the wildcard imports and line-length findings are cosmetic. No DELETE, DEDUPE, SPLIT, SIMPLIFY, SIGNATURES, or COSMETIC source change is justified by this evidence.",
+    "behaviorEvidence": "The focused baseline `cargo test -p engine_scene --locked` passed 54 integration tests with zero failures. The full baseline `cargo test --workspace --locked` passed with zero failures; the only emitted warning was the existing empty terrain TSX asset notice. No UI smoke or hosted runner was used because engine_scene is headless ECS behavior.",
+    "replayBlocker": "Source-changing committed replay remains blocked solely by dod-guard#621: the bundled quality-guard gate requires the absent `.github/quality/quality-baseline.json` instead of this repository's `docs/QUALITY_BASELINE.ron`. No baseline or documentation file was created or edited."
   },
   "desired": {
     "ownership": [],
