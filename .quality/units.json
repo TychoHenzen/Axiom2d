@@ -1,135 +1,2245 @@
 {
   "profile": "default",
-  "fileCount": 4,
+  "fileCount": 21,
   "files": [
     {
-      "path": "crates/engine_ecs/src/lib.rs",
+      "path": "crates/engine_input/src/action_map.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_ecs/src/prelude.rs",
+      "path": "crates/engine_input/src/button_state.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_ecs/src/schedule.rs",
+      "path": "crates/engine_input/src/key_code.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_ecs/tests/schedule.rs",
+      "path": "crates/engine_input/src/keyboard/buffer.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_input/src/keyboard/mod.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_input/src/keyboard/state.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_input/src/keyboard/system.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_input/src/lib.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_input/src/mouse_button.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_input/src/mouse/buffer.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_input/src/mouse/mod.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_input/src/mouse/state.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_input/src/mouse/system.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_input/src/prelude.rs",
+      "language": "rs",
+      "classification": "production"
+    },
+    {
+      "path": "crates/engine_input/tests/main.rs",
+      "language": "rs",
+      "classification": "test"
+    },
+    {
+      "path": "crates/engine_input/tests/suite/action_map.rs",
+      "language": "rs",
+      "classification": "test"
+    },
+    {
+      "path": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "language": "rs",
+      "classification": "test"
+    },
+    {
+      "path": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "language": "rs",
+      "classification": "test"
+    },
+    {
+      "path": "crates/engine_input/tests/suite/mod.rs",
+      "language": "rs",
+      "classification": "test"
+    },
+    {
+      "path": "crates/engine_input/tests/suite/mouse_state.rs",
+      "language": "rs",
+      "classification": "test"
+    },
+    {
+      "path": "crates/engine_input/tests/suite/mouse_system.rs",
       "language": "rs",
       "classification": "test"
     }
   ],
   "summary": {
-    "total": 5,
-    "errors": 1,
-    "warnings": 4,
+    "total": 128,
+    "errors": 20,
+    "warnings": 108,
     "byRule": {
-      "complexity": 1,
-      "function-length": 1,
-      "comment-bloat": 1,
-      "line-length": 2
+      "duplicate-block": 15,
+      "file-length": 5,
+      "line-length": 89,
+      "unused-local": 1,
+      "complexity": 2,
+      "function-length": 3,
+      "stateless-method": 2,
+      "comment-restates-code": 9,
+      "output-parameter": 2
     },
     "byFile": {
-      "crates/engine_ecs/src/schedule.rs": 1,
-      "crates/engine_ecs/tests/schedule.rs": 3,
-      "crates/engine_ecs/src/prelude.rs": 1
+      "crates/engine_input/tests/suite/keyboard_system.rs": 24,
+      "crates/engine_input/tests/suite/mouse_system.rs": 20,
+      "crates/engine_input/tests/suite/keyboard_state.rs": 38,
+      "crates/engine_input/tests/suite/mouse_state.rs": 33,
+      "crates/engine_input/src/key_code.rs": 2,
+      "crates/engine_input/src/mouse/system.rs": 2,
+      "crates/engine_input/src/mouse_button.rs": 2,
+      "crates/engine_input/src/button_state.rs": 1,
+      "crates/engine_input/src/keyboard/system.rs": 1,
+      "crates/engine_input/src/mouse/state.rs": 2,
+      "crates/engine_input/src/prelude.rs": 1,
+      "crates/engine_input/tests/suite/action_map.rs": 2
     }
   },
   "comparison": null,
   "violations": [
     {
-      "file": "crates/engine_ecs/src/schedule.rs",
-      "line": 55,
-      "rule": "complexity",
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 28,
+      "rule": "duplicate-block",
       "severity": "error",
-      "message": "name() cyclomatic complexity 19",
-      "metric": 19
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:28, crates/engine_input/tests/suite/keyboard_system.rs:50, crates/engine_input/tests/suite/keyboard_system.rs:122",
+      "metric": 3
     },
     {
-      "file": "crates/engine_ecs/tests/schedule.rs",
-      "line": 42,
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 50,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:28, crates/engine_input/tests/suite/keyboard_system.rs:50, crates/engine_input/tests/suite/keyboard_system.rs:122",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 74,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:74, crates/engine_input/tests/suite/keyboard_system.rs:98, crates/engine_input/tests/suite/keyboard_system.rs:172",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 75,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:75, crates/engine_input/tests/suite/keyboard_system.rs:99, crates/engine_input/tests/suite/keyboard_system.rs:173",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 76,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:76, crates/engine_input/tests/suite/keyboard_system.rs:100, crates/engine_input/tests/suite/keyboard_system.rs:174",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 98,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:74, crates/engine_input/tests/suite/keyboard_system.rs:98, crates/engine_input/tests/suite/keyboard_system.rs:172",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 99,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:75, crates/engine_input/tests/suite/keyboard_system.rs:99, crates/engine_input/tests/suite/keyboard_system.rs:173",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 100,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:76, crates/engine_input/tests/suite/keyboard_system.rs:100, crates/engine_input/tests/suite/keyboard_system.rs:174",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 122,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:28, crates/engine_input/tests/suite/keyboard_system.rs:50, crates/engine_input/tests/suite/keyboard_system.rs:122",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 172,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:74, crates/engine_input/tests/suite/keyboard_system.rs:98, crates/engine_input/tests/suite/keyboard_system.rs:172",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 173,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:75, crates/engine_input/tests/suite/keyboard_system.rs:99, crates/engine_input/tests/suite/keyboard_system.rs:173",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 174,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:76, crates/engine_input/tests/suite/keyboard_system.rs:100, crates/engine_input/tests/suite/keyboard_system.rs:174",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 29,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/mouse_system.rs:29, crates/engine_input/tests/suite/mouse_system.rs:94, crates/engine_input/tests/suite/mouse_system.rs:134",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 94,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/mouse_system.rs:29, crates/engine_input/tests/suite/mouse_system.rs:94, crates/engine_input/tests/suite/mouse_system.rs:134",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 134,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_input/tests/suite/mouse_system.rs:29, crates/engine_input/tests/suite/mouse_system.rs:94, crates/engine_input/tests/suite/mouse_system.rs:134",
+      "metric": 3
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 1,
+      "rule": "file-length",
+      "severity": "error",
+      "message": "file is 501 lines",
+      "metric": 501
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 1,
+      "rule": "file-length",
+      "severity": "error",
+      "message": "file is 566 lines",
+      "metric": 566
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 67,
+      "rule": "line-length",
+      "severity": "error",
+      "message": "line is 123 chars",
+      "metric": 123
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 244,
+      "rule": "line-length",
+      "severity": "error",
+      "message": "line is 128 chars",
+      "metric": 128
+    },
+    {
+      "file": "crates/engine_input/src/key_code.rs",
+      "line": 10,
+      "rule": "unused-local",
+      "severity": "error",
+      "message": "from() is never called in this file and is not exported",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/src/key_code.rs",
+      "line": 1,
+      "rule": "file-length",
+      "severity": "warn",
+      "message": "file is 216 lines",
+      "metric": 216
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 1,
+      "rule": "file-length",
+      "severity": "warn",
+      "message": "file is 280 lines",
+      "metric": 280
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 1,
+      "rule": "file-length",
+      "severity": "warn",
+      "message": "file is 279 lines",
+      "metric": 279
+    },
+    {
+      "file": "crates/engine_input/src/mouse/system.rs",
+      "line": 8,
+      "rule": "complexity",
+      "severity": "warn",
+      "message": "mouse_input_system() cyclomatic complexity 7",
+      "metric": 7
+    },
+    {
+      "file": "crates/engine_input/src/mouse_button.rs",
+      "line": 13,
+      "rule": "complexity",
+      "severity": "warn",
+      "message": "from() cyclomatic complexity 7",
+      "metric": 7
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 219,
       "rule": "function-length",
       "severity": "warn",
-      "message": "when_all_phases_mapped_to_names_then_frozen_sequence() is 32 lines",
-      "metric": 32
+      "message": "when_two_keys_pressed_in_one_frame_then_both_registered() is 38 lines",
+      "metric": 38
     },
     {
-      "file": "crates/engine_ecs/tests/schedule.rs",
-      "line": 36,
-      "rule": "comment-bloat",
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 508,
+      "rule": "function-length",
       "severity": "warn",
-      "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
-      "metric": 5
+      "message": "when_rapid_press_release_repress_then_states_update_correctly() is 41 lines",
+      "metric": 41
     },
     {
-      "file": "crates/engine_ecs/src/prelude.rs",
-      "line": 2,
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 246,
+      "rule": "function-length",
+      "severity": "warn",
+      "message": "when_press_then_release_then_press_in_same_frame_then_final_state_is_pressed() is 33 lines",
+      "metric": 33
+    },
+    {
+      "file": "crates/engine_input/src/button_state.rs",
+      "line": 8,
+      "rule": "stateless-method",
+      "severity": "warn",
+      "message": "from() never touches instance state — make it a free function",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/src/mouse_button.rs",
+      "line": 13,
+      "rule": "stateless-method",
+      "severity": "warn",
+      "message": "from() never touches instance state — make it a free function",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 142,
+      "rule": "comment-restates-code",
+      "severity": "warn",
+      "message": "comment repeats the declaration below it - say why, not what",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 160,
+      "rule": "comment-restates-code",
+      "severity": "warn",
+      "message": "comment repeats the declaration below it - say why, not what",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 197,
+      "rule": "comment-restates-code",
+      "severity": "warn",
+      "message": "comment repeats the declaration below it - say why, not what",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 236,
+      "rule": "comment-restates-code",
+      "severity": "warn",
+      "message": "comment repeats the declaration below it - say why, not what",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 255,
+      "rule": "comment-restates-code",
+      "severity": "warn",
+      "message": "comment repeats the declaration below it - say why, not what",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 253,
+      "rule": "comment-restates-code",
+      "severity": "warn",
+      "message": "comment repeats the declaration below it - say why, not what",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 272,
+      "rule": "comment-restates-code",
+      "severity": "warn",
+      "message": "comment repeats the declaration below it - say why, not what",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 290,
+      "rule": "comment-restates-code",
+      "severity": "warn",
+      "message": "comment repeats the declaration below it - say why, not what",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 176,
+      "rule": "comment-restates-code",
+      "severity": "warn",
+      "message": "comment repeats the declaration below it - say why, not what",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 18,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "run_input_system() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 19,
+      "rule": "output-parameter",
+      "severity": "warn",
+      "message": "run_mouse_system() exposes an output parameter; return a value instead",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_input/src/keyboard/system.rs",
+      "line": 8,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 94 chars",
+      "metric": 94
+    },
+    {
+      "file": "crates/engine_input/src/mouse/state.rs",
+      "line": 74,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 92 chars",
+      "metric": 92
+    },
+    {
+      "file": "crates/engine_input/src/mouse/state.rs",
+      "line": 80,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 97 chars",
+      "metric": 97
+    },
+    {
+      "file": "crates/engine_input/src/mouse/system.rs",
+      "line": 19,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 85 chars",
+      "metric": 85
+    },
+    {
+      "file": "crates/engine_input/src/prelude.rs",
+      "line": 7,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 86 chars",
+      "metric": 86
+    },
+    {
+      "file": "crates/engine_input/tests/suite/action_map.rs",
+      "line": 6,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 102 chars",
+      "metric": 102
+    },
+    {
+      "file": "crates/engine_input/tests/suite/action_map.rs",
+      "line": 23,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 89 chars",
+      "metric": 89
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 89,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 87 chars",
+      "metric": 87
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 124,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 95 chars",
+      "metric": 95
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 138,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 84 chars",
+      "metric": 84
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 142,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 89 chars",
+      "metric": 89
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 160,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 84 chars",
+      "metric": 84
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 179,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 100 chars",
+      "metric": 100
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 197,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 94 chars",
+      "metric": 94
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 212,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 83 chars",
+      "metric": 83
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 216,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 93 chars",
+      "metric": 93
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 218,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 84 chars",
+      "metric": 84
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 232,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 82 chars",
+      "metric": 82
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 236,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 111 chars",
+      "metric": 111
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 238,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 92 chars",
+      "metric": 92
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 251,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 96 chars",
+      "metric": 96
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 255,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 101 chars",
+      "metric": 101
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 257,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 82 chars",
+      "metric": 82
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 270,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 86 chars",
+      "metric": 86
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 291,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 88 chars",
+      "metric": 88
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 315,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 107 chars",
+      "metric": 107
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 336,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 101 chars",
+      "metric": 101
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 353,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 89 chars",
+      "metric": 89
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 375,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 104 chars",
+      "metric": 104
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 391,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 115 chars",
+      "metric": 115
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 393,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 84 chars",
+      "metric": 84
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 408,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 81 chars",
+      "metric": 81
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 412,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 107 chars",
+      "metric": 107
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 414,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 87 chars",
+      "metric": 87
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 431,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 107 chars",
+      "metric": 107
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 433,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 98 chars",
+      "metric": 98
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 455,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 99 chars",
       "metric": 99
     },
     {
-      "file": "crates/engine_ecs/tests/schedule.rs",
-      "line": 71,
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 476,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 111 chars",
+      "metric": 111
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "line": 478,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 100 chars",
+      "metric": 100
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 24,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 92 chars",
+      "metric": 92
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 46,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 86 chars",
+      "metric": 86
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 70,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 81 chars",
+      "metric": 81
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 94,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 89 chars",
+      "metric": 89
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 140,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 96 chars",
+      "metric": 96
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 168,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 93 chars",
+      "metric": 93
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 193,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 87 chars",
+      "metric": 87
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 217,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 96 chars",
+      "metric": 96
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "line": 258,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 98 chars",
+      "metric": 98
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 25,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 83 chars",
+      "metric": 83
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 57,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 81 chars",
+      "metric": 81
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 91,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 116 chars",
+      "metric": 116
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 112,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 92 chars",
+      "metric": 92
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 164,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 106 chars",
+      "metric": 106
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 182,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 82 chars",
+      "metric": 82
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 200,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 84 chars",
+      "metric": 84
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 218,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 92 chars",
+      "metric": 92
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 236,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 81 chars",
+      "metric": 81
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 253,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 93 chars",
+      "metric": 93
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 255,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 92 chars",
+      "metric": 92
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 272,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 98 chars",
+      "metric": 98
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 274,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 97 chars",
       "metric": 97
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 290,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 103 chars",
+      "metric": 103
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 292,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 100 chars",
+      "metric": 100
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 310,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 102 chars",
+      "metric": 102
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 326,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 83 chars",
+      "metric": 83
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 330,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 115 chars",
+      "metric": 115
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 366,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 96 chars",
+      "metric": 96
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 383,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 117 chars",
+      "metric": 117
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 403,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 95 chars",
+      "metric": 95
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 426,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 99 chars",
+      "metric": 99
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 450,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 94 chars",
+      "metric": 94
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 467,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 102 chars",
+      "metric": 102
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 484,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 97 chars",
+      "metric": 97
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 486,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 85 chars",
+      "metric": 85
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 492,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 88 chars",
+      "metric": 88
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "line": 506,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 101 chars",
+      "metric": 101
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 9,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 86 chars",
+      "metric": 86
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 25,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 101 chars",
+      "metric": 101
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 44,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 95 chars",
+      "metric": 95
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 90,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 83 chars",
+      "metric": 83
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 109,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 86 chars",
+      "metric": 86
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 130,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 96 chars",
+      "metric": 96
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 155,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 87 chars",
+      "metric": 87
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 176,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 90 chars",
+      "metric": 90
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 197,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 102 chars",
+      "metric": 102
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 223,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 90 chars",
+      "metric": 90
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "line": 246,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 83 chars",
+      "metric": 83
     }
   ],
   "units": [
     {
-      "file": "crates/engine_ecs/src/schedule.rs",
-      "errors": 1,
-      "warnings": 0,
+      "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+      "errors": 12,
+      "warnings": 12,
       "rules": {
-        "complexity": 1
+        "duplicate-block": 12,
+        "file-length": 1,
+        "function-length": 1,
+        "output-parameter": 1,
+        "line-length": 9
       },
       "items": [
         {
-          "file": "crates/engine_ecs/src/schedule.rs",
-          "line": 55,
-          "rule": "complexity",
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 28,
+          "rule": "duplicate-block",
           "severity": "error",
-          "message": "name() cyclomatic complexity 19",
-          "metric": 19
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:28, crates/engine_input/tests/suite/keyboard_system.rs:50, crates/engine_input/tests/suite/keyboard_system.rs:122",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 50,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:28, crates/engine_input/tests/suite/keyboard_system.rs:50, crates/engine_input/tests/suite/keyboard_system.rs:122",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 74,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:74, crates/engine_input/tests/suite/keyboard_system.rs:98, crates/engine_input/tests/suite/keyboard_system.rs:172",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 75,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:75, crates/engine_input/tests/suite/keyboard_system.rs:99, crates/engine_input/tests/suite/keyboard_system.rs:173",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 76,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:76, crates/engine_input/tests/suite/keyboard_system.rs:100, crates/engine_input/tests/suite/keyboard_system.rs:174",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 98,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:74, crates/engine_input/tests/suite/keyboard_system.rs:98, crates/engine_input/tests/suite/keyboard_system.rs:172",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 99,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:75, crates/engine_input/tests/suite/keyboard_system.rs:99, crates/engine_input/tests/suite/keyboard_system.rs:173",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 100,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:76, crates/engine_input/tests/suite/keyboard_system.rs:100, crates/engine_input/tests/suite/keyboard_system.rs:174",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 122,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:28, crates/engine_input/tests/suite/keyboard_system.rs:50, crates/engine_input/tests/suite/keyboard_system.rs:122",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 172,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:74, crates/engine_input/tests/suite/keyboard_system.rs:98, crates/engine_input/tests/suite/keyboard_system.rs:172",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 173,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:75, crates/engine_input/tests/suite/keyboard_system.rs:99, crates/engine_input/tests/suite/keyboard_system.rs:173",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 174,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:76, crates/engine_input/tests/suite/keyboard_system.rs:100, crates/engine_input/tests/suite/keyboard_system.rs:174",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 280 lines",
+          "metric": 280
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 219,
+          "rule": "function-length",
+          "severity": "warn",
+          "message": "when_two_keys_pressed_in_one_frame_then_both_registered() is 38 lines",
+          "metric": 38
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 18,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "run_input_system() exposes an output parameter; return a value instead",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 24,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 92 chars",
+          "metric": 92
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 46,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 70,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 94,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 89 chars",
+          "metric": 89
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 140,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 96 chars",
+          "metric": 96
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 168,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 193,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 217,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 96 chars",
+          "metric": 96
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
+          "line": 258,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 98 chars",
+          "metric": 98
         }
       ]
     },
     {
-      "file": "crates/engine_ecs/tests/schedule.rs",
-      "errors": 0,
-      "warnings": 3,
+      "file": "crates/engine_input/tests/suite/mouse_system.rs",
+      "errors": 5,
+      "warnings": 15,
       "rules": {
+        "duplicate-block": 3,
+        "line-length": 13,
+        "file-length": 1,
         "function-length": 1,
-        "comment-bloat": 1,
+        "comment-restates-code": 1,
+        "output-parameter": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 29,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/mouse_system.rs:29, crates/engine_input/tests/suite/mouse_system.rs:94, crates/engine_input/tests/suite/mouse_system.rs:134",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 94,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/mouse_system.rs:29, crates/engine_input/tests/suite/mouse_system.rs:94, crates/engine_input/tests/suite/mouse_system.rs:134",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 134,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_input/tests/suite/mouse_system.rs:29, crates/engine_input/tests/suite/mouse_system.rs:94, crates/engine_input/tests/suite/mouse_system.rs:134",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 67,
+          "rule": "line-length",
+          "severity": "error",
+          "message": "line is 123 chars",
+          "metric": 123
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 244,
+          "rule": "line-length",
+          "severity": "error",
+          "message": "line is 128 chars",
+          "metric": 128
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 279 lines",
+          "metric": 279
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 246,
+          "rule": "function-length",
+          "severity": "warn",
+          "message": "when_press_then_release_then_press_in_same_frame_then_final_state_is_pressed() is 33 lines",
+          "metric": 33
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 176,
+          "rule": "comment-restates-code",
+          "severity": "warn",
+          "message": "comment repeats the declaration below it - say why, not what",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 19,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "run_mouse_system() exposes an output parameter; return a value instead",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 9,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 25,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 101 chars",
+          "metric": 101
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 44,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 95 chars",
+          "metric": 95
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 90,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 109,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 130,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 96 chars",
+          "metric": 96
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 155,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 176,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 90 chars",
+          "metric": 90
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 197,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 102 chars",
+          "metric": 102
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 223,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 90 chars",
+          "metric": 90
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_system.rs",
+          "line": 246,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+      "errors": 1,
+      "warnings": 37,
+      "rules": {
+        "file-length": 1,
+        "comment-restates-code": 5,
+        "line-length": 32
+      },
+      "items": [
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "error",
+          "message": "file is 501 lines",
+          "metric": 501
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 142,
+          "rule": "comment-restates-code",
+          "severity": "warn",
+          "message": "comment repeats the declaration below it - say why, not what",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 160,
+          "rule": "comment-restates-code",
+          "severity": "warn",
+          "message": "comment repeats the declaration below it - say why, not what",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 197,
+          "rule": "comment-restates-code",
+          "severity": "warn",
+          "message": "comment repeats the declaration below it - say why, not what",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 236,
+          "rule": "comment-restates-code",
+          "severity": "warn",
+          "message": "comment repeats the declaration below it - say why, not what",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 255,
+          "rule": "comment-restates-code",
+          "severity": "warn",
+          "message": "comment repeats the declaration below it - say why, not what",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 89,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 124,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 95 chars",
+          "metric": 95
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 138,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 142,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 89 chars",
+          "metric": 89
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 160,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 179,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 100 chars",
+          "metric": 100
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 197,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 94 chars",
+          "metric": 94
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 212,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 216,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 218,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 232,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 82 chars",
+          "metric": 82
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 236,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 111 chars",
+          "metric": 111
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 238,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 92 chars",
+          "metric": 92
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 251,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 96 chars",
+          "metric": 96
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 255,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 101 chars",
+          "metric": 101
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 257,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 82 chars",
+          "metric": 82
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 270,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 291,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 88 chars",
+          "metric": 88
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 315,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 107 chars",
+          "metric": 107
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 336,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 101 chars",
+          "metric": 101
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 353,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 89 chars",
+          "metric": 89
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 375,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 104 chars",
+          "metric": 104
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 391,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 115 chars",
+          "metric": 115
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 393,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 408,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 412,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 107 chars",
+          "metric": 107
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 414,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 431,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 107 chars",
+          "metric": 107
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 433,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 98 chars",
+          "metric": 98
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 455,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 99 chars",
+          "metric": 99
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 476,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 111 chars",
+          "metric": 111
+        },
+        {
+          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
+          "line": 478,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 100 chars",
+          "metric": 100
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_input/tests/suite/mouse_state.rs",
+      "errors": 1,
+      "warnings": 32,
+      "rules": {
+        "file-length": 1,
+        "function-length": 1,
+        "comment-restates-code": 3,
+        "line-length": 28
+      },
+      "items": [
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "error",
+          "message": "file is 566 lines",
+          "metric": 566
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 508,
+          "rule": "function-length",
+          "severity": "warn",
+          "message": "when_rapid_press_release_repress_then_states_update_correctly() is 41 lines",
+          "metric": 41
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 253,
+          "rule": "comment-restates-code",
+          "severity": "warn",
+          "message": "comment repeats the declaration below it - say why, not what",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 272,
+          "rule": "comment-restates-code",
+          "severity": "warn",
+          "message": "comment repeats the declaration below it - say why, not what",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 290,
+          "rule": "comment-restates-code",
+          "severity": "warn",
+          "message": "comment repeats the declaration below it - say why, not what",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 25,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 57,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 91,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 116 chars",
+          "metric": 116
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 112,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 92 chars",
+          "metric": 92
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 164,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 106 chars",
+          "metric": 106
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 182,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 82 chars",
+          "metric": 82
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 200,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 218,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 92 chars",
+          "metric": 92
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 236,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 253,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 255,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 92 chars",
+          "metric": 92
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 272,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 98 chars",
+          "metric": 98
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 274,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 97 chars",
+          "metric": 97
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 290,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 103 chars",
+          "metric": 103
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 292,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 100 chars",
+          "metric": 100
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 310,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 102 chars",
+          "metric": 102
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 326,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 330,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 115 chars",
+          "metric": 115
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 366,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 96 chars",
+          "metric": 96
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 383,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 117 chars",
+          "metric": 117
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 403,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 95 chars",
+          "metric": 95
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 426,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 99 chars",
+          "metric": 99
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 450,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 94 chars",
+          "metric": 94
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 467,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 102 chars",
+          "metric": 102
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 484,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 97 chars",
+          "metric": 97
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 486,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 492,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 88 chars",
+          "metric": 88
+        },
+        {
+          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "line": 506,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 101 chars",
+          "metric": 101
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_input/src/key_code.rs",
+      "errors": 1,
+      "warnings": 1,
+      "rules": {
+        "unused-local": 1,
+        "file-length": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_input/src/key_code.rs",
+          "line": 10,
+          "rule": "unused-local",
+          "severity": "error",
+          "message": "from() is never called in this file and is not exported",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_input/src/key_code.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 216 lines",
+          "metric": 216
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_input/src/mouse/system.rs",
+      "errors": 0,
+      "warnings": 2,
+      "rules": {
+        "complexity": 1,
         "line-length": 1
       },
       "items": [
         {
-          "file": "crates/engine_ecs/tests/schedule.rs",
-          "line": 42,
-          "rule": "function-length",
+          "file": "crates/engine_input/src/mouse/system.rs",
+          "line": 8,
+          "rule": "complexity",
           "severity": "warn",
-          "message": "when_all_phases_mapped_to_names_then_frozen_sequence() is 32 lines",
-          "metric": 32
+          "message": "mouse_input_system() cyclomatic complexity 7",
+          "metric": 7
         },
         {
-          "file": "crates/engine_ecs/tests/schedule.rs",
-          "line": 36,
-          "rule": "comment-bloat",
+          "file": "crates/engine_input/src/mouse/system.rs",
+          "line": 19,
+          "rule": "line-length",
           "severity": "warn",
-          "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
-          "metric": 5
+          "message": "line is 85 chars",
+          "metric": 85
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_input/src/mouse_button.rs",
+      "errors": 0,
+      "warnings": 2,
+      "rules": {
+        "complexity": 1,
+        "stateless-method": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_input/src/mouse_button.rs",
+          "line": 13,
+          "rule": "complexity",
+          "severity": "warn",
+          "message": "from() cyclomatic complexity 7",
+          "metric": 7
         },
         {
-          "file": "crates/engine_ecs/tests/schedule.rs",
-          "line": 71,
+          "file": "crates/engine_input/src/mouse_button.rs",
+          "line": 13,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "from() never touches instance state — make it a free function",
+          "metric": 1
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_input/src/mouse/state.rs",
+      "errors": 0,
+      "warnings": 2,
+      "rules": {
+        "line-length": 2
+      },
+      "items": [
+        {
+          "file": "crates/engine_input/src/mouse/state.rs",
+          "line": 74,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 92 chars",
+          "metric": 92
+        },
+        {
+          "file": "crates/engine_input/src/mouse/state.rs",
+          "line": 80,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 97 chars",
@@ -138,7 +2248,51 @@
       ]
     },
     {
-      "file": "crates/engine_ecs/src/prelude.rs",
+      "file": "crates/engine_input/tests/suite/action_map.rs",
+      "errors": 0,
+      "warnings": 2,
+      "rules": {
+        "line-length": 2
+      },
+      "items": [
+        {
+          "file": "crates/engine_input/tests/suite/action_map.rs",
+          "line": 6,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 102 chars",
+          "metric": 102
+        },
+        {
+          "file": "crates/engine_input/tests/suite/action_map.rs",
+          "line": 23,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 89 chars",
+          "metric": 89
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_input/src/button_state.rs",
+      "errors": 0,
+      "warnings": 1,
+      "rules": {
+        "stateless-method": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_input/src/button_state.rs",
+          "line": 8,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "from() never touches instance state — make it a free function",
+          "metric": 1
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_input/src/keyboard/system.rs",
       "errors": 0,
       "warnings": 1,
       "rules": {
@@ -146,12 +2300,30 @@
       },
       "items": [
         {
-          "file": "crates/engine_ecs/src/prelude.rs",
-          "line": 2,
+          "file": "crates/engine_input/src/keyboard/system.rs",
+          "line": 8,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 99 chars",
-          "metric": 99
+          "message": "line is 94 chars",
+          "metric": 94
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_input/src/prelude.rs",
+      "errors": 0,
+      "warnings": 1,
+      "rules": {
+        "line-length": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_input/src/prelude.rs",
+          "line": 7,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
         }
       ]
     }

@@ -1,67 +1,87 @@
 {
   "targetScope": [
-    "crates/engine_ecs"
+    "crates/engine_input"
   ],
   "responsibilities": [
     {
-      "name": "re-export the shared ECS surface",
+      "name": "define input values and action bindings",
       "currentOwners": [
-        "crates/engine_ecs/src/prelude.rs::bevy_ecs type and schedule re-exports define the supported convenience surface",
-        "crates/engine_ecs/src/lib.rs::module declarations expose prelude and schedule"
-      ],
-      "consumers": [
-        "crates/engine_app",
-        "crates/axiom2d",
-        "crates/card_game",
-        "crates/demo",
-        "crates/terrain_viewer",
-        "crates/engine_ecs/tests/schedule.rs"
-      ],
-      "dependencies": [
-        "bevy_ecs::prelude",
-        "bevy_ecs::schedule::IntoScheduleConfigs",
-        "bevy_ecs::system::ScheduleSystem"
-      ]
-    },
-    {
-      "name": "define canonical engine schedule phases",
-      "currentOwners": [
-        "crates/engine_ecs/src/schedule.rs::Phase owns the 18 ScheduleLabel variants, declaration indices, and names",
-        "crates/engine_ecs/src/schedule.rs::PHASE_COUNT owns the fixed schedule-array size",
-        "crates/engine_ecs/tests/schedule.rs::phase contract tests pin count, order, and names"
+        "crates/engine_input/src/key_code.rs::KeyCode and its winit conversion define the supported keyboard value surface",
+        "crates/engine_input/src/mouse_button.rs::MouseButton and its winit conversion define the supported mouse-button value surface",
+        "crates/engine_input/src/button_state.rs::ButtonState maps native pressed/released state",
+        "crates/engine_input/src/action_map.rs::ActionMap stores keyboard and mouse bindings",
+        "crates/engine_input/src/prelude.rs::re-exports define the supported convenience surface"
       ],
       "consumers": [
         "crates/engine_app/src/app.rs",
-        "crates/engine_app/src/phase.rs",
+        "crates/engine_app/src/window_event.rs",
         "crates/axiom2d",
         "crates/card_game",
+        "crates/card_game_bin",
         "crates/demo",
-        "crates/terrain_viewer"
+        "crates/terrain_viewer",
+        "crates/engine_input/tests"
       ],
       "dependencies": [
-        "bevy_ecs::schedule::ScheduleLabel",
-        "Phase::ALL declaration order",
-        "PHASE_COUNT array sizing"
+        "winit::event and winit::keyboard",
+        "bevy_ecs::prelude::Resource",
+        "HashMap<String, Vec<KeyCode>>",
+        "HashMap<String, Vec<MouseButton>>"
       ]
     },
     {
-      "name": "pin phase ordering and naming behavior",
+      "name": "transport and apply keyboard input",
       "currentOwners": [
-        "crates/engine_ecs/tests/schedule.rs::when_index_then_matches_declaration_order verifies index stability",
-        "crates/engine_ecs/tests/schedule.rs::when_phase_count_then_equals_eighteen verifies fixed capacity",
-        "crates/engine_ecs/tests/schedule.rs::when_all_phases_mapped_to_names_then_frozen_sequence verifies public names"
+        "crates/engine_input/src/keyboard/buffer.rs::KeyInputEvent transports keyboard transitions",
+        "crates/engine_input/src/keyboard/state.rs::InputState owns pressed, just-pressed, and just-released keyboard state and action queries",
+        "crates/engine_input/src/keyboard/system.rs::input_system drains keyboard events and advances frame state"
       ],
       "consumers": [
-        "crates/engine_app schedule execution",
-        "downstream crates registering systems by Phase"
+        "crates/engine_app/src/app.rs",
+        "crates/axiom2d",
+        "crates/demo",
+        "crates/terrain_viewer",
+        "crates/engine_input/tests"
       ],
       "dependencies": [
-        "Phase::ALL",
-        "Phase::index",
-        "Phase::name"
+        "engine_core::prelude::Event and EventBus",
+        "bevy_ecs::prelude::{ResMut, Resource}",
+        "ActionMap",
+        "KeyCode",
+        "ButtonState"
+      ]
+    },
+    {
+      "name": "transport and apply mouse input",
+      "currentOwners": [
+        "crates/engine_input/src/mouse/buffer.rs::MouseInputEvent transports button, movement, and scroll events",
+        "crates/engine_input/src/mouse/state.rs::MouseState owns button, screen/world position, and scroll state",
+        "crates/engine_input/src/mouse/system.rs::mouse_input_system drains mouse events and scroll_clear_system clears frame scroll"
+      ],
+      "consumers": [
+        "crates/engine_app/src/app.rs",
+        "crates/engine_app/src/mouse_world_pos_system.rs",
+        "crates/axiom2d",
+        "crates/card_game",
+        "crates/card_game_bin",
+        "crates/terrain_viewer",
+        "crates/engine_input/tests"
+      ],
+      "dependencies": [
+        "engine_core::prelude::Event and EventBus",
+        "bevy_ecs::prelude::{ResMut, Resource}",
+        "glam::Vec2",
+        "ActionMap",
+        "MouseButton",
+        "ButtonState"
       ]
     }
   ],
+  "findings": {
+    "scope": "The scan reports 20 errors and 108 warnings across 21 files; 118 findings are in tests or line-length/comment rules, while the remaining production findings are necessary public mappings or small input-system heuristics.",
+    "decision": "no-safe-change",
+    "reason": "The production definitions already have one owner per responsibility. Splitting the large behavior tests would be organizational churn, genericizing keyboard and mouse state would erase domain-specific fields, and changing public mappings or event handling would widen API or runtime risk without a measured responsibility defect."
+  },
   "desired": {
     "ownership": [],
     "boundaries": []
