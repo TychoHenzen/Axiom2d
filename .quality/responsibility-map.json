@@ -1,113 +1,137 @@
 {
   "targetScope": [
-    "crates/particle_poc"
+    "crates/terrain"
   ],
   "responsibilities": [
     {
-      "name": "compute signed distance fields and upload-ready SDF data",
+      "name": "own terrain dual-grid cells, visual tiles, and corner masks",
       "currentOwners": [
-        "crates/particle_poc/src/sdf.rs::compute_distance_field",
-        "crates/particle_poc/src/sdf.rs::sdf_for_upload"
+        "crates/terrain/src/dual_grid.rs::DualGrid",
+        "crates/terrain/src/dual_grid.rs::VisualTile",
+        "crates/terrain/src/dual_grid.rs::corner_bitmask"
       ],
       "consumers": [
-        "crates/particle_poc/src/lib.rs",
-        "crates/particle_poc/tests/suite/sdf_wall_tests.rs"
+        "crates/card_game/src/terrain/mod.rs",
+        "crates/card_game_bin/src/main.rs",
+        "crates/terrain_viewer/src/main.rs",
+        "crates/terrain/tests/suite/dual_grid.rs"
+      ],
+      "dependencies": [
+        "terrain material identifiers"
+      ]
+    },
+    {
+      "name": "own terrain materials and GPU-compatible parameters",
+      "currentOwners": [
+        "crates/terrain/src/material.rs::TerrainId",
+        "crates/terrain/src/material.rs::TerrainKind",
+        "crates/terrain/src/material.rs::TerrainMaterial",
+        "crates/terrain/src/material.rs::MaterialParams",
+        "crates/terrain/src/material.rs::default_materials"
+      ],
+      "consumers": [
+        "crates/card_game/src/terrain/mod.rs",
+        "crates/card_game_bin/src/main.rs",
+        "crates/terrain_viewer/src/main.rs",
+        "crates/terrain/tests/suite/material.rs"
+      ],
+      "dependencies": [
+        "bytemuck GPU layout"
+      ]
+    },
+    {
+      "name": "own tile patterns, shape metadata, transformations, and tinting",
+      "currentOwners": [
+        "crates/terrain/src/tile_def.rs::TilePattern",
+        "crates/terrain/src/tile_def.rs::AnnotatedShape",
+        "crates/terrain/src/tile_def.rs::TerrainTileDefinition",
+        "crates/terrain/src/tile_def.rs::TerrainTileSet",
+        "crates/terrain/src/tile_def.rs::bitmask_to_variant",
+        "crates/terrain/src/tile_def.rs::transform_path",
+        "crates/terrain/src/tile_def.rs::compute_tint"
+      ],
+      "consumers": [
+        "crates/terrain/src/tile_def/example.rs",
+        "crates/terrain/src/prelude.rs",
+        "crates/terrain/tests/suite/tile_def.rs"
+      ],
+      "dependencies": [
+        "engine_render PathCommand",
+        "glam Vec2 arithmetic",
+        "terrain material identifiers"
+      ]
+    },
+    {
+      "name": "own terrain vertex-grid geometry and quad coordinate lookup",
+      "currentOwners": [
+        "crates/terrain/src/tile_def.rs::QuadGrid"
+      ],
+      "consumers": [
+        "crates/terrain/src/prelude.rs",
+        "crates/terrain/tests/suite/tile_def.rs"
       ],
       "dependencies": [
         "glam Vec2 arithmetic",
-        "particle_poc SDF wall and upload parameters"
+        "terrain material identifiers"
       ]
     },
     {
-      "name": "own particle simulation state, physics, reactions, and machine definitions",
+      "name": "solve constrained terrain grids with propagation and backtracking",
       "currentOwners": [
-        "crates/particle_poc/src/state.rs::State",
-        "crates/particle_poc/src/state.rs::MachineCpuState",
-        "crates/particle_poc/src/state.rs::RapierState",
-        "crates/particle_poc/src/state.rs::ReactionMatrix",
-        "crates/particle_poc/src/state.rs::MachineDef"
+        "crates/terrain/src/wfc.rs::ConstraintTable",
+        "crates/terrain/src/wfc.rs::Grid",
+        "crates/terrain/src/wfc.rs::collapse"
       ],
       "consumers": [
-        "crates/particle_poc/src/lib.rs",
-        "crates/particle_poc/tests/suite/bond_tests.rs",
-        "crates/particle_poc/tests/suite/reaction_tests.rs",
-        "crates/particle_poc/tests/suite/kill_barrier_tests.rs"
+        "crates/terrain_viewer/src/main.rs",
+        "crates/terrain/tests/suite/wfc.rs"
       ],
       "dependencies": [
-        "bevy ECS resources and systems",
-        "rapier2d physics state",
-        "glam vector arithmetic"
+        "rand ChaCha8Rng",
+        "terrain material identifiers"
       ]
     },
     {
-      "name": "render particles and capture GPU output for behavior checks",
+      "name": "register the terrain shader and expose ECS resources",
       "currentOwners": [
-        "crates/particle_poc/src/capture.rs::HeadlessCapture",
-        "crates/particle_poc/src/lib.rs::GpuMachine",
-        "crates/particle_poc/src/lib.rs::GpuMachineRender"
+        "crates/terrain/src/shader.rs::register_terrain_shader",
+        "crates/terrain/src/lib.rs::TerrainMaterials",
+        "crates/terrain/src/lib.rs::TerrainShader"
       ],
       "consumers": [
-        "crates/particle_poc/src/lib.rs",
-        "crates/particle_poc/tests/suite/screen_capture.rs",
-        "crates/particle_poc/tests/suite/sdf_wall_tests.rs"
+        "crates/terrain_viewer/src/main.rs"
       ],
       "dependencies": [
-        "bevy render resources",
-        "wgpu storage and readback buffers",
-        "particle simulation state"
-      ]
-    },
-    {
-      "name": "orchestrate the particle app modes, plugins, and runtime entrypoint",
-      "currentOwners": [
-        "crates/particle_poc/src/lib.rs::App",
-        "crates/particle_poc/src/lib.rs::Mode",
-        "crates/particle_poc/src/main.rs"
-      ],
-      "consumers": [
-        "crates/particle_poc/src/main.rs",
-        "crates/particle_poc/tests/main.rs"
-      ],
-      "dependencies": [
-        "particle simulation state",
-        "render particles and capture GPU output for behavior checks",
-        "compute signed distance fields and upload-ready SDF data"
+        "engine_render shader registry",
+        "bevy ECS resources"
       ]
     }
   ],
   "desired": {
     "ownership": [
       {
-        "responsibility": "compute signed distance fields and upload-ready SDF data",
-        "owner": "crates/particle_poc/src/sdf.rs"
+        "responsibility": "own terrain vertex-grid geometry and quad coordinate lookup",
+        "owner": "crates/terrain/src/quad_grid.rs"
       },
       {
-        "responsibility": "own particle simulation state, physics, reactions, and machine definitions",
-        "owner": "crates/particle_poc/src/state.rs"
-      },
-      {
-        "responsibility": "render particles and capture GPU output for behavior checks",
-        "owner": "crates/particle_poc/src/capture.rs"
-      },
-      {
-        "responsibility": "orchestrate the particle app modes, plugins, and runtime entrypoint",
-        "owner": "crates/particle_poc/src/lib.rs"
+        "responsibility": "own tile patterns, shape metadata, transformations, and tinting",
+        "owner": "crates/terrain/src/tile_def.rs"
       }
     ],
     "boundaries": [
       {
-        "from": "orchestrate the particle app modes, plugins, and runtime entrypoint",
-        "to": "compute signed distance fields and upload-ready SDF data",
+        "from": "own tile patterns, shape metadata, transformations, and tinting",
+        "to": "own terrain vertex-grid geometry and quad coordinate lookup",
+        "allowed": false
+      },
+      {
+        "from": "own terrain dual-grid cells, visual tiles, and corner masks",
+        "to": "own terrain materials and GPU-compatible parameters",
         "allowed": true
       },
       {
-        "from": "orchestrate the particle app modes, plugins, and runtime entrypoint",
-        "to": "own particle simulation state, physics, reactions, and machine definitions",
-        "allowed": true
-      },
-      {
-        "from": "own particle simulation state, physics, reactions, and machine definitions",
-        "to": "render particles and capture GPU output for behavior checks",
+        "from": "solve constrained terrain grids with propagation and backtracking",
+        "to": "own terrain materials and GPU-compatible parameters",
         "allowed": true
       }
     ]
