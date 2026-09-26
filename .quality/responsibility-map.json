@@ -1,55 +1,65 @@
 {
   "targetScope": [
-    "crates/engine_assets"
+    "crates/engine_audio"
   ],
   "responsibilities": [
     {
-      "name": "provide type-safe asset handles",
+      "name": "route playback commands through the audio backend",
       "currentOwners": [
-        "crates/engine_assets/src/handle.rs::Handle owns typed identity and standard value semantics"
+        "crates/engine_audio/src/playback/system.rs::play_sound_system drains PlaySound events, applies mixer and spatial gains, and calls AudioRes",
+        "crates/engine_audio/tests/suite/playback_system.rs::integration tests cover backend calls, event draining, mixer forwarding, and spatial gain behavior"
       ],
       "consumers": [
-        "crates/engine_assets/src/asset_server.rs",
-        "crates/engine_assets/src/prelude.rs",
-        "crates/engine_assets/tests/asset_server.rs",
-        "crates/axiom2d/src/prelude.rs"
+        "crates/axiom2d/src/default_plugins.rs",
+        "crates/axiom2d/tests/suite/default_plugins.rs",
+        "crates/engine_audio/tests/suite/playback_system.rs"
       ],
       "dependencies": [
-        "std::marker::PhantomData",
-        "u32 asset IDs",
-        "Clone, Copy, Eq, Ord, Hash, Debug"
+        "EventBus<PlaySound>",
+        "SoundLibrary",
+        "MixerState",
+        "AudioRes",
+        "AudioBackend"
       ]
     },
     {
-      "name": "store, load, query, and reference-count assets",
+      "name": "provide backend-independent audio data and control types",
       "currentOwners": [
-        "crates/engine_assets/src/asset_server.rs::AssetServer owns HashMap storage, ID allocation, RON loading, and lifetime operations"
+        "crates/engine_audio/src/backend/traits.rs::AudioBackend and NullAudioBackend",
+        "crates/engine_audio/src/audio_res.rs::AudioRes",
+        "crates/engine_audio/src/sound/{data,effect,library}.rs::sound data, synthesis, and lookup",
+        "crates/engine_audio/src/mixer.rs::MixerTrack and MixerState"
       ],
       "consumers": [
-        "crates/axiom2d/src/prelude.rs",
-        "crates/engine_assets/tests/asset_server.rs"
+        "crates/engine_audio/src/backend/cpal.rs",
+        "crates/engine_audio/src/playback/system.rs",
+        "crates/axiom2d/src/default_plugins.rs",
+        "crates/engine_audio/tests"
       ],
       "dependencies": [
-        "AssetEntry<T>",
-        "Handle<T>",
-        "std::collections::HashMap",
-        "serde::de::DeserializeOwned",
-        "ron"
+        "cpal",
+        "fundsp",
+        "bevy_ecs",
+        "engine_core"
       ]
     },
     {
-      "name": "translate asset loading failures",
+      "name": "compute and apply spatial audio gains",
       "currentOwners": [
-        "crates/engine_assets/src/asset_server.rs::AssetError owns I/O and RON parse error classification"
+        "crates/engine_audio/src/spatial.rs::spatial components, gain math, and ECS system",
+        "crates/engine_audio/src/playback/buffer.rs::SpatialGains carried on PlaySound"
       ],
       "consumers": [
-        "crates/engine_assets/src/prelude.rs",
-        "crates/engine_assets/tests/asset_server.rs"
+        "crates/axiom2d/src/default_plugins.rs",
+        "crates/engine_audio/src/playback/system.rs",
+        "crates/engine_audio/tests/suite/spatial.rs",
+        "crates/engine_audio/tests/suite/playback_system.rs"
       ],
       "dependencies": [
-        "std::io::Error",
-        "ron::error::SpannedError",
-        "thiserror"
+        "GlobalTransform2D",
+        "EventBus<PlaySound>",
+        "AudioEmitter",
+        "AudioListener"
       ]
     }
   ],
