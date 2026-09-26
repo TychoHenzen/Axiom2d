@@ -1,58 +1,152 @@
 {
   "targetScope": [
-    "mobile/gps_companion"
+    "tools/"
   ],
   "responsibilities": [
     {
-      "name": "orchestrate map rendering, GPS tracking, fog, and vacuum behavior",
+      "name": "convert source images into engine shapes",
       "currentOwners": [
-        "mobile/gps_companion/lib/ui/map_screen.dart::MapScreen",
-        "mobile/gps_companion/lib/ui/map_screen.dart::_MapScreenState"
+        "tools/img-to-shape/src/lib.rs::image_to_shapes",
+        "tools/img-to-shape/src/segment.rs::segment",
+        "tools/img-to-shape/src/boundary_graph.rs::extract_region_faces",
+        "tools/img-to-shape/src/bezier_fit.rs::fit_bezier_path",
+        "tools/img-to-shape/src/simplify.rs::rdp_simplify_closed",
+        "tools/img-to-shape/src/scale2x.rs::scale2x_rgba"
       ],
       "consumers": [
-        "mobile/gps_companion/lib/ui/app.dart::HomeShell",
-        "mobile/gps_companion/test/integration/journey_test.dart"
+        "tools/img-to-shape-gui/src/state.rs::AppState",
+        "tools/img-to-shape-gui/src/main.rs",
+        "tools/tiled-to-shapes/src/pipeline.rs::convert_tileset",
+        "tools/img-to-shape/tests/suite/core_lib.rs",
+        "tools/tiled-to-shapes/tests/suite/integration.rs"
       ],
       "dependencies": [
-        "flutter_map and geolocator",
-        "gps_companion AppState and domain coverage",
-        "BiomeService and route-log persistence"
+        "engine_core and engine_render shape types",
+        "image pixel buffers",
+        "glam geometry values"
       ]
     },
     {
-      "name": "render map HUD widgets and grain-packing indicators",
+      "name": "generate exported Rust shape modules and persist manifests",
       "currentOwners": [
-        "mobile/gps_companion/lib/ui/map_hud.dart::MapHud",
-        "mobile/gps_companion/lib/ui/map_hud.dart::PlayerDot",
-        "mobile/gps_companion/lib/ui/map_hud.dart::TubeHud",
-        "mobile/gps_companion/lib/ui/map_hud.dart::PackStackHud"
+        "tools/img-to-shape/src/codegen.rs",
+        "tools/img-to-shape/src/manifest.rs"
       ],
       "consumers": [
-        "mobile/gps_companion/lib/ui/map_screen.dart",
-        "mobile/gps_companion/test/ui/grain_hud_test.dart"
+        "tools/img-to-shape-gui/src/state.rs::AppState::generate_export_code",
+        "tools/img-to-shape-gui/src/main.rs::ManifestApp",
+        "tools/tiled-to-shapes/src/pipeline.rs::generate_build_code",
+        "tools/img-to-shape/tests/suite/codegen.rs",
+        "tools/img-to-shape/tests/suite/manifest.rs"
       ],
       "dependencies": [
-        "Flutter material widgets",
-        "TubePainter and tube pixel simulation",
-        "grain and inventory domain models"
+        "serde and serde_json manifest formats",
+        "engine_render shape serialization contract",
+        "filesystem paths and generated source text"
+      ]
+    },
+    {
+      "name": "run the image conversion GUI and preview workflow",
+      "currentOwners": [
+        "tools/img-to-shape-gui/src/main.rs",
+        "tools/img-to-shape-gui/src/state.rs",
+        "tools/img-to-shape-gui/src/preview.rs",
+        "tools/img-to-shape-gui/src/loader.rs"
+      ],
+      "consumers": [
+        "tools/img-to-shape-gui/src/main.rs::main",
+        "tools/img-to-shape-gui/tests/suite/state.rs",
+        "tools/img-to-shape-gui/tests/suite/preview.rs",
+        "tools/img-to-shape-gui/tests/suite/loader.rs"
+      ],
+      "dependencies": [
+        "eframe and egui application runtime",
+        "rfd file picker",
+        "img-to-shape conversion and export APIs"
+      ]
+    },
+    {
+      "name": "convert Tiled TSX tilesets into terrain code",
+      "currentOwners": [
+        "tools/tiled-to-shapes/src/pipeline.rs",
+        "tools/tiled-to-shapes/src/tsx_parser.rs",
+        "tools/tiled-to-shapes/src/extract.rs",
+        "tools/tiled-to-shapes/src/normalize.rs",
+        "tools/tiled-to-shapes/src/scaffold.rs",
+        "tools/tiled-to-shapes/src/codegen.rs",
+        "tools/tiled-to-shapes/src/types.rs"
+      ],
+      "consumers": [
+        "tools/tiled-to-shapes/src/main.rs",
+        "tools/tiled-to-shapes/tests/suite/integration.rs",
+        "tools/tiled-to-shapes/tests/suite/pipeline.rs",
+        "tools/tiled-to-shapes/tests/suite/parse_tsx.rs"
+      ],
+      "dependencies": [
+        "quick-xml TSX parsing",
+        "img-to-shape conversion APIs",
+        "terrain and engine_render generated code contracts"
+      ]
+    },
+    {
+      "name": "parse Cargo test output into living documentation",
+      "currentOwners": [
+        "tools/living-docs/src/lib.rs",
+        "tools/living-docs/src/main.rs"
+      ],
+      "consumers": [
+        "tools/living-docs/src/main.rs::main",
+        "tools/living-docs/tests/lib.rs"
+      ],
+      "dependencies": [
+        "Cargo test output format",
+        "filesystem source locations",
+        "Markdown rendering conventions"
       ]
     }
   ],
   "desired": {
     "ownership": [
       {
-        "responsibility": "orchestrate map rendering, GPS tracking, fog, and vacuum behavior",
-        "owner": "mobile/gps_companion/lib/ui/map_screen.dart"
+        "responsibility": "convert source images into engine shapes",
+        "owner": "tools/img-to-shape/src/lib.rs"
       },
       {
-        "responsibility": "render map HUD widgets and grain-packing indicators",
-        "owner": "mobile/gps_companion/lib/ui/map_hud.dart"
+        "responsibility": "generate exported Rust shape modules and persist manifests",
+        "owner": "tools/img-to-shape/src/codegen.rs and tools/img-to-shape/src/manifest.rs"
+      },
+      {
+        "responsibility": "run the image conversion GUI and preview workflow",
+        "owner": "tools/img-to-shape-gui/src/main.rs"
+      },
+      {
+        "responsibility": "convert Tiled TSX tilesets into terrain code",
+        "owner": "tools/tiled-to-shapes/src/pipeline.rs"
+      },
+      {
+        "responsibility": "parse Cargo test output into living documentation",
+        "owner": "tools/living-docs/src/lib.rs"
       }
     ],
     "boundaries": [
       {
-        "from": "orchestrate map rendering, GPS tracking, fog, and vacuum behavior",
-        "to": "render map HUD widgets and grain-packing indicators",
+        "from": "convert source images into engine shapes",
+        "to": "generate exported Rust shape modules and persist manifests",
+        "allowed": true
+      },
+      {
+        "from": "generate exported Rust shape modules and persist manifests",
+        "to": "run the image conversion GUI and preview workflow",
+        "allowed": true
+      },
+      {
+        "from": "convert source images into engine shapes",
+        "to": "run the image conversion GUI and preview workflow",
+        "allowed": true
+      },
+      {
+        "from": "convert source images into engine shapes",
+        "to": "convert Tiled TSX tilesets into terrain code",
         "allowed": true
       }
     ]
