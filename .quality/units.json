@@ -1,2747 +1,1863 @@
 {
   "profile": "default",
-  "fileCount": 30,
+  "fileCount": 24,
   "files": [
     {
-      "path": "crates/engine_audio/src/audio_res.rs",
+      "path": "crates/engine_core/benches/spring.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/backend/cpal.rs",
+      "path": "crates/engine_core/benches/stress.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/backend/mod.rs",
+      "path": "crates/engine_core/src/color.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/backend/traits.rs",
+      "path": "crates/engine_core/src/error.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/lib.rs",
+      "path": "crates/engine_core/src/event_bus.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/mixer_engine.rs",
+      "path": "crates/engine_core/src/lib.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/mixer.rs",
+      "path": "crates/engine_core/src/prelude.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/playback/buffer.rs",
+      "path": "crates/engine_core/src/profiler.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/playback/id.rs",
+      "path": "crates/engine_core/src/scale_spring.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/playback/mod.rs",
+      "path": "crates/engine_core/src/spring.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/playback/system.rs",
+      "path": "crates/engine_core/src/time.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/plugin.rs",
+      "path": "crates/engine_core/src/transform.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/prelude.rs",
+      "path": "crates/engine_core/src/types.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/sound/data.rs",
+      "path": "crates/engine_core/src/window.rs",
       "language": "rs",
       "classification": "production"
     },
     {
-      "path": "crates/engine_audio/src/sound/effect.rs",
-      "language": "rs",
-      "classification": "production"
-    },
-    {
-      "path": "crates/engine_audio/src/sound/library.rs",
-      "language": "rs",
-      "classification": "production"
-    },
-    {
-      "path": "crates/engine_audio/src/sound/mod.rs",
-      "language": "rs",
-      "classification": "production"
-    },
-    {
-      "path": "crates/engine_audio/src/spatial.rs",
-      "language": "rs",
-      "classification": "production"
-    },
-    {
-      "path": "crates/engine_audio/src/test_helpers.rs",
-      "language": "rs",
-      "classification": "production"
-    },
-    {
-      "path": "crates/engine_audio/tests/main.rs",
+      "path": "crates/engine_core/tests/main.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/engine_audio/tests/suite/backend_cpal.rs",
+      "path": "crates/engine_core/tests/suite/color.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/engine_audio/tests/suite/backend_traits.rs",
+      "path": "crates/engine_core/tests/suite/event_bus.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/engine_audio/tests/suite/mixer_engine.rs",
+      "path": "crates/engine_core/tests/suite/mod.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/engine_audio/tests/suite/mixer.rs",
+      "path": "crates/engine_core/tests/suite/profiler.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/engine_audio/tests/suite/mod.rs",
+      "path": "crates/engine_core/tests/suite/scale_spring.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/engine_audio/tests/suite/playback_system.rs",
+      "path": "crates/engine_core/tests/suite/spring.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/engine_audio/tests/suite/sound_data.rs",
+      "path": "crates/engine_core/tests/suite/time.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/engine_audio/tests/suite/sound_effect.rs",
+      "path": "crates/engine_core/tests/suite/transform.rs",
       "language": "rs",
       "classification": "test"
     },
     {
-      "path": "crates/engine_audio/tests/suite/sound_library.rs",
-      "language": "rs",
-      "classification": "test"
-    },
-    {
-      "path": "crates/engine_audio/tests/suite/spatial.rs",
+      "path": "crates/engine_core/tests/suite/types.rs",
       "language": "rs",
       "classification": "test"
     }
   ],
   "summary": {
-    "total": 161,
-    "errors": 32,
-    "warnings": 129,
+    "total": 116,
+    "errors": 26,
+    "warnings": 90,
     "byRule": {
-      "duplicate-block": 29,
-      "types-per-file": 6,
+      "dead-export": 5,
+      "duplicate-block": 32,
+      "types-per-file": 4,
       "file-length": 8,
+      "function-length": 5,
       "unnamed-tuple": 1,
-      "comment-bloat": 2,
-      "complexity": 2,
-      "function-length": 6,
+      "line-length": 42,
+      "unused-local": 1,
+      "complexity": 1,
       "nesting-depth": 1,
-      "param-count": 4,
-      "else-branch": 5,
-      "stateless-method": 8,
-      "comment-restates-code": 2,
-      "output-parameter": 8,
-      "line-length": 76,
-      "wildcard-import": 3
+      "param-count": 6,
+      "stateless-method": 1,
+      "comment-bloat": 5,
+      "output-parameter": 4
     },
     "byFile": {
-      "crates/engine_audio/tests/suite/playback_system.rs": 41,
-      "crates/engine_audio/src/backend/cpal.rs": 8,
-      "crates/engine_audio/src/backend/traits.rs": 7,
-      "crates/engine_audio/src/mixer.rs": 1,
-      "crates/engine_audio/src/mixer_engine.rs": 4,
-      "crates/engine_audio/src/playback/buffer.rs": 1,
-      "crates/engine_audio/src/spatial.rs": 8,
-      "crates/engine_audio/tests/suite/spatial.rs": 36,
-      "crates/engine_audio/src/plugin.rs": 2,
-      "crates/engine_audio/tests/suite/backend_cpal.rs": 5,
-      "crates/engine_audio/tests/suite/backend_traits.rs": 9,
-      "crates/engine_audio/tests/suite/mixer_engine.rs": 13,
-      "crates/engine_audio/tests/suite/sound_data.rs": 8,
-      "crates/engine_audio/tests/suite/sound_effect.rs": 5,
-      "crates/engine_audio/src/playback/system.rs": 8,
-      "crates/engine_audio/src/prelude.rs": 2,
-      "crates/engine_audio/src/sound/effect.rs": 1,
-      "crates/engine_audio/tests/suite/mixer.rs": 1,
-      "crates/engine_audio/tests/suite/sound_library.rs": 1
+      "crates/engine_core/src/color.rs": 6,
+      "crates/engine_core/tests/suite/scale_spring.rs": 28,
+      "crates/engine_core/src/event_bus.rs": 2,
+      "crates/engine_core/src/profiler.rs": 9,
+      "crates/engine_core/src/time.rs": 5,
+      "crates/engine_core/src/types.rs": 1,
+      "crates/engine_core/benches/spring.rs": 15,
+      "crates/engine_core/benches/stress.rs": 3,
+      "crates/engine_core/src/spring.rs": 2,
+      "crates/engine_core/tests/suite/spring.rs": 6,
+      "crates/engine_core/tests/suite/time.rs": 13,
+      "crates/engine_core/tests/suite/event_bus.rs": 6,
+      "crates/engine_core/tests/suite/profiler.rs": 2,
+      "crates/engine_core/tests/suite/transform.rs": 6,
+      "crates/engine_core/src/scale_spring.rs": 5,
+      "crates/engine_core/tests/suite/color.rs": 3,
+      "crates/engine_core/src/prelude.rs": 1,
+      "crates/engine_core/src/transform.rs": 1,
+      "crates/engine_core/tests/suite/types.rs": 2
     }
   },
   "comparison": null,
   "violations": [
     {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 87,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:87, crates/engine_audio/tests/suite/playback_system.rs:106, crates/engine_audio/tests/suite/playback_system.rs:146, crates/engine_audio/tests/suite/playback_system.rs:222",
-      "metric": 4
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 88,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:88, crates/engine_audio/tests/suite/playback_system.rs:107, crates/engine_audio/tests/suite/playback_system.rs:147, crates/engine_audio/tests/suite/playback_system.rs:223",
-      "metric": 4
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 106,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:87, crates/engine_audio/tests/suite/playback_system.rs:106, crates/engine_audio/tests/suite/playback_system.rs:146, crates/engine_audio/tests/suite/playback_system.rs:222",
-      "metric": 4
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 107,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:88, crates/engine_audio/tests/suite/playback_system.rs:107, crates/engine_audio/tests/suite/playback_system.rs:147, crates/engine_audio/tests/suite/playback_system.rs:223",
-      "metric": 4
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 146,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:87, crates/engine_audio/tests/suite/playback_system.rs:106, crates/engine_audio/tests/suite/playback_system.rs:146, crates/engine_audio/tests/suite/playback_system.rs:222",
-      "metric": 4
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 147,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:88, crates/engine_audio/tests/suite/playback_system.rs:107, crates/engine_audio/tests/suite/playback_system.rs:147, crates/engine_audio/tests/suite/playback_system.rs:223",
-      "metric": 4
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 222,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:87, crates/engine_audio/tests/suite/playback_system.rs:106, crates/engine_audio/tests/suite/playback_system.rs:146, crates/engine_audio/tests/suite/playback_system.rs:222",
-      "metric": 4
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 223,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:88, crates/engine_audio/tests/suite/playback_system.rs:107, crates/engine_audio/tests/suite/playback_system.rs:147, crates/engine_audio/tests/suite/playback_system.rs:223",
-      "metric": 4
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 246,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:246, crates/engine_audio/tests/suite/playback_system.rs:269, crates/engine_audio/tests/suite/playback_system.rs:296, crates/engine_audio/tests/suite/playback_system.rs:319, crates/engine_audio/tests/suite/playback_system.rs:346",
-      "metric": 5
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 247,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:247, crates/engine_audio/tests/suite/playback_system.rs:270, crates/engine_audio/tests/suite/playback_system.rs:297, crates/engine_audio/tests/suite/playback_system.rs:320, crates/engine_audio/tests/suite/playback_system.rs:347",
-      "metric": 5
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 269,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:246, crates/engine_audio/tests/suite/playback_system.rs:269, crates/engine_audio/tests/suite/playback_system.rs:296, crates/engine_audio/tests/suite/playback_system.rs:319, crates/engine_audio/tests/suite/playback_system.rs:346",
-      "metric": 5
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 270,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:247, crates/engine_audio/tests/suite/playback_system.rs:270, crates/engine_audio/tests/suite/playback_system.rs:297, crates/engine_audio/tests/suite/playback_system.rs:320, crates/engine_audio/tests/suite/playback_system.rs:347",
-      "metric": 5
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 271,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:271, crates/engine_audio/tests/suite/playback_system.rs:298, crates/engine_audio/tests/suite/playback_system.rs:321",
-      "metric": 3
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 296,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:246, crates/engine_audio/tests/suite/playback_system.rs:269, crates/engine_audio/tests/suite/playback_system.rs:296, crates/engine_audio/tests/suite/playback_system.rs:319, crates/engine_audio/tests/suite/playback_system.rs:346",
-      "metric": 5
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 297,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:247, crates/engine_audio/tests/suite/playback_system.rs:270, crates/engine_audio/tests/suite/playback_system.rs:297, crates/engine_audio/tests/suite/playback_system.rs:320, crates/engine_audio/tests/suite/playback_system.rs:347",
-      "metric": 5
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 298,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:271, crates/engine_audio/tests/suite/playback_system.rs:298, crates/engine_audio/tests/suite/playback_system.rs:321",
-      "metric": 3
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 319,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:246, crates/engine_audio/tests/suite/playback_system.rs:269, crates/engine_audio/tests/suite/playback_system.rs:296, crates/engine_audio/tests/suite/playback_system.rs:319, crates/engine_audio/tests/suite/playback_system.rs:346",
-      "metric": 5
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 320,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:247, crates/engine_audio/tests/suite/playback_system.rs:270, crates/engine_audio/tests/suite/playback_system.rs:297, crates/engine_audio/tests/suite/playback_system.rs:320, crates/engine_audio/tests/suite/playback_system.rs:347",
-      "metric": 5
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 321,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:271, crates/engine_audio/tests/suite/playback_system.rs:298, crates/engine_audio/tests/suite/playback_system.rs:321",
-      "metric": 3
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 346,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:246, crates/engine_audio/tests/suite/playback_system.rs:269, crates/engine_audio/tests/suite/playback_system.rs:296, crates/engine_audio/tests/suite/playback_system.rs:319, crates/engine_audio/tests/suite/playback_system.rs:346",
-      "metric": 5
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 347,
-      "rule": "duplicate-block",
-      "severity": "error",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:247, crates/engine_audio/tests/suite/playback_system.rs:270, crates/engine_audio/tests/suite/playback_system.rs:297, crates/engine_audio/tests/suite/playback_system.rs:320, crates/engine_audio/tests/suite/playback_system.rs:347",
-      "metric": 5
-    },
-    {
-      "file": "crates/engine_audio/src/backend/cpal.rs",
-      "line": 21,
-      "rule": "types-per-file",
-      "severity": "error",
-      "message": "2 types in one file: StreamHandle, CpalBackend",
-      "metric": 2
-    },
-    {
-      "file": "crates/engine_audio/src/backend/traits.rs",
+      "file": "crates/engine_core/src/color.rs",
       "line": 12,
+      "rule": "dead-export",
+      "severity": "error",
+      "message": "WHITE is exported but never referenced anywhere",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_core/src/color.rs",
+      "line": 18,
+      "rule": "dead-export",
+      "severity": "error",
+      "message": "BLACK is exported but never referenced anywhere",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_core/src/color.rs",
+      "line": 30,
+      "rule": "dead-export",
+      "severity": "error",
+      "message": "RED is exported but never referenced anywhere",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_core/src/color.rs",
+      "line": 36,
+      "rule": "dead-export",
+      "severity": "error",
+      "message": "GREEN is exported but never referenced anywhere",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_core/src/color.rs",
+      "line": 42,
+      "rule": "dead-export",
+      "severity": "error",
+      "message": "BLUE is exported but never referenced anywhere",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 34,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+      "metric": 6
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 35,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:35, crates/engine_core/tests/suite/scale_spring.rs:59, crates/engine_core/tests/suite/scale_spring.rs:92, crates/engine_core/tests/suite/scale_spring.rs:118",
+      "metric": 4
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 58,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+      "metric": 6
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 59,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:35, crates/engine_core/tests/suite/scale_spring.rs:59, crates/engine_core/tests/suite/scale_spring.rs:92, crates/engine_core/tests/suite/scale_spring.rs:118",
+      "metric": 4
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 91,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+      "metric": 6
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 92,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:35, crates/engine_core/tests/suite/scale_spring.rs:59, crates/engine_core/tests/suite/scale_spring.rs:92, crates/engine_core/tests/suite/scale_spring.rs:118",
+      "metric": 4
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 117,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+      "metric": 6
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 118,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:35, crates/engine_core/tests/suite/scale_spring.rs:59, crates/engine_core/tests/suite/scale_spring.rs:92, crates/engine_core/tests/suite/scale_spring.rs:118",
+      "metric": 4
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 178,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+      "metric": 6
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 274,
+      "rule": "duplicate-block",
+      "severity": "error",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+      "metric": 6
+    },
+    {
+      "file": "crates/engine_core/src/event_bus.rs",
+      "line": 6,
       "rule": "types-per-file",
       "severity": "error",
-      "message": "2 types in one file: AudioBackend, NullAudioBackend",
+      "message": "2 types in one file: Event, EventBus",
       "metric": 2
     },
     {
-      "file": "crates/engine_audio/src/mixer.rs",
-      "line": 31,
+      "file": "crates/engine_core/src/profiler.rs",
+      "line": 26,
       "rule": "types-per-file",
       "severity": "error",
-      "message": "2 types in one file: MixerTrack, MixerState",
-      "metric": 2
+      "message": "3 types in one file: Record, FrameProfiler, ProfileScope",
+      "metric": 3
     },
     {
-      "file": "crates/engine_audio/src/mixer_engine.rs",
-      "line": 13,
+      "file": "crates/engine_core/src/time.rs",
+      "line": 16,
       "rule": "types-per-file",
       "severity": "error",
-      "message": "2 types in one file: ActiveSound, SharedState",
-      "metric": 2
+      "message": "7 types in one file: DeltaTime, Time, FakeClock, FixedDeltaClock, SystemClock, ClockRes, FixedTimestep",
+      "metric": 7
     },
     {
-      "file": "crates/engine_audio/src/playback/buffer.rs",
-      "line": 14,
+      "file": "crates/engine_core/src/types.rs",
+      "line": 30,
       "rule": "types-per-file",
       "severity": "error",
-      "message": "2 types in one file: SpatialGains, PlaySound",
-      "metric": 2
+      "message": "3 types in one file: Pixels, Seconds, TextureId",
+      "metric": 3
     },
     {
-      "file": "crates/engine_audio/src/spatial.rs",
-      "line": 41,
-      "rule": "types-per-file",
-      "severity": "error",
-      "message": "2 types in one file: AudioListener, AudioEmitter",
-      "metric": 2
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
       "line": 1,
       "rule": "file-length",
       "severity": "error",
-      "message": "file is 368 lines",
-      "metric": 368
+      "message": "file is 329 lines",
+      "metric": 329
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 1,
-      "rule": "file-length",
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 8,
+      "rule": "function-length",
       "severity": "error",
-      "message": "file is 519 lines",
-      "metric": 519
+      "message": "bench_spring_step() is 95 lines",
+      "metric": 95
     },
     {
-      "file": "crates/engine_audio/src/spatial.rs",
-      "line": 23,
+      "file": "crates/engine_core/benches/stress.rs",
+      "line": 10,
+      "rule": "function-length",
+      "severity": "error",
+      "message": "bench_spring_stress() is 63 lines",
+      "metric": 63
+    },
+    {
+      "file": "crates/engine_core/src/spring.rs",
+      "line": 9,
       "rule": "unnamed-tuple",
       "severity": "error",
       "message": "tuple -> (f32, f32) — replace it with a named type",
       "metric": 1
     },
     {
-      "file": "crates/engine_audio/src/plugin.rs",
-      "line": 1,
-      "rule": "comment-bloat",
+      "file": "crates/engine_core/tests/suite/spring.rs",
+      "line": 79,
+      "rule": "line-length",
       "severity": "error",
-      "message": "8-line comment over 1 line(s) of code - keep the why, cut the rest",
-      "metric": 8
+      "message": "line is 129 chars",
+      "metric": 129
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 421,
-      "rule": "comment-bloat",
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "line": 103,
+      "rule": "line-length",
       "severity": "error",
-      "message": "6-line comment over 1 line(s) of code - keep the why, cut the rest",
-      "metric": 6
+      "message": "line is 130 chars",
+      "metric": 130
     },
     {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
+      "file": "crates/engine_core/src/event_bus.rs",
+      "line": 44,
+      "rule": "unused-local",
+      "severity": "error",
+      "message": "into_iter() is never called in this file and is not exported",
+      "metric": 1
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 35,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:35, crates/engine_core/benches/spring.rs:73",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 36,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:36, crates/engine_core/benches/spring.rs:74",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 44,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:44, crates/engine_core/benches/spring.rs:81",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 45,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:45, crates/engine_core/benches/spring.rs:82",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 53,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:53, crates/engine_core/benches/spring.rs:89",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 54,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:54, crates/engine_core/benches/spring.rs:90",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 73,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:35, crates/engine_core/benches/spring.rs:73",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 74,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:36, crates/engine_core/benches/spring.rs:74",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 81,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:44, crates/engine_core/benches/spring.rs:81",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 82,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:45, crates/engine_core/benches/spring.rs:82",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
       "line": 89,
       "rule": "duplicate-block",
       "severity": "warn",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:89, crates/engine_audio/tests/suite/playback_system.rs:108",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:53, crates/engine_core/benches/spring.rs:89",
       "metric": 2
     },
     {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 108,
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 90,
       "rule": "duplicate-block",
       "severity": "warn",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:89, crates/engine_audio/tests/suite/playback_system.rs:108",
+      "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:54, crates/engine_core/benches/spring.rs:90",
       "metric": 2
     },
     {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 148,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 213,
       "rule": "duplicate-block",
       "severity": "warn",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:148, crates/engine_audio/tests/suite/playback_system.rs:224",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:213, crates/engine_core/tests/suite/scale_spring.rs:239",
       "metric": 2
     },
     {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 224,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 214,
       "rule": "duplicate-block",
       "severity": "warn",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:148, crates/engine_audio/tests/suite/playback_system.rs:224",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:214, crates/engine_core/tests/suite/scale_spring.rs:240",
       "metric": 2
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 304,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 239,
       "rule": "duplicate-block",
       "severity": "warn",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/spatial.rs:304, crates/engine_audio/tests/suite/spatial.rs:507",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:213, crates/engine_core/tests/suite/scale_spring.rs:239",
       "metric": 2
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 338,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 240,
       "rule": "duplicate-block",
       "severity": "warn",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/spatial.rs:338, crates/engine_audio/tests/suite/spatial.rs:452",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:214, crates/engine_core/tests/suite/scale_spring.rs:240",
       "metric": 2
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 452,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 241,
       "rule": "duplicate-block",
       "severity": "warn",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/spatial.rs:338, crates/engine_audio/tests/suite/spatial.rs:452",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:241, crates/engine_core/tests/suite/scale_spring.rs:275",
       "metric": 2
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 507,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 275,
       "rule": "duplicate-block",
       "severity": "warn",
-      "message": "6-line block duplicated at crates/engine_audio/tests/suite/spatial.rs:304, crates/engine_audio/tests/suite/spatial.rs:507",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:241, crates/engine_core/tests/suite/scale_spring.rs:275",
       "metric": 2
     },
     {
-      "file": "crates/engine_audio/src/backend/cpal.rs",
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "line": 136,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/time.rs:136, crates/engine_core/tests/suite/time.rs:183",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "line": 137,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/time.rs:137, crates/engine_core/tests/suite/time.rs:184",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "line": 183,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/time.rs:136, crates/engine_core/tests/suite/time.rs:183",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "line": 184,
+      "rule": "duplicate-block",
+      "severity": "warn",
+      "message": "6-line block duplicated at crates/engine_core/tests/suite/time.rs:137, crates/engine_core/tests/suite/time.rs:184",
+      "metric": 2
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
       "line": 1,
       "rule": "file-length",
       "severity": "warn",
-      "message": "file is 136 lines",
-      "metric": 136
+      "message": "file is 106 lines",
+      "metric": 106
     },
     {
-      "file": "crates/engine_audio/tests/suite/backend_cpal.rs",
+      "file": "crates/engine_core/src/profiler.rs",
       "line": 1,
       "rule": "file-length",
       "severity": "warn",
-      "message": "file is 223 lines",
-      "metric": 223
+      "message": "file is 127 lines",
+      "metric": 127
     },
     {
-      "file": "crates/engine_audio/tests/suite/backend_traits.rs",
+      "file": "crates/engine_core/src/time.rs",
       "line": 1,
       "rule": "file-length",
       "severity": "warn",
-      "message": "file is 200 lines",
-      "metric": 200
+      "message": "file is 149 lines",
+      "metric": 149
     },
     {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
+      "file": "crates/engine_core/tests/suite/event_bus.rs",
       "line": 1,
       "rule": "file-length",
       "severity": "warn",
-      "message": "file is 288 lines",
-      "metric": 288
+      "message": "file is 173 lines",
+      "metric": 173
     },
     {
-      "file": "crates/engine_audio/tests/suite/sound_data.rs",
+      "file": "crates/engine_core/tests/suite/profiler.rs",
       "line": 1,
       "rule": "file-length",
       "severity": "warn",
-      "message": "file is 151 lines",
-      "metric": 151
+      "message": "file is 130 lines",
+      "metric": 130
     },
     {
-      "file": "crates/engine_audio/tests/suite/sound_effect.rs",
+      "file": "crates/engine_core/tests/suite/time.rs",
       "line": 1,
       "rule": "file-length",
       "severity": "warn",
-      "message": "file is 112 lines",
-      "metric": 112
+      "message": "file is 198 lines",
+      "metric": 198
     },
     {
-      "file": "crates/engine_audio/src/backend/cpal.rs",
-      "line": 44,
+      "file": "crates/engine_core/tests/suite/transform.rs",
+      "line": 1,
+      "rule": "file-length",
+      "severity": "warn",
+      "message": "file is 240 lines",
+      "metric": 240
+    },
+    {
+      "file": "crates/engine_core/src/scale_spring.rs",
+      "line": 38,
       "rule": "complexity",
       "severity": "warn",
-      "message": "open_stream() cyclomatic complexity 7",
+      "message": "scale_spring_system() cyclomatic complexity 7",
       "metric": 7
     },
     {
-      "file": "crates/engine_audio/src/playback/system.rs",
-      "line": 14,
-      "rule": "complexity",
-      "severity": "warn",
-      "message": "play_sound_system() cyclomatic complexity 8",
-      "metric": 8
-    },
-    {
-      "file": "crates/engine_audio/src/backend/cpal.rs",
-      "line": 44,
+      "file": "crates/engine_core/src/scale_spring.rs",
+      "line": 38,
       "rule": "function-length",
       "severity": "warn",
-      "message": "open_stream() is 43 lines",
-      "metric": 43
+      "message": "scale_spring_system() is 40 lines",
+      "metric": 40
     },
     {
-      "file": "crates/engine_audio/src/playback/system.rs",
-      "line": 14,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 139,
       "rule": "function-length",
       "severity": "warn",
-      "message": "play_sound_system() is 33 lines",
-      "metric": 33
+      "message": "when_lock_x_true_then_scale_y_springs_but_scale_x_unchanged() is 31 lines",
+      "metric": 31
     },
     {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 128,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 298,
       "rule": "function-length",
       "severity": "warn",
-      "message": "when_sound_shorter_than_buffer_then_removed_after_last_sample() is 34 lines",
-      "metric": 34
+      "message": "when_large_dt_simulating_2fps_then_scale_stays_bounded() is 31 lines",
+      "metric": 31
     },
     {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 216,
-      "rule": "function-length",
-      "severity": "warn",
-      "message": "when_sound_longer_than_buffer_then_cursor_advances() is 42 lines",
-      "metric": 42
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 163,
-      "rule": "function-length",
-      "severity": "warn",
-      "message": "when_play_sound_with_mixer_state_then_track_volume_forwarded() is 35 lines",
-      "metric": 35
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 291,
-      "rule": "function-length",
-      "severity": "warn",
-      "message": "when_emitter_to_right_then_spatial_gains_reflect_pan_and_attenuation() is 32 lines",
-      "metric": 32
-    },
-    {
-      "file": "crates/engine_audio/src/playback/system.rs",
-      "line": 14,
+      "file": "crates/engine_core/benches/stress.rs",
+      "line": 10,
       "rule": "nesting-depth",
       "severity": "warn",
-      "message": "play_sound_system() nests 4 levels deep",
+      "message": "bench_spring_stress() nests 4 levels deep",
       "metric": 4
     },
     {
-      "file": "crates/engine_audio/src/playback/system.rs",
-      "line": 14,
+      "file": "crates/engine_core/src/color.rs",
+      "line": 53,
       "rule": "param-count",
       "severity": "warn",
-      "message": "play_sound_system() takes 4 parameters",
+      "message": "from_u8() takes 4 parameters",
       "metric": 4
     },
     {
-      "file": "crates/engine_audio/src/spatial.rs",
+      "file": "crates/engine_core/src/scale_spring.rs",
+      "line": 38,
+      "rule": "param-count",
+      "severity": "warn",
+      "message": "scale_spring_system() takes 4 parameters",
+      "metric": 4
+    },
+    {
+      "file": "crates/engine_core/src/spring.rs",
+      "line": 2,
+      "rule": "param-count",
+      "severity": "warn",
+      "message": "spring_step() takes 6 parameters",
+      "metric": 6
+    },
+    {
+      "file": "crates/engine_core/tests/suite/color.rs",
       "line": 48,
       "rule": "param-count",
       "severity": "warn",
-      "message": "compute_spatial_gains() takes 4 parameters",
+      "message": "when_any_u8_inputs_then_from_u8_components_in_zero_to_one() takes 4 parameters",
       "metric": 4
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 48,
+      "file": "crates/engine_core/tests/suite/color.rs",
+      "line": 65,
       "rule": "param-count",
       "severity": "warn",
-      "message": "spawn_emitter() takes 5 parameters",
+      "message": "when_any_finite_color_then_ron_roundtrip_preserves_value() takes 4 parameters",
+      "metric": 4
+    },
+    {
+      "file": "crates/engine_core/tests/suite/transform.rs",
+      "line": 191,
+      "rule": "param-count",
+      "severity": "warn",
+      "message": "when_any_finite_transform2d_then_ron_roundtrip_preserves_value() takes 5 parameters",
       "metric": 5
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 201,
-      "rule": "param-count",
-      "severity": "warn",
-      "message": "when_any_two_positions_then_constant_power_property_holds() takes 4 parameters",
-      "metric": 4
-    },
-    {
-      "file": "crates/engine_audio/src/backend/cpal.rs",
-      "line": 44,
-      "rule": "else-branch",
-      "severity": "warn",
-      "message": "open_stream() has 1 else branch(es) — prefer guard clauses",
-      "metric": 1
-    },
-    {
-      "file": "crates/engine_audio/src/playback/system.rs",
-      "line": 14,
-      "rule": "else-branch",
-      "severity": "warn",
-      "message": "play_sound_system() has 2 else branch(es) — prefer guard clauses",
-      "metric": 2
-    },
-    {
-      "file": "crates/engine_audio/src/playback/system.rs",
-      "line": 48,
-      "rule": "else-branch",
-      "severity": "warn",
-      "message": "apply_spatial_gains() has 1 else branch(es) — prefer guard clauses",
-      "metric": 1
-    },
-    {
-      "file": "crates/engine_audio/src/spatial.rs",
-      "line": 23,
-      "rule": "else-branch",
-      "severity": "warn",
-      "message": "compute_pan() has 1 else branch(es) — prefer guard clauses",
-      "metric": 1
-    },
-    {
-      "file": "crates/engine_audio/src/spatial.rs",
-      "line": 64,
-      "rule": "else-branch",
-      "severity": "warn",
-      "message": "spatial_audio_system() has 2 else branch(es) — prefer guard clauses",
-      "metric": 2
-    },
-    {
-      "file": "crates/engine_audio/src/backend/cpal.rs",
-      "line": 90,
+      "file": "crates/engine_core/src/time.rs",
+      "line": 11,
       "rule": "stateless-method",
       "severity": "warn",
       "message": "default() never touches instance state — make it a free function",
       "metric": 1
     },
     {
-      "file": "crates/engine_audio/src/backend/traits.rs",
-      "line": 29,
-      "rule": "stateless-method",
+      "file": "crates/engine_core/tests/suite/event_bus.rs",
+      "line": 9,
+      "rule": "comment-bloat",
       "severity": "warn",
-      "message": "default() never touches instance state — make it a free function",
-      "metric": 1
+      "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
+      "metric": 5
     },
     {
-      "file": "crates/engine_audio/src/backend/traits.rs",
-      "line": 40,
-      "rule": "stateless-method",
+      "file": "crates/engine_core/tests/suite/event_bus.rs",
+      "line": 27,
+      "rule": "comment-bloat",
       "severity": "warn",
-      "message": "stop() never touches instance state — make it a free function",
-      "metric": 1
+      "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
+      "metric": 5
     },
     {
-      "file": "crates/engine_audio/src/backend/traits.rs",
-      "line": 42,
-      "rule": "stateless-method",
+      "file": "crates/engine_core/tests/suite/event_bus.rs",
+      "line": 47,
+      "rule": "comment-bloat",
       "severity": "warn",
-      "message": "set_volume() never touches instance state — make it a free function",
-      "metric": 1
+      "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
+      "metric": 5
     },
     {
-      "file": "crates/engine_audio/src/backend/traits.rs",
-      "line": 44,
-      "rule": "stateless-method",
+      "file": "crates/engine_core/tests/suite/event_bus.rs",
+      "line": 108,
+      "rule": "comment-bloat",
       "severity": "warn",
-      "message": "set_track_volume() never touches instance state — make it a free function",
-      "metric": 1
+      "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
+      "metric": 5
     },
     {
-      "file": "crates/engine_audio/src/plugin.rs",
-      "line": 12,
-      "rule": "stateless-method",
+      "file": "crates/engine_core/tests/suite/event_bus.rs",
+      "line": 154,
+      "rule": "comment-bloat",
       "severity": "warn",
-      "message": "default() never touches instance state — make it a free function",
-      "metric": 1
+      "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
+      "metric": 5
     },
     {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 53,
-      "rule": "stateless-method",
-      "severity": "warn",
-      "message": "stop() never touches instance state — make it a free function",
-      "metric": 1
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 54,
-      "rule": "stateless-method",
-      "severity": "warn",
-      "message": "set_volume() never touches instance state — make it a free function",
-      "metric": 1
-    },
-    {
-      "file": "crates/engine_audio/src/spatial.rs",
-      "line": 13,
-      "rule": "comment-restates-code",
-      "severity": "warn",
-      "message": "comment repeats the declaration below it - say why, not what",
-      "metric": 1
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 210,
-      "rule": "comment-restates-code",
-      "severity": "warn",
-      "message": "comment repeats the declaration below it - say why, not what",
-      "metric": 1
-    },
-    {
-      "file": "crates/engine_audio/src/mixer_engine.rs",
-      "line": 20,
+      "file": "crates/engine_core/benches/spring.rs",
+      "line": 8,
       "rule": "output-parameter",
       "severity": "warn",
-      "message": "mix_into() exposes an output parameter; return a value instead",
+      "message": "bench_spring_step() exposes an output parameter; return a value instead",
       "metric": 1
     },
     {
-      "file": "crates/engine_audio/src/mixer_engine.rs",
-      "line": 20,
+      "file": "crates/engine_core/benches/stress.rs",
+      "line": 10,
       "rule": "output-parameter",
       "severity": "warn",
-      "message": "mix_into() exposes an output parameter; return a value instead",
+      "message": "bench_spring_stress() exposes an output parameter; return a value instead",
       "metric": 1
     },
     {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 78,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 17,
       "rule": "output-parameter",
       "severity": "warn",
       "message": "run_system() exposes an output parameter; return a value instead",
       "metric": 1
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 39,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 23,
       "rule": "output-parameter",
       "severity": "warn",
-      "message": "spawn_listener() exposes an output parameter; return a value instead",
+      "message": "run_n_frames() exposes an output parameter; return a value instead",
       "metric": 1
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 48,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "spawn_emitter() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 66,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "run_spatial_system() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 460,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "spawn_child_emitter() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 479,
-      "rule": "output-parameter",
-      "severity": "warn",
-      "message": "run_hierarchy_and_spatial_system() exposes an output parameter; return a value instead",
-      "metric": 1
-    },
-    {
-      "file": "crates/engine_audio/src/backend/cpal.rs",
-      "line": 47,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 82 chars",
-      "metric": 82
-    },
-    {
-      "file": "crates/engine_audio/src/backend/cpal.rs",
-      "line": 96,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 85 chars",
-      "metric": 85
-    },
-    {
-      "file": "crates/engine_audio/src/backend/traits.rs",
-      "line": 6,
+      "file": "crates/engine_core/src/prelude.rs",
+      "line": 7,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 84 chars",
       "metric": 84
     },
     {
-      "file": "crates/engine_audio/src/backend/traits.rs",
-      "line": 35,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 87 chars",
-      "metric": 87
-    },
-    {
-      "file": "crates/engine_audio/src/mixer_engine.rs",
-      "line": 26,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 87 chars",
-      "metric": 87
-    },
-    {
-      "file": "crates/engine_audio/src/playback/system.rs",
-      "line": 34,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 81 chars",
-      "metric": 81
-    },
-    {
-      "file": "crates/engine_audio/src/playback/system.rs",
-      "line": 36,
+      "file": "crates/engine_core/src/profiler.rs",
+      "line": 14,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 88 chars",
       "metric": 88
     },
     {
-      "file": "crates/engine_audio/src/prelude.rs",
-      "line": 4,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 82 chars",
-      "metric": 82
-    },
-    {
-      "file": "crates/engine_audio/src/prelude.rs",
-      "line": 8,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 90 chars",
-      "metric": 90
-    },
-    {
-      "file": "crates/engine_audio/src/sound/effect.rs",
-      "line": 10,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 90 chars",
-      "metric": 90
-    },
-    {
-      "file": "crates/engine_audio/src/spatial.rs",
-      "line": 13,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 83 chars",
-      "metric": 83
-    },
-    {
-      "file": "crates/engine_audio/src/spatial.rs",
-      "line": 66,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 82 chars",
-      "metric": 82
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_cpal.rs",
-      "line": 23,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 102 chars",
-      "metric": 102
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_cpal.rs",
-      "line": 37,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 81 chars",
-      "metric": 81
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_cpal.rs",
-      "line": 94,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 84 chars",
-      "metric": 84
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_cpal.rs",
-      "line": 203,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 94 chars",
-      "metric": 94
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_traits.rs",
+      "file": "crates/engine_core/src/profiler.rs",
       "line": 16,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 93 chars",
-      "metric": 93
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-      "line": 34,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 102 chars",
-      "metric": 102
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-      "line": 52,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 95 chars",
-      "metric": 95
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-      "line": 70,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 87 chars",
-      "metric": 87
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-      "line": 90,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 105 chars",
-      "metric": 105
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-      "line": 129,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 86 chars",
       "metric": 86
     },
     {
-      "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-      "line": 163,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 94 chars",
-      "metric": 94
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-      "line": 182,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 100 chars",
-      "metric": 100
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/mixer.rs",
-      "line": 16,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 82 chars",
-      "metric": 82
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 40,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 82 chars",
-      "metric": 82
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 49,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 85 chars",
-      "metric": 85
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 77,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 101 chars",
-      "metric": 101
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 100,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 98 chars",
-      "metric": 98
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 126,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 95 chars",
-      "metric": 95
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 163,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 103 chars",
-      "metric": 103
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 190,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 87 chars",
-      "metric": 87
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 214,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 106 chars",
-      "metric": 106
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 218,
+      "file": "crates/engine_core/src/profiler.rs",
+      "line": 23,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 89 chars",
       "metric": 89
     },
     {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "line": 259,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 100 chars",
-      "metric": 100
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 10,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 85 chars",
-      "metric": 85
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 46,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 86 chars",
-      "metric": 86
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 72,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 81 chars",
-      "metric": 81
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 242,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 100 chars",
-      "metric": 100
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 265,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 110 chars",
-      "metric": 110
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 292,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 109 chars",
-      "metric": 109
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 315,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 112 chars",
-      "metric": 112
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 318,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 90 chars",
-      "metric": 90
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 342,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 95 chars",
-      "metric": 95
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 345,
+      "file": "crates/engine_core/src/profiler.rs",
+      "line": 47,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 83 chars",
       "metric": 83
     },
     {
-      "file": "crates/engine_audio/tests/suite/sound_data.rs",
-      "line": 42,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 82 chars",
-      "metric": 82
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/sound_data.rs",
-      "line": 46,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 84 chars",
-      "metric": 84
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/sound_data.rs",
-      "line": 63,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 100 chars",
-      "metric": 100
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/sound_data.rs",
-      "line": 66,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 84 chars",
-      "metric": 84
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/sound_data.rs",
-      "line": 83,
+      "file": "crates/engine_core/src/profiler.rs",
+      "line": 57,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 92 chars",
       "metric": 92
     },
     {
-      "file": "crates/engine_audio/tests/suite/sound_data.rs",
-      "line": 100,
+      "file": "crates/engine_core/src/profiler.rs",
+      "line": 59,
       "rule": "line-length",
       "severity": "warn",
-      "message": "line is 102 chars",
-      "metric": 102
+      "message": "line is 94 chars",
+      "metric": 94
     },
     {
-      "file": "crates/engine_audio/tests/suite/sound_data.rs",
-      "line": 137,
+      "file": "crates/engine_core/src/profiler.rs",
+      "line": 69,
       "rule": "line-length",
       "severity": "warn",
-      "message": "line is 89 chars",
-      "metric": 89
+      "message": "line is 86 chars",
+      "metric": 86
     },
     {
-      "file": "crates/engine_audio/tests/suite/sound_effect.rs",
+      "file": "crates/engine_core/src/scale_spring.rs",
+      "line": 14,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 87 chars",
+      "metric": 87
+    },
+    {
+      "file": "crates/engine_core/src/scale_spring.rs",
+      "line": 69,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 93 chars",
+      "metric": 93
+    },
+    {
+      "file": "crates/engine_core/src/time.rs",
       "line": 46,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 82 chars",
-      "metric": 82
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/sound_effect.rs",
-      "line": 80,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 85 chars",
-      "metric": 85
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/sound_effect.rs",
-      "line": 95,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 103 chars",
-      "metric": 103
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 7,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 91 chars",
-      "metric": 91
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 13,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 90 chars",
-      "metric": 90
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 39,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 82 chars",
-      "metric": 82
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 109,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 101 chars",
-      "metric": 101
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 133,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 90 chars",
-      "metric": 90
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 151,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 112 chars",
-      "metric": 112
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 173,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 81 chars",
-      "metric": 81
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 196,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 91 chars",
-      "metric": 91
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 219,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 81 chars",
-      "metric": 81
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 224,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 85 chars",
-      "metric": 85
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 225,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 85 chars",
-      "metric": 85
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 251,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 97 chars",
-      "metric": 97
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 273,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 81 chars",
-      "metric": 81
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 324,
-      "rule": "line-length",
-      "severity": "warn",
-      "message": "line is 99 chars",
-      "metric": 99
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 346,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 111 chars",
       "metric": 111
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 372,
+      "file": "crates/engine_core/src/time.rs",
+      "line": 141,
       "rule": "line-length",
       "severity": "warn",
-      "message": "line is 86 chars",
-      "metric": 86
+      "message": "line is 89 chars",
+      "metric": 89
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 393,
+      "file": "crates/engine_core/src/transform.rs",
+      "line": 14,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 87 chars",
+      "metric": 87
+    },
+    {
+      "file": "crates/engine_core/tests/suite/color.rs",
+      "line": 19,
       "rule": "line-length",
       "severity": "warn",
       "message": "line is 83 chars",
       "metric": 83
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 425,
+      "file": "crates/engine_core/tests/suite/profiler.rs",
+      "line": 38,
       "rule": "line-length",
       "severity": "warn",
-      "message": "line is 82 chars",
-      "metric": 82
+      "message": "line is 81 chars",
+      "metric": 81
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 460,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 87,
       "rule": "line-length",
       "severity": "warn",
-      "message": "line is 86 chars",
-      "metric": 86
+      "message": "line is 96 chars",
+      "metric": 96
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 492,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 113,
       "rule": "line-length",
       "severity": "warn",
-      "message": "line is 120 chars",
-      "metric": 120
+      "message": "line is 103 chars",
+      "metric": 103
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "line": 506,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 137,
       "rule": "line-length",
       "severity": "warn",
-      "message": "line is 91 chars",
-      "metric": 91
+      "message": "line is 115 chars",
+      "metric": 115
     },
     {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "line": 65,
-      "rule": "wildcard-import",
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 174,
+      "rule": "line-length",
       "severity": "warn",
-      "message": "fundsp::prelude32 wildcard import obscures its imported API; import explicit names instead",
-      "metric": 1,
-      "suggestion": "Import explicit names from fundsp::prelude32."
+      "message": "line is 118 chars",
+      "metric": 118
     },
     {
-      "file": "crates/engine_audio/tests/suite/sound_effect.rs",
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 176,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 83 chars",
+      "metric": 83
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 232,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 81 chars",
+      "metric": 81
+    },
+    {
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "line": 296,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 110 chars",
+      "metric": 110
+    },
+    {
+      "file": "crates/engine_core/tests/suite/spring.rs",
+      "line": 10,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 100 chars",
+      "metric": 100
+    },
+    {
+      "file": "crates/engine_core/tests/suite/spring.rs",
+      "line": 28,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 89 chars",
+      "metric": 89
+    },
+    {
+      "file": "crates/engine_core/tests/suite/spring.rs",
+      "line": 37,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 117 chars",
+      "metric": 117
+    },
+    {
+      "file": "crates/engine_core/tests/suite/spring.rs",
+      "line": 39,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 81 chars",
+      "metric": 81
+    },
+    {
+      "file": "crates/engine_core/tests/suite/spring.rs",
+      "line": 94,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 92 chars",
+      "metric": 92
+    },
+    {
+      "file": "crates/engine_core/tests/suite/time.rs",
       "line": 3,
-      "rule": "wildcard-import",
+      "rule": "line-length",
       "severity": "warn",
-      "message": "fundsp::prelude32 wildcard import obscures its imported API; import explicit names instead",
-      "metric": 1,
-      "suggestion": "Import explicit names from fundsp::prelude32."
+      "message": "line is 90 chars",
+      "metric": 90
     },
     {
-      "file": "crates/engine_audio/tests/suite/sound_library.rs",
-      "line": 4,
-      "rule": "wildcard-import",
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "line": 6,
+      "rule": "line-length",
       "severity": "warn",
-      "message": "fundsp::prelude32 wildcard import obscures its imported API; import explicit names instead",
-      "metric": 1,
-      "suggestion": "Import explicit names from fundsp::prelude32."
+      "message": "line is 95 chars",
+      "metric": 95
+    },
+    {
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "line": 19,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 115 chars",
+      "metric": 115
+    },
+    {
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "line": 77,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 108 chars",
+      "metric": 108
+    },
+    {
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "line": 118,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 99 chars",
+      "metric": 99
+    },
+    {
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "line": 154,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 84 chars",
+      "metric": 84
+    },
+    {
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "line": 179,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 108 chars",
+      "metric": 108
+    },
+    {
+      "file": "crates/engine_core/tests/suite/transform.rs",
+      "line": 27,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 94 chars",
+      "metric": 94
+    },
+    {
+      "file": "crates/engine_core/tests/suite/transform.rs",
+      "line": 116,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 85 chars",
+      "metric": 85
+    },
+    {
+      "file": "crates/engine_core/tests/suite/transform.rs",
+      "line": 135,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 83 chars",
+      "metric": 83
+    },
+    {
+      "file": "crates/engine_core/tests/suite/transform.rs",
+      "line": 210,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 102 chars",
+      "metric": 102
+    },
+    {
+      "file": "crates/engine_core/tests/suite/types.rs",
+      "line": 28,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 89 chars",
+      "metric": 89
+    },
+    {
+      "file": "crates/engine_core/tests/suite/types.rs",
+      "line": 41,
+      "rule": "line-length",
+      "severity": "warn",
+      "message": "line is 90 chars",
+      "metric": 90
     }
   ],
   "units": [
     {
-      "file": "crates/engine_audio/tests/suite/playback_system.rs",
-      "errors": 22,
-      "warnings": 19,
+      "file": "crates/engine_core/tests/suite/scale_spring.rs",
+      "errors": 11,
+      "warnings": 17,
       "rules": {
-        "duplicate-block": 25,
+        "duplicate-block": 16,
         "file-length": 1,
-        "function-length": 1,
-        "stateless-method": 2,
-        "output-parameter": 1,
-        "line-length": 10,
-        "wildcard-import": 1
+        "function-length": 2,
+        "output-parameter": 2,
+        "line-length": 7
       },
       "items": [
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 87,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 34,
           "rule": "duplicate-block",
           "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:87, crates/engine_audio/tests/suite/playback_system.rs:106, crates/engine_audio/tests/suite/playback_system.rs:146, crates/engine_audio/tests/suite/playback_system.rs:222",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+          "metric": 6
+        },
+        {
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 35,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:35, crates/engine_core/tests/suite/scale_spring.rs:59, crates/engine_core/tests/suite/scale_spring.rs:92, crates/engine_core/tests/suite/scale_spring.rs:118",
           "metric": 4
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 88,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 58,
           "rule": "duplicate-block",
           "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:88, crates/engine_audio/tests/suite/playback_system.rs:107, crates/engine_audio/tests/suite/playback_system.rs:147, crates/engine_audio/tests/suite/playback_system.rs:223",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+          "metric": 6
+        },
+        {
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 59,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:35, crates/engine_core/tests/suite/scale_spring.rs:59, crates/engine_core/tests/suite/scale_spring.rs:92, crates/engine_core/tests/suite/scale_spring.rs:118",
           "metric": 4
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 106,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 91,
           "rule": "duplicate-block",
           "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:87, crates/engine_audio/tests/suite/playback_system.rs:106, crates/engine_audio/tests/suite/playback_system.rs:146, crates/engine_audio/tests/suite/playback_system.rs:222",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+          "metric": 6
+        },
+        {
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 92,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:35, crates/engine_core/tests/suite/scale_spring.rs:59, crates/engine_core/tests/suite/scale_spring.rs:92, crates/engine_core/tests/suite/scale_spring.rs:118",
           "metric": 4
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 107,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 117,
           "rule": "duplicate-block",
           "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:88, crates/engine_audio/tests/suite/playback_system.rs:107, crates/engine_audio/tests/suite/playback_system.rs:147, crates/engine_audio/tests/suite/playback_system.rs:223",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+          "metric": 6
+        },
+        {
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 118,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:35, crates/engine_core/tests/suite/scale_spring.rs:59, crates/engine_core/tests/suite/scale_spring.rs:92, crates/engine_core/tests/suite/scale_spring.rs:118",
           "metric": 4
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 146,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 178,
           "rule": "duplicate-block",
           "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:87, crates/engine_audio/tests/suite/playback_system.rs:106, crates/engine_audio/tests/suite/playback_system.rs:146, crates/engine_audio/tests/suite/playback_system.rs:222",
-          "metric": 4
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+          "metric": 6
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 147,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 274,
           "rule": "duplicate-block",
           "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:88, crates/engine_audio/tests/suite/playback_system.rs:107, crates/engine_audio/tests/suite/playback_system.rs:147, crates/engine_audio/tests/suite/playback_system.rs:223",
-          "metric": 4
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:34, crates/engine_core/tests/suite/scale_spring.rs:58, crates/engine_core/tests/suite/scale_spring.rs:91, crates/engine_core/tests/suite/scale_spring.rs:117, crates/engine_core/tests/suite/scale_spring.rs:178, crates/engine_core/tests/suite/scale_spring.rs:274",
+          "metric": 6
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 222,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:87, crates/engine_audio/tests/suite/playback_system.rs:106, crates/engine_audio/tests/suite/playback_system.rs:146, crates/engine_audio/tests/suite/playback_system.rs:222",
-          "metric": 4
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 223,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:88, crates/engine_audio/tests/suite/playback_system.rs:107, crates/engine_audio/tests/suite/playback_system.rs:147, crates/engine_audio/tests/suite/playback_system.rs:223",
-          "metric": 4
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 246,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:246, crates/engine_audio/tests/suite/playback_system.rs:269, crates/engine_audio/tests/suite/playback_system.rs:296, crates/engine_audio/tests/suite/playback_system.rs:319, crates/engine_audio/tests/suite/playback_system.rs:346",
-          "metric": 5
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 247,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:247, crates/engine_audio/tests/suite/playback_system.rs:270, crates/engine_audio/tests/suite/playback_system.rs:297, crates/engine_audio/tests/suite/playback_system.rs:320, crates/engine_audio/tests/suite/playback_system.rs:347",
-          "metric": 5
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 269,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:246, crates/engine_audio/tests/suite/playback_system.rs:269, crates/engine_audio/tests/suite/playback_system.rs:296, crates/engine_audio/tests/suite/playback_system.rs:319, crates/engine_audio/tests/suite/playback_system.rs:346",
-          "metric": 5
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 270,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:247, crates/engine_audio/tests/suite/playback_system.rs:270, crates/engine_audio/tests/suite/playback_system.rs:297, crates/engine_audio/tests/suite/playback_system.rs:320, crates/engine_audio/tests/suite/playback_system.rs:347",
-          "metric": 5
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 271,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:271, crates/engine_audio/tests/suite/playback_system.rs:298, crates/engine_audio/tests/suite/playback_system.rs:321",
-          "metric": 3
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 296,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:246, crates/engine_audio/tests/suite/playback_system.rs:269, crates/engine_audio/tests/suite/playback_system.rs:296, crates/engine_audio/tests/suite/playback_system.rs:319, crates/engine_audio/tests/suite/playback_system.rs:346",
-          "metric": 5
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 297,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:247, crates/engine_audio/tests/suite/playback_system.rs:270, crates/engine_audio/tests/suite/playback_system.rs:297, crates/engine_audio/tests/suite/playback_system.rs:320, crates/engine_audio/tests/suite/playback_system.rs:347",
-          "metric": 5
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 298,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:271, crates/engine_audio/tests/suite/playback_system.rs:298, crates/engine_audio/tests/suite/playback_system.rs:321",
-          "metric": 3
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 319,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:246, crates/engine_audio/tests/suite/playback_system.rs:269, crates/engine_audio/tests/suite/playback_system.rs:296, crates/engine_audio/tests/suite/playback_system.rs:319, crates/engine_audio/tests/suite/playback_system.rs:346",
-          "metric": 5
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 320,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:247, crates/engine_audio/tests/suite/playback_system.rs:270, crates/engine_audio/tests/suite/playback_system.rs:297, crates/engine_audio/tests/suite/playback_system.rs:320, crates/engine_audio/tests/suite/playback_system.rs:347",
-          "metric": 5
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 321,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:271, crates/engine_audio/tests/suite/playback_system.rs:298, crates/engine_audio/tests/suite/playback_system.rs:321",
-          "metric": 3
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 346,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:246, crates/engine_audio/tests/suite/playback_system.rs:269, crates/engine_audio/tests/suite/playback_system.rs:296, crates/engine_audio/tests/suite/playback_system.rs:319, crates/engine_audio/tests/suite/playback_system.rs:346",
-          "metric": 5
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 347,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:247, crates/engine_audio/tests/suite/playback_system.rs:270, crates/engine_audio/tests/suite/playback_system.rs:297, crates/engine_audio/tests/suite/playback_system.rs:320, crates/engine_audio/tests/suite/playback_system.rs:347",
-          "metric": 5
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
           "line": 1,
           "rule": "file-length",
           "severity": "error",
-          "message": "file is 368 lines",
-          "metric": 368
+          "message": "file is 329 lines",
+          "metric": 329
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 89,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 213,
           "rule": "duplicate-block",
           "severity": "warn",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:89, crates/engine_audio/tests/suite/playback_system.rs:108",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:213, crates/engine_core/tests/suite/scale_spring.rs:239",
           "metric": 2
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 108,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 214,
           "rule": "duplicate-block",
           "severity": "warn",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:89, crates/engine_audio/tests/suite/playback_system.rs:108",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:214, crates/engine_core/tests/suite/scale_spring.rs:240",
           "metric": 2
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 148,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 239,
           "rule": "duplicate-block",
           "severity": "warn",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:148, crates/engine_audio/tests/suite/playback_system.rs:224",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:213, crates/engine_core/tests/suite/scale_spring.rs:239",
           "metric": 2
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 224,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 240,
           "rule": "duplicate-block",
           "severity": "warn",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/playback_system.rs:148, crates/engine_audio/tests/suite/playback_system.rs:224",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:214, crates/engine_core/tests/suite/scale_spring.rs:240",
           "metric": 2
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 163,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 241,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:241, crates/engine_core/tests/suite/scale_spring.rs:275",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 275,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/scale_spring.rs:241, crates/engine_core/tests/suite/scale_spring.rs:275",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 139,
           "rule": "function-length",
           "severity": "warn",
-          "message": "when_play_sound_with_mixer_state_then_track_volume_forwarded() is 35 lines",
-          "metric": 35
+          "message": "when_lock_x_true_then_scale_y_springs_but_scale_x_unchanged() is 31 lines",
+          "metric": 31
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 53,
-          "rule": "stateless-method",
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 298,
+          "rule": "function-length",
           "severity": "warn",
-          "message": "stop() never touches instance state — make it a free function",
-          "metric": 1
+          "message": "when_large_dt_simulating_2fps_then_scale_stays_bounded() is 31 lines",
+          "metric": 31
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 54,
-          "rule": "stateless-method",
-          "severity": "warn",
-          "message": "set_volume() never touches instance state — make it a free function",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 78,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 17,
           "rule": "output-parameter",
           "severity": "warn",
           "message": "run_system() exposes an output parameter; return a value instead",
           "metric": 1
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 10,
-          "rule": "line-length",
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 23,
+          "rule": "output-parameter",
           "severity": "warn",
-          "message": "line is 85 chars",
-          "metric": 85
+          "message": "run_n_frames() exposes an output parameter; return a value instead",
+          "metric": 1
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 46,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 87,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 86 chars",
-          "metric": 86
+          "message": "line is 96 chars",
+          "metric": 96
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 72,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 113,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 81 chars",
-          "metric": 81
+          "message": "line is 103 chars",
+          "metric": 103
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 242,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 137,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 100 chars",
-          "metric": 100
+          "message": "line is 115 chars",
+          "metric": 115
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 265,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 174,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 110 chars",
-          "metric": 110
+          "message": "line is 118 chars",
+          "metric": 118
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 292,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 109 chars",
-          "metric": 109
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 315,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 112 chars",
-          "metric": 112
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 318,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 90 chars",
-          "metric": 90
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 342,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 95 chars",
-          "metric": 95
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 345,
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 176,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 83 chars",
           "metric": 83
         },
         {
-          "file": "crates/engine_audio/tests/suite/playback_system.rs",
-          "line": 65,
-          "rule": "wildcard-import",
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 232,
+          "rule": "line-length",
           "severity": "warn",
-          "message": "fundsp::prelude32 wildcard import obscures its imported API; import explicit names instead",
-          "metric": 1,
-          "suggestion": "Import explicit names from fundsp::prelude32."
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_core/tests/suite/scale_spring.rs",
+          "line": 296,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 110 chars",
+          "metric": 110
         }
       ]
     },
     {
-      "file": "crates/engine_audio/tests/suite/spatial.rs",
-      "errors": 2,
-      "warnings": 34,
+      "file": "crates/engine_core/src/color.rs",
+      "errors": 5,
+      "warnings": 1,
       "rules": {
-        "file-length": 1,
-        "comment-bloat": 1,
-        "duplicate-block": 4,
-        "function-length": 1,
-        "param-count": 2,
-        "comment-restates-code": 1,
-        "output-parameter": 5,
-        "line-length": 21
+        "dead-export": 5,
+        "param-count": 1
       },
       "items": [
         {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
+          "file": "crates/engine_core/src/color.rs",
+          "line": 12,
+          "rule": "dead-export",
+          "severity": "error",
+          "message": "WHITE is exported but never referenced anywhere",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_core/src/color.rs",
+          "line": 18,
+          "rule": "dead-export",
+          "severity": "error",
+          "message": "BLACK is exported but never referenced anywhere",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_core/src/color.rs",
+          "line": 30,
+          "rule": "dead-export",
+          "severity": "error",
+          "message": "RED is exported but never referenced anywhere",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_core/src/color.rs",
+          "line": 36,
+          "rule": "dead-export",
+          "severity": "error",
+          "message": "GREEN is exported but never referenced anywhere",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_core/src/color.rs",
+          "line": 42,
+          "rule": "dead-export",
+          "severity": "error",
+          "message": "BLUE is exported but never referenced anywhere",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_core/src/color.rs",
+          "line": 53,
+          "rule": "param-count",
+          "severity": "warn",
+          "message": "from_u8() takes 4 parameters",
+          "metric": 4
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_core/src/event_bus.rs",
+      "errors": 2,
+      "warnings": 0,
+      "rules": {
+        "types-per-file": 1,
+        "unused-local": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_core/src/event_bus.rs",
+          "line": 6,
+          "rule": "types-per-file",
+          "severity": "error",
+          "message": "2 types in one file: Event, EventBus",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/src/event_bus.rs",
+          "line": 44,
+          "rule": "unused-local",
+          "severity": "error",
+          "message": "into_iter() is never called in this file and is not exported",
+          "metric": 1
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_core/benches/spring.rs",
+      "errors": 1,
+      "warnings": 14,
+      "rules": {
+        "function-length": 1,
+        "duplicate-block": 12,
+        "file-length": 1,
+        "output-parameter": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 8,
+          "rule": "function-length",
+          "severity": "error",
+          "message": "bench_spring_step() is 95 lines",
+          "metric": 95
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 35,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:35, crates/engine_core/benches/spring.rs:73",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 36,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:36, crates/engine_core/benches/spring.rs:74",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 44,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:44, crates/engine_core/benches/spring.rs:81",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 45,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:45, crates/engine_core/benches/spring.rs:82",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 53,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:53, crates/engine_core/benches/spring.rs:89",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 54,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:54, crates/engine_core/benches/spring.rs:90",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 73,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:35, crates/engine_core/benches/spring.rs:73",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 74,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:36, crates/engine_core/benches/spring.rs:74",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 81,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:44, crates/engine_core/benches/spring.rs:81",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 82,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:45, crates/engine_core/benches/spring.rs:82",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 89,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:53, crates/engine_core/benches/spring.rs:89",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 90,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/benches/spring.rs:54, crates/engine_core/benches/spring.rs:90",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/benches/spring.rs",
           "line": 1,
           "rule": "file-length",
-          "severity": "error",
-          "message": "file is 519 lines",
-          "metric": 519
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 421,
-          "rule": "comment-bloat",
-          "severity": "error",
-          "message": "6-line comment over 1 line(s) of code - keep the why, cut the rest",
-          "metric": 6
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 304,
-          "rule": "duplicate-block",
           "severity": "warn",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/spatial.rs:304, crates/engine_audio/tests/suite/spatial.rs:507",
-          "metric": 2
+          "message": "file is 106 lines",
+          "metric": 106
         },
         {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 338,
-          "rule": "duplicate-block",
-          "severity": "warn",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/spatial.rs:338, crates/engine_audio/tests/suite/spatial.rs:452",
-          "metric": 2
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 452,
-          "rule": "duplicate-block",
-          "severity": "warn",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/spatial.rs:338, crates/engine_audio/tests/suite/spatial.rs:452",
-          "metric": 2
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 507,
-          "rule": "duplicate-block",
-          "severity": "warn",
-          "message": "6-line block duplicated at crates/engine_audio/tests/suite/spatial.rs:304, crates/engine_audio/tests/suite/spatial.rs:507",
-          "metric": 2
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 291,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "when_emitter_to_right_then_spatial_gains_reflect_pan_and_attenuation() is 32 lines",
-          "metric": 32
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 48,
-          "rule": "param-count",
-          "severity": "warn",
-          "message": "spawn_emitter() takes 5 parameters",
-          "metric": 5
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 201,
-          "rule": "param-count",
-          "severity": "warn",
-          "message": "when_any_two_positions_then_constant_power_property_holds() takes 4 parameters",
-          "metric": 4
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 210,
-          "rule": "comment-restates-code",
-          "severity": "warn",
-          "message": "comment repeats the declaration below it - say why, not what",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 39,
+          "file": "crates/engine_core/benches/spring.rs",
+          "line": 8,
           "rule": "output-parameter",
           "severity": "warn",
-          "message": "spawn_listener() exposes an output parameter; return a value instead",
+          "message": "bench_spring_step() exposes an output parameter; return a value instead",
           "metric": 1
-        },
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_core/tests/suite/time.rs",
+      "errors": 1,
+      "warnings": 12,
+      "rules": {
+        "line-length": 8,
+        "duplicate-block": 4,
+        "file-length": 1
+      },
+      "items": [
         {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 48,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "spawn_emitter() exposes an output parameter; return a value instead",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 66,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "run_spatial_system() exposes an output parameter; return a value instead",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 460,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "spawn_child_emitter() exposes an output parameter; return a value instead",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 479,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "run_hierarchy_and_spatial_system() exposes an output parameter; return a value instead",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 7,
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 103,
           "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 91 chars",
-          "metric": 91
+          "severity": "error",
+          "message": "line is 130 chars",
+          "metric": 130
         },
         {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 13,
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 136,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/time.rs:136, crates/engine_core/tests/suite/time.rs:183",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 137,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/time.rs:137, crates/engine_core/tests/suite/time.rs:184",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 183,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/time.rs:136, crates/engine_core/tests/suite/time.rs:183",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 184,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_core/tests/suite/time.rs:137, crates/engine_core/tests/suite/time.rs:184",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 198 lines",
+          "metric": 198
+        },
+        {
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 3,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 90 chars",
           "metric": 90
         },
         {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 39,
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 6,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
+          "message": "line is 95 chars",
+          "metric": 95
         },
         {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 109,
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 19,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 101 chars",
-          "metric": 101
+          "message": "line is 115 chars",
+          "metric": 115
         },
         {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 133,
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 77,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 90 chars",
-          "metric": 90
+          "message": "line is 108 chars",
+          "metric": 108
         },
         {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 151,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 112 chars",
-          "metric": 112
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 173,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 81 chars",
-          "metric": 81
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 196,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 91 chars",
-          "metric": 91
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 219,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 81 chars",
-          "metric": 81
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 224,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 85 chars",
-          "metric": 85
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 225,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 85 chars",
-          "metric": 85
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 251,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 97 chars",
-          "metric": 97
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 273,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 81 chars",
-          "metric": 81
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 324,
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 118,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 99 chars",
           "metric": 99
         },
         {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 346,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 111 chars",
-          "metric": 111
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 372,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 86 chars",
-          "metric": 86
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 393,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 83 chars",
-          "metric": 83
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 425,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 460,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 86 chars",
-          "metric": 86
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 492,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 120 chars",
-          "metric": 120
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/spatial.rs",
-          "line": 506,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 91 chars",
-          "metric": 91
-        }
-      ]
-    },
-    {
-      "file": "crates/engine_audio/src/spatial.rs",
-      "errors": 2,
-      "warnings": 6,
-      "rules": {
-        "types-per-file": 1,
-        "unnamed-tuple": 1,
-        "param-count": 1,
-        "else-branch": 2,
-        "comment-restates-code": 1,
-        "line-length": 2
-      },
-      "items": [
-        {
-          "file": "crates/engine_audio/src/spatial.rs",
-          "line": 41,
-          "rule": "types-per-file",
-          "severity": "error",
-          "message": "2 types in one file: AudioListener, AudioEmitter",
-          "metric": 2
-        },
-        {
-          "file": "crates/engine_audio/src/spatial.rs",
-          "line": 23,
-          "rule": "unnamed-tuple",
-          "severity": "error",
-          "message": "tuple -> (f32, f32) — replace it with a named type",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/spatial.rs",
-          "line": 48,
-          "rule": "param-count",
-          "severity": "warn",
-          "message": "compute_spatial_gains() takes 4 parameters",
-          "metric": 4
-        },
-        {
-          "file": "crates/engine_audio/src/spatial.rs",
-          "line": 23,
-          "rule": "else-branch",
-          "severity": "warn",
-          "message": "compute_pan() has 1 else branch(es) — prefer guard clauses",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/spatial.rs",
-          "line": 64,
-          "rule": "else-branch",
-          "severity": "warn",
-          "message": "spatial_audio_system() has 2 else branch(es) — prefer guard clauses",
-          "metric": 2
-        },
-        {
-          "file": "crates/engine_audio/src/spatial.rs",
-          "line": 13,
-          "rule": "comment-restates-code",
-          "severity": "warn",
-          "message": "comment repeats the declaration below it - say why, not what",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/spatial.rs",
-          "line": 13,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 83 chars",
-          "metric": 83
-        },
-        {
-          "file": "crates/engine_audio/src/spatial.rs",
-          "line": 66,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
-        }
-      ]
-    },
-    {
-      "file": "crates/engine_audio/src/backend/cpal.rs",
-      "errors": 1,
-      "warnings": 7,
-      "rules": {
-        "types-per-file": 1,
-        "file-length": 1,
-        "complexity": 1,
-        "function-length": 1,
-        "else-branch": 1,
-        "stateless-method": 1,
-        "line-length": 2
-      },
-      "items": [
-        {
-          "file": "crates/engine_audio/src/backend/cpal.rs",
-          "line": 21,
-          "rule": "types-per-file",
-          "severity": "error",
-          "message": "2 types in one file: StreamHandle, CpalBackend",
-          "metric": 2
-        },
-        {
-          "file": "crates/engine_audio/src/backend/cpal.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "warn",
-          "message": "file is 136 lines",
-          "metric": 136
-        },
-        {
-          "file": "crates/engine_audio/src/backend/cpal.rs",
-          "line": 44,
-          "rule": "complexity",
-          "severity": "warn",
-          "message": "open_stream() cyclomatic complexity 7",
-          "metric": 7
-        },
-        {
-          "file": "crates/engine_audio/src/backend/cpal.rs",
-          "line": 44,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "open_stream() is 43 lines",
-          "metric": 43
-        },
-        {
-          "file": "crates/engine_audio/src/backend/cpal.rs",
-          "line": 44,
-          "rule": "else-branch",
-          "severity": "warn",
-          "message": "open_stream() has 1 else branch(es) — prefer guard clauses",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/backend/cpal.rs",
-          "line": 90,
-          "rule": "stateless-method",
-          "severity": "warn",
-          "message": "default() never touches instance state — make it a free function",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/backend/cpal.rs",
-          "line": 47,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
-        },
-        {
-          "file": "crates/engine_audio/src/backend/cpal.rs",
-          "line": 96,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 85 chars",
-          "metric": 85
-        }
-      ]
-    },
-    {
-      "file": "crates/engine_audio/src/backend/traits.rs",
-      "errors": 1,
-      "warnings": 6,
-      "rules": {
-        "types-per-file": 1,
-        "stateless-method": 4,
-        "line-length": 2
-      },
-      "items": [
-        {
-          "file": "crates/engine_audio/src/backend/traits.rs",
-          "line": 12,
-          "rule": "types-per-file",
-          "severity": "error",
-          "message": "2 types in one file: AudioBackend, NullAudioBackend",
-          "metric": 2
-        },
-        {
-          "file": "crates/engine_audio/src/backend/traits.rs",
-          "line": 29,
-          "rule": "stateless-method",
-          "severity": "warn",
-          "message": "default() never touches instance state — make it a free function",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/backend/traits.rs",
-          "line": 40,
-          "rule": "stateless-method",
-          "severity": "warn",
-          "message": "stop() never touches instance state — make it a free function",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/backend/traits.rs",
-          "line": 42,
-          "rule": "stateless-method",
-          "severity": "warn",
-          "message": "set_volume() never touches instance state — make it a free function",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/backend/traits.rs",
-          "line": 44,
-          "rule": "stateless-method",
-          "severity": "warn",
-          "message": "set_track_volume() never touches instance state — make it a free function",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/backend/traits.rs",
-          "line": 6,
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 154,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 84 chars",
           "metric": 84
         },
         {
-          "file": "crates/engine_audio/src/backend/traits.rs",
-          "line": 35,
+          "file": "crates/engine_core/tests/suite/time.rs",
+          "line": 179,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 87 chars",
-          "metric": 87
+          "message": "line is 108 chars",
+          "metric": 108
         }
       ]
     },
     {
-      "file": "crates/engine_audio/src/mixer_engine.rs",
+      "file": "crates/engine_core/src/profiler.rs",
       "errors": 1,
-      "warnings": 3,
+      "warnings": 8,
       "rules": {
         "types-per-file": 1,
-        "output-parameter": 2,
-        "line-length": 1
-      },
-      "items": [
-        {
-          "file": "crates/engine_audio/src/mixer_engine.rs",
-          "line": 13,
-          "rule": "types-per-file",
-          "severity": "error",
-          "message": "2 types in one file: ActiveSound, SharedState",
-          "metric": 2
-        },
-        {
-          "file": "crates/engine_audio/src/mixer_engine.rs",
-          "line": 20,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "mix_into() exposes an output parameter; return a value instead",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/mixer_engine.rs",
-          "line": 20,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "mix_into() exposes an output parameter; return a value instead",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/mixer_engine.rs",
-          "line": 26,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 87 chars",
-          "metric": 87
-        }
-      ]
-    },
-    {
-      "file": "crates/engine_audio/src/plugin.rs",
-      "errors": 1,
-      "warnings": 1,
-      "rules": {
-        "comment-bloat": 1,
-        "stateless-method": 1
-      },
-      "items": [
-        {
-          "file": "crates/engine_audio/src/plugin.rs",
-          "line": 1,
-          "rule": "comment-bloat",
-          "severity": "error",
-          "message": "8-line comment over 1 line(s) of code - keep the why, cut the rest",
-          "metric": 8
-        },
-        {
-          "file": "crates/engine_audio/src/plugin.rs",
-          "line": 12,
-          "rule": "stateless-method",
-          "severity": "warn",
-          "message": "default() never touches instance state — make it a free function",
-          "metric": 1
-        }
-      ]
-    },
-    {
-      "file": "crates/engine_audio/src/mixer.rs",
-      "errors": 1,
-      "warnings": 0,
-      "rules": {
-        "types-per-file": 1
-      },
-      "items": [
-        {
-          "file": "crates/engine_audio/src/mixer.rs",
-          "line": 31,
-          "rule": "types-per-file",
-          "severity": "error",
-          "message": "2 types in one file: MixerTrack, MixerState",
-          "metric": 2
-        }
-      ]
-    },
-    {
-      "file": "crates/engine_audio/src/playback/buffer.rs",
-      "errors": 1,
-      "warnings": 0,
-      "rules": {
-        "types-per-file": 1
-      },
-      "items": [
-        {
-          "file": "crates/engine_audio/src/playback/buffer.rs",
-          "line": 14,
-          "rule": "types-per-file",
-          "severity": "error",
-          "message": "2 types in one file: SpatialGains, PlaySound",
-          "metric": 2
-        }
-      ]
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-      "errors": 0,
-      "warnings": 13,
-      "rules": {
         "file-length": 1,
-        "function-length": 2,
-        "line-length": 10
+        "line-length": 7
       },
       "items": [
         {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
+          "file": "crates/engine_core/src/profiler.rs",
+          "line": 26,
+          "rule": "types-per-file",
+          "severity": "error",
+          "message": "3 types in one file: Record, FrameProfiler, ProfileScope",
+          "metric": 3
+        },
+        {
+          "file": "crates/engine_core/src/profiler.rs",
           "line": 1,
           "rule": "file-length",
           "severity": "warn",
-          "message": "file is 288 lines",
-          "metric": 288
+          "message": "file is 127 lines",
+          "metric": 127
         },
         {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 128,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "when_sound_shorter_than_buffer_then_removed_after_last_sample() is 34 lines",
-          "metric": 34
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 216,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "when_sound_longer_than_buffer_then_cursor_advances() is 42 lines",
-          "metric": 42
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 40,
+          "file": "crates/engine_core/src/profiler.rs",
+          "line": 14,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
+          "message": "line is 88 chars",
+          "metric": 88
         },
         {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 49,
+          "file": "crates/engine_core/src/profiler.rs",
+          "line": 16,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 85 chars",
-          "metric": 85
+          "message": "line is 86 chars",
+          "metric": 86
         },
         {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 77,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 101 chars",
-          "metric": 101
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 100,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 98 chars",
-          "metric": 98
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 126,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 95 chars",
-          "metric": 95
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 163,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 103 chars",
-          "metric": 103
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 190,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 87 chars",
-          "metric": 87
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 214,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 106 chars",
-          "metric": 106
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 218,
+          "file": "crates/engine_core/src/profiler.rs",
+          "line": 23,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 89 chars",
           "metric": 89
         },
         {
-          "file": "crates/engine_audio/tests/suite/mixer_engine.rs",
-          "line": 259,
+          "file": "crates/engine_core/src/profiler.rs",
+          "line": 47,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 100 chars",
-          "metric": 100
-        }
-      ]
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-      "errors": 0,
-      "warnings": 9,
-      "rules": {
-        "file-length": 1,
-        "line-length": 8
-      },
-      "items": [
-        {
-          "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "warn",
-          "message": "file is 200 lines",
-          "metric": 200
+          "message": "line is 83 chars",
+          "metric": 83
         },
         {
-          "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-          "line": 16,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 93 chars",
-          "metric": 93
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-          "line": 34,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 102 chars",
-          "metric": 102
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-          "line": 52,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 95 chars",
-          "metric": 95
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-          "line": 70,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 87 chars",
-          "metric": 87
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-          "line": 90,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 105 chars",
-          "metric": 105
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-          "line": 129,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 86 chars",
-          "metric": 86
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-          "line": 163,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 94 chars",
-          "metric": 94
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/backend_traits.rs",
-          "line": 182,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 100 chars",
-          "metric": 100
-        }
-      ]
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/sound_data.rs",
-      "errors": 0,
-      "warnings": 8,
-      "rules": {
-        "file-length": 1,
-        "line-length": 7
-      },
-      "items": [
-        {
-          "file": "crates/engine_audio/tests/suite/sound_data.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "warn",
-          "message": "file is 151 lines",
-          "metric": 151
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/sound_data.rs",
-          "line": 42,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/sound_data.rs",
-          "line": 46,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 84 chars",
-          "metric": 84
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/sound_data.rs",
-          "line": 63,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 100 chars",
-          "metric": 100
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/sound_data.rs",
-          "line": 66,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 84 chars",
-          "metric": 84
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/sound_data.rs",
-          "line": 83,
+          "file": "crates/engine_core/src/profiler.rs",
+          "line": 57,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 92 chars",
           "metric": 92
         },
         {
-          "file": "crates/engine_audio/tests/suite/sound_data.rs",
-          "line": 100,
+          "file": "crates/engine_core/src/profiler.rs",
+          "line": 59,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 102 chars",
-          "metric": 102
+          "message": "line is 94 chars",
+          "metric": 94
         },
         {
-          "file": "crates/engine_audio/tests/suite/sound_data.rs",
-          "line": 137,
+          "file": "crates/engine_core/src/profiler.rs",
+          "line": 69,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_core/tests/suite/spring.rs",
+      "errors": 1,
+      "warnings": 5,
+      "rules": {
+        "line-length": 6
+      },
+      "items": [
+        {
+          "file": "crates/engine_core/tests/suite/spring.rs",
+          "line": 79,
+          "rule": "line-length",
+          "severity": "error",
+          "message": "line is 129 chars",
+          "metric": 129
+        },
+        {
+          "file": "crates/engine_core/tests/suite/spring.rs",
+          "line": 10,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 100 chars",
+          "metric": 100
+        },
+        {
+          "file": "crates/engine_core/tests/suite/spring.rs",
+          "line": 28,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 89 chars",
+          "metric": 89
+        },
+        {
+          "file": "crates/engine_core/tests/suite/spring.rs",
+          "line": 37,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 117 chars",
+          "metric": 117
+        },
+        {
+          "file": "crates/engine_core/tests/suite/spring.rs",
+          "line": 39,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_core/tests/suite/spring.rs",
+          "line": 94,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 92 chars",
+          "metric": 92
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_core/src/time.rs",
+      "errors": 1,
+      "warnings": 4,
+      "rules": {
+        "types-per-file": 1,
+        "file-length": 1,
+        "stateless-method": 1,
+        "line-length": 2
+      },
+      "items": [
+        {
+          "file": "crates/engine_core/src/time.rs",
+          "line": 16,
+          "rule": "types-per-file",
+          "severity": "error",
+          "message": "7 types in one file: DeltaTime, Time, FakeClock, FixedDeltaClock, SystemClock, ClockRes, FixedTimestep",
+          "metric": 7
+        },
+        {
+          "file": "crates/engine_core/src/time.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 149 lines",
+          "metric": 149
+        },
+        {
+          "file": "crates/engine_core/src/time.rs",
+          "line": 11,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "default() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_core/src/time.rs",
+          "line": 46,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 111 chars",
+          "metric": 111
+        },
+        {
+          "file": "crates/engine_core/src/time.rs",
+          "line": 141,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 89 chars",
@@ -2750,190 +1866,322 @@
       ]
     },
     {
-      "file": "crates/engine_audio/src/playback/system.rs",
-      "errors": 0,
-      "warnings": 8,
+      "file": "crates/engine_core/benches/stress.rs",
+      "errors": 1,
+      "warnings": 2,
       "rules": {
-        "complexity": 1,
         "function-length": 1,
         "nesting-depth": 1,
-        "param-count": 1,
-        "else-branch": 2,
-        "line-length": 2
+        "output-parameter": 1
       },
       "items": [
         {
-          "file": "crates/engine_audio/src/playback/system.rs",
-          "line": 14,
-          "rule": "complexity",
-          "severity": "warn",
-          "message": "play_sound_system() cyclomatic complexity 8",
-          "metric": 8
-        },
-        {
-          "file": "crates/engine_audio/src/playback/system.rs",
-          "line": 14,
+          "file": "crates/engine_core/benches/stress.rs",
+          "line": 10,
           "rule": "function-length",
-          "severity": "warn",
-          "message": "play_sound_system() is 33 lines",
-          "metric": 33
+          "severity": "error",
+          "message": "bench_spring_stress() is 63 lines",
+          "metric": 63
         },
         {
-          "file": "crates/engine_audio/src/playback/system.rs",
-          "line": 14,
+          "file": "crates/engine_core/benches/stress.rs",
+          "line": 10,
           "rule": "nesting-depth",
           "severity": "warn",
-          "message": "play_sound_system() nests 4 levels deep",
+          "message": "bench_spring_stress() nests 4 levels deep",
           "metric": 4
         },
         {
-          "file": "crates/engine_audio/src/playback/system.rs",
-          "line": 14,
-          "rule": "param-count",
+          "file": "crates/engine_core/benches/stress.rs",
+          "line": 10,
+          "rule": "output-parameter",
           "severity": "warn",
-          "message": "play_sound_system() takes 4 parameters",
-          "metric": 4
-        },
-        {
-          "file": "crates/engine_audio/src/playback/system.rs",
-          "line": 14,
-          "rule": "else-branch",
-          "severity": "warn",
-          "message": "play_sound_system() has 2 else branch(es) — prefer guard clauses",
-          "metric": 2
-        },
-        {
-          "file": "crates/engine_audio/src/playback/system.rs",
-          "line": 48,
-          "rule": "else-branch",
-          "severity": "warn",
-          "message": "apply_spatial_gains() has 1 else branch(es) — prefer guard clauses",
+          "message": "bench_spring_stress() exposes an output parameter; return a value instead",
           "metric": 1
-        },
-        {
-          "file": "crates/engine_audio/src/playback/system.rs",
-          "line": 34,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 81 chars",
-          "metric": 81
-        },
-        {
-          "file": "crates/engine_audio/src/playback/system.rs",
-          "line": 36,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 88 chars",
-          "metric": 88
         }
       ]
     },
     {
-      "file": "crates/engine_audio/tests/suite/backend_cpal.rs",
+      "file": "crates/engine_core/src/spring.rs",
+      "errors": 1,
+      "warnings": 1,
+      "rules": {
+        "unnamed-tuple": 1,
+        "param-count": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_core/src/spring.rs",
+          "line": 9,
+          "rule": "unnamed-tuple",
+          "severity": "error",
+          "message": "tuple -> (f32, f32) — replace it with a named type",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_core/src/spring.rs",
+          "line": 2,
+          "rule": "param-count",
+          "severity": "warn",
+          "message": "spring_step() takes 6 parameters",
+          "metric": 6
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_core/src/types.rs",
+      "errors": 1,
+      "warnings": 0,
+      "rules": {
+        "types-per-file": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_core/src/types.rs",
+          "line": 30,
+          "rule": "types-per-file",
+          "severity": "error",
+          "message": "3 types in one file: Pixels, Seconds, TextureId",
+          "metric": 3
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_core/tests/suite/event_bus.rs",
       "errors": 0,
-      "warnings": 5,
+      "warnings": 6,
       "rules": {
         "file-length": 1,
+        "comment-bloat": 5
+      },
+      "items": [
+        {
+          "file": "crates/engine_core/tests/suite/event_bus.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 173 lines",
+          "metric": 173
+        },
+        {
+          "file": "crates/engine_core/tests/suite/event_bus.rs",
+          "line": 9,
+          "rule": "comment-bloat",
+          "severity": "warn",
+          "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
+          "metric": 5
+        },
+        {
+          "file": "crates/engine_core/tests/suite/event_bus.rs",
+          "line": 27,
+          "rule": "comment-bloat",
+          "severity": "warn",
+          "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
+          "metric": 5
+        },
+        {
+          "file": "crates/engine_core/tests/suite/event_bus.rs",
+          "line": 47,
+          "rule": "comment-bloat",
+          "severity": "warn",
+          "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
+          "metric": 5
+        },
+        {
+          "file": "crates/engine_core/tests/suite/event_bus.rs",
+          "line": 108,
+          "rule": "comment-bloat",
+          "severity": "warn",
+          "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
+          "metric": 5
+        },
+        {
+          "file": "crates/engine_core/tests/suite/event_bus.rs",
+          "line": 154,
+          "rule": "comment-bloat",
+          "severity": "warn",
+          "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
+          "metric": 5
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_core/tests/suite/transform.rs",
+      "errors": 0,
+      "warnings": 6,
+      "rules": {
+        "file-length": 1,
+        "param-count": 1,
         "line-length": 4
       },
       "items": [
         {
-          "file": "crates/engine_audio/tests/suite/backend_cpal.rs",
+          "file": "crates/engine_core/tests/suite/transform.rs",
           "line": 1,
           "rule": "file-length",
           "severity": "warn",
-          "message": "file is 223 lines",
-          "metric": 223
+          "message": "file is 240 lines",
+          "metric": 240
         },
         {
-          "file": "crates/engine_audio/tests/suite/backend_cpal.rs",
-          "line": 23,
-          "rule": "line-length",
+          "file": "crates/engine_core/tests/suite/transform.rs",
+          "line": 191,
+          "rule": "param-count",
           "severity": "warn",
-          "message": "line is 102 chars",
-          "metric": 102
+          "message": "when_any_finite_transform2d_then_ron_roundtrip_preserves_value() takes 5 parameters",
+          "metric": 5
         },
         {
-          "file": "crates/engine_audio/tests/suite/backend_cpal.rs",
-          "line": 37,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 81 chars",
-          "metric": 81
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/backend_cpal.rs",
-          "line": 94,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 84 chars",
-          "metric": 84
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/backend_cpal.rs",
-          "line": 203,
+          "file": "crates/engine_core/tests/suite/transform.rs",
+          "line": 27,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 94 chars",
           "metric": 94
-        }
-      ]
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/sound_effect.rs",
-      "errors": 0,
-      "warnings": 5,
-      "rules": {
-        "file-length": 1,
-        "line-length": 3,
-        "wildcard-import": 1
-      },
-      "items": [
-        {
-          "file": "crates/engine_audio/tests/suite/sound_effect.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "warn",
-          "message": "file is 112 lines",
-          "metric": 112
         },
         {
-          "file": "crates/engine_audio/tests/suite/sound_effect.rs",
-          "line": 46,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
-        },
-        {
-          "file": "crates/engine_audio/tests/suite/sound_effect.rs",
-          "line": 80,
+          "file": "crates/engine_core/tests/suite/transform.rs",
+          "line": 116,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 85 chars",
           "metric": 85
         },
         {
-          "file": "crates/engine_audio/tests/suite/sound_effect.rs",
-          "line": 95,
+          "file": "crates/engine_core/tests/suite/transform.rs",
+          "line": 135,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 103 chars",
-          "metric": 103
+          "message": "line is 83 chars",
+          "metric": 83
         },
         {
-          "file": "crates/engine_audio/tests/suite/sound_effect.rs",
-          "line": 3,
-          "rule": "wildcard-import",
+          "file": "crates/engine_core/tests/suite/transform.rs",
+          "line": 210,
+          "rule": "line-length",
           "severity": "warn",
-          "message": "fundsp::prelude32 wildcard import obscures its imported API; import explicit names instead",
-          "metric": 1,
-          "suggestion": "Import explicit names from fundsp::prelude32."
+          "message": "line is 102 chars",
+          "metric": 102
         }
       ]
     },
     {
-      "file": "crates/engine_audio/src/prelude.rs",
+      "file": "crates/engine_core/src/scale_spring.rs",
+      "errors": 0,
+      "warnings": 5,
+      "rules": {
+        "complexity": 1,
+        "function-length": 1,
+        "param-count": 1,
+        "line-length": 2
+      },
+      "items": [
+        {
+          "file": "crates/engine_core/src/scale_spring.rs",
+          "line": 38,
+          "rule": "complexity",
+          "severity": "warn",
+          "message": "scale_spring_system() cyclomatic complexity 7",
+          "metric": 7
+        },
+        {
+          "file": "crates/engine_core/src/scale_spring.rs",
+          "line": 38,
+          "rule": "function-length",
+          "severity": "warn",
+          "message": "scale_spring_system() is 40 lines",
+          "metric": 40
+        },
+        {
+          "file": "crates/engine_core/src/scale_spring.rs",
+          "line": 38,
+          "rule": "param-count",
+          "severity": "warn",
+          "message": "scale_spring_system() takes 4 parameters",
+          "metric": 4
+        },
+        {
+          "file": "crates/engine_core/src/scale_spring.rs",
+          "line": 14,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_core/src/scale_spring.rs",
+          "line": 69,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_core/tests/suite/color.rs",
+      "errors": 0,
+      "warnings": 3,
+      "rules": {
+        "param-count": 2,
+        "line-length": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_core/tests/suite/color.rs",
+          "line": 48,
+          "rule": "param-count",
+          "severity": "warn",
+          "message": "when_any_u8_inputs_then_from_u8_components_in_zero_to_one() takes 4 parameters",
+          "metric": 4
+        },
+        {
+          "file": "crates/engine_core/tests/suite/color.rs",
+          "line": 65,
+          "rule": "param-count",
+          "severity": "warn",
+          "message": "when_any_finite_color_then_ron_roundtrip_preserves_value() takes 4 parameters",
+          "metric": 4
+        },
+        {
+          "file": "crates/engine_core/tests/suite/color.rs",
+          "line": 19,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_core/tests/suite/profiler.rs",
+      "errors": 0,
+      "warnings": 2,
+      "rules": {
+        "file-length": 1,
+        "line-length": 1
+      },
+      "items": [
+        {
+          "file": "crates/engine_core/tests/suite/profiler.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 130 lines",
+          "metric": 130
+        },
+        {
+          "file": "crates/engine_core/tests/suite/profiler.rs",
+          "line": 38,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        }
+      ]
+    },
+    {
+      "file": "crates/engine_core/tests/suite/types.rs",
       "errors": 0,
       "warnings": 2,
       "rules": {
@@ -2941,16 +2189,16 @@
       },
       "items": [
         {
-          "file": "crates/engine_audio/src/prelude.rs",
-          "line": 4,
+          "file": "crates/engine_core/tests/suite/types.rs",
+          "line": 28,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
+          "message": "line is 89 chars",
+          "metric": 89
         },
         {
-          "file": "crates/engine_audio/src/prelude.rs",
-          "line": 8,
+          "file": "crates/engine_core/tests/suite/types.rs",
+          "line": 41,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 90 chars",
@@ -2959,7 +2207,7 @@
       ]
     },
     {
-      "file": "crates/engine_audio/src/sound/effect.rs",
+      "file": "crates/engine_core/src/prelude.rs",
       "errors": 0,
       "warnings": 1,
       "rules": {
@@ -2967,17 +2215,17 @@
       },
       "items": [
         {
-          "file": "crates/engine_audio/src/sound/effect.rs",
-          "line": 10,
+          "file": "crates/engine_core/src/prelude.rs",
+          "line": 7,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 90 chars",
-          "metric": 90
+          "message": "line is 84 chars",
+          "metric": 84
         }
       ]
     },
     {
-      "file": "crates/engine_audio/tests/suite/mixer.rs",
+      "file": "crates/engine_core/src/transform.rs",
       "errors": 0,
       "warnings": 1,
       "rules": {
@@ -2985,31 +2233,12 @@
       },
       "items": [
         {
-          "file": "crates/engine_audio/tests/suite/mixer.rs",
-          "line": 16,
+          "file": "crates/engine_core/src/transform.rs",
+          "line": 14,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
-        }
-      ]
-    },
-    {
-      "file": "crates/engine_audio/tests/suite/sound_library.rs",
-      "errors": 0,
-      "warnings": 1,
-      "rules": {
-        "wildcard-import": 1
-      },
-      "items": [
-        {
-          "file": "crates/engine_audio/tests/suite/sound_library.rs",
-          "line": 4,
-          "rule": "wildcard-import",
-          "severity": "warn",
-          "message": "fundsp::prelude32 wildcard import obscures its imported API; import explicit names instead",
-          "metric": 1,
-          "suggestion": "Import explicit names from fundsp::prelude32."
+          "message": "line is 87 chars",
+          "metric": 87
         }
       ]
     }
