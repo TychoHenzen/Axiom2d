@@ -12,802 +12,969 @@
   },
   "summaries": {
     "overall": {
-      "fileCount": 21,
-      "errors": 20,
-      "warnings": 108,
-      "averageScore": 90.0952380952381,
-      "minimumScore": 28
+      "fileCount": 25,
+      "errors": 28,
+      "warnings": 198,
+      "averageScore": 87.04,
+      "minimumScore": 0
     },
     "production": {
-      "fileCount": 14,
-      "errors": 1,
-      "warnings": 10,
-      "averageScore": 98.92857142857143,
-      "minimumScore": 94
+      "fileCount": 15,
+      "errors": 15,
+      "warnings": 83,
+      "averageScore": 89.46666666666667,
+      "minimumScore": 42
     },
     "test": {
-      "fileCount": 7,
-      "errors": 19,
-      "warnings": 98,
-      "averageScore": 72.42857142857143,
-      "minimumScore": 28
+      "fileCount": 10,
+      "errors": 13,
+      "warnings": 115,
+      "averageScore": 83.4,
+      "minimumScore": 0
     }
   },
   "files": [
     {
-      "path": "crates/engine_input/src/action_map.rs",
+      "path": "crates/engine_physics/benches/physics.rs",
       "language": "rs",
       "classification": "production",
-      "score": 100,
+      "score": 95,
       "errors": 0,
-      "warnings": 0,
-      "findings": []
-    },
-    {
-      "path": "crates/engine_input/src/button_state.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 99,
-      "errors": 0,
-      "warnings": 1,
+      "warnings": 5,
       "findings": [
         {
-          "file": "crates/engine_input/src/button_state.rs",
-          "line": 8,
-          "rule": "stateless-method",
+          "file": "crates/engine_physics/benches/physics.rs",
+          "line": 5,
+          "rule": "duplicate-block",
           "severity": "warn",
-          "message": "from() never touches instance state — make it a free function",
-          "metric": 1
-        }
-      ]
-    },
-    {
-      "path": "crates/engine_input/src/key_code.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 94,
-      "errors": 1,
-      "warnings": 1,
-      "findings": [
-        {
-          "file": "crates/engine_input/src/key_code.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "warn",
-          "message": "file is 216 lines",
-          "metric": 216
+          "message": "6-line block duplicated at crates/engine_physics/benches/physics.rs:5, crates/engine_physics/benches/stress.rs:5",
+          "metric": 2
         },
         {
-          "file": "crates/engine_input/src/key_code.rs",
-          "line": 10,
-          "rule": "unused-local",
-          "severity": "error",
-          "message": "from() is never called in this file and is not exported",
-          "metric": 1
-        }
-      ]
-    },
-    {
-      "path": "crates/engine_input/src/keyboard/buffer.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 100,
-      "errors": 0,
-      "warnings": 0,
-      "findings": []
-    },
-    {
-      "path": "crates/engine_input/src/keyboard/mod.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 100,
-      "errors": 0,
-      "warnings": 0,
-      "findings": []
-    },
-    {
-      "path": "crates/engine_input/src/keyboard/state.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 100,
-      "errors": 0,
-      "warnings": 0,
-      "findings": []
-    },
-    {
-      "path": "crates/engine_input/src/keyboard/system.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 99,
-      "errors": 0,
-      "warnings": 1,
-      "findings": [
-        {
-          "file": "crates/engine_input/src/keyboard/system.rs",
-          "line": 8,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 94 chars",
-          "metric": 94
-        }
-      ]
-    },
-    {
-      "path": "crates/engine_input/src/lib.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 100,
-      "errors": 0,
-      "warnings": 0,
-      "findings": []
-    },
-    {
-      "path": "crates/engine_input/src/mouse_button.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 98,
-      "errors": 0,
-      "warnings": 2,
-      "findings": [
-        {
-          "file": "crates/engine_input/src/mouse_button.rs",
-          "line": 13,
-          "rule": "complexity",
-          "severity": "warn",
-          "message": "from() cyclomatic complexity 7",
-          "metric": 7
-        },
-        {
-          "file": "crates/engine_input/src/mouse_button.rs",
-          "line": 13,
-          "rule": "stateless-method",
-          "severity": "warn",
-          "message": "from() never touches instance state — make it a free function",
-          "metric": 1
-        }
-      ]
-    },
-    {
-      "path": "crates/engine_input/src/mouse/buffer.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 100,
-      "errors": 0,
-      "warnings": 0,
-      "findings": []
-    },
-    {
-      "path": "crates/engine_input/src/mouse/mod.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 100,
-      "errors": 0,
-      "warnings": 0,
-      "findings": []
-    },
-    {
-      "path": "crates/engine_input/src/mouse/state.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 98,
-      "errors": 0,
-      "warnings": 2,
-      "findings": [
-        {
-          "file": "crates/engine_input/src/mouse/state.rs",
-          "line": 74,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 92 chars",
-          "metric": 92
-        },
-        {
-          "file": "crates/engine_input/src/mouse/state.rs",
-          "line": 80,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 97 chars",
-          "metric": 97
-        }
-      ]
-    },
-    {
-      "path": "crates/engine_input/src/mouse/system.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 98,
-      "errors": 0,
-      "warnings": 2,
-      "findings": [
-        {
-          "file": "crates/engine_input/src/mouse/system.rs",
-          "line": 8,
-          "rule": "complexity",
-          "severity": "warn",
-          "message": "mouse_input_system() cyclomatic complexity 7",
-          "metric": 7
-        },
-        {
-          "file": "crates/engine_input/src/mouse/system.rs",
-          "line": 19,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 85 chars",
-          "metric": 85
-        }
-      ]
-    },
-    {
-      "path": "crates/engine_input/src/prelude.rs",
-      "language": "rs",
-      "classification": "production",
-      "score": 99,
-      "errors": 0,
-      "warnings": 1,
-      "findings": [
-        {
-          "file": "crates/engine_input/src/prelude.rs",
-          "line": 7,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 86 chars",
-          "metric": 86
-        }
-      ]
-    },
-    {
-      "path": "crates/engine_input/tests/main.rs",
-      "language": "rs",
-      "classification": "test",
-      "score": 100,
-      "errors": 0,
-      "warnings": 0,
-      "findings": []
-    },
-    {
-      "path": "crates/engine_input/tests/suite/action_map.rs",
-      "language": "rs",
-      "classification": "test",
-      "score": 98,
-      "errors": 0,
-      "warnings": 2,
-      "findings": [
-        {
-          "file": "crates/engine_input/tests/suite/action_map.rs",
+          "file": "crates/engine_physics/benches/physics.rs",
           "line": 6,
-          "rule": "line-length",
+          "rule": "duplicate-block",
           "severity": "warn",
-          "message": "line is 102 chars",
-          "metric": 102
+          "message": "6-line block duplicated at crates/engine_physics/benches/physics.rs:6, crates/engine_physics/benches/stress.rs:6",
+          "metric": 2
         },
         {
-          "file": "crates/engine_input/tests/suite/action_map.rs",
-          "line": 23,
-          "rule": "line-length",
+          "file": "crates/engine_physics/benches/physics.rs",
+          "line": 38,
+          "rule": "output-parameter",
           "severity": "warn",
-          "message": "line is 89 chars",
-          "metric": 89
-        }
-      ]
-    },
-    {
-      "path": "crates/engine_input/tests/suite/keyboard_state.rs",
-      "language": "rs",
-      "classification": "test",
-      "score": 58,
-      "errors": 1,
-      "warnings": 37,
-      "findings": [
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "error",
-          "message": "file is 501 lines",
-          "metric": 501
+          "message": "bench_physics_step() exposes an output parameter; return a value instead",
+          "metric": 1
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 89,
+          "file": "crates/engine_physics/benches/physics.rs",
+          "line": 55,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "bench_physics_add_body() exposes an output parameter; return a value instead",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/benches/physics.rs",
+          "line": 69,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 87 chars",
           "metric": 87
-        },
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/benches/stress.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 96,
+      "errors": 0,
+      "warnings": 4,
+      "findings": [
         {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 124,
-          "rule": "line-length",
+          "file": "crates/engine_physics/benches/stress.rs",
+          "line": 5,
+          "rule": "duplicate-block",
           "severity": "warn",
-          "message": "line is 95 chars",
-          "metric": 95
+          "message": "6-line block duplicated at crates/engine_physics/benches/physics.rs:5, crates/engine_physics/benches/stress.rs:5",
+          "metric": 2
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 138,
-          "rule": "line-length",
+          "file": "crates/engine_physics/benches/stress.rs",
+          "line": 6,
+          "rule": "duplicate-block",
           "severity": "warn",
-          "message": "line is 84 chars",
-          "metric": 84
+          "message": "6-line block duplicated at crates/engine_physics/benches/physics.rs:6, crates/engine_physics/benches/stress.rs:6",
+          "metric": 2
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 142,
-          "rule": "comment-restates-code",
-          "severity": "warn",
-          "message": "comment repeats the declaration below it - say why, not what",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 142,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 89 chars",
-          "metric": 89
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 160,
-          "rule": "comment-restates-code",
-          "severity": "warn",
-          "message": "comment repeats the declaration below it - say why, not what",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 160,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 84 chars",
-          "metric": 84
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 179,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 100 chars",
-          "metric": 100
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 197,
-          "rule": "comment-restates-code",
-          "severity": "warn",
-          "message": "comment repeats the declaration below it - say why, not what",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 197,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 94 chars",
-          "metric": 94
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 212,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 83 chars",
-          "metric": 83
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 216,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 93 chars",
-          "metric": 93
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 218,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 84 chars",
-          "metric": 84
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 232,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 236,
-          "rule": "comment-restates-code",
-          "severity": "warn",
-          "message": "comment repeats the declaration below it - say why, not what",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 236,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 111 chars",
-          "metric": 111
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 238,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 92 chars",
-          "metric": 92
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 251,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 96 chars",
-          "metric": 96
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 255,
-          "rule": "comment-restates-code",
-          "severity": "warn",
-          "message": "comment repeats the declaration below it - say why, not what",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 255,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 101 chars",
-          "metric": 101
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 257,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 270,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 86 chars",
-          "metric": 86
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 291,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 88 chars",
-          "metric": 88
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 315,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 107 chars",
-          "metric": 107
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 336,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 101 chars",
-          "metric": 101
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 353,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 89 chars",
-          "metric": 89
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 375,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 104 chars",
-          "metric": 104
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 391,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 115 chars",
-          "metric": 115
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 393,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 84 chars",
-          "metric": 84
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 408,
+          "file": "crates/engine_physics/benches/stress.rs",
+          "line": 28,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 81 chars",
           "metric": 81
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 412,
-          "rule": "line-length",
+          "file": "crates/engine_physics/benches/stress.rs",
+          "line": 29,
+          "rule": "output-parameter",
           "severity": "warn",
-          "message": "line is 107 chars",
-          "metric": 107
+          "message": "bench_physics_stress() exposes an output parameter; return a value instead",
+          "metric": 1
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/src/collider.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 100,
+      "errors": 0,
+      "warnings": 0,
+      "findings": []
+    },
+    {
+      "path": "crates/engine_physics/src/collision_event.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 95,
+      "errors": 1,
+      "warnings": 0,
+      "findings": [
+        {
+          "file": "crates/engine_physics/src/collision_event.rs",
+          "line": 11,
+          "rule": "types-per-file",
+          "severity": "error",
+          "message": "2 types in one file: CollisionKind, CollisionEvent",
+          "metric": 2
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/src/hit_test.rs",
+      "language": "rs",
+      "classification": "test",
+      "score": 100,
+      "errors": 0,
+      "warnings": 0,
+      "findings": []
+    },
+    {
+      "path": "crates/engine_physics/src/lib.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 59,
+      "errors": 1,
+      "warnings": 36,
+      "findings": [
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 263 lines",
+          "metric": 263
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 414,
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 39,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 87 chars",
-          "metric": 87
+          "message": "line is 85 chars",
+          "metric": 85
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 431,
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 51,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "default() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 71,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 107 chars",
-          "metric": 107
+          "message": "line is 91 chars",
+          "metric": 91
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 433,
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 97,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "add_body() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 100,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "add_collider() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 103,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "remove_body() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 115,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "body_linear_velocity() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 118,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 98 chars",
-          "metric": 98
+          "message": "line is 91 chars",
+          "metric": 91
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 455,
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 118,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "set_linear_velocity() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 121,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 91 chars",
+          "metric": 91
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 121,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "set_angular_velocity() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 124,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 99 chars",
           "metric": 99
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 476,
-          "rule": "line-length",
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 124,
+          "rule": "stateless-method",
           "severity": "warn",
-          "message": "line is 111 chars",
-          "metric": 111
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_state.rs",
-          "line": 478,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 100 chars",
-          "metric": 100
-        }
-      ]
-    },
-    {
-      "path": "crates/engine_input/tests/suite/keyboard_system.rs",
-      "language": "rs",
-      "classification": "test",
-      "score": 28,
-      "errors": 12,
-      "warnings": 12,
-      "findings": [
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "warn",
-          "message": "file is 280 lines",
-          "metric": 280
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 18,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "run_input_system() exposes an output parameter; return a value instead",
+          "message": "add_force_at_point() never touches instance state — make it a free function",
           "metric": 1
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 24,
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 127,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "body_angular_velocity() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 130,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 92 chars",
-          "metric": 92
+          "message": "line is 90 chars",
+          "metric": 90
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 28,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:28, crates/engine_input/tests/suite/keyboard_system.rs:50, crates/engine_input/tests/suite/keyboard_system.rs:122",
-          "metric": 3
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 130,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "set_damping() never touches instance state — make it a free function",
+          "metric": 1
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 46,
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 133,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 86 chars",
-          "metric": 86
+          "message": "line is 98 chars",
+          "metric": 98
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 50,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:28, crates/engine_input/tests/suite/keyboard_system.rs:50, crates/engine_input/tests/suite/keyboard_system.rs:122",
-          "metric": 3
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 70,
-          "rule": "line-length",
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 133,
+          "rule": "stateless-method",
           "severity": "warn",
-          "message": "line is 81 chars",
-          "metric": 81
+          "message": "set_collision_group() never touches instance state — make it a free function",
+          "metric": 1
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 74,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:74, crates/engine_input/tests/suite/keyboard_system.rs:98, crates/engine_input/tests/suite/keyboard_system.rs:172",
-          "metric": 3
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 75,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:75, crates/engine_input/tests/suite/keyboard_system.rs:99, crates/engine_input/tests/suite/keyboard_system.rs:173",
-          "metric": 3
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 76,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:76, crates/engine_input/tests/suite/keyboard_system.rs:100, crates/engine_input/tests/suite/keyboard_system.rs:174",
-          "metric": 3
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 94,
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 136,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 89 chars",
           "metric": 89
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 98,
-          "rule": "duplicate-block",
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 136,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "set_body_position() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 139,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "is_body_sleeping() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 142,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "sleep_body() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 145,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "wake_body() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 150,
+          "rule": "types-per-file",
           "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:74, crates/engine_input/tests/suite/keyboard_system.rs:98, crates/engine_input/tests/suite/keyboard_system.rs:172",
+          "message": "2 types in one file: SpyPhysicsBackend, RecordingPhysicsBackend",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 161,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "step() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 183,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 91 chars",
+          "metric": 91
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 190,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 91 chars",
+          "metric": 91
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 197,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 90 chars",
+          "metric": 90
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 204,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 98 chars",
+          "metric": 98
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 211,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 89 chars",
+          "metric": 89
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 218,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 99 chars",
+          "metric": 99
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 225,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "body_position() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 228,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "body_rotation() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 231,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "drain_collision_events() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 234,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "body_linear_velocity() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/lib.rs",
+          "line": 237,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "body_angular_velocity() never touches instance state — make it a free function",
+          "metric": 1
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/src/physics_backend.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 74,
+      "errors": 1,
+      "warnings": 21,
+      "findings": [
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 183 lines",
+          "metric": 183
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 19,
+          "rule": "types-per-file",
+          "severity": "error",
+          "message": "3 types in one file: PhysicsError, PhysicsBackend, NullPhysicsBackend",
           "metric": 3
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 99,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:75, crates/engine_input/tests/suite/keyboard_system.rs:99, crates/engine_input/tests/suite/keyboard_system.rs:173",
-          "metric": 3
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 21,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 90 chars",
+          "metric": 90
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 100,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:76, crates/engine_input/tests/suite/keyboard_system.rs:100, crates/engine_input/tests/suite/keyboard_system.rs:174",
-          "metric": 3
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 28,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 98 chars",
+          "metric": 98
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 122,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:28, crates/engine_input/tests/suite/keyboard_system.rs:50, crates/engine_input/tests/suite/keyboard_system.rs:122",
-          "metric": 3
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 140,
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 54,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 96 chars",
           "metric": 96
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 168,
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 60,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 91,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 93 chars",
           "metric": 93
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 172,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:74, crates/engine_input/tests/suite/keyboard_system.rs:98, crates/engine_input/tests/suite/keyboard_system.rs:172",
-          "metric": 3
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 104,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "body_position() never touches instance state — make it a free function",
+          "metric": 1
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 173,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:75, crates/engine_input/tests/suite/keyboard_system.rs:99, crates/engine_input/tests/suite/keyboard_system.rs:173",
-          "metric": 3
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 108,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "body_rotation() never touches instance state — make it a free function",
+          "metric": 1
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 174,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/keyboard_system.rs:76, crates/engine_input/tests/suite/keyboard_system.rs:100, crates/engine_input/tests/suite/keyboard_system.rs:174",
-          "metric": 3
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 112,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "drain_collision_events() never touches instance state — make it a free function",
+          "metric": 1
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 193,
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 116,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "body_linear_velocity() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 120,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "set_linear_velocity() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 128,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "set_angular_velocity() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 136,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "add_force_at_point() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 145,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "body_angular_velocity() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 149,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "set_damping() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 158,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "set_collision_group() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 167,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 87 chars",
-          "metric": 87
+          "message": "line is 99 chars",
+          "metric": 99
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 217,
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 167,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "set_body_position() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 171,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "is_body_sleeping() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 175,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "sleep_body() never touches instance state — make it a free function",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/physics_backend.rs",
+          "line": 179,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "wake_body() never touches instance state — make it a free function",
+          "metric": 1
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/src/physics_command_apply_system.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 90,
+      "errors": 2,
+      "warnings": 0,
+      "findings": [
+        {
+          "file": "crates/engine_physics/src/physics_command_apply_system.rs",
+          "line": 7,
+          "rule": "complexity",
+          "severity": "error",
+          "message": "physics_command_apply_system() cyclomatic complexity 13",
+          "metric": 13
+        },
+        {
+          "file": "crates/engine_physics/src/physics_command_apply_system.rs",
+          "line": 7,
+          "rule": "function-length",
+          "severity": "error",
+          "message": "physics_command_apply_system() is 61 lines",
+          "metric": 61
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/src/physics_command.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 100,
+      "errors": 0,
+      "warnings": 0,
+      "findings": []
+    },
+    {
+      "path": "crates/engine_physics/src/physics_res.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 100,
+      "errors": 0,
+      "warnings": 0,
+      "findings": []
+    },
+    {
+      "path": "crates/engine_physics/src/physics_step_system.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 99,
+      "errors": 0,
+      "warnings": 1,
+      "findings": [
+        {
+          "file": "crates/engine_physics/src/physics_step_system.rs",
+          "line": 8,
+          "rule": "param-count",
+          "severity": "warn",
+          "message": "physics_step_system() takes 4 parameters",
+          "metric": 4
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/src/physics_sync_system.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 100,
+      "errors": 0,
+      "warnings": 0,
+      "findings": []
+    },
+    {
+      "path": "crates/engine_physics/src/plugin.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 93,
+      "errors": 1,
+      "warnings": 2,
+      "findings": [
+        {
+          "file": "crates/engine_physics/src/plugin.rs",
+          "line": 1,
+          "rule": "comment-bloat",
+          "severity": "error",
+          "message": "8-line comment over 1 line(s) of code - keep the why, cut the rest",
+          "metric": 8
+        },
+        {
+          "file": "crates/engine_physics/src/plugin.rs",
+          "line": 7,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/src/plugin.rs",
+          "line": 12,
+          "rule": "stateless-method",
+          "severity": "warn",
+          "message": "default() never touches instance state — make it a free function",
+          "metric": 1
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/src/prelude.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 99,
+      "errors": 0,
+      "warnings": 1,
+      "findings": [
+        {
+          "file": "crates/engine_physics/src/prelude.rs",
+          "line": 3,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/src/rapier_backend.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 42,
+      "errors": 9,
+      "warnings": 13,
+      "findings": [
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "error",
+          "message": "file is 361 lines",
+          "metric": 361
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 6,
+          "rule": "wildcard-import",
+          "severity": "warn",
+          "message": "rapier2d::prelude wildcard import obscures its imported API; import explicit names instead",
+          "metric": 1,
+          "suggestion": "Import explicit names from rapier2d::prelude."
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 46,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 96 chars",
           "metric": 96
         },
         {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 219,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "when_two_keys_pressed_in_one_frame_then_both_registered() is 38 lines",
-          "metric": 38
-        },
-        {
-          "file": "crates/engine_input/tests/suite/keyboard_system.rs",
-          "line": 258,
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 56,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 98 chars",
-          "metric": 98
+          "message": "line is 93 chars",
+          "metric": 93
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 96,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 91 chars",
+          "metric": 91
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 98,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 104,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 113,
+          "rule": "else-branch",
+          "severity": "warn",
+          "message": "add_collider() has 2 else branch(es) — prefer guard clauses",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 119,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 100 chars",
+          "metric": 100
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 122,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 123,
+          "rule": "line-length",
+          "severity": "error",
+          "message": "line is 126 chars",
+          "metric": 126
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 137,
+          "rule": "else-branch",
+          "severity": "warn",
+          "message": "remove_body() has 1 else branch(es) — prefer guard clauses",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 139,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 173,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 99 chars",
+          "metric": 99
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 176,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_physics/src/rapier_backend.rs:176, crates/engine_physics/src/rapier_backend.rs:193, crates/engine_physics/src/rapier_backend.rs:217, crates/engine_physics/src/rapier_backend.rs:239, crates/engine_physics/src/rapier_backend.rs:280, crates/engine_physics/src/rapier_backend.rs:302, crates/engine_physics/src/rapier_backend.rs:322",
+          "metric": 7
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 193,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_physics/src/rapier_backend.rs:176, crates/engine_physics/src/rapier_backend.rs:193, crates/engine_physics/src/rapier_backend.rs:217, crates/engine_physics/src/rapier_backend.rs:239, crates/engine_physics/src/rapier_backend.rs:280, crates/engine_physics/src/rapier_backend.rs:302, crates/engine_physics/src/rapier_backend.rs:322",
+          "metric": 7
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 217,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_physics/src/rapier_backend.rs:176, crates/engine_physics/src/rapier_backend.rs:193, crates/engine_physics/src/rapier_backend.rs:217, crates/engine_physics/src/rapier_backend.rs:239, crates/engine_physics/src/rapier_backend.rs:280, crates/engine_physics/src/rapier_backend.rs:302, crates/engine_physics/src/rapier_backend.rs:322",
+          "metric": 7
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 239,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_physics/src/rapier_backend.rs:176, crates/engine_physics/src/rapier_backend.rs:193, crates/engine_physics/src/rapier_backend.rs:217, crates/engine_physics/src/rapier_backend.rs:239, crates/engine_physics/src/rapier_backend.rs:280, crates/engine_physics/src/rapier_backend.rs:302, crates/engine_physics/src/rapier_backend.rs:322",
+          "metric": 7
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 277,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 97 chars",
+          "metric": 97
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 280,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_physics/src/rapier_backend.rs:176, crates/engine_physics/src/rapier_backend.rs:193, crates/engine_physics/src/rapier_backend.rs:217, crates/engine_physics/src/rapier_backend.rs:239, crates/engine_physics/src/rapier_backend.rs:280, crates/engine_physics/src/rapier_backend.rs:302, crates/engine_physics/src/rapier_backend.rs:322",
+          "metric": 7
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 302,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_physics/src/rapier_backend.rs:176, crates/engine_physics/src/rapier_backend.rs:193, crates/engine_physics/src/rapier_backend.rs:217, crates/engine_physics/src/rapier_backend.rs:239, crates/engine_physics/src/rapier_backend.rs:280, crates/engine_physics/src/rapier_backend.rs:302, crates/engine_physics/src/rapier_backend.rs:322",
+          "metric": 7
+        },
+        {
+          "file": "crates/engine_physics/src/rapier_backend.rs",
+          "line": 322,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_physics/src/rapier_backend.rs:176, crates/engine_physics/src/rapier_backend.rs:193, crates/engine_physics/src/rapier_backend.rs:217, crates/engine_physics/src/rapier_backend.rs:239, crates/engine_physics/src/rapier_backend.rs:280, crates/engine_physics/src/rapier_backend.rs:302, crates/engine_physics/src/rapier_backend.rs:322",
+          "metric": 7
         }
       ]
     },
     {
-      "path": "crates/engine_input/tests/suite/mod.rs",
+      "path": "crates/engine_physics/src/rigid_body.rs",
+      "language": "rs",
+      "classification": "production",
+      "score": 100,
+      "errors": 0,
+      "warnings": 0,
+      "findings": []
+    },
+    {
+      "path": "crates/engine_physics/tests/main.rs",
       "language": "rs",
       "classification": "test",
       "score": 100,
@@ -816,467 +983,1190 @@
       "findings": []
     },
     {
-      "path": "crates/engine_input/tests/suite/mouse_state.rs",
+      "path": "crates/engine_physics/tests/suite/collider.rs",
       "language": "rs",
       "classification": "test",
-      "score": 63,
-      "errors": 1,
-      "warnings": 32,
+      "score": 86,
+      "errors": 2,
+      "warnings": 4,
       "findings": [
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "error",
-          "message": "file is 566 lines",
-          "metric": 566
+          "file": "crates/engine_physics/tests/suite/collider.rs",
+          "line": 4,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 95 chars",
+          "metric": 95
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
+          "file": "crates/engine_physics/tests/suite/collider.rs",
+          "line": 23,
+          "rule": "line-length",
+          "severity": "error",
+          "message": "line is 133 chars",
+          "metric": 133
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/collider.rs",
           "line": 25,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 83 chars",
-          "metric": 83
+          "message": "line is 85 chars",
+          "metric": 85
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 57,
+          "file": "crates/engine_physics/tests/suite/collider.rs",
+          "line": 50,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 113 chars",
+          "metric": 113
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/collider.rs",
+          "line": 70,
+          "rule": "line-length",
+          "severity": "error",
+          "message": "line is 125 chars",
+          "metric": 125
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/collider.rs",
+          "line": 87,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 114 chars",
+          "metric": 114
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/tests/suite/hit_test.rs",
+      "language": "rs",
+      "classification": "test",
+      "score": 100,
+      "errors": 0,
+      "warnings": 0,
+      "findings": []
+    },
+    {
+      "path": "crates/engine_physics/tests/suite/mod.rs",
+      "language": "rs",
+      "classification": "test",
+      "score": 100,
+      "errors": 0,
+      "warnings": 0,
+      "findings": []
+    },
+    {
+      "path": "crates/engine_physics/tests/suite/physics_backend.rs",
+      "language": "rs",
+      "classification": "test",
+      "score": 87,
+      "errors": 1,
+      "warnings": 8,
+      "findings": [
+        {
+          "file": "crates/engine_physics/tests/suite/physics_backend.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "error",
+          "message": "file is 320 lines",
+          "metric": 320
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_backend.rs",
+          "line": 214,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_backend.rs",
+          "line": 229,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_backend.rs",
+          "line": 245,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_backend.rs",
+          "line": 261,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 97 chars",
+          "metric": 97
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_backend.rs",
+          "line": 289,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 81 chars",
           "metric": 81
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 91,
+          "file": "crates/engine_physics/tests/suite/physics_backend.rs",
+          "line": 291,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 116 chars",
-          "metric": 116
+          "message": "line is 82 chars",
+          "metric": 82
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 112,
+          "file": "crates/engine_physics/tests/suite/physics_backend.rs",
+          "line": 306,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 92 chars",
-          "metric": 92
+          "message": "line is 81 chars",
+          "metric": 81
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 164,
+          "file": "crates/engine_physics/tests/suite/physics_backend.rs",
+          "line": 307,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+      "language": "rs",
+      "classification": "test",
+      "score": 77,
+      "errors": 1,
+      "warnings": 18,
+      "findings": [
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 261 lines",
+          "metric": 261
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 16,
+          "rule": "unnamed-tuple",
+          "severity": "error",
+          "message": "tuple -> (World, Arc<Mutex<Vec<String>>>) — replace it with a named type",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 44,
+          "rule": "function-length",
+          "severity": "warn",
+          "message": "when_lifecycle_commands_queued_then_all_three_backend_methods_called_in_order() is 34 lines",
+          "metric": 34
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 44,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 46,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_physics/tests/suite/physics_command_apply_system.rs:46, crates/engine_physics/tests/suite/physics_command_apply_system.rs:168",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 47,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_physics/tests/suite/physics_command_apply_system.rs:47, crates/engine_physics/tests/suite/physics_command_apply_system.rs:169",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 75,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 80,
+          "rule": "function-length",
+          "severity": "warn",
+          "message": "when_property_commands_queued_then_all_six_backend_methods_called_in_order() is 53 lines",
+          "metric": 53
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 80,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 130,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 89 chars",
+          "metric": 89
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 168,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_physics/tests/suite/physics_command_apply_system.rs:46, crates/engine_physics/tests/suite/physics_command_apply_system.rs:168",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 169,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_physics/tests/suite/physics_command_apply_system.rs:47, crates/engine_physics/tests/suite/physics_command_apply_system.rs:169",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 189,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 193,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 194,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 195,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 216,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 239,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+          "line": 240,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 82 chars",
+          "metric": 82
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/tests/suite/physics_step_system.rs",
+      "language": "rs",
+      "classification": "test",
+      "score": 94,
+      "errors": 0,
+      "warnings": 6,
+      "findings": [
+        {
+          "file": "crates/engine_physics/tests/suite/physics_step_system.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 121 lines",
+          "metric": 121
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_step_system.rs",
+          "line": 21,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_step_system.rs",
+          "line": 41,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 95 chars",
+          "metric": 95
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_step_system.rs",
+          "line": 62,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 95 chars",
+          "metric": 95
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_step_system.rs",
+          "line": 83,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 106 chars",
           "metric": 106
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 182,
-          "rule": "line-length",
+          "file": "crates/engine_physics/tests/suite/physics_step_system.rs",
+          "line": 85,
+          "rule": "function-length",
           "severity": "warn",
-          "message": "line is 82 chars",
-          "metric": 82
+          "message": "when_backend_produces_events_then_buffer_contains_them() is 36 lines",
+          "metric": 36
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/tests/suite/physics_sync_system.rs",
+      "language": "rs",
+      "classification": "test",
+      "score": 90,
+      "errors": 0,
+      "warnings": 10,
+      "findings": [
+        {
+          "file": "crates/engine_physics/tests/suite/physics_sync_system.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "warn",
+          "message": "file is 283 lines",
+          "metric": 283
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 200,
+          "file": "crates/engine_physics/tests/suite/physics_sync_system.rs",
+          "line": 10,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "run_sync() exposes an output parameter; return a value instead",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_sync_system.rs",
+          "line": 20,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 84 chars",
           "metric": 84
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 218,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 92 chars",
-          "metric": 92
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 236,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 81 chars",
-          "metric": 81
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 253,
-          "rule": "comment-restates-code",
-          "severity": "warn",
-          "message": "comment repeats the declaration below it - say why, not what",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 253,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 93 chars",
-          "metric": 93
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 255,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 92 chars",
-          "metric": 92
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 272,
-          "rule": "comment-restates-code",
-          "severity": "warn",
-          "message": "comment repeats the declaration below it - say why, not what",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 272,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 98 chars",
-          "metric": 98
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 274,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 97 chars",
-          "metric": 97
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 290,
-          "rule": "comment-restates-code",
-          "severity": "warn",
-          "message": "comment repeats the declaration below it - say why, not what",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 290,
+          "file": "crates/engine_physics/tests/suite/physics_sync_system.rs",
+          "line": 26,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 103 chars",
           "metric": 103
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 292,
+          "file": "crates/engine_physics/tests/suite/physics_sync_system.rs",
+          "line": 55,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 100 chars",
-          "metric": 100
+          "message": "line is 84 chars",
+          "metric": 84
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 310,
+          "file": "crates/engine_physics/tests/suite/physics_sync_system.rs",
+          "line": 92,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_sync_system.rs",
+          "line": 116,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 106 chars",
+          "metric": 106
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_sync_system.rs",
+          "line": 195,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/physics_sync_system.rs",
+          "line": 220,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 102 chars",
           "metric": 102
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 326,
+          "file": "crates/engine_physics/tests/suite/physics_sync_system.rs",
+          "line": 235,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        }
+      ]
+    },
+    {
+      "path": "crates/engine_physics/tests/suite/rapier_backend.rs",
+      "language": "rs",
+      "classification": "test",
+      "score": 0,
+      "errors": 9,
+      "warnings": 69,
+      "findings": [
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 1,
+          "rule": "file-length",
+          "severity": "error",
+          "message": "file is 934 lines",
+          "metric": 934
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 5,
+          "rule": "wildcard-import",
+          "severity": "warn",
+          "message": "engine_physics::prelude wildcard import obscures its imported API; import explicit names instead",
+          "metric": 1,
+          "suggestion": "Import explicit names from engine_physics::prelude."
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 17,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 92 chars",
+          "metric": 92
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 27,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 35,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 83 chars",
           "metric": 83
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 330,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 45,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 115 chars",
-          "metric": 115
+          "message": "line is 112 chars",
+          "metric": 112
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 366,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 60,
+          "rule": "line-length",
+          "severity": "error",
+          "message": "line is 131 chars",
+          "metric": 131
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 62,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 96 chars",
-          "metric": 96
+          "message": "line is 82 chars",
+          "metric": 82
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 383,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 117 chars",
-          "metric": 117
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 403,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 84,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 95 chars",
           "metric": 95
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 426,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 100,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 99 chars",
-          "metric": 99
+          "message": "line is 93 chars",
+          "metric": 93
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 450,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 109,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 94 chars",
-          "metric": 94
+          "message": "line is 114 chars",
+          "metric": 114
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 467,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 123,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 102 chars",
-          "metric": 102
+          "message": "line is 98 chars",
+          "metric": 98
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 484,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 140,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 97 chars",
-          "metric": 97
+          "message": "line is 98 chars",
+          "metric": 98
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 486,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 85 chars",
-          "metric": 85
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 492,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 156,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 88 chars",
           "metric": 88
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 506,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 101 chars",
-          "metric": 101
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_state.rs",
-          "line": 508,
-          "rule": "function-length",
-          "severity": "warn",
-          "message": "when_rapid_press_release_repress_then_states_update_correctly() is 41 lines",
-          "metric": 41
-        }
-      ]
-    },
-    {
-      "path": "crates/engine_input/tests/suite/mouse_system.rs",
-      "language": "rs",
-      "classification": "test",
-      "score": 60,
-      "errors": 5,
-      "warnings": 15,
-      "findings": [
-        {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 1,
-          "rule": "file-length",
-          "severity": "warn",
-          "message": "file is 279 lines",
-          "metric": 279
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 9,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 86 chars",
-          "metric": 86
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 19,
-          "rule": "output-parameter",
-          "severity": "warn",
-          "message": "run_mouse_system() exposes an output parameter; return a value instead",
-          "metric": 1
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 25,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 101 chars",
-          "metric": 101
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 29,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/mouse_system.rs:29, crates/engine_input/tests/suite/mouse_system.rs:94, crates/engine_input/tests/suite/mouse_system.rs:134",
-          "metric": 3
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 44,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 95 chars",
-          "metric": 95
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 67,
-          "rule": "line-length",
-          "severity": "error",
-          "message": "line is 123 chars",
-          "metric": 123
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 90,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 83 chars",
-          "metric": 83
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 94,
-          "rule": "duplicate-block",
-          "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/mouse_system.rs:29, crates/engine_input/tests/suite/mouse_system.rs:94, crates/engine_input/tests/suite/mouse_system.rs:134",
-          "metric": 3
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 109,
-          "rule": "line-length",
-          "severity": "warn",
-          "message": "line is 86 chars",
-          "metric": 86
-        },
-        {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 130,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 172,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 96 chars",
           "metric": 96
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 134,
-          "rule": "duplicate-block",
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 186,
+          "rule": "line-length",
           "severity": "error",
-          "message": "6-line block duplicated at crates/engine_input/tests/suite/mouse_system.rs:29, crates/engine_input/tests/suite/mouse_system.rs:94, crates/engine_input/tests/suite/mouse_system.rs:134",
-          "metric": 3
+          "message": "line is 123 chars",
+          "metric": 123
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 155,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 188,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 190,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_physics/tests/suite/rapier_backend.rs:190, crates/engine_physics/tests/suite/rapier_backend.rs:217, crates/engine_physics/tests/suite/rapier_backend.rs:696, crates/engine_physics/tests/suite/rapier_backend.rs:759",
+          "metric": 4
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 206,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 213,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 104 chars",
+          "metric": 104
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 217,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_physics/tests/suite/rapier_backend.rs:190, crates/engine_physics/tests/suite/rapier_backend.rs:217, crates/engine_physics/tests/suite/rapier_backend.rs:696, crates/engine_physics/tests/suite/rapier_backend.rs:759",
+          "metric": 4
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 233,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 108 chars",
+          "metric": 108
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 247,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 108 chars",
+          "metric": 108
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 255,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 87 chars",
           "metric": 87
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 176,
-          "rule": "comment-restates-code",
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 261,
+          "rule": "line-length",
           "severity": "warn",
-          "message": "comment repeats the declaration below it - say why, not what",
+          "message": "line is 105 chars",
+          "metric": 105
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 275,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 89 chars",
+          "metric": 89
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 275,
+          "rule": "output-parameter",
+          "severity": "warn",
+          "message": "apply_impulse() exposes an output parameter; return a value instead",
           "metric": 1
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 176,
-          "rule": "line-length",
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 275,
+          "rule": "param-count",
           "severity": "warn",
-          "message": "line is 90 chars",
-          "metric": 90
+          "message": "apply_impulse() takes 4 parameters",
+          "metric": 4
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 197,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 281,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 281,
+          "rule": "unnamed-tuple",
+          "severity": "error",
+          "message": "tuple -> (RapierBackend, Entity) — replace it with a named type",
+          "metric": 1
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 290,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 87 chars",
+          "metric": 87
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 315,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 98 chars",
+          "metric": 98
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 336,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 361,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 85 chars",
+          "metric": 85
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 380,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 82 chars",
+          "metric": 82
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 384,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 95 chars",
+          "metric": 95
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 388,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 99 chars",
+          "metric": 99
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 390,
+          "rule": "function-length",
+          "severity": "warn",
+          "message": "when_damping_reset_to_zero_then_body_moves_like_undamped() is 32 lines",
+          "metric": 32
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 423,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 444,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 93 chars",
+          "metric": 93
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 446,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 473,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 105 chars",
+          "metric": 105
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 485,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 497,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 116 chars",
+          "metric": 116
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 523,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 104 chars",
+          "metric": 104
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 537,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 115 chars",
+          "metric": 115
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 558,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 107 chars",
+          "metric": 107
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 577,
+          "rule": "line-length",
+          "severity": "error",
+          "message": "line is 129 chars",
+          "metric": 129
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 579,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 604,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 95 chars",
+          "metric": 95
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 623,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 106 chars",
+          "metric": 106
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 637,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 109 chars",
+          "metric": 109
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 656,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 91 chars",
+          "metric": 91
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 678,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 102 chars",
           "metric": 102
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 223,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 692,
           "rule": "line-length",
           "severity": "warn",
-          "message": "line is 90 chars",
-          "metric": 90
+          "message": "line is 101 chars",
+          "metric": 101
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 244,
-          "rule": "line-length",
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 696,
+          "rule": "duplicate-block",
           "severity": "error",
-          "message": "line is 128 chars",
-          "metric": 128
+          "message": "6-line block duplicated at crates/engine_physics/tests/suite/rapier_backend.rs:190, crates/engine_physics/tests/suite/rapier_backend.rs:217, crates/engine_physics/tests/suite/rapier_backend.rs:696, crates/engine_physics/tests/suite/rapier_backend.rs:759",
+          "metric": 4
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 246,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 703,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_physics/tests/suite/rapier_backend.rs:703, crates/engine_physics/tests/suite/rapier_backend.rs:767",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 721,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 100 chars",
+          "metric": 100
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 723,
           "rule": "function-length",
           "severity": "warn",
-          "message": "when_press_then_release_then_press_in_same_frame_then_final_state_is_pressed() is 33 lines",
-          "metric": 33
+          "message": "when_card_and_wall_groups_then_collision_event_fires() is 31 lines",
+          "metric": 31
         },
         {
-          "file": "crates/engine_input/tests/suite/mouse_system.rs",
-          "line": 246,
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 755,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 115 chars",
+          "metric": 115
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 758,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 91 chars",
+          "metric": 91
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 759,
+          "rule": "duplicate-block",
+          "severity": "error",
+          "message": "6-line block duplicated at crates/engine_physics/tests/suite/rapier_backend.rs:190, crates/engine_physics/tests/suite/rapier_backend.rs:217, crates/engine_physics/tests/suite/rapier_backend.rs:696, crates/engine_physics/tests/suite/rapier_backend.rs:759",
+          "metric": 4
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 767,
+          "rule": "duplicate-block",
+          "severity": "warn",
+          "message": "6-line block duplicated at crates/engine_physics/tests/suite/rapier_backend.rs:703, crates/engine_physics/tests/suite/rapier_backend.rs:767",
+          "metric": 2
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 785,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 82 chars",
+          "metric": 82
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 786,
           "rule": "line-length",
           "severity": "warn",
           "message": "line is 83 chars",
           "metric": 83
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 787,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 82 chars",
+          "metric": 82
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 797,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 86 chars",
+          "metric": 86
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 804,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 805,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 82 chars",
+          "metric": 82
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 826,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 857,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 82 chars",
+          "metric": 82
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 859,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 862,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 81 chars",
+          "metric": 81
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 884,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 83 chars",
+          "metric": 83
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 917,
+          "rule": "comment-bloat",
+          "severity": "warn",
+          "message": "5-line comment over 2 line(s) of code - keep the why, cut the rest",
+          "metric": 5
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 917,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 82 chars",
+          "metric": 82
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 918,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 88 chars",
+          "metric": 88
+        },
+        {
+          "file": "crates/engine_physics/tests/suite/rapier_backend.rs",
+          "line": 919,
+          "rule": "line-length",
+          "severity": "warn",
+          "message": "line is 84 chars",
+          "metric": 84
         }
       ]
     }
   ],
   "architecture": {
-    "placement": [],
+    "placement": [
+      {
+        "kind": "flat-accumulation",
+        "directory": "crates/engine_physics/src",
+        "typeCount": 13,
+        "limit": 12,
+        "types": [
+          "Collider",
+          "CollisionEvent",
+          "CollisionKind",
+          "NullPhysicsBackend",
+          "PhysicsBackend",
+          "PhysicsCommand",
+          "PhysicsError",
+          "PhysicsPlugin",
+          "PhysicsRes",
+          "RapierBackend",
+          "RecordingPhysicsBackend",
+          "RigidBody",
+          "SpyPhysicsBackend"
+        ]
+      }
+    ],
     "similarity": [],
     "dependencies": [],
     "cycles": [],
     "encapsulation": [
       {
         "kind": "public-surface-growth",
-        "path": "crates/engine_input/src/keyboard/buffer.rs",
-        "symbol": "KeyInputEvent.key",
+        "path": "crates/engine_physics/src/collision_event.rs",
+        "symbol": "CollisionEvent.entity_a",
         "productionCallers": [],
         "testCallers": []
       },
       {
         "kind": "public-surface-growth",
-        "path": "crates/engine_input/src/keyboard/buffer.rs",
-        "symbol": "KeyInputEvent.state",
+        "path": "crates/engine_physics/src/collision_event.rs",
+        "symbol": "CollisionEvent.entity_b",
+        "productionCallers": [],
+        "testCallers": []
+      },
+      {
+        "kind": "public-surface-growth",
+        "path": "crates/engine_physics/src/collision_event.rs",
+        "symbol": "CollisionEvent.kind",
+        "productionCallers": [],
+        "testCallers": []
+      },
+      {
+        "kind": "public-surface-growth",
+        "path": "crates/engine_physics/src/lib.rs",
+        "symbol": "RecordingPhysicsBackend.calls",
+        "productionCallers": [],
+        "testCallers": []
+      },
+      {
+        "kind": "public-surface-growth",
+        "path": "crates/engine_physics/src/lib.rs",
+        "symbol": "SpyPhysicsBackend.events",
+        "productionCallers": [],
+        "testCallers": []
+      },
+      {
+        "kind": "public-surface-growth",
+        "path": "crates/engine_physics/src/lib.rs",
+        "symbol": "SpyPhysicsBackend.positions",
+        "productionCallers": [],
+        "testCallers": []
+      },
+      {
+        "kind": "public-surface-growth",
+        "path": "crates/engine_physics/src/lib.rs",
+        "symbol": "SpyPhysicsBackend.rotations",
+        "productionCallers": [],
+        "testCallers": []
+      },
+      {
+        "kind": "public-surface-growth",
+        "path": "crates/engine_physics/src/lib.rs",
+        "symbol": "SpyPhysicsBackend.step_count",
         "productionCallers": [],
         "testCallers": []
       }

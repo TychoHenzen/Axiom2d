@@ -1,86 +1,100 @@
 {
   "targetScope": [
-    "crates/engine_input"
+    "crates/engine_physics"
   ],
   "responsibilities": [
     {
-      "name": "define input values and action bindings",
+      "name": "define the backend contract and no-op backend",
       "currentOwners": [
-        "crates/engine_input/src/key_code.rs::KeyCode and its winit conversion define the supported keyboard value surface",
-        "crates/engine_input/src/mouse_button.rs::MouseButton and its winit conversion define the supported mouse-button value surface",
-        "crates/engine_input/src/button_state.rs::ButtonState maps native pressed/released state",
-        "crates/engine_input/src/action_map.rs::ActionMap stores keyboard and mouse bindings",
-        "crates/engine_input/src/prelude.rs::re-exports define the supported convenience surface"
+        "crates/engine_physics/src/physics_backend.rs::PhysicsBackend defines the supported physics operations",
+        "crates/engine_physics/src/physics_backend.rs::NullPhysicsBackend supplies the default inert backend",
+        "crates/engine_physics/src/physics_res.rs::PhysicsRes owns the runtime backend resource"
       ],
       "consumers": [
-        "crates/engine_app/src/app.rs",
-        "crates/engine_app/src/window_event.rs",
-        "crates/axiom2d",
-        "crates/card_game",
-        "crates/card_game_bin",
-        "crates/demo",
-        "crates/terrain_viewer",
-        "crates/engine_input/tests"
+        "crates/axiom2d/src/default_plugins.rs",
+        "crates/card_game/tests/test_helpers.rs",
+        "crates/engine_physics/src/physics_step_system.rs",
+        "crates/engine_physics/src/physics_sync_system.rs",
+        "crates/engine_physics/tests/suite/physics_backend.rs"
       ],
       "dependencies": [
-        "winit::event and winit::keyboard",
-        "bevy_ecs::prelude::Resource",
-        "HashMap<String, Vec<KeyCode>>",
-        "HashMap<String, Vec<MouseButton>>"
-      ]
-    },
-    {
-      "name": "transport and apply keyboard input",
-      "currentOwners": [
-        "crates/engine_input/src/keyboard/buffer.rs::KeyInputEvent transports keyboard transitions",
-        "crates/engine_input/src/keyboard/state.rs::InputState owns pressed, just-pressed, and just-released keyboard state and action queries",
-        "crates/engine_input/src/keyboard/system.rs::input_system drains keyboard events and advances frame state"
-      ],
-      "consumers": [
-        "crates/engine_app/src/app.rs",
-        "crates/axiom2d",
-        "crates/demo",
-        "crates/terrain_viewer",
-        "crates/engine_input/tests"
-      ],
-      "dependencies": [
-        "engine_core::prelude::Event and EventBus",
-        "bevy_ecs::prelude::{ResMut, Resource}",
-        "ActionMap",
-        "KeyCode",
-        "ButtonState"
-      ]
-    },
-    {
-      "name": "transport and apply mouse input",
-      "currentOwners": [
-        "crates/engine_input/src/mouse/buffer.rs::MouseInputEvent transports button, movement, and scroll events",
-        "crates/engine_input/src/mouse/state.rs::MouseState owns button, screen/world position, and scroll state",
-        "crates/engine_input/src/mouse/system.rs::mouse_input_system drains mouse events and scroll_clear_system clears frame scroll"
-      ],
-      "consumers": [
-        "crates/engine_app/src/app.rs",
-        "crates/engine_app/src/mouse_world_pos_system.rs",
-        "crates/axiom2d",
-        "crates/card_game",
-        "crates/card_game_bin",
-        "crates/terrain_viewer",
-        "crates/engine_input/tests"
-      ],
-      "dependencies": [
-        "engine_core::prelude::Event and EventBus",
-        "bevy_ecs::prelude::{ResMut, Resource}",
+        "bevy_ecs::prelude::Entity",
+        "engine_core::prelude::Seconds",
         "glam::Vec2",
-        "ActionMap",
-        "MouseButton",
-        "ButtonState"
+        "Collider, CollisionEvent, and RigidBody"
+      ]
+    },
+    {
+      "name": "adapt Rapier bodies, colliders, and collision events",
+      "currentOwners": [
+        "crates/engine_physics/src/rapier_backend.rs::RapierBackend owns Rapier state and Entity-to-handle mappings",
+        "crates/engine_physics/src/collider.rs::Collider defines supported collider inputs",
+        "crates/engine_physics/src/rigid_body.rs::RigidBody defines supported body kinds",
+        "crates/engine_physics/src/collision_event.rs::CollisionEvent and CollisionKind define emitted events"
+      ],
+      "consumers": [
+        "crates/engine_physics/tests/suite/rapier_backend.rs",
+        "crates/engine_physics/tests/suite/collider.rs",
+        "crates/axiom2d/src/default_plugins.rs",
+        "crates/card_game_bin/src/main.rs"
+      ],
+      "dependencies": [
+        "rapier2d::prelude",
+        "bevy_ecs::prelude::Entity",
+        "glam::Vec2",
+        "std::collections::HashMap",
+        "std::sync::mpsc"
+      ]
+    },
+    {
+      "name": "apply commands and synchronize ECS state",
+      "currentOwners": [
+        "crates/engine_physics/src/physics_command.rs::PhysicsCommand transports ordered backend operations",
+        "crates/engine_physics/src/physics_command_apply_system.rs::physics_command_apply_system drains and applies commands",
+        "crates/engine_physics/src/physics_step_system.rs::physics_step_system advances the backend and publishes events",
+        "crates/engine_physics/src/physics_sync_system.rs::physics_sync_system copies backend transforms into ECS",
+        "crates/engine_physics/src/plugin.rs::PhysicsPlugin schedules the physics systems"
+      ],
+      "consumers": [
+        "crates/axiom2d/src/default_plugins.rs",
+        "crates/card_game_bin/src/main.rs",
+        "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+        "crates/engine_physics/tests/suite/physics_step_system.rs",
+        "crates/engine_physics/tests/suite/physics_sync_system.rs"
+      ],
+      "dependencies": [
+        "engine_core::prelude::EventBus",
+        "bevy_ecs system parameters and schedules",
+        "PhysicsBackend and PhysicsRes",
+        "RigidBody and Transform2D"
+      ]
+    },
+    {
+      "name": "provide hit testing and test-only backend doubles",
+      "currentOwners": [
+        "crates/engine_physics/src/hit_test.rs::collider_half_extents provides the AABB hit-test input",
+        "crates/engine_physics/src/lib.rs::test_helpers::SpyPhysicsBackend supplies query/step fixtures",
+        "crates/engine_physics/src/lib.rs::test_helpers::RecordingPhysicsBackend records command order"
+      ],
+      "consumers": [
+        "crates/engine_physics/tests/suite/hit_test.rs",
+        "crates/engine_physics/tests/suite/physics_backend.rs",
+        "crates/engine_physics/tests/suite/physics_command_apply_system.rs",
+        "crates/engine_physics/tests/suite/physics_step_system.rs",
+        "crates/engine_physics/tests/suite/physics_sync_system.rs"
+      ],
+      "dependencies": [
+        "bevy_ecs::prelude::World",
+        "glam::Vec2",
+        "std::sync::{Arc, Mutex}",
+        "std::sync::atomic::AtomicU32"
       ]
     }
   ],
   "findings": {
-    "scope": "The scan reports 20 errors and 108 warnings across 21 files; 118 findings are in tests or line-length/comment rules, while the remaining production findings are necessary public mappings or small input-system heuristics.",
+    "scope": "The default scan covers 25 files with 28 errors and 198 warnings; production contains 15 errors and 83 warnings, while tests contain 13 errors and 115 warnings. The scan materializes 16 work units.",
     "decision": "no-safe-change",
-    "reason": "The production definitions already have one owner per responsibility. Splitting the large behavior tests would be organizational churn, genericizing keyboard and mouse state would erase domain-specific fields, and changing public mappings or event handling would widen API or runtime risk without a measured responsibility defect."
+    "reason": "The production findings are concentrated in the Rapier adapter's repeated backend-specific operations, trait-required Null backend methods, type co-location in the backend abstraction, and one ordered command dispatcher. Extracting generic helpers or splitting these owners would obscure physics semantics or widen API risk; test duplication is organizational churn without a behavior defect. No source cleanup is justified by this scoped evidence. Source-changing replay remains blocked solely by dod-guard#621 because its committed-tree gate requires the absent .github/quality/quality-baseline.json instead of this repository's docs/QUALITY_BASELINE.ron."
   },
   "desired": {
     "ownership": [],
