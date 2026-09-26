@@ -159,24 +159,6 @@ def build_churn_map(days=90):
     """Return dict mapping file path -> commit count in last N days.
     Uses a single git subprocess call for all files."""
     churn = defaultdict(int)
-    try:
-        result = subprocess.run(
-            ["git", "log", "--since", f"{days}.days.ago", "--name-only", "--oneline", "--", "crates/"],
-            capture_output=True, text=True,
-            cwd=str(PROJECT_ROOT), timeout=30,
-            encoding=SUBPROCESS_ENCODING, errors='replace'
-        )
-        for line in result.stdout.split('\n'):
-            line = line.strip()
-            if line and not line.startswith(' ') and ' ' not in line:
-                # It's a filename (oneline format: "hash msg" then filename on its own line)
-                # Actually --name-only puts filenames after each commit line
-                pass
-        # Re-parse: --name-only output is: commit_hash commit_msg\n\nfile1\nfile2\n\ncommit_hash...
-        # Simpler approach: use --format='' to only output filenames
-    except Exception:
-        pass
-
     # Use a simpler format: just list all changed files, one per line
     try:
         result = subprocess.run(
