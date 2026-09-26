@@ -1,70 +1,60 @@
 {
   "targetScope": [
-    "crates/terrain_viewer"
+    "mobile/gps_companion"
   ],
   "responsibilities": [
     {
-      "name": "configure the terrain viewer application and behavior tests",
+      "name": "orchestrate map rendering, GPS tracking, fog, and vacuum behavior",
       "currentOwners": [
-        "crates/terrain_viewer/src/main.rs"
+        "mobile/gps_companion/lib/ui/map_screen.dart::MapScreen",
+        "mobile/gps_companion/lib/ui/map_screen.dart::_MapScreenState"
       ],
       "consumers": [
-        "terrain_viewer binary"
+        "mobile/gps_companion/lib/ui/app.dart::HomeShell",
+        "mobile/gps_companion/test/integration/journey_test.dart"
       ],
       "dependencies": [
-        "axiom2d application lifecycle",
-        "engine ECS phases"
+        "flutter_map and geolocator",
+        "gps_companion AppState and domain coverage",
+        "BiomeService and route-log persistence"
       ]
     },
     {
-      "name": "own terrain viewer state resources",
+      "name": "render map HUD widgets and grain-packing indicators",
       "currentOwners": [
-        "crates/terrain_viewer/src/state.rs"
+        "mobile/gps_companion/lib/ui/map_hud.dart::MapHud",
+        "mobile/gps_companion/lib/ui/map_hud.dart::PlayerDot",
+        "mobile/gps_companion/lib/ui/map_hud.dart::TubeHud",
+        "mobile/gps_companion/lib/ui/map_hud.dart::PackStackHud"
       ],
       "consumers": [
-        "terrain_viewer rendering and systems"
+        "mobile/gps_companion/lib/ui/map_screen.dart",
+        "mobile/gps_companion/test/ui/grain_hud_test.dart"
       ],
       "dependencies": [
-        "bevy ECS resources",
-        "glam Vec2"
-      ]
-    },
-    {
-      "name": "own terrain viewer scene rendering and WFC generation",
-      "currentOwners": [
-        "crates/terrain_viewer/src/render.rs"
-      ],
-      "consumers": [
-        "terrain_viewer application setup",
-        "terrain_viewer mode systems"
-      ],
-      "dependencies": [
-        "terrain dual-grid and WFC APIs",
-        "engine render meshes and materials"
-      ]
-    },
-    {
-      "name": "own terrain viewer input, mode switching, HUD, and camera systems",
-      "currentOwners": [
-        "crates/terrain_viewer/src/systems.rs"
-      ],
-      "consumers": [
-        "terrain_viewer application setup",
-        "terrain_viewer behavior tests"
-      ],
-      "dependencies": [
-        "engine input state",
-        "terrain viewer state and rendering helpers"
+        "Flutter material widgets",
+        "TubePainter and tube pixel simulation",
+        "grain and inventory domain models"
       ]
     }
   ],
   "desired": {
     "ownership": [
       {
-        "responsibility": "own terrain viewer scene rendering and WFC generation",
-        "owner": "crates/terrain_viewer/src/render.rs"
+        "responsibility": "orchestrate map rendering, GPS tracking, fog, and vacuum behavior",
+        "owner": "mobile/gps_companion/lib/ui/map_screen.dart"
+      },
+      {
+        "responsibility": "render map HUD widgets and grain-packing indicators",
+        "owner": "mobile/gps_companion/lib/ui/map_hud.dart"
       }
     ],
-    "boundaries": []
+    "boundaries": [
+      {
+        "from": "orchestrate map rendering, GPS tracking, fog, and vacuum behavior",
+        "to": "render map HUD widgets and grain-packing indicators",
+        "allowed": true
+      }
+    ]
   }
 }
