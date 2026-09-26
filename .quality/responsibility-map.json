@@ -1,123 +1,148 @@
 {
   "targetScope": [
-    "crates/engine_scene"
+    "crates/engine_ui"
   ],
   "responsibilities": [
     {
-      "name": "maintain deterministic parent-child hierarchy state",
+      "name": "model serializable UI nodes, widgets, interaction state, and theme data",
       "currentOwners": [
-        "crates/engine_scene/src/hierarchy.rs::ChildOf records one parent entity",
-        "crates/engine_scene/src/hierarchy.rs::Children caches sorted child entities",
-        "crates/engine_scene/src/hierarchy.rs::hierarchy_maintenance_system rebuilds and removes stale caches"
+        "crates/engine_ui/src/widget/node.rs::UiNode stores size, anchor, margin, and optional background",
+        "crates/engine_ui/src/widget/button.rs::Button stores disabled state",
+        "crates/engine_ui/src/widget/panel.rs::Panel stores border configuration",
+        "crates/engine_ui/src/widget/progress_bar.rs::ProgressBar stores value and maximum",
+        "crates/engine_ui/src/widget/text.rs::Text stores text content and font settings",
+        "crates/engine_ui/src/interaction.rs::Interaction and FocusState store transient UI state",
+        "crates/engine_ui/src/theme.rs::UiTheme stores shared widget colors and font size",
+        "crates/engine_ui/src/ui_event.rs::UiEvent defines the public interaction event contract"
       ],
       "consumers": [
-        "crates/axiom2d/src/default_plugins.rs",
-        "crates/card_game/src/card/screen_device.rs",
-        "crates/card_game/src/stash/store.rs",
-        "crates/demo/src/scene.rs",
-        "crates/engine_audio/src/spatial.rs",
-        "crates/engine_ui/src/layout/system.rs",
-        "crates/engine_scene/tests"
-      ],
-      "dependencies": [
-        "bevy_ecs components, queries, removed-component tracking, local state, and commands",
-        "Entity ordering for deterministic Children vectors"
-      ]
-    },
-    {
-      "name": "propagate local transforms through the scene hierarchy",
-      "currentOwners": [
-        "crates/engine_scene/src/transform_propagation.rs::GlobalTransform2D stores world-space Affine2 values",
-        "crates/engine_scene/src/transform_propagation.rs::transform_propagation_system handles dirty roots and descendants",
-        "crates/engine_scene/src/transform_propagation.rs::propagate_to_children recursively composes descendant transforms"
-      ],
-      "consumers": [
-        "crates/axiom2d/src/default_plugins.rs",
-        "crates/card_game/src",
-        "crates/demo/src",
-        "crates/engine_audio/src/spatial.rs",
-        "crates/engine_ui/src",
+        "crates/axiom2d/src/prelude.rs",
         "crates/terrain_viewer/src/main.rs",
-        "crates/engine_scene/tests"
+        "crates/engine_ui/tests",
+        "crates/card_game/tests"
       ],
       "dependencies": [
-        "engine_core::prelude::Transform2D",
-        "glam::Affine2",
-        "ChildOf and Children hierarchy components",
-        "bevy_ecs change detection and deferred commands"
+        "bevy_ecs components and resources",
+        "engine_core color and pixel types",
+        "engine_scene GlobalTransform2D and EffectiveVisibility",
+        "serde serialization for persisted UI data"
       ]
     },
     {
-      "name": "derive effective visibility from local visibility and ancestors",
+      "name": "compute anchored and flex layout positions from scene hierarchy",
       "currentOwners": [
-        "crates/engine_scene/src/visibility.rs::Visible is the serialized local visibility input",
-        "crates/engine_scene/src/visibility.rs::EffectiveVisibility stores derived visibility",
-        "crates/engine_scene/src/visibility.rs::visibility_system and propagate_visibility update dirty descendants"
+        "crates/engine_ui/src/layout/anchor.rs::Anchor and anchor_offset define nine anchor placements",
+        "crates/engine_ui/src/layout/flex.rs::FlexLayout and compute_flex_offsets define row and column spacing",
+        "crates/engine_ui/src/layout/margin.rs::Margin stores per-edge spacing",
+        "crates/engine_ui/src/layout/system.rs::ui_layout_system writes child Transform2D positions"
+      ],
+      "consumers": [
+        "crates/engine_ui/tests/suite/layout_anchor.rs",
+        "crates/engine_ui/tests/suite/layout_flex.rs",
+        "crates/engine_ui/tests/suite/layout_system.rs",
+        "crates/engine_ui/tests/suite/widget_node.rs",
+        "crates/engine_ui/src/interaction.rs",
+        "crates/engine_ui/src/render.rs"
+      ],
+      "dependencies": [
+        "engine_scene Children and GlobalTransform2D hierarchy state",
+        "engine_core Transform2D",
+        "glam Vec2 arithmetic",
+        "bevy_ecs query and deferred hierarchy semantics"
+      ]
+    },
+    {
+      "name": "translate mouse state into UI hit testing, focus, and events",
+      "currentOwners": [
+        "crates/engine_ui/src/interaction.rs::ui_interaction_system drives per-entity hover, press, click, and focus transitions",
+        "crates/engine_ui/src/interaction.rs::hit_test and compute_interaction derive pointer state",
+        "crates/engine_ui/src/interaction.rs::update_focus emits focus transition events"
+      ],
+      "consumers": [
+        "crates/engine_ui/tests/suite/interaction.rs",
+        "crates/engine_ui/tests/suite/widget_button.rs",
+        "crates/engine_ui/src/prelude.rs"
+      ],
+      "dependencies": [
+        "engine_input MouseState and MouseButton",
+        "engine_scene EffectiveVisibility and GlobalTransform2D",
+        "UiNode anchor geometry",
+        "EventBus<UiEvent> and FocusState resource"
+      ]
+    },
+    {
+      "name": "queue, sort, cull, and render heterogeneous draw commands in one pass",
+      "currentOwners": [
+        "crates/engine_ui/src/draw_command.rs::DrawCommand and DrawQueue define the immediate-mode render contract",
+        "crates/engine_ui/src/unified_render.rs::collect_*_draws converts shapes, text, meshes, and sprites into sorted commands",
+        "crates/engine_ui/src/unified_render.rs::draw_commands applies material state and emits the sorted renderer calls",
+        "crates/engine_ui/src/unified_render.rs::unified_render_system drains the queue after the render phase"
       ],
       "consumers": [
         "crates/axiom2d/src/default_plugins.rs",
-        "crates/card_game/src",
+        "crates/card_game/src/card/rendering",
+        "crates/card_game/src/stash",
+        "crates/card_game/tests",
         "crates/demo/tests",
-        "crates/engine_ui/src",
-        "crates/engine_scene/tests"
+        "crates/engine_ui/tests/suite/unified_render.rs"
       ],
       "dependencies": [
-        "Visible local component and EffectiveVisibility derived component",
-        "ChildOf and Children hierarchy components",
-        "bevy_ecs change detection and deferred commands",
-        "serde for Visible serialization"
+        "engine_render renderer, materials, camera culling, fonts, shapes, and sprites",
+        "engine_scene RenderLayer, SortOrder, visibility, and transforms",
+        "DrawQueue insertion order as the deterministic tie breaker",
+        "GlyphCache and renderer material state caching"
       ]
     },
     {
-      "name": "provide stable render-layer and depth ordering",
+      "name": "render UI node backgrounds, text, and widget-specific primitives",
       "currentOwners": [
-        "crates/engine_scene/src/render_order.rs::RenderLayer defines coarse render bands",
-        "crates/engine_scene/src/render_order.rs::SortOrder stores assigned traversal order",
-        "crates/engine_scene/src/sort_propagation.rs::LocalSortOrder and hierarchy_sort_system order roots and descendants"
+        "crates/engine_ui/src/render.rs::ui_render_system draws node backgrounds",
+        "crates/engine_ui/src/text_render.rs::text_render_system measures, wraps, and draws Text",
+        "crates/engine_ui/src/widget/button.rs::button_render_system selects themed button colors",
+        "crates/engine_ui/src/widget/panel.rs::panel_render_system draws panel borders",
+        "crates/engine_ui/src/widget/progress_bar.rs::progress_bar_render_system draws clamped fills"
       ],
       "consumers": [
-        "crates/axiom2d/src/splash/render.rs",
-        "crates/card_game/src",
-        "crates/card_game_bin/src/main.rs",
-        "crates/demo/src/scene.rs",
-        "crates/engine_render/src",
-        "crates/engine_ui/src/unified_render.rs",
         "crates/terrain_viewer/src/main.rs",
-        "crates/engine_scene/tests"
+        "crates/engine_ui/tests/suite/render.rs",
+        "crates/engine_ui/tests/suite/text_render.rs",
+        "crates/engine_ui/tests/suite/widget_button.rs",
+        "crates/engine_ui/tests/suite/widget_panel.rs",
+        "crates/engine_ui/tests/suite/widget_progress_bar.rs"
       ],
       "dependencies": [
-        "bevy_ecs components and queries",
-        "engine_core::profiler::FrameProfiler",
-        "ChildOf and Children hierarchy components",
-        "serde for RenderLayer, SortOrder, and LocalSortOrder"
+        "engine_render RendererRes and font/rect helpers",
+        "engine_scene visibility and global transforms",
+        "UiNode anchor and size geometry",
+        "UiTheme and widget component state"
       ]
     },
     {
-      "name": "offer public scene convenience exports and child spawning",
+      "name": "expose the stable engine UI module and scheduling boundary",
       "currentOwners": [
-        "crates/engine_scene/src/spawn_child.rs::SpawnChildExt adds ChildOf while spawning a bundle",
-        "crates/engine_scene/src/prelude.rs re-exports the supported scene components and systems",
-        "crates/engine_scene/src/lib.rs defines the module boundary"
+        "crates/engine_ui/src/lib.rs::module declarations and is_hidden helper",
+        "crates/engine_ui/src/prelude.rs::supported public re-exports",
+        "crates/engine_ui/src/plugin.rs::UIPlugin marker configuration"
       ],
       "consumers": [
-        "crates/card_game/src",
-        "crates/demo/src/scene.rs",
-        "crates/engine_scene/tests",
-        "downstream crates importing engine_scene::prelude"
+        "crates/axiom2d/src/default_plugins.rs",
+        "crates/axiom2d/src/prelude.rs",
+        "crates/card_game/src/prelude.rs",
+        "downstream crates importing engine_ui::prelude"
       ],
       "dependencies": [
-        "bevy_ecs::World and Bundle",
-        "crate-local module paths",
-        "public API compatibility across engine_app, card_game, demo, engine_audio, engine_render, and engine_ui"
+        "crate-local module visibility and public API paths",
+        "axiom2d facade scheduling for PostRender unified rendering",
+        "engine crate dependency direction avoiding a UI-to-app cycle"
       ]
     }
   ],
   "findings": {
-    "scope": "The default scan covers 16 files with 11 errors and 119 warnings across 13 work units. Production contains 8 files with 5 errors and 44 warnings; tests contain 8 files with 6 errors and 75 warnings. The scoped report and units scan are restricted to crates/engine_scene.",
-    "architecture": "The scoped report found zero placement, similarity, dependency, cycle, encapsulation, configurable-data, or transitive-navigation findings, with zero architecture extraction errors. Cross-scope caller inspection found the public components and systems consumed by axiom2d, card_game, card_game_bin, demo, engine_audio, engine_render, engine_ui, and terrain_viewer.",
+    "scope": "The default scan covers 35 files with 55 errors and 244 warnings across 25 work units. Production contains 21 files with 12 errors and 86 warnings; tests contain 14 files with 43 errors and 158 warnings. The units and report artifacts are restricted to crates/engine_ui.",
+    "architecture": "The scoped report found zero placement, similarity, dependency, cycle, configurable-data, transitive-navigation, or extraction-error findings. Its 31 public-surface signals are fields on serialized ECS data and render-command records; cross-scope caller inspection found those records and systems consumed by axiom2d, card_game, demo, terrain_viewer, and engine_ui tests.",
     "decision": "no-safe-change",
-    "reason": "The three types-per-file errors are cohesive pairs: ChildOf and Children define one hierarchy contract, RenderLayer and SortOrder define one render-order contract, and Visible and EffectiveVisibility define one visibility contract. Splitting them would widen module paths and require compatibility re-exports without reducing responsibility. The recursive transform and visibility helpers take ECS queries, change trackers, and deferred commands that must share one traversal; wrapping those parameters in ad hoc context structs would add indirection without a clearer ownership seam. The duplicate blocks and long test files are behavior fixtures, not duplicated production ownership, and the wildcard imports and line-length findings are cosmetic. No DELETE, DEDUPE, SPLIT, SIMPLIFY, SIGNATURES, or COSMETIC source change is justified by this evidence.",
-    "behaviorEvidence": "The focused baseline `cargo test -p engine_scene --locked` passed 54 integration tests with zero failures. The full baseline `cargo test --workspace --locked` passed with zero failures; the only emitted warning was the existing empty terrain TSX asset notice. No UI smoke or hosted runner was used because engine_scene is headless ECS behavior.",
+    "reason": "The 5-type draw_command.rs file is one queue/command contract, and the 474-line unified_render.rs file is one sorted pass whose collectors and draw path share DrawCommand variants, sort keys, culling, material state, and glyph-cache lifetimes. Splitting either would add private plumbing and compatibility paths without a demonstrated responsibility seam. The 2-type interaction.rs file is one input/focus contract; widget and layout responsibilities are already separated by file. The 601-line interaction test and other long test files contain explicit behavior fixtures, while duplicate blocks are repeated ECS setup rather than duplicated production ownership. Remaining findings are cosmetic or signature heuristics. No DELETE, DEDUPE, SPLIT, SIMPLIFY, SIGNATURES, or COSMETIC source change is justified by this evidence.",
+    "behaviorEvidence": "The focused baseline `cargo test -p engine_ui --locked` passed 94 integration tests with zero failures. No running-app UI smoke was used because this slice changes no rendering or input source; the existing module tests exercise headless layout, interaction, widget, text, and unified-render behavior.",
     "replayBlocker": "Source-changing committed replay remains blocked solely by dod-guard#621: the bundled quality-guard gate requires the absent `.github/quality/quality-baseline.json` instead of this repository's `docs/QUALITY_BASELINE.ron`. No baseline or documentation file was created or edited."
   },
   "desired": {
