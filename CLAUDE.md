@@ -21,7 +21,7 @@ The card game's core implementation (Phases A–H2) is **complete** — physics 
 
 ### Before committing
 
-Run `cargo clean` periodically (e.g., weekly or when `target/` exceeds ~5 GB). The single-binary test consolidation keeps `target/` around 2.5 GB after a full build, but incremental caches still grow over time.
+Generated build output is bounded by policy: default dev/test and release profiles disable incremental caches, dependencies keep no debug information, and ordinary release output is stripped. Local UI smoke reuses `target/ui-smoke-local`; CI uses `target/ui-smoke-ci/run-<run>-<attempt>` and retains uploaded evidence for 14 days. Coverage overwrites `quality/coverage/` and retains its uploaded report for 14 days. Run `pwsh -NoProfile -File .\scripts\check-build-artifact-policy.ps1` to detect drift. Do not run `cargo clean` while retained UI or diagnostic failure evidence still needs review; it removes all `target/` output.
 
 ### Engine changes
 

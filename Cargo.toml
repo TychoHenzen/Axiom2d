@@ -83,6 +83,8 @@ opt-level = 0
 incremental = false    # deps don't change — skip incremental cache bloat
 
 [profile.release]
+debug = false          # keep ordinary release output free of debug sidecars
+incremental = false    # keep the size-focused release build bounded
 opt-level = "z"       # optimize for size ("z" measured 14% smaller than "s")
 lto = true            # full LTO — slower builds, smaller binary
 codegen-units = 1     # better optimization, slower compile

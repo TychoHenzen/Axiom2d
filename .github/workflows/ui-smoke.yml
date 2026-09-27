@@ -46,7 +46,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $scriptPath = Join-Path $env:GITHUB_WORKSPACE 'crates\card_game_bin\tests\ui-smoke.ps1'
-          $artifactRoot = Join-Path $env:GITHUB_WORKSPACE ("target\ui-smoke-ci-{0}-{1}" -f $env:GITHUB_RUN_ID, $env:GITHUB_RUN_ATTEMPT)
+          $artifactRoot = Join-Path $env:GITHUB_WORKSPACE 'target\ui-smoke-ci'
+          $runArtifactRoot = Join-Path $artifactRoot ("run-{0}-{1}" -f $env:GITHUB_RUN_ID, $env:GITHUB_RUN_ATTEMPT)
           $scenarios = @(
             [pscustomobject]@{ Name = 'default'; Flag = @() }
             [pscustomobject]@{ Name = 'interaction'; Flag = @('-Interaction') }
@@ -64,9 +65,9 @@ jobs:
             [pscustomobject]@{ Name = 'terrain-interaction'; Flag = @('-TerrainInteraction') }
             [pscustomobject]@{ Name = 'plugin-wiring'; Flag = @('-PluginWiring') }
           )
-          New-Item -ItemType Directory -Path $artifactRoot -Force | Out-Null
+          New-Item -ItemType Directory -Path $runArtifactRoot -Force | Out-Null
           foreach ($scenario in $scenarios) {
-            $artifactDirectory = Join-Path $artifactRoot $scenario.Name
+            $artifactDirectory = Join-Path $runArtifactRoot $scenario.Name
             $arguments = @(
               '-NoProfile'
               '-ExecutionPolicy'
@@ -90,5 +91,15 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: windows-ui-smoke-${{ github.run_id }}-${{ github.run_attempt }}
-          path: target/ui-smoke-ci-${{ github.run_id }}-${{ github.run_attempt }}/
+          path: target/ui-smoke-ci/run-${{ github.run_id }}-${{ github.run_attempt }}/
           if-no-files-found: warn
+          retention-days: 14
+
+      - name: Retain failed evidence and prune successful runs
+        if: always()
+        shell: powershell
+        run: |
+          & "$env:GITHUB_WORKSPACE\scripts\retain-build-artifacts.ps1" `
+            -Root "$env:GITHUB_WORKSPACE\target\ui-smoke-ci" `
+            -CurrentRun "$env:GITHUB_WORKSPACE\target\ui-smoke-ci\run-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT" `
+            -KeepSuccessful 3

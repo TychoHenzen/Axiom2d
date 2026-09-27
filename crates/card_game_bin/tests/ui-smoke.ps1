@@ -30,7 +30,7 @@ elseif (-not [string]::IsNullOrWhiteSpace($ArtifactDirectory)) {
     [System.IO.Path]::GetFullPath($ArtifactDirectory)
 }
 else {
-    Join-Path $repoRoot (Join-Path 'target' ("ui-smoke-{0}" -f [guid]::NewGuid().ToString('N')))
+    Join-Path $repoRoot 'target\ui-smoke-local'
 }
 $runnerTerminalPath = Join-Path $artifactDir 'runner.terminal.txt'
 
