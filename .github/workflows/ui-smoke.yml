@@ -94,3 +94,12 @@ jobs:
           path: target/ui-smoke-ci/run-${{ github.run_id }}-${{ github.run_attempt }}/
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Retain failed evidence and prune successful runs
+        if: always()
+        shell: powershell
+        run: |
+          & "$env:GITHUB_WORKSPACE\scripts\retain-build-artifacts.ps1" `
+            -Root "$env:GITHUB_WORKSPACE\target\ui-smoke-ci" `
+            -CurrentRun "$env:GITHUB_WORKSPACE\target\ui-smoke-ci\run-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT" `
+            -KeepSuccessful 3
