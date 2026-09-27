@@ -80,6 +80,7 @@ if ($null -ne $cargo) {
 Require-Pattern -Label 'Cargo target root' -Text $config -Pattern '(?m)^\s*target-dir\s*=\s*"target"'
 Require-Pattern -Label 'ordinary release command' -Text $release -Pattern 'cargo\s+build\s+--release'
 Require-Pattern -Label 'release sidecar guard' -Text $release -Pattern 'debugSidecars'
+Require-Pattern -Label 'release sidecar cleanup' -Text $release -Pattern 'Remove-Item\s+-LiteralPath\s+\$sidecar\.FullName\s+-Force'
 Require-Pattern -Label 'profiling command' -Text $profiling -Pattern 'cargo\.exe\s+build\s+--profile\s+profiling'
 Require-Pattern -Label 'local UI smoke root' -Text $uiSmoke -Pattern 'target\\ui-smoke-local'
 Require-Pattern -Label 'UI smoke CI root' -Text $uiWorkflow -Pattern 'target\\ui-smoke-ci'

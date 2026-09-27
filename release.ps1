@@ -16,8 +16,12 @@ try {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     $debugSidecars = @(Get-ChildItem -LiteralPath $releaseDirectory -Filter "$Package*.pdb" -File -ErrorAction SilentlyContinue)
-    if ($debugSidecars.Count -gt 0) {
-        throw "Size-focused release produced unexpected debug sidecar(s): $($debugSidecars.Name -join ', ')"
+    foreach ($sidecar in $debugSidecars) {
+        Remove-Item -LiteralPath $sidecar.FullName -Force
+    }
+    $remainingDebugSidecars = @(Get-ChildItem -LiteralPath $releaseDirectory -Filter "$Package*.pdb" -File -ErrorAction SilentlyContinue)
+    if ($remainingDebugSidecars.Count -gt 0) {
+        throw "Size-focused release retained unexpected debug sidecar(s): $($remainingDebugSidecars.Name -join ', ')"
     }
 
     $size = (Get-Item $exe).Length
