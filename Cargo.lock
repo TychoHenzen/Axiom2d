@@ -224,12 +224,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "base64"
-version = "0.22.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
-
-[[package]]
 name = "bevy_ecs"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -514,7 +508,7 @@ dependencies = [
  "proptest",
  "rand",
  "rand_chacha",
- "ron 0.9.0",
+ "ron",
  "serde",
  "serde_json",
  "terrain",
@@ -984,7 +978,7 @@ version = "0.1.0"
 dependencies = [
  "bevy_ecs",
  "proptest",
- "ron 0.9.0",
+ "ron",
  "serde",
  "thiserror 2.0.18",
 ]
@@ -1000,7 +994,7 @@ dependencies = [
  "fundsp",
  "glam 0.30.10",
  "proptest",
- "ron 0.9.0",
+ "ron",
  "serde",
  "tracing",
 ]
@@ -1013,7 +1007,7 @@ dependencies = [
  "criterion",
  "glam 0.30.10",
  "proptest",
- "ron 0.9.0",
+ "ron",
  "serde",
  "thiserror 2.0.18",
 ]
@@ -1045,7 +1039,7 @@ dependencies = [
  "glam 0.30.10",
  "insta",
  "rapier2d",
- "ron 0.9.0",
+ "ron",
  "serde",
  "thiserror 2.0.18",
  "tracing",
@@ -1069,7 +1063,7 @@ dependencies = [
  "naga",
  "pollster",
  "proptest",
- "ron 0.9.0",
+ "ron",
  "serde",
  "thiserror 2.0.18",
  "tracing",
@@ -1086,7 +1080,7 @@ dependencies = [
  "engine_core",
  "glam 0.30.10",
  "proptest",
- "ron 0.9.0",
+ "ron",
  "serde",
 ]
 
@@ -1101,7 +1095,7 @@ dependencies = [
  "engine_scene",
  "glam 0.30.10",
  "proptest",
- "ron 0.9.0",
+ "ron",
  "serde",
 ]
 
@@ -1709,7 +1703,7 @@ checksum = "86f0f8fee8c926415c58d6ae43a08523a26faccb2323f5e6b644fe7dd4ef6b82"
 dependencies = [
  "console",
  "once_cell",
- "ron 0.12.2",
+ "ron",
  "serde",
  "similar",
  "tempfile",
@@ -3091,19 +3085,6 @@ name = "robust"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e27ee8bb91ca0adcf0ecb116293afa12d393f9c2b9b9cd54d33e8078fe19839"
-
-[[package]]
-name = "ron"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63f3aa105dea217ef30d89581b65a4d527a19afc95ef5750be3890e8d3c5b837"
-dependencies = [
- "base64",
- "bitflags 2.13.0",
- "serde",
- "serde_derive",
- "unicode-ident",
-]
 
 [[package]]
 name = "ron"
