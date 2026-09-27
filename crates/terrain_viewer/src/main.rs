@@ -13,8 +13,8 @@ use terrain::{TerrainMaterials, TerrainShader};
 
 use render::spawn_viewer_scene;
 use state::{
-    CameraDragState, GridTileEntities, HudTextEntity, ModeSwitchRequested, SelectedTerrain,
-    TerrainQuadEntity, ViewerMode, WfcGenerateRequested, WfcState,
+    CameraDragState, GridTileEntities, ModeSwitchRequested, SelectedTerrain, ViewerMode,
+    WfcGenerateRequested, WfcState,
 };
 use systems::{
     camera_drag_system, camera_zoom_system, hud_update_system, mode_switch_system,
@@ -86,6 +86,8 @@ mod tests {
     use glam::Vec2;
     use terrain::dual_grid::DualGrid;
     use terrain::material::{TerrainId, default_materials};
+
+    use crate::state::{HudTextEntity, TerrainQuadEntity};
 
     use crate::render::{
         build_quad_mesh, build_single_material_uniform, build_tile_uniform, format_hud,
