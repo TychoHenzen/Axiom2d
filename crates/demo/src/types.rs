@@ -18,9 +18,6 @@ pub struct SynodicFrame;
 #[derive(Component)]
 pub struct OrbitalSpeed(pub f32);
 
-pub const EARTH_POSITION: Vec2 = Vec2::ZERO;
-pub const MOON_POSITION: Vec2 = EARTH_POSITION;
-pub const SUN_POSITION: Vec2 = EARTH_POSITION;
 pub const EARTH_COLOR: Color = Color {
     r: 0.20,
     g: 0.52,

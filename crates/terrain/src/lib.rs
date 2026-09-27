@@ -1,6 +1,7 @@
 pub mod dual_grid;
 pub mod material;
 pub mod prelude;
+pub mod quad_grid;
 pub mod shader;
 pub mod tile_def;
 pub mod wfc;
