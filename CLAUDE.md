@@ -21,7 +21,7 @@ The card game's core implementation (Phases A–H2) is **complete** — physics 
 
 ### Before committing
 
-Generated build output is bounded by policy: default dev/test and release profiles disable incremental caches, dependencies keep no debug information, and ordinary release output is stripped. Local UI smoke reuses `target/ui-smoke-local`; CI uses `target/ui-smoke-ci/run-<run>-<attempt>` and retains uploaded evidence for 14 days. Coverage overwrites `quality/coverage/` and retains its uploaded report for 14 days. Run `pwsh -NoProfile -File .\scripts\check-build-artifact-policy.ps1` to detect drift, and use `cargo clean` only for generated Cargo output when `target/` needs reclamation.
+Generated build output is bounded by policy: default dev/test and release profiles disable incremental caches, dependencies keep no debug information, and ordinary release output is stripped. Local UI smoke reuses `target/ui-smoke-local`; CI uses `target/ui-smoke-ci/run-<run>-<attempt>` and retains uploaded evidence for 14 days. Coverage overwrites `quality/coverage/` and retains its uploaded report for 14 days. Run `pwsh -NoProfile -File .\scripts\check-build-artifact-policy.ps1` to detect drift. Do not run `cargo clean` while retained UI or diagnostic failure evidence still needs review; it removes all `target/` output.
 
 ### Engine changes
 
