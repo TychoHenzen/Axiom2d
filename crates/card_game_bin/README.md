@@ -6,7 +6,9 @@ Run the native UI drag smoke from an interactive Windows desktop session:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\crates\card_game_bin\tests\ui-smoke.ps1
 ```
 
-The script builds the test-only observer, launches the real game, sends HWND-targeted native Windows `PostMessageW` pointer messages to its Winit window with `SWP_NOACTIVATE`, and checks the seeded face-down card's drag state and rendered position. It requires an interactive Windows desktop but stays background-only: it never activates the game or moves the desktop cursor. Successful runs capture the client frame and state under `target/ui-smoke-*`; failures retain logs and available state/frame evidence. Normal builds do not enable the observer.
+The script builds the test-only observer, launches the real game, sends HWND-targeted native Windows `PostMessageW` pointer messages to its Winit window with `SWP_NOACTIVATE`, and checks the seeded face-down card's drag state and rendered position. It requires an interactive Windows desktop but stays background-only: it never activates the game or moves the desktop cursor. Successful local runs reuse `target/ui-smoke-local`; failures retain logs and available state/frame evidence there. Pass `-ArtifactDirectory` when a failure must remain isolated for review. Normal builds do not enable the observer.
+
+The storage boundary is deliberate: local success output is one replaceable run, CI output is isolated under `target/ui-smoke-ci/run-<run>-<attempt>`, and the workflow uploads it for 14 days. The explicit `profiling` profile and `release-debuggable` profile remain opt-in and keep their diagnostic symbols.
 
 ## Supported CI runner
 

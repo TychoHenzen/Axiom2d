@@ -121,6 +121,7 @@ jobs:
         with:
           name: coverage-report
           path: quality/coverage/
+          retention-days: 14
 
   complexity:
     runs-on: ubuntu-latest

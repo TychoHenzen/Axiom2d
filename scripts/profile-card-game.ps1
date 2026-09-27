@@ -23,6 +23,7 @@ if ($null -eq (Get-Command "cargo.exe" -ErrorAction SilentlyContinue)) {
 
 Push-Location $repoRoot
 try {
+    Write-Host "Building card_game_bin (profile=profiling, target=$exePath)..." -ForegroundColor Cyan
     & cargo.exe build --profile profiling -p card_game_bin
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
