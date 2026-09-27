@@ -10,6 +10,17 @@ The script builds the test-only observer, launches the real game, sends HWND-tar
 
 The storage boundary is deliberate: local success output is one replaceable run, CI output is isolated under `target/ui-smoke-ci/run-<run>-<attempt>`, and the workflow uploads it for 14 days. The explicit `profiling` profile and `release-debuggable` profile remain opt-in and keep their diagnostic symbols.
 
+Build profile commands:
+
+```powershell
+cargo build --release -p card_game_bin --locked
+cargo build --profile release-debuggable -p card_game_bin --locked
+cargo build --profile profiling -p card_game_bin --locked
+cargo bench --workspace --locked
+```
+
+Use `release.ps1 -SkipUpx` for the ordinary stripped binary, and `scripts/profile-card-game.ps1` when the profiling build should be launched through `samply`.
+
 ## Supported CI runner
 
 `.github/workflows/ui-smoke.yml` runs the wrapper on an administrator-provisioned self-hosted Windows runner labeled `self-hosted`, `windows`, `x64`, and `ui-desktop`. The runner must provide an interactive desktop session (not Session 0), the Rust 1.94.0 MSVC toolchain, and a DX12-capable GPU. Hosted Ubuntu runners and Xvfb are not substitutes for this Winit boundary.
