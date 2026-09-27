@@ -38,6 +38,7 @@ mutants.out.old/
 # Quality CI output (coverage, dup reports — only tracking docs are versioned)
 quality/coverage/
 quality/duplicates/
+.quality/quality-report.raw.json
 
 # Worktrees
 .worktrees/

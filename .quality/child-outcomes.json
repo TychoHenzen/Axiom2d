@@ -1,0 +1,365 @@
+{
+  "schemaVersion": 1,
+  "parentPbi": 12,
+  "children": [
+    {
+      "child": 47,
+      "scope": "crates/axiom2d",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "d899f4d93e3127f79f2f9615c3c25f8963b778d6",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "Scoped default scan covered 15 files and 156 findings; the candidate hook-scheduling split could not be validated by the authoritative unit marker, so no behavior-preserving source change was justified.",
+      "verification": [
+        "cargo test -p axiom2d --locked: 56 passed",
+        "cargo test --workspace --locked: passed",
+        "Staged and committed Quality Guard: PASS, changedSourcePaths=[]"
+      ]
+    },
+    {
+      "child": 48,
+      "scope": "crates/card_game",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "738d110479627a9b02991b22b80bbefeb963086a",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "Scoped default scans covered 184 files and 5,055 findings; dead-export candidates were generated or supported API surface and no single behavior-preserving cleanup was justified.",
+      "verification": [
+        "cargo test -p card_game --locked: 917 passed",
+        "cargo test --workspace --locked: passed",
+        "Staged and committed Quality Guard: PASS, changedSourcePaths=[]"
+      ]
+    },
+    {
+      "child": 49,
+      "scope": "crates/card_game_bin",
+      "outcome": "SPLIT",
+      "commit": "4a6d6eed3c7f827391154f3e0a58d58844c57789",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json",
+        "crates/card_game_bin/src/main.rs",
+        "crates/card_game_bin/src/ui_test_state/mod.rs"
+      ],
+      "evidence": "The feature-gated UI-test snapshot collector owns a separate responsibility from normal runtime bootstrap, so it moved behind a private module without changing the public or user-visible behavior.",
+      "verification": [
+        "cargo test -p card_game_bin --features ui-test --locked: passed",
+        "cargo fmt --all -- --check: passed",
+        "cargo test --workspace --locked: passed",
+        "Local Windows seeded-card-drag UI smoke: passed"
+      ]
+    },
+    {
+      "child": 50,
+      "scope": "crates/demo",
+      "outcome": "DELETE",
+      "commit": "0faebca242773da55ac808c34a6a489fc33d8ac2",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json",
+        "crates/demo/src/types.rs"
+      ],
+      "evidence": "Repository-wide caller search found no uses of the three position exports, and the scoped report removed all dead-export findings after deletion.",
+      "verification": [
+        "cargo test -p demo --locked: 40 passed",
+        "cargo test --workspace --locked: passed",
+        "Pre-commit soft ratchet: passed"
+      ]
+    },
+    {
+      "child": 51,
+      "scope": "crates/engine_app",
+      "outcome": "SPLIT_SIMPLIFY",
+      "commit": "73d39e72f01b469717c98705ca40b79c49d23c59",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json",
+        "crates/engine_app/src/app.rs",
+        "crates/engine_app/src/lib.rs",
+        "crates/engine_app/src/phase.rs"
+      ],
+      "evidence": "Frame phase dispatch and profiling became a private phase boundary; the scoped scan removed the handle_redraw complexity error while preserving public APIs and native event translation.",
+      "verification": [
+        "cargo fmt --all -- --check: passed",
+        "cargo test -p engine_app --locked: 37 passed",
+        "cargo test --workspace --locked: passed"
+      ]
+    },
+    {
+      "child": 52,
+      "scope": "crates/engine_assets",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "cda5b7e0fc03a983aa0fd2792372154ff4ec205d",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "The scoped 5-file scan identified tightly coupled asset error/entry/server types and trait-mandated output parameters; splitting them would add modules without a responsibility or behavior benefit.",
+      "verification": [
+        "cargo test -p engine_assets --locked: 14 passed",
+        "cargo test --workspace --locked: passed",
+        "cargo fmt --all -- --check and git diff --check: passed",
+        "Staged Quality Guard: PASS, changedSourcePaths=[]"
+      ]
+    },
+    {
+      "child": 53,
+      "scope": "crates/engine_audio",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "2a140af5a1f7c908cac4b2707fd98721ba483877",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "The scoped 30-file review found no justified ownership split; the remaining structural limitation is the tuple-struct PlaybackId parser boundary and no production API or behavior changed.",
+      "verification": [
+        "cargo fmt --all -- --check: passed",
+        "cargo test -p engine_audio --locked: 82 passed",
+        "git diff --cached --check: passed",
+        "Staged Quality Guard: PASS, changedSourcePaths=[]"
+      ]
+    },
+    {
+      "child": 54,
+      "scope": "crates/engine_core",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "c89c1f292944e325dac74157dcde5562a864af96",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "The scoped 24-file review found apparent exports consumed downstream and cohesive public type pairs; no DELETE, SPLIT, signature, or cosmetic source change was justified.",
+      "verification": [
+        "cargo test -p engine_core --locked -- --test-threads=1: 62 passed",
+        "cargo fmt -p engine_core -- --check and git diff --check: passed",
+        "Staged Quality Guard: PASS, changedSourcePaths=[]"
+      ]
+    },
+    {
+      "child": 55,
+      "scope": "crates/engine_ecs",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "c289b30af14d30b59968c3c89e125bc81e9ff522",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "The only production finding is the ordered 19-way Phase::name match; replacing it with a parallel lookup would duplicate the frozen phase contract and add synchronization risk.",
+      "verification": [
+        "cargo test -p engine_ecs --test schedule --locked -- --test-threads=1: 3 passed",
+        "cargo test --workspace --locked: passed",
+        "cargo fmt -p engine_ecs -- --check and git diff --check: passed",
+        "Staged and committed Quality Guard: PASS, changedSourcePaths=[]"
+      ]
+    },
+    {
+      "child": 56,
+      "scope": "crates/engine_input",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "1ea91ee0d7cb83787092cb32f22a0cb68869cc5c",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "The scoped 21-file scan found required public mappings plus low-risk test and cosmetic findings; responsibility evidence did not justify production source churn.",
+      "verification": [
+        "cargo test -p engine_input --locked -- --test-threads=1: 78 passed",
+        "cargo fmt --all -- --check and git diff --check: passed",
+        "Pre-commit soft ratchet: passed",
+        "Staged and committed Quality Guard: PASS, changedSourcePaths=[]"
+      ]
+    },
+    {
+      "child": 57,
+      "scope": "crates/engine_physics",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "9a18f1cc749cfa7f400aeee6c3bb4699074c618a",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "The scoped 25-file review found Rapier adapter repetition, trait-required no-ops, ordered dispatch, and test duplication without a behavior-preserving source change.",
+      "verification": [
+        "cargo test -p engine_physics --test main --locked -- --test-threads=1: 102 passed",
+        "cargo test --workspace --locked: passed",
+        "cargo fmt --all -- --check and git diff --check: passed",
+        "Staged and committed Quality Guard: PASS, changedSourcePaths=[]"
+      ]
+    },
+    {
+      "child": 58,
+      "scope": "crates/engine_render",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "c0b94cb865b467af3ca4a48ee6c4c261f9d2d20a",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "The scoped 56-file review found a public Renderer contract with cross-crate consumers and coupled WGPU/fallback/test responsibilities; scanner counts did not justify source churn.",
+      "verification": [
+        "WGPU_BACKEND=vulkan cargo test -p engine_render --test main --locked -- --test-threads=1: 232 passed",
+        "cargo test --workspace --locked: passed",
+        "cargo fmt --all -- --check and git diff --check: passed",
+        "Staged and committed Quality Guard: PASS, changedSourcePaths=[]"
+      ]
+    },
+    {
+      "child": 59,
+      "scope": "crates/engine_scene",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "876b19ef9dad7531000147e2f5ec8b56728b0850",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "The scoped 16-file review found cohesive public type pairs, ECS traversal plumbing, and repeated test fixtures; no DELETE, DEDUPE, SPLIT, SIMPLIFY, SIGNATURES, or COSMETIC source change was justified.",
+      "verification": [
+        "cargo test -p engine_scene --locked: 54 passed",
+        "cargo test --workspace --locked: passed",
+        "Staged and committed Quality Guard: PASS, changedSourcePaths=[]"
+      ]
+    },
+    {
+      "child": 60,
+      "scope": "crates/engine_ui",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "0535bb364a9b35c2fd0cfb1b9f2b34754f26e872",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "The scoped 35-file review found unified render-pass and draw-queue ownership plus fixture-only test repetition; no safe source outcome was justified.",
+      "verification": [
+        "cargo test -p engine_ui --locked: 94 passed",
+        "cargo test --workspace --locked: passed",
+        "cargo fmt --all -- --check and git diff --check: passed",
+        "Staged and committed Quality Guard: PASS, changedSourcePaths=[]"
+      ]
+    },
+    {
+      "child": 61,
+      "scope": "crates/particle_poc",
+      "outcome": "SPLIT",
+      "commit": "9bea41537d4d2f1c4d9051eaf05874ca4bb155bc",
+      "changedFiles": [
+        ".quality/quality-report.json",
+        ".quality/quality-report.raw.json",
+        ".quality/responsibility-map.json",
+        ".quality/units.json",
+        "crates/particle_poc/src/lib.rs",
+        "crates/particle_poc/src/sdf.rs"
+      ],
+      "evidence": "The pure SDF distance-field helpers moved into a private module while root re-exports preserved callers and the supported API.",
+      "verification": [
+        "cargo test -p particle_poc --locked: 1 unit + 19 integration passed",
+        "cargo test --workspace --locked: passed",
+        "Quality Guard replay recorded the missing repository baseline blocker"
+      ]
+    },
+    {
+      "child": 62,
+      "scope": "crates/terrain",
+      "outcome": "SPLIT",
+      "commit": "8b28bc53e936edf8f67bcdb41089a4cb92c117a8",
+      "changedFiles": [
+        ".quality/responsibility-map.json",
+        "crates/terrain/src/lib.rs",
+        "crates/terrain/src/quad_grid.rs",
+        "crates/terrain/src/tile_def.rs"
+      ],
+      "evidence": "QuadGrid owns its own module, module wiring was added, and the terrain::tile_def::QuadGrid re-export preserved the existing API.",
+      "verification": [
+        "cargo fmt --all -- --check: passed",
+        "cargo test -p terrain --locked: 36 passed",
+        "cargo test --workspace --locked: passed"
+      ]
+    },
+    {
+      "child": 63,
+      "scope": "crates/terrain_viewer",
+      "outcome": "SPLIT",
+      "commit": "38b71cf490881a9d15c4fe5241fef3745b061a0c",
+      "changedFiles": [
+        ".quality/responsibility-map.json",
+        "crates/terrain_viewer/src/main.rs",
+        "crates/terrain_viewer/src/render.rs",
+        "crates/terrain_viewer/src/state.rs",
+        "crates/terrain_viewer/src/systems.rs"
+      ],
+      "evidence": "Rendering/WFC, viewer resources, and input/mode/HUD/camera systems now have separate owners while main.rs remains the entry point.",
+      "verification": [
+        "cargo fmt --all -- --check: passed",
+        "cargo test -p terrain_viewer --locked: 4 passed",
+        "cargo test --workspace --locked: passed"
+      ]
+    },
+    {
+      "child": 64,
+      "scope": "mobile/gps_companion",
+      "outcome": "SPLIT",
+      "commit": "fe0fffa1f67caedd08c5814dbcf425fdf03608ee",
+      "changedFiles": [
+        ".quality/responsibility-map.json",
+        "mobile/gps_companion/lib/ui/map_hud.dart",
+        "mobile/gps_companion/lib/ui/map_screen.dart",
+        "mobile/gps_companion/test/ui/grain_hud_test.dart"
+      ],
+      "evidence": "Map HUD widgets have a separate ownership module; map_screen.dart retains its HUD exports and behavior, and the test now exercises the extracted MapHud path.",
+      "verification": [
+        "flutter analyze: passed",
+        "flutter test --coverage: passed; LCOV 861/1360 lines hit (63.31%)",
+        "dart format --set-exit-if-changed .: passed"
+      ]
+    },
+    {
+      "child": 65,
+      "scope": "tools/",
+      "outcome": "NO_SAFE_CHANGE",
+      "commit": "dac5f03dcaa64b018648d5c0a2ee9f71263b3658",
+      "changedFiles": [
+        ".quality/responsibility-map.json",
+        ".quality/units.json"
+      ],
+      "evidence": "Scoped responsibility and Quality Guard evidence did not justify a behavior-preserving tools source change; the child records the explicit no-safe-change result.",
+      "verification": [
+        "Separate tools workspace: 270 tests passed",
+        "Line coverage: 71.33%",
+        "Scoped scan and Quality Guard: PASS"
+      ]
+    },
+    {
+      "child": 66,
+      "scope": "scripts/",
+      "outcome": "DELETE",
+      "commit": "2079e2dc6c89de89dfa89e6a320a3a9336bb2c19",
+      "changedFiles": [
+        "scripts/micro-mutations.sh"
+      ],
+      "evidence": "The dead git-log churn pass had no required caller in the script workflow and was removed without widening script behavior.",
+      "verification": [
+        "Shell checks: passed",
+        "PowerShell checks: passed",
+        "Diff checks: passed",
+        "Quality Guard: PASS"
+      ]
+    }
+  ]
+}
